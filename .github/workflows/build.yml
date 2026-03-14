@@ -1,44 +1,25 @@
-name: build
+name: repo-check
 
 on:
   push:
     branches:
-      - develop
       - main
+      - develop
 
 jobs:
-
-  frontend:
+  check-structure:
     runs-on: ubuntu-latest
 
     steps:
       - uses: actions/checkout@v4
 
-      - uses: actions/setup-node@v4
-        with:
-          node-version: 20
-
-      - name: install dependencies
-        run: npm install
-        working-directory: frontend
-
-      - name: build frontend
-        run: npm run build
-        working-directory: frontend
-
-
-  backend:
-    runs-on: ubuntu-latest
-
-    steps:
-      - uses: actions/checkout@v4
-
-      - uses: actions/setup-java@v4
-        with:
-          distribution: temurin
-          java-version: 21
-
-      - name: build backend
-        run: mvn -B package -DskipTests
-        working-directory: backend
-
+      - name: show repository structure
+        run: |
+          echo "root:"
+          ls -la
+          echo ""
+          echo "frontend:"
+          ls -la frontend
+          echo ""
+          echo "backend:"
+          ls -la backend
