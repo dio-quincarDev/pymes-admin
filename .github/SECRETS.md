@@ -30,14 +30,14 @@ Este documento lista todos los secrets que debes configurar en GitHub para que l
 
 | Secret Name | Descripción | Ejemplo |
 |-------------|-------------|---------|
-| `STAGING_HOST` | IP pública del servidor de staging | `129.150.123.45` |
+| `STAGING_HOST` | IP pública del servidor de staging | `<TU_IP_OCI>` |
 | `STAGING_USER` | Usuario SSH del servidor | `ubuntu` |
 | `STAGING_SSH_KEY` | Llave privada SSH (contenido completo) | `-----BEGIN OPENSSH PRIVATE KEY-----...` |
 
 **Cómo obtener STAGING_SSH_KEY:**
 ```bash
 # Copia el contenido completo de tu llave privada
-cat ~/.ssh/id_ed25519
+cat ~/.ssh/<TU_LLAVE_PRIVADA>
 # Copia TODO el output (incluye BEGIN y END)
 ```
 
@@ -47,7 +47,7 @@ cat ~/.ssh/id_ed25519
 
 | Secret Name | Descripción | Ejemplo |
 |-------------|-------------|---------|
-| `PROD_HOST` | IP pública del servidor de producción | `129.150.123.46` |
+| `PROD_HOST` | IP pública del servidor de producción | `<TU_IP_PROD>` |
 | `PROD_USER` | Usuario SSH del servidor | `ubuntu` |
 | `PROD_SSH_KEY` | Llave privada SSH para producción | `-----BEGIN OPENSSH PRIVATE KEY-----...` |
 
@@ -58,11 +58,11 @@ cat ~/.ssh/id_ed25519
 ```
 DOCKER_USERNAME       → Usuario Docker Hub
 DOCKER_PASSWORD       → Token Docker Hub
-STAGING_HOST          → IP Staging
-STAGING_USER          → SSH User Staging
+STAGING_HOST          → IP Staging (Oracle Cloud)
+STAGING_USER          → SSH User Staging (ubuntu)
 STAGING_SSH_KEY       → SSH Key Staging
-PROD_HOST             → IP Producción
-PROD_USER             → SSH User Producción
+PROD_HOST             → IP Producción (Oracle Cloud)
+PROD_USER             → SSH User Producción (ubuntu)
 PROD_SSH_KEY          → SSH Key Producción
 ```
 
@@ -76,14 +76,14 @@ PROD_SSH_KEY          → SSH Key Producción
 2. **Compute** → **Instances** → **Create Instance**
 3. Selecciona:
    - Image: **Ubuntu 22.04** o **24.04**
-   - Shape: **VM.Standard.E2.1.Micro** (Free Tier)
-   - SSH Keys: Sube tu llave pública (`~/.ssh/id_ed25519.pub`)
+   - Shape: **VM.Standard.A1.Flex** (Free Tier - ARM) o **VM.Standard.E2.1.Micro** (Free Tier - AMD)
+   - SSH Keys: Sube tu llave pública
 
 ### 2. Configurar el servidor
 
 ```bash
 # Conéctate a tu instancia
-ssh -i ~/.ssh/id_ed25519 ubuntu@<IP_PUBLICA>
+ssh -i ~/.ssh/<TU_LLAVE> ubuntu@<TU_IP_PUBLICA>
 
 # Instalar Docker
 curl -fsSL https://get.docker.com -o get-docker.sh
@@ -104,7 +104,7 @@ docker compose version
 ### 3. Clonar el repositorio
 
 ```bash
-git clone https://github.com/tu-usuario/pymes-admin.git ~/pymes-admin
+git clone https://github.com/dio-quincarDev/pymes-admin.git ~/pymes-admin
 cd ~/pymes-admin
 
 # Configurar variables de entorno
@@ -146,11 +146,15 @@ Después de configurar los secrets, puedes verificar que todo está correcto:
 
 | Problema | Solución |
 |----------|----------|
-| `Permission denied (publickey)` | Verifica que la SSH key esté bien copiada (incluye BEGIN/END) |
-| `docker: command not found` | Instala Docker en el servidor |
+| `Permission denied (publickey)` | Verifica que STAGING_SSH_KEY tenga el contenido completo de la llave privada |
+| `docker: command not found` | Ejecuta `newgrp docker` en el servidor |
+| `Connection timed out` | Verifica Security List en Oracle Cloud Console |
 | `unauthorized: authentication required` | Verifica DOCKER_USERNAME y DOCKER_PASSWORD |
-| `Connection refused` | Revisa que el Security List tenga los puertos abiertos |
 
 ---
 
-*Última actualización: Marzo 2026*
+<div align="center">
+
+**PyMes Admin** - Secrets Documentation 🔐
+
+</div>

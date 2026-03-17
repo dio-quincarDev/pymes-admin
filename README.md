@@ -1,20 +1,123 @@
-# PyMes Admin - CI/CD Setup
+# PyMes Admin - SaaS Financial Management Platform 🚀
 
-> Toolkit para administrar PyMes y pequeños negocios
+> **Sistema de Gestión Financiera con IA para PYMEs**  
+> Multi-tenant SaaS platform con toolkit de contabilidad forense impulsado por IA
 
 ---
 
-## 📋 Estado Actual del Proyecto
+## 📋 Estado del Proyecto
 
 | Componente | Estado | Tecnología |
 |------------|--------|------------|
 | **Backend Auth** | ✅ Configurado | Java 21 + Spring Boot 3.4.3 |
-| **Frontend** | ✅ Configurado | Quasar 2 + Vue 3 + TypeScript |
-| **Database** | ✅ Configurado | PostgreSQL 15 |
+| **Frontend** | ✅ Configurado | Quasar 2 + Vue 3 + TypeScript (PWA) |
+| **Database** | ✅ Configurado | PostgreSQL 15 (multi-tenant ready) |
 | **Cache** | ✅ Configurado | Redis 7 |
-| **CI/CD** | 🟡 Staging Listo | GitHub Actions |
-| **Deploy Staging** | 📝 Pendiente | Oracle Cloud (149.130.165.200) |
-| **Deploy Producción** | ⏸️ Pendiente | Oracle Cloud Free Tier |
+| **CI/CD Staging** | ✅ Configurado | GitHub Actions + OCI Free Tier |
+| **CI/CD Producción** | ⏳ Pendiente | Oracle Cloud Free Tier |
+| **IA Toolkit** | 📝 En planificación | Python + FastAPI + Claude API |
+
+---
+
+## 🎯 Visión del Producto
+
+### De MVP a SaaS Platform
+
+**Modelo de Negocio:**
+- **Básico** - $15/mes: Core features, 1 usuario, 100 transacciones/mes
+- **Profesional** - $40/mes: Análisis avanzados, 3 usuarios, transacciones ilimitadas
+- **Enterprise** - $80/mes: **IA Toolkit completo**, usuarios ilimitados, API access
+
+**Diferenciadores Clave:**
+| Característica | PyMes Admin | Competencia |
+|---|---|---|
+| Escaneo QR facturas | ✅ PWA nativo | ❌ Manual |
+| IA Contabilidad Forense | ✅ Incluida | ❌ $200+/mes |
+| Asistente Conversacional | ✅ Claude API | ❌ Inexistente |
+| Precio PYME LATAM | ✅ Desde $15/mes | ⚠️ $50-200/mes |
+
+---
+
+## 🏗️ Arquitectura SaaS
+
+### Stack Tecnológico
+
+```
+┌─────────────────────────────────────────────────────────┐
+│                    Frontend (PWA)                        │
+│              Vue.js 3 + Quasar + TypeScript              │
+│         Multi-tenant UI configurables por industria      │
+└─────────────────────────────────────────────────────────┘
+                            │
+                            ▼
+┌─────────────────────────────────────────────────────────┐
+│                  Nginx Proxy Manager                     │
+│                    (Reverse Proxy)                       │
+└─────────────────────────────────────────────────────────┘
+                            │
+            ┌───────────────┼───────────────┐
+            ▼               ▼               ▼
+┌──────────────────┐ ┌──────────────────┐ ┌──────────────────┐
+│   Auth Service   │ │   Core Service   │ │    IA Service    │
+│  Spring Boot 3   │ │  Spring Boot 3   │ │   Python/FastAPI │
+│    (JWT + RBAC)  │ │  (Multi-tenant)  │ │  (Forensic AI)   │
+└──────────────────┘ └──────────────────┘ └──────────────────┘
+            │               │               │
+            ▼               ▼               ▼
+┌──────────────────┐ ┌──────────────────┐ ┌──────────────────┐
+│   PostgreSQL     │ │     Redis        │ │   MinIO / S3     │
+│ (Schema/tenant)  │ │  (Cache/Sessions)│ │  (Facturas/Img)  │
+└──────────────────┘ └──────────────────┘ └──────────────────┘
+```
+
+### Multi-tenancy Strategy
+
+```java
+// Estrategia: Schema por tenant (PostgreSQL)
+@Entity
+@Table(name = "gastos", schema = "tenant_schema")
+public class Gasto {
+    // Aislamiento total de datos por cliente
+}
+
+// Alternative: Row-level security con tenant_id
+@Where(clause = "tenant_id = :tenantId")
+public class Transaccion { ... }
+```
+
+---
+
+## 🤖 IA Toolkit - Contabilidad Forense
+
+### Módulos Inteligentes
+
+| Módulo | Funcionalidad | Impacto |
+|--------|---------------|---------|
+| **Detección de Anomalías** | Gastos fuera de patrón, transacciones duplicadas | 🔴 Alertas en tiempo real |
+| **Análisis Predictivo** | Proyección flujo de caja (30/60/90 días) | 📈 Previene déficits |
+| **Optimización Automática** | Sugerencias de ahorro, proveedores caros | 💰 Ahorro promedio 18% |
+| **Análisis Forense** | Auditoría automática, benchmarks industria | ⚖️ Cumplimiento normativo |
+| **Asistente Conversacional** | Claude API para queries en lenguaje natural | 💬 "¿Por qué bajaron mis ventas?" |
+
+### Ejemplo: Reporte Forense Automático
+
+```
+📊 Reporte Semanal Automático:
+
+🔴 ANOMALÍAS DETECTADAS:
+- Gasto "Limpieza" aumentó 250% ($50 → $175)
+- Transacción duplicada: Proveedor X, $45, 05/03
+
+⚠️ ALERTAS PREDICTIVAS:
+- Flujo de caja negativo proyectado en 15 días
+
+💡 RECOMENDACIONES:
+1. Cambiar Proveedor A → B (ahorro: $120/mes)
+2. Reducir gasto "Servicios" 15% = $90/mes extra
+
+📈 BENCHMARK:
+- Tu margen: 12% | Promedio industria: 18%
+```
 
 ---
 
@@ -23,8 +126,8 @@
 ### Para Desarrolladores
 
 ```bash
-# Clonar el repositorio
-git clone https://github.com/tu-usuario/pymes-admin.git
+# Clonar repositorio
+git clone https://github.com/dio-quincarDev/pymes-admin.git
 cd pymes-admin
 
 # Frontend
@@ -32,51 +135,27 @@ cd frontend/pymes
 npm install
 npm run dev
 
-# Backend (en otra terminal)
+# Backend (otra terminal)
 cd backend/auth
 ./mvnw spring-boot:run
 ```
 
-### Para Deploy en Servidor
+### Deploy en Servidor (Staging)
 
 ```bash
-# En tu servidor Ubuntu (Oracle Cloud)
+# En tu instancia Oracle Cloud Ubuntu
 curl -fsSL https://get.docker.com -o get-docker.sh
 sudo sh get-docker.sh
 sudo usermod -aG docker $USER
 
 # Clonar y configurar
-git clone https://github.com/tu-usuario/pymes-admin.git ~/pymes-admin
+git clone https://github.com/dio-quincarDev/pymes-admin.git ~/pymes-admin
 cd ~/pymes-admin
 cp backend/auth/.env.example backend/auth/.env
-# Editar .env con tus valores reales
+# Editar .env con valores reales
 
 # Levantar servicios
-docker compose -f backend/docker-compose.yml up -d
-```
-
----
-
-## 🏗️ Arquitectura del Proyecto
-
-```
-pymes-admin/
-├── backend/
-│   ├── auth/              # Microservicio de Autenticación (Spring Boot)
-│   │   ├── src/
-│   │   ├── Dockerfile
-│   │   └── pom.xml
-│   └── docker-compose.yml
-├── frontend/
-│   └── pymes/             # Aplicación Quasar/Vue.js
-│       ├── src/
-│       ├── public/
-│       └── package.json
-├── .github/
-│   ├── workflows/         # CI/CD Pipelines
-│   └── SECRETS.md         # Guía de secrets
-└── scripts/
-    └── setup-server.sh    # Script de setup del servidor
+docker compose -f docker-compose.yml up -d
 ```
 
 ---
@@ -88,220 +167,175 @@ pymes-admin/
 | Rama | Propósito | Pipeline | Deploy |
 |------|-----------|----------|--------|
 | `main` | Producción estable | CI + CD Prod | ✅ Producción |
-| `develop` | Integración de features | CI + CD Staging | ✅ Staging |
-| `feature/*` | Desarrollo de features | CI (build + test) | ❌ Solo test |
+| `develop` | Integración features | CI + CD Staging | ✅ Staging (OCI) |
+| `feature/*` | Desarrollo features | CI (build + test) | ❌ Solo test |
 
-### Workflows Disponibles
+### Workflows GitHub Actions
 
-| Workflow | Archivo | Descripción |
+| Workflow | Trigger | Descripción |
 |----------|---------|-------------|
-| **CI** | `.github/workflows/ci.yml` | Build y tests en cada push/PR |
-| **CD Staging** | `.github/workflows/cd-staging.yml` | Deploy automático a staging |
-| **CD Prod** | `.github/workflows/cd-prod.yml` | Deploy automático a producción |
+| **CI** | Push/PR a `main`, `develop`, `feature/*` | Build, tests, security scan |
+| **CD Staging** | Push a `develop` | Deploy automático a OCI Free Tier |
+| **CD Prod** | Push a `main` | Deploy a producción (manual gate) |
 
 ### Pipeline CI (cada push/PR)
 
-```
+```yaml
 1. 🔒 Security Check
-   ├── Verifica que no haya .env trackeados
-   └── Busca patrones de secrets/API keys
+   ├── Verifica .env no trackeados
+   └── Escanea secrets/API keys
 
 2. 🔨 Build Backend Auth
-   ├── Setup Java 21 + Maven cache
+   ├── Java 21 + Maven cache
    ├── mvn clean package
    └── mvn test
 
 3. 🎨 Build Frontend
-   ├── Setup Node.js 20
+   ├── Node.js 20
    ├── npm ci
    ├── npm run lint
-   └── npm run build
+   └── npx quasar build
 
-4. 🐳 Docker Build (opcional)
-   ├── Build de imagen Docker
-   └── Test de que el contenedor arranca
+4. 🐳 Docker Build & Push
+   ├── Build imagen Auth Service
+   ├── Build imagen Frontend
+   └── Push a Docker Hub
 ```
 
 ---
 
 ## 🔐 Secrets Requeridos
 
-> 📘 **Guía completa paso a paso:** Ver [`.github/QUICK_START.md`](.github/QUICK_START.md)
+Configura en **GitHub Settings → Secrets and variables → Actions**:
 
-Configura estos secrets en **GitHub Settings → Secrets and variables → Actions**:
-
-### 🔑 Secrets Obligatorios (Staging)
+### Secrets Obligatorios (Staging)
 
 | Secret | Value | Descripción |
 |--------|-------|-------------|
 | `DOCKER_USERNAME` | Tu usuario Docker Hub | Ej: `dio-quincar` |
 | `DOCKER_PASSWORD` | Access Token Docker Hub | dockerhub.com/settings/security |
-| `STAGING_HOST` | `149.130.165.200` | IP de tu instancia Oracle |
+| `STAGING_HOST` | IP de tu instancia OCI | Ver `.github/QUICK_START.md` |
 | `STAGING_USER` | `ubuntu` | Usuario SSH |
-| `STAGING_SSH_KEY` | Contenido de `~/.ssh/cloushellkey` | Tu llave privada |
+| `STAGING_SSH_KEY` | Contenido de tu llave privada SSH | Ver `.github/QUICK_START.md` |
 
-### 🔒 Secrets Opcionales (Producción - Pendiente)
+### Secrets Opcionales (Producción)
 
-| Secret | Descripción |
-|--------|-------------|
-| `PROD_HOST` | IP de producción (cuando la tengas) |
-| `PROD_USER` | Usuario SSH de producción |
-| `PROD_SSH_KEY` | Llave privada de producción |
+| Secret | Value | Descripción |
+|--------|-------|-------------|
+| `PROD_HOST` | IP de instancia producción | Oracle Cloud Free Tier |
+| `PROD_USER` | `ubuntu` | Usuario SSH |
+| `PROD_SSH_KEY` | Llave privada producción | SSH key |
 
-> ⚠️ **Nota:** El deploy a producción está deshabilitado hasta que configures `PROD_HOST`.
+📘 **Guía completa:** Ver [`.github/QUICK_START.md`](.github/QUICK_START.md)
 
 ---
 
-## ☁️ Setup en Oracle Cloud Free Tier
-
-### 1. Conéctate a tu Instancia (Staging)
-
-```bash
-# Tu instancia ya está creada
-ssh -i ~/.ssh/cloushellkey ubuntu@149.130.165.200
-```
-
-### 2. Configurar con Script Automático
-
-```bash
-# Una vez conectado al servidor
-cd ~
-git clone https://github.com/dio-quincarDev/pymes-admin.git
-cd pymes-admin/scripts
-
-# Ejecutar
-chmod +x setup-server.sh
-./setup-server.sh
-```
-
-### 3. Configurar Security List en Oracle Cloud
+## 📁 Estructura del Proyecto
 
 ```
-Oracle Cloud Console → Virtual Cloud Network → Security Lists → Add Ingress Rules
+pymes-admin/
+├── docker-compose.yml         # Orquestación principal (raíz)
+├── backend/
+│   └── auth/                  # Microservicio Autenticación (Spring Boot)
+│       ├── Dockerfile
+│       ├── pom.xml
+│       └── src/
+├── frontend/
+│   └── pymes/                 # Aplicación Quasar/Vue.js (PWA)
+│       ├── Dockerfile
+│       ├── nginx.conf
+│       ├── package.json
+│       └── src/
+├── .github/
+│   ├── workflows/             # CI/CD Pipelines
+│   │   ├── ci.yml             # Build + Tests
+│   │   ├── cd-staging.yml     # Deploy a OCI Staging
+│   │   └── cd-prod.yml        # Deploy a Producción
+│   ├── QUICK_START.md         # Guía setup CI/CD
+│   └── SECRETS.md             # Documentación secrets
+├── scripts/
+│   ├── setup-server.sh        # Setup servidor Ubuntu (primera vez)
+│   └── deploy-staging.sh      # Deploy manual (cada vez)
+└── README.md
 ```
+
+---
+
+## 🏛️ Infraestructura OCI Free Tier
+
+### Instancia Staging
+
+| Especificación | Valor |
+|----------------|-------|
+| **Shape** | VM.Standard.A1.Flex (ARM) |
+| **OCPUs** | 2 |
+| **RAM** | 12 GB |
+| **Storage** | 50 GB |
+| **OS** | Ubuntu 22.04 |
+
+### Docker Networks
+
+| Red | Propósito | Tipo |
+|-----|-----------|------|
+| `pymes-global-network` | Para Nginx Proxy Manager | Externa |
+| `pymes-internal-network` | Para DB, Redis, backend | Bridge |
+
+### Security List Rules
 
 | Puerto | Protocolo | Descripción |
 |--------|-----------|-------------|
 | 22 | TCP | SSH |
-| 8081 | TCP | Auth Service |
-| 80 | TCP | HTTP (opcional) |
-| 443 | TCP | HTTPS (opcional) |
+| 80 | TCP | HTTP (Nginx Proxy Manager) |
+| 443 | TCP | HTTPS (Nginx Proxy Manager) |
 
 ---
 
-## 🛠️ Comandos Útiles
+## 📊 Roadmap
 
-### Local Development
+### Fase 1: MVP Multi-tenant (Q2 2026)
+- [ ] Core features multi-tenant
+- [ ] Escaneo QR facturas
+- [ ] Reportes básicos
+- [ ] IA básica: detección anomalías
 
-```bash
-# Backend
-cd backend/auth
-./mvnw clean package
-./mvnw test
-./mvnw spring-boot:run
+### Fase 2: Beta con Usuarios Piloto (Q3 2026)
+- [ ] 10-20 negocios piloto
+- [ ] Feedback y ajustes
+- [ ] Mejora modelos IA con datos reales
 
-# Frontend
-cd frontend/pymes
-npm install
-npm run dev
-npm run build
-npm run lint
-```
-
-### Docker
-
-```bash
-# Levantar todos los servicios
-docker compose -f backend/docker-compose.yml up -d
-
-# Ver logs
-docker compose -f backend/docker-compose.yml logs -f
-
-# Detener servicios
-docker compose -f backend/docker-compose.yml down
-
-# Rebuildar contenedores
-docker compose -f backend/docker-compose.yml up -d --build
-```
-
-### CI/CD
-
-```bash
-# Verificar workflows (GitHub CLI)
-gh run list
-
-# Ver logs de un run
-gh run view <run-id> --log
-
-# Trigger manual de deploy a prod
-gh workflow run cd-prod.yml --field version=v1.0.0
-```
+### Fase 3: Lanzamiento (Q4 2026)
+- [ ] Marketing PYMEs Panamá/LATAM
+- [ ] Integración Claude API
+- [ ] Certificaciones seguridad
 
 ---
 
-## 📊 Servicios
+## 🤝 Contribuir
 
-| Servicio | Puerto | URL Local | Descripción |
-|----------|--------|-----------|-------------|
-| Auth Service | 8081 | http://localhost:8081 | API REST de autenticación |
-| PostgreSQL | 5435 | localhost:5435 | Base de datos Auth |
-| Redis | 6379 | localhost:6379 | Cache para JWT/Sessions |
-| Swagger UI | 8081 | http://localhost:8081/swagger-ui.html | Documentación API |
-
----
-
-## ✅ Checklist de Configuración
-
-### Secrets en GitHub
-- [ ] Crear cuenta en Docker Hub
-- [ ] Generar Access Token en Docker Hub
-- [ ] Configurar `DOCKER_USERNAME` en GitHub Secrets
-- [ ] Configurar `DOCKER_PASSWORD` en GitHub Secrets
-- [ ] Configurar `STAGING_HOST` (`149.130.165.200`) en GitHub Secrets
-- [ ] Configurar `STAGING_USER` (`ubuntu`) en GitHub Secrets
-- [ ] Configurar `STAGING_SSH_KEY` (contenido de `~/.ssh/cloushellkey`) en GitHub Secrets
-
-### Setup del Servidor
-- [ ] Conectarse a la instancia: `ssh -i ~/.ssh/cloushellkey ubuntu@149.130.165.200`
-- [ ] Clonar el repositorio en el servidor
-- [ ] Editar `scripts/setup-server.sh` con tu URL de GitHub
-- [ ] Ejecutar `./setup-server.sh`
-- [ ] Configurar Security List en Oracle Cloud (puertos 22, 8081)
-- [ ] Copiar `.env.example` a `.env` y configurar valores reales
-
-### Pruebas
-- [ ] Hacer push a `develop` para testear staging
-- [ ] Verificar logs en GitHub Actions
-- [ ] Verificar que el servicio esté corriendo en el servidor
-
----
-
-## 🆘 Troubleshooting
-
-| Problema | Solución |
-|----------|----------|
-| Build falla en CI pero funciona local | Verificar versión de Java, limpiar caché Maven |
-| Tests fallan solo en CI | Revisar variables de entorno en el workflow |
-| Deploy falla con error de SSH | Verificar que la SSH key esté bien copiada (incluye BEGIN/END) |
-| Docker no encuentra la imagen | Verificar DOCKER_USERNAME y DOCKER_PASSWORD |
-| Servicio no arranca en el servidor | Revisar logs: `docker compose logs -f` |
-| Puerto no accesible | Verificar Security List en Oracle Cloud |
-
----
-
-## 📚 Recursos
-
-- [Documentación CI/CD](.github/SECRETS.md)
-- [GitHub Actions Docs](https://docs.github.com/es/actions)
-- [Spring Boot + Docker](https://spring.io/guides/topicals/spring-boot-docker/)
-- [Oracle Cloud Free Tier](https://www.oracle.com/cloud/free/)
+1. Fork del repositorio
+2. Crear rama `feature/nueva-funcionalidad`
+3. PR a `develop` (no directamente a `main`)
+4. CI debe pasar antes de merge
 
 ---
 
 ## 📄 Licencia
 
-Ver [LICENSE](LICENSE)
+MIT License - ver [LICENSE](LICENSE)
 
 ---
 
-*Última actualización: Marzo 2026*
+## 📞 Contacto
+
+- **Repo:** https://github.com/dio-quincarDev/pymes-admin
+
+---
+
+<div align="center">
+
+**PyMes Admin** - Empoderando PYMEs con IA 💡
+
+[![CI/CD](https://github.com/dio-quincarDev/pymes-admin/actions/workflows/ci.yml/badge.svg)](https://github.com/dio-quincarDev/pymes-admin/actions)
+[![License: MIT](https://img.shields.io/badge/License-MIT-yellow.svg)](https://opensource.org/licenses/MIT)
+
+</div>

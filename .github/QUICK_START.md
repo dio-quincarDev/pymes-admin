@@ -1,17 +1,33 @@
 # 🚀 Guía Rápida: Configurar CI/CD con tu Instancia de Staging
 
-Esta guía te llevará paso a paso para tener el CI/CD funcionando con tu instancia de Oracle Cloud.
+Esta guía te llevará paso a paso para tener el CI/CD funcionando con tu instancia de Oracle Cloud Free Tier.
 
 ---
 
-## 📋 Tu Configuración Actual
+## 📋 Arquitectura del Deploy
 
-| Item | Valor |
-|------|-------|
-| **Instancia Staging** | `149.130.165.200` |
-| **Usuario SSH** | `ubuntu` |
-| **Llave SSH** | `~/.ssh/cloushellkey` |
-| **Producción** | Pendiente |
+```
+┌─────────────────────────────────────────────────────────┐
+│                    Oracle Cloud (Staging)                │
+│                                                          │
+│  ┌────────────────────────────────────────────────────┐ │
+│  │         Docker Network: pymes-global-network        │ │
+│  │         (Para Nginx Proxy Manager)                  │ │
+│  │                                                     │ │
+│  │  ┌──────────────────┐  ┌──────────────────┐        │ │
+│  │  │   Frontend       │  │   Backend Auth   │        │ │
+│  │  │   (Quasar PWA)   │  │   (Spring Boot)  │        │ │
+│  │  │   Puerto: 9000   │  │   Puerto: 8081   │        │ │
+│  │  └──────────────────┘  └──────────────────┘        │ │
+│  └────────────────────────────────────────────────────┘ │
+│                          ▲                              │
+│                          │                              │
+│  ┌───────────────────────┴──────────────────────────┐  │
+│  │        Nginx Proxy Manager (en el host)          │  │
+│  │        Expone: staging.pymes-admin.com           │  │
+│  └──────────────────────────────────────────────────┘  │
+└─────────────────────────────────────────────────────────┘
+```
 
 ---
 
@@ -19,7 +35,7 @@ Esta guía te llevará paso a paso para tener el CI/CD funcionando con tu instan
 
 ```bash
 # En tu terminal local, ejecuta:
-cat ~/.ssh/cloushellkey
+cat ~/.ssh/<TU_LLAVE_PRIVADA>
 ```
 
 Copia **TODO** el output, incluyendo:
@@ -60,91 +76,53 @@ Copia **TODO** el output, incluyendo:
 
 ### Agrega estos 5 secrets:
 
-### Secret 1: DOCKER_USERNAME
-```
-Name:  DOCKER_USERNAME
-Value: tu-usuario-de-docker-hub
-```
-
-### Secret 2: DOCKER_PASSWORD
-```
-Name:  DOCKER_PASSWORD
-Value: el-token-que-generaste-en-paso-3
-```
-
-### Secret 3: STAGING_HOST
-```
-Name:  STAGING_HOST
-Value: 149.130.165.200
-```
-
-### Secret 4: STAGING_USER
-```
-Name:  STAGING_USER
-Value: ubuntu
-```
-
-### Secret 5: STAGING_SSH_KEY
-```
-Name:  STAGING_SSH_KEY
-Value: (pega TODO el contenido de tu llave privada, incluyendo BEGIN y END)
-```
+| Secret | Value |
+|--------|-------|
+| `DOCKER_USERNAME` | tu-usuario-de-docker-hub |
+| `DOCKER_PASSWORD` | el-token-que-generaste-en-paso-3 |
+| `STAGING_HOST` | `<TU_IP_PUBLICA_DE_ORACLE_CLOUD>` |
+| `STAGING_USER` | `ubuntu` |
+| `STAGING_SSH_KEY` | (pega TODO el contenido de tu llave privada) |
 
 ---
 
 ## 🖥️ Paso 5: Configurar tu Instancia Oracle Cloud
 
-### 5.1 Conéctate al servidor
+### 5.1 Conéctate al servidor (PRIMERA VEZ)
 
 ```bash
-ssh -i ~/.ssh/cloushellkey ubuntu@149.130.165.200
+ssh -i ~/.ssh/<TU_LLAVE> ubuntu@<TU_IP_PUBLICA>
 ```
 
-### 5.2 Instalar Docker y dependencias
+### 5.2 Ejecutar setup inicial
 
 ```bash
-# Actualizar sistema
-sudo apt update && sudo apt upgrade -y
+# Clonar el repositorio
+git clone https://github.com/dio-quincarDev/pymes-admin.git ~/pymes-admin
+cd ~/pymes-admin
 
-# Instalar Docker
-curl -fsSL https://get.docker.com -o get-docker.sh
-sudo sh get-docker.sh
-rm get-docker.sh
+# Dar permisos de ejecución
+chmod +x scripts/setup-server.sh
 
-# Agregar tu usuario al grupo docker
-sudo usermod -aG docker $USER
-newgrp docker
-
-# Instalar Docker Compose
-sudo apt install -y docker-compose-plugin
-
-# Verificar
-docker --version
-docker compose version
+# Ejecutar setup (SOLO LA PRIMERA VEZ)
+./scripts/setup-server.sh
 ```
 
-### 5.3 Clonar el repositorio
+**Este script:**
+- ✅ Actualiza el sistema
+- ✅ Instala Docker
+- ✅ Instala Docker Compose
+- ✅ Instala Git (si no existe)
+- ✅ Agrega tu usuario al grupo docker
+- ✅ **Crea redes Docker: `pymes-global-network` y `pymes-internal-network`**
+- ✅ Clona el repositorio
+- ✅ Configura .env desde .env.example
+- ✅ Configura firewall (UFW)
+
+### 5.3 Configurar variables de entorno
 
 ```bash
-# Salir y conectar de nuevo para aplicar cambios de grupo docker
-exit
-
-# Conectar de nuevo
-ssh -i ~/.ssh/cloushellkey ubuntu@149.130.165.200
-
-# Clonar tu repo
-cd ~
-git clone https://github.com/dio-quincarDev/pymes-admin.git
-cd pymes-admin
-```
-
-### 5.4 Configurar variables de entorno
-
-```bash
-# Copiar el ejemplo
-cp backend/auth/.env.example backend/auth/.env
-
-# Editar con tus valores reales
+cd ~/pymes-admin
 nano backend/auth/.env
 ```
 
@@ -154,13 +132,22 @@ DB_NAME=pymes_auth
 DB_USERNAME=postgres
 DB_PASSWORD=tu-password-seguro
 SERVER_PORT=8081
-
-# OAuth2 (si ya tienes configurado Google/Facebook)
-GOOGLE_CLIENT_ID=tu-client-id
-GOOGLE_CLIENT_SECRET=tu-client-secret
 ```
 
 Guarda con `Ctrl+O`, `Enter`, y sal con `Ctrl+X`.
+
+### 5.4 Reiniciar sesión SSH (para aplicar grupo docker)
+
+```bash
+exit
+
+# Conectar de nuevo
+ssh -i ~/.ssh/<TU_LLAVE> ubuntu@<TU_IP_PUBLICA>
+
+# Verificar que docker funciona sin sudo
+docker --version
+docker network ls
+```
 
 ---
 
@@ -177,108 +164,167 @@ Agrega estas reglas:
 | Source CIDR | Protocol | Destination Port Range | Description |
 |-------------|----------|----------------------|-------------|
 | `0.0.0.0/0` | TCP | 22 | SSH |
-| `0.0.0.0/0` | TCP | 8081 | Auth Service |
-| `0.0.0.0/0` | TCP | 80 | HTTP (opcional) |
-| `0.0.0.0/0` | TCP | 443 | HTTPS (opcional) |
+| `0.0.0.0/0` | TCP | 80 | HTTP (Nginx Proxy Manager) |
+| `0.0.0.0/0` | TCP | 443 | HTTPS (Nginx Proxy Manager) |
 
 ---
 
-## ✅ Paso 7: Probar el CI/CD
+## 🌐 Paso 7: Configurar Nginx Proxy Manager
 
-### 7.1 Hacer push de prueba
+### 7.1 Instalar Nginx Proxy Manager (si no está instalado)
+
+```bash
+# En tu servidor
+docker run -d \
+  --name=nginx-proxy-manager \
+  --restart=unless-stopped \
+  -p 80:80 \
+  -p 81:81 \
+  -p 443:443 \
+  -v /etc/nginx/proxy_host:/data/nginx/proxy_host \
+  -v /etc/nginx/letsencrypt:/etc/letsencrypt \
+  jc21/nginx-proxy-manager:latest
+```
+
+### 7.2 Configurar Proxy Host
+
+1. Accede a Nginx Proxy Manager: `http://<TU_IP_PUBLICA>:81`
+2. Login por defecto: `admin@example.com` / `changeme`
+3. Ve a **Hosts** → **Proxy Hosts** → **Add Proxy Host**
+
+### 7.3 Configurar Frontend Proxy
+
+| Campo | Valor |
+|-------|-------|
+| **Domain Name** | `staging.pymes-admin.com` |
+| **Scheme** | `http` |
+| **Forward Hostname/IP** | `pymes-frontend` |
+| **Forward Port** | `9000` |
+| **Network** | `pymes-global-network` |
+| **Cache** | ✅ Checked |
+| **Websockets Support** | ✅ Checked |
+
+### 7.4 Configurar Backend Proxy (opcional, para API)
+
+| Campo | Valor |
+|-------|-------|
+| **Domain Name** | `staging-api.pymes-admin.com` |
+| **Scheme** | `http` |
+| **Forward Hostname/IP** | `pymes-auth-service` |
+| **Forward Port** | `8081` |
+| **Network** | `pymes-global-network` |
+
+---
+
+## ✅ Paso 8: Probar el CI/CD
+
+### 8.1 Hacer push de prueba
 
 ```bash
 # En tu computadora local
-cd ~/pymes-admin  # o donde tengas el repo
+cd ~/pymes-admin
 
-# Crear rama de test
-git checkout -b test/ci-cd
-
-# Hacer un cambio pequeño
-echo "# CI/CD Test" >> README.md
-git commit -am "Test CI/CD pipeline"
-
-# Push
-git push origin test/ci-cd
-```
-
-### 7.2 Verificar en GitHub
-
-1. Ve a tu repo en GitHub
-2. Click en **Actions**
-3. Deberías ver el workflow **"CI - Build and Test"** corriendo
-4. Espera a que termine (debería estar en verde ✅)
-
-### 7.3 Probar Deploy a Staging
-
-```bash
-# Hacer push a develop
+# Asegúrate de estar en develop
 git checkout develop
-git merge test/ci-cd
+git pull origin develop
+
+# Hacer un cambio menor
+echo "# Test CI/CD" >> README.md
+git add README.md
+git commit -m "test: probar CI/CD staging
+
+Co-authored-by: Qwen-Coder <qwen-coder@alibabacloud.com>"
 git push origin develop
 ```
 
-En GitHub Actions:
-1. Verás el workflow **"CD - Deploy to Staging"**
-2. Cuando termine, conéctate a tu servidor:
+### 8.2 Verificar el workflow
+
+1. Ve a https://github.com/dio-quincarDev/pymes-admin/actions
+2. Deberías ver el workflow **"CD - Deploy to Staging"** corriendo
+3. Espera a que complete (aprox. 5-7 minutos)
+
+### 8.3 Verificar deployment
 
 ```bash
-ssh -i ~/.ssh/cloushellkey ubuntu@149.130.165.200
+# Conéctate al servidor
+ssh -i ~/.ssh/<TU_LLAVE> ubuntu@<TU_IP_PUBLICA>
 
-# Ver los contenedores
-docker compose -f ~/pymes-admin/backend/docker-compose.yml ps
+# Verificar contenedores
+docker compose -f ~/pymes-admin/docker-compose.yml ps
 
 # Ver logs
-docker compose -f ~/pymes-admin/backend/docker-compose.yml logs -f
+docker compose -f ~/pymes-admin/docker-compose.yml logs -f frontend
+docker compose -f ~/pymes-admin/docker-compose.yml logs -f auth-service
 ```
 
 ---
 
-## 🎯 Verificación Final
+## 🔄 Flujo de Trabajo (Después del Setup Inicial)
 
-### En tu servidor:
+### Para futuros deploys (automáticos)
 
+Solo haz push a `develop`:
 ```bash
-# Verificar que los servicios estén corriendo
-docker compose -f ~/pymes-admin/backend/docker-compose.yml ps
-
-# Deberías ver:
-# - pymes-postgres-auth (healthy)
-# - pymes-redis-auth (healthy)
-# - pymes-auth-service (healthy)
-
-# Probar el servicio auth
-curl http://localhost:8081/api/v1/actuator/health
+git checkout develop
+git add .
+git commit -m "feat: nueva funcionalidad"
+git push origin develop
 ```
 
-### En GitHub:
+GitHub Actions automáticamente:
+1. Build del backend (Java/Maven)
+2. Build del frontend (Node.js/Quasar)
+3. Build y push de imágenes Docker
+4. Deploy al servidor staging
 
-- ✅ CI workflow pasa en cada push
-- ✅ CD Staging deploy funciona en `develop`
-- ✅ Docker images se publican en Docker Hub
+### Para futuros deploys (manuales)
+
+Si necesitas deploy manual en el servidor:
+```bash
+# Conéctate al servidor
+ssh -i ~/.ssh/<TU_LLAVE> ubuntu@<TU_IP_PUBLICA>
+
+# Ejecutar deploy script
+cd ~/pymes-admin
+./scripts/deploy-staging.sh
+```
 
 ---
 
-## 🆘 ¿Problemas?
+## 🛠️ Troubleshooting
 
-| Error | Solución |
-|-------|----------|
-| `Permission denied (publickey)` | Verifica que copiaste bien la SSH key (incluye BEGIN/END) |
-| `unauthorized: authentication required` | Revisa DOCKER_USERNAME y DOCKER_PASSWORD |
-| `Connection refused` | Verifica Security List en Oracle Cloud |
+| Problema | Solución |
+|----------|----------|
+| `Permission denied (publickey)` | Verifica que la llave privada en STAGING_SSH_KEY sea correcta |
 | `docker: command not found` | Ejecuta `newgrp docker` o reconecta la sesión SSH |
+| `Connection timed out` | Verifica Security List en Oracle Cloud |
+| `Error: unauthorized` | Verifica DOCKER_USERNAME y DOCKER_PASSWORD |
+| `network not found` | Ejecuta `./scripts/setup-server.sh` para crear las redes |
 
 ---
 
-## 📝 Próximos Pasos
+## 📝 Scripts Disponibles
 
-Una vez que staging funcione:
-
-1. **Configurar Producción**: Cuando tengas otra instancia, agrega `PROD_*` secrets
-2. **Dominio Personalizado**: Configurar un dominio y SSL
-3. **Monitoreo**: Agregar health checks y alertas
-4. **Backups**: Configurar backups automáticos de la base de datos
+| Script | Propósito | Cuándo usar |
+|--------|-----------|-------------|
+| `scripts/setup-server.sh` | Setup inicial del servidor | **Solo la primera vez** |
+| `scripts/deploy-staging.sh` | Deploy de la aplicación | Cada vez que quieras deploy manual |
 
 ---
 
-*¿Dudas? Revisa el README principal o los logs en GitHub Actions*
+## 📊 Resumen de la Arquitectura
+
+| Componente | Puerto | Red | Exposto |
+|------------|--------|-----|---------|
+| Frontend (Quasar) | 9000 | pymes-global-network | Sí (vía NPM) |
+| Auth Service | 8081 | pymes-global-network + internal | Sí (vía NPM, opcional) |
+| PostgreSQL | 5432 | pymes-internal-network | No |
+| Redis | 6379 | pymes-internal-network | No |
+
+---
+
+<div align="center">
+
+**PyMes Admin** - CI/CD Staging en OCI Free Tier 🚀
+
+</div>

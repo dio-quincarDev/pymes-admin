@@ -43,11 +43,33 @@ jobs:
           path: backend/auth/target/*.jar
           retention-days: 1
 
-  # ==================== DOCKER BUILD & PUSH ====================
-  docker-build:
-    name: 🐳 Build and Push Docker Image
+  # ==================== FRONTEND BUILD ====================
+  frontend-build:
+    name: 🎨 Build Frontend
     runs-on: ubuntu-latest
-    needs: build-and-test
+
+    steps:
+      - name: Checkout code
+        uses: actions/checkout@v4
+
+      - name: Setup Node.js
+        uses: actions/setup-node@v4
+        with:
+          node-version: '20'
+
+      - name: Install dependencies
+        working-directory: ./frontend/pymes
+        run: npm ci
+
+      - name: Build Quasar
+        working-directory: ./frontend/pymes
+        run: npx quasar build
+
+  # ==================== DOCKER BUILD & PUSH ====================
+  docker-build-push:
+    name: 🐳 Build and Push Docker Images
+    runs-on: ubuntu-latest
+    needs: [build-and-test, frontend-build]
 
     steps:
       - name: Checkout code
@@ -70,11 +92,22 @@ jobs:
           cache-from: type=registry,ref=${{ secrets.DOCKER_USERNAME }}/pymes-auth:buildcache
           cache-to: type=registry,ref=${{ secrets.DOCKER_USERNAME }}/pymes-auth:buildcache,mode=max
 
+      - name: Build and push Frontend image (Staging)
+        uses: docker/build-push-action@v5
+        with:
+          context: ./frontend/pymes
+          push: true
+          tags: |
+            ${{ secrets.DOCKER_USERNAME }}/pymes-frontend:staging
+            ${{ secrets.DOCKER_USERNAME }}/pymes-frontend:${{ needs.build-and-test.outputs.version }}
+          cache-from: type=registry,ref=${{ secrets.DOCKER_USERNAME }}/pymes-frontend:buildcache
+          cache-to: type=registry,ref=${{ secrets.DOCKER_USERNAME }}/pymes-frontend:buildcache,mode=max
+
   # ==================== DEPLOY TO STAGING ====================
   deploy-staging:
     name: 🚀 Deploy to Staging Server
     runs-on: ubuntu-latest
-    needs: [build-and-test, docker-build]
+    needs: [build-and-test, docker-build-push]
     environment:
       name: staging
       url: http://staging.pymes-admin.com
@@ -92,36 +125,36 @@ jobs:
           port: 22
           script: |
             set -e
-            
+
             echo "📍 Deploying to Staging Environment..."
             echo "📍 Version: ${{ needs.build-and-test.outputs.version }}"
-            
+
             cd ~/pymes-admin
-            
+
             # Pull latest changes
             git pull origin develop
-            
+
             # Stop existing containers
-            docker compose -f backend/docker-compose.yml down
-            
+            docker compose -f docker-compose.yml down
+
             # Pull new images
-            docker compose -f backend/docker-compose.yml pull
-            
-            # Start containers
-            docker compose -f backend/docker-compose.yml up -d
-            
+            docker compose -f docker-compose.yml pull
+
+            # Start services
+            docker compose -f docker-compose.yml up -d
+
             # Wait for services to be healthy
             echo "⏳ Waiting for services to start..."
             sleep 30
-            
+
             # Check health
-            docker compose -f backend/docker-compose.yml ps
-            
+            docker compose -f docker-compose.yml ps
+
             # Cleanup old images
             docker image prune -f --filter "until=24h"
-            
+
             echo "✅ Deploy to Staging completed!"
 
       - name: Verify deployment
         run: |
-          echo "Deployment completed. Check staging environment at: http://staging.pymes-admin.com"
+          echo "Deployment completed. Check staging environment."
