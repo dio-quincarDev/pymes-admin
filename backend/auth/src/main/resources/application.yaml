@@ -1,4 +1,31 @@
 spring:
+  application:
+    name: pymes-auth
+
+  datasource:
+    url: jdbc:postgresql://${DB_HOST}:${DB_PORT}/${DB_NAME}
+    username: ${DB_USERNAME}
+    password: ${DB_PASSWORD}
+    driver-class-name: org.postgresql.Driver
+
+  jpa:
+    hibernate:
+      ddl-auto: none
+    show-sql: false
+    properties:
+      hibernate:
+        dialect: org.hibernate.dialect.PostgreSQLDialect
+
+  flyway:
+    enabled: true
+    locations: classpath:db/migration
+    baseline-on-migrate: true
+
+  data:
+    redis:
+      host: ${REDIS_HOST}
+      port: ${REDIS_PORT}
+
   security:
     oauth2:
       client:
@@ -6,16 +33,57 @@ spring:
           google:
             client-id: ${GOOGLE_CLIENT_ID}
             client-secret: ${GOOGLE_CLIENT_SECRET}
-            scope:
-              - email
-              - profile
+            scope: email, profile
+            redirect-uri: "{baseUrl}/login/oauth2/code/google"
           facebook:
             client-id: ${FACEBOOK_CLIENT_ID}
             client-secret: ${FACEBOOK_CLIENT_SECRET}
-            scope:
-              - email
-              - public_profile
+            scope: email, public_profile
+            redirect-uri: "{baseUrl}/login/oauth2/code/facebook"
         provider:
+          google:
+            issuer-uri: https://accounts.google.com
           facebook:
-            token-uri: https://graph.facebook.com/oauth/access_token
-            user-info-uri: https://graph.facebook.com/me?fields=id,name,email
+            authorization-uri: https://www.facebook.com/v18.0/dialog/oauth
+            token-uri: https://graph.facebook.com/v18.0/oauth/access_token
+            user-info-uri: https://graph.facebook.com/v18.0/me?fields=id,name,email
+            user-name-attribute: id
+
+  jackson:
+    serialization:
+      write-dates-as-timestamps: false
+    default-property-inclusion: non_null
+
+jwt:
+  secret: ${JWT_SECRET}
+  access-expiration: ${JWT_ACCESS_EXPIRATION}
+  refresh-expiration: ${JWT_REFRESH_EXPIRATION}
+
+server:
+  port: ${SERVER_PORT}
+  servlet:
+    context-path: /api/v1
+
+# ==================== ACTUATOR (Health Check) ====================
+management:
+  endpoints:
+    web:
+      exposure:
+        include: health,info
+  endpoint:
+    health:
+      show-details: when_authorized
+  health:
+    db:
+      enabled: true
+    redis:
+      enabled: true
+
+app:
+  cors:
+    allowed-origins: ${CORS_ALLOWED_ORIGINS}
+
+springdoc:
+  swagger-ui:
+    path: /swagger-ui.html
+    enabled: true
