@@ -1,5 +1,7 @@
 # 🚀 Guía Rápida: Configurar CI/CD con tu Instancia de Staging
 
+> ⚠️ **Nota sobre CI/CD:** El pipeline utiliza **Docker Buildx** para gestionar el caché de imágenes y requiere un archivo `.env` temporal durante los tests del backend. Si añades nuevas variables críticas en `application.yaml`, asegúrate de incluirlas también en `.env.example`.
+
 Esta guía te llevará paso a paso para tener el CI/CD funcionando con tu instancia de Oracle Cloud Free Tier.
 
 ---

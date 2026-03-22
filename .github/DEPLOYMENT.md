@@ -231,6 +231,19 @@ docker inspect --format='{{.State.Health.Status}}' pymes-redis-auth
 
 ---
 
+## 📝 Notas Técnicas del Pipeline (Troubleshooting)
+
+### 1. Docker Buildx & Cache
+Para optimizar los tiempos de build, usamos `cache-to: type=registry`. Esto requiere obligatoriamente el paso `docker/setup-buildx-action` en el workflow, ya que el driver de Docker por defecto en GitHub no soporta exportación de caché externa.
+
+### 2. Aislamiento de Tests (Backend)
+Los tests de integración del backend están configurados para ignorar Redis (`application-test.yaml`) y usan una base de datos H2 en memoria. Esto evita que el pipeline se bloquee intentando conectar a servicios que no existen en el entorno de GitHub Actions.
+
+### 3. Carga de Propiedades Spring
+Incluso en tests, Spring Boot requiere que las variables de entorno de OAuth2 y JWT estén presentes (aunque sean placeholders). Por ello, el pipeline siempre ejecuta `cp .env.example .env` antes de compilar.
+
+---
+
 ## 📊 Monitoreo
 
 ### Ver Uso de Recursos
