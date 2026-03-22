@@ -310,6 +310,17 @@ pymes-admin/
 
 ---
 
+## 🛠️ Estrategia de Desarrollo a Futuro
+
+Para escalar el proyecto y mantener un pipeline de CI/CD robusto, se implementarán las siguientes prácticas:
+
+1.  **Testcontainers**: Uso de contenedores Docker reales (PostgreSQL/Redis) durante los tests para garantizar paridad total con producción y eliminar el uso de bases de datos en memoria (H2).
+2.  **Gestión de Secretos en GitHub**: Migrar la dependencia de archivos `.env` manuales hacia **GitHub Secrets**, inyectando las variables directamente en el workflow para mayor seguridad y automatización.
+3.  **Validación de Propiedades (Fail-Fast)**: Implementar `@ConfigurationProperties` con validación para que la aplicación falle inmediatamente con un mensaje claro si falta una variable crítica.
+4.  **Entornos de GitHub**: Configurar *Environments* (Staging/Prod) con reglas de protección y secretos específicos por entorno.
+
+---
+
 ## 🤝 Contribuir
 
 1. Fork del repositorio

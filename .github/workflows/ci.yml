@@ -84,11 +84,8 @@ jobs:
           restore-keys: |
             ${{ runner.os }}-maven-
 
-      - name: Build with Maven
+      - name: Build and test with Maven
         run: mvn clean package -B
-
-      - name: Run tests
-        run: mvn test -B
 
       - name: Upload JAR artifact
         uses: actions/upload-artifact@v4

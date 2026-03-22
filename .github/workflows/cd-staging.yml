@@ -24,6 +24,10 @@ jobs:
           distribution: 'temurin'
           cache: 'maven'
 
+      - name: Create .env from example (placeholders)
+        working-directory: ./backend/auth
+        run: cp .env.example .env
+
       - name: Build Auth Backend
         working-directory: ./backend/auth
         run: mvn clean package -DskipTests -B
