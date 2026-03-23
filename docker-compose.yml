@@ -1,6 +1,7 @@
 services:
   # ==================== FRONTEND (Quasar PWA) ====================
   frontend:
+    image: ${DOCKER_USERNAME:-pymes}/pymes-frontend:${TAG:-latest}
     build:
       context: ./frontend/pymes
       dockerfile: Dockerfile
@@ -20,6 +21,7 @@ services:
 
   # ==================== AUTH SERVICE ====================
   auth-service:
+    image: ${DOCKER_USERNAME:-pymes}/pymes-auth:${TAG:-latest}
     build:
       context: ./backend/auth
       dockerfile: Dockerfile
@@ -96,5 +98,5 @@ networks:
     external: true
     name: pymes-global-network
   pymes-internal-network:
-    driver: bridge
+    external: true
     name: pymes-internal-network

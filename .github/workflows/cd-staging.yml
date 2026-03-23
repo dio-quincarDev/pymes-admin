@@ -138,17 +138,21 @@ jobs:
 
             cd ~/pymes-admin
 
+            # Export variables for Docker Compose
+            export DOCKER_USERNAME=${{ secrets.DOCKER_USERNAME }}
+            export TAG=${{ needs.build-and-test.outputs.version }}
+
             # Pull latest changes
             git pull origin develop
 
             # Stop existing containers
-            docker compose -f docker-compose.yml down
+            docker compose down
 
-            # Pull new images
-            docker compose -f docker-compose.yml pull
+            # Pull new images from registry
+            docker compose pull
 
-            # Start services
-            docker compose -f docker-compose.yml up -d
+            # Start services using the images
+            docker compose up -d
 
             # Wait for services to be healthy
             echo "⏳ Waiting for services to start..."
