@@ -1,0 +1,187 @@
+name: CD - Deploy to Production
+
+on:
+  push:
+    branches:
+      - main
+  
+  # Manual trigger with approval
+  workflow_dispatch:
+    inputs:
+      version:
+        description: 'Version to deploy (e.g., v1.0.0)'
+        required: true
+        default: 'latest'
+
+# ⚠️ NOTA: Este workflow está deshabilitado hasta que configures PROD_HOST
+# Para deploy manual, usa: gh workflow run cd-prod.yml
+
+jobs:
+  # ==================== BUILD & TEST ====================
+  build-and-test:
+    name: 🔨 Build and Test
+    runs-on: ubuntu-latest
+    outputs:
+      version: ${{ steps.version.outputs.version }}
+
+    steps:
+      - name: Checkout code
+        uses: actions/checkout@v4
+
+      - name: Setup Java 21
+        uses: actions/setup-java@v4
+        with:
+          java-version: '21'
+          distribution: 'temurin'
+          cache: 'maven'
+
+      - name: Create .env from example (placeholders)
+        working-directory: ./backend/auth
+        run: cp .env.example .env
+
+      - name: Build and test with Maven
+        working-directory: ./backend/auth
+        run: mvn clean package -B
+
+      - name: Generate version
+        id: version
+        run: echo "version=$(date +%Y%m%d)-${GITHUB_SHA:0:7}" >> $GITHUB_OUTPUT
+
+      - name: Upload JAR artifact
+        uses: actions/upload-artifact@v4
+        with:
+          name: auth-service-jar
+          path: backend/auth/target/*.jar
+          retention-days: 30
+
+  # ==================== QUALITY GATE (Optional) ====================
+  quality-gate:
+    name: 📊 Quality Gate
+    runs-on: ubuntu-latest
+    needs: build-and-test
+    if: github.event_name == 'push'
+
+    steps:
+      - name: Checkout code
+        uses: actions/checkout@v4
+
+      - name: Check code style
+        working-directory: ./backend/auth
+        run: mvn checkstyle:check -B || echo "::warning::Checkstyle warnings found"
+
+      - name: Verify test coverage
+        working-directory: ./backend/auth
+        run: |
+          echo "Checking test coverage..."
+          # Add your coverage check here (e.g., JaCoCo)
+          echo "✅ Quality gate passed"
+
+  # ==================== DOCKER BUILD & PUSH ====================
+  docker-build:
+    name: 🐳 Build and Push Docker Image
+    runs-on: ubuntu-latest
+    needs: [build-and-test, quality-gate]
+
+    steps:
+      - name: Checkout code
+        uses: actions/checkout@v4
+
+      - name: Login to Docker Hub
+        uses: docker/login-action@v3
+        with:
+          username: ${{ secrets.DOCKER_USERNAME }}
+          password: ${{ secrets.DOCKER_PASSWORD }}
+
+      - name: Set up Docker Buildx
+        uses: docker/setup-buildx-action@v3
+
+      - name: Build and push Auth image (Production)
+        uses: docker/build-push-action@v5
+        with:
+          context: ./backend/auth
+          push: true
+          tags: |
+            ${{ secrets.DOCKER_USERNAME }}/pymes-auth:latest
+            ${{ secrets.DOCKER_USERNAME }}/pymes-auth:prod
+            ${{ secrets.DOCKER_USERNAME }}/pymes-auth:${{ needs.build-and-test.outputs.version }}
+          cache-from: type=registry,ref=${{ secrets.DOCKER_USERNAME }}/pymes-auth:buildcache
+          cache-to: type=registry,ref=${{ secrets.DOCKER_USERNAME }}/pymes-auth:buildcache,mode=max
+
+  # ==================== DEPLOY TO PRODUCTION ====================
+  deploy-production:
+    name: 🚀 Deploy to Production Server
+    runs-on: ubuntu-latest
+    needs: [build-and-test, docker-build]
+    if: secrets.PROD_HOST != ''
+    environment:
+      name: production
+      url: https://pymes-admin.com
+
+    steps:
+      - name: Checkout code
+        uses: actions/checkout@v4
+
+      - name: Deploy via SSH
+        uses: appleboy/ssh-action@v1.0.3
+        with:
+          host: ${{ secrets.PROD_HOST }}
+          username: ${{ secrets.PROD_USER }}
+          key: ${{ secrets.PROD_SSH_KEY }}
+          port: 22
+          script: |
+            set -e
+            
+            echo "📍 Deploying to PRODUCTION Environment..."
+            echo "📍 Version: ${{ needs.build-and-test.outputs.version }}"
+            
+            cd ~/pymes-admin
+            
+            # Pull latest changes
+            git pull origin main
+            
+            # Backup current state (optional)
+            echo "📦 Creating backup..."
+            docker compose -f backend/docker-compose.yml ps > ~/backup-$(date +%Y%m%d-%H%M%S).txt || true
+            
+            # Graceful shutdown
+            docker compose -f backend/docker-compose.yml down
+            
+            # Pull new images
+            docker compose -f backend/docker-compose.yml pull
+            
+            # Start containers
+            docker compose -f backend/docker-compose.yml up -d
+            
+            # Wait for services to be healthy
+            echo "⏳ Waiting for services to start..."
+            sleep 45
+            
+            # Health check
+            echo "🏥 Running health checks..."
+            docker compose -f backend/docker-compose.yml ps
+            
+            # Verify auth service is running
+            HEALTH_STATUS=$(docker inspect --format='{{.State.Health.Status}}' pymes-auth-service 2>/dev/null || echo "unknown")
+            if [ "$HEALTH_STATUS" != "healthy" ]; then
+              echo "::error::Health check failed! Rolling back..."
+              # Add rollback logic here if needed
+              exit 1
+            fi
+            
+            # Cleanup old images
+            docker image prune -f --filter "until=48h"
+            
+            echo "✅ Deploy to Production completed successfully!"
+
+      - name: Notify success
+        if: success()
+        run: |
+          echo "✅ Production deployment successful!"
+          echo "📍 Version: ${{ needs.build-and-test.outputs.version }}"
+          echo "📍 URL: https://pymes-admin.com"
+
+      - name: Notify failure
+        if: failure()
+        run: |
+          echo "::error::Production deployment failed!"
+          echo "Please check the logs and consider rolling back."

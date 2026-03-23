@@ -1,0 +1,102 @@
+services:
+  # ==================== FRONTEND (Quasar PWA) ====================
+  frontend:
+    image: ${DOCKER_USERNAME:-pymes}/pymes-frontend:${TAG:-latest}
+    build:
+      context: ./frontend/pymes
+      dockerfile: Dockerfile
+    container_name: pymes-frontend
+    restart: on-failure
+    networks:
+      - pymes-global-network
+    depends_on:
+      auth-service:
+        condition: service_healthy
+    healthcheck:
+      test: ["CMD", "wget", "-qO-", "http://localhost:9000/"]
+      interval: 10s
+      timeout: 5s
+      retries: 3
+      start_period: 10s
+
+  # ==================== AUTH SERVICE ====================
+  auth-service:
+    image: ${DOCKER_USERNAME:-pymes}/pymes-auth:${TAG:-latest}
+    build:
+      context: ./backend/auth
+      dockerfile: Dockerfile
+    container_name: pymes-auth-service
+    restart: on-failure
+    networks:
+      - pymes-global-network
+      - pymes-internal-network
+    environment:
+      - DB_HOST=postgres-auth
+      - DB_PORT=5432
+      - REDIS_HOST=redis
+    env_file:
+      - backend/auth/.env
+    depends_on:
+      postgres-auth:
+        condition: service_healthy
+      redis:
+        condition: service_started
+    healthcheck:
+      test: ["CMD", "wget", "-qO-", "http://localhost:8081/api/v1/actuator/health"]
+      interval: 10s
+      timeout: 5s
+      retries: 5
+      start_period: 30s
+
+  # ==================== DATABASE (PostgreSQL) ====================
+  postgres-auth:
+    image: postgres:15-alpine
+    container_name: pymes-postgres-auth
+    restart: on-failure
+    networks:
+      - pymes-internal-network
+    env_file:
+      - backend/auth/.env
+    environment:
+      POSTGRES_DB: ${DB_NAME:-pymes_auth}
+      POSTGRES_USER: ${DB_USERNAME:-postgres}
+      POSTGRES_PASSWORD: ${DB_PASSWORD:-postgres}
+    volumes:
+      - postgres-auth-data:/var/lib/postgresql/data
+    healthcheck:
+      test: ["CMD-SHELL", "pg_isready -U ${DB_USERNAME:-postgres} -d ${DB_NAME:-pymes_auth}"]
+      interval: 10s
+      timeout: 5s
+      retries: 5
+      start_period: 10s
+
+  # ==================== CACHE (Redis) ====================
+  redis:
+    image: redis:7-alpine
+    container_name: pymes-redis-auth
+    restart: on-failure
+    networks:
+      - pymes-internal-network
+    volumes:
+      - redis-data:/data
+    healthcheck:
+      test: ["CMD", "redis-cli", "ping"]
+      interval: 10s
+      timeout: 5s
+      retries: 3
+
+# ==================== VOLUMES ====================
+volumes:
+  postgres-auth-data:
+    name: pymes-postgres-auth-data
+  redis-data:
+    name: pymes-redis-data
+
+# ==================== NETWORKS ====================
+networks:
+  pymes-global-network:
+    external: true
+    name: pymes-global-network
+  pymes-internal-network:
+    external: true
+    name: pymes-internal-network
