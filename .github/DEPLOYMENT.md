@@ -229,6 +229,21 @@ docker inspect --format='{{.State.Health.Status}}' pymes-postgres-auth
 docker inspect --format='{{.State.Health.Status}}' pymes-redis-auth
 ```
 
+### Problema: `no matching manifest for linux/arm64/v8`
+
+**Síntoma:** El deploy falla con este error al hacer `docker compose pull` en el servidor.
+
+**Causa:** Las imágenes Docker se construyeron solo para AMD64 (GitHub Actions) pero tu servidor usa ARM64 (Oracle Cloud Free Tier).
+
+**Solución:** El workflow `cd-staging.yml` ahora construye imágenes multi-arquitectura (`linux/amd64,linux/arm64`). Si ves este error:
+
+```yaml
+# En .github/workflows/cd-staging.yml, verificar que cada build tenga:
+platforms: linux/amd64,linux/arm64
+```
+
+Luego hacer push a `develop` para regenerar las imágenes.
+
 ---
 
 ## 📝 Notas Técnicas del Pipeline (Troubleshooting)
@@ -240,10 +255,17 @@ docker inspect --format='{{.State.Health.Status}}' pymes-redis-auth
 
 ## 🛠️ Historial de Correcciones Críticas
 
+### ⚠️ Error de Arquitectura ARM64/AMD64 (Marzo 2026)
+**Problema:** El despliegue fallaba con `no matching manifest for linux/arm64/v8` al hacer pull de imágenes en el servidor staging.
+
+**Causa:** GitHub Actions construye imágenes solo para AMD64, pero Oracle Cloud Free Tier usa ARM64.
+
+**Solución:** Configurar Docker Buildx para construir imágenes multi-arquitectura agregando `platforms: linux/amd64,linux/arm64` en el workflow.
+
 ### ⚠️ Error de Red y Re-compilación en el Servidor (Marzo 2026)
 **Problema:** El despliegue fallaba con el error `network pymes-internal-network exists but was not created by compose`. Además, el servidor intentaba compilar el código fuente (Maven/Node) en lugar de usar las imágenes de Docker Hub.
 
-**Causa:** 
+**Causa:**
 1. La red fue creada manualmente por `setup-server.sh`, pero Docker Compose intentaba gestionarla por defecto.
 2. Faltaban las directivas `image` en el `docker-compose.yml`, por lo que `docker compose up` disparaba un `build` local.
 
