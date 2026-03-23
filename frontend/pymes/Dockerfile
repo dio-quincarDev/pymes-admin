@@ -20,18 +20,14 @@ RUN npx quasar build
 # 2. Production stage with Nginx Alpine Slim (~25 MB)
 FROM nginx:alpine-slim
 
+# Copy Nginx configuration first (better cache)
+COPY nginx.conf /etc/nginx/conf.d/default.conf
+
 # Copy built files from build stage
 COPY --from=build /app/dist/spa /usr/share/nginx/html
 
-# Copy Nginx configuration for PWA
-COPY nginx.conf /etc/nginx/conf.d/default.conf
-
 # Expose port 9000
 EXPOSE 9000
-
-# Health check for orchestration
-HEALTHCHECK --interval=30s --timeout=3s --start-period=10s --retries=3 \
-  CMD wget -qO- http://localhost:9000/ || exit 1
 
 # Run Nginx in foreground
 CMD ["nginx", "-g", "daemon off;"]

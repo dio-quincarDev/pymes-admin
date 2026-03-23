@@ -23,18 +23,17 @@ WORKDIR /app
 # Create non-root user for security
 RUN addgroup -S spring && adduser -S spring -G spring
 
-# Switch to non-root user
-USER spring:spring
-
 # Copy the built jar from builder stage
 COPY --from=builder /app/target/*.jar app.jar
 
+# Give ownership to non-root user
+RUN chown spring:spring app.jar
+
+# Switch to non-root user
+USER spring:spring
+
 # Expose port 8081 (AUTH microservice)
 EXPOSE 8081
-
-# Health check for CI/CD and orchestration
-HEALTHCHECK --interval=30s --timeout=3s --start-period=60s --retries=3 \
-  CMD wget -qO- http://localhost:8081/api/v1/actuator/health || exit 1
 
 # JVM options for container optimization
 ENV JAVA_TOOL_OPTIONS="-XX:+UseContainerSupport -XX:MaxRAMPercentage=75.0"
