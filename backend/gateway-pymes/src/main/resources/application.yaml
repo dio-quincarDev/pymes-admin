@@ -1,0 +1,38 @@
+server:
+  port: 8080
+
+spring:
+  application:
+    name: pymes-gateway
+
+  cloud:
+    gateway:
+      routes:
+        # ==================== AUTH SERVICE ROUTE ====================
+        - id: auth-service
+          uri: http://${AUTH_SERVICE_HOST:pymes-auth-service}:8081
+          predicates:
+            - Path=/api/v1/auth/**, /api/v1/login/**, /api/v1/oauth2/**
+          filters:
+            - PreserveHostHeader
+
+      globalcors:
+        cors-configurations:
+          '[/**]':
+            allowedOrigins: "*"
+            allowedMethods:
+              - GET
+              - POST
+              - PUT
+              - DELETE
+              - OPTIONS
+            allowedHeaders: "*"
+
+management:
+  endpoints:
+    web:
+      exposure:
+        include: health,info
+  endpoint:
+    health:
+      show-details: always

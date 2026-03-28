@@ -332,7 +332,7 @@ Para escalar el proyecto y mantener un pipeline de CI/CD robusto, se implementar
 
 ## 📄 Licencia
 
-MIT License - ver [LICENSE](LICENSE)
+Apache License 2.0 - ver [LICENSE](LICENSE)
 
 ---
 
@@ -347,6 +347,6 @@ MIT License - ver [LICENSE](LICENSE)
 **PyMes Admin** - Empoderando PYMEs con IA 💡
 
 [![CI/CD](https://github.com/dio-quincarDev/pymes-admin/actions/workflows/ci.yml/badge.svg)](https://github.com/dio-quincarDev/pymes-admin/actions)
-[![License: MIT](https://img.shields.io/badge/License-MIT-yellow.svg)](https://opensource.org/licenses/MIT)
+[![License: Apache 2.0](https://img.shields.io/badge/License-Apache_2.0-blue.svg)](https://www.apache.org/licenses/LICENSE-2.0)
 
 </div>

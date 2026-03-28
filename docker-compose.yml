@@ -10,14 +10,33 @@ services:
     networks:
       - pymes-global-network
     depends_on:
+      gateway:
+        condition: service_healthy
+
+  # ==================== API GATEWAY ====================
+  gateway:
+    image: ${DOCKER_USERNAME:-pymes}/pymes-gateway:${TAG:-latest}
+    build:
+      context: ./backend/gateway-pymes
+      dockerfile: Dockerfile
+    container_name: pymes-gateway
+    restart: on-failure
+    networks:
+      - pymes-global-network
+      - pymes-internal-network
+    ports:
+      - "8080:8080"
+    environment:
+      - AUTH_SERVICE_HOST=pymes-auth-service
+      - REDIS_HOST=pymes-redis-auth
+    depends_on:
       auth-service:
         condition: service_healthy
     healthcheck:
-      test: ["CMD", "wget", "-qO-", "http://localhost:9000/"]
+      test: ["CMD", "wget", "-qO-", "http://localhost:8080/actuator/health"]
       interval: 10s
       timeout: 5s
       retries: 3
-      start_period: 10s
 
   # ==================== AUTH SERVICE ====================
   auth-service:
@@ -28,12 +47,11 @@ services:
     container_name: pymes-auth-service
     restart: on-failure
     networks:
-      - pymes-global-network
       - pymes-internal-network
     environment:
-      - DB_HOST=postgres-auth
+      - DB_HOST=pymes-postgres-auth
       - DB_PORT=5432
-      - REDIS_HOST=redis
+      - REDIS_HOST=pymes-redis-auth
     env_file:
       - backend/auth/.env
     depends_on:
@@ -62,7 +80,7 @@ services:
       POSTGRES_USER: ${DB_USERNAME:-postgres}
       POSTGRES_PASSWORD: ${DB_PASSWORD:-postgres}
     volumes:
-      - postgres-auth-data:/var/lib/postgresql/data
+      - pymes-postgres-auth-data:/var/lib/postgresql/data
     healthcheck:
       test: ["CMD-SHELL", "pg_isready -U ${DB_USERNAME:-postgres} -d ${DB_NAME:-pymes_auth}"]
       interval: 10s
@@ -78,7 +96,7 @@ services:
     networks:
       - pymes-internal-network
     volumes:
-      - redis-data:/data
+      - pymes-redis-data:/data
     healthcheck:
       test: ["CMD", "redis-cli", "ping"]
       interval: 10s
@@ -87,16 +105,14 @@ services:
 
 # ==================== VOLUMES ====================
 volumes:
-  postgres-auth-data:
-    name: pymes-postgres-auth-data
-  redis-data:
-    name: pymes-redis-data
+  pymes-postgres-auth-data:
+    external: false
+  pymes-redis-data:
+    external: false
 
 # ==================== NETWORKS ====================
 networks:
   pymes-global-network:
     external: true
-    name: pymes-global-network
   pymes-internal-network:
     external: true
-    name: pymes-internal-network
