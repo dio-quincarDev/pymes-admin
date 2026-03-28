@@ -32,19 +32,34 @@ jobs:
         working-directory: ./backend/auth
         run: mvn clean package -DskipTests -B
 
-      - name: Run Tests
+      - name: Run Auth Tests
         working-directory: ./backend/auth
+        run: mvn test -B
+
+      - name: Build Gateway Backend
+        working-directory: ./backend/gateway-pymes
+        run: mvn clean package -DskipTests -B
+
+      - name: Run Gateway Tests
+        working-directory: ./backend/gateway-pymes
         run: mvn test -B
 
       - name: Generate version
         id: version
         run: echo "version=$(date +%Y%m%d)-${GITHUB_SHA:0:7}" >> $GITHUB_OUTPUT
 
-      - name: Upload JAR artifact
+      - name: Upload Auth JAR artifact
         uses: actions/upload-artifact@v4
         with:
           name: auth-service-jar
           path: backend/auth/target/*.jar
+          retention-days: 1
+
+      - name: Upload Gateway JAR artifact
+        uses: actions/upload-artifact@v4
+        with:
+          name: gateway-service-jar
+          path: backend/gateway-pymes/target/*.jar
           retention-days: 1
 
   # ==================== FRONTEND BUILD ====================
@@ -100,6 +115,18 @@ jobs:
           cache-from: type=registry,ref=${{ secrets.DOCKER_USERNAME }}/pymes-auth:buildcache
           cache-to: type=registry,ref=${{ secrets.DOCKER_USERNAME }}/pymes-auth:buildcache,mode=max
 
+      - name: Build and push Gateway image (Staging)
+        uses: docker/build-push-action@v5
+        with:
+          context: ./backend/gateway-pymes
+          platforms: linux/arm64
+          push: true
+          tags: |
+            ${{ secrets.DOCKER_USERNAME }}/pymes-gateway:staging
+            ${{ secrets.DOCKER_USERNAME }}/pymes-gateway:${{ needs.build-and-test.outputs.version }}
+          cache-from: type=registry,ref=${{ secrets.DOCKER_USERNAME }}/pymes-gateway:buildcache
+          cache-to: type=registry,ref=${{ secrets.DOCKER_USERNAME }}/pymes-gateway:buildcache,mode=max
+
       - name: Build and push Frontend image (Staging)
         uses: docker/build-push-action@v5
         with:
@@ -134,40 +161,21 @@ jobs:
           port: 22
           script: |
             set -e
-
-            echo "📍 Deploying to Staging Environment..."
-            echo "📍 Version: ${{ needs.build-and-test.outputs.version }}"
-
+            echo "📍 Deploying version: ${{ needs.build-and-test.outputs.version }}"
+            
+            # Navegar al directorio y ejecutar el script de deploy centralizado
             cd ~/pymes-admin
-
-            # Export variables for Docker Compose
+            
+            # Pasamos las variables necesarias de forma segura al script
             export DOCKER_USERNAME=${{ secrets.DOCKER_USERNAME }}
             export TAG=${{ needs.build-and-test.outputs.version }}
-
-            # Pull latest changes
-            git pull origin develop
-
-            # Stop existing containers
-            docker compose down
-
-            # Pull new images from registry
-            docker compose pull
-
-            # Start services using the images
-            docker compose up -d
-
-            # Wait for services to be healthy
-            echo "⏳ Waiting for services to start..."
-            sleep 30
-
-            # Check health
-            docker compose -f docker-compose.yml ps
-
-            # Cleanup old images
-            docker image prune -f --filter "until=24h"
-
-            echo "✅ Deploy to Staging completed!"
+            
+            # Asegurar permisos de ejecución
+            chmod +x scripts/deploy-staging.sh
+            
+            # Ejecutar el deploy
+            ./scripts/deploy-staging.sh
 
       - name: Verify deployment
         run: |
-          echo "Deployment completed. Check staging environment."
+          echo "✅ Deployment to staging triggered successfully."
