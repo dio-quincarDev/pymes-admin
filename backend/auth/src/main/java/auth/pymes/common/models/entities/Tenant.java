@@ -1,5 +1,6 @@
 package auth.pymes.common.models.entities;
 
+import auth.pymes.common.models.enums.PlanName;
 import jakarta.persistence.*;
 import lombok.*;
 import org.hibernate.annotations.CreationTimestamp;
@@ -32,9 +33,10 @@ public class Tenant {
     @Column(length = 50)
     private String industry;
 
+    @Enumerated(EnumType.STRING)
     @Column(nullable = false)
     @Builder.Default
-    private String plan = "free";
+    private PlanName plan = PlanName.FREE;
 
     @Column(name = "plan_expires_at")
     private ZonedDateTime planExpiresAt;

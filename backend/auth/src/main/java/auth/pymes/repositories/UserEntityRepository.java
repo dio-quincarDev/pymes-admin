@@ -1,6 +1,7 @@
 package auth.pymes.repositories;
 
 import auth.pymes.common.models.entities.UserEntity;
+import auth.pymes.common.models.enums.AuthProvider;
 import org.springframework.data.jpa.repository.JpaRepository;
 import org.springframework.stereotype.Repository;
 
@@ -10,7 +11,7 @@ import java.util.UUID;
 @Repository
 public interface UserEntityRepository extends JpaRepository<UserEntity, UUID> {
 
-    Optional<UserEntity> findByProviderAndProviderId( String provider, String providerId);
+    Optional<UserEntity> findByProviderAndProviderId(AuthProvider provider, String providerId);
 
     Optional<UserEntity> findByEmail(String email);
 }

@@ -62,7 +62,7 @@ jwt:
 server:
   port: ${SERVER_PORT:8081}
   servlet:
-    context-path: /api/v1
+    context-path: /
 
 # ==================== ACTUATOR (Health Check) ====================
 management:

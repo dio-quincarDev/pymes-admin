@@ -1,5 +1,6 @@
 package auth.pymes.common.models.entities;
 
+import auth.pymes.common.models.enums.RoleName;
 import jakarta.persistence.*;
 import lombok.*;
 import org.hibernate.annotations.CreationTimestamp;
@@ -26,8 +27,9 @@ public class Invitation {
     @Column(nullable = false)
     private String email;
 
+    @Enumerated(EnumType.STRING)
     @Column(nullable = false)
-    private String role;
+    private RoleName role;
 
     @Column(name = "invited_by", nullable = false)
     private UUID invitedBy;

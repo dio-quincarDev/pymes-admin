@@ -16,17 +16,41 @@ Este microservicio es el **centro de identidad** de la arquitectura, responsable
 - **Invitaciones** a tenants
 - **Auditoría** de todas las acciones
 
-### Estado Actual
+### Estado Actual (Plumbing Phase) ✅
 
 | Componente | Estado | Descripción |
 |------------|--------|-------------|
-| **OAuth2 (Google/FB)** | ✅ Implementado | Login con proveedores externos |
-| **Base de Datos** | ✅ Schema listo | Flyway migration V1 completada |
-| **Entities** | ✅ Completas | 6 entidades principales |
-| **Security Config** | ✅ Configurado | Spring Security + OAuth2 |
-| **JWT Provider** | 📝 Pendiente | Generación y validación de tokens |
-| **Controllers** | 📝 Pendiente | Endpoints REST |
-| **Servicios** | 📝 Pendiente | Lógica de negocio |
+| **OAuth2 Core** | ✅ Listo | Google/FB configurados con `SuccessHandler` propio. |
+| **Seguridad JWT** | ✅ Listo | `JwtService` e `impl` con claims Multi-tenant (`userId`, `tenantId`). |
+| **Filtro de Auth** | ✅ Listo | `JwtAuthenticationFilter` activo y validando contra DB. |
+| **Base de Datos** | ✅ Listo | Flyway V1 (Schema) y V2 (Normalización de Enums) completados. |
+| **Modelo de Datos**| ✅ Listo | Entidades con Enums tipados y relaciones multi-tenant. |
+| **DTOs & Mappers** | ✅ Listo | Java Records y MapStruct configurados. |
+
+---
+
+### 🛠️ Roadmap Inmediato: Finalizar Fontanería
+
+Antes de implementar lógica de negocio (Tenants/Empresas), debemos cerrar la infraestructura base:
+
+#### 1. Blindaje de Entidades (Soft Delete)
+- Implementar `@SQLDelete` y `@Where` en `UserEntity` y `Tenant`.
+- Asegurar que `is_active` sea el flag de borrado lógico.
+
+#### 2. Estandarización de API
+- Crear `ApiResponse<T>` para respuestas uniformes.
+- Implementar `GlobalExceptionHandler` para capturar errores de validación e integridad.
+
+#### 3. Idempotencia y Registro
+- Refinar `AuthService` para manejo de "Upsert" de perfiles OAuth2.
+- Implementar lógica de registro local (User/Password) con BCrypt.
+
+#### 4. Redis Integration
+- Conectar `JwtServiceImpl` con Redis para Blacklist de tokens (Logout).
+- Caché de permisos por par `{user_id}:{tenant_id}`.
+
+#### 5. Paginación Base
+- Configurar soporte de `Pageable` en controladores y servicios para escalabilidad.
 
 ---
 

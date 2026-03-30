@@ -1,14 +1,15 @@
 package auth.pymes.common.models.entities;
 
+import auth.pymes.common.models.enums.AuthProvider;
 import jakarta.persistence.*;
 import lombok.*;
 import org.hibernate.annotations.CreationTimestamp;
 import org.hibernate.annotations.UpdateTimestamp;
+import org.springframework.security.core.GrantedAuthority;
+import org.springframework.security.core.userdetails.UserDetails;
 
 import java.time.ZonedDateTime;
-import java.util.HashSet;
-import java.util.Set;
-import java.util.UUID;
+import java.util.*;
 
 @Builder
 @Getter
@@ -17,7 +18,7 @@ import java.util.UUID;
 @NoArgsConstructor
 @Entity
 @Table(name = "users")
-public class UserEntity {
+public class UserEntity implements UserDetails {
 
     @Id
     @GeneratedValue(strategy = GenerationType.UUID)
@@ -29,8 +30,9 @@ public class UserEntity {
     @Column(nullable = false)
     private String name;
 
+    @Enumerated(EnumType.STRING)
     @Column(nullable = false)
-    private String provider;
+    private AuthProvider provider;
 
     @Column(name = "provider_id", nullable = false)
     private String providerId;
@@ -69,4 +71,42 @@ public class UserEntity {
     @OneToMany(mappedBy = "user", cascade = CascadeType.ALL, orphanRemoval = true)
     @Builder.Default
     private Set<AuditLog> auditLogs = new HashSet<>();
+
+    // UserDetails Implementation
+    @Override
+    public Collection<? extends GrantedAuthority> getAuthorities() {
+        // En un sistema multi-tenant, los roles son dinámicos por empresa.
+        // Aquí devolvemos una lista vacía; los roles reales irán en el JWT según el tenant seleccionado.
+        return List.of();
+    }
+
+    @Override
+    public String getPassword() {
+        return null; // Autenticación vía OAuth2
+    }
+
+    @Override
+    public String getUsername() {
+        return email;
+    }
+
+    @Override
+    public boolean isAccountNonExpired() {
+        return true;
+    }
+
+    @Override
+    public boolean isAccountNonLocked() {
+        return isActive;
+    }
+
+    @Override
+    public boolean isCredentialsNonExpired() {
+        return true;
+    }
+
+    @Override
+    public boolean isEnabled() {
+        return isActive;
+    }
 }

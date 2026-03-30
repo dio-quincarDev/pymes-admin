@@ -1,6 +1,7 @@
 package auth.pymes.service.impl;
 
 import auth.pymes.common.models.entities.UserEntity;
+import auth.pymes.common.models.enums.AuthProvider;
 import auth.pymes.repositories.UserEntityRepository;
 import lombok.RequiredArgsConstructor;
 import org.springframework.security.oauth2.client.userinfo.DefaultOAuth2UserService;
@@ -21,30 +22,54 @@ public class CustomOAuth2UserService extends DefaultOAuth2UserService {
     public OAuth2User loadUser(OAuth2UserRequest userRequest) throws OAuth2AuthenticationException {
         OAuth2User oAuth2User = super.loadUser(userRequest);
 
-        String provider = userRequest.getClientRegistration().getRegistrationId();
+        String registrationId = userRequest.getClientRegistration().getRegistrationId();
+        AuthProvider authProvider = AuthProvider.valueOf(registrationId.toUpperCase());
+
         Map<String, Object> attributes = oAuth2User.getAttributes();
 
-        // Extraer datos según el proveedor (Google/FB)
-        String providerId = attributes.get("sub") != null ?
-                attributes.get("sub").toString() : attributes.get("id").toString();
+        // Extraer datos comunes de OAuth2
+        String providerId = getProviderId(attributes, registrationId);
         String email = (String) attributes.get("email");
         String name = (String) attributes.get("name");
-        String picture = (String) attributes.get(provider.equals("google") ? "picture" : "url");
+        String picture = getPictureUrl(attributes, registrationId);
 
-        // Buscar o Crear el usuario en tu tabla 'users'
-        UserEntity user = userEntityRepository.findByProviderAndProviderId(provider, providerId)
+        // Buscar o crear el usuario en la base de datos
+        userEntityRepository.findByProviderAndProviderId(authProvider, providerId)
                 .orElseGet(() -> {
-                    UserEntity newUser = new UserEntity();
-                    newUser.setEmail(email);
-                    newUser.setName(name);
-                    newUser.setProvider(provider);
-                    newUser.setProviderId(providerId);
-                    newUser.setPictureUrl(picture);
-                    newUser.setIsActive(true);
+                    UserEntity newUser = UserEntity.builder()
+                            .email(email)
+                            .name(name)
+                            .provider(authProvider)
+                            .providerId(providerId)
+                            .pictureUrl(picture)
+                            .isActive(true)
+                            .build();
                     return userEntityRepository.save(newUser);
                 });
 
-        return oAuth2User; // Spring Security se encarga del rest
+        return oAuth2User;
+    }
 
+    private String getProviderId(Map<String, Object> attributes, String registrationId) {
+        if ("google".equalsIgnoreCase(registrationId)) {
+            return (String) attributes.get("sub");
+        }
+        return (String) attributes.get("id");
+    }
+
+    private String getPictureUrl(Map<String, Object> attributes, String registrationId) {
+        if ("google".equalsIgnoreCase(registrationId)) {
+            return (String) attributes.get("picture");
+        }
+        if ("facebook".equalsIgnoreCase(registrationId)) {
+            Map<String, Object> picture = (Map<String, Object>) attributes.get("picture");
+            if (picture != null) {
+                Map<String, Object> data = (Map<String, Object>) picture.get("data");
+                if (data != null) {
+                    return (String) data.get("url");
+                }
+            }
+        }
+        return null;
     }
 }
