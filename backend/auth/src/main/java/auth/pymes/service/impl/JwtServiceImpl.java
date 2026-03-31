@@ -5,6 +5,7 @@ import auth.pymes.service.JwtService;
 import io.jsonwebtoken.Claims;
 import io.jsonwebtoken.Jwts;
 import io.jsonwebtoken.security.Keys;
+import lombok.RequiredArgsConstructor;
 import lombok.extern.slf4j.Slf4j;
 import org.springframework.beans.factory.annotation.Value;
 import org.springframework.stereotype.Service;
@@ -22,6 +23,7 @@ import java.util.function.Function;
  * Basado en JJWT 0.12.6, con soporte para Multi-tenancy y revocación (Redis).
  */
 @Service
+@RequiredArgsConstructor
 @Slf4j
 public class JwtServiceImpl implements JwtService {
 
@@ -34,13 +36,15 @@ public class JwtServiceImpl implements JwtService {
     @Value("${jwt.refresh-expiration}")
     private long refreshTokenExpiration;
 
+    private final TokenBlacklistService tokenBlacklistService;
+
     @Override
     public String generateAccessToken(UserEntity user, UUID tenantId, String role) {
         Map<String, Object> claims = new HashMap<>();
         claims.put("userId", user.getId().toString());
         claims.put("tenantId", tenantId != null ? tenantId.toString() : null);
         claims.put("role", role);
-        
+
         log.debug("Generando Access Token para usuario: {}, Tenant: {}", user.getEmail(), tenantId);
         return createToken(claims, user.getEmail(), accessTokenExpiration);
     }
@@ -49,7 +53,7 @@ public class JwtServiceImpl implements JwtService {
     public String generateRefreshToken(UserEntity user) {
         Map<String, Object> claims = new HashMap<>();
         claims.put("userId", user.getId().toString());
-        
+
         log.debug("Generando Refresh Token para usuario: {}", user.getEmail());
         return createToken(claims, user.getEmail(), refreshTokenExpiration);
     }
@@ -103,14 +107,14 @@ public class JwtServiceImpl implements JwtService {
 
     @Override
     public void revokeToken(String token) {
-        // TODO: Integrar con RedisTemplate una vez configurada la infraestructura de Redis
-        log.warn("Revocación de token pendiente de integración con Redis: {}", token);
+        // Añadir el token a la blacklist hasta que expire naturalmente
+        tokenBlacklistService.revokeToken(token, accessTokenExpiration);
+        log.info("Token revocado y añadido a blacklist");
     }
 
     @Override
     public boolean isTokenRevoked(String token) {
-        // TODO: Consultar RedisTemplate para verificar si el JTI o el token completo está en blacklist
-        return false;
+        return tokenBlacklistService.isTokenRevoked(token);
     }
 
     private <T> T extractClaim(String token, Function<Claims, T> claimsResolver) {

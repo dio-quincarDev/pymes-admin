@@ -4,7 +4,9 @@ import auth.pymes.common.models.enums.PlanName;
 import jakarta.persistence.*;
 import lombok.*;
 import org.hibernate.annotations.CreationTimestamp;
+import org.hibernate.annotations.SQLDelete;
 import org.hibernate.annotations.UpdateTimestamp;
+import org.hibernate.annotations.Where;
 
 import java.time.ZonedDateTime;
 import java.util.HashSet;
@@ -18,6 +20,8 @@ import java.util.UUID;
 @NoArgsConstructor
 @Entity
 @Table(name = "tenants")
+@SQLDelete(sql = "UPDATE tenants SET is_active = false WHERE id = ?")
+@Where(clause = "is_active = true")
 public class Tenant {
 
     @Id

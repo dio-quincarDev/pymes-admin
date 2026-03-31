@@ -21,36 +21,28 @@ Este microservicio es el **centro de identidad** de la arquitectura, responsable
 | Componente | Estado | Descripción |
 |------------|--------|-------------|
 | **OAuth2 Core** | ✅ Listo | Google/FB configurados con `SuccessHandler` propio. |
-| **Seguridad JWT** | ✅ Listo | `JwtService` e `impl` con claims Multi-tenant (`userId`, `tenantId`). |
-| **Filtro de Auth** | ✅ Listo | `JwtAuthenticationFilter` activo y validando contra DB. |
-| **Base de Datos** | ✅ Listo | Flyway V1 (Schema) y V2 (Normalización de Enums) completados. |
-| **Modelo de Datos**| ✅ Listo | Entidades con Enums tipados y relaciones multi-tenant. |
-| **DTOs & Mappers** | ✅ Listo | Java Records y MapStruct configurados. |
+| **Seguridad JWT** | ✅ Listo | `JwtService` e `impl` con claims Multi-tenant. |
+| **Filtro de Auth** | ✅ Listo | `JwtAuthenticationFilter` activo. |
+| **Base de Datos** | ✅ Listo | Flyway V1 completado. |
+| **Modelo de Datos**| ✅ Listo | Entidades con soft delete (@SQLDelete, @Where). |
+| **DTOs & Mappers** | ✅ Listo | Java Records y MapStruct. |
+| **Exception Handling** | ✅ Listo | 8 excepciones + GlobalExceptionHandler. |
+| **API Response** | ✅ Listo | `ApiResponse<T>` estandarizado. |
+| **Redis Integration** | ✅ Listo | Blacklist + Caché de permisos. |
+| **Endpoints** | ✅ Listo | 10 endpoints REST con paginación. |
 
 ---
 
-### 🛠️ Roadmap Inmediato: Finalizar Fontanería
+### 🛠️ Roadmap Inmediato: Pendientes
 
-Antes de implementar lógica de negocio (Tenants/Empresas), debemos cerrar la infraestructura base:
-
-#### 1. Blindaje de Entidades (Soft Delete)
-- Implementar `@SQLDelete` y `@Where` en `UserEntity` y `Tenant`.
-- Asegurar que `is_active` sea el flag de borrado lógico.
-
-#### 2. Estandarización de API
-- Crear `ApiResponse<T>` para respuestas uniformes.
-- Implementar `GlobalExceptionHandler` para capturar errores de validación e integridad.
-
-#### 3. Idempotencia y Registro
+#### 1. Idempotencia
 - Refinar `AuthService` para manejo de "Upsert" de perfiles OAuth2.
 - Implementar lógica de registro local (User/Password) con BCrypt.
 
-#### 4. Redis Integration
-- Conectar `JwtServiceImpl` con Redis para Blacklist de tokens (Logout).
-- Caché de permisos por par `{user_id}:{tenant_id}`.
-
-#### 5. Paginación Base
-- Configurar soporte de `Pageable` en controladores y servicios para escalabilidad.
+#### 2. Unit Tests
+- Tests para servicios (AuthService, JwtService).
+- Tests para excepciones y GlobalExceptionHandler.
+- Tests de integración con Testcontainers.
 
 ---
 
@@ -396,29 +388,83 @@ auth/
 │   │   │   ├── AuthApplication.java
 │   │   │   ├── common/
 │   │   │   │   ├── config/
-│   │   │   │   │   └── SecurityConfig.java
+│   │   │   │   │   ├── SecurityConfig.java
+│   │   │   │   │   ├── JwtAuthenticationFilter.java
+│   │   │   │   │   ├── JwtTokenProvider.java
+│   │   │   │   │   ├── OAuth2AuthenticationSuccessHandler.java
+│   │   │   │   │   └── RedisConfig.java
 │   │   │   │   ├── constants/
 │   │   │   │   │   └── ApiPathConstants.java
 │   │   │   │   └── models/
 │   │   │   │       ├── dto/
 │   │   │   │       │   ├── request/
+│   │   │   │       │   │   ├── CreateTenantRequest.java
+│   │   │   │       │   │   ├── SelectTenantRequest.java
+│   │   │   │       │   │   ├── TokenRefreshRequest.java
+│   │   │   │       │   │   ├── CreateInvitationRequest.java
+│   │   │   │       │   │   └── AcceptInvitationRequest.java
 │   │   │   │       │   └── response/
+│   │   │   │       │       ├── ApiResponse.java
+│   │   │   │       │       ├── AuthResponse.java
+│   │   │   │       │       ├── UserEntityResponse.java
+│   │   │   │       │       ├── TenantResponse.java
+│   │   │   │       │       ├── UserTenantResponse.java
+│   │   │   │       │       ├── InvitationResponse.java
+│   │   │   │       │       └── LogoutResponse.java
 │   │   │   │       ├── entities/
-│   │   │   │       │   ├── UserEntity.java
-│   │   │   │       │   ├── Tenant.java
+│   │   │   │       │   ├── UserEntity.java          # Soft delete habilitado
+│   │   │   │       │   ├── Tenant.java              # Soft delete habilitado
 │   │   │   │       │   ├── UserTenant.java
 │   │   │   │       │   ├── Invitation.java
 │   │   │   │       │   ├── RefreshToken.java
 │   │   │   │       │   └── AuditLog.java
 │   │   │   │       ├── enums/
+│   │   │   │       │   ├── AuthProvider.java
+│   │   │   │       │   ├── RoleName.java
+│   │   │   │       │   └── PlanName.java
 │   │   │   │       └── mappers/
+│   │   │   │           ├── UserMapper.java
+│   │   │   │           ├── TenantMapper.java
+│   │   │   │           └── AuthMapper.java
 │   │   │   ├── controller/
-│   │   │   ├── repositories/
-│   │   │   │   └── UserEntityRepository.java
-│   │   │   ├── service/
+│   │   │   │   ├── AuthApi.java                 # Interface (10 endpoints)
 │   │   │   │   └── impl/
-│   │   │   │       └── CustomOAuth2UserService.java
+│   │   │   │       └── AuthApiController.java
+│   │   │   ├── repositories/
+│   │   │   │   ├── UserEntityRepository.java
+│   │   │   │   ├── TenantRepository.java
+│   │   │   │   ├── UserTenantRepository.java    # Con paginación
+│   │   │   │   ├── InvitationRepository.java    # Con paginación
+│   │   │   │   └── RefreshTokenRepository.java
+│   │   │   ├── service/
+│   │   │   │   ├── AuthService.java
+│   │   │   │   ├── JwtService.java
+│   │   │   │   └── impl/
+│   │   │   │       ├── AuthServiceImpl.java
+│   │   │   │       ├── JwtServiceImpl.java
+│   │   │   │       ├── CustomOAuth2UserService.java
+│   │   │   │       ├── TokenBlacklistService.java    # Redis
+│   │   │   │       └── PermissionCacheService.java   # Redis
 │   │   │   └── utils/
+│   │   │       ├── exception/
+│   │   │       │   ├── CodigoError.java
+│   │   │       │   ├── ErrorResponse.java
+│   │   │       │   ├── GlobalExceptionHandler.java
+│   │   │       │   ├── auth/
+│   │   │       │   │   ├── AuthApiException.java
+│   │   │       │   │   ├── AuthenticationException.java
+│   │   │       │   │   ├── AuthorizationException.java
+│   │   │       │   │   └── TotalAuthException.java
+│   │   │       │   ├── custom/
+│   │   │       │   │   ├── ResourceNotFoundException.java
+│   │   │       │   │   ├── DuplicateResourceException.java
+│   │   │       │   │   └── InvalidInputException.java
+│   │   │       │   └── token/
+│   │   │       │       ├── TokenExpiredException.java
+│   │   │       │       ├── TokenInvalidException.java
+│   │   │       │       └── TokenRevokedException.java
+│   │   │       └── pageable/
+│   │   │           └── PageResponse.java
 │   │   └── resources/
 │   │       ├── application.yaml
 │   │       └── db/migration/
