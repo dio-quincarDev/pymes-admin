@@ -24,7 +24,8 @@ public class SecurityConfig {
             "/v3/api-docs/**",
             "/swagger-ui/**",
             "/swagger-ui.html",
-            "/api/v1/actuator/**", // Para el healthcheck de Docker
+            "/api/v1/actuator/**",
+            "/actuator/**", // Para el healthcheck de Docker independientemente del context-path
             "/login/**",
             "/error" // Importante para errores de Spring
     };
