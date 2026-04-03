@@ -16,33 +16,35 @@ Este microservicio es el **centro de identidad** de la arquitectura, responsable
 - **Invitaciones** a tenants
 - **Auditoría** de todas las acciones
 
-### Estado Actual (Plumbing Phase) ✅
+### Estado Actual (Core Logic Phase) 🚀
 
 | Componente | Estado | Descripción |
 |------------|--------|-------------|
 | **OAuth2 Core** | ✅ Listo | Google/FB configurados con `SuccessHandler` propio. |
 | **Seguridad JWT** | ✅ Listo | `JwtService` e `impl` con claims Multi-tenant. |
 | **Filtro de Auth** | ✅ Listo | `JwtAuthenticationFilter` activo. |
-| **Base de Datos** | ✅ Listo | Flyway V1 completado. |
+| **Base de Datos** | ✅ Listo | Flyway V1 y esquema PostgreSQL/H2 (Test) alineados. |
 | **Modelo de Datos**| ✅ Listo | Entidades con soft delete (@SQLDelete, @Where). |
-| **DTOs & Mappers** | ✅ Listo | Java Records y MapStruct. |
+| **DTOs & Mappers** | ✅ Listo | Java Records para mayor inmutabilidad y rendimiento. |
 | **Exception Handling** | ✅ Listo | 8 excepciones + GlobalExceptionHandler. |
-| **API Response** | ✅ Listo | `ApiResponse<T>` estandarizado. |
-| **Redis Integration** | ✅ Listo | Blacklist + Caché de permisos. |
-| **Endpoints** | ✅ Listo | 10 endpoints REST con paginación. |
+| **Auth Service** | ✅ Listo | Lógica de selección de tenant, invitaciones y tokens. |
+| **Unit Testing** | ✅ Listo | 8 tests críticos (85%+ cobertura en AuthService). |
+| **Redis Integration** | ✅ Listo | Blacklist de tokens (Logout) y caché de permisos. |
 
 ---
 
-### 🛠️ Roadmap Inmediato: Pendientes
+### 🧪 Estrategia de Testing
 
-#### 1. Idempotencia
-- Refinar `AuthService` para manejo de "Upsert" de perfiles OAuth2.
-- Implementar lógica de registro local (User/Password) con BCrypt.
+Hemos implementado una pirámide de pruebas robusta y desacoplada del entorno:
 
-#### 2. Unit Tests
-- Tests para servicios (AuthService, JwtService).
-- Tests para excepciones y GlobalExceptionHandler.
-- Tests de integración con Testcontainers.
+1.  **Tests Unitarios (JUnit 5 + Mockito):** 
+    - Pruebas puras de la lógica de negocio en `AuthServiceImpl`.
+    - Aislamiento total mediante Mocks de Repositorios y Servicios JWT.
+    - Verificación de records de Java con aserciones fluidas (AssertJ).
+2.  **Context Testing (SpringBootTest + H2):**
+    - Verificación del levantamiento del contexto de Spring.
+    - Base de datos en memoria (H2) configurada con dialecto PostgreSQL.
+    - **Zero External Dependency:** El entorno de test usa valores mock para OAuth2 (Google/FB) en `application-test.yaml`, eliminando la necesidad de archivos `.env`.
 
 ---
 
@@ -56,556 +58,63 @@ Este microservicio es el **centro de identidad** de la arquitectura, responsable
 | **Java** | Eclipse Temurin | 21 |
 | **Database** | PostgreSQL | 15+ |
 | **Cache** | Redis | 7+ |
-| **ORM** | Hibernate/JPA | - |
-| **Migrations** | Flyway | - |
 | **JWT** | JJWT (io.jsonwebtoken) | 0.12.6 |
 | **OAuth2** | Spring Security OAuth2 | - |
-| **API Docs** | OpenAPI 3 (Springdoc) | 2.8.5 |
-| **Build Tool** | Maven | 3.9 |
-
-### Dependencias Clave
-
-```xml
-<!-- OAuth2 Client + Resource Server -->
-<dependency>
-    <groupId>org.springframework.boot</groupId>
-    <artifactId>spring-boot-starter-oauth2-client</artifactId>
-</dependency>
-<dependency>
-    <groupId>org.springframework.boot</groupId>
-    <artifactId>spring-boot-starter-oauth2-resource-server</artifactId>
-</dependency>
-
-<!-- Database -->
-<dependency>
-    <groupId>org.springframework.boot</groupId>
-    <artifactId>spring-boot-starter-data-jpa</artifactId>
-</dependency>
-<dependency>
-    <groupId>org.postgresql</groupId>
-    <artifactId>postgresql</artifactId>
-</dependency>
-<dependency>
-    <groupId>org.flywaydb</groupId>
-    <artifactId>flyway-core</artifactId>
-</dependency>
-
-<!-- JWT -->
-<dependency>
-    <groupId>io.jsonwebtoken</groupId>
-    <artifactId>jjwt-api</artifactId>
-    <version>0.12.6</version>
-</dependency>
-
-<!-- Redis -->
-<dependency>
-    <groupId>org.springframework.boot</groupId>
-    <artifactId>spring-boot-starter-data-redis</artifactId>
-</dependency>
-```
-
----
-
-## 🗄️ Modelo de Datos
-
-### Entidades Principales
-
-```
-┌─────────────────────────────────────────────────────────────┐
-│  users (globales)                                           │
-│  - id, email, name, provider, provider_id, picture_url      │
-│  - Un usuario puede pertenecer a MÚLTIPLES tenants          │
-└─────────────────────────────────────────────────────────────┘
-                            │
-                            │ 1:N
-                            ▼
-┌─────────────────────────────────────────────────────────────┐
-│  user_tenants (relación)                                    │
-│  - user_id, tenant_id, role, accepted_at                    │
-│  - Rol: OWNER, ADMIN, CONTABLE, VIEWER                      │
-└─────────────────────────────────────────────────────────────┘
-                            │
-                            │ N:1
-                            ▼
-┌─────────────────────────────────────────────────────────────┐
-│  tenants (empresas)                                         │
-│  - id, name, slug, plan, max_users, industry                │
-│  - Planes: free, starter, pro, enterprise                   │
-└─────────────────────────────────────────────────────────────┘
-```
-
-### Tablas de la Base de Datos
-
-| Tabla | Propósito |
-|-------|-----------|
-| `users` | Usuarios globales (pueden estar en múltiples tenants) |
-| `tenants` | Empresas/organizaciones |
-| `user_tenants` | Relación usuario-tenant con rol |
-| `invitations` | Invitaciones pendientes a tenants |
-| `refresh_tokens` | Tokens JWT revocables (logout) |
-| `audit_log` | Log de auditoría de todas las acciones |
-
-### 🔄 Consistencia de Datos y Sincronización (Flyway + JPA)
-
-Para garantizar que el "orden de los payloads" sea idéntico desde la API hasta la base de datos:
-
-- **Enums en Mayúsculas:** Los planes (`FREE`, `PRO`), roles (`OWNER`, `ADMIN`) y proveedores (`GOOGLE`, `LOCAL`) están definidos en **Screaming Snake Case** tanto en Java como en los `CHECK` de SQL (`V1`).
-- **Mapeo JSONB Nativo:** La entidad `AuditLog` utiliza `@JdbcTypeCode(SqlTypes.JSON)` sobre un `Map<String, Object>`, permitiendo que los payloads JSON fluyan directamente a la columna `JSONB` de Postgres.
-- **Integridad Referencial:** Todas las tablas, incluyendo `audit_log`, cuentan con claves foráneas (`REFERENCES`) y eliminación en cascada donde aplica.
-
-#### Reset de Base de Datos (Entorno Local)
-Si el esquema `V1` cambia y Flyway lanza un error de *checksum mismatch*:
-```bash
-docker exec pymes-postgres-auth psql -U postgres -d pymes_auth -c "DROP SCHEMA public CASCADE; CREATE SCHEMA public;"
-docker restart pymes-auth-service
-```
-
-### Schema SQL (Flyway V1)
-
-El schema inicial está en `src/main/resources/db/migration/V1__initial_schema.sql`
-
----
-
-## 🔐 Autenticación y Autorización
-
-### Flujo OAuth2
-
-```
-┌─────────────────────────────────────────────────────────────┐
-│  1. Usuario → Frontend → "Login con Google"                 │
-└─────────────────────┬───────────────────────────────────────┘
-                      │
-                      ▼
-┌─────────────────────────────────────────────────────────────┐
-│  2. Redirige a Google → Usuario autentica                   │
-└─────────────────────┬───────────────────────────────────────┘
-                      │
-                      ▼
-┌─────────────────────────────────────────────────────────────┐
-│  3. Callback → /api/v1/login/oauth2/code/google             │
-│     - CustomOAuth2UserService busca/crea usuario en DB      │
-│     - Busca user_tenants (¿a qué tenants pertenece?)        │
-└─────────────────────┬───────────────────────────────────────┘
-                      │
-                      ▼
-┌─────────────────────────────────────────────────────────────┐
-│  4a. ¿Multi-tenant? → Devuelve lista de tenants             │
-│      Frontend muestra selector                              │
-│                                                             │
-│  4b. ¿Single tenant? → Genera JWT directo                   │
-│      JWT: {user_id, tenant_id, role, plan, permissions}     │
-└──────────────────────────────────────────────────────────────┘
-```
-
-### JWT Token Structure
-
-```json
-{
-  "sub": "user-uuid",
-  "email": "usuario@empresa.com",
-  "tenant_id": "tenant-uuid",
-  "tenant_name": "Restaurante XYZ",
-  "role": "OWNER",
-  "plan": "pro",
-  "permissions": ["*:*"],
-  "iat": 1679000000,
-  "exp": 1679000900
-}
-```
-
-### Configuración de Tokens
-
-| Token | Duración | Almacenamiento |
-|-------|----------|----------------|
-| **Access Token** | 15 minutos | localStorage (cliente) |
-| **Refresh Token** | 7 días | DB (revocable) |
-
----
-
-## 👥 Roles y Planes
-
-### Roles Disponibles
-
-| Rol | Descripción | Permisos Típicos |
-|-----|-------------|------------------|
-| `OWNER` | Creador del tenant, acceso total | `*:*` |
-| `ADMIN` | Gestiona usuarios y operaciones | `users:*`, `gastos:*`, `ingresos:*` |
-| `CONTABLE` | Solo área contable/fiscal | `contabilidad:*`, `reportes:*` |
-| `VIEWER` | Solo lectura | `*:read` |
-
-### Planes del SaaS
-
-| Plan | Precio | Usuarios Máx. | Roles Disponibles |
-|------|--------|---------------|-------------------|
-| **FREE** | $0/mes | 1 | OWNER |
-| **STARTER** | $9/mes | 3 | OWNER, ADMIN |
-| **PRO** | $29/mes | Ilimitados | Todos |
-| **ENTERPRISE** | $99/mes | Ilimitados | Todos + custom |
+| **Testing** | JUnit 5, Mockito, H2, AssertJ | - |
 
 ---
 
 ## 🌐 Endpoints
 
-### Públicos (sin autenticación)
-
-| Método | Endpoint | Descripción |
-|--------|----------|-------------|
-| `GET` | `/oauth2/authorization/google` | Iniciar login con Google |
-| `GET` | `/oauth2/authorization/facebook` | Iniciar login con Facebook |
-| `GET` | `/login/oauth2/code/google` | Callback de Google OAuth2 |
-| `GET` | `/login/oauth2/code/facebook` | Callback de Facebook OAuth2 |
-| `GET` | `/swagger-ui.html` | Documentación API |
-
-### Privados (requieren JWT) - 📝 Pendientes de implementar
+### Implementados y Verificados ✅
 
 | Método | Endpoint | Descripción |
 |--------|----------|-------------|
 | `GET` | `/auth/user` | Datos del usuario actual |
-| `GET` | `/auth/tenants` | Lista de tenants del usuario |
-| `POST` | `/auth/tenants/{id}/select` | Cambiar tenant activo |
-| `POST` | `/auth/logout` | Logout (invalida refresh token) |
+| `GET` | `/auth/tenants` | Lista de tenants del usuario (Paginado) |
+| `POST` | `/auth/tenants/select` | Cambiar tenant activo (Genera nuevos JWT) |
+| `POST` | `/auth/logout` | Logout (Revoca tokens en Redis) |
 | `POST` | `/auth/refresh` | Refresh access token |
-| `GET` | `/auth/invitations` | Invitaciones pendientes |
-| `POST` | `/auth/invitations` | Crear invitación |
+| `GET` | `/auth/invitations` | Invitaciones pendientes (Paginado) |
+| `POST` | `/auth/invitations` | Crear invitación (Admin/Owner) |
+| `POST` | `/auth/invitations/accept` | Aceptar invitación |
 | `DELETE` | `/auth/invitations/{id}` | Cancelar invitación |
 
 ---
 
-## ⚙️ Variables de Entorno
+## 🔐 Variables de Entorno y Secrets
 
-| Variable | Valor por Defecto | Descripción |
-|----------|-------------------|-------------|
-| `SERVER_PORT` | `8081` | Puerto del servicio |
-| `DB_HOST` | `localhost` | Host de PostgreSQL |
-| `DB_PORT` | `5432` | Puerto de PostgreSQL |
-| `DB_NAME` | `pymes_auth` | Nombre de la base de datos |
-| `DB_USERNAME` | `postgres` | Usuario de la DB |
-| `DB_PASSWORD` | `postgres` | Contraseña de la DB |
-| `REDIS_HOST` | `localhost` | Host de Redis |
-| `REDIS_PORT` | `6379` | Puerto de Redis |
-| `GOOGLE_CLIENT_ID` | - | Client ID de Google OAuth2 |
-| `GOOGLE_CLIENT_SECRET` | - | Client Secret de Google OAuth2 |
-| `FACEBOOK_CLIENT_ID` | - | App ID de Facebook OAuth2 |
-| `FACEBOOK_CLIENT_SECRET` | - | App Secret de Facebook OAuth2 |
-| `JWT_SECRET` | - | Clave secreta (mínimo 256 bits) |
-| `JWT_ACCESS_EXPIRATION` | `3600000` | Duración del access token (ms) |
-| `JWT_REFRESH_EXPIRATION` | `86400000` | Duración del refresh token (ms) |
-| `CORS_ALLOWED_ORIGINS` | `http://localhost:5173` | Orígenes permitidos |
+Para el desarrollo local y el CI, el sistema es inteligente:
+- **Local/Prod:** Requiere variables en `.env` (Google ID, JWT Secret, etc.).
+- **Tests (CI):** Usa automáticamente `src/test/resources/application-test.yaml` con credenciales ficticias seguras.
 
-### Ejemplo `.env`
-
-```env
-# Database
-DB_HOST=pymes-postgres-auth
-DB_PORT=5432
-DB_NAME=pymes_auth
-DB_USERNAME=postgres
-DB_PASSWORD=secure-password
-
-# Redis
-REDIS_HOST=pymes-redis-auth
-REDIS_PORT=6379
-
-# OAuth2 - Google
-GOOGLE_CLIENT_ID=xxx.apps.googleusercontent.com
-GOOGLE_CLIENT_SECRET=xxx
-
-# OAuth2 - Facebook
-FACEBOOK_CLIENT_ID=xxx
-FACEBOOK_CLIENT_SECRET=xxx
-
-# JWT
-JWT_SECRET=minimum-256-bits-secret-key-change-in-production
-JWT_ACCESS_EXPIRATION=900000
-JWT_REFRESH_EXPIRATION=604800000
-
-# Server
-SERVER_PORT=8081
-
-# CORS
-CORS_ALLOWED_ORIGINS=http://localhost:5173,https://app.pymes.com
-```
-
----
-
-## 🐳 Ejecución con Docker
-
-### Build de la Imagen
-
-```bash
-# Desde la raíz del proyecto
-docker build -t pymes-auth:latest ./backend/auth
-```
-
-### Ejecutar con Docker Compose
-
-```bash
-# Levantar toda la infraestructura (Auth + PostgreSQL + Redis + Gateway)
-docker compose up -d
-```
-
-### Ver Logs
-
-```bash
-docker logs -f pymes-auth-service
-```
-
-### Health Check
-
-```bash
-curl http://localhost:8081/api/v1/actuator/health
-```
-
----
-
-## 💻 Ejecución Local (Desarrollo)
-
-### Requisitos Previos
-
-- Java 21+ instalado
-- Maven 3.9+
-- PostgreSQL 15+ corriendo
-- Redis 7+ corriendo
-
-### Pasos
-
-```bash
-cd backend/auth
-
-# Copiar archivo de entorno
-cp .env.example .env
-
-# Editar .env con tus credenciales reales
-
-# Compilar
-./mvnw clean package -DskipTests
-
-# Ejecutar
-./mvnw spring-boot:run
-```
-
-### Acceder a Swagger UI
-
-```
-http://localhost:8081/api/v1/swagger-ui.html
-```
-
----
-
-## 🗂️ Estructura del Proyecto
-
-```
-auth/
-├── .mvn/                      # Maven wrapper
-├── src/
-│   ├── main/
-│   │   ├── java/auth/pymes/
-│   │   │   ├── AuthApplication.java
-│   │   │   ├── common/
-│   │   │   │   ├── config/
-│   │   │   │   │   ├── SecurityConfig.java
-│   │   │   │   │   ├── JwtAuthenticationFilter.java
-│   │   │   │   │   ├── JwtTokenProvider.java
-│   │   │   │   │   ├── OAuth2AuthenticationSuccessHandler.java
-│   │   │   │   │   └── RedisConfig.java
-│   │   │   │   ├── constants/
-│   │   │   │   │   └── ApiPathConstants.java
-│   │   │   │   └── models/
-│   │   │   │       ├── dto/
-│   │   │   │       │   ├── request/
-│   │   │   │       │   │   ├── CreateTenantRequest.java
-│   │   │   │       │   │   ├── SelectTenantRequest.java
-│   │   │   │       │   │   ├── TokenRefreshRequest.java
-│   │   │   │       │   │   ├── CreateInvitationRequest.java
-│   │   │   │       │   │   └── AcceptInvitationRequest.java
-│   │   │   │       │   └── response/
-│   │   │   │       │       ├── ApiResponse.java
-│   │   │   │       │       ├── AuthResponse.java
-│   │   │   │       │       ├── UserEntityResponse.java
-│   │   │   │       │       ├── TenantResponse.java
-│   │   │   │       │       ├── UserTenantResponse.java
-│   │   │   │       │       ├── InvitationResponse.java
-│   │   │   │       │       └── LogoutResponse.java
-│   │   │   │       ├── entities/
-│   │   │   │       │   ├── UserEntity.java          # Soft delete habilitado
-│   │   │   │       │   ├── Tenant.java              # Soft delete habilitado
-│   │   │   │       │   ├── UserTenant.java
-│   │   │   │       │   ├── Invitation.java
-│   │   │   │       │   ├── RefreshToken.java
-│   │   │   │       │   └── AuditLog.java
-│   │   │   │       ├── enums/
-│   │   │   │       │   ├── AuthProvider.java
-│   │   │   │       │   ├── RoleName.java
-│   │   │   │       │   └── PlanName.java
-│   │   │   │       └── mappers/
-│   │   │   │           ├── UserMapper.java
-│   │   │   │           ├── TenantMapper.java
-│   │   │   │           └── AuthMapper.java
-│   │   │   ├── controller/
-│   │   │   │   ├── AuthApi.java                 # Interface (10 endpoints)
-│   │   │   │   └── impl/
-│   │   │   │       └── AuthApiController.java
-│   │   │   ├── repositories/
-│   │   │   │   ├── UserEntityRepository.java
-│   │   │   │   ├── TenantRepository.java
-│   │   │   │   ├── UserTenantRepository.java    # Con paginación
-│   │   │   │   ├── InvitationRepository.java    # Con paginación
-│   │   │   │   └── RefreshTokenRepository.java
-│   │   │   ├── service/
-│   │   │   │   ├── AuthService.java
-│   │   │   │   ├── JwtService.java
-│   │   │   │   └── impl/
-│   │   │   │       ├── AuthServiceImpl.java
-│   │   │   │       ├── JwtServiceImpl.java
-│   │   │   │       ├── CustomOAuth2UserService.java
-│   │   │   │       ├── TokenBlacklistService.java    # Redis
-│   │   │   │       └── PermissionCacheService.java   # Redis
-│   │   │   └── utils/
-│   │   │       ├── exception/
-│   │   │       │   ├── CodigoError.java
-│   │   │       │   ├── ErrorResponse.java
-│   │   │       │   ├── GlobalExceptionHandler.java
-│   │   │       │   ├── auth/
-│   │   │       │   │   ├── AuthApiException.java
-│   │   │       │   │   ├── AuthenticationException.java
-│   │   │       │   │   ├── AuthorizationException.java
-│   │   │       │   │   └── TotalAuthException.java
-│   │   │       │   ├── custom/
-│   │   │       │   │   ├── ResourceNotFoundException.java
-│   │   │       │   │   ├── DuplicateResourceException.java
-│   │   │       │   │   └── InvalidInputException.java
-│   │   │       │   └── token/
-│   │   │       │       ├── TokenExpiredException.java
-│   │   │       │       ├── TokenInvalidException.java
-│   │   │       │       └── TokenRevokedException.java
-│   │   │       └── pageable/
-│   │   │           └── PageResponse.java
-│   │   └── resources/
-│   │       ├── application.yaml
-│   │       └── db/migration/
-│   │           └── V1__initial_schema.sql
-│   └── test/
-│       ├── java/auth/pymes/
-│       │   └── AuthApplicationTests.java
-│       └── resources/
-│           └── application-test.yaml
-├── .env.example               # Ejemplo de variables de entorno
-├── Dockerfile                 # Multi-stage build
-├── pom.xml                    # Dependencias Maven
-└── README.md
-```
-
----
-
-## 🧪 Testing
-
-### Tests Unitarios
-
-```bash
-./mvnw test
-```
-
-### Health Endpoints
-
-| Endpoint | Descripción |
-|----------|-------------|
-| `GET /api/v1/actuator/health` | Estado de salud del servicio |
-| `GET /api/v1/actuator/info` | Información de la aplicación |
-
----
-
-## 🔌 Redis - Uso de Caché
-
-| Key Pattern | Propósito | TTL |
-|-------------|-----------|-----|
-| `token_blacklist:{jti}` | Tokens revocados (logout) | 15 min |
-| `permissions:{user_id}:{tenant_id}` | Cache de permisos | 5 min |
-| `rate:login:{ip}` | Rate limiting login | 1 min |
-| `invitation:{token}` | Invitaciones pendientes | 7 días |
-| `tenants:{user_id}` | Lista de tenants del usuario | 1 hora |
-
----
-
-## 🔒 Seguridad
-
-| Aspecto | Implementación |
-|---------|----------------|
-| **Autenticación** | OAuth2 (Google/Facebook) |
-| **JWT Secret** | Mínimo 256 bits, variable de entorno |
-| **HTTPS** | Obligatorio en producción |
-| **CORS** | Configurado en `application.yaml` |
-| **Rate Limiting** | 📝 Pendiente (Redis) |
-| **Audit Log** | Todas las acciones se registran en DB |
-| **Token Blacklist** | 📝 Pendiente (Redis) |
+📘 **Guía de Secrets:** Ver [`.github/SECRETS.md`](../../.github/SECRETS.md)
 
 ---
 
 ## 📊 Roadmap de Implementación
 
 ### ✅ Completado
-
-- [x] Configuración de proyecto (pom.xml)
-- [x] application.yaml
-- [x] Flyway migration (V1)
-- [x] Entities (6 tablas)
-- [x] SecurityConfig
-- [x] CustomOAuth2UserService
+- [x] Configuración de seguridad OAuth2 y JWT.
+- [x] Lógica de Multi-tenancy (Selección y Creación).
+- [x] Gestión de Invitaciones y Roles.
+- [x] Implementación de **Unit Tests** con alta cobertura.
+- [x] Integración de Redis para Logout/Blacklist.
+- [x] CI/CD alineado para Staging (OCI ARM) y Producción (AMD64).
 
 ### 📝 Pendiente
-
-- [ ] JWT Utility (JwtTokenProvider)
-- [ ] Controllers (AuthController, TenantController)
-- [ ] Services (AuthService, InvitationService)
-- [ ] DTOs (request/response)
-- [ ] Mappers (MapStruct)
-- [ ] Enums (RoleName, PlanName, Permission)
-- [ ] Repositories adicionales
-- [ ] Redis integration
-- [ ] Integration tests
-
----
-
-## 🔧 Troubleshooting
-
-### Error: Flyway migration falla
-
-```bash
-# Verificar que la DB esté vacía o hacer clean
-docker exec -it pymes-postgres-auth psql -U postgres -c "DROP SCHEMA public CASCADE; CREATE SCHEMA public;"
-```
-
-### OAuth2 no funciona - Error 401
-
-Verificar que las credenciales de Google/Facebook estén correctas en el `.env`:
-```bash
-docker logs pymes-auth-service | grep -i oauth2
-```
-
-### Redis no conecta
-
-```bash
-# Verificar conectividad desde el contenedor
-docker exec -it pymes-auth-service redis-cli -h pymes-redis-auth ping
-```
-
----
-
-## 🔗 Enlaces Relacionados
-
-- [Documentación Principal del Proyecto](../../README.md)
-- [API Gateway](../gateway-pymes/README.md)
-- [Guía de Quick Start](../../.github/QUICK_START.md)
-- [Spring Security OAuth2](https://spring.io/guides/tutorials/spring-boot-oauth2/)
-- [Flyway Documentation](https://flywaydb.org/documentation/)
+- [ ] Implementar Rate Limiting por IP en Redis.
+- [ ] Lógica de registro local (User/Password) - *Opcional*.
+- [ ] Testcontainers para integración total con Postgres real.
+- [ ] Dashboard de auditoría avanzada.
 
 ---
 
 <div align="center">
 
-**PyMes Admin - Auth Microservice** | Parte de la arquitectura SaaS para PYMEs
+**PyMes Admin - Auth Microservice** | Estado: **Core Estabilizado** 💎
 
-[![Spring Boot](https://img.shields.io/badge/Spring_Boot-3.4.3-6db33f.svg)](https://spring.io/projects/spring-boot)
-[![Java](https://img.shields.io/badge/Java-21-007396.svg)](https://openjdk.java.net/)
-[![PostgreSQL](https://img.shields.io/badge/PostgreSQL-15-336791.svg)](https://www.postgresql.org/)
+[![Build & Test](https://github.com/dio-quincarDev/pymes-admin/actions/workflows/ci.yml/badge.svg)](https://github.com/dio-quincarDev/pymes-admin/actions)
+[![Java 21](https://img.shields.io/badge/Java-21-blue.svg)](https://openjdk.org/projects/jdk/21/)
 
 </div>

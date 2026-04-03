@@ -19,6 +19,18 @@ spring:
     exclude:
       - org.springframework.boot.autoconfigure.data.redis.RedisAutoConfiguration
       - org.springframework.boot.autoconfigure.data.redis.RedisRepositoriesAutoConfiguration
+  
+  # OAuth2 Mock Configurations for Testing
+  security:
+    oauth2:
+      client:
+        registration:
+          google:
+            client-id: test-google-id
+            client-secret: test-google-secret
+          facebook:
+            client-id: test-facebook-id
+            client-secret: test-facebook-secret
 
 management:
   health:
