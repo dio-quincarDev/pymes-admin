@@ -1,6 +1,5 @@
 package auth.pymes.common.models.dto.response;
 
-import auth.pymes.utils.exception.ErrorResponse;
 import com.fasterxml.jackson.annotation.JsonInclude;
 
 /**

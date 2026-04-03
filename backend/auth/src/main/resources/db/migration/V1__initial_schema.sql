@@ -1,5 +1,5 @@
 -- ============================================================
--- PyMes Auth Microservice - Initial Schema
+-- PyMes Auth Microservice - Initial Schema (Clean Version)
 -- ============================================================
 
 -- Enable UUID extension
@@ -20,7 +20,8 @@ CREATE TABLE users (
     created_at TIMESTAMP WITH TIME ZONE DEFAULT CURRENT_TIMESTAMP NOT NULL,
     updated_at TIMESTAMP WITH TIME ZONE DEFAULT CURRENT_TIMESTAMP NOT NULL,
 
-    CONSTRAINT users_provider_provider_id_unique UNIQUE (provider, provider_id)
+    CONSTRAINT users_provider_provider_id_unique UNIQUE (provider, provider_id),
+    CONSTRAINT users_provider_check CHECK (provider IN ('GOOGLE', 'FACEBOOK', 'LOCAL'))
 );
 
 CREATE INDEX idx_users_email ON users(email);
@@ -34,7 +35,7 @@ CREATE TABLE tenants (
     name VARCHAR(255) NOT NULL,
     slug VARCHAR(50) UNIQUE NOT NULL,
     industry VARCHAR(50),
-    plan VARCHAR(50) DEFAULT 'free' NOT NULL,
+    plan VARCHAR(50) DEFAULT 'FREE' NOT NULL,
     plan_expires_at TIMESTAMP WITH TIME ZONE,
     max_users INTEGER DEFAULT 1 NOT NULL,
     stripe_customer_id VARCHAR(255),
@@ -43,7 +44,9 @@ CREATE TABLE tenants (
     currency VARCHAR(3) DEFAULT 'USD' NOT NULL,
     is_active BOOLEAN DEFAULT TRUE NOT NULL,
     created_at TIMESTAMP WITH TIME ZONE DEFAULT CURRENT_TIMESTAMP NOT NULL,
-    updated_at TIMESTAMP WITH TIME ZONE DEFAULT CURRENT_TIMESTAMP NOT NULL
+    updated_at TIMESTAMP WITH TIME ZONE DEFAULT CURRENT_TIMESTAMP NOT NULL,
+
+    CONSTRAINT tenants_plan_check CHECK (plan IN ('FREE', 'STARTER', 'PRO', 'ENTERPRISE'))
 );
 
 CREATE INDEX idx_tenants_slug ON tenants(slug);
@@ -115,7 +118,7 @@ CREATE INDEX idx_refresh_tokens_revoked ON refresh_tokens(revoked);
 -- ============================================================
 CREATE TABLE audit_log (
     id UUID PRIMARY KEY DEFAULT uuid_generate_v4(),
-    tenant_id UUID NOT NULL,
+    tenant_id UUID NOT NULL REFERENCES tenants(id) ON DELETE CASCADE,
     user_id UUID REFERENCES users(id) ON DELETE SET NULL,
     action VARCHAR(100) NOT NULL,
     resource VARCHAR(100),
@@ -130,12 +133,6 @@ CREATE INDEX idx_audit_log_tenant ON audit_log(tenant_id);
 CREATE INDEX idx_audit_log_user ON audit_log(user_id);
 CREATE INDEX idx_audit_log_action ON audit_log(action);
 CREATE INDEX idx_audit_log_created ON audit_log(created_at);
-
--- ============================================================
--- SEED DATA - Roles iniciales (información en código)
--- ============================================================
--- Los roles y permisos están hardcodeados en la aplicación
--- Ver: auth.pymes.common.enums.RoleName y Permission
 
 -- ============================================================
 -- TRIGGERS - Actualizar updated_at automáticamente
@@ -168,9 +165,9 @@ COMMENT ON TABLE invitations IS 'Invitaciones pendientes a tenants';
 COMMENT ON TABLE refresh_tokens IS 'Tokens JWT refresh (para revocar logout)';
 COMMENT ON TABLE audit_log IS 'Log de auditoría de todas las acciones';
 
-COMMENT ON COLUMN users.provider IS 'Proveedor OAuth2: google, facebook, email';
+COMMENT ON COLUMN users.provider IS 'Proveedor OAuth2: GOOGLE, FACEBOOK, LOCAL';
 COMMENT ON COLUMN users.provider_id IS 'ID del usuario en el proveedor OAuth2';
-COMMENT ON COLUMN tenants.plan IS 'Plan de suscripción: free, starter, pro, enterprise';
+COMMENT ON COLUMN tenants.plan IS 'Plan de suscripción: FREE, STARTER, PRO, ENTERPRISE';
 COMMENT ON COLUMN tenants.slug IS 'Identificador URL-friendly único';
 COMMENT ON COLUMN user_tenants.role IS 'Rol del usuario en el tenant: OWNER, ADMIN, CONTABLE, VIEWER';
 COMMENT ON COLUMN invitations.token IS 'Token único para aceptar invitación';

@@ -1,4 +1,4 @@
-package auth.pymes.utils.exception;
+package auth.pymes.common.models.dto.response;
 
 import java.time.Instant;
 import java.util.Map;

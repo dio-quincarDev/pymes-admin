@@ -143,7 +143,22 @@ Este microservicio es el **centro de identidad** de la arquitectura, responsable
 | `user_tenants` | Relación usuario-tenant con rol |
 | `invitations` | Invitaciones pendientes a tenants |
 | `refresh_tokens` | Tokens JWT revocables (logout) |
-| `audit_log` | Auditoría de todas las acciones |
+| `audit_log` | Log de auditoría de todas las acciones |
+
+### 🔄 Consistencia de Datos y Sincronización (Flyway + JPA)
+
+Para garantizar que el "orden de los payloads" sea idéntico desde la API hasta la base de datos:
+
+- **Enums en Mayúsculas:** Los planes (`FREE`, `PRO`), roles (`OWNER`, `ADMIN`) y proveedores (`GOOGLE`, `LOCAL`) están definidos en **Screaming Snake Case** tanto en Java como en los `CHECK` de SQL (`V1`).
+- **Mapeo JSONB Nativo:** La entidad `AuditLog` utiliza `@JdbcTypeCode(SqlTypes.JSON)` sobre un `Map<String, Object>`, permitiendo que los payloads JSON fluyan directamente a la columna `JSONB` de Postgres.
+- **Integridad Referencial:** Todas las tablas, incluyendo `audit_log`, cuentan con claves foráneas (`REFERENCES`) y eliminación en cascada donde aplica.
+
+#### Reset de Base de Datos (Entorno Local)
+Si el esquema `V1` cambia y Flyway lanza un error de *checksum mismatch*:
+```bash
+docker exec pymes-postgres-auth psql -U postgres -d pymes_auth -c "DROP SCHEMA public CASCADE; CREATE SCHEMA public;"
+docker restart pymes-auth-service
+```
 
 ### Schema SQL (Flyway V1)
 

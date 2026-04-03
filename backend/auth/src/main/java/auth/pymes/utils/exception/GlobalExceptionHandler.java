@@ -1,8 +1,7 @@
 package auth.pymes.utils.exception;
 
+import auth.pymes.common.models.dto.response.ErrorResponse;
 import auth.pymes.utils.exception.auth.AuthApiException;
-import auth.pymes.utils.exception.auth.AuthenticationException;
-import auth.pymes.utils.exception.auth.AuthorizationException;
 import auth.pymes.utils.exception.custom.DuplicateResourceException;
 import auth.pymes.utils.exception.custom.InvalidInputException;
 import auth.pymes.utils.exception.custom.ResourceNotFoundException;

@@ -3,8 +3,11 @@ package auth.pymes.common.models.entities;
 import jakarta.persistence.*;
 import lombok.*;
 import org.hibernate.annotations.CreationTimestamp;
+import org.hibernate.annotations.JdbcTypeCode;
+import org.hibernate.type.SqlTypes;
 
 import java.time.ZonedDateTime;
+import java.util.Map;
 import java.util.UUID;
 
 @Builder
@@ -35,8 +38,9 @@ public class AuditLog {
     @Column(name = "resource_id")
     private UUID resourceId;
 
+    @JdbcTypeCode(SqlTypes.JSON)
     @Column(columnDefinition = "jsonb")
-    private String details;
+    private Map<String, Object> details;
 
     @Column(name = "ip_address", length = 45)
     private String ipAddress;
