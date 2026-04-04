@@ -19,6 +19,12 @@ import auth.pymes.service.JwtService;
 import auth.pymes.service.impl.AuthServiceImpl;
 import auth.pymes.utils.exception.CodigoError;
 import auth.pymes.utils.exception.auth.AuthorizationException;
+
+import auth.pymes.utils.exception.custom.DuplicateResourceException;
+import auth.pymes.utils.exception.custom.InvalidInputException;
+import auth.pymes.utils.exception.custom.ResourceNotFoundException;
+import auth.pymes.utils.exception.token.TokenExpiredException;
+import org.junit.jupiter.api.BeforeEach;
 import org.junit.jupiter.api.Test;
 import org.junit.jupiter.api.extension.ExtendWith;
 import org.mockito.InjectMocks;
@@ -60,6 +66,21 @@ public class AuthServiceImplTest {
 
     @InjectMocks
     private AuthServiceImpl authService;
+    
+    private OAuth2User principal;
+    private UserEntity defaultUser;
+    private String defaultEmail = "user@example.com";
+
+    
+    @BeforeEach
+    void setup() {
+    	principal = mock(OAuth2User.class);
+        defaultUser = UserEntity.builder()
+                .id(UUID.randomUUID())
+                .email(defaultEmail)
+                .isActive(true)
+                .build();
+    }
 
     @Test
     void getCurrentUser_WithValidPrincipal_ReturnsUserResponse() {
@@ -485,5 +506,343 @@ public class AuthServiceImplTest {
         assertThatThrownBy(() -> authService.selectTenant(request, principal))
                 .isInstanceOf(AuthorizationException.class)
                 .hasMessageContaining("User access to tenant is inactive");
+    }
+
+    @Test
+    void refreshToken_WithInvalidToken_ThrowsTokenExpiredException() {
+        String invalidToken = "invalid-refresh-token";
+        TokenRefreshRequest request = new TokenRefreshRequest(invalidToken);
+
+        when(jwtService.isTokenValid(invalidToken)).thenReturn(false);
+
+        assertThatThrownBy(() -> authService.refreshToken(request))
+                .isInstanceOf(TokenExpiredException.class)
+                .hasMessageContaining("Refresh token has expired or is invalid");
+
+        verify(jwtService).isTokenValid(invalidToken);
+        verifyNoInteractions(userRepository);
+    }
+
+    @Test
+    void refreshToken_WithDisabledUser_ThrowsAuthorizationException() {
+        String refreshToken = "valid-token";
+        TokenRefreshRequest request = new TokenRefreshRequest(refreshToken);
+
+        when(jwtService.isTokenValid(refreshToken)).thenReturn(true);
+        UUID userId = defaultUser.getId();
+        when(jwtService.extractUserId(refreshToken)).thenReturn(userId);
+        when(jwtService.extractEmail(refreshToken)).thenReturn(defaultEmail);
+
+        UserEntity disabledUser = UserEntity.builder()
+                .id(userId)
+                .email(defaultEmail)
+                .isActive(false)
+                .build();
+        when(userRepository.findById(userId)).thenReturn(Optional.of(disabledUser));
+
+        assertThatThrownBy(() -> authService.refreshToken(request))
+                .isInstanceOf(AuthorizationException.class)
+                .hasMessageContaining("User account is inactive");
+
+    }
+
+    @Test
+    void acceptInvitation_WithDifferentEmail_ThrowsAuthorizationException() {
+        String invitationToken = "some-token";
+        String authenticatedEmail = "other@example.com";
+        when(principal.getAttribute("email")).thenReturn(authenticatedEmail);
+
+        Invitation invitation = mock(Invitation.class);
+        when(invitation.getEmail()).thenReturn("invited@example.com");
+        when(invitationRepository.findByTokenAndAcceptedAtIsNull(invitationToken))
+                .thenReturn(Optional.of(invitation));
+
+        assertThatThrownBy(() -> authService.acceptInvitation(invitationToken, principal))
+                .isInstanceOf(AuthorizationException.class)
+                .hasMessageContaining("Invitation email does not match authenticated user");
+    }
+
+    @Test
+    void createInvitation_ByViewer_ThrowsAuthorizationException() {
+        when(principal.getAttribute("email")).thenReturn(defaultEmail);
+        when(userRepository.findByEmail(defaultEmail)).thenReturn(Optional.of(defaultUser));
+
+        UUID tenantId = UUID.randomUUID();
+        CreateInvitationRequest request = new CreateInvitationRequest(tenantId, "guest@example.com", RoleName.VIEWER);
+
+        Tenant tenant = mock(Tenant.class);
+        when(tenantRepository.findById(tenantId)).thenReturn(Optional.of(tenant));
+
+        UserTenant viewerRelation = mock(UserTenant.class);
+        when(viewerRelation.getRole()).thenReturn(RoleName.VIEWER);
+        when(userTenantRepository.findByUserIdAndTenantId(defaultUser.getId(), tenantId))
+                .thenReturn(Optional.of(viewerRelation));
+
+        assertThatThrownBy(() -> authService.createInvitation(request, principal))
+                .isInstanceOf(AuthorizationException.class)
+                .hasMessageContaining("User does not have permission");
+    }
+
+    @Test
+    void createInvitation_WhenEmailAlreadyInvited_ThrowsDuplicateResourceException() {
+        // Arrange
+        when(principal.getAttribute("email")).thenReturn(defaultEmail);
+        when(userRepository.findByEmail(defaultEmail)).thenReturn(Optional.of(defaultUser));
+
+        UUID tenantId = UUID.randomUUID();
+        String guestEmail = "guest@example.com";
+        CreateInvitationRequest request = new CreateInvitationRequest(tenantId, guestEmail, RoleName.VIEWER);
+
+        Tenant tenant = mock(Tenant.class);
+        when(tenantRepository.findById(tenantId)).thenReturn(Optional.of(tenant));
+
+        UserTenant adminRelation = mock(UserTenant.class);
+        when(adminRelation.getRole()).thenReturn(RoleName.ADMIN);
+        when(userTenantRepository.findByUserIdAndTenantId(defaultUser.getId(), tenantId))
+                .thenReturn(Optional.of(adminRelation));
+
+        // Simular que ya existe invitación pendiente
+        when(invitationRepository.existsByTenantIdAndEmailAndAcceptedAtIsNull(tenantId, guestEmail))
+                .thenReturn(true);
+
+        // Act & Assert
+        assertThatThrownBy(() -> authService.createInvitation(request, principal))
+                .isInstanceOf(DuplicateResourceException.class)
+                .hasMessageContaining(CodigoError.EMAIL_ALREADY_INVITED.getMensaje(guestEmail));
+    }
+
+    @Test
+    void createTenant_WhenSlugAlreadyExists_ThrowsDuplicateResourceException() {
+        // Arrange
+        when(principal.getAttribute("email")).thenReturn(defaultEmail);
+        when(userRepository.findByEmail(defaultEmail)).thenReturn(Optional.of(defaultUser));
+
+        String slug = "mi-empresa";
+        CreateTenantRequest request = new CreateTenantRequest("Mi Empresa", slug, "TECHNOLOGY");
+
+        when(tenantRepository.existsBySlug(slug)).thenReturn(true);
+
+        // Act & Assert
+        assertThatThrownBy(() -> authService.createTenant(request, principal))
+                .isInstanceOf(DuplicateResourceException.class)
+                .hasMessageContaining(CodigoError.TENANT_ALREADY_EXISTS.getMensaje(slug));
+
+        verify(tenantRepository, never()).save(any());
+    }
+
+    @Test
+    void selectTenant_WhenTenantInactive_ThrowsAuthorizationException() {
+        // Arrange
+        when(principal.getAttribute("email")).thenReturn(defaultEmail);
+        when(userRepository.findByEmail(defaultEmail)).thenReturn(Optional.of(defaultUser));
+
+        UUID tenantId = UUID.randomUUID();
+        SelectTenantRequest request = new SelectTenantRequest(tenantId);
+
+        UserTenant userTenant = mock(UserTenant.class);
+        when(userTenant.getIsActive()).thenReturn(true);
+        when(userTenantRepository.findByUserIdAndTenantId(defaultUser.getId(), tenantId))
+                .thenReturn(Optional.of(userTenant));
+
+        Tenant tenant = mock(Tenant.class);
+        when(tenant.getIsActive()).thenReturn(false);
+        when(tenantRepository.findById(tenantId)).thenReturn(Optional.of(tenant));
+
+        // Act & Assert
+        assertThatThrownBy(() -> authService.selectTenant(request, principal))
+                .isInstanceOf(AuthorizationException.class)
+                .hasMessageContaining(CodigoError.TENANT_INACTIVE.getMensaje());
+
+        verify(jwtService, never()).generateAccessToken(any(), any(), any());
+    }
+
+    @Test
+    void createInvitation_WhenEmailAlreadyMember_ThrowsDuplicateResourceException() {
+        // Arrange
+        when(principal.getAttribute("email")).thenReturn(defaultEmail);
+        when(userRepository.findByEmail(defaultEmail)).thenReturn(Optional.of(defaultUser));
+
+        UUID tenantId = UUID.randomUUID();
+        String guestEmail = "member@example.com";
+        CreateInvitationRequest request = new CreateInvitationRequest(tenantId, guestEmail, RoleName.VIEWER);
+
+        Tenant tenant = mock(Tenant.class);
+        when(tenantRepository.findById(tenantId)).thenReturn(Optional.of(tenant));
+
+        UserTenant adminRelation = mock(UserTenant.class);
+        when(adminRelation.getRole()).thenReturn(RoleName.ADMIN);
+        when(userTenantRepository.findByUserIdAndTenantId(defaultUser.getId(), tenantId))
+                .thenReturn(Optional.of(adminRelation));
+
+        // No hay invitación pendiente
+        when(invitationRepository.existsByTenantIdAndEmailAndAcceptedAtIsNull(tenantId, guestEmail))
+                .thenReturn(false);
+
+        // El email ya existe como usuario y es miembro del tenant
+        UserEntity existingUser = mock(UserEntity.class);
+        when(userRepository.findByEmail(guestEmail)).thenReturn(Optional.of(existingUser));
+        when(userTenantRepository.findByUserIdAndTenantId(existingUser.getId(), tenantId))
+                .thenReturn(Optional.of(mock(UserTenant.class)));
+
+        // Act & Assert
+        assertThatThrownBy(() -> authService.createInvitation(request, principal))
+                .isInstanceOf(DuplicateResourceException.class)
+                .hasMessageContaining("User is already a member of this tenant");
+
+        verify(invitationRepository, never()).save(any());
+    }
+
+    @Test
+    void acceptInvitation_WhenExpired_ThrowsInvalidInputException() {
+        // Arrange
+        when(principal.getAttribute("email")).thenReturn(defaultEmail);
+
+        String invitationToken = "expired-token";
+        Invitation invitation = mock(Invitation.class);
+        when(invitation.getEmail()).thenReturn(defaultEmail);
+        ZonedDateTime pastDate = ZonedDateTime.now().minusDays(1);
+        when(invitation.getExpiresAt()).thenReturn(pastDate);
+        when(invitationRepository.findByTokenAndAcceptedAtIsNull(invitationToken))
+                .thenReturn(Optional.of(invitation));
+
+        // Act & Assert
+        assertThatThrownBy(() -> authService.acceptInvitation(invitationToken, principal))
+                .isInstanceOf(InvalidInputException.class)
+                .hasMessageContaining(CodigoError.INVITATION_EXPIRED.getMensaje());
+
+        verify(userTenantRepository, never()).save(any());
+    }
+
+    @Test
+    void acceptInvitation_WhenUserNotFound_ThrowsResourceNotFoundException() {
+        // Arrange
+        when(principal.getAttribute("email")).thenReturn(defaultEmail);
+
+        String invitationToken = "valid-token";
+        Invitation invitation = mock(Invitation.class);
+        when(invitation.getEmail()).thenReturn(defaultEmail);
+        when(invitation.getExpiresAt()).thenReturn(ZonedDateTime.now().plusDays(1));
+        when(invitationRepository.findByTokenAndAcceptedAtIsNull(invitationToken))
+                .thenReturn(Optional.of(invitation));
+
+        when(userRepository.findByEmail(defaultEmail)).thenReturn(Optional.empty());
+
+        // Act & Assert
+        assertThatThrownBy(() -> authService.acceptInvitation(invitationToken, principal))
+                .isInstanceOf(ResourceNotFoundException.class)
+                .hasMessageContaining(CodigoError.USER_NOT_FOUND_BY_EMAIL.getMensaje(defaultEmail));
+
+        verify(userTenantRepository, never()).save(any());
+    }
+
+    @Test
+    void cancelInvitation_WhenNoPermissions_ThrowsAuthorizationException() {
+        // Arrange
+        when(principal.getAttribute("email")).thenReturn(defaultEmail);
+        when(userRepository.findByEmail(defaultEmail)).thenReturn(Optional.of(defaultUser));
+
+        UUID invitationId = UUID.randomUUID();
+        Invitation invitation = mock(Invitation.class);
+        when(invitation.getInvitedBy()).thenReturn(UUID.randomUUID()); // otro usuario
+        when(invitation.getTenantId()).thenReturn(UUID.randomUUID());
+        when(invitationRepository.findById(invitationId)).thenReturn(Optional.of(invitation));
+
+        UserTenant inviterRelation = mock(UserTenant.class);
+        when(inviterRelation.getRole()).thenReturn(RoleName.VIEWER); // sin permisos
+        when(userTenantRepository.findByUserIdAndTenantId(defaultUser.getId(), invitation.getTenantId()))
+                .thenReturn(Optional.of(inviterRelation));
+
+        // Act & Assert
+        assertThatThrownBy(() -> authService.cancelInvitation(invitationId, principal))
+                .isInstanceOf(AuthorizationException.class)
+                .hasMessageContaining(CodigoError.INSUFFICIENT_PERMISSIONS.getMensaje());
+
+        verify(invitationRepository, never()).delete(any());
+    }
+
+    @Test
+    void refreshToken_WhenUserNotFound_ThrowsResourceNotFoundException() {
+        // Arrange
+        String refreshToken = "valid-token";
+        TokenRefreshRequest request = new TokenRefreshRequest(refreshToken);
+
+        when(jwtService.isTokenValid(refreshToken)).thenReturn(true);
+        UUID userId = UUID.randomUUID();
+        when(jwtService.extractUserId(refreshToken)).thenReturn(userId);
+        when(jwtService.extractEmail(refreshToken)).thenReturn("any@example.com");
+
+        when(userRepository.findById(userId)).thenReturn(Optional.empty());
+
+        // Act & Assert
+        assertThatThrownBy(() -> authService.refreshToken(request))
+                .isInstanceOf(ResourceNotFoundException.class)
+                .hasMessageContaining(CodigoError.USER_NOT_FOUND_BY_ID.getMensaje(userId));
+    }
+
+    @Test
+    void logout_WithNullToken_DoesNotRevokeAndReturnsSuccess() {
+        // Arrange
+        String accessToken = null;
+
+        // Act
+        LogoutResponse response = authService.logout(accessToken);
+
+        // Assert
+        assertThat(response.success()).isTrue();
+        assertThat(response.message()).isEqualTo("Logout successful");
+        verify(jwtService, never()).revokeToken(any());
+    }
+
+    @Test
+    void logout_WithEmptyToken_DoesNotRevokeAndReturnsSuccess() {
+        // Arrange
+        String accessToken = "   ";
+
+        // Act
+        LogoutResponse response = authService.logout(accessToken);
+
+        // Assert
+        assertThat(response.success()).isTrue();
+        verify(jwtService, never()).revokeToken(any());
+    }
+
+    @Test
+    void getUserByEmail_WhenEmailNotFound_ThrowsResourceNotFoundException() {
+        // Arrange
+        String email = "nonexistent@example.com";
+        when(userRepository.findByEmail(email)).thenReturn(Optional.empty());
+
+        // Act & Assert
+        assertThatThrownBy(() -> authService.getUserByEmail(email))
+                .isInstanceOf(ResourceNotFoundException.class)
+                .hasMessageContaining(CodigoError.USER_NOT_FOUND_BY_EMAIL.getMensaje(email));
+    }
+
+    @Test
+    void getUserTenants_WhenUserNotFound_ThrowsResourceNotFoundException() {
+        // Arrange
+        when(principal.getAttribute("email")).thenReturn(defaultEmail);
+        when(userRepository.findByEmail(defaultEmail)).thenReturn(Optional.empty());
+
+        Pageable pageable = mock(Pageable.class);
+
+        // Act & Assert
+        assertThatThrownBy(() -> authService.getUserTenants(pageable, principal))
+                .isInstanceOf(ResourceNotFoundException.class)
+                .hasMessageContaining(CodigoError.USER_NOT_FOUND_BY_EMAIL.getMensaje(defaultEmail));
+
+        verify(userTenantRepository, never()).findByUserIdAndIsActiveTrue(any(), any());
+    }
+    
+    @Test
+    void getCurrentUser_WhenUserNotFound_ThrowsResourceNotFoundException() {
+        // Arrange
+        when(principal.getAttribute("email")).thenReturn(defaultEmail);
+        when(userRepository.findByEmail(defaultEmail)).thenReturn(Optional.empty());
+
+        // Act & Assert
+        assertThatThrownBy(() -> authService.getCurrentUser(principal))
+                .isInstanceOf(ResourceNotFoundException.class)
+                .hasMessageContaining(CodigoError.USER_NOT_FOUND_BY_EMAIL.getMensaje(defaultEmail));
     }
 }

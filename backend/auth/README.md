@@ -28,7 +28,7 @@ Este microservicio es el **centro de identidad** de la arquitectura, responsable
 | **DTOs & Mappers** | ✅ Listo | Java Records para mayor inmutabilidad y rendimiento. |
 | **Exception Handling** | ✅ Listo | 8 excepciones + GlobalExceptionHandler. |
 | **Auth Service** | ✅ Listo | Lógica de selección de tenant, invitaciones y tokens. |
-| **Unit Testing** | ✅ Listo | 8 tests críticos (85%+ cobertura en AuthService). |
+| **Unit Testing** | ✅ Listo | 24 tests (AuthServiceImpl) + edge cases. |
 | **Redis Integration** | ✅ Listo | Blacklist de tokens (Logout) y caché de permisos. |
 
 ---
@@ -103,9 +103,10 @@ Para el desarrollo local y el CI, el sistema es inteligente:
 - [x] CI/CD alineado para Staging (OCI ARM) y Producción (AMD64).
 
 ### 📝 Pendiente
-- [ ] Implementar Rate Limiting por IP en Redis.
-- [ ] Lógica de registro local (User/Password) - *Opcional*.
-- [ ] Testcontainers para integración total con Postgres real.
+- [ ] **Unit Tests: JwtServiceImpl** - Cobertura de generación/validación de JWT.
+- [ ] **Auth local (User/Password)** - Login y registro sin OAuth2.
+- [ ] Rate Limiting por IP en Redis.
+- [ ] Testcontainers para integración con Postgres real.
 - [ ] Dashboard de auditoría avanzada.
 
 ---

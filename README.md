@@ -85,6 +85,18 @@ public class Gasto {
 public class Transaccion { ... }
 ```
 
+### 📦 Estrategia de Caché (Redis)
+
+| Servicio | Prefijo | Propósito |
+|----------|---------|-----------|
+| **Auth** | `auth:` | Blacklist tokens, sesiones, permisos |
+| **Core** | `core:` | Cache queries, rate limiting |
+| **IA** | `ia:` | Reportes temporales, sesiones Claude |
+
+```bash
+# Ejemplo keys: auth:session:{user_id}, core:cache:gastos:{tenant_id}
+```
+
 ---
 
 ## 🤖 IA Toolkit - Contabilidad Forense

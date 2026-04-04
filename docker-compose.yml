@@ -60,11 +60,11 @@ services:
       redis:
         condition: service_started
     healthcheck:
-      test: ["CMD", "wget", "-qO-", "http://localhost:8081/api/v1/actuator/health"]
-      interval: 10s
-      timeout: 5s
-      retries: 5
-      start_period: 30s
+      test: ["CMD", "wget", "-qO-", "http://localhost:8081/actuator/health"]
+      interval: 15s
+      timeout: 10s
+      retries: 8
+      start_period: 45s
 
   # ==================== DATABASE (PostgreSQL) ====================
   postgres-auth:

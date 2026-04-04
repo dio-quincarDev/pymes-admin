@@ -1,10 +1,9 @@
-name: CI - Build and Test
+name: 🧪 CI - Build and Test
+run-name: CI en ${{ github.ref_name }} por @${{ github.actor }}
 
 on:
   push:
     branches:
-      - main
-      - develop
       - feature/**
   pull_request:
     branches:
