@@ -14,9 +14,10 @@ public interface JwtService {
      * @param user El usuario autenticado
      * @param tenantId El ID de la empresa activa
      * @param role El rol del usuario en esa empresa
+     * @param plan El plan de suscripción del tenant (FREE, PRO, etc.)
      * @return El token JWT firmado
      */
-    String generateAccessToken(UserEntity user, UUID tenantId, String role);
+    String generateAccessToken(UserEntity user, UUID tenantId, String role, String plan);
 
     /**
      * Genera un Refresh Token (Vida larga) para persistencia de sesión.
@@ -44,6 +45,11 @@ public interface JwtService {
      * Extrae el rol asociado al tenant en el token.
      */
     String extractRole(String token);
+
+    /**
+     * Extrae el plan de suscripción del token.
+     */
+    String extractPlan(String token);
 
     /**
      * Verifica si el token es estructuralmente válido y no ha expirado.

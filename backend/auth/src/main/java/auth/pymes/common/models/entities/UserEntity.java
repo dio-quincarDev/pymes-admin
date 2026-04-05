@@ -20,7 +20,7 @@ import java.util.*;
 @NoArgsConstructor
 @Entity
 @Table(name = "users")
-@SQLDelete(sql = "UPDATE users SET is_active = false WHERE id = ?")
+@SQLDelete(sql = "UPDATE users SET is_active = false, deleted_at = CURRENT_TIMESTAMP WHERE id = ?")
 @Where(clause = "is_active = true")
 public class UserEntity implements UserDetails {
 
@@ -33,6 +33,9 @@ public class UserEntity implements UserDetails {
 
     @Column(nullable = false)
     private String name;
+
+    @Column(nullable = true)
+    private String password;
 
     @Enumerated(EnumType.STRING)
     @Column(nullable = false)
@@ -50,6 +53,9 @@ public class UserEntity implements UserDetails {
     @Column(name = "is_active", nullable = false)
     @Builder.Default
     private Boolean isActive = true;
+
+    @Column(name = "deleted_at")
+    private ZonedDateTime deletedAt;
 
     @CreationTimestamp
     @Column(name = "created_at", nullable = false, updatable = false)
@@ -86,7 +92,7 @@ public class UserEntity implements UserDetails {
 
     @Override
     public String getPassword() {
-        return null; // Autenticación vía OAuth2
+        return password;
     }
 
     @Override

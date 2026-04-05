@@ -1,7 +1,9 @@
 package auth.pymes.common.config;
 
+import auth.pymes.common.models.entities.Tenant;
 import auth.pymes.common.models.entities.UserEntity;
 import auth.pymes.common.models.entities.UserTenant;
+import auth.pymes.repositories.TenantRepository;
 import auth.pymes.repositories.UserEntityRepository;
 import auth.pymes.repositories.UserTenantRepository;
 import auth.pymes.service.JwtService;
@@ -33,6 +35,7 @@ public class OAuth2AuthenticationSuccessHandler extends SimpleUrlAuthenticationS
     private final JwtService jwtService;
     private final UserEntityRepository userRepository;
     private final UserTenantRepository userTenantRepository;
+    private final TenantRepository tenantRepository;
 
     @Value("${app.cors.allowed-origins}")
     private String frontendUrl;
@@ -63,8 +66,17 @@ public class OAuth2AuthenticationSuccessHandler extends SimpleUrlAuthenticationS
             role = ut.getRole().name();
         }
 
+        // Get tenant plan
+        String plan = "FREE";
+        if (activeTenantId != null) {
+            Tenant tenant = tenantRepository.findById(activeTenantId).orElse(null);
+            if (tenant != null) {
+                plan = tenant.getPlan().name();
+            }
+        }
+
         // 3. Generar Tokens JWT usando el nuevo JwtService
-        String accessToken = jwtService.generateAccessToken(user, activeTenantId, role);
+        String accessToken = jwtService.generateAccessToken(user, activeTenantId, role, plan);
         String refreshToken = jwtService.generateRefreshToken(user);
 
         // 4. Construir URL de redirección al Frontend

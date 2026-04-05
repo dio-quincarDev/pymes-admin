@@ -194,7 +194,7 @@ public class AuthServiceImplTest {
 
         String accessToken = "access-token";
         String refreshToken = "refresh-token";
-        when(jwtService.generateAccessToken(user, tenantId, "ADMIN")).thenReturn(accessToken);
+        when(jwtService.generateAccessToken(any(UserEntity.class), any(UUID.class), any(String.class), any(String.class))).thenReturn(accessToken);
         when(jwtService.generateRefreshToken(user)).thenReturn(refreshToken);
 
         AuthResponse response = authService.selectTenant(request, principal);
@@ -290,7 +290,7 @@ public class AuthServiceImplTest {
 
         String newAccessToken = "new-access-token";
         String newRefreshToken = "new-refresh-token";
-        when(jwtService.generateAccessToken(user, userTenants.get(0).getTenantId(), "ADMIN"))
+        when(jwtService.generateAccessToken(any(UserEntity.class), any(UUID.class), any(String.class), any(String.class)))
                 .thenReturn(newAccessToken);
         when(jwtService.generateRefreshToken(user)).thenReturn(newRefreshToken);
 
@@ -605,6 +605,9 @@ public class AuthServiceImplTest {
         when(invitationRepository.existsByTenantIdAndEmailAndAcceptedAtIsNull(tenantId, guestEmail))
                 .thenReturn(true);
 
+        when(userTenantRepository.countByTenantIdAndIsActiveTrue(tenantId)).thenReturn(0L);
+        when(tenant.getMaxUsers()).thenReturn(5);
+
         // Act & Assert
         assertThatThrownBy(() -> authService.createInvitation(request, principal))
                 .isInstanceOf(DuplicateResourceException.class)
@@ -653,7 +656,7 @@ public class AuthServiceImplTest {
                 .isInstanceOf(AuthorizationException.class)
                 .hasMessageContaining(CodigoError.TENANT_INACTIVE.getMensaje());
 
-        verify(jwtService, never()).generateAccessToken(any(), any(), any());
+        verify(jwtService, never()).generateAccessToken(any(), any(), any(), any());
     }
 
     @Test
@@ -683,6 +686,9 @@ public class AuthServiceImplTest {
         when(userRepository.findByEmail(guestEmail)).thenReturn(Optional.of(existingUser));
         when(userTenantRepository.findByUserIdAndTenantId(existingUser.getId(), tenantId))
                 .thenReturn(Optional.of(mock(UserTenant.class)));
+
+        when(userTenantRepository.countByTenantIdAndIsActiveTrue(tenantId)).thenReturn(0L);
+        when(tenant.getMaxUsers()).thenReturn(5);
 
         // Act & Assert
         assertThatThrownBy(() -> authService.createInvitation(request, principal))

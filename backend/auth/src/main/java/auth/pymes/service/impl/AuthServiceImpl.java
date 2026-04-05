@@ -2,6 +2,8 @@ package auth.pymes.service.impl;
 
 import auth.pymes.common.models.dto.request.CreateInvitationRequest;
 import auth.pymes.common.models.dto.request.CreateTenantRequest;
+import auth.pymes.common.models.dto.request.LoginRequest;
+import auth.pymes.common.models.dto.request.RegisterRequest;
 import auth.pymes.common.models.dto.request.SelectTenantRequest;
 import auth.pymes.common.models.dto.request.TokenRefreshRequest;
 import auth.pymes.common.models.dto.response.AuthResponse;
@@ -10,28 +12,35 @@ import auth.pymes.common.models.dto.response.LogoutResponse;
 import auth.pymes.common.models.dto.response.TenantResponse;
 import auth.pymes.common.models.dto.response.UserEntityResponse;
 import auth.pymes.common.models.dto.response.UserTenantResponse;
+import auth.pymes.common.config.RateLimitService;
+import auth.pymes.common.models.entities.AuditLog;
 import auth.pymes.common.models.entities.Invitation;
 import auth.pymes.common.models.entities.Tenant;
 import auth.pymes.common.models.entities.UserEntity;
 import auth.pymes.common.models.entities.UserTenant;
+import auth.pymes.common.models.enums.AuthProvider;
+import auth.pymes.common.models.enums.PlanName;
 import auth.pymes.common.models.enums.RoleName;
-import auth.pymes.repositories.InvitationRepository;
-import auth.pymes.repositories.TenantRepository;
-import auth.pymes.repositories.UserEntityRepository;
-import auth.pymes.repositories.UserTenantRepository;
+import auth.pymes.repositories.*;
 import auth.pymes.service.AuthService;
 import auth.pymes.service.JwtService;
+import auth.pymes.utils.exception.CodigoError;
+import auth.pymes.utils.exception.auth.AuthenticationException;
 import auth.pymes.utils.exception.auth.AuthorizationException;
 import auth.pymes.utils.exception.custom.DuplicateResourceException;
 import auth.pymes.utils.exception.custom.InvalidInputException;
 import auth.pymes.utils.exception.custom.ResourceNotFoundException;
 import auth.pymes.utils.exception.token.TokenExpiredException;
+import jakarta.servlet.http.HttpServletRequest;
 import lombok.RequiredArgsConstructor;
 import lombok.extern.slf4j.Slf4j;
 import org.springframework.beans.factory.annotation.Value;
 import org.springframework.data.domain.Page;
 import org.springframework.data.domain.PageImpl;
 import org.springframework.data.domain.Pageable;
+import org.springframework.security.authentication.AuthenticationManager;
+import org.springframework.security.authentication.UsernamePasswordAuthenticationToken;
+import org.springframework.security.crypto.password.PasswordEncoder;
 import org.springframework.security.oauth2.core.user.OAuth2User;
 import org.springframework.stereotype.Service;
 import org.springframework.transaction.annotation.Transactional;
@@ -53,10 +62,255 @@ public class AuthServiceImpl implements AuthService {
     private final TenantRepository tenantRepository;
     private final UserTenantRepository userTenantRepository;
     private final InvitationRepository invitationRepository;
+    private final AuditLogRepository auditLogRepository;
     private final JwtService jwtService;
+    private final PasswordEncoder passwordEncoder;
+    private final AuthenticationManager authenticationManager;
+    private final RateLimitService rateLimitService;
 
     @Value("${jwt.access-expiration}")
     private long accessTokenExpiration;
+
+    // ==================== LOCAL AUTH ====================
+
+    @Override
+    @Transactional
+    public AuthResponse register(RegisterRequest request, HttpServletRequest httpRequest) {
+        // 1. Validar unicidad de email
+        if (userRepository.existsByEmail(request.email())) {
+            throw new DuplicateResourceException(USER_ALREADY_EXISTS, request.email());
+        }
+
+        // 2. Validar unicidad de slug del tenant
+        if (tenantRepository.existsBySlug(request.companySlug())) {
+            throw new DuplicateResourceException(TENANT_ALREADY_EXISTS, request.companySlug());
+        }
+
+        // 3. Crear UserEntity (Dueño)
+        UserEntity user = UserEntity.builder()
+                .name(request.name())
+                .email(request.email())
+                .password(passwordEncoder.encode(request.password()))
+                .provider(AuthProvider.LOCAL)
+                .providerId(request.email())
+                .isActive(true)
+                .build();
+
+        user = userRepository.save(user);
+        log.info("Usuario local registrado: {}", user.getEmail());
+
+        // 4. Crear Tenant (Empresa) con Plan FREE por defecto
+        Tenant tenant = Tenant.builder()
+                .name(request.companyName())
+                .slug(request.companySlug())
+                .plan(PlanName.FREE)
+                .maxUsers(1)
+                .isActive(true)
+                .build();
+
+        tenant = tenantRepository.save(tenant);
+        log.info("Tenant aprovisionado: {} ({})", tenant.getName(), tenant.getId());
+
+        // 5. Vincular UserTenant con rol OWNER
+        UserTenant userTenant = UserTenant.builder()
+                .userId(user.getId())
+                .tenantId(tenant.getId())
+                .role(RoleName.OWNER)
+                .acceptedAt(ZonedDateTime.now())
+                .isActive(true)
+                .build();
+
+        userTenantRepository.save(userTenant);
+
+        // 6. Generar tokens
+        String accessToken = jwtService.generateAccessToken(user, tenant.getId(), RoleName.OWNER.name(), tenant.getPlan().name());
+        String refreshToken = jwtService.generateRefreshToken(user);
+
+        // 7. Auditoría forense (IA Ready)
+        auditLoginAction(user, tenant.getId(), "REGISTER", httpRequest);
+
+        return new AuthResponse(accessToken, refreshToken, mapToUserResponse(user), mapToTenantResponse(tenant));
+    }
+
+    @Override
+    @Transactional
+    public AuthResponse login(LoginRequest request, HttpServletRequest httpRequest) {
+        // 0. Rate limiting
+        String rateLimitKey = "login:" + httpRequest.getRemoteAddr();
+        if (!rateLimitService.isAllowed(rateLimitKey)) {
+            throw new InvalidInputException(RATE_LIMIT_EXCEEDED, rateLimitService.getRemainingAttempts(rateLimitKey));
+        }
+
+        // 1. Buscar usuario por email
+        UserEntity user = userRepository.findByEmail(request.email())
+                .orElseThrow(() -> new AuthenticationException(INVALID_CREDENTIALS));
+
+        // 2. Verificar que el usuario está habilitado
+        if (!user.isEnabled()) {
+            throw new AuthorizationException(USER_INACTIVE);
+        }
+
+        // 3. Autenticar credenciales
+        try {
+            authenticationManager.authenticate(
+                    new UsernamePasswordAuthenticationToken(request.email(), request.password())
+            );
+        } catch (org.springframework.security.core.AuthenticationException e) {
+            throw new AuthenticationException(INVALID_CREDENTIALS);
+        }
+
+        // 4. Obtener tenants del usuario
+        List<UserTenant> userTenants = userTenantRepository.findByUserIdAndIsActiveTrue(user.getId());
+        UUID activeTenantId = userTenants.isEmpty() ? null : userTenants.get(0).getTenantId();
+        String role = userTenants.isEmpty() ? "VIEWER" : userTenants.get(0).getRole().name();
+
+        Tenant activeTenant = null;
+        if (activeTenantId != null) {
+            activeTenant = tenantRepository.findById(activeTenantId).orElse(null);
+        }
+
+        // 5. Generar tokens
+        String plan = activeTenant != null ? activeTenant.getPlan().name() : "FREE";
+        String accessToken = jwtService.generateAccessToken(user, activeTenantId, role, plan);
+        String refreshToken = jwtService.generateRefreshToken(user);
+
+        log.info("Usuario {} hizo login exitoso", user.getEmail());
+
+        // Auditoría forense (IA Ready)
+        UUID tenantId = activeTenant != null ? activeTenant.getId() : null;
+        auditLoginAction(user, tenantId, "LOGIN", httpRequest);
+
+        return new AuthResponse(
+                accessToken,
+                refreshToken,
+                mapToUserResponse(user),
+                activeTenant != null ? mapToTenantResponse(activeTenant) : null
+        );
+    }
+
+    // ==================== USER MANAGEMENT ====================
+
+    @Override
+    public Page<UserTenantResponse> getTenantUsers(UUID tenantId, Pageable pageable, OAuth2User principal) {
+        String requesterEmail = principal.getAttribute("email");
+        UserEntity requester = userRepository.findByEmail(requesterEmail)
+                .orElseThrow(() -> new ResourceNotFoundException(USER_NOT_FOUND_BY_EMAIL, requesterEmail));
+
+        // Verificar que el requester pertenece al tenant y es OWNER/ADMIN
+        UserTenant requesterRelation = userTenantRepository.findByUserIdAndTenantId(requester.getId(), tenantId)
+                .orElseThrow(() -> new AuthorizationException(USER_NOT_IN_TENANT, tenantId));
+
+        if (requesterRelation.getRole() != RoleName.OWNER && requesterRelation.getRole() != RoleName.ADMIN) {
+            throw new AuthorizationException(INSUFFICIENT_PERMISSIONS);
+        }
+
+        Tenant tenant = tenantRepository.findById(tenantId)
+                .orElseThrow(() -> new ResourceNotFoundException(TENANT_NOT_FOUND, tenantId));
+
+        // Contar miembros activos para paginación manual (PageImpl necesita lista + total)
+        // Usamos findByUserIdAndIsActiveTrue iterado por tenant via UserTenant
+        Page<UserTenant> userTenants = userTenantRepository.findByTenantIdAndIsActiveTrue(tenantId, pageable);
+
+        return userTenants.map(ut -> UserTenantResponse.forMember(
+                ut.getUserId(),
+                ut.getUser().getName(),
+                ut.getUser().getEmail(),
+                ut.getRole(),
+                ut.getAcceptedAt() != null,
+                ut.getCreatedAt()
+        ));
+    }
+
+    @Override
+    @Transactional
+    public UserTenantResponse updateUserRole(UUID tenantId, UUID userId, String newRole, OAuth2User principal) {
+        String requesterEmail = principal.getAttribute("email");
+        UserEntity requester = userRepository.findByEmail(requesterEmail)
+                .orElseThrow(() -> new ResourceNotFoundException(USER_NOT_FOUND_BY_EMAIL, requesterEmail));
+
+        // Verificar que el requester pertenece al tenant
+        UserTenant requesterRelation = userTenantRepository.findByUserIdAndTenantId(requester.getId(), tenantId)
+                .orElseThrow(() -> new AuthorizationException(USER_NOT_IN_TENANT, tenantId));
+
+        // Verificar permisos (OWNER o ADMIN)
+        if (requesterRelation.getRole() != RoleName.OWNER && requesterRelation.getRole() != RoleName.ADMIN) {
+            throw new AuthorizationException(INSUFFICIENT_PERMISSIONS);
+        }
+
+        // Obtener la relación del usuario objetivo
+        UserTenant targetRelation = userTenantRepository.findByUserIdAndTenantId(userId, tenantId)
+                .orElseThrow(() -> new ResourceNotFoundException(USER_NOT_IN_TENANT, userId));
+
+        RoleName targetRole = targetRelation.getRole();
+        RoleName newRoleEnum;
+        try {
+            newRoleEnum = RoleName.valueOf(newRole);
+        } catch (IllegalArgumentException e) {
+            throw new InvalidInputException(INVALID_ROLE, newRole);
+        }
+
+        // Jerarquía: no puedes modificar a alguien de rol igual o mayor
+        if (!requesterRelation.getRole().hasMorePowerThan(targetRole)) {
+            throw new AuthorizationException(INSUFFICIENT_PERMISSIONS,
+                    "Cannot modify a user with role equal or higher than yours");
+        }
+
+        // SaaS Integrity: OWNER no puede ser degradado
+        if (targetRole == RoleName.OWNER) {
+            throw new AuthorizationException(OWNER_CANNOT_BE_REMOVED);
+        }
+
+        targetRelation.setRole(newRoleEnum);
+        userTenantRepository.save(targetRelation);
+
+        log.info("Usuario {} cambió rol de userId={} a {} en tenant {}",
+                requester.getEmail(), userId, newRole, tenantId);
+
+        return UserTenantResponse.forMember(
+                targetRelation.getUserId(),
+                targetRelation.getUser().getName(),
+                targetRelation.getUser().getEmail(),
+                newRoleEnum,
+                targetRelation.getAcceptedAt() != null,
+                targetRelation.getCreatedAt()
+        );
+    }
+
+    @Override
+    @Transactional
+    public void deleteUserFromTenant(UUID tenantId, UUID userId, OAuth2User principal) {
+        String requesterEmail = principal.getAttribute("email");
+        UserEntity requester = userRepository.findByEmail(requesterEmail)
+                .orElseThrow(() -> new ResourceNotFoundException(USER_NOT_FOUND_BY_EMAIL, requesterEmail));
+
+        // Verificar que el requester pertenece al tenant
+        UserTenant requesterRelation = userTenantRepository.findByUserIdAndTenantId(requester.getId(), tenantId)
+                .orElseThrow(() -> new AuthorizationException(USER_NOT_IN_TENANT, tenantId));
+
+        // Solo OWNER puede desvincular usuarios
+        if (requesterRelation.getRole() != RoleName.OWNER) {
+            throw new AuthorizationException(INSUFFICIENT_PERMISSIONS);
+        }
+
+        UserTenant targetRelation = userTenantRepository.findByUserIdAndTenantId(userId, tenantId)
+                .orElseThrow(() -> new ResourceNotFoundException(USER_NOT_IN_TENANT, userId));
+
+        // Jerarquía: OWNER no puede desvincular a otro OWNER
+        if (targetRelation.getRole() == RoleName.OWNER) {
+            throw new AuthorizationException(OWNER_CANNOT_BE_REMOVED);
+        }
+
+        // SaaS Integrity: OWNER no puede desvincularse a sí mismo
+        if (requester.getId().equals(userId)) {
+            throw new AuthorizationException(OWNER_CANNOT_BE_REMOVED,
+                    "Owner cannot remove themselves. Transfer ownership first.");
+        }
+
+        // Soft delete
+        userTenantRepository.delete(targetRelation);
+
+        log.info("Usuario {} desvinculó userId={} del tenant {}", requester.getEmail(), userId, tenantId);
+    }
 
     // ==================== USER ====================
 
@@ -117,7 +371,7 @@ public class AuthServiceImpl implements AuthService {
         }
 
         // Generar nuevos tokens con el tenant seleccionado
-        String accessToken = jwtService.generateAccessToken(user, tenant.getId(), userTenant.getRole().name());
+        String accessToken = jwtService.generateAccessToken(user, tenant.getId(), userTenant.getRole().name(), tenant.getPlan().name());
         String refreshToken = jwtService.generateRefreshToken(user);
 
         log.info("Usuario {} seleccionó tenant {} ({})", user.getEmail(), tenant.getName(), tenant.getId());
@@ -206,14 +460,15 @@ public class AuthServiceImpl implements AuthService {
         UUID activeTenantId = userTenants.isEmpty() ? null : userTenants.get(0).getTenantId();
         String role = userTenants.isEmpty() ? "VIEWER" : userTenants.get(0).getRole().name();
 
-        // Generar nuevos tokens
-        String newAccessToken = jwtService.generateAccessToken(user, activeTenantId, role);
-        String newRefreshToken = jwtService.generateRefreshToken(user);
-
         Tenant activeTenant = null;
         if (activeTenantId != null) {
             activeTenant = tenantRepository.findById(activeTenantId).orElse(null);
         }
+
+        // Generar nuevos tokens
+        String plan = activeTenant != null ? activeTenant.getPlan().name() : "FREE";
+        String newAccessToken = jwtService.generateAccessToken(user, activeTenantId, role, plan);
+        String newRefreshToken = jwtService.generateRefreshToken(user);
 
         return new AuthResponse(
                 newAccessToken,
@@ -250,6 +505,19 @@ public class AuthServiceImpl implements AuthService {
 
         if (inviterTenant.getRole() != RoleName.OWNER && inviterTenant.getRole() != RoleName.ADMIN) {
             throw new AuthorizationException(INSUFFICIENT_PERMISSIONS);
+        }
+
+        // Validación de jerarquía: no se puede invitar a alguien con rol igual o mayor
+        if (!inviterTenant.getRole().hasMorePowerThan(request.role())) {
+            throw new AuthorizationException(INSUFFICIENT_PERMISSIONS,
+                    "Cannot invite a user with role equal or higher than yours");
+        }
+
+        // Validación de límites de plan
+        long currentMembers = userTenantRepository.countByTenantIdAndIsActiveTrue(request.tenantId());
+        if (currentMembers >= tenant.getMaxUsers()) {
+            throw new auth.pymes.utils.exception.custom.DuplicateResourceException(
+                    CodigoError.MAX_USERS_REACHED, tenant.getMaxUsers());
         }
 
         // Verificar si el email ya está invitado
@@ -389,5 +657,37 @@ public class AuthServiceImpl implements AuthService {
                 invitation.getExpiresAt(),
                 invitation.getAcceptedAt() != null
         );
+    }
+
+    // ==================== AUDIT HELPER (IA Ready) ====================
+
+    private void auditLoginAction(UserEntity user, UUID tenantId, String action, jakarta.servlet.http.HttpServletRequest httpRequest) {
+        String ipAddress = extractIpAddress(httpRequest);
+        String userAgent = httpRequest.getHeader("User-Agent");
+
+        AuditLog audit = AuditLog.builder()
+                .tenantId(tenantId)
+                .userId(user.getId())
+                .action(action)
+                .resource("AUTH")
+                .ipAddress(ipAddress)
+                .userAgent(userAgent)
+                .createdAt(ZonedDateTime.now())
+                .build();
+
+        auditLogRepository.save(audit);
+        log.info("Auditoría {}: user={} ip={}", action, user.getEmail(), ipAddress);
+    }
+
+    private String extractIpAddress(jakarta.servlet.http.HttpServletRequest request) {
+        String xForwardedFor = request.getHeader("X-Forwarded-For");
+        if (xForwardedFor != null && !xForwardedFor.isBlank()) {
+            return xForwardedFor.split(",")[0].trim();
+        }
+        String xRealIp = request.getHeader("X-Real-IP");
+        if (xRealIp != null && !xRealIp.isBlank()) {
+            return xRealIp;
+        }
+        return request.getRemoteAddr();
     }
 }

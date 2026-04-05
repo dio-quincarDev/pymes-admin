@@ -16,20 +16,25 @@ Este microservicio es el **centro de identidad** de la arquitectura, responsable
 - **Invitaciones** a tenants
 - **Auditoría** de todas las acciones
 
-### Estado Actual (Core Logic Phase) 🚀
+### Estado Actual (Production Ready) 🚀
 
 | Componente | Estado | Descripción |
 |------------|--------|-------------|
 | **OAuth2 Core** | ✅ Listo | Google/FB configurados con `SuccessHandler` propio. |
-| **Seguridad JWT** | ✅ Listo | `JwtService` e `impl` con claims Multi-tenant. |
+| **Auth Local** | ✅ Listo | Registro atómico (User + Tenant FREE + OWNER), Login email/password con BCrypt. |
+| **Seguridad JWT** | ✅ Listo | `JwtService` con claims Multi-tenant: `userId`, `tenantId`, `role`, `plan`. |
 | **Filtro de Auth** | ✅ Listo | `JwtAuthenticationFilter` activo. |
-| **Base de Datos** | ✅ Listo | Flyway V1 y esquema PostgreSQL/H2 (Test) alineados. |
-| **Modelo de Datos**| ✅ Listo | Entidades con soft delete (@SQLDelete, @Where). |
-| **DTOs & Mappers** | ✅ Listo | Java Records para mayor inmutabilidad y rendimiento. |
-| **Exception Handling** | ✅ Listo | 8 excepciones + GlobalExceptionHandler. |
-| **Auth Service** | ✅ Listo | Lógica de selección de tenant, invitaciones y tokens. |
-| **Unit Testing** | ✅ Listo | 24 tests (AuthServiceImpl) + edge cases. |
-| **Redis Integration** | ✅ Listo | Blacklist de tokens (Logout) y caché de permisos. |
+| **Base de Datos** | ✅ Listo | Flyway V1-V3, esquema PostgreSQL/H2 (Test) alineados. |
+| **Modelo de Datos** | ✅ Listo | Soft delete con `deleted_at` (forense) + `is_active` en User/Tenant/UserTenant. |
+| **DTOs & Mappers** | ✅ Listo | Java Records inmutables. |
+| **Exception Handling** | ✅ Listo | 8+ excepciones + GlobalExceptionHandler. |
+| **Auth Service** | ✅ Listo | Login, register, multi-tenant, invitaciones, tokens. |
+| **CRUD Usuarios** | ✅ Listo | Listar miembros, cambiar rol (jerarquía), desvincular (soft delete). |
+| **Seguridad API** | ✅ Listo | `@PreAuthorize` (OWNER/ADMIN) + validación jerarquía en service layer. |
+| **Rate Limiting** | ✅ Listo | Redis-based, 5 intentos/15min por IP en `/login`. |
+| **IA Ready** | ✅ Listo | Auditoría con IP + User-Agent en login/register (`audit_log`). |
+| **Unit Testing** | ✅ Listo | 31 tests (AuthServiceImpl) — cobertura OAuth2 + local. |
+| **Redis Integration** | ✅ Listo | Blacklist de tokens + Rate Limiting. |
 
 ---
 
@@ -66,19 +71,35 @@ Hemos implementado una pirámide de pruebas robusta y desacoplada del entorno:
 
 ## 🌐 Endpoints
 
-### Implementados y Verificados ✅
+### Endpoints de Autenticación
 
-| Método | Endpoint | Descripción |
-|--------|----------|-------------|
-| `GET` | `/auth/user` | Datos del usuario actual |
-| `GET` | `/auth/tenants` | Lista de tenants del usuario (Paginado) |
-| `POST` | `/auth/tenants/select` | Cambiar tenant activo (Genera nuevos JWT) |
-| `POST` | `/auth/logout` | Logout (Revoca tokens en Redis) |
-| `POST` | `/auth/refresh` | Refresh access token |
-| `GET` | `/auth/invitations` | Invitaciones pendientes (Paginado) |
-| `POST` | `/auth/invitations` | Crear invitación (Admin/Owner) |
-| `POST` | `/auth/invitations/accept` | Aceptar invitación |
-| `DELETE` | `/auth/invitations/{id}` | Cancelar invitación |
+| Método | Endpoint | Auth | Descripción |
+|--------|----------|------|-------------|
+| `POST` | `/auth/register` | No | Registro local (User + Tenant FREE + OWNER) |
+| `POST` | `/auth/login` | No | Login email/password (Rate limited: 5/15min) |
+| `GET` | `/auth/user` | Sí | Datos del usuario actual |
+| `POST` | `/auth/logout` | Sí | Logout (Revoca tokens en Redis) |
+| `POST` | `/auth/refresh` | No | Refresh access token |
+
+### Endpoints de Tenants
+
+| Método | Endpoint | Auth | Descripción |
+|--------|----------|------|-------------|
+| `GET` | `/auth/tenants` | Sí | Lista de tenants del usuario |
+| `POST` | `/auth/tenants/select` | Sí | Cambiar tenant activo |
+| `POST` | `/auth/tenants` | Sí | Crear nuevo tenant |
+| `GET` | `/auth/tenants/{id}/users` | OWNER/ADMIN | Listar miembros del tenant |
+| `PUT` | `/auth/tenants/{id}/users/{uid}/role` | OWNER/ADMIN | Cambiar rol (validación jerarquía) |
+| `DELETE` | `/auth/tenants/{id}/users/{uid}` | OWNER | Desvincular usuario (soft delete) |
+
+### Endpoints de Invitaciones
+
+| Método | Endpoint | Auth | Descripción |
+|--------|----------|------|-------------|
+| `GET` | `/auth/invitations` | Sí | Invitaciones pendientes |
+| `POST` | `/auth/invitations` | Sí | Crear invitación (OWNER/ADMIN) |
+| `POST` | `/auth/invitations/accept` | Sí | Aceptar invitación |
+| `DELETE` | `/auth/invitations/{id}` | Sí | Cancelar invitación |
 
 ---
 
@@ -97,17 +118,26 @@ Para el desarrollo local y el CI, el sistema es inteligente:
 ### ✅ Completado
 - [x] Configuración de seguridad OAuth2 y JWT.
 - [x] Lógica de Multi-tenancy (Selección y Creación).
-- [x] Gestión de Invitaciones y Roles.
-- [x] Implementación de **Unit Tests** con alta cobertura.
-- [x] Integración de Redis para Logout/Blacklist.
+- [x] Gestión de Invitaciones y Roles con validación de jerarquía.
+- [x] **Auth Local** (User/Password): Register + Login.
+- [x] **Rate Limiting** con Redis en `/login`.
+- [x] **CRUD Usuarios**: Listar, cambiar rol, desvincular (soft delete).
+- [x] **@PreAuthorize** en endpoints sensibles (OWNER/ADMIN).
+- [x] Soft delete forense (`deleted_at` ZonedDateTime) + `is_active`.
+- [x] **IA Ready**: Auditoría con IP + User-Agent en login/register.
+- [x] Validación de `maxUsers` (Plan FREE) en invitaciones.
+- [x] JWT enriquecido con claim `plan`.
+- [x] Unit Tests con alta cobertura.
 - [x] CI/CD alineado para Staging (OCI ARM) y Producción (AMD64).
 
 ### 📝 Pendiente
-- [ ] **Unit Tests: JwtServiceImpl** - Cobertura de generación/validación de JWT.
-- [ ] **Auth local (User/Password)** - Login y registro sin OAuth2.
-- [ ] Rate Limiting por IP en Redis.
-- [ ] Testcontainers para integración con Postgres real.
-- [ ] Dashboard de auditoría avanzada.
+- [ ] **Unit Tests: JwtServiceImpl** — Generación y validación de JWT.
+- [ ] **Testcontainers** — Integración con PostgreSQL real (no H2).
+- [ ] **Transfer ownership** — Transferir rol OWNER antes de desvincularse.
+- [ ] **Password reset** — Forgot password con token por email.
+- [ ] **Session management** — Listar/revoke sesiones activas.
+- [ ] **Refresh token rotation** — Invalidar refresh tras cada uso.
+- [ ] **Dashboard de auditoría** — Endpoint para consultar `audit_log`.
 
 ---
 

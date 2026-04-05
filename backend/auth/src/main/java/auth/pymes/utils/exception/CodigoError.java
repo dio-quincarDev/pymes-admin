@@ -19,6 +19,7 @@ public enum CodigoError {
     REFRESH_TOKEN_EXPIRED("AUTH006", "Refresh token has expired", HttpStatus.UNAUTHORIZED),
     REFRESH_TOKEN_INVALID("AUTH007", "Refresh token is invalid", HttpStatus.UNAUTHORIZED),
     OAUTH2_PROVIDER_ERROR("AUTH008", "Error connecting to OAuth2 provider: {0}", HttpStatus.BAD_GATEWAY),
+    RATE_LIMIT_EXCEEDED("AUTH009", "Too many login attempts. Try again in 15 minutes. Remaining: {0}", HttpStatus.TOO_MANY_REQUESTS),
     
     // ==================== USER (USR) ====================
     USER_NOT_FOUND_BY_ID("USR001", "User with ID {0} does not exist", HttpStatus.NOT_FOUND),
@@ -27,6 +28,9 @@ public enum CodigoError {
     USER_ALREADY_EXISTS("USR004", "User with email {0} is already registered", HttpStatus.CONFLICT),
     USER_INACTIVE("USR005", "User account is inactive", HttpStatus.FORBIDDEN),
     USER_LOCKED("USR006", "User account is locked", HttpStatus.FORBIDDEN),
+    PASSWORD_TOO_SHORT("USR007", "Password must be at least 8 characters", HttpStatus.BAD_REQUEST),
+    PASSWORD_WEAK("USR008", "Password does not meet security requirements", HttpStatus.BAD_REQUEST),
+    PASSWORD_MISMATCH("USR009", "Password does not match", HttpStatus.BAD_REQUEST),
     
     // ==================== TENANT (TNT) ====================
     TENANT_NOT_FOUND("TNT001", "Tenant with ID {0} does not exist", HttpStatus.NOT_FOUND),

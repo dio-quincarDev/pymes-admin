@@ -39,13 +39,14 @@ public class JwtServiceImpl implements JwtService {
     private final TokenBlacklistService tokenBlacklistService;
 
     @Override
-    public String generateAccessToken(UserEntity user, UUID tenantId, String role) {
+    public String generateAccessToken(UserEntity user, UUID tenantId, String role, String plan) {
         Map<String, Object> claims = new HashMap<>();
         claims.put("userId", user.getId().toString());
         claims.put("tenantId", tenantId != null ? tenantId.toString() : null);
         claims.put("role", role);
+        claims.put("plan", plan != null ? plan : "FREE");
 
-        log.debug("Generando Access Token para usuario: {}, Tenant: {}", user.getEmail(), tenantId);
+        log.debug("Generando Access Token para usuario: {}, Tenant: {}, Plan: {}", user.getEmail(), tenantId, plan);
         return createToken(claims, user.getEmail(), accessTokenExpiration);
     }
 
@@ -93,6 +94,12 @@ public class JwtServiceImpl implements JwtService {
     @Override
     public String extractRole(String token) {
         return extractAllClaims(token).get("role", String.class);
+    }
+
+    @Override
+    public String extractPlan(String token) {
+        String plan = extractAllClaims(token).get("plan", String.class);
+        return plan != null ? plan : "FREE";
     }
 
     @Override

@@ -20,7 +20,7 @@ import java.util.UUID;
 @NoArgsConstructor
 @Entity
 @Table(name = "tenants")
-@SQLDelete(sql = "UPDATE tenants SET is_active = false WHERE id = ?")
+@SQLDelete(sql = "UPDATE tenants SET is_active = false, deleted_at = CURRENT_TIMESTAMP WHERE id = ?")
 @Where(clause = "is_active = true")
 public class Tenant {
 
@@ -66,6 +66,9 @@ public class Tenant {
     @Column(name = "is_active", nullable = false)
     @Builder.Default
     private Boolean isActive = true;
+
+    @Column(name = "deleted_at")
+    private ZonedDateTime deletedAt;
 
     @CreationTimestamp
     @Column(name = "created_at", nullable = false, updatable = false)
