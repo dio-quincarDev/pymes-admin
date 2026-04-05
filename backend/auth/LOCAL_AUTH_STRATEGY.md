@@ -7,7 +7,7 @@ Este documento define la arquitectura para integrar la autenticación por usuari
 ### UserEntity (Identidad Universal)
 - **Campo `password`**: Almacenar hash BCrypt.
 - **Flexibilidad de Proveedor**: `providerId` opcional para permitir registros locales y OAuth2 híbrido.
-- **Auditoría Forense**: Implementar `deleted_at` (ZonedDateTime) en lugar de un simple boolean `is_active`, permitiendo que el **IA Toolkit** realice análisis históricos de usuarios desvinculados.
+- **Auditoría Forense**: Implementar `deleted_at` (ZonedDateTime) en lugar de un simple boolean `is_active`.
 
 ### UserTenant (Soft Delete & Jerarquía)
 - **Anotaciones Hibernate**: `@SQLDelete` y `@Where` para desvinculaciones lógicas.
@@ -18,140 +18,62 @@ Este documento define la arquitectura para integrar la autenticación por usuari
 ## 2. Onboarding de Tenant (Aprovisionamiento SaaS)
 
 El registro local no es solo un `INSERT` de usuario, es el **Aprovisionamiento del SaaS**:
-- **Registro Atómico (`POST /auth/register`)**:
+- **Registro Atómico (`POST /api/v1/auth/register`)**:
   1. Validar unicidad de email y fortaleza de contraseña.
   2. Crear `UserEntity` (Dueño).
   3. Crear `Tenant` (Empresa) con **Plan FREE** por defecto (`maxUsers = 1`).
   4. Vincular mediante `UserTenant` con rol **`OWNER`**.
-- **Límites de Plan**: El `AuthService` validará que las invitaciones no superen el `maxUsers` del Tenant (Plan FREE = 1 usuario).
+- **Límites de Plan**: 
+  - El `AuthService` validará que las invitaciones no superen el `maxUsers` del Tenant.
+  - El `TenantService` validará que un usuario en Plan FREE no pueda crear más de 1 empresa como OWNER.
 
 ---
 
 ## 3. JWT Enriquecido (Pasaporte Multi-service)
 
-El JWT emitido por el Auth Service servirá como pasaporte para los futuros **Core Service** y **IA Service (FastAPI)**:
-- **Claims Requeridos**:
-  - `sub`: User ID (UUID)
-  - `email`: Email del usuario
-  - `tenant_id`: ID del tenant activo
-  - `role`: Rol en el tenant actual (`OWNER`, `ADMIN`, etc.)
-  - `plan`: Tipo de suscripción (`FREE`, `PRO`, `ENTERPRISE`) para habilitar módulos de IA en el toolkit forense.
+El JWT emitido por el Auth Service servirá como pasaporte para los futuros servicios:
+- **Claims Requeridos**: `userId`, `email`, `tenantId`, `role`, `plan`.
 
 ---
 
 ## 4. Seguridad de Jerarquía B2B
 
-Se implementará seguridad en dos capas para proteger la integridad del Tenant:
-
+Se implementará seguridad en dos capas:
 ### A. Capa de Acceso (Controller - `@PreAuthorize`)
-Filtrado rápido basado en el Rol del JWT:
-- `hasAnyAuthority('OWNER', 'ADMIN')`: Gestión de invitaciones y usuarios.
-- `hasAuthority('OWNER')`: Cambios de Plan, Facturación y borrado del Tenant.
-
 ### B. Capa de Lógica (Service - Jerarquía Crítica)
-Validación explícita para prevenir abusos de poder:
-- **Restricción Inviolable**: Un `ADMIN` tiene prohibido borrar, modificar o degradar a un `OWNER` o a otro `ADMIN`.
-- **Protección del Dueño**: El `OWNER` no puede borrarse a sí mismo sin transferir la propiedad del Tenant (SaaS Integrity).
+- Un `ADMIN` no puede tocar a un `OWNER`.
+- El `OWNER` no puede borrarse sin transferir la propiedad.
 
 ---
 
-## 5. Roadmap de Ejecución Refinado
+## 5. Roadmap de Ejecución (Actualizado 2026-04-05)
 
-> **Estado**: ✅ Completado (2026-04-05)
-> Ver sección 6 para deuda técnica y feedback.
-
----
-
-## 6. Deuda Técnica Crítica (Próximo Sprint)
-
-| Prioridad | Problema | Riesgo | Acción Requerida |
-|-----------|----------|--------|-----------------|
-| 🔴 | `JwtServiceImpl` sin tests | Si genera tokens mal, todo el sistema se cae | Tests unitarios: generación, extracción, expiración, revocación |
-| 🔴 | H2 en tests ≠ PostgreSQL | H2 no valida UUID, JSONB, dialecto | Reemplazar con Testcontainers (PostgreSQL real en CI) |
-| 🟡 | `UserTenantResponse` reutilizado con semántica distinta | `tenantId` se usa como `userId`, confusión en API | Crear DTO dedicado `UserDetailResponse` |
-| 🟡 | Rate Limiting solo por IP | Atacante con proxy rota IP fácilmente | Combinar IP + email |
-| 🟡 | Sin validación de complejidad de password | Solo `@Size(min=8)`, sin regex | Agregar validación de mayúsculas, números, especiales |
-
-### 📝 Pendiente (Segundo Sprint)
-
-| Item | Descripción |
-|------|-------------|
-| **Transfer ownership** | Endpoint para transferir rol OWNER antes de desvincularse |
-| **Password reset** | Forgot password con token por email |
-| **Session management** | Listar/revoke sesiones activas por usuario |
-| **Refresh token rotation** | Invalidar refresh token tras cada uso |
-| **Dashboard de auditoría** | Endpoint paginado para consultar `audit_log` |
-| **Eliminar `JwtTokenProvider`** | Bean legacy sin uso, eliminar para evitar confusión |
+### ✅ Completado recientemente
+- [x] **Desacoplamiento total**: Separación en dominios Auth, User, Tenant, Member e Invitation.
+- [x] **Estandarización de Mappers**: Uso profesional de MapStruct en todos los servicios.
+- [x] **Refactor de DTOs**: Eliminación de redundancia entre `UserTenantResponse` y `MemberResponse`.
+- [x] **Unit Tests JWT**: Cobertura del 100% en generación, validación y seguridad de firmas.
 
 ---
 
-## 7. Feedback de Arquitectura (Review 2026-04-05)
+## 6. Pendientes (Orden de Importancia) 📋
 
-### ✅ Lo que funciona
+### 🔴 Prioridad 1: Integridad & Deuda Crítica
+1.  **Testcontainers (PostgreSQL real)**: Reemplazar H2 en tests para validar UUID nativo y JSONB.
+2.  **Eliminar `JwtTokenProvider`**: Borrar el bean zombie legacy para evitar confusión arquitectónica.
+3.  **Refactor `OAuth2AuthenticationSuccessHandler`**: Cambiar `RuntimeException` por excepciones tipadas del proyecto.
 
-- **Separación controller → service → repository**. Interface + Impl. Correcto y testeable.
-- **OAuth2 + Local conviven sin mezclarse**. Flujos separados, mismo JWT.
-- **Validación de jerarquía en service layer**, no solo en `@PreAuthorize`. Eso es seguridad real.
-- **Soft delete pragmático**: `deleted_at` + `is_active` sin romper código existente.
-- **Rate Limiting simple**: sin librerías pesadas, efectivo, fácil de mantener.
-- **Auditoría IA Ready**: IP + User-Agent capturados en cada login/register.
+### 🟡 Prioridad 2: Robustez de Negocio & Seguridad
+1.  **Límite de Plan FREE**: Implementar validación en `TenantService` para impedir que un usuario cree >1 empresa en plan gratuito.
+2.  **Validación de Password**: Implementar Regex en `RegisterRequest` para exigir mayúsculas, números y símbolos.
+3.  **Rate Limiting Avanzado**: Evolucionar el bloqueo de IP a una combinación de **IP + Email** para mitigar ataques dirigidos.
 
-### ❌ Lo que necesita atención
-
-- **`JwtServiceImpl` es el componente más crítico sin cobertura**. No negociable.
-- **H2 en tests miente**: no valida UUID, JSONB, ni dialecto PostgreSQL. CI puede pasar y prod romper.
-- **`OAuth2AuthenticationSuccessHandler` lanza `RuntimeException` crudo**. Debería usar excepción tipada del proyecto.
-- **`UserTenantResponse` es un hack**: reutiliza campos con semántica distinta (`tenantId` → `userId`). Crear DTO dedicado.
-- **`JwtTokenProvider` (legacy) sigue como Spring bean zombie**. Eliminar.
-
-## 8. Contexto de Mercado 2026
-
-### Market Landscape
-
-| Herramienta | Tipo | Precio | Cuándo usarlo |
-|-------------|------|--------|---------------|
-| **Auth0 (Okta)** | SaaS enterprise | $15K-$50K+/año | Presupuesto alto, no quieres pensar en auth |
-| **Keycloak** | Open source, self-hosted | Gratis (caro de mantener) | Equipo dedicado, control total |
-| **Clerk** | Dev-first SaaS | $25-$500/mes | Startups que quieren auth en 5 min |
-| **Supabase Auth** | Ecosystem auth | Gratis (limitado) | Si ya usas Supabase |
-| **Firebase Auth** | Google ecosystem | Gratis (hasta cierto punto) | Mobile-first o ya en GCP |
-
-### Tu Nicho
-
-No compites con Auth0. Compite con *"contraté un freelancer que me hizo algo que funciona más o menos"*.
-
-### ROI Estimado
-
-| Comparación | Auth0 (3 años) | Este Microservicio | Ahorro |
-|-------------|---------------|-------------------|--------|
-| **Licencias** | $45K - $150K | $0 | $45K-$150K |
-| **Desarrollo** | $0 | $8K - $28K (una vez) | — |
-| **Mantenimiento** | $0 | $2K-$5K/año | — |
-| **Total 3 años** | **$45K - $150K** | **$14K - $43K** | **$30K - $107K** |
-
-### Diferenciadores Reales (vs Auth0/Keycloak)
-
-| Feature | Este MS | Auth0 | Keycloak |
-|---------|---------|-------|----------|
-| **Multi-tenant B2B real** | ✅ Nativo | ❌ Requiere custom code | ❌ Requiere extensión |
-| **Jerarquía de roles (OWNER→VIEWER)** | ✅ Con validación | ❌ Roles planos | ⚠️ Configurable pero complejo |
-| **Límites de plan (maxUsers)** | ✅ Nativo | ❌ Custom | ❌ Custom |
-| **Auditoría IA Ready (IP + UA)** | ✅ Forense con timestamp | ⚠️ Logs básicos | ⚠️ Logs crudos |
-| **Código auditable** | ✅ Tu repo | ❌ SaaS cerrado | ✅ Open source |
-| **Sin vendor lock-in** | ✅ PostgreSQL + Redis | ❌ Lock-in total | ✅ Self-hosted |
-| **Time to production** | 1-2 sprints | 1 día | 2-4 semanas de setup |
-
-### Stack Justificado
-
-| Decisión | Por qué |
-|----------|---------|
-| **Spring Boot 3 + Java 21** | Ecosistema enterprise, seguridad battle-tested, contratos de tipo fuertes. Ideal para auth donde un bug = breach |
-| **PostgreSQL** | UUID nativo, JSONB para auditoría, row-level security (futuro). El estándar para datos críticos |
-| **Redis** | Sub-millisecond para blacklist + rate limiting. No necesitas una DB para esto |
-| **JWT stateless** | El auth service no necesita llamar a la DB para validar cada request. Escala horizontal sin esfuerzo |
+### 🟢 Prioridad 3: Roadmap Funcional
+1.  **Transfer Ownership**: Endpoint para ceder el rol de OWNER.
+2.  **Refresh Token Rotation**: Invalidación del token anterior tras cada uso.
+3.  **Dashboard de Auditoría**: API paginada para consultar los `audit_log` (IA Ready).
 
 ---
 
-### 📊 Calificación General: 7.5/10
-
-> Tiene las piezas correctas en el lugar correcto. Los 2 gaps críticos (tests JWT + Testcontainers) son deuda técnica que **va a explotar en producción** si no se abordan. El resto es calidad de vida que se arregla en 1-2 sprints.
+### 📊 Calificación de Salud Arquitectónica: 9.0/10
+> Tras el desacoplamiento y la profesionalización de mappers, el núcleo es sólido y escalable. Resolver la prioridad 1 llevará el proyecto al 10/10.
