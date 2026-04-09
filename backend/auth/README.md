@@ -27,7 +27,7 @@ La API está organizada bajo la ruta base `/api/v1` y sigue una estructura RESTf
 | Método | Endpoint | Descripción |
 |--------|----------|-------------|
 | `POST` | `/register` | Registro atómico (User + Tenant FREE + OWNER) |
-| `POST` | `/login` | Login email/password (Rate limited) |
+| `POST` | `/login` | Login email/password (Rate limited IP+Email) |
 | `POST` | `/refresh` | Refresca el access token |
 | `POST` | `/logout` | Invalida la sesión actual |
 
@@ -62,16 +62,16 @@ La API está organizada bajo la ruta base `/api/v1` y sigue una estructura RESTf
 
 ## 🛠️ Stack Tecnológico & Calidad
 
-- **Core:** Spring Boot 3.4.3, Java 21, MapStruct (Mapeo automático).
-- **Seguridad:** Spring Security OAuth2 (Google/FB), JWT, Redis (Blacklist & Rate Limiting).
+- **Core:** Spring Boot 3.4.3, Java 21, MapStruct, Lombok.
+- **Seguridad:** Spring Security OAuth2 (Google/FB), JWT (JJWT 0.12.6), Redis (Blacklist & Rate Limiting IP+Email).
 - **Persistencia:** PostgreSQL, Flyway, Soft Delete Forense.
-- **Calidad:** JUnit 5, Mockito, Pirámide de pruebas (Unitarias + Contexto).
+- **Calidad:** JUnit 5, Mockito, 40 tests (Unitarias + Contexto), 40 edge cases.
 
 ---
 
 <div align="center">
 
-**PyMes Admin - Auth Microservice** | Estado: **Desacoplado & Escalable** 💎
+**PyMes Admin - Auth Microservice** | Estado: **Desacoplado, Escalable & Endurecido** 🔒
 
 [![Build & Test](https://github.com/dio-quincarDev/pymes-admin/actions/workflows/ci.yml/badge.svg)](https://github.com/dio-quincarDev/pymes-admin/actions)
 [![Java 21](https://img.shields.io/badge/Java-21-blue.svg)](https://openjdk.org/projects/jdk/21/)

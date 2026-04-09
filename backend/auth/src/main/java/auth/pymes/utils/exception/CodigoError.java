@@ -40,6 +40,7 @@ public enum CodigoError {
     USER_NOT_IN_TENANT("TNT005", "User does not belong to tenant {0}", HttpStatus.FORBIDDEN),
     INVALID_TENANT_ACCESS("TNT006", "User does not have access to tenant {0}", HttpStatus.FORBIDDEN),
     MAX_USERS_REACHED("TNT007", "Tenant has reached maximum number of users ({0})", HttpStatus.CONFLICT),
+    FREE_PLAN_LIMIT_REACHED("TNT008", "User has reached maximum number of FREE tenants (1)", HttpStatus.CONFLICT),
     
     // ==================== ROLE & PERMISSION (ROLE) ====================
     ROLE_NOT_FOUND("ROLE001", "Role {0} does not exist", HttpStatus.NOT_FOUND),

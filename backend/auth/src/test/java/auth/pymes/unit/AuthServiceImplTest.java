@@ -236,4 +236,42 @@ public class AuthServiceImplTest {
         assertThatThrownBy(() -> authService.refreshToken(request))
                 .isInstanceOf(TokenExpiredException.class);
     }
+
+    @Test
+    void login_WhenRateLimitExceeded_ThrowsInvalidInputException() {
+        LoginRequest request = new LoginRequest("user@example.com", "password");
+        when(httpRequest.getRemoteAddr()).thenReturn("127.0.0.1");
+        when(rateLimitService.isAllowed(anyString())).thenReturn(false);
+        when(rateLimitService.getRemainingAttempts(anyString())).thenReturn(0L);
+
+        assertThatThrownBy(() -> authService.login(request, httpRequest))
+                .isInstanceOf(InvalidInputException.class);
+
+        verify(userRepository, never()).findByEmail(anyString());
+    }
+
+    @Test
+    void login_SameIpDifferentEmail_HasIndependentRateLimits() {
+        LoginRequest request1 = new LoginRequest("user1@example.com", "password");
+        LoginRequest request2 = new LoginRequest("user2@example.com", "password");
+        when(httpRequest.getRemoteAddr()).thenReturn("192.168.1.100");
+
+        when(rateLimitService.isAllowed("login:192.168.1.100:user1@example.com")).thenReturn(true);
+        when(rateLimitService.isAllowed("login:192.168.1.100:user2@example.com")).thenReturn(true);
+
+        UserEntity user1 = UserEntity.builder().id(UUID.randomUUID()).email("user1@example.com").isActive(true).build();
+        UserEntity user2 = UserEntity.builder().id(UUID.randomUUID()).email("user2@example.com").isActive(true).build();
+        when(userRepository.findByEmail("user1@example.com")).thenReturn(Optional.of(user1));
+        when(userRepository.findByEmail("user2@example.com")).thenReturn(Optional.of(user2));
+
+        when(authenticationManager.authenticate(any())).thenReturn(null);
+        when(userTenantRepository.findByUserIdAndIsActiveTrue(any())).thenReturn(List.of());
+        when(userMapper.toResponse(any())).thenReturn(new UserEntityResponse(UUID.randomUUID(), "test", "test", null, AuthProvider.LOCAL));
+
+        authService.login(request1, httpRequest);
+        authService.login(request2, httpRequest);
+
+        verify(rateLimitService).isAllowed("login:192.168.1.100:user1@example.com");
+        verify(rateLimitService).isAllowed("login:192.168.1.100:user2@example.com");
+    }
 }

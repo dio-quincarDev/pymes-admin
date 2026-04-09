@@ -9,13 +9,13 @@
 
 | Componente | Estado | Tecnología |
 |------------|--------|------------|
-| **Backend Auth** | ✅ Configurado | Java 21 + Spring Boot 3.4.3 |
+| **Backend Auth** | 💎 Core Estabilizado | Java 21 + Spring Boot 3.4.3 (OAuth2 + JWT) |
 | **Frontend** | ✅ Configurado | Quasar 2 + Vue 3 + TypeScript (PWA) |
-| **Database** | ✅ Configurado | PostgreSQL 15 (multi-tenant ready) |
-| **Cache** | ✅ Configurado | Redis 7 |
-| **CI/CD Staging** | ✅ Configurado | GitHub Actions + OCI Free Tier |
-| **CI/CD Producción** | ⏳ Pendiente | Oracle Cloud Free Tier |
-| **IA Toolkit** | 📝 En planificación | Python + FastAPI + Claude API |
+| **Database** | ✅ Configurado | PostgreSQL 15 (Relational Multi-tenancy) |
+| **Cache** | ✅ Configurado | Redis 7 (Blacklist & Permisos) |
+| **CI/CD Staging** | ✅ Configurado | GitHub Actions + OCI (ARM64) |
+| **CI/CD Producción** | ⏳ Pendiente | Oracle Cloud Free Tier (AMD64) |
+| **IA Toolkit** | 📝 Planificación | Python + FastAPI + Claude API |
 
 ---
 
@@ -70,20 +70,12 @@
 └──────────────────┘ └──────────────────┘ └──────────────────┘
 ```
 
-### Multi-tenancy Strategy
+### Multi-tenancy Strategy (Actual)
 
-```java
-// Estrategia: Schema por tenant (PostgreSQL)
-@Entity
-@Table(name = "gastos", schema = "tenant_schema")
-public class Gasto {
-    // Aislamiento total de datos por cliente
-}
-
-// Alternative: Row-level security con tenant_id
-@Where(clause = "tenant_id = :tenantId")
-public class Transaccion { ... }
-```
+Actualmente implementamos **Aislamiento por Relación (Shared Database, Shared Schema)**:
+- **User-Tenant Mapping**: Un usuario pertenece a múltiples empresas mediante una tabla intermedia `user_tenants`.
+- **Soft Delete**: Todas las entidades críticas (User, Tenant, UserTenant) utilizan eliminación lógica para preservar la integridad de la auditoría.
+- **JWT Context**: El token transporta el `tenant_id` y el `rol` activo para asegurar que las peticiones se filtren correctamente.
 
 ### 📦 Estrategia de Caché (Redis)
 
@@ -305,10 +297,11 @@ pymes-admin/
 ## 📊 Roadmap
 
 ### Fase 1: MVP Multi-tenant (Q2 2026)
-- [ ] Core features multi-tenant
-- [ ] Escaneo QR facturas
-- [ ] Reportes básicos
-- [ ] IA básica: detección anomalías
+- [x] **Core Auth Estabilizado**: OAuth2, Gestión de Invitaciones y Roles.
+- [ ] **Auth Local**: Registro y Login con usuario/contraseña.
+- [ ] **Core Business Service**: Gestión de gastos, ingresos y facturación.
+- [ ] **Escaneo QR Facturas**: Implementación en la PWA.
+- [ ] **IA Básica**: Detección de anomalías en transacciones.
 
 ### Fase 2: Beta con Usuarios Piloto (Q3 2026)
 - [ ] 10-20 negocios piloto

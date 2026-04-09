@@ -7,6 +7,7 @@ import auth.pymes.repositories.TenantRepository;
 import auth.pymes.repositories.UserEntityRepository;
 import auth.pymes.repositories.UserTenantRepository;
 import auth.pymes.service.JwtService;
+import auth.pymes.utils.exception.custom.ResourceNotFoundException;
 import jakarta.servlet.ServletException;
 import jakarta.servlet.http.HttpServletRequest;
 import jakarta.servlet.http.HttpServletResponse;
@@ -22,6 +23,8 @@ import org.springframework.web.util.UriComponentsBuilder;
 import java.io.IOException;
 import java.util.List;
 import java.util.UUID;
+
+import static auth.pymes.utils.exception.CodigoError.USER_NOT_FOUND_BY_EMAIL;
 
 /**
  * Manejador de éxito tras autenticación OAuth2.
@@ -51,7 +54,7 @@ public class OAuth2AuthenticationSuccessHandler extends SimpleUrlAuthenticationS
 
         // 1. Buscar usuario en DB
         UserEntity user = userRepository.findByEmail(email)
-                .orElseThrow(() -> new RuntimeException("Usuario no encontrado tras OAuth2"));
+                .orElseThrow(() -> new ResourceNotFoundException(USER_NOT_FOUND_BY_EMAIL, email));
 
         // 2. Buscar sus empresas (Tenants)
         List<UserTenant> userTenants = userTenantRepository.findByUserId(user.getId());

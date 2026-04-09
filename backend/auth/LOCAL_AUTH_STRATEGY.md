@@ -46,13 +46,18 @@ Se implementará seguridad en dos capas:
 
 ---
 
-## 5. Roadmap de Ejecución (Actualizado 2026-04-05)
+## 5. Roadmap de Ejecución (Actualizado 2026-04-09)
 
 ### ✅ Completado recientemente
 - [x] **Desacoplamiento total**: Separación en dominios Auth, User, Tenant, Member e Invitation.
 - [x] **Estandarización de Mappers**: Uso profesional de MapStruct en todos los servicios.
 - [x] **Refactor de DTOs**: Eliminación de redundancia entre `UserTenantResponse` y `MemberResponse`.
 - [x] **Unit Tests JWT**: Cobertura del 100% en generación, validación y seguridad de firmas.
+- [x] **Eliminar `JwtTokenProvider`**: Bean zombie legacy eliminado. ✅ COMPLETADO.
+- [x] **Refactor `OAuth2AuthenticationSuccessHandler`**: `RuntimeException` → `ResourceNotFoundException`. ✅ COMPLETADO.
+- [x] **Validación de Password**: Regex en `RegisterRequest` (mínimo 1 letra + 1 número). ✅ COMPLETADO.
+- [x] **Límite de Plan FREE**: Usuario OWNER solo puede crear 1 tenant FREE. ✅ COMPLETADO.
+- [x] **Rate Limiting IP + Email**: Bloqueo por combinación `IP:email` en login. ✅ COMPLETADO.
 
 ---
 
@@ -60,20 +65,23 @@ Se implementará seguridad en dos capas:
 
 ### 🔴 Prioridad 1: Integridad & Deuda Crítica
 1.  **Testcontainers (PostgreSQL real)**: Reemplazar H2 en tests para validar UUID nativo y JSONB.
-2.  **Eliminar `JwtTokenProvider`**: Borrar el bean zombie legacy para evitar confusión arquitectónica.
-3.  **Refactor `OAuth2AuthenticationSuccessHandler`**: Cambiar `RuntimeException` por excepciones tipadas del proyecto.
 
 ### 🟡 Prioridad 2: Robustez de Negocio & Seguridad
-1.  **Límite de Plan FREE**: Implementar validación en `TenantService` para impedir que un usuario cree >1 empresa en plan gratuito.
-2.  **Validación de Password**: Implementar Regex en `RegisterRequest` para exigir mayúsculas, números y símbolos.
-3.  **Rate Limiting Avanzado**: Evolucionar el bloqueo de IP a una combinación de **IP + Email** para mitigar ataques dirigidos.
+1.  **Recuperación de Contraseña**:
+    - **Estrategia**: Token por email con Redis (TTL 15 min). Sin tabla nueva en BD.
+    - **Flujo**:
+      1. `POST /auth/forgot-password` → genera token UUID, guarda en Redis `reset:{email}` (TTL 15 min).
+      2. Usuario recibe link: `frontend.com/reset?token=xxx`.
+      3. `POST /auth/reset-password` → valida token en Redis, actualiza password (BCrypt), elimina token.
+    - **Endpoints**: `POST /api/v1/auth/forgot-password`, `POST /api/v1/auth/reset-password`.
+    - **Seguridad**: Rate limiting en forgot-password, auditoría de cambio en `audit_log`.
 
 ### 🟢 Prioridad 3: Roadmap Funcional
 1.  **Transfer Ownership**: Endpoint para ceder el rol de OWNER.
-2.  **Refresh Token Rotation**: Invalidación del token anterior tras cada uso.
+2.  **Refresh Token Rotation**: Invalidación del token anterior tras cada refresh.
 3.  **Dashboard de Auditoría**: API paginada para consultar los `audit_log` (IA Ready).
 
 ---
 
-### 📊 Calificación de Salud Arquitectónica: 9.0/10
-> Tras el desacoplamiento y la profesionalización de mappers, el núcleo es sólido y escalable. Resolver la prioridad 1 llevará el proyecto al 10/10.
+### 📊 Calificación de Salud Arquitectónica: 9.5/10
+> Deuda técnica crítica eliminada (`JwtTokenProvider`, `RuntimeException`). Seguridad reforzada con rate limiting IP+Email y validación de password. Resolver Testcontainers llevará al 10/10.

@@ -120,7 +120,7 @@ public class AuthServiceImpl implements AuthService {
     @Override
     @Transactional
     public AuthResponse login(LoginRequest request, HttpServletRequest httpRequest) {
-        String rateLimitKey = "login:" + httpRequest.getRemoteAddr();
+        String rateLimitKey = "login:" + httpRequest.getRemoteAddr() + ":" + request.email();
         if (!rateLimitService.isAllowed(rateLimitKey)) {
             throw new InvalidInputException(RATE_LIMIT_EXCEEDED, rateLimitService.getRemainingAttempts(rateLimitKey));
         }

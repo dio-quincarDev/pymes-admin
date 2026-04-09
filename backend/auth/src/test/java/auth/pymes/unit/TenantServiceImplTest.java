@@ -34,7 +34,11 @@ import java.util.List;
 import java.util.Optional;
 import java.util.UUID;
 
+import auth.pymes.utils.exception.custom.InvalidInputException;
+import auth.pymes.utils.exception.custom.ResourceNotFoundException;
+
 import static org.assertj.core.api.Assertions.assertThat;
+import static org.assertj.core.api.Assertions.assertThatThrownBy;
 import static org.mockito.ArgumentMatchers.any;
 import static org.mockito.Mockito.*;
 
@@ -118,6 +122,46 @@ public class TenantServiceImplTest {
         when(userRepository.findByEmail(email)).thenReturn(Optional.of(user));
 
         CreateTenantRequest request = new CreateTenantRequest("Mi Empresa", "mi-empresa", "TECHNOLOGY");
+        when(tenantRepository.existsBySlug("mi-empresa")).thenReturn(false);
+        when(userTenantRepository.countByUserIdAndRole(user.getId(), RoleName.OWNER)).thenReturn(0L);
+
+        Tenant savedTenant = Tenant.builder().id(UUID.randomUUID()).name("Mi Empresa").plan(PlanName.FREE).build();
+        when(tenantRepository.save(any(Tenant.class))).thenReturn(savedTenant);
+        when(tenantMapper.toResponse(any())).thenReturn(new TenantResponse(savedTenant.getId(), "Mi Empresa", "mi-empresa", PlanName.FREE, "TECH", null));
+
+        TenantResponse response = tenantService.createTenant(request, principal);
+
+        assertThat(response.name()).isEqualTo("Mi Empresa");
+    }
+
+    @Test
+    void createTenant_WhenUserAlreadyHasOneFreeTenant_ThrowsInvalidInputException() {
+        OAuth2User principal = mock(OAuth2User.class);
+        String email = "owner@example.com";
+        when(principal.getAttribute("email")).thenReturn(email);
+
+        UserEntity user = UserEntity.builder().id(UUID.randomUUID()).email(email).build();
+        when(userRepository.findByEmail(email)).thenReturn(Optional.of(user));
+
+        CreateTenantRequest request = new CreateTenantRequest("Second Tenant", "second-tenant", "TECHNOLOGY");
+        when(userTenantRepository.countByUserIdAndRole(user.getId(), RoleName.OWNER)).thenReturn(1L);
+
+        assertThatThrownBy(() -> tenantService.createTenant(request, principal))
+                .isInstanceOf(InvalidInputException.class)
+                .hasMessageContaining("FREE tenants");
+    }
+
+    @Test
+    void createTenant_WhenUserHasTenantsButNotAsOwner_ReturnsTenantResponse() {
+        OAuth2User principal = mock(OAuth2User.class);
+        String email = "member@example.com";
+        when(principal.getAttribute("email")).thenReturn(email);
+
+        UserEntity user = UserEntity.builder().id(UUID.randomUUID()).email(email).build();
+        when(userRepository.findByEmail(email)).thenReturn(Optional.of(user));
+
+        CreateTenantRequest request = new CreateTenantRequest("Mi Empresa", "mi-empresa", "TECHNOLOGY");
+        when(userTenantRepository.countByUserIdAndRole(user.getId(), RoleName.OWNER)).thenReturn(0L);
         when(tenantRepository.existsBySlug("mi-empresa")).thenReturn(false);
 
         Tenant savedTenant = Tenant.builder().id(UUID.randomUUID()).name("Mi Empresa").plan(PlanName.FREE).build();

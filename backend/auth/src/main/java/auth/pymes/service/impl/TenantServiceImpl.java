@@ -19,6 +19,7 @@ import auth.pymes.service.JwtService;
 import auth.pymes.service.TenantService;
 import auth.pymes.utils.exception.auth.AuthorizationException;
 import auth.pymes.utils.exception.custom.DuplicateResourceException;
+import auth.pymes.utils.exception.custom.InvalidInputException;
 import auth.pymes.utils.exception.custom.ResourceNotFoundException;
 import lombok.RequiredArgsConstructor;
 import lombok.extern.slf4j.Slf4j;
@@ -97,6 +98,11 @@ public class TenantServiceImpl implements TenantService {
         String email = principal.getAttribute("email");
         UserEntity user = userRepository.findByEmail(email)
                 .orElseThrow(() -> new ResourceNotFoundException(USER_NOT_FOUND_BY_EMAIL, email));
+
+        long freeTenantsCount = userTenantRepository.countByUserIdAndRole(user.getId(), RoleName.OWNER);
+        if (freeTenantsCount >= 1) {
+            throw new InvalidInputException(FREE_PLAN_LIMIT_REACHED);
+        }
 
         if (tenantRepository.existsBySlug(request.slug())) {
             throw new DuplicateResourceException(TENANT_ALREADY_EXISTS, request.slug());
