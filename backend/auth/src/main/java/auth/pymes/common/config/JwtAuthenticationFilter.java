@@ -1,14 +1,25 @@
 package auth.pymes.common.config;
 
+import auth.pymes.common.models.dto.response.ErrorResponse;
 import auth.pymes.common.models.entities.UserEntity;
 import auth.pymes.repositories.UserEntityRepository;
 import auth.pymes.service.JwtService;
+import auth.pymes.utils.exception.CodigoError;
+import auth.pymes.utils.exception.token.TokenExpiredException;
+import auth.pymes.utils.exception.token.TokenInvalidException;
+import auth.pymes.utils.exception.token.TokenRevokedException;
+import com.fasterxml.jackson.databind.ObjectMapper;
+import io.jsonwebtoken.ExpiredJwtException;
+import io.jsonwebtoken.MalformedJwtException;
+import io.jsonwebtoken.security.SignatureException;
 import jakarta.servlet.FilterChain;
 import jakarta.servlet.ServletException;
 import jakarta.servlet.http.HttpServletRequest;
 import jakarta.servlet.http.HttpServletResponse;
 import lombok.RequiredArgsConstructor;
 import lombok.extern.slf4j.Slf4j;
+import org.springframework.http.HttpStatus;
+import org.springframework.http.MediaType;
 import org.springframework.lang.NonNull;
 import org.springframework.security.authentication.UsernamePasswordAuthenticationToken;
 import org.springframework.security.core.authority.SimpleGrantedAuthority;
@@ -19,6 +30,7 @@ import org.springframework.util.StringUtils;
 import org.springframework.web.filter.OncePerRequestFilter;
 
 import java.io.IOException;
+import java.time.Instant;
 import java.util.List;
 import java.util.UUID;
 
@@ -33,6 +45,7 @@ public class JwtAuthenticationFilter extends OncePerRequestFilter {
 
     private final JwtService jwtService;
     private final UserEntityRepository userRepository;
+    private final ObjectMapper objectMapper;
 
     @Override
     protected void doFilterInternal(
@@ -82,11 +95,49 @@ public class JwtAuthenticationFilter extends OncePerRequestFilter {
                     log.debug("Usuario {} autenticado exitosamente para el Tenant {}", user.getEmail(), tenantId);
                 }
             }
+        } catch (ExpiredJwtException e) {
+            log.error("Token JWT expirado: {}", e.getMessage());
+            sendErrorResponse(response, request, HttpStatus.UNAUTHORIZED,
+                    CodigoError.TOKEN_EXPIRED);
+        } catch (SignatureException e) {
+            log.error("Firma JWT inválida: {}", e.getMessage());
+            sendErrorResponse(response, request, HttpStatus.UNAUTHORIZED,
+                    CodigoError.TOKEN_INVALID);
+        } catch (MalformedJwtException e) {
+            log.error("Token JWT malformado: {}", e.getMessage());
+            sendErrorResponse(response, request, HttpStatus.UNAUTHORIZED,
+                    CodigoError.TOKEN_INVALID);
+        } catch (TokenRevokedException e) {
+            log.error("Token JWT revocado: {}", e.getMessage());
+            sendErrorResponse(response, request, HttpStatus.UNAUTHORIZED,
+                    CodigoError.TOKEN_REVOKED);
+        } catch (TokenExpiredException e) {
+            log.error("Token JWT expirado: {}", e.getMessage());
+            sendErrorResponse(response, request, HttpStatus.UNAUTHORIZED,
+                    CodigoError.TOKEN_EXPIRED);
+        } catch (TokenInvalidException e) {
+            log.error("Token JWT inválido: {}", e.getMessage());
+            sendErrorResponse(response, request, HttpStatus.UNAUTHORIZED,
+                    CodigoError.TOKEN_INVALID);
         } catch (Exception e) {
             log.error("Error al procesar la autenticación JWT: {}", e.getMessage());
-            SecurityContextHolder.clearContext();
+            sendErrorResponse(response, request, HttpStatus.UNAUTHORIZED,
+                    CodigoError.UNAUTHORIZED_ACCESS);
         }
 
         filterChain.doFilter(request, response);
+    }
+
+    private void sendErrorResponse(HttpServletResponse response, HttpServletRequest request,
+                                   HttpStatus status, CodigoError codigoError) throws IOException {
+        SecurityContextHolder.clearContext();
+        response.setStatus(status.value());
+        response.setContentType(MediaType.APPLICATION_JSON_VALUE);
+        ErrorResponse errorResponse = new ErrorResponse(
+                codigoError.getCodigo(),
+                codigoError.getMensaje(),
+                request.getRequestURI()
+        );
+        response.getWriter().write(objectMapper.writeValueAsString(errorResponse));
     }
 }

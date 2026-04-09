@@ -198,14 +198,14 @@ public class GlobalExceptionHandler {
     public ResponseEntity<ErrorResponse> handleInvalidInput(
             InvalidInputException ex, HttpServletRequest request) {
         log.warn("InvalidInputException en {}: {}", request.getRequestURI(), ex.getMessage());
-        
+
         ErrorResponse errorResponse = new ErrorResponse(
                 ex.getCodigo(),
                 ex.getMessage(),
                 request.getRequestURI()
         );
-        
-        return ResponseEntity.badRequest().body(errorResponse);
+
+        return ResponseEntity.status(ex.getHttpStatus()).body(errorResponse);
     }
 
     // ==================== DATABASE EXCEPTIONS ====================

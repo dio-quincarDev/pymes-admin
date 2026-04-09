@@ -65,15 +65,28 @@ La API está organizada bajo la ruta base `/api/v1` y sigue una estructura RESTf
 - **Core:** Spring Boot 3.4.3, Java 21, MapStruct, Lombok.
 - **Seguridad:** Spring Security OAuth2 (Google/FB), JWT (JJWT 0.12.6), Redis (Blacklist & Rate Limiting IP+Email).
 - **Persistencia:** PostgreSQL, Flyway, Soft Delete Forense.
-- **Calidad:** JUnit 5, Mockito, 40 tests (Unitarias + Contexto), 40 edge cases.
+- **Testing:** JUnit 5, Mockito, **Testcontainers** (PostgreSQL 15 + Redis 7).
+
+### 📊 Resultados de Tests
+
+| Tipo | Cantidad | Ejecución |
+|------|----------|-----------|
+| Unitarios (Mockito) | 39 tests | `mvn test` |
+| Integración (Testcontainers) | 17 tests | `mvn verify` |
+| **Total** | **56 tests** | `mvn verify` |
+
+**Cobertura de integración:**
+- **AuthApiIntegrationTest** → register, login, logout, refresh token (happy paths + edge cases)
+- **AuthApplicationTests** → contexto completo con PostgreSQL real + Redis + Flyway
 
 ---
 
 <div align="center">
 
-**PyMes Admin - Auth Microservice** | Estado: **Desacoplado, Escalable & Endurecido** 🔒
+**PyMes Admin - Auth Microservice** | Estado: **Desacoplado, Escalable, Testeable & Endurecido** 🔒
 
 [![Build & Test](https://github.com/dio-quincarDev/pymes-admin/actions/workflows/ci.yml/badge.svg)](https://github.com/dio-quincarDev/pymes-admin/actions)
 [![Java 21](https://img.shields.io/badge/Java-21-blue.svg)](https://openjdk.org/projects/jdk/21/)
+[![Testcontainers](https://img.shields.io/badge/Testcontainers-PostgreSQL%20%2B%20Redis-green.svg)](https://testcontainers.com/)
 
 </div>
