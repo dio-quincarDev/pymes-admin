@@ -141,7 +141,7 @@ npm run dev
 
 # Backend (otra terminal)
 cd backend/auth
-./mvnw spring-boot:run
+./mvnw spring-boot:run -Pdev # Levanta el perfil de desarrollo
 ```
 
 ### Deploy en Servidor (Staging)

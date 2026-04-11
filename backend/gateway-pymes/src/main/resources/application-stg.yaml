@@ -1,0 +1,22 @@
+# Gateway Perfil Staging
+server:
+  port: 8080
+
+spring:
+  data:
+    redis:
+      host: ${REDIS_HOST}
+      port: 6379
+
+  cloud:
+    gateway:
+      routes:
+        - id: auth-service
+          uri: http://${AUTH_SERVICE_HOST}:8081
+          predicates:
+            - Path=/api/v1/**
+
+logging:
+  level:
+    root: INFO
+    org.springframework.cloud.gateway: INFO

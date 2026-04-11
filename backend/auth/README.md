@@ -19,6 +19,32 @@ El servicio está diseñado con una **arquitectura orientada a dominios (SRP)**,
 
 ---
 
+## ⚙️ Configuración & Perfiles
+
+El microservicio utiliza **Perfiles de Maven** para gestionar diferentes entornos de forma segura y eficiente.
+
+### 📋 Perfiles Disponibles
+
+| Perfil | Propósito | Comando de Ejecución |
+|--------|-----------|----------------------|
+| **`dev`** (Default) | Desarrollo local con logs en `DEBUG` y conexión a `localhost`. | `./mvnw spring-boot:run -Pdev` |
+| **`stg`** | Entorno de Staging/QA. Configuración estricta vía variables de entorno. | `./mvnw clean package -Pstg` |
+| **`prod`** | Producción. Máxima seguridad, logs en `WARN` y optimización de recursos. | `./mvnw clean package -Pprod` |
+
+### 🔐 Gestión de Secretos
+
+**IMPORTANTE:** Nunca se deben incluir secretos en los archivos `application.yaml`.
+- En **desarrollo**, utiliza un archivo `.env` en la raíz de `backend/auth/`. El proyecto usa `spring-dotenv` para cargarlos automáticamente.
+- En **Staging/Producción**, las variables de entorno deben ser inyectadas por el orquestador (Docker Compose, Kubernetes o GitHub Secrets).
+
+Variables críticas requeridas:
+- `JWT_SECRET`: Clave para firmar tokens.
+- `DB_PASSWORD`: Contraseña de PostgreSQL.
+- `SPRING_MAIL_PASSWORD`: App password para el envío de correos.
+- `GOOGLE_CLIENT_SECRET` / `FACEBOOK_CLIENT_SECRET`: Credenciales OAuth2.
+
+---
+
 ## 🌐 Endpoints (V1)
 
 La API está organizada bajo la ruta base `/api/v1` y sigue una estructura RESTful por recursos:

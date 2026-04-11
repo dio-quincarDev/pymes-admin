@@ -112,6 +112,21 @@ src/test/java/
 - [x] **Bug `filterChain.doFilter` tras error**: Corregido con `return` inmediato. ✅ COMPLETADO.
 - [x] **Refactor `AuthApiController`**: Eliminado `RequestContextHolder`. Inyección explícita de `HttpServletRequest`. ✅ COMPLETADO.
 
+### 🔧 Fix Docker (2026-04-11)
+- [x] **Testcontainers** actualizado `1.20.5` → `1.21.4`. Docker 29.x requiere API ≥1.44; la versión antigua usaba `docker-java` con API 1.32 (`client version 1.32 is too old`).
+
+### ✅ Verificación de Email (2026-04-11)
+- [x] **Migración V4**: Columna `email_verified_at` nullable en `users` + índice parcial.
+- [x] **UserEntity**: Campo `emailVerifiedAt` + helpers `isEmailVerified()`, `markEmailAsVerified()`.
+- [x] **Redis**: Tokens de verificación en `email:verify:{token}` → email, TTL 15 min.
+- [x] **Servicio**: `EmailVerificationService` (generate, verify, resend).
+- [x] **Excepción**: `EmailVerificationTokenInvalidException` (VER002).
+- [x] **Códigos de error**: VER001-VER004 en `CodigoError`.
+- [x] **Endpoints**: `POST /auth/verify-email`, `POST /auth/resend-verification`.
+- [x] **Register**: Genera token de verificación automáticamente.
+- [x] **Login**: Rechaza si `email_verified_at == null` → `403 FORBIDDEN (VER001)`.
+- [x] **Tests**: 8 unitarios + 5 integración. **Total: 76 tests (0 fallos).**
+
 ---
 
 ## 7. Estrategia de Próximos Pasos 📋
@@ -168,5 +183,37 @@ Actualmente, el `JwtAuthenticationFilter` realiza un `userRepository.findById()`
 
 ---
 
-### 📊 Calificación de Salud Arquitectónica: 9/10
-> Arquitectura de red endurecida. El Gateway actúa como "escudo" frente a peticiones inválidas, liberando recursos en los microservicios internos. La implementación de la blacklist compartida en Redis garantiza coherencia total en el logout/revocación de sesiones. 🚀
+## 9. Infraestructura & Perfiles (Actualizado 2026-04-11) 🛠️
+
+### 🐳 Troubleshooting: Docker API Version (Testcontainers)
+Se detectó una incompatibilidad entre el cliente `docker-java` (vía Testcontainers) y versiones modernas del demonio de Docker (API 1.44+).
+
+**Síntoma:**
+```text
+BadRequestException (Status 400: {"message":"client version 1.32 is too old..."})
+```
+
+**Solución de Infraestructura Requerida:**
+Para corregir esto de forma permanente en la máquina de desarrollo, se debe asegurar que el archivo `~/.testcontainers.properties` contenga:
+```properties
+docker.client.api.version=1.44
+```
+Alternativamente, se puede pasar como propiedad de sistema: `-Ddocker.client.api.version=1.44`. El proyecto se ha dejado configurado con el transporte `httpclient5` para mejorar la negociación automática.
+
+### 🏗️ Optimización de Perfiles de Maven
+Se ha implementado una jerarquía de configuración profesional basada en perfiles de Maven para separar entornos y proteger secretos.
+
+**Perfiles Disponibles:**
+- **`dev`** (Default): Desarrollo local (`localhost`, logs en `DEBUG`). Carga secretos desde `.env`.
+- **`stg`**: Entorno de Staging/QA. Configuración estricta vía variables de entorno.
+- **`prod`**: Producción. Máxima seguridad y optimización de logs (`WARN`).
+
+**Estrategia de Secretos:**
+- **Cero Secretos Hardcoded**: Se eliminaron todos los passwords y keys de los archivos `application.yaml`.
+- **Filtrado de Recursos**: Maven inyecta el perfil activo `@spring.profiles.active@` durante el empaquetado.
+- **Tests Sanitizados**: Los archivos `application-test.yaml` e `application-integration.yaml` usan valores mock (`_TEST_SECRET`) para evitar conflictos con claves reales.
+
+---
+
+### 📊 Calificación de Salud Arquitectónica: 9.5/10
+> Estructura de entornos profesionalizada. El sistema es ahora "Environment-Aware" y cumple con los estándares de seguridad para despliegues SaaS, eliminando riesgos de fuga de credenciales en el repositorio. 🚀

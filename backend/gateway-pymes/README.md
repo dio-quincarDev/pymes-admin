@@ -31,13 +31,24 @@ El Gateway actúa como el **guardia de seguridad principal** de la plataforma, r
 
 ---
 
-## ⚙️ Variables de Entorno Clave
+## ⚙️ Configuración & Perfiles
 
-| Variable | Descripción | Valor por Defecto |
+El Gateway utiliza **Perfiles de Maven** para gestionar la conectividad y el nivel de logging por entorno.
+
+| Perfil | Propósito | Comando |
+|--------|-----------|---------|
+| **`dev`** | Desarrollo local (localhost, logging DEBUG). | `./mvnw spring-boot:run -Pdev` |
+| **`stg`** | Staging (Red interna, logging INFO). | `./mvnw package -Pstg` |
+| **`prod`** | Producción (Seguridad máxima, logging WARN). | `./mvnw package -Pprod` |
+
+### 🔐 Variables de Entorno Críticas
+
+| Variable | Descripción | Valor recomendado |
 |----------|-------------|-------------------|
-| `REDIS_HOST` | Host de la instancia compartida de Redis | `pymes-redis-auth` |
-| `JWT_SECRET` | Clave secreta para firmar/validar tokens | (Ver `application.yaml`) |
-| `AUTH_SERVICE_HOST` | Hostname interno del microservicio de Auth | `pymes-auth-service` |
+| `JWT_SECRET` | **Mismo secreto que el microservicio Auth**. | (Inyectar vía Secret) |
+| `REDIS_HOST` | Host para validación de blacklist (Logout). | `localhost` (dev) / `pymes-redis-auth` (docker) |
+| `AUTH_SERVICE_HOST`| Dirección interna del servicio de autenticación. | `pymes-auth-service` |
+| `CORS_ALLOWED_ORIGINS`| Orígenes permitidos (CORS). | `http://localhost:5173` (dev) |
 
 ---
 

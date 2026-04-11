@@ -53,6 +53,12 @@ public enum CodigoError {
     INVITATION_EXPIRED("INV002", "Invitation has expired", HttpStatus.BAD_REQUEST),
     INVITATION_ALREADY_ACCEPTED("INV003", "Invitation has already been accepted", HttpStatus.CONFLICT),
     EMAIL_ALREADY_INVITED("INV004", "Email {0} has already been invited to this tenant", HttpStatus.CONFLICT),
+
+    // ==================== EMAIL VERIFICATION (VER) ====================
+    EMAIL_NOT_VERIFIED("VER001", "Email address has not been verified. Please check your inbox for a verification link", HttpStatus.FORBIDDEN),
+    VERIFICATION_TOKEN_INVALID("VER002", "Verification token is invalid", HttpStatus.BAD_REQUEST),
+    VERIFICATION_TOKEN_EXPIRED("VER003", "Verification token has expired. Please request a new verification email", HttpStatus.BAD_REQUEST),
+    EMAIL_ALREADY_VERIFIED("VER004", "Email address is already verified", HttpStatus.CONFLICT),
     
     // ==================== VALIDATION & INTEGRITY (VAL) ====================
     VALIDATION_ERROR("VAL001", "Validation failed: {0}", HttpStatus.BAD_REQUEST),

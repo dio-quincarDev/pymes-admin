@@ -1,0 +1,4 @@
+# Gateway Test Configuration
+jwt:
+  # Secreto mock para tests unitarios del Gateway
+  secret: ${JWT_SECRET_TEST:988cf74e0e513f5f56af0f421f83c2169e0f49a0a780096469dfc4d4102cfab3_TEST_ONLY}

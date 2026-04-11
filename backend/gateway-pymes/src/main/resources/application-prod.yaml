@@ -1,0 +1,22 @@
+# Gateway Perfil Producción
+server:
+  port: 8080
+
+spring:
+  data:
+    redis:
+      host: ${REDIS_HOST}
+      port: 6379
+
+  cloud:
+    gateway:
+      routes:
+        - id: auth-service
+          uri: http://${AUTH_SERVICE_HOST}:8081
+          predicates:
+            - Path=/api/v1/**
+
+logging:
+  level:
+    root: WARN
+    org.springframework.cloud.gateway: WARN

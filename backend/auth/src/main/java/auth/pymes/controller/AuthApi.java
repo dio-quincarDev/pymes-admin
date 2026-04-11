@@ -3,7 +3,9 @@ package auth.pymes.controller;
 import auth.pymes.common.constants.ApiPathConstants;
 import auth.pymes.common.models.dto.request.LoginRequest;
 import auth.pymes.common.models.dto.request.RegisterRequest;
+import auth.pymes.common.models.dto.request.ResendVerificationRequest;
 import auth.pymes.common.models.dto.request.TokenRefreshRequest;
+import auth.pymes.common.models.dto.request.VerifyEmailRequest;
 import auth.pymes.common.models.dto.response.ApiResponse;
 import auth.pymes.common.models.dto.response.AuthResponse;
 import auth.pymes.common.models.dto.response.LogoutResponse;
@@ -40,4 +42,14 @@ public interface AuthApi {
     @PostMapping("/refresh")
     ResponseEntity<ApiResponse<AuthResponse>> refreshToken(
             @Valid @RequestBody TokenRefreshRequest request);
+
+    @Operation(summary = "Verify email", description = "Verifica el email del usuario usando el token enviado por correo")
+    @PostMapping("/verify-email")
+    ResponseEntity<ApiResponse<Void>> verifyEmail(
+            @Valid @RequestBody VerifyEmailRequest request);
+
+    @Operation(summary = "Resend verification email", description = "Reenvía un token de verificación al email del usuario")
+    @PostMapping("/resend-verification")
+    ResponseEntity<ApiResponse<Void>> resendVerification(
+            @Valid @RequestBody ResendVerificationRequest request);
 }

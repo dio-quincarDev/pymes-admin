@@ -20,6 +20,7 @@ import auth.pymes.repositories.TenantRepository;
 import auth.pymes.repositories.UserEntityRepository;
 import auth.pymes.repositories.UserTenantRepository;
 import auth.pymes.service.AuthService;
+import auth.pymes.service.EmailVerificationService;
 import auth.pymes.service.JwtService;
 import auth.pymes.utils.exception.auth.AuthenticationException;
 import auth.pymes.utils.exception.auth.AuthorizationException;
@@ -59,6 +60,7 @@ public class AuthServiceImpl implements AuthService {
     private final RateLimitService rateLimitService;
     private final UserMapper userMapper;
     private final TenantMapper tenantMapper;
+    private final EmailVerificationService emailVerificationService;
 
     @Value("${jwt.access-expiration}")
     private long accessTokenExpiration;
@@ -109,6 +111,10 @@ public class AuthServiceImpl implements AuthService {
 
         userTenantRepository.save(userTenant);
 
+        // Generate email verification token (stored in Redis, TTL 15 min)
+        emailVerificationService.generateVerificationToken(user);
+        log.info("Token de verificación de email generado para: {}", user.getEmail());
+
         String accessToken = jwtService.generateAccessToken(user, tenant.getId(), RoleName.OWNER.name(), tenant.getPlan().name());
         String refreshToken = jwtService.generateRefreshToken(user);
 
@@ -130,6 +136,11 @@ public class AuthServiceImpl implements AuthService {
 
         if (!user.isEnabled()) {
             throw new AuthorizationException(USER_INACTIVE);
+        }
+
+        if (!user.isEmailVerified()) {
+            throw new auth.pymes.utils.exception.auth.AuthorizationException(
+                    auth.pymes.utils.exception.CodigoError.EMAIL_NOT_VERIFIED);
         }
 
         try {

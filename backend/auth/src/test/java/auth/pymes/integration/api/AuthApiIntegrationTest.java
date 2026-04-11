@@ -2,7 +2,9 @@ package auth.pymes.integration.api;
 
 import auth.pymes.common.models.dto.request.LoginRequest;
 import auth.pymes.common.models.dto.request.RegisterRequest;
+import auth.pymes.common.models.dto.request.ResendVerificationRequest;
 import auth.pymes.common.models.dto.request.TokenRefreshRequest;
+import auth.pymes.common.models.dto.request.VerifyEmailRequest;
 import auth.pymes.common.models.dto.response.AuthResponse;
 import auth.pymes.integration.AbstractIntegrationTest;
 import auth.pymes.utils.exception.CodigoError;
@@ -14,6 +16,7 @@ import org.junit.jupiter.api.Nested;
 import org.junit.jupiter.api.Test;
 import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.boot.test.autoconfigure.web.servlet.AutoConfigureMockMvc;
+import org.springframework.jdbc.core.JdbcTemplate;
 import org.springframework.http.MediaType;
 import org.springframework.test.web.servlet.MockMvc;
 import org.springframework.test.web.servlet.MvcResult;
@@ -32,6 +35,9 @@ class AuthApiIntegrationTest extends AbstractIntegrationTest {
     @Autowired
     private ObjectMapper objectMapper;
 
+    @Autowired
+    private JdbcTemplate jdbcTemplate;
+
     private String uniqueEmail;
     private RegisterRequest validRegisterRequest;
 
@@ -48,6 +54,10 @@ class AuthApiIntegrationTest extends AbstractIntegrationTest {
     }
 
     // ==================== HELPER METHODS ====================
+    private void verifyUserEmail(String email) {
+        jdbcTemplate.update("UPDATE users SET email_verified_at = CURRENT_TIMESTAMP WHERE email = ?", email);
+    }
+
     private AuthResponse performLogin(String email, String password) throws Exception {
         LoginRequest loginRequest = new LoginRequest(email, password);
         MvcResult result = mockMvc.perform(post("/api/v1/auth/login")
@@ -154,6 +164,8 @@ class AuthApiIntegrationTest extends AbstractIntegrationTest {
                             .content(objectMapper.writeValueAsString(validRegisterRequest)))
                     .andExpect(status().isCreated());
 
+            verifyUserEmail(uniqueEmail);
+
             LoginRequest loginRequest = new LoginRequest(uniqueEmail, "SecurePass123!");
 
             mockMvc.perform(post("/api/v1/auth/login")
@@ -184,6 +196,8 @@ class AuthApiIntegrationTest extends AbstractIntegrationTest {
                             .content(objectMapper.writeValueAsString(validRegisterRequest)))
                     .andExpect(status().isCreated());
 
+            verifyUserEmail(uniqueEmail);
+
             LoginRequest loginRequest = new LoginRequest(uniqueEmail, "WrongPassword123!");
 
             mockMvc.perform(post("/api/v1/auth/login")
@@ -200,6 +214,8 @@ class AuthApiIntegrationTest extends AbstractIntegrationTest {
                             .contentType(MediaType.APPLICATION_JSON)
                             .content(objectMapper.writeValueAsString(validRegisterRequest)))
                     .andExpect(status().isCreated());
+
+            verifyUserEmail(uniqueEmail);
 
             LoginRequest loginRequest = new LoginRequest(uniqueEmail, "WrongPassword");
 
@@ -247,6 +263,8 @@ class AuthApiIntegrationTest extends AbstractIntegrationTest {
                             .content(objectMapper.writeValueAsString(validRegisterRequest)))
                     .andExpect(status().isCreated());
 
+            verifyUserEmail(uniqueEmail);
+
             String accessToken = getAccessToken(uniqueEmail, "SecurePass123!");
 
             mockMvc.perform(post("/api/v1/auth/logout")
@@ -262,6 +280,8 @@ class AuthApiIntegrationTest extends AbstractIntegrationTest {
                             .contentType(MediaType.APPLICATION_JSON)
                             .content(objectMapper.writeValueAsString(validRegisterRequest)))
                     .andExpect(status().isCreated());
+
+            verifyUserEmail(uniqueEmail);
 
             String accessToken = getAccessToken(uniqueEmail, "SecurePass123!");
 
@@ -301,6 +321,8 @@ class AuthApiIntegrationTest extends AbstractIntegrationTest {
                             .content(objectMapper.writeValueAsString(validRegisterRequest)))
                     .andExpect(status().isCreated());
 
+            verifyUserEmail(uniqueEmail);
+
             AuthResponse authResponse = performLogin(uniqueEmail, "SecurePass123!");
             TokenRefreshRequest refreshRequest = new TokenRefreshRequest(authResponse.refreshToken());
 
@@ -322,6 +344,94 @@ class AuthApiIntegrationTest extends AbstractIntegrationTest {
                             .content(objectMapper.writeValueAsString(request)))
                     .andExpect(status().isUnauthorized())
                     .andExpect(jsonPath("$.codigo").value(CodigoError.TOKEN_EXPIRED.getCodigo()));
+        }
+    }
+
+    // ==================== EMAIL VERIFICATION ====================
+    @Nested
+    @DisplayName("EMAIL VERIFICATION")
+    class EmailVerificationTests {
+
+        @Test
+        @DisplayName("Verify email con token inválido → 400 BAD_REQUEST (VER002)")
+        void verifyEmailWithInvalidToken() throws Exception {
+            VerifyEmailRequest request = new VerifyEmailRequest("invalid-token");
+
+            mockMvc.perform(post("/api/v1/auth/verify-email")
+                            .contentType(MediaType.APPLICATION_JSON)
+                            .content(objectMapper.writeValueAsString(request)))
+                    .andExpect(status().isBadRequest())
+                    .andExpect(jsonPath("$.codigo").value(CodigoError.VERIFICATION_TOKEN_INVALID.getCodigo()));
+        }
+
+        @Test
+        @DisplayName("Resend verification con email inexistente → 404 NOT_FOUND (USR002)")
+        void resendVerificationWithNonExistentEmail() throws Exception {
+            ResendVerificationRequest request = new ResendVerificationRequest("nonexistent@example.com");
+
+            mockMvc.perform(post("/api/v1/auth/resend-verification")
+                            .contentType(MediaType.APPLICATION_JSON)
+                            .content(objectMapper.writeValueAsString(request)))
+                    .andExpect(status().isNotFound())
+                    .andExpect(jsonPath("$.codigo").value(CodigoError.USER_NOT_FOUND_BY_EMAIL.getCodigo()));
+        }
+
+        @Test
+        @DisplayName("Resend verification con email ya verificado → 409 CONFLICT (VER004)")
+        void resendVerificationWithAlreadyVerifiedEmail() throws Exception {
+            // Primero registro y verifico manualmente el email del usuario
+            mockMvc.perform(post("/api/v1/auth/register")
+                            .contentType(MediaType.APPLICATION_JSON)
+                            .content(objectMapper.writeValueAsString(validRegisterRequest)))
+                    .andExpect(status().isCreated());
+
+            // Simulo verificación directa en la base de datos
+            jdbcTemplate.update("UPDATE users SET email_verified_at = CURRENT_TIMESTAMP WHERE email = ?", uniqueEmail);
+
+            ResendVerificationRequest request = new ResendVerificationRequest(uniqueEmail);
+
+            mockMvc.perform(post("/api/v1/auth/resend-verification")
+                            .contentType(MediaType.APPLICATION_JSON)
+                            .content(objectMapper.writeValueAsString(request)))
+                    .andExpect(status().isConflict())
+                    .andExpect(jsonPath("$.codigo").value(CodigoError.EMAIL_ALREADY_VERIFIED.getCodigo()));
+        }
+
+        @Test
+        @DisplayName("Login sin email verificado → 403 FORBIDDEN (VER001)")
+        void loginWithoutVerifiedEmail() throws Exception {
+            mockMvc.perform(post("/api/v1/auth/register")
+                            .contentType(MediaType.APPLICATION_JSON)
+                            .content(objectMapper.writeValueAsString(validRegisterRequest)))
+                    .andExpect(status().isCreated());
+
+            LoginRequest loginRequest = new LoginRequest(uniqueEmail, "SecurePass123!");
+
+            mockMvc.perform(post("/api/v1/auth/login")
+                            .contentType(MediaType.APPLICATION_JSON)
+                            .content(objectMapper.writeValueAsString(loginRequest)))
+                    .andExpect(status().isForbidden())
+                    .andExpect(jsonPath("$.codigo").value(CodigoError.EMAIL_NOT_VERIFIED.getCodigo()));
+        }
+
+        @Test
+        @DisplayName("Login con email verificado → 200 OK")
+        void loginWithVerifiedEmail() throws Exception {
+            mockMvc.perform(post("/api/v1/auth/register")
+                            .contentType(MediaType.APPLICATION_JSON)
+                            .content(objectMapper.writeValueAsString(validRegisterRequest)))
+                    .andExpect(status().isCreated());
+
+            // Simulo verificación directa en la base de datos
+            jdbcTemplate.update("UPDATE users SET email_verified_at = CURRENT_TIMESTAMP WHERE email = ?", uniqueEmail);
+
+            LoginRequest loginRequest = new LoginRequest(uniqueEmail, "SecurePass123!");
+
+            mockMvc.perform(post("/api/v1/auth/login")
+                            .contentType(MediaType.APPLICATION_JSON)
+                            .content(objectMapper.writeValueAsString(loginRequest)))
+                    .andExpect(status().isOk())
+                    .andExpect(jsonPath("$.data.accessToken").exists());
         }
     }
 }

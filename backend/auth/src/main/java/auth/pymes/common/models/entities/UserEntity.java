@@ -54,6 +54,9 @@ public class UserEntity implements UserDetails {
     @Builder.Default
     private Boolean isActive = true;
 
+    @Column(name = "email_verified_at")
+    private ZonedDateTime emailVerifiedAt;
+
     @Column(name = "deleted_at")
     private ZonedDateTime deletedAt;
 
@@ -118,5 +121,14 @@ public class UserEntity implements UserDetails {
     @Override
     public boolean isEnabled() {
         return isActive;
+    }
+
+    // Email verification helpers
+    public boolean isEmailVerified() {
+        return emailVerifiedAt != null;
+    }
+
+    public void markEmailAsVerified() {
+        this.emailVerifiedAt = ZonedDateTime.now();
     }
 }

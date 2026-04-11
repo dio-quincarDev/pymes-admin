@@ -1,0 +1,22 @@
+# Gateway Perfil Desarrollo Local
+server:
+  port: 8080
+
+spring:
+  data:
+    redis:
+      host: ${REDIS_HOST:localhost}
+      port: 6379
+
+  cloud:
+    gateway:
+      routes:
+        - id: auth-service
+          uri: http://${AUTH_SERVICE_HOST:localhost}:8081
+          predicates:
+            - Path=/api/v1/**
+
+logging:
+  level:
+    org.springframework.cloud.gateway: DEBUG
+    dev.dioquincar: DEBUG

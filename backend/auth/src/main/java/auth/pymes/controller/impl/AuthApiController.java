@@ -2,12 +2,15 @@ package auth.pymes.controller.impl;
 
 import auth.pymes.common.models.dto.request.LoginRequest;
 import auth.pymes.common.models.dto.request.RegisterRequest;
+import auth.pymes.common.models.dto.request.ResendVerificationRequest;
 import auth.pymes.common.models.dto.request.TokenRefreshRequest;
+import auth.pymes.common.models.dto.request.VerifyEmailRequest;
 import auth.pymes.common.models.dto.response.ApiResponse;
 import auth.pymes.common.models.dto.response.AuthResponse;
 import auth.pymes.common.models.dto.response.LogoutResponse;
 import auth.pymes.controller.AuthApi;
 import auth.pymes.service.AuthService;
+import auth.pymes.service.EmailVerificationService;
 import jakarta.servlet.http.HttpServletRequest;
 import lombok.RequiredArgsConstructor;
 import lombok.extern.slf4j.Slf4j;
@@ -22,6 +25,7 @@ import org.springframework.web.bind.annotation.RestController;
 public class AuthApiController implements AuthApi {
 
     private final AuthService authService;
+    private final EmailVerificationService emailVerificationService;
 
     @Override
     public ResponseEntity<ApiResponse<AuthResponse>> register(RegisterRequest request,
@@ -54,5 +58,17 @@ public class AuthApiController implements AuthApi {
     public ResponseEntity<ApiResponse<AuthResponse>> refreshToken(TokenRefreshRequest request) {
         AuthResponse response = authService.refreshToken(request);
         return ResponseEntity.ok(ApiResponse.ok(response));
+    }
+
+    @Override
+    public ResponseEntity<ApiResponse<Void>> verifyEmail(VerifyEmailRequest request) {
+        emailVerificationService.verifyEmail(request.token());
+        return ResponseEntity.ok(ApiResponse.ok());
+    }
+
+    @Override
+    public ResponseEntity<ApiResponse<Void>> resendVerification(ResendVerificationRequest request) {
+        emailVerificationService.resendVerificationToken(request.email());
+        return ResponseEntity.ok(ApiResponse.ok());
     }
 }
