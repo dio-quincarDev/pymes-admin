@@ -70,20 +70,20 @@
 └──────────────────┘ └──────────────────┘ └──────────────────┘
 ```
 
-### Multi-tenancy Strategy (Actual)
+### Multi-tenancy & Edge Security Strategy
 
-Actualmente implementamos **Aislamiento por Relación (Shared Database, Shared Schema)**:
-- **User-Tenant Mapping**: Un usuario pertenece a múltiples empresas mediante una tabla intermedia `user_tenants`.
-- **Soft Delete**: Todas las entidades críticas (User, Tenant, UserTenant) utilizan eliminación lógica para preservar la integridad de la auditoría.
-- **JWT Context**: El token transporta el `tenant_id` y el `rol` activo para asegurar que las peticiones se filtren correctamente.
+La plataforma utiliza un modelo de **Seguridad en el Borde (Edge Validation)** para proteger los recursos internos:
+- **API Gateway (Entry Point)**: Única puerta de entrada. Realiza validación criptográfica de JWT y consulta la **Blacklist de Tokens** en Redis (Logout activo).
+- **Propagación de Identidad**: Tras validar el token, el Gateway inyecta cabeceras de identidad (`X-User-Id`, `X-Tenant-Id`, `X-User-Role`) hacia los microservicios internos.
+- **Internal Trust**: Los microservicios internos operan en una red aislada (`pymes-internal-network`) y confían en la identidad pre-validada por el Gateway, optimizando el consumo de CPU y base de datos.
 
 ### 📦 Estrategia de Caché (Redis)
 
 | Servicio | Prefijo | Propósito |
 |----------|---------|-----------|
-| **Auth** | `auth:` | Blacklist tokens, sesiones, permisos |
-| **Core** | `core:` | Cache queries, rate limiting |
-| **IA** | `ia:` | Reportes temporales, sesiones Claude |
+| **Global** | `auth:token_blacklist:` | Revocación inmediata de sesiones (Logout) |
+| **Auth** | `auth:session:` | Cache de permisos y sesiones activas |
+| **Core** | `core:cache:` | Optimización de queries multi-tenant |
 
 ```bash
 # Ejemplo keys: auth:session:{user_id}, core:cache:gastos:{tenant_id}
