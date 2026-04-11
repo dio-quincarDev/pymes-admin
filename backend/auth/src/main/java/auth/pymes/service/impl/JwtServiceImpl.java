@@ -2,9 +2,16 @@ package auth.pymes.service.impl;
 
 import auth.pymes.common.models.entities.UserEntity;
 import auth.pymes.service.JwtService;
+import auth.pymes.utils.exception.auth.AuthApiException;
+import auth.pymes.utils.exception.token.TokenExpiredException;
+import auth.pymes.utils.exception.token.TokenInvalidException;
+import auth.pymes.utils.exception.token.TokenRevokedException;
 import io.jsonwebtoken.Claims;
+import io.jsonwebtoken.ExpiredJwtException;
 import io.jsonwebtoken.Jwts;
+import io.jsonwebtoken.MalformedJwtException;
 import io.jsonwebtoken.security.Keys;
+import io.jsonwebtoken.security.SignatureException;
 import lombok.RequiredArgsConstructor;
 import lombok.extern.slf4j.Slf4j;
 import org.springframework.beans.factory.annotation.Value;
@@ -72,6 +79,49 @@ public class JwtServiceImpl implements JwtService {
     private SecretKey getSigningKey() {
         byte[] keyBytes = secretKey.getBytes(StandardCharsets.UTF_8);
         return Keys.hmacShaKeyFor(keyBytes);
+    }
+
+    @Override
+    public ValidatedToken validateToken(String token) throws AuthApiException {
+        try {
+            Claims claims = extractAllClaims(token);
+
+            if (isTokenRevoked(token)) {
+                throw new TokenRevokedException();
+            }
+
+            if (isTokenExpired(token)) {
+                throw new TokenExpiredException();
+            }
+
+            String userIdStr = claims.get("userId", String.class);
+            String tenantIdStr = claims.get("tenantId", String.class);
+            String role = claims.get("role", String.class);
+            String email = claims.getSubject();
+
+            UUID userId = userIdStr != null ? UUID.fromString(userIdStr) : null;
+            UUID tenantId = tenantIdStr != null ? UUID.fromString(tenantIdStr) : null;
+
+            return new ValidatedToken(userId, tenantId, role, email);
+
+        } catch (ExpiredJwtException e) {
+            log.error("Token JWT expirado: {}", e.getMessage());
+            throw new TokenExpiredException();
+        } catch (SignatureException e) {
+            log.error("Firma JWT inválida: {}", e.getMessage());
+            throw new TokenInvalidException();
+        } catch (MalformedJwtException e) {
+            log.error("Token JWT malformado: {}", e.getMessage());
+            throw new TokenInvalidException();
+        } catch (IllegalArgumentException e) {
+            log.error("Token JWT con argumento ilegal: {}", e.getMessage());
+            throw new TokenInvalidException();
+        } catch (TokenRevokedException | TokenExpiredException | TokenInvalidException e) {
+            throw e;
+        } catch (Exception e) {
+            log.error("Error al validar token JWT: {}", e.getMessage());
+            throw new TokenInvalidException();
+        }
     }
 
     @Override

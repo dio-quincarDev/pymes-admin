@@ -1,8 +1,12 @@
 package auth.pymes.unit;
 
 import auth.pymes.common.models.entities.UserEntity;
+import auth.pymes.service.JwtService;
 import auth.pymes.service.impl.JwtServiceImpl;
 import auth.pymes.service.impl.TokenBlacklistService;
+import auth.pymes.utils.exception.token.TokenExpiredException;
+import auth.pymes.utils.exception.token.TokenInvalidException;
+import auth.pymes.utils.exception.token.TokenRevokedException;
 import io.jsonwebtoken.Claims;
 import io.jsonwebtoken.Jwts;
 import io.jsonwebtoken.security.Keys;
@@ -219,5 +223,85 @@ class JwtServiceImplTest {
 
         // Act & Assert
         assertThat(jwtService.extractUserId(tokenWithoutUserId)).isNull();
+    }
+
+    // ==================== validateToken Tests ====================
+
+    @Test
+    void validateToken_WithValidToken_ReturnsValidatedToken() {
+        // Arrange
+        String token = jwtService.generateAccessToken(defaultUser, defaultTenantId, defaultRole, defaultPlan);
+        when(tokenBlacklistService.isTokenRevoked(token)).thenReturn(false);
+
+        // Act
+        JwtService.ValidatedToken result = jwtService.validateToken(token);
+
+        // Assert
+        assertThat(result.userId()).isEqualTo(defaultUser.getId());
+        assertThat(result.tenantId()).isEqualTo(defaultTenantId);
+        assertThat(result.role()).isEqualTo(defaultRole);
+        assertThat(result.email()).isEqualTo(defaultUser.getEmail());
+    }
+
+    @Test
+    void validateToken_WithExpiredToken_ThrowsTokenExpiredException() {
+        // Arrange
+        ReflectionTestUtils.setField(jwtService, "accessTokenExpiration", -1000L);
+        String expiredToken = jwtService.generateAccessToken(defaultUser, defaultTenantId, defaultRole, defaultPlan);
+        ReflectionTestUtils.setField(jwtService, "accessTokenExpiration", ACCESS_EXPIRATION);
+
+        // Act & Assert
+        org.assertj.core.api.ThrowableAssert.ThrowingCallable call = () -> jwtService.validateToken(expiredToken);
+        org.assertj.core.api.Assertions.assertThatThrownBy(call)
+                .isInstanceOf(TokenExpiredException.class);
+    }
+
+    @Test
+    void validateToken_WithMalformedToken_ThrowsTokenInvalidException() {
+        // Act & Assert
+        org.assertj.core.api.Assertions.assertThatThrownBy(() -> jwtService.validateToken("not.a.jwt"))
+                .isInstanceOf(TokenInvalidException.class);
+    }
+
+    @Test
+    void validateToken_WithInvalidSignature_ThrowsTokenInvalidException() {
+        // Arrange
+        String differentSecret = "different_secret_key_that_is_long_enough_to_be_secure_123456";
+        SecretKey otherKey = Keys.hmacShaKeyFor(differentSecret.getBytes(StandardCharsets.UTF_8));
+
+        String invalidSignedToken = Jwts.builder()
+                .subject(defaultUser.getEmail())
+                .issuedAt(new Date())
+                .expiration(new Date(System.currentTimeMillis() + ACCESS_EXPIRATION))
+                .signWith(otherKey)
+                .compact();
+
+        // Act & Assert
+        org.assertj.core.api.Assertions.assertThatThrownBy(() -> jwtService.validateToken(invalidSignedToken))
+                .isInstanceOf(TokenInvalidException.class);
+    }
+
+    @Test
+    void validateToken_WithRevokedToken_ThrowsTokenRevokedException() {
+        // Arrange
+        String token = jwtService.generateAccessToken(defaultUser, defaultTenantId, defaultRole, defaultPlan);
+        when(tokenBlacklistService.isTokenRevoked(token)).thenReturn(true);
+
+        // Act & Assert
+        org.assertj.core.api.Assertions.assertThatThrownBy(() -> jwtService.validateToken(token))
+                .isInstanceOf(TokenRevokedException.class);
+    }
+
+    @Test
+    void validateToken_WithNullTenantId_ReturnsNullTenantId() {
+        // Arrange
+        String token = jwtService.generateAccessToken(defaultUser, null, defaultRole, defaultPlan);
+        when(tokenBlacklistService.isTokenRevoked(token)).thenReturn(false);
+
+        // Act
+        JwtService.ValidatedToken result = jwtService.validateToken(token);
+
+        // Assert
+        assertThat(result.tenantId()).isNull();
     }
 }

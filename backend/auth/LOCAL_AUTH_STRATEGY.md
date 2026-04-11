@@ -77,21 +77,24 @@ src/test/java/
 - [x] **`SecurityConfig`** → `AuthenticationEntryPoint` + `AccessDeniedHandler` custom (401/403 JSON en vez de redirecciones 302)
 - [x] **`SecurityConfig`** → `/api/v1/auth/refresh` agregado a white list (valida su propio token del body)
 - [x] **`GlobalExceptionHandler`** → `handleInvalidInput` usa `ex.getHttpStatus()` en vez de siempre `badRequest()` (para que RATE_LIMIT_EXCEEDED retorne 429)
-- [x] **`JwtAuthenticationFilter`** → Catches específicos para excepciones JWT (ExpiredJwt, MalformedJwt, SignatureException, TokenExpired, TokenRevoked, TokenInvalid) → cada uno retorna su `CodigoError` correcto
 - [x] **`/api/v1/auth/refresh`** → Agregado a white list en SecurityConfig
 
 **Cobertura de tests de integración (`AuthApiIntegrationTest`):**
 - **REGISTER**: Happy path, email duplicado, password corta, email inválido, sin companySlug
 - **LOGIN**: Happy path, email inexistente, contraseña incorrecta, rate limiting (5 intentos → 429)
-- **LOGOUT**: Sin token, token malformado, logout exitoso, token ya revocado, token expirado
+- **LOGOUT**: Sin token, token malformado, logout exitoso, token ya revocado (→ `TOKEN_REVOKED`), token expirado
 - **REFRESH TOKEN**: Happy path, token inválido
 
-### 🔧 Pendiente de limpieza
-- [ ] **`JwtAuthenticationFilter`** → Tiene 6 catch blocks de librerías externas (JJWT). Debería delegar la validación a `JwtServiceImpl.validateToken()` que lance excepciones del dominio. El filtro quedaría con un solo catch para `AuthApiException`.
+### ✅ Limpieza completada (2026-04-10)
+- [x] **`JwtAuthenticationFilter`** → Delega validación completa a `JwtServiceImpl.validateToken()`. De 6 catch blocks de JJWT a 1 solo `catch (AuthApiException)`.
+- [x] **`JwtService.validateToken()`** → Nuevo método que retorna `ValidatedToken(userId, tenantId, role, email)` o lanza excepciones del dominio (`TokenExpiredException`, `TokenInvalidException`, `TokenRevokedException`).
+- [x] **Bug de flujo en filtro** → Corregido: tras `sendErrorResponse()` ahora hace `return` para no continuar la cadena de filtros.
+- [x] **`AuthApiController`** → Eliminado `RequestContextHolder` manual. `register` y `login` reciben `HttpServletRequest` como parámetro explícito (consistente con `logout`).
+- [x] **Tests actualizados** → +6 tests unitarios para `validateToken()`. Fix en `LogoutTests.logoutWithAlreadyRevokedToken` (esperaba `AUTH002`, ahora `AUTH005`).
 
 ---
 
-## 6. Roadmap de Ejecución (Actualizado 2026-04-09)
+## 6. Roadmap de Ejecución (Actualizado 2026-04-10)
 
 ### ✅ Completado recientemente
 - [x] **Desacoplamiento total**: Separación en dominios Auth, User, Tenant, Member e Invitation.
@@ -105,31 +108,41 @@ src/test/java/
 - [x] **Rate Limiting IP + Email**: Bloqueo por combinación `IP:email` en login. ✅ COMPLETADO.
 - [x] **Testcontainers**: Tests de integración contra PostgreSQL real + Redis real con Flyway. ✅ COMPLETADO.
 - [x] **SecurityConfig API-REST**: AuthenticationEntryPoint + AccessDeniedHandler (sin redirecciones 302). ✅ COMPLETADO.
+- [x] **Refactor `JwtAuthenticationFilter`**: 6 catch blocks de JJWT → 1 `catch (AuthApiException)`. Delegación a `JwtService.validateToken()`. ✅ COMPLETADO.
+- [x] **Bug `filterChain.doFilter` tras error**: Corregido con `return` inmediato. ✅ COMPLETADO.
+- [x] **Refactor `AuthApiController`**: Eliminado `RequestContextHolder`. Inyección explícita de `HttpServletRequest`. ✅ COMPLETADO.
 
 ---
 
-## 7. Pendientes (Orden de Importancia) 📋
+## 7. Estrategia de Próximos Pasos 📋
 
-### 🔴 Prioridad 1: Integridad & Calidad de Código
-1.  **Refactor `JwtAuthenticationFilter`**: Delegar validación de token a `JwtServiceImpl.validateToken()`. Eliminar 6 catch blocks de librerías externas del filtro. Un solo catch para `AuthApiException`.
-2.  **Refresh Token Rotation**: Invalidación del token anterior tras cada refresh.
+### 🔴 Fase 1: Seguridad Crítica de Tokens
+1. **Refresh Token Rotation**: Blacklist del refresh token viejo en Redis tras cada refresh. Validar que un refresh token usado una vez no funcione una segunda vez.
 
-### 🟡 Prioridad 2: Robustez de Negocio & Seguridad
-1.  **Recuperación de Contraseña**:
-    - **Estrategia**: Token por email con Redis (TTL 15 min). Sin tabla nueva en BD.
-    - **Flujo**:
-      1. `POST /auth/forgot-password` → genera token UUID, guarda en Redis `reset:{email}` (TTL 15 min).
-      2. Usuario recibe link: `frontend.com/reset?token=xxx`.
-      3. `POST /auth/reset-password` → valida token en Redis, actualiza password (BCrypt), elimina token.
-    - **Endpoints**: `POST /api/v1/auth/forgot-password`, `POST /api/v1/auth/reset-password`.
-    - **Seguridad**: Rate limiting en forgot-password, auditoría de cambio en `audit_log`.
+### 🟡 Fase 2: Integridad de Identidad (Email)
+2. **Verificación de Email**:
+   - Agregar `email_verified_at` nullable a `users`.
+   - Redis: `verify:{email}` TTL 15 min.
+   - Endpoint: `POST /auth/verify-email` (token).
+   - Registro genera token → loguea (pendiente servicio de email real).
+3. **Recuperación de Contraseña**:
+   - Redis: `reset:{email}` TTL 15 min.
+   - Endpoints: `POST /auth/forgot-password`, `POST /auth/reset-password`.
+   - Rate limiting + auditoría en `audit_log`.
 
-### 🟢 Prioridad 3: Roadmap Funcional
-1.  **Transfer Ownership**: Endpoint para ceder el rol de OWNER.
-2.  **Dashboard de Auditoría**: API paginada para consultar los `audit_log` (IA Ready).
-3.  **Gateway Integration Tests**: Tests de integración para el microservicio gateway-pymes.
+### 🟢 Fase 3: Cierre del Flujo de Invitaciones
+4. **Invitación completa**:
+   - `createInvitation` → loguea token (pendiente email real).
+   - `acceptInvitation` → si usuario no existe, permite registro con rol/tenant pre-asignado.
+   - Auditoría de invitaciones en `audit_log`.
+
+### 🔵 Fase 4: Enterprise (post-MVP)
+5. **Transfer Ownership**: Endpoint para ceder el rol de OWNER.
+6. **Dashboard de Auditoría**: API paginada para consultar `audit_log`.
+7. **CI/CD**: GitHub Actions con `mvn verify`.
+8. **CORS + JWT Secret desde entorno**.
 
 ---
 
-### 📊 Calificación de Salud Arquitectónica: 10/10
-> Deuda técnica crítica eliminada (`JwtTokenProvider`, `RuntimeException`, H2). Tests de integración con Testcontainers validando PostgreSQL real + Redis real + Flyway. Seguridad API-REST sin redirecciones. Rate limiting implementado. **Pendiente menor**: refactorizar `JwtAuthenticationFilter` para eliminar catches de librerías externas.
+### 📊 Calificación de Salud Arquitectónica: 8/10
+> Deuda técnica crítica eliminada (`JwtTokenProvider`, `RuntimeException`, H2, 6 catch blocks de JJWT). Tests de integración con Testcontainers validando PostgreSQL real + Redis real + Flyway (62 tests: 45 unit + 17 integ). Seguridad API-REST sin redirecciones. Rate limiting implementado. Filtro JWT con un solo catch y validación delegada al dominio. Controller sin `RequestContextHolder`. **Pendiente**: Refresh Token Rotation, password recovery, CI/CD, CORS configurable, JWT secret desde entorno.

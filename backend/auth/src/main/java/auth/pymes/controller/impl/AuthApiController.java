@@ -15,8 +15,6 @@ import org.springframework.http.HttpStatus;
 import org.springframework.http.ResponseEntity;
 import org.springframework.util.StringUtils;
 import org.springframework.web.bind.annotation.RestController;
-import org.springframework.web.context.request.RequestContextHolder;
-import org.springframework.web.context.request.ServletRequestAttributes;
 
 @RestController
 @RequiredArgsConstructor
@@ -26,19 +24,17 @@ public class AuthApiController implements AuthApi {
     private final AuthService authService;
 
     @Override
-    public ResponseEntity<ApiResponse<AuthResponse>> register(RegisterRequest request) {
-        AuthResponse response = authService.register(request, getRequest());
+    public ResponseEntity<ApiResponse<AuthResponse>> register(RegisterRequest request,
+                                                              HttpServletRequest httpRequest) {
+        AuthResponse response = authService.register(request, httpRequest);
         return ResponseEntity.status(HttpStatus.CREATED).body(ApiResponse.ok(response));
     }
 
     @Override
-    public ResponseEntity<ApiResponse<AuthResponse>> login(LoginRequest request) {
-        AuthResponse response = authService.login(request, getRequest());
+    public ResponseEntity<ApiResponse<AuthResponse>> login(LoginRequest request,
+                                                           HttpServletRequest httpRequest) {
+        AuthResponse response = authService.login(request, httpRequest);
         return ResponseEntity.ok(ApiResponse.ok(response));
-    }
-
-    private HttpServletRequest getRequest() {
-        return ((ServletRequestAttributes) RequestContextHolder.getRequestAttributes()).getRequest();
     }
 
     @Override

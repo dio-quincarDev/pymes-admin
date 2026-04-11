@@ -269,11 +269,11 @@ class AuthApiIntegrationTest extends AbstractIntegrationTest {
                             .header("Authorization", "Bearer " + accessToken))
                     .andExpect(status().isOk());
 
-            // Segundo logout: token revocado, el filter retorna AUTH002 (sin auth context)
+            // Segundo logout: token revocado, el filter retorna AUTH005 (TOKEN_REVOKED)
             mockMvc.perform(post("/api/v1/auth/logout")
                             .header("Authorization", "Bearer " + accessToken))
                     .andExpect(status().isUnauthorized())
-                    .andExpect(jsonPath("$.codigo").value(CodigoError.UNAUTHORIZED_ACCESS.getCodigo()));
+                    .andExpect(jsonPath("$.codigo").value(CodigoError.TOKEN_REVOKED.getCodigo()));
         }
 
         @Test

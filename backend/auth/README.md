@@ -9,7 +9,7 @@
 Este microservicio es el **centro de identidad** de la arquitectura, responsable de la autenticación, identidad del usuario y gestión de la estructura multi-tenant.
 
 ### 🏗️ Evolución Arquitectónica: Desacoplamiento de Dominios
-Recientemente, el servicio ha sido refactorizado desde un modelo monolítico hacia una **arquitectura orientada a dominios (SRP)**, logrando una separación clara de responsabilidades:
+El servicio está diseñado con una **arquitectura orientada a dominios (SRP)**, logrando una separación clara de responsabilidades:
 
 1.  **Auth Domain**: Autenticación pura (Login, Registro, Refresh, Logout).
 2.  **User Domain**: Identidad y perfil del usuario autenticado.
@@ -64,20 +64,42 @@ La API está organizada bajo la ruta base `/api/v1` y sigue una estructura RESTf
 
 - **Core:** Spring Boot 3.4.3, Java 21, MapStruct, Lombok.
 - **Seguridad:** Spring Security OAuth2 (Google/FB), JWT (JJWT 0.12.6), Redis (Blacklist & Rate Limiting IP+Email).
-- **Persistencia:** PostgreSQL, Flyway, Soft Delete Forense.
+- **Persistencia:** PostgreSQL, Flyway, Soft Delete Forense (`deleted_at`).
 - **Testing:** JUnit 5, Mockito, **Testcontainers** (PostgreSQL 15 + Redis 7).
 
 ### 📊 Resultados de Tests
 
 | Tipo | Cantidad | Ejecución |
 |------|----------|-----------|
-| Unitarios (Mockito) | 39 tests | `mvn test` |
+| Unitarios (Mockito) | 45 tests | `mvn test` |
 | Integración (Testcontainers) | 17 tests | `mvn verify` |
-| **Total** | **56 tests** | `mvn verify` |
+| **Total** | **62 tests** | `mvn verify` |
 
 **Cobertura de integración:**
 - **AuthApiIntegrationTest** → register, login, logout, refresh token (happy paths + edge cases)
 - **AuthApplicationTests** → contexto completo con PostgreSQL real + Redis + Flyway
+
+---
+
+## 🔒 Seguridad Implementada
+
+- **JWT validado por dominio**: `JwtService.validateToken()` retorna `ValidatedToken` o lanza excepciones del dominio (`TokenExpiredException`, `TokenInvalidException`, `TokenRevokedException`). El filtro tiene un solo `catch (AuthApiException)`.
+- **Rate limiting**: Bloqueo por combinación `IP:email` en login (5 intentos → 429).
+- **Revocación de tokens**: Blacklist en Redis con TTL automático.
+- **Password hashing**: BCrypt con validación de fortaleza (mínimo 1 letra + 1 número, 8+ caracteres).
+- **Soft delete forense**: `deleted_at` en `users`, `tenants`, `user_tenants`.
+- **Audit log**: Registro de REGISTER y LOGIN con IP y User-Agent.
+
+---
+
+## 📅 Próximas Fases
+
+| Fase | Descripción |
+|------|-------------|
+| 🔴 **Fase 1** | Refresh Token Rotation (blacklist del token viejo en Redis) |
+| 🟡 **Fase 2** | Verificación de email + Recuperación de contraseña (Redis TTL 15 min) |
+| 🟢 **Fase 3** | Cierre del flujo de invitaciones (registro vía invitación, auditoría) |
+| 🔵 **Fase 4** | Enterprise: Transfer Ownership, Dashboard Auditoría, CI/CD |
 
 ---
 

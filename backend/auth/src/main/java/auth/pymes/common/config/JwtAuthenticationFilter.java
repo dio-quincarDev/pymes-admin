@@ -4,21 +4,14 @@ import auth.pymes.common.models.dto.response.ErrorResponse;
 import auth.pymes.common.models.entities.UserEntity;
 import auth.pymes.repositories.UserEntityRepository;
 import auth.pymes.service.JwtService;
-import auth.pymes.utils.exception.CodigoError;
-import auth.pymes.utils.exception.token.TokenExpiredException;
-import auth.pymes.utils.exception.token.TokenInvalidException;
-import auth.pymes.utils.exception.token.TokenRevokedException;
+import auth.pymes.utils.exception.auth.AuthApiException;
 import com.fasterxml.jackson.databind.ObjectMapper;
-import io.jsonwebtoken.ExpiredJwtException;
-import io.jsonwebtoken.MalformedJwtException;
-import io.jsonwebtoken.security.SignatureException;
 import jakarta.servlet.FilterChain;
 import jakarta.servlet.ServletException;
 import jakarta.servlet.http.HttpServletRequest;
 import jakarta.servlet.http.HttpServletResponse;
 import lombok.RequiredArgsConstructor;
 import lombok.extern.slf4j.Slf4j;
-import org.springframework.http.HttpStatus;
 import org.springframework.http.MediaType;
 import org.springframework.lang.NonNull;
 import org.springframework.security.authentication.UsernamePasswordAuthenticationToken;
@@ -30,13 +23,12 @@ import org.springframework.util.StringUtils;
 import org.springframework.web.filter.OncePerRequestFilter;
 
 import java.io.IOException;
-import java.time.Instant;
 import java.util.List;
-import java.util.UUID;
 
 /**
  * Filtro de seguridad JWT para PyMes Admin.
  * Valida el token en cada petición y establece el contexto Multi-tenant.
+ * Delega toda la validación del token a {@link JwtService#validateToken(String)}.
  */
 @Component
 @RequiredArgsConstructor
@@ -64,22 +56,19 @@ public class JwtAuthenticationFilter extends OncePerRequestFilter {
         final String jwt = authHeader.substring(7);
 
         try {
-            // 2. Extraer Identidad y validar estructura/expiración
-            UUID userId = jwtService.extractUserId(jwt);
-            UUID tenantId = jwtService.extractTenantId(jwt);
-            String role = jwtService.extractRole(jwt);
+            // 2. Validar token y extraer claims (única fuente de verdad)
+            JwtService.ValidatedToken validated = jwtService.validateToken(jwt);
 
-            if (userId != null && SecurityContextHolder.getContext().getAuthentication() == null) {
-                
+            if (validated.userId() != null && SecurityContextHolder.getContext().getAuthentication() == null) {
+
                 // 3. Validación obligatoria en DB (Usuario debe existir y estar activo)
-                UserEntity user = userRepository.findById(userId).orElse(null);
+                UserEntity user = userRepository.findById(validated.userId()).orElse(null);
 
-                if (user != null && user.isEnabled() && jwtService.isTokenValid(jwt)) {
-                    
+                if (user != null && user.isEnabled()) {
+
                     // 4. Crear autoridades (roles) dinámicas basadas en el JWT
-                    // Usamos "ROLE_" + role para ser compatibles con @PreAuthorize
                     List<SimpleGrantedAuthority> authorities = List.of(
-                            new SimpleGrantedAuthority("ROLE_" + role)
+                            new SimpleGrantedAuthority("ROLE_" + validated.role())
                     );
 
                     UsernamePasswordAuthenticationToken authToken = new UsernamePasswordAuthenticationToken(
@@ -89,53 +78,29 @@ public class JwtAuthenticationFilter extends OncePerRequestFilter {
                     authToken.setDetails(new WebAuthenticationDetailsSource().buildDetails(request));
 
                     // 5. Inyectar el Tenant ID en los atributos de la petición para uso posterior
-                    request.setAttribute("X-Tenant-Id", tenantId);
-                    
+                    request.setAttribute("X-Tenant-Id", validated.tenantId());
+
                     SecurityContextHolder.getContext().setAuthentication(authToken);
-                    log.debug("Usuario {} autenticado exitosamente para el Tenant {}", user.getEmail(), tenantId);
+                    log.debug("Usuario {} autenticado exitosamente para el Tenant {}", user.getEmail(), validated.tenantId());
                 }
             }
-        } catch (ExpiredJwtException e) {
-            log.error("Token JWT expirado: {}", e.getMessage());
-            sendErrorResponse(response, request, HttpStatus.UNAUTHORIZED,
-                    CodigoError.TOKEN_EXPIRED);
-        } catch (SignatureException e) {
-            log.error("Firma JWT inválida: {}", e.getMessage());
-            sendErrorResponse(response, request, HttpStatus.UNAUTHORIZED,
-                    CodigoError.TOKEN_INVALID);
-        } catch (MalformedJwtException e) {
-            log.error("Token JWT malformado: {}", e.getMessage());
-            sendErrorResponse(response, request, HttpStatus.UNAUTHORIZED,
-                    CodigoError.TOKEN_INVALID);
-        } catch (TokenRevokedException e) {
-            log.error("Token JWT revocado: {}", e.getMessage());
-            sendErrorResponse(response, request, HttpStatus.UNAUTHORIZED,
-                    CodigoError.TOKEN_REVOKED);
-        } catch (TokenExpiredException e) {
-            log.error("Token JWT expirado: {}", e.getMessage());
-            sendErrorResponse(response, request, HttpStatus.UNAUTHORIZED,
-                    CodigoError.TOKEN_EXPIRED);
-        } catch (TokenInvalidException e) {
-            log.error("Token JWT inválido: {}", e.getMessage());
-            sendErrorResponse(response, request, HttpStatus.UNAUTHORIZED,
-                    CodigoError.TOKEN_INVALID);
-        } catch (Exception e) {
-            log.error("Error al procesar la autenticación JWT: {}", e.getMessage());
-            sendErrorResponse(response, request, HttpStatus.UNAUTHORIZED,
-                    CodigoError.UNAUTHORIZED_ACCESS);
+        } catch (AuthApiException e) {
+            log.error("Error de autenticación JWT [{}]: {}", e.getCodigo(), e.getMessage());
+            sendErrorResponse(response, request, e);
+            return;
         }
 
         filterChain.doFilter(request, response);
     }
 
     private void sendErrorResponse(HttpServletResponse response, HttpServletRequest request,
-                                   HttpStatus status, CodigoError codigoError) throws IOException {
+                                   AuthApiException ex) throws IOException {
         SecurityContextHolder.clearContext();
-        response.setStatus(status.value());
+        response.setStatus(ex.getHttpStatus().value());
         response.setContentType(MediaType.APPLICATION_JSON_VALUE);
         ErrorResponse errorResponse = new ErrorResponse(
-                codigoError.getCodigo(),
-                codigoError.getMensaje(),
+                ex.getCodigo(),
+                ex.getCodigoError().getMensaje(),
                 request.getRequestURI()
         );
         response.getWriter().write(objectMapper.writeValueAsString(errorResponse));

@@ -23,12 +23,14 @@ public interface AuthApi {
     @Operation(summary = "Registro de usuario local", description = "Crea un usuario, su empresa (plan FREE) y lo asigna como OWNER")
     @PostMapping("/register")
     ResponseEntity<ApiResponse<AuthResponse>> register(
-            @Valid @RequestBody RegisterRequest request);
+            @Valid @RequestBody RegisterRequest request,
+            HttpServletRequest httpRequest);
 
     @Operation(summary = "Login de usuario local", description = "Autentica un usuario con email y contraseña")
     @PostMapping("/login")
     ResponseEntity<ApiResponse<AuthResponse>> login(
-            @Valid @RequestBody LoginRequest request);
+            @Valid @RequestBody LoginRequest request,
+            HttpServletRequest httpRequest);
 
     @Operation(summary = "Logout", description = "Invalida los tokens y cierra la sesión del usuario")
     @PostMapping("/logout")

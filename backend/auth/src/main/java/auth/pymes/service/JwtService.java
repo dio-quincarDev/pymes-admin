@@ -1,6 +1,8 @@
 package auth.pymes.service;
 
 import auth.pymes.common.models.entities.UserEntity;
+import auth.pymes.utils.exception.auth.AuthApiException;
+
 import java.util.UUID;
 
 /**
@@ -8,6 +10,21 @@ import java.util.UUID;
  * Define la generación, extracción y validación de tokens multi-tenant.
  */
 public interface JwtService {
+
+    /**
+     * Registro inmutable con los claims validados de un token.
+     */
+    record ValidatedToken(UUID userId, UUID tenantId, String role, String email) {}
+
+    /**
+     * Valida la estructura, firma, expiración y estado de revocación del token.
+     * Retorna un {@link ValidatedToken} con los claims extraídos.
+     *
+     * @param token el JWT a validar
+     * @return claims validados
+     * @throws AuthApiException si el token es inválido, expirado o revocado
+     */
+    ValidatedToken validateToken(String token) throws AuthApiException;
 
     /**
      * Genera un Access Token con identidad global y contexto tenant.
