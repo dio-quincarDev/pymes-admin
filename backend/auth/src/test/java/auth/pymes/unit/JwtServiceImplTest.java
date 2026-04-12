@@ -1,6 +1,8 @@
 package auth.pymes.unit;
 
+import auth.pymes.common.models.entities.RefreshToken;
 import auth.pymes.common.models.entities.UserEntity;
+import auth.pymes.repositories.RefreshTokenRepository;
 import auth.pymes.service.JwtService;
 import auth.pymes.service.impl.JwtServiceImpl;
 import auth.pymes.service.impl.TokenBlacklistService;
@@ -21,9 +23,13 @@ import org.springframework.test.util.ReflectionTestUtils;
 import javax.crypto.SecretKey;
 import java.nio.charset.StandardCharsets;
 import java.util.Date;
+import java.util.Optional;
 import java.util.UUID;
 
 import static org.assertj.core.api.Assertions.assertThat;
+import static org.assertj.core.api.Assertions.assertThatThrownBy;
+import static org.mockito.ArgumentMatchers.any;
+import static org.mockito.ArgumentMatchers.argThat;
 import static org.mockito.Mockito.*;
 
 @ExtendWith(MockitoExtension.class)
@@ -35,6 +41,9 @@ class JwtServiceImplTest {
 
     @Mock
     private TokenBlacklistService tokenBlacklistService;
+
+    @Mock
+    private RefreshTokenRepository refreshTokenRepository;
 
     @InjectMocks
     private JwtServiceImpl jwtService;
@@ -303,5 +312,70 @@ class JwtServiceImplTest {
 
         // Assert
         assertThat(result.tenantId()).isNull();
+    }
+
+    // ==================== Refresh Token Rotation Tests ====================
+
+    @Test
+    void validateAndRevokeRefreshToken_WithValidToken_ReturnsValidationAndRevokes() {
+        // Arrange
+        String refreshToken = jwtService.generateRefreshToken(defaultUser);
+        String tokenHash = jwtService.hashToken(refreshToken);
+        RefreshToken entity = RefreshToken.builder()
+                .userId(defaultUser.getId())
+                .tenantId(defaultTenantId)
+                .tokenHash(tokenHash)
+                .revoked(false)
+                .build();
+
+        when(tokenBlacklistService.isTokenRevoked(refreshToken)).thenReturn(false);
+        when(refreshTokenRepository.findByTokenHash(tokenHash)).thenReturn(Optional.of(entity));
+
+        // Act
+        JwtService.RefreshTokenValidation result = jwtService.validateAndRevokeRefreshToken(refreshToken);
+
+        // Assert
+        assertThat(result.userId()).isEqualTo(defaultUser.getId());
+        assertThat(result.tenantId()).isEqualTo(defaultTenantId);
+        assertThat(entity.getRevoked()).isTrue();
+        verify(refreshTokenRepository).save(entity);
+    }
+
+    @Test
+    void validateAndRevokeRefreshToken_WithAlreadyRevokedToken_RevokesAllAndThrowsException() {
+        // Arrange
+        String refreshToken = jwtService.generateRefreshToken(defaultUser);
+        String tokenHash = jwtService.hashToken(refreshToken);
+        RefreshToken entity = RefreshToken.builder()
+                .userId(defaultUser.getId())
+                .tokenHash(tokenHash)
+                .revoked(true)
+                .build();
+
+        when(tokenBlacklistService.isTokenRevoked(refreshToken)).thenReturn(false);
+        when(refreshTokenRepository.findByTokenHash(tokenHash)).thenReturn(Optional.of(entity));
+
+        // Act & Assert
+        assertThatThrownBy(() -> jwtService.validateAndRevokeRefreshToken(refreshToken))
+                .isInstanceOf(TokenRevokedException.class)
+                .hasMessageContaining("REUSE DETECTED");
+
+        verify(refreshTokenRepository).deleteByUserId(defaultUser.getId());
+        verify(refreshTokenRepository, never()).save(any());
+    }
+
+    @Test
+    void saveRefreshToken_SavesCorrectEntity() {
+        // Act
+        String refreshToken = "some-refresh-token";
+        jwtService.saveRefreshToken(defaultUser, defaultTenantId, refreshToken);
+
+        // Assert
+        verify(refreshTokenRepository).save(argThat(entity ->
+            entity.getUserId().equals(defaultUser.getId()) &&
+            entity.getTenantId().equals(defaultTenantId) &&
+            entity.getTokenHash().equals(jwtService.hashToken(refreshToken)) &&
+            Boolean.FALSE.equals(entity.getRevoked())
+        ));
     }
 }

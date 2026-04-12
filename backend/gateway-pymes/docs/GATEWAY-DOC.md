@@ -19,5 +19,23 @@ Este documento detalla problemas críticos corregidos y decisiones de implementa
     - Se activó el perfil `test` en la clase de prueba principal `GatewayPymesApplicationTests` mediante la anotación `@ActiveProfiles("test")`.
     - Esto asegura que las pruebas se ejecuten en un entorno con configuraciones de seguridad robustas que cumplan con la validación estricta de la librería `jjwt-api`.
 
+### 3. Sincronización de Rutas y Consistencia API (2026-04-12)
+- **Problema:** El Gateway bloqueaba por defecto los nuevos flujos de **Verificación de Email** y **Recuperación de Contraseña**, ya que no estaban definidos en la ruta `auth-public`.
+- **Solución:** Se sincronizó el archivo `application.yaml` con las constantes definidas en `ApiPathConstants.java` del microservicio de Auth.
+- **Endpoints Añadidos a `auth-public`:**
+    - `/api/v1/auth/verify-email`
+    - `/api/v1/auth/resend-verification`
+    - `/api/v1/auth/forgot-password`
+    - `/api/v1/auth/reset-password`
+- **Impacto:** Estos endpoints ahora son accesibles desde el exterior a través del Gateway (puerto 8080) sin requerir autenticación previa, permitiendo el flujo completo de onboarding y soporte al usuario.
+
+### 4. Resolución de URISyntaxException en CI (2026-04-12)
+- **Problema:** El pipeline de GitHub Actions y los tests locales fallaban con una `URISyntaxException: Expected scheme-specific part` al intentar levantar el contexto de Spring.
+- **Causa:** Las rutas del Gateway en `application.yaml` utilizan variables de entorno como `${AUTH_SERVICE_HOST}`. Al ejecutar los tests con el perfil `test`, estas variables no estaban definidas, resultando en una URI malformada (`http::8081`).
+- **Solución:** Se actualizaron los recursos de prueba (`src/test/resources/application-test.yaml`) incluyendo placeholders por defecto para todas las variables de infraestructura:
+    - `AUTH_SERVICE_HOST_TEST: localhost`
+    - `REDIS_HOST_TEST: localhost`
+- **Resultado:** El comando `./mvnw verify` ahora completa el build con éxito (**BUILD SUCCESS**), garantizando que el CI sea estable e independiente del entorno de ejecución.
+
 ---
-*Última actualización: 11 de Abril, 2026*
+*Última actualización: 12 de Abril, 2026*

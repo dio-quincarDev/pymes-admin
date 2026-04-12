@@ -81,6 +81,7 @@ public class OAuth2AuthenticationSuccessHandler extends SimpleUrlAuthenticationS
         // 3. Generar Tokens JWT usando el nuevo JwtService
         String accessToken = jwtService.generateAccessToken(user, activeTenantId, role, plan);
         String refreshToken = jwtService.generateRefreshToken(user);
+        jwtService.saveRefreshToken(user, activeTenantId, refreshToken);
 
         // 4. Construir URL de redirección al Frontend
         String targetUrl = UriComponentsBuilder.fromUriString(frontendUrl + "/auth/callback")

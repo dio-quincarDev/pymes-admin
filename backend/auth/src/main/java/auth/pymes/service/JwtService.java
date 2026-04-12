@@ -69,6 +69,30 @@ public interface JwtService {
     String extractPlan(String token);
 
     /**
+     * Registro con los datos de validación de un Refresh Token.
+     */
+    record RefreshTokenValidation(UUID userId, UUID tenantId) {}
+
+    /**
+     * Valida un Refresh Token contra la base de datos, lo marca como revocado
+     * (rotación) y retorna los datos asociados.
+     *
+     * @param refreshToken El token a rotar
+     * @return Datos del usuario y tenant asociados
+     * @throws AuthApiException si el token es inválido, expirado o ya fue rotado (reuso detectado)
+     */
+    RefreshTokenValidation validateAndRevokeRefreshToken(String refreshToken) throws AuthApiException;
+
+    /**
+     * Persiste un nuevo Refresh Token en la base de datos.
+     *
+     * @param user El usuario dueño del token
+     * @param tenantId El tenant activo (opcional)
+     * @param refreshToken El token en texto plano (se hasheará internamente)
+     */
+    void saveRefreshToken(UserEntity user, UUID tenantId, String refreshToken);
+
+    /**
      * Verifica si el token es estructuralmente válido y no ha expirado.
      */
     boolean isTokenValid(String token);
@@ -82,4 +106,9 @@ public interface JwtService {
      * Verifica si un token ha sido revocado en Redis.
      */
     boolean isTokenRevoked(String token);
+
+    /**
+     * Genera un hash SHA-256 del token para almacenamiento en DB.
+     */
+    String hashToken(String token);
 }

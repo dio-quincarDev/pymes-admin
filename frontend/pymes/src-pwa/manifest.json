@@ -1,4 +1,7 @@
 {
+  "name": "pymes - Toolkit de Administración",
+  "short_name": "pymes",
+  "description": "Toolkit de Administración",
   "orientation": "portrait",
   "background_color": "#ffffff",
   "theme_color": "#027be3",

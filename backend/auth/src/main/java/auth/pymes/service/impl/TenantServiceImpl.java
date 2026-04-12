@@ -86,6 +86,7 @@ public class TenantServiceImpl implements TenantService {
 
         String accessToken = jwtService.generateAccessToken(user, tenant.getId(), userTenant.getRole().name(), tenant.getPlan().name());
         String refreshToken = jwtService.generateRefreshToken(user);
+        jwtService.saveRefreshToken(user, tenant.getId(), refreshToken);
 
         log.info("Usuario {} seleccionó tenant {} ({})", user.getEmail(), tenant.getName(), tenant.getId());
 

@@ -27,11 +27,9 @@ import auth.pymes.utils.exception.auth.AuthorizationException;
 import auth.pymes.utils.exception.custom.DuplicateResourceException;
 import auth.pymes.utils.exception.custom.InvalidInputException;
 import auth.pymes.utils.exception.custom.ResourceNotFoundException;
-import auth.pymes.utils.exception.token.TokenExpiredException;
 import jakarta.servlet.http.HttpServletRequest;
 import lombok.RequiredArgsConstructor;
 import lombok.extern.slf4j.Slf4j;
-import org.springframework.beans.factory.annotation.Value;
 import org.springframework.security.authentication.AuthenticationManager;
 import org.springframework.security.authentication.UsernamePasswordAuthenticationToken;
 import org.springframework.security.crypto.password.PasswordEncoder;
@@ -61,9 +59,6 @@ public class AuthServiceImpl implements AuthService {
     private final UserMapper userMapper;
     private final TenantMapper tenantMapper;
     private final EmailVerificationService emailVerificationService;
-
-    @Value("${jwt.access-expiration}")
-    private long accessTokenExpiration;
 
     // ==================== LOCAL AUTH ====================
 
@@ -117,6 +112,7 @@ public class AuthServiceImpl implements AuthService {
 
         String accessToken = jwtService.generateAccessToken(user, tenant.getId(), RoleName.OWNER.name(), tenant.getPlan().name());
         String refreshToken = jwtService.generateRefreshToken(user);
+        jwtService.saveRefreshToken(user, tenant.getId(), refreshToken);
 
         auditLoginAction(user, tenant.getId(), "REGISTER", httpRequest);
 
@@ -163,6 +159,7 @@ public class AuthServiceImpl implements AuthService {
         String plan = activeTenant != null ? activeTenant.getPlan().name() : "FREE";
         String accessToken = jwtService.generateAccessToken(user, activeTenantId, role, plan);
         String refreshToken = jwtService.generateRefreshToken(user);
+        jwtService.saveRefreshToken(user, activeTenantId, refreshToken);
 
         log.info("Usuario {} hizo login exitoso", user.getEmail());
 
@@ -194,33 +191,53 @@ public class AuthServiceImpl implements AuthService {
     }
 
     @Override
+    @Transactional
     public AuthResponse refreshToken(TokenRefreshRequest request) {
-        String refreshToken = request.refreshToken();
+        String oldRefreshToken = request.refreshToken();
 
-        if (!jwtService.isTokenValid(refreshToken)) {
-            throw new TokenExpiredException("Refresh token has expired or is invalid");
-        }
+        // 1. Validar y rotar el token en la base de datos (Detección de reuso ocurre aquí)
+        JwtService.RefreshTokenValidation validation = jwtService.validateAndRevokeRefreshToken(oldRefreshToken);
 
-        UUID userId = jwtService.extractUserId(refreshToken);
-        UserEntity user = userRepository.findById(userId)
-                .orElseThrow(() -> new ResourceNotFoundException(USER_NOT_FOUND_BY_ID, userId));
+        // 2. Cargar usuario
+        UserEntity user = userRepository.findById(validation.userId())
+                .orElseThrow(() -> new ResourceNotFoundException(USER_NOT_FOUND_BY_ID, validation.userId()));
 
         if (!user.isEnabled()) {
             throw new AuthorizationException(USER_INACTIVE);
         }
 
-        List<UserTenant> userTenants = userTenantRepository.findByUserIdAndIsActiveTrue(user.getId());
-        UUID activeTenantId = userTenants.isEmpty() ? null : userTenants.get(0).getTenantId();
-        String role = userTenants.isEmpty() ? "VIEWER" : userTenants.get(0).getRole().name();
+        // 3. Determinar Tenant Activo y Rol
+        UUID activeTenantId = validation.tenantId();
+        UserTenant userTenant = null;
 
-        Tenant activeTenant = null;
         if (activeTenantId != null) {
-            activeTenant = tenantRepository.findById(activeTenantId).orElse(null);
+            userTenant = userTenantRepository.findByUserIdAndTenantId(user.getId(), activeTenantId)
+                    .orElse(null);
         }
 
+        // Si el tenant del token no es válido o no existe, buscar el primero disponible
+        if (userTenant == null) {
+            List<UserTenant> userTenants = userTenantRepository.findByUserIdAndIsActiveTrue(user.getId());
+            if (!userTenants.isEmpty()) {
+                userTenant = userTenants.get(0);
+                activeTenantId = userTenant.getTenantId();
+            } else {
+                activeTenantId = null;
+            }
+        }
+
+        String role = userTenant != null ? userTenant.getRole().name() : "VIEWER";
+        Tenant activeTenant = activeTenantId != null ? tenantRepository.findById(activeTenantId).orElse(null) : null;
         String plan = activeTenant != null ? activeTenant.getPlan().name() : "FREE";
+
+        // 4. Generar nuevos tokens
         String newAccessToken = jwtService.generateAccessToken(user, activeTenantId, role, plan);
         String newRefreshToken = jwtService.generateRefreshToken(user);
+
+        // 5. Persistir el nuevo Refresh Token
+        jwtService.saveRefreshToken(user, activeTenantId, newRefreshToken);
+
+        log.info("Refresh token rotado exitosamente para user={}", user.getEmail());
 
         return new AuthResponse(
                 newAccessToken,

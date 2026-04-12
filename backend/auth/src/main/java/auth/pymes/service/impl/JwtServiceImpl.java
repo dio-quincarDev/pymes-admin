@@ -1,6 +1,8 @@
 package auth.pymes.service.impl;
 
+import auth.pymes.common.models.entities.RefreshToken;
 import auth.pymes.common.models.entities.UserEntity;
+import auth.pymes.repositories.RefreshTokenRepository;
 import auth.pymes.service.JwtService;
 import auth.pymes.utils.exception.auth.AuthApiException;
 import auth.pymes.utils.exception.token.TokenExpiredException;
@@ -16,9 +18,11 @@ import lombok.RequiredArgsConstructor;
 import lombok.extern.slf4j.Slf4j;
 import org.springframework.beans.factory.annotation.Value;
 import org.springframework.stereotype.Service;
+import org.springframework.transaction.annotation.Transactional;
 
 import javax.crypto.SecretKey;
 import java.nio.charset.StandardCharsets;
+import java.time.ZonedDateTime;
 import java.util.Date;
 import java.util.HashMap;
 import java.util.Map;
@@ -27,7 +31,7 @@ import java.util.function.Function;
 
 /**
  * Implementación oficial del motor de seguridad JWT.
- * Basado en JJWT 0.12.6, con soporte para Multi-tenancy y revocación (Redis).
+ * Basado en JJWT 0.12.6, con soporte para Multi-tenancy y revocación (Redis + DB).
  */
 @Service
 @RequiredArgsConstructor
@@ -44,6 +48,7 @@ public class JwtServiceImpl implements JwtService {
     private long refreshTokenExpiration;
 
     private final TokenBlacklistService tokenBlacklistService;
+    private final RefreshTokenRepository refreshTokenRepository;
 
     @Override
     public String generateAccessToken(UserEntity user, UUID tenantId, String role, String plan) {
@@ -70,6 +75,7 @@ public class JwtServiceImpl implements JwtService {
         return Jwts.builder()
                 .claims(claims)
                 .subject(subject)
+                .id(UUID.randomUUID().toString())
                 .issuedAt(new Date(System.currentTimeMillis()))
                 .expiration(new Date(System.currentTimeMillis() + expiration))
                 .signWith(getSigningKey())
@@ -174,6 +180,47 @@ public class JwtServiceImpl implements JwtService {
         return tokenBlacklistService.isTokenRevoked(token);
     }
 
+    @Override
+    @Transactional
+    public RefreshTokenValidation validateAndRevokeRefreshToken(String refreshToken) throws AuthApiException {
+        if (!isTokenValid(refreshToken)) {
+            throw new TokenExpiredException("Refresh token has expired or is invalid");
+        }
+
+        String tokenHash = hashToken(refreshToken);
+        RefreshToken entity = refreshTokenRepository.findByTokenHash(tokenHash)
+                .orElseThrow(() -> new TokenInvalidException("Refresh token not found"));
+
+        if (Boolean.TRUE.equals(entity.getRevoked())) {
+            log.error("¡REUSO DETECTADO para el usuario {}! Revocando toda la familia de tokens.", entity.getUserId());
+            // Estrategia de seguridad: revocar todos los tokens del usuario si hay reuso sospechoso
+            refreshTokenRepository.deleteByUserId(entity.getUserId());
+            throw new TokenRevokedException("Refresh token has already been used (REUSE DETECTED)");
+        }
+
+        // Marcar el token actual como usado (rotación exitosa)
+        entity.setRevoked(true);
+        refreshTokenRepository.save(entity);
+
+        return new RefreshTokenValidation(entity.getUserId(), entity.getTenantId());
+    }
+
+    @Override
+    @Transactional
+    public void saveRefreshToken(UserEntity user, UUID tenantId, String refreshToken) {
+        String tokenHash = hashToken(refreshToken);
+        ZonedDateTime expiresAt = ZonedDateTime.now().plus(refreshTokenExpiration, java.time.temporal.ChronoUnit.MILLIS);
+        RefreshToken entity = RefreshToken.builder()
+                .userId(user.getId())
+                .tenantId(tenantId)
+                .tokenHash(tokenHash)
+                .expiresAt(expiresAt)
+                .revoked(false)
+                .build();
+        refreshTokenRepository.save(entity);
+        log.debug("Refresh token guardado exitosamente para el usuario={}", user.getEmail());
+    }
+
     private <T> T extractClaim(String token, Function<Claims, T> claimsResolver) {
         final Claims claims = extractAllClaims(token);
         return claimsResolver.apply(claims);
@@ -189,5 +236,22 @@ public class JwtServiceImpl implements JwtService {
 
     private boolean isTokenExpired(String token) {
         return extractClaim(token, Claims::getExpiration).before(new Date());
+    }
+
+    @Override
+    public String hashToken(String token) {
+        try {
+            java.security.MessageDigest digest = java.security.MessageDigest.getInstance("SHA-256");
+            byte[] hash = digest.digest(token.getBytes(StandardCharsets.UTF_8));
+            StringBuilder hexString = new StringBuilder();
+            for (byte b : hash) {
+                String hex = Integer.toHexString(0xff & b);
+                if (hex.length() == 1) hexString.append('0');
+                hexString.append(hex);
+            }
+            return hexString.toString();
+        } catch (java.security.NoSuchAlgorithmException e) {
+            throw new RuntimeException("SHA-256 not available", e);
+        }
     }
 }

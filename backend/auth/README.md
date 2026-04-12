@@ -1,151 +1,103 @@
 # PyMes Admin - Auth Microservice 🔐
 
-> **Spring Boot OAuth2** - Servicio de autenticación, gestión de usuarios y multi-tenancy para la plataforma PyMes Admin
+> **Spring Boot 3.4.3 + Java 21** - Centro de Identidad Multi-tenant con Seguridad de Grado Industrial (RTR, jti, Reuse Detection)
 
 ---
 
 ## 📋 Descripción
 
-Este microservicio es el **centro de identidad** de la arquitectura, responsable de la autenticación, identidad del usuario y gestión de la estructura multi-tenant.
+Este microservicio es el **núcleo de identidad** de la plataforma PyMes Admin. No solo gestiona el acceso, sino que orquesta la estructura multi-tenant de forma atómica y segura, diseñado para escalar en entornos SaaS B2B.
 
-### 🏗️ Evolución Arquitectónica: Desacoplamiento de Dominios
-El servicio está diseñado con una **arquitectura orientada a dominios (SRP)**, logrando una separación clara de responsabilidades:
-
-1.  **Auth Domain**: Autenticación pura (Login, Registro, Refresh, Logout).
-2.  **User Domain**: Identidad y perfil del usuario autenticado.
-3.  **Tenant Domain**: Estructura multi-tenant (Crear y seleccionar empresas).
-4.  **Member Domain**: Gestión de usuarios *dentro* de una empresa (Roles y permisos).
-5.  **Invitation Domain**: Ciclo de vida completo de invitaciones.
-
----
-
-## ⚙️ Configuración & Perfiles
-
-El microservicio utiliza **Perfiles de Maven** para gestionar diferentes entornos de forma segura y eficiente.
-
-### 📋 Perfiles Disponibles
-
-| Perfil | Propósito | Comando de Ejecución |
-|--------|-----------|----------------------|
-| **`dev`** (Default) | Desarrollo local con logs en `DEBUG` y conexión a `localhost`. | `./mvnw spring-boot:run -Pdev` |
-| **`stg`** | Entorno de Staging/QA. Configuración estricta vía variables de entorno. | `./mvnw clean package -Pstg` |
-| **`prod`** | Producción. Máxima seguridad, logs en `WARN` y optimización de recursos. | `./mvnw clean package -Pprod` |
-
-### 🔐 Gestión de Secretos
-
-**IMPORTANTE:** Nunca se deben incluir secretos en los archivos `application.yaml`.
-- En **desarrollo**, utiliza un archivo `.env` en la raíz de `backend/auth/`. El proyecto usa `spring-dotenv` para cargarlos automáticamente.
-- En **Staging/Producción**, las variables de entorno deben ser inyectadas por el orquestador (Docker Compose, Kubernetes o GitHub Secrets).
-
-Variables críticas requeridas:
-- `JWT_SECRET`: Clave para firmar tokens.
-- `DB_PASSWORD`: Contraseña de PostgreSQL.
-- `SPRING_MAIL_PASSWORD`: App password para el envío de correos.
-- `GOOGLE_CLIENT_SECRET` / `FACEBOOK_CLIENT_SECRET`: Credenciales OAuth2.
+### 🏗️ Arquitectura Orientada a Dominios (SRP)
+Separación física y lógica de responsabilidades para un mantenimiento sin fricciones:
+1.  **Auth Domain**: Ciclo de vida de sesión (Login, Registro, **RTR**, Logout).
+2.  **User Domain**: Gestión de identidad y perfiles globales.
+3.  **Tenant Domain**: Aprovisionamiento de empresas (Planes, Límites, Selección).
+4.  **Member Domain**: Jerarquía de permisos y roles (`OWNER > ADMIN > CONTABLE > VIEWER`).
+5.  **Invitation Domain**: Flujo completo de onboarding para nuevos colaboradores.
 
 ---
 
-## 🌐 Endpoints (V1)
+## 🔒 Seguridad Avanzada (Implementada)
 
-La API está organizada bajo la ruta base `/api/v1` y sigue una estructura RESTful por recursos:
+### 🔄 Refresh Token Rotation (RTR)
+Implementación de un motor de seguridad atómico en `JwtService`:
+- **Rotación por cada uso**: Al solicitar un nuevo Access Token, el Refresh Token viejo se invalida y se emite uno nuevo.
+- **Detección de Reuso**: Si se intenta usar un Refresh Token ya revocado, el sistema detecta un posible compromiso y **revoca automáticamente todos los tokens del usuario**, forzando un re-login global.
 
-### 🔑 Autenticación (`/auth`)
-| Método | Endpoint | Descripción |
-|--------|----------|-------------|
-| `POST` | `/register` | Registro atómico (User + Tenant FREE + OWNER) |
-| `POST` | `/login` | Login email/password (Rate limited IP+Email) |
-| `POST` | `/refresh` | Refresca el access token |
-| `POST` | `/logout` | Invalida la sesión actual |
-| `POST` | `/verify-email` | Verifica email con token recibido por correo |
-| `POST` | `/resend-verification` | Reenvía token de verificación |
-| `POST` | `/forgot-password` | Solicita enlace de recuperación de contraseña |
-| `POST` | `/reset-password` | Establece nueva contraseña con token de recuperación |
+### 💎 Identidad Única de Tokens (`jti`)
+- Inclusión del claim **`jti` (JWT ID)** en cada token generado.
+- Garantiza unicidad criptográfica absoluta, eliminando colisiones de hash en la base de datos incluso bajo condiciones de alta concurrencia.
 
-### 👤 Usuarios (`/users`)
-| Método | Endpoint | Descripción |
-|--------|----------|-------------|
-| `GET` | `/me` | Obtiene el perfil del usuario autenticado |
-
-### 🏢 Tenants (`/tenants`)
-| Método | Endpoint | Descripción |
-|--------|----------|-------------|
-| `GET` | `/` | Lista todas las empresas a las que pertenece el usuario |
-| `POST` | `/` | Crea una nueva empresa/tenant |
-| `POST` | `/select` | Selecciona la empresa activa y genera nuevos tokens |
-
-### 👥 Miembros (`/tenants/{id}/members`)
-| Método | Endpoint | Descripción |
-|--------|----------|-------------|
-| `GET` | `/` | Lista los miembros activos del tenant (OWNER/ADMIN) |
-| `PUT` | `/{userId}/role` | Cambia el rol de un miembro (Validación de jerarquía) |
-| `DELETE` | `/{userId}` | Desvincula a un miembro del tenant (Solo OWNER) |
-
-### ✉️ Invitaciones (`/invitations`)
-| Método | Endpoint | Descripción |
-|--------|----------|-------------|
-| `GET` | `/` | Lista invitaciones pendientes del usuario actual |
-| `POST` | `/` | Envía una invitación a un nuevo usuario |
-| `POST` | `/accept` | Acepta una invitación activa |
-| `DELETE` | `/{id}` | Cancela una invitación pendiente |
+### 🛡️ Perímetro Endurecido
+- **Rate Limiting**: Bloqueo inteligente por combinación `IP:Email` en login (5 intentos → 429).
+- **Password Hashing**: BCrypt con validación de fortaleza (mínimo 1 letra + 1 número).
+- **Audit Log**: Trazabilidad completa de REGISTER y LOGIN con IP y User-Agent.
+- **Timing Attack Prevention**: Recuperación de contraseña con respuestas de tiempo constante.
+- **Soft Delete Forense**: Uso de `deleted_at` en todas las entidades críticas.
 
 ---
 
 ## 🛠️ Stack Tecnológico & Calidad
 
-- **Core:** Spring Boot 3.4.3, Java 21, MapStruct, Lombok.
-- **Seguridad:** Spring Security OAuth2 (Google/FB), JWT (JJWT 0.12.6), Redis (Blacklist & Rate Limiting IP+Email).
-- **Persistencia:** PostgreSQL, Flyway, Soft Delete Forense (`deleted_at`).
-- **Testing:** JUnit 5, Mockito, **Testcontainers** (PostgreSQL 15 + Redis 7).
+- **Core:** Spring Boot 3.4.3, Java 21, MapStruct 1.6.3.
+- **Security:** Spring Security OAuth2 (Google/FB), JJWT 0.12.6, Redis (Blacklist).
+- **Persistencia:** PostgreSQL 15, Flyway (V5: UNIQUE constraints on tokens).
+- **Testing:** JUnit 5, Mockito, **Testcontainers** (Postgres + Redis).
 
-### 📊 Resultados de Tests
+### 📊 Suite de Pruebas Automatizadas
 
-| Tipo | Cantidad | Ejecución |
-|------|----------|-----------|
-| Unitarios (Mockito) | 52 tests | `mvn test` |
-| Integración (Testcontainers) | 17 tests | `mvn verify` |
-| Consistencia (API Paths) | 12 tests | `mvn test` |
-| **Total** | **81 tests** | `mvn verify` |
-
-**Cobertura de integración:**
-- **AuthApiIntegrationTest** → register, login, logout, refresh token (happy paths + edge cases)
-- **AuthApplicationTests** → contexto completo con PostgreSQL real + Redis + Flyway
+| Tipo de Test | Cantidad | Descripción |
+|--------------|----------|-------------|
+| **Unitarios** | 67 tests | Cobertura total de servicios y lógica de rotación. |
+| **Integración**| 17 tests | Flujos E2E con PostgreSQL y Redis reales. |
+| **Consistencia**| 12 tests | Validación de rutas API vía Reflection. |
+| **TOTAL** | **96 tests** | **0 fallos - 100% Integridad.** |
 
 ---
 
-## 🔒 Seguridad Implementada
+## 🌐 Endpoints Principales (V1)
 
-- **JWT validado por dominio**: `JwtService.validateToken()` retorna `ValidatedToken` o lanza excepciones del dominio (`TokenExpiredException`, `TokenInvalidException`, `TokenRevokedException`). El filtro tiene un solo `catch (AuthApiException)`.
-- **Rate limiting**: Bloqueo por combinación `IP:email` en login (5 intentos → 429).
-- **Revocación de tokens**: Blacklist en Redis con TTL automático.
-- **Password hashing**: BCrypt con validación de fortaleza (mínimo 1 letra + 1 número, 8+ caracteres).
-- **Soft delete forense**: `deleted_at` en `users`, `tenants`, `user_tenants`.
-- **Audit log**: Registro de REGISTER y LOGIN con IP y User-Agent.
-- **Recuperación de contraseña**: Tokens en Redis (TTL 15 min) + timing attack prevention en `POST /forgot-password`.
+Ruta base: `/api/v1`
 
----
-
-## 🔗 Consistencia de Rutas API
-
-Todas las rutas están centralizadas en `ApiPathConstants` y validadas automáticamente por **12 tests de consistencia** que usan reflection (`org.reflections`) para escanear controllers y detectar strings hardcodeados o redundancias en el `SecurityConfig` whitelist.
-
-**Beneficio:** Si alguien cambia una ruta o agrega un endpoint sin constante, el test falla en CI/CD.
+| Recurso | Endpoint | Operación Crítica |
+|---------|----------|-------------------|
+| **Auth** | `/register` | Registro atómico: User + Tenant FREE + Rol OWNER. |
+| **Auth** | `/refresh` | Rotación de tokens con validación de reuso. |
+| **Auth** | `/verify-email` | Verificación de identidad vía Redis (TTL 15m). |
+| **Tenants**| `/select` | Cambio de contexto de empresa con regeneración de tokens. |
+| **Members**| `/{userId}/role` | Cambio de rol con validación de jerarquía de poder. |
 
 ---
 
-## 📅 Próximas Fases
+## ⚙️ Configuración & DevOps
+
+### 📋 Perfiles de Maven
+- **`dev`**: Desarrollo local con logs en `DEBUG`. Carga secretos vía `.env`.
+- **`stg`**: Staging con configuración estricta de variables de entorno.
+- **`prod`**: Producción optimizada con logs en `WARN`.
+
+### 🚀 CI/CD
+- **GitHub Actions**: Pipeline automatizado que ejecuta `mvn verify` en cada PR.
+- **Docker-Ready**: El microservicio está listo para ser orquestado junto a PostgreSQL y Redis.
+
+---
+
+## 📅 Roadmap Actualizado (Abril 2026)
 
 | Fase | Descripción | Estado |
 |------|-------------|--------|
-| 🔴 **Fase 1** | Refresh Token Rotation (blacklist del token viejo en Redis) | ⏳ Pendiente |
-| 🟡 **Fase 2** | ✅ Verificación de email + ✅ Recuperación de contraseña | ✅ Completado |
-| 🟢 **Fase 3** | Cierre del flujo de invitaciones (registro vía invitación, auditoría) | ⏳ Pendiente |
-| 🔵 **Fase 4** | Enterprise: Transfer Ownership, Dashboard Auditoría, CI/CD | ⏳ Pendiente |
+| 🔴 **Fase 1** | **RTR + Reuse Detection + jti uniqueness** | ✅ COMPLETADO |
+| 🟡 **Fase 2** | ✅ Verificación de email + ✅ Recuperación de contraseña | ✅ COMPLETADO |
+| 🟡 **Fase 3** | **CORS Real Bean + Alertas Activas de Seguridad** | ⏳ Siguiente |
+| 🟢 **Fase 4** | PKCE para SPAs + Device Fingerprinting | 📅 En Plan |
+| 🔵 **Fase 5** | Enterprise: MFA (TOTP), SSO / SAML, Ownership Transfer | 📅 Backlog |
 
 ---
 
 <div align="center">
 
-**PyMes Admin - Auth Microservice** | Estado: **Desacoplado, Escalable, Testeable, Endurecido & Password Recovery Ready** 🔒
+**PyMes Admin - Auth Microservice** | Estado: **Production-Ready & SaaS-Hardened** 🔒
 
 [![Build & Test](https://github.com/dio-quincarDev/pymes-admin/actions/workflows/ci.yml/badge.svg)](https://github.com/dio-quincarDev/pymes-admin/actions)
 [![Java 21](https://img.shields.io/badge/Java-21-blue.svg)](https://openjdk.org/projects/jdk/21/)

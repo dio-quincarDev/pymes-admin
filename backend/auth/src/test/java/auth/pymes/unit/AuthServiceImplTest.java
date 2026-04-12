@@ -130,6 +130,7 @@ public class AuthServiceImplTest {
         assertThat(response.accessToken()).isEqualTo(accessToken);
         assertThat(response.user().email()).isEqualTo(request.email());
         verify(userTenantRepository).save(any(UserTenant.class));
+        verify(jwtService).saveRefreshToken(any(), any(), eq(refreshToken));
     }
 
     @Test
@@ -172,6 +173,7 @@ public class AuthServiceImplTest {
 
         assertThat(response.accessToken()).isEqualTo(accessToken);
         assertThat(response.user().email()).isEqualTo(request.email());
+        verify(jwtService).saveRefreshToken(user, tenant.getId(), refreshToken);
     }
 
     @Test
@@ -190,17 +192,19 @@ public class AuthServiceImplTest {
         String refreshToken = "valid-refresh-token";
         TokenRefreshRequest request = new TokenRefreshRequest(refreshToken);
 
-        when(jwtService.isTokenValid(refreshToken)).thenReturn(true);
         UUID userId = UUID.randomUUID();
-        when(jwtService.extractUserId(refreshToken)).thenReturn(userId);
+        UUID tenantId = UUID.randomUUID();
+        when(jwtService.validateAndRevokeRefreshToken(refreshToken))
+                .thenReturn(new JwtService.RefreshTokenValidation(userId, tenantId));
 
         UserEntity user = UserEntity.builder().id(userId).email("user@example.com").isActive(true).build();
         when(userRepository.findById(userId)).thenReturn(Optional.of(user));
 
-        Tenant tenant = Tenant.builder().id(UUID.randomUUID()).name("Active Tenant").plan(PlanName.FREE).build();
-        UserTenant userTenant = UserTenant.builder().tenantId(tenant.getId()).role(RoleName.ADMIN).isActive(true).build();
-        when(userTenantRepository.findByUserIdAndIsActiveTrue(userId)).thenReturn(List.of(userTenant));
-        when(tenantRepository.findById(tenant.getId())).thenReturn(Optional.of(tenant));
+        Tenant tenant = Tenant.builder().id(tenantId).name("Active Tenant").plan(PlanName.FREE).build();
+        UserTenant userTenant = UserTenant.builder().tenantId(tenantId).role(RoleName.ADMIN).isActive(true).build();
+        
+        when(userTenantRepository.findByUserIdAndTenantId(userId, tenantId)).thenReturn(Optional.of(userTenant));
+        when(tenantRepository.findById(tenantId)).thenReturn(Optional.of(tenant));
 
         when(userMapper.toResponse(any())).thenReturn(new UserEntityResponse(user.getId(), user.getEmail(), "Name", null, AuthProvider.LOCAL));
         when(tenantMapper.toResponse(any())).thenReturn(new TenantResponse(tenant.getId(), tenant.getName(), "slug", PlanName.FREE, "TECH", null));
@@ -211,6 +215,7 @@ public class AuthServiceImplTest {
         AuthResponse response = authService.refreshToken(request);
 
         assertThat(response.accessToken()).isEqualTo("new-access");
+        verify(jwtService).saveRefreshToken(user, tenantId, "new-refresh");
     }
 
     @Test
@@ -255,9 +260,10 @@ public class AuthServiceImplTest {
     }
 
     @Test
-    void refreshToken_WithInvalidToken_ThrowsTokenExpiredException() {
+    void refreshToken_WithInvalidToken_PropagatesException() {
         TokenRefreshRequest request = new TokenRefreshRequest("invalid");
-        when(jwtService.isTokenValid("invalid")).thenReturn(false);
+        when(jwtService.validateAndRevokeRefreshToken("invalid"))
+                .thenThrow(new TokenExpiredException("expired"));
 
         assertThatThrownBy(() -> authService.refreshToken(request))
                 .isInstanceOf(TokenExpiredException.class);
