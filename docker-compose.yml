@@ -25,15 +25,17 @@ services:
       - pymes-global-network
       - pymes-internal-network
     ports:
-      - "8080:8080"
+      - "8080:8081"
     environment:
       - AUTH_SERVICE_HOST=pymes-auth-service
       - REDIS_HOST=pymes-redis-auth
+    env_file:
+      - backend/auth/.env
     depends_on:
       auth-service:
         condition: service_healthy
     healthcheck:
-      test: ["CMD", "wget", "-qO-", "http://localhost:8080/actuator/health"]
+      test: ["CMD", "wget", "-qO-", "http://localhost:8081/actuator/health"]
       interval: 10s
       timeout: 5s
       retries: 3
@@ -52,7 +54,6 @@ services:
       - DB_HOST=pymes-postgres-auth
       - DB_PORT=5432
       - REDIS_HOST=pymes-redis-auth
-      - JWT_SECRET=${JWT_SECRET:-404E635266556A586E3272357538782F413F4428472B4B6250645367566B5970}
     env_file:
       - backend/auth/.env
     depends_on:

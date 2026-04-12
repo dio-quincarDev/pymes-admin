@@ -21,7 +21,7 @@ api.interceptors.request.use((config) => {
   }
   return config;
 }, (error) => {
-  return Promise.reject(error);
+  return Promise.reject(new Error(error instanceof Error ? error.message : String(error)));
 });
 
 // Interceptor para manejar errores globales (401, 403, 500)
@@ -33,7 +33,7 @@ api.interceptors.response.use(
       localStorage.removeItem('pymes_auth_token');
       // window.location.href = '/login'; // Opcional, mejor usar router en el componente
     }
-    return Promise.reject(error);
+    return Promise.reject(new Error(error instanceof Error ? error.message : String(error)));
   }
 );
 

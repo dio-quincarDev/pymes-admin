@@ -5,6 +5,8 @@ on:
   push:
     branches:
       - feature/**
+      - develop
+      - main
   pull_request:
     branches:
       - main
@@ -54,9 +56,11 @@ jobs:
 
   # ==================== BACKEND BUILD & TEST ====================
   backend-auth-build:
-    name: 🔨 Build Auth Backend
+    name: 🔨 Build & Test Auth Backend
     runs-on: ubuntu-latest
     needs: security-check
+    env:
+      MAVEN_OPTS: -Xmx512m
     defaults:
       run:
         working-directory: ./backend/auth
@@ -75,16 +79,11 @@ jobs:
           distribution: 'temurin'
           cache: 'maven'
 
-      - name: Cache Maven dependencies
-        uses: actions/cache@v4
-        with:
-          path: ~/.m2/repository
-          key: ${{ runner.os }}-maven-${{ hashFiles('**/pom.xml') }}
-          restore-keys: |
-            ${{ runner.os }}-maven-
+      - name: Make mvnw executable
+        run: chmod +x mvnw
 
-      - name: Build and test with Maven
-        run: mvn clean package -B
+      - name: Build and verify with Maven (Unit + Integration Tests)
+        run: ./mvnw clean verify -B -Dspring.profiles.active=test -Ddocker.client.api.version=1.44
 
       - name: Upload JAR artifact
         uses: actions/upload-artifact@v4
@@ -93,18 +92,30 @@ jobs:
           path: backend/auth/target/*.jar
           retention-days: 7
 
-      - name: Upload test results
+      - name: Publish Test Report
+        uses: mikepenz/action-junit-report@v4
+        if: always()
+        with:
+          report_paths: 'backend/auth/target/*-reports/TEST-*.xml'
+          annotate_only: true
+          detailed_summary: true
+
+      - name: Upload test results (Full)
         if: always()
         uses: actions/upload-artifact@v4
         with:
           name: auth-test-results
-          path: backend/auth/target/surefire-reports/
+          path: |
+            backend/auth/target/surefire-reports/
+            backend/auth/target/failsafe-reports/
           retention-days: 7
 
   backend-gateway-build:
-    name: 🛡️ Build Gateway Backend
+    name: 🛡️ Build & Test Gateway Backend
     runs-on: ubuntu-latest
     needs: security-check
+    env:
+      MAVEN_OPTS: -Xmx512m
     defaults:
       run:
         working-directory: ./backend/gateway-pymes
@@ -120,16 +131,11 @@ jobs:
           distribution: 'temurin'
           cache: 'maven'
 
-      - name: Cache Maven dependencies
-        uses: actions/cache@v4
-        with:
-          path: ~/.m2/repository
-          key: ${{ runner.os }}-maven-gateway-${{ hashFiles('backend/gateway-pymes/pom.xml') }}
-          restore-keys: |
-            ${{ runner.os }}-maven-gateway-
+      - name: Make mvnw executable
+        run: chmod +x mvnw
 
-      - name: Build and test with Maven
-        run: mvn clean package -B
+      - name: Build and verify with Maven
+        run: ./mvnw clean verify -B -Dspring.profiles.active=test
 
       - name: Upload JAR artifact
         uses: actions/upload-artifact@v4
