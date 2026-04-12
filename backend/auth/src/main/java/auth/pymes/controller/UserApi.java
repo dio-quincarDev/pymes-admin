@@ -16,7 +16,7 @@ import org.springframework.web.bind.annotation.RequestMapping;
 public interface UserApi {
 
     @Operation(summary = "Obtener usuario actual", description = "Retorna los datos del usuario autenticado")
-    @GetMapping("/me")
+    @GetMapping(ApiPathConstants.USERS_ME)
     ResponseEntity<ApiResponse<UserEntityResponse>> getCurrentUser(
             @AuthenticationPrincipal OAuth2User principal);
 }

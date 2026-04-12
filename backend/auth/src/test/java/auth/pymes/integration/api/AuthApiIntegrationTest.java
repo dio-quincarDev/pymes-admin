@@ -7,6 +7,7 @@ import auth.pymes.common.models.dto.request.TokenRefreshRequest;
 import auth.pymes.common.models.dto.request.VerifyEmailRequest;
 import auth.pymes.common.models.dto.response.AuthResponse;
 import auth.pymes.integration.AbstractIntegrationTest;
+import auth.pymes.testutil.TestApiPaths;
 import auth.pymes.utils.exception.CodigoError;
 import com.fasterxml.jackson.core.type.TypeReference;
 import com.fasterxml.jackson.databind.ObjectMapper;
@@ -60,7 +61,7 @@ class AuthApiIntegrationTest extends AbstractIntegrationTest {
 
     private AuthResponse performLogin(String email, String password) throws Exception {
         LoginRequest loginRequest = new LoginRequest(email, password);
-        MvcResult result = mockMvc.perform(post("/api/v1/auth/login")
+        MvcResult result = mockMvc.perform(post(TestApiPaths.AUTH_LOGIN)
                         .contentType(MediaType.APPLICATION_JSON)
                         .content(objectMapper.writeValueAsString(loginRequest)))
                 .andExpect(status().isOk())
@@ -86,7 +87,7 @@ class AuthApiIntegrationTest extends AbstractIntegrationTest {
             RegisterRequest request = new RegisterRequest(
                     "Happy User", "happy@example.com", "HappyPass123!", "Happy Corp", "happy-corp");
 
-            mockMvc.perform(post("/api/v1/auth/register")
+            mockMvc.perform(post(TestApiPaths.AUTH_REGISTER)
                             .contentType(MediaType.APPLICATION_JSON)
                             .content(objectMapper.writeValueAsString(request)))
                     .andExpect(status().isCreated())
@@ -97,12 +98,12 @@ class AuthApiIntegrationTest extends AbstractIntegrationTest {
         @Test
         @DisplayName("Registro con email duplicado → 409 CONFLICT (USR004)")
         void registerDuplicateEmail() throws Exception {
-            mockMvc.perform(post("/api/v1/auth/register")
+            mockMvc.perform(post(TestApiPaths.AUTH_REGISTER)
                             .contentType(MediaType.APPLICATION_JSON)
                             .content(objectMapper.writeValueAsString(validRegisterRequest)))
                     .andExpect(status().isCreated());
 
-            mockMvc.perform(post("/api/v1/auth/register")
+            mockMvc.perform(post(TestApiPaths.AUTH_REGISTER)
                             .contentType(MediaType.APPLICATION_JSON)
                             .content(objectMapper.writeValueAsString(validRegisterRequest)))
                     .andExpect(status().isConflict())
@@ -115,7 +116,7 @@ class AuthApiIntegrationTest extends AbstractIntegrationTest {
             RegisterRequest weakRequest = new RegisterRequest(
                     "Weak User", "weak@example.com", "123", "Weak Corp", "weak-corp");
 
-            mockMvc.perform(post("/api/v1/auth/register")
+            mockMvc.perform(post(TestApiPaths.AUTH_REGISTER)
                             .contentType(MediaType.APPLICATION_JSON)
                             .content(objectMapper.writeValueAsString(weakRequest)))
                     .andExpect(status().isBadRequest())
@@ -129,7 +130,7 @@ class AuthApiIntegrationTest extends AbstractIntegrationTest {
             RegisterRequest invalidRequest = new RegisterRequest(
                     "Invalid", "not-an-email", "SecurePass123!", "Corp", "corp");
 
-            mockMvc.perform(post("/api/v1/auth/register")
+            mockMvc.perform(post(TestApiPaths.AUTH_REGISTER)
                             .contentType(MediaType.APPLICATION_JSON)
                             .content(objectMapper.writeValueAsString(invalidRequest)))
                     .andExpect(status().isBadRequest())
@@ -143,7 +144,7 @@ class AuthApiIntegrationTest extends AbstractIntegrationTest {
             RegisterRequest missingSlug = new RegisterRequest(
                     "User", "noslug@example.com", "SecurePass123!", "Corp", null);
 
-            mockMvc.perform(post("/api/v1/auth/register")
+            mockMvc.perform(post(TestApiPaths.AUTH_REGISTER)
                             .contentType(MediaType.APPLICATION_JSON)
                             .content(objectMapper.writeValueAsString(missingSlug)))
                     .andExpect(status().isBadRequest())
@@ -159,7 +160,7 @@ class AuthApiIntegrationTest extends AbstractIntegrationTest {
         @Test
         @DisplayName("Login exitoso → 200 OK")
         void loginSuccess() throws Exception {
-            mockMvc.perform(post("/api/v1/auth/register")
+            mockMvc.perform(post(TestApiPaths.AUTH_REGISTER)
                             .contentType(MediaType.APPLICATION_JSON)
                             .content(objectMapper.writeValueAsString(validRegisterRequest)))
                     .andExpect(status().isCreated());
@@ -168,7 +169,7 @@ class AuthApiIntegrationTest extends AbstractIntegrationTest {
 
             LoginRequest loginRequest = new LoginRequest(uniqueEmail, "SecurePass123!");
 
-            mockMvc.perform(post("/api/v1/auth/login")
+            mockMvc.perform(post(TestApiPaths.AUTH_LOGIN)
                             .contentType(MediaType.APPLICATION_JSON)
                             .content(objectMapper.writeValueAsString(loginRequest)))
                     .andExpect(status().isOk())
@@ -181,7 +182,7 @@ class AuthApiIntegrationTest extends AbstractIntegrationTest {
         void loginUserNotFound() throws Exception {
             LoginRequest loginRequest = new LoginRequest("nonexistent@example.com", "AnyPass123!");
 
-            mockMvc.perform(post("/api/v1/auth/login")
+            mockMvc.perform(post(TestApiPaths.AUTH_LOGIN)
                             .contentType(MediaType.APPLICATION_JSON)
                             .content(objectMapper.writeValueAsString(loginRequest)))
                     .andExpect(status().isBadRequest())
@@ -191,7 +192,7 @@ class AuthApiIntegrationTest extends AbstractIntegrationTest {
         @Test
         @DisplayName("Contraseña incorrecta → 400 BAD_REQUEST (AUTH001)")
         void loginWrongPassword() throws Exception {
-            mockMvc.perform(post("/api/v1/auth/register")
+            mockMvc.perform(post(TestApiPaths.AUTH_REGISTER)
                             .contentType(MediaType.APPLICATION_JSON)
                             .content(objectMapper.writeValueAsString(validRegisterRequest)))
                     .andExpect(status().isCreated());
@@ -200,7 +201,7 @@ class AuthApiIntegrationTest extends AbstractIntegrationTest {
 
             LoginRequest loginRequest = new LoginRequest(uniqueEmail, "WrongPassword123!");
 
-            mockMvc.perform(post("/api/v1/auth/login")
+            mockMvc.perform(post(TestApiPaths.AUTH_LOGIN)
                             .contentType(MediaType.APPLICATION_JSON)
                             .content(objectMapper.writeValueAsString(loginRequest)))
                     .andExpect(status().isBadRequest())
@@ -210,7 +211,7 @@ class AuthApiIntegrationTest extends AbstractIntegrationTest {
         @Test
         @DisplayName("Múltiples intentos fallidos → 429 TOO_MANY_REQUESTS (AUTH009)")
         void loginRateLimitExceeded() throws Exception {
-            mockMvc.perform(post("/api/v1/auth/register")
+            mockMvc.perform(post(TestApiPaths.AUTH_REGISTER)
                             .contentType(MediaType.APPLICATION_JSON)
                             .content(objectMapper.writeValueAsString(validRegisterRequest)))
                     .andExpect(status().isCreated());
@@ -220,13 +221,13 @@ class AuthApiIntegrationTest extends AbstractIntegrationTest {
             LoginRequest loginRequest = new LoginRequest(uniqueEmail, "WrongPassword");
 
             for (int i = 0; i < 5; i++) {
-                mockMvc.perform(post("/api/v1/auth/login")
+                mockMvc.perform(post(TestApiPaths.AUTH_LOGIN)
                                 .contentType(MediaType.APPLICATION_JSON)
                                 .content(objectMapper.writeValueAsString(loginRequest)))
                         .andExpect(status().isBadRequest());
             }
 
-            mockMvc.perform(post("/api/v1/auth/login")
+            mockMvc.perform(post(TestApiPaths.AUTH_LOGIN)
                             .contentType(MediaType.APPLICATION_JSON)
                             .content(objectMapper.writeValueAsString(loginRequest)))
                     .andExpect(status().isTooManyRequests())
@@ -242,14 +243,14 @@ class AuthApiIntegrationTest extends AbstractIntegrationTest {
         @Test
         @DisplayName("Logout sin token → 401 UNAUTHORIZED")
         void logoutWithoutToken() throws Exception {
-            mockMvc.perform(post("/api/v1/auth/logout"))
+            mockMvc.perform(post(TestApiPaths.AUTH_LOGOUT))
                     .andExpect(status().isUnauthorized());
         }
 
         @Test
         @DisplayName("Token malformado → 401 UNAUTHORIZED (AUTH004)")
         void logoutWithMalformedToken() throws Exception {
-            mockMvc.perform(post("/api/v1/auth/logout")
+            mockMvc.perform(post(TestApiPaths.AUTH_LOGOUT)
                             .header("Authorization", "Bearer malformed.token.value"))
                     .andExpect(status().isUnauthorized())
                     .andExpect(jsonPath("$.codigo").value(CodigoError.TOKEN_INVALID.getCodigo()));
@@ -258,7 +259,7 @@ class AuthApiIntegrationTest extends AbstractIntegrationTest {
         @Test
         @DisplayName("Logout exitoso → 200 OK")
         void logoutSuccess() throws Exception {
-            mockMvc.perform(post("/api/v1/auth/register")
+            mockMvc.perform(post(TestApiPaths.AUTH_REGISTER)
                             .contentType(MediaType.APPLICATION_JSON)
                             .content(objectMapper.writeValueAsString(validRegisterRequest)))
                     .andExpect(status().isCreated());
@@ -267,7 +268,7 @@ class AuthApiIntegrationTest extends AbstractIntegrationTest {
 
             String accessToken = getAccessToken(uniqueEmail, "SecurePass123!");
 
-            mockMvc.perform(post("/api/v1/auth/logout")
+            mockMvc.perform(post(TestApiPaths.AUTH_LOGOUT)
                             .header("Authorization", "Bearer " + accessToken))
                     .andExpect(status().isOk())
                     .andExpect(jsonPath("$.data.success").value(true));
@@ -276,7 +277,7 @@ class AuthApiIntegrationTest extends AbstractIntegrationTest {
         @Test
         @DisplayName("Token ya revocado → 401 UNAUTHORIZED")
         void logoutWithAlreadyRevokedToken() throws Exception {
-            mockMvc.perform(post("/api/v1/auth/register")
+            mockMvc.perform(post(TestApiPaths.AUTH_REGISTER)
                             .contentType(MediaType.APPLICATION_JSON)
                             .content(objectMapper.writeValueAsString(validRegisterRequest)))
                     .andExpect(status().isCreated());
@@ -285,12 +286,12 @@ class AuthApiIntegrationTest extends AbstractIntegrationTest {
 
             String accessToken = getAccessToken(uniqueEmail, "SecurePass123!");
 
-            mockMvc.perform(post("/api/v1/auth/logout")
+            mockMvc.perform(post(TestApiPaths.AUTH_LOGOUT)
                             .header("Authorization", "Bearer " + accessToken))
                     .andExpect(status().isOk());
 
             // Segundo logout: token revocado, el filter retorna AUTH005 (TOKEN_REVOKED)
-            mockMvc.perform(post("/api/v1/auth/logout")
+            mockMvc.perform(post(TestApiPaths.AUTH_LOGOUT)
                             .header("Authorization", "Bearer " + accessToken))
                     .andExpect(status().isUnauthorized())
                     .andExpect(jsonPath("$.codigo").value(CodigoError.TOKEN_REVOKED.getCodigo()));
@@ -301,7 +302,7 @@ class AuthApiIntegrationTest extends AbstractIntegrationTest {
         void logoutWithExpiredToken() throws Exception {
             String expiredToken = "eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJzdWIiOiIxMjM0NTY3ODkwIiwibmFtZSI6IkpvaG4gRG9lIiwiaWF0IjoxNTE2MjM5MDIyLCJleHAiOjE1MTYyMzkwMjJ9.fake";
 
-            mockMvc.perform(post("/api/v1/auth/logout")
+            mockMvc.perform(post(TestApiPaths.AUTH_LOGOUT)
                             .header("Authorization", "Bearer " + expiredToken))
                     .andExpect(status().isUnauthorized())
                     .andExpect(jsonPath("$.codigo").value(CodigoError.TOKEN_INVALID.getCodigo()));
@@ -316,7 +317,7 @@ class AuthApiIntegrationTest extends AbstractIntegrationTest {
         @Test
         @DisplayName("Refresh exitoso → 200 OK")
         void refreshSuccess() throws Exception {
-            mockMvc.perform(post("/api/v1/auth/register")
+            mockMvc.perform(post(TestApiPaths.AUTH_REGISTER)
                             .contentType(MediaType.APPLICATION_JSON)
                             .content(objectMapper.writeValueAsString(validRegisterRequest)))
                     .andExpect(status().isCreated());
@@ -326,7 +327,7 @@ class AuthApiIntegrationTest extends AbstractIntegrationTest {
             AuthResponse authResponse = performLogin(uniqueEmail, "SecurePass123!");
             TokenRefreshRequest refreshRequest = new TokenRefreshRequest(authResponse.refreshToken());
 
-            mockMvc.perform(post("/api/v1/auth/refresh")
+            mockMvc.perform(post(TestApiPaths.AUTH_REFRESH)
                             .contentType(MediaType.APPLICATION_JSON)
                             .content(objectMapper.writeValueAsString(refreshRequest)))
                     .andExpect(status().isOk())
@@ -339,7 +340,7 @@ class AuthApiIntegrationTest extends AbstractIntegrationTest {
         void refreshWithInvalidToken() throws Exception {
             TokenRefreshRequest request = new TokenRefreshRequest("invalid-refresh-token");
 
-            mockMvc.perform(post("/api/v1/auth/refresh")
+            mockMvc.perform(post(TestApiPaths.AUTH_REFRESH)
                             .contentType(MediaType.APPLICATION_JSON)
                             .content(objectMapper.writeValueAsString(request)))
                     .andExpect(status().isUnauthorized())
@@ -357,7 +358,7 @@ class AuthApiIntegrationTest extends AbstractIntegrationTest {
         void verifyEmailWithInvalidToken() throws Exception {
             VerifyEmailRequest request = new VerifyEmailRequest("invalid-token");
 
-            mockMvc.perform(post("/api/v1/auth/verify-email")
+            mockMvc.perform(post(TestApiPaths.AUTH_VERIFY_EMAIL)
                             .contentType(MediaType.APPLICATION_JSON)
                             .content(objectMapper.writeValueAsString(request)))
                     .andExpect(status().isBadRequest())
@@ -369,7 +370,7 @@ class AuthApiIntegrationTest extends AbstractIntegrationTest {
         void resendVerificationWithNonExistentEmail() throws Exception {
             ResendVerificationRequest request = new ResendVerificationRequest("nonexistent@example.com");
 
-            mockMvc.perform(post("/api/v1/auth/resend-verification")
+            mockMvc.perform(post(TestApiPaths.AUTH_RESEND_VERIFICATION)
                             .contentType(MediaType.APPLICATION_JSON)
                             .content(objectMapper.writeValueAsString(request)))
                     .andExpect(status().isNotFound())
@@ -380,7 +381,7 @@ class AuthApiIntegrationTest extends AbstractIntegrationTest {
         @DisplayName("Resend verification con email ya verificado → 409 CONFLICT (VER004)")
         void resendVerificationWithAlreadyVerifiedEmail() throws Exception {
             // Primero registro y verifico manualmente el email del usuario
-            mockMvc.perform(post("/api/v1/auth/register")
+            mockMvc.perform(post(TestApiPaths.AUTH_REGISTER)
                             .contentType(MediaType.APPLICATION_JSON)
                             .content(objectMapper.writeValueAsString(validRegisterRequest)))
                     .andExpect(status().isCreated());
@@ -390,7 +391,7 @@ class AuthApiIntegrationTest extends AbstractIntegrationTest {
 
             ResendVerificationRequest request = new ResendVerificationRequest(uniqueEmail);
 
-            mockMvc.perform(post("/api/v1/auth/resend-verification")
+            mockMvc.perform(post(TestApiPaths.AUTH_RESEND_VERIFICATION)
                             .contentType(MediaType.APPLICATION_JSON)
                             .content(objectMapper.writeValueAsString(request)))
                     .andExpect(status().isConflict())
@@ -400,14 +401,14 @@ class AuthApiIntegrationTest extends AbstractIntegrationTest {
         @Test
         @DisplayName("Login sin email verificado → 403 FORBIDDEN (VER001)")
         void loginWithoutVerifiedEmail() throws Exception {
-            mockMvc.perform(post("/api/v1/auth/register")
+            mockMvc.perform(post(TestApiPaths.AUTH_REGISTER)
                             .contentType(MediaType.APPLICATION_JSON)
                             .content(objectMapper.writeValueAsString(validRegisterRequest)))
                     .andExpect(status().isCreated());
 
             LoginRequest loginRequest = new LoginRequest(uniqueEmail, "SecurePass123!");
 
-            mockMvc.perform(post("/api/v1/auth/login")
+            mockMvc.perform(post(TestApiPaths.AUTH_LOGIN)
                             .contentType(MediaType.APPLICATION_JSON)
                             .content(objectMapper.writeValueAsString(loginRequest)))
                     .andExpect(status().isForbidden())
@@ -417,7 +418,7 @@ class AuthApiIntegrationTest extends AbstractIntegrationTest {
         @Test
         @DisplayName("Login con email verificado → 200 OK")
         void loginWithVerifiedEmail() throws Exception {
-            mockMvc.perform(post("/api/v1/auth/register")
+            mockMvc.perform(post(TestApiPaths.AUTH_REGISTER)
                             .contentType(MediaType.APPLICATION_JSON)
                             .content(objectMapper.writeValueAsString(validRegisterRequest)))
                     .andExpect(status().isCreated());
@@ -427,7 +428,7 @@ class AuthApiIntegrationTest extends AbstractIntegrationTest {
 
             LoginRequest loginRequest = new LoginRequest(uniqueEmail, "SecurePass123!");
 
-            mockMvc.perform(post("/api/v1/auth/login")
+            mockMvc.perform(post(TestApiPaths.AUTH_LOGIN)
                             .contentType(MediaType.APPLICATION_JSON)
                             .content(objectMapper.writeValueAsString(loginRequest)))
                     .andExpect(status().isOk())

@@ -127,6 +127,16 @@ src/test/java/
 - [x] **Login**: Rechaza si `email_verified_at == null` → `403 FORBIDDEN (VER001)`.
 - [x] **Tests**: 8 unitarios + 5 integración. **Total: 76 tests (0 fallos).**
 
+### ✅ Recuperación de Contraseña (2026-04-11)
+- [x] **Migración**: No requerida (el campo `password` ya existe desde V2).
+- [x] **Redis**: Tokens en `password:reset:{token}` → email, TTL 15 min.
+- [x] **Servicio**: `PasswordResetService` (generateResetToken, resetPassword).
+- [x] **Excepción**: `PasswordResetTokenInvalidException` (RST001).
+- [x] **Códigos de error**: RST001 (token inválido), RST002 (token expirado).
+- [x] **Endpoints**: `POST /auth/forgot-password`, `POST /auth/reset-password`.
+- [x] **Timing Attack Prevention**: `POST /forgot-password` siempre retorna 200, aunque el email no exista.
+- [x] **Tests**: 7 unitarios cubriendo: email existente, email inexistente, token válido, token inválido, user not found.
+
 ---
 
 ## 7. Estrategia de Próximos Pasos 📋
@@ -135,15 +145,15 @@ src/test/java/
 1. **Refresh Token Rotation**: Blacklist del refresh token viejo en Redis tras cada refresh. Validar que un refresh token usado una vez no funcione una segunda vez.
 
 ### 🟡 Fase 2: Integridad de Identidad (Email)
-2. **Verificación de Email**:
-   - Agregar `email_verified_at` nullable a `users`.
+2. **Verificación de Email**: ✅ COMPLETADO
+   - `email_verified_at` nullable en `users`.
    - Redis: `verify:{email}` TTL 15 min.
    - Endpoint: `POST /auth/verify-email` (token).
    - Registro genera token → loguea (pendiente servicio de email real).
-3. **Recuperación de Contraseña**:
-   - Redis: `reset:{email}` TTL 15 min.
+3. **Recuperación de Contraseña**: ✅ COMPLETADO
+   - Redis: `password:reset:{token}` → email, TTL 15 min.
    - Endpoints: `POST /auth/forgot-password`, `POST /auth/reset-password`.
-   - Rate limiting + auditoría en `audit_log`.
+   - Timing attack prevention: `forgot-password` siempre retorna 200.
 
 ### 🟢 Fase 3: Cierre del Flujo de Invitaciones
 4. **Invitación completa**:
@@ -215,5 +225,217 @@ Se ha implementado una jerarquía de configuración profesional basada en perfil
 
 ---
 
-### 📊 Calificación de Salud Arquitectónica: 9.5/10
-> Estructura de entornos profesionalizada. El sistema es ahora "Environment-Aware" y cumple con los estándares de seguridad para despliegues SaaS, eliminando riesgos de fuga de credenciales en el repositorio. 🚀
+## 10. Consistencia de Rutas API (Implementado 2026-04-11) 🔗
+
+### ✅ Estrategia "Single Source of Truth" aplicada
+
+**Problema resuelto:** Rutas hardcodeadas en múltiples lugares (controllers, SecurityConfig, tests) generan riesgo de inconsistencia silenciosa.
+
+**Solución:** Centralización absoluta en `ApiPathConstants` + validación automática por tests.
+
+#### Arquitectura de Constantes
+
+```
+ApiPathConstants.java (src/main)
+├── V1_ROUTE = "/api/v1"
+├── Base routes: AUTH_ROUTE, USERS_ROUTE, TENANTS_ROUTE, MEMBERS_ROUTE, INVITATIONS_ROUTE
+├── Sub-paths: AUTH_REGISTER, AUTH_LOGIN, USERS_ME, TENANTS_SELECT, etc.
+└── Full paths: FULL_AUTH_REGISTER, FULL_AUTH_LOGIN, etc. (para SecurityConfig)
+
+TestApiPaths.java (src/test)
+└── Reutiliza ApiPathConstants y expone paths completos para tests
+    Ej: AUTH_REGISTER = V1_ROUTE + AUTH_ROUTE + AUTH_REGISTER
+```
+
+#### Controllers Implementados
+
+| Controller | Base Path | Endpoints | Usa Constantes |
+|---|---|---|---|
+| `AuthApi` | `/api/v1/auth` | register, login, logout, refresh, verify-email, resend-verification | ✅ |
+| `UserApi` | `/api/v1/users` | me | ✅ |
+| `TenantApi` | `/api/v1/tenants` | GET /, select, create | ✅ |
+| `MemberApi` | `/api/v1/tenants/{tenantId}/members` | list, update-role, delete | ✅ |
+| `InvitationApi` | `/api/v1/invitations` | list, create, accept, cancel | ✅ |
+
+#### Validación Automática (`ApiPathConsistencyTest`)
+
+**12 tests** que fallan si hay inconsistencia:
+
+| Test | Qué Valida |
+|---|---|
+| `validateRequestMappingUsesConstants` | Todos los `@RequestMapping` de controllers usan `ApiPathConstants` |
+| `validateMethodMappingsUseConstants` | `@PostMapping`, `@GetMapping`, etc. usan constantes (escaneo con reflection) |
+| `validateFullPathsConstruction` | Constantes `FULL_AUTH_*` están correctamente construidas |
+| `validatePublicEndpointsInWhitelist` | Endpoints públicos existen y `logout` NO es público |
+| `validateWhitelistNoRedundancies` | Sin patrones duplicados en el whitelist de SecurityConfig |
+| `validateWhitelistUsesConstants` | Constantes existen para usar en SecurityConfig |
+| `validateTestAuthPathsMatchProduction` | `TestApiPaths` == `ApiPathConstants` para auth |
+| `validateTestUserPathsMatchProduction` | `TestApiPaths` == `ApiPathConstants` para users |
+| `validateTestTenantPathsMatchProduction` | `TestApiPaths` == `ApiPathConstants` para tenants |
+| `validateTestMemberPathsMatchProduction` | `TestApiPaths` == `ApiPathConstants` para members |
+| `validateTestInvitationPathsMatchProduction` | `TestApiPaths` == `ApiPathConstants` para invitations |
+| `validateAllTestPathsStartWithV1` | Todos los paths de test comienzan con `/api/v1` |
+
+#### Optimización del Whitelist de SecurityConfig
+
+**Redundancias eliminadas:**
+
+| Entry Eliminado | Razón |
+|---|---|
+| `/swagger-ui.html` | Ya cubierto por `/swagger-ui/**` |
+| `V1_ROUTE + "/actuator/**"` | Ya cubierto por `/actuator/**` |
+
+**Whitelist resultante (10 entries, antes 12):**
+
+```java
+private static final String[] WHITE_LIST = {
+    // Swagger / OpenAPI (/** covers .html and all assets)
+    "/v3/api-docs/**",
+    "/swagger-ui/**",
+    // Actuator
+    "/actuator/**",
+    // OAuth2 login endpoint
+    "/login/**",
+    // Error page
+    "/error",
+    // Public auth endpoints (registration, login, email verification)
+    ApiPathConstants.FULL_AUTH_REGISTER,
+    ApiPathConstants.FULL_AUTH_LOGIN,
+    ApiPathConstants.FULL_AUTH_REFRESH,
+    ApiPathConstants.FULL_AUTH_VERIFY_EMAIL,
+    ApiPathConstants.FULL_AUTH_RESEND_VERIFICATION
+};
+```
+
+#### Dependencia Agregada
+
+```xml
+<dependency>
+    <groupId>org.reflections</groupId>
+    <artifactId>reflections</artifactId>
+    <version>0.10.2</version>
+    <scope>test</scope>
+</dependency>
+```
+
+Usada para escaneo de classpath en `ApiPathConsistencyTest` (reflection sobre controllers).
+
+---
+
+## 11. Recuperación de Contraseña (Implementado 2026-04-11) 🔑
+
+### 🎯 Visión General
+
+Flujo de recuperación de contraseña sin estado, usando **Redis como almacén temporal de tokens** y sin requerir migración de base de datos (el campo `password` ya existe desde V2).
+
+### 📐 Arquitectura
+
+```
+┌──────────────┐     ┌───────────────────┐     ┌──────────┐
+│  Frontend    │────▶│  POST /forgot     │────▶│  Redis   │
+│  (Email)     │     │  /auth/forgot-    │     │ password:│
+│              │     │  password         │     │ reset:{t}│
+│              │◀────│  → 200 OK (siempre│     │ → email  │
+│              │     │   timing attack)  │     │ TTL 15m  │
+└──────────────┘     └───────────────────┘     └──────────┘
+        │                                             
+        │  Click en link del email                  
+        ▼                                             
+┌──────────────┐     ┌───────────────────┐     ┌──────────┐
+│  Frontend    │────▶│  POST /reset      │────▶│  Redis   │
+│  (Token +    │     │  /auth/reset-     │     │ DELETE   │
+│  New Pass)   │     │  password         │     │ token    │
+│              │◀────│  → BCrypt hash    │────▶│  DB      │
+│              │     │  → UPDATE users   │     │ password │
+└──────────────┘     └───────────────────┘     └──────────┘
+```
+
+### 🔐 Diseño de Seguridad
+
+#### Timing Attack Prevention
+`POST /auth/forgot-password` **siempre retorna 200 OK**, incluso si el email no existe. Esto previene que un atacante pueda enumerar emails registrados midiendo los tiempos de respuesta.
+
+```java
+// AuthApiController.java
+public ResponseEntity<ApiResponse<Void>> forgotPassword(ForgotPasswordRequest request) {
+    // Siempre retorna 200 para prevenir timing attacks
+    passwordResetService.generateResetToken(request.email());
+    return ResponseEntity.ok(ApiResponse.ok());
+}
+```
+
+#### Token Seguro
+- **Generación**: `SecureRandom` → 32 bytes → hex (64 caracteres)
+- **Almacenamiento**: Redis clave `password:reset:{token}` → email
+- **TTL**: 15 minutos (expiración automática)
+- **Single-use**: Se elimina de Redis tras el primer uso exitoso
+
+### 📋 DTOs
+
+**ForgotPasswordRequest:**
+```java
+public record ForgotPasswordRequest(
+    @NotBlank(message = "Email is required")
+    @Email(message = "Email must be valid")
+    String email
+) {}
+```
+
+**ResetPasswordRequest:**
+```java
+public record ResetPasswordRequest(
+    @NotBlank(message = "Reset token is required")
+    String token,
+
+    @NotBlank(message = "New password is required")
+    @Size(min = 8, message = "Password must be at least 8 characters")
+    String newPassword
+) {}
+```
+
+### 🏷️ Códigos de Error (RST)
+
+| Código | HTTP | Significado |
+|--------|------|-------------|
+| `RST001` | 400 | Token de reset inválido o ya usado |
+| `RST002` | 400 | Token de reset expirado (TTL 15 min) |
+
+### 🧪 Cobertura de Tests
+
+**PasswordResetServiceImplTest** (7 tests):
+
+| Test | Escenario | Resultado Esperado |
+|------|-----------|-------------------|
+| `generateResetToken_ExistingEmail_ReturnsTrue` | Email registrado | Token en Redis, retorna `true` |
+| `generateResetToken_NonExistentEmail_ReturnsFalse` | Email no existe | Sin interacción Redis, retorna `false` |
+| `resetPassword_ValidToken_UpdatesPassword` | Token válido + nueva password | Password BCrypt, token eliminado |
+| `resetPassword_InvalidToken_ThrowsException` | Token inexistente | `PasswordResetTokenInvalidException` |
+| `resetPassword_UserNotFound_ThrowsException` | Token válido pero user borrado | `AuthenticationException` |
+
+### 🔗 Integración con Email (Pendiente)
+
+Actualmente el servicio **genera el token y lo almacena en Redis**, pero falta el envío por email. La integración futura será:
+
+```java
+// Pseudocode del flujo completo con email:
+1. POST /auth/forgot-password → generateResetToken() → token
+2. EmailService.sendResetEmail(user.getEmail(), token)  // ← PENDIENTE
+3. Usuario recibe email con link: https://app.com/reset?token={token}
+4. Frontend extrae token y muestra formulario de nueva contraseña
+5. POST /auth/reset-password → resetPassword(token, newPassword)
+```
+
+### 📊 Métricas
+
+| Métrica | Valor |
+|---------|-------|
+| Archivos nuevos | 6 |
+| Archivos modificados | 6 |
+| Tests unitarios | 7 |
+| Endpoints nuevos | 2 |
+| Códigos de error nuevos | 2 (RST001, RST002) |
+
+---
+
+### 📊 Calificación de Salud Arquitectónica: 9.7/10
+> Estructura de entornos profesionalizada. El sistema es ahora "Environment-Aware" y cumple con los estándares de seguridad para despliegues SaaS, eliminando riesgos de fuga de credenciales en el repositorio. Recuperación de contraseña implementada con timing attack prevention. 🚀

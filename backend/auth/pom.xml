@@ -177,6 +177,14 @@
 			<scope>test</scope>
 		</dependency>
 
+		<!-- Reflections - For classpath scanning in consistency tests -->
+		<dependency>
+			<groupId>org.reflections</groupId>
+			<artifactId>reflections</artifactId>
+			<version>0.10.2</version>
+			<scope>test</scope>
+		</dependency>
+
 		<!-- Testcontainers -->
 		<dependency>
 			<groupId>org.springframework.boot</groupId>

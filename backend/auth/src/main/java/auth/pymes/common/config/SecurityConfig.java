@@ -1,4 +1,5 @@
 package auth.pymes.common.config;
+import auth.pymes.common.constants.ApiPathConstants;
 import auth.pymes.repositories.UserEntityRepository;
 import auth.pymes.service.impl.CustomOAuth2UserService;
 import auth.pymes.utils.exception.CodigoError;
@@ -44,18 +45,24 @@ public class SecurityConfig {
     private final ObjectMapper objectMapper;
 
     private static final String[] WHITE_LIST = {
+            // Swagger / OpenAPI (/** covers .html and all assets)
             "/v3/api-docs/**",
             "/swagger-ui/**",
-            "/swagger-ui.html",
-            "/api/v1/actuator/**",
+            // Actuator
             "/actuator/**",
+            // OAuth2 login endpoint
             "/login/**",
+            // Error page
             "/error",
-            "/api/v1/auth/register",
-            "/api/v1/auth/login",
-            "/api/v1/auth/refresh",
-            "/api/v1/auth/verify-email",
-            "/api/v1/auth/resend-verification"
+            // Public auth endpoints (registration, login, email verification)
+            ApiPathConstants.FULL_AUTH_REGISTER,
+            ApiPathConstants.FULL_AUTH_LOGIN,
+            ApiPathConstants.FULL_AUTH_REFRESH,
+            ApiPathConstants.FULL_AUTH_VERIFY_EMAIL,
+            ApiPathConstants.FULL_AUTH_RESEND_VERIFICATION,
+            // Password recovery (public by design)
+            ApiPathConstants.FULL_AUTH_FORGOT_PASSWORD,
+            ApiPathConstants.FULL_AUTH_RESET_PASSWORD
     };
 
     @Bean

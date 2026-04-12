@@ -31,7 +31,7 @@ public interface TenantApi {
             @AuthenticationPrincipal OAuth2User principal);
 
     @Operation(summary = "Seleccionar tenant activo", description = "Cambia el tenant activo para el usuario")
-    @PostMapping("/select")
+    @PostMapping(ApiPathConstants.TENANTS_SELECT)
     ResponseEntity<ApiResponse<AuthResponse>> selectTenant(
             @Valid @RequestBody SelectTenantRequest request,
             @AuthenticationPrincipal OAuth2User principal);

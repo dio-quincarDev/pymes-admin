@@ -34,7 +34,7 @@ public interface InvitationApi {
             @AuthenticationPrincipal OAuth2User principal);
 
     @Operation(summary = "Aceptar invitación", description = "Acepta una invitación usando el token")
-    @PostMapping("/accept")
+    @PostMapping(ApiPathConstants.INVITATIONS_ACCEPT)
     ResponseEntity<ApiResponse<InvitationResponse>> acceptInvitation(
             @Valid @RequestBody AcceptInvitationRequest request,
             @AuthenticationPrincipal OAuth2User principal);

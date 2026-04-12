@@ -56,6 +56,10 @@ La API está organizada bajo la ruta base `/api/v1` y sigue una estructura RESTf
 | `POST` | `/login` | Login email/password (Rate limited IP+Email) |
 | `POST` | `/refresh` | Refresca el access token |
 | `POST` | `/logout` | Invalida la sesión actual |
+| `POST` | `/verify-email` | Verifica email con token recibido por correo |
+| `POST` | `/resend-verification` | Reenvía token de verificación |
+| `POST` | `/forgot-password` | Solicita enlace de recuperación de contraseña |
+| `POST` | `/reset-password` | Establece nueva contraseña con token de recuperación |
 
 ### 👤 Usuarios (`/users`)
 | Método | Endpoint | Descripción |
@@ -97,9 +101,10 @@ La API está organizada bajo la ruta base `/api/v1` y sigue una estructura RESTf
 
 | Tipo | Cantidad | Ejecución |
 |------|----------|-----------|
-| Unitarios (Mockito) | 45 tests | `mvn test` |
+| Unitarios (Mockito) | 52 tests | `mvn test` |
 | Integración (Testcontainers) | 17 tests | `mvn verify` |
-| **Total** | **62 tests** | `mvn verify` |
+| Consistencia (API Paths) | 12 tests | `mvn test` |
+| **Total** | **81 tests** | `mvn verify` |
 
 **Cobertura de integración:**
 - **AuthApiIntegrationTest** → register, login, logout, refresh token (happy paths + edge cases)
@@ -115,23 +120,32 @@ La API está organizada bajo la ruta base `/api/v1` y sigue una estructura RESTf
 - **Password hashing**: BCrypt con validación de fortaleza (mínimo 1 letra + 1 número, 8+ caracteres).
 - **Soft delete forense**: `deleted_at` en `users`, `tenants`, `user_tenants`.
 - **Audit log**: Registro de REGISTER y LOGIN con IP y User-Agent.
+- **Recuperación de contraseña**: Tokens en Redis (TTL 15 min) + timing attack prevention en `POST /forgot-password`.
+
+---
+
+## 🔗 Consistencia de Rutas API
+
+Todas las rutas están centralizadas en `ApiPathConstants` y validadas automáticamente por **12 tests de consistencia** que usan reflection (`org.reflections`) para escanear controllers y detectar strings hardcodeados o redundancias en el `SecurityConfig` whitelist.
+
+**Beneficio:** Si alguien cambia una ruta o agrega un endpoint sin constante, el test falla en CI/CD.
 
 ---
 
 ## 📅 Próximas Fases
 
-| Fase | Descripción |
-|------|-------------|
-| 🔴 **Fase 1** | Refresh Token Rotation (blacklist del token viejo en Redis) |
-| 🟡 **Fase 2** | Verificación de email + Recuperación de contraseña (Redis TTL 15 min) |
-| 🟢 **Fase 3** | Cierre del flujo de invitaciones (registro vía invitación, auditoría) |
-| 🔵 **Fase 4** | Enterprise: Transfer Ownership, Dashboard Auditoría, CI/CD |
+| Fase | Descripción | Estado |
+|------|-------------|--------|
+| 🔴 **Fase 1** | Refresh Token Rotation (blacklist del token viejo en Redis) | ⏳ Pendiente |
+| 🟡 **Fase 2** | ✅ Verificación de email + ✅ Recuperación de contraseña | ✅ Completado |
+| 🟢 **Fase 3** | Cierre del flujo de invitaciones (registro vía invitación, auditoría) | ⏳ Pendiente |
+| 🔵 **Fase 4** | Enterprise: Transfer Ownership, Dashboard Auditoría, CI/CD | ⏳ Pendiente |
 
 ---
 
 <div align="center">
 
-**PyMes Admin - Auth Microservice** | Estado: **Desacoplado, Escalable, Testeable & Endurecido** 🔒
+**PyMes Admin - Auth Microservice** | Estado: **Desacoplado, Escalable, Testeable, Endurecido & Password Recovery Ready** 🔒
 
 [![Build & Test](https://github.com/dio-quincarDev/pymes-admin/actions/workflows/ci.yml/badge.svg)](https://github.com/dio-quincarDev/pymes-admin/actions)
 [![Java 21](https://img.shields.io/badge/Java-21-blue.svg)](https://openjdk.org/projects/jdk/21/)

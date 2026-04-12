@@ -59,7 +59,11 @@ public enum CodigoError {
     VERIFICATION_TOKEN_INVALID("VER002", "Verification token is invalid", HttpStatus.BAD_REQUEST),
     VERIFICATION_TOKEN_EXPIRED("VER003", "Verification token has expired. Please request a new verification email", HttpStatus.BAD_REQUEST),
     EMAIL_ALREADY_VERIFIED("VER004", "Email address is already verified", HttpStatus.CONFLICT),
-    
+
+    // ==================== PASSWORD RESET (RST) ====================
+    RESET_TOKEN_INVALID("RST001", "Password reset token is invalid", HttpStatus.BAD_REQUEST),
+    RESET_TOKEN_EXPIRED("RST002", "Password reset token has expired. Please request a new password reset link", HttpStatus.BAD_REQUEST),
+
     // ==================== VALIDATION & INTEGRITY (VAL) ====================
     VALIDATION_ERROR("VAL001", "Validation failed: {0}", HttpStatus.BAD_REQUEST),
     INVALID_INPUT("VAL002", "Invalid input data", HttpStatus.BAD_REQUEST),
