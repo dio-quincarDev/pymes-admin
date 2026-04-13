@@ -6,15 +6,7 @@ import {
   createWebHistory,
 } from 'vue-router';
 import routes from './routes';
-
-/*
- * If not building with SSR mode, you can
- * directly export the Router instantiation;
- *
- * The function below can be async too; either use
- * async/await or return a Promise which resolves
- * with the Router instance.
- */
+import { useAuthStore } from 'src/modules/auth/store';
 
 export default defineRouter(function (/* { store, ssrContext } */) {
   const createHistory = process.env.SERVER
@@ -26,11 +18,26 @@ export default defineRouter(function (/* { store, ssrContext } */) {
   const Router = createRouter({
     scrollBehavior: () => ({ left: 0, top: 0 }),
     routes,
-
-    // Leave this as is and make changes in quasar.conf.js instead!
-    // quasar.conf.js -> build -> vueRouterMode
-    // quasar.conf.js -> build -> publicPath
     history: createHistory(process.env.VUE_ROUTER_BASE),
+  });
+
+  // Global Navigation Guard: Protección de rutas Pymeq
+  Router.beforeEach((to, from, next) => {
+    const authStore = useAuthStore();
+    const requiresAuth = to.matched.some(record => record.meta.requiresAuth);
+
+    if (requiresAuth && !authStore.isAuthenticated) {
+      // Si la ruta es protegida y no hay token, al login
+      next({
+        path: '/login',
+        query: { redirect: to.fullPath } // Guardamos a dónde quería ir
+      });
+    } else if (authStore.isAuthenticated && (to.path === '/login' || to.path === '/register')) {
+      // Si ya está logueado e intenta ir al login, al dashboard
+      next('/');
+    } else {
+      next();
+    }
   });
 
   return Router;

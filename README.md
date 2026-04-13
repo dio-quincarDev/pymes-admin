@@ -1,7 +1,8 @@
-# PyMes Admin - SaaS Financial Management Platform 🚀
 
-> **Sistema de Gestión Financiera con IA para PYMEs**  
-> Multi-tenant SaaS platform con toolkit de contabilidad forense impulsado por IA
+# Pymeq - SaaS Financial Management Platform 🚀
+
+> **Sistema de Gestión Financiera con Inteligencia Forense para PYMEs**  
+> Multi-tenant SaaS platform con toolkit de contabilidad forense impulsado por IA.
 
 ---
 

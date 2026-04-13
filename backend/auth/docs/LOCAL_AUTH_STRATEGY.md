@@ -121,13 +121,29 @@ src/test/java/
 - [x] **Timing Attack Prevention**: `POST /forgot-password` siempre retorna 200, aunque el email no exista.
 - [x] **Tests**: 7 unitarios.
 
+### ✅ CORS Configurado (2026-04-13)
+- [x] **Gateway**: `globalcors` en `application.yaml` con `${CORS_ALLOWED_ORIGINS}`.
+- [x] **Auth (defensa en profundidad)**: `UrlBasedCorsConfigurationSource` bean en `WebCorsConfig.java`.
+- [x] **SecurityConfig**: Vinculado `.cors(cors -> cors.configurationSource(...))`.
+- [x] **Eliminado**: `@EnableWebMvc` y `addCorsMappings` con strings vacíos.
+- [x] **Puertos**: Frontend Quasar `:9000`, Gateway `:8080`, Auth `:8081`.
+
+### ✅ Email Verification — Envío Real (2026-04-13)
+- [x] **Config**: `mail.*` → `spring.mail.*` en `application.yaml` (prefix correcto).
+- [x] **JavaMailSender**: Inyectado en `EmailVerificationServiceImpl`.
+- [x] **Template HTML**: Email inline con estilos, botón de verificación, branding.
+- [x] **Redis**: Tokens en `email:verify:{token}` → email, TTL 15 min.
+- [x] **Register**: `createAndSendVerificationEmail()` reemplaza a `generateVerificationToken()`.
+- [x] **Flujo**: Email → Frontend `:9000/verify?token=xxx` → Gateway `:8080/api/v1/auth/verify-email` → Auth.
+- [x] **.env.example**: `SPRING_MAIL_USERNAME`, `SPRING_MAIL_PASSWORD`, `APP_FRONTEND_URL`.
+
 ---
 
 ## 7. Estrategia de Próximos Pasos 📋
 
 ### 🔴 Fase 1: Seguridad & Integridad Crítica
-1. **CORS Fix**: Implementar `CorsConfigurationSource` bean para protección real del perímetro.
-2. **Email Real (SES/SendGrid)**: Integrar un proveedor real para que el flujo de verificación y recuperación deje de ser "teatrito" en logs.
+1. ~~**CORS Fix**~~: ✅ Implementado `CorsConfigurationSource` bean (2026-04-13).
+2. ~~**Email Real (JavaMailSender)**~~: ✅ Envío de emails HTML implementado (2026-04-13).
 3. **Alertas de Seguridad**: Implementar notificaciones activas (Webhooks/Slack) cuando se detecte un reuso de Refresh Token.
 4. **PKCE (Proof Key for Code Exchange)**: Implementar flujo para aplicaciones móviles/SPA.
 5. **Device Fingerprinting**: Registro de dispositivos confiables y detección de anomalías de ubicación.

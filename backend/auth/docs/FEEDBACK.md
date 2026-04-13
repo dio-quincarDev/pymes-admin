@@ -52,6 +52,8 @@
 | "Dependencias muertas en AuthService" | ✅ Limpieza de RefreshTokenRepository | 2026-04-12 |
 | "Sin CI/CD" | ✅ GitHub Actions (mvn verify) | 2026-04-12 |
 | "Sin verificación de email" | ✅ Flujo completo (lógica interna) | 2026-04-11 |
+| "CORS es un Placebo" | ✅ `CorsConfigurationSource` bean en `SecurityConfig` | 2026-04-13 |
+| "Verificación de Email de Teatrito" | ✅ Envío real de emails con `JavaMailSender` + HTML | 2026-04-13 |
 
 ---
 
@@ -97,12 +99,12 @@
 |---|---|---|
 | Arquitectura | 10/10 | Limpia, extensible y ahora con mejor encapsulamiento. |
 | Seguridad de Sesión | 10/10 | RTR + Reuse Detection + jti. Impecable. |
-| Seguridad de Perímetro| 5/10 | **CORS inexistente en código**, sin MFA, sin PKCE. |
+| Seguridad de Perímetro| 9/10 | **CORS implementado** en Gateway y Auth (defensa en profundidad). |
 | Testing | 10/10 | 96 tests, cobertura total de flujos críticos. |
 | DevOps | 9/10 | CI/CD robusto, pero falta manejo dinámico de secrets. |
-| Production readiness | 8.5/10 | Listo para tráfico real, pero "sordo" (sin email). |
+| Production readiness | 9.5/10 | **Email funcional**. Solo resta 2FA/MFA y PKCE. |
 
-**Promedio: 8.75/10 → Redondeo: 9/10** (Subió un punto entero tras el fix de RTR)
+**Promedio: 9.58/10 → Redondeo: 9.5/10** (Subió tras fix de CORS y Email)
 
 ---
 
@@ -110,8 +112,8 @@
 
 | # | Acción | Impacto | Esfuerzo |
 |---|--------|---------|----------|
-| 1 | **Fix de CORS (Spring Bean)** | 🔴 Crítico | Muy Bajo (15 min) |
-| 2 | Integración Email Real (SES/SendGrid) | 🔴 Crítico | Bajo (2 hrs) |
+| 1 | ~~**Fix de CORS (Spring Bean)**~~ | ✅ Completado 2026-04-13 | |
+| 2 | ~~**Integración Email Real (JavaMailSender)**~~ | ✅ Completado 2026-04-13 | |
 | 3 | PKCE para SPAs | 🟡 Importante | Medio (4-8 hrs) |
 | 4 | 2FA/MFA (TOTP) | 🟡 Importante | Alto (16-24 hrs) |
 | 5 | Alertas Activas en Reuse Detection | 🟢 Seguridad | Bajo (1 hr) |

@@ -16,6 +16,12 @@ spring:
           predicates:
             - Path=/api/v1/**
 
+        # Swagger/OpenAPI spec - Auth Service (public)
+        - id: swagger-api-docs-auth
+          uri: http://${AUTH_SERVICE_HOST}:8081
+          predicates:
+            - Path=/v3/api-docs/auth
+
 logging:
   level:
     root: INFO

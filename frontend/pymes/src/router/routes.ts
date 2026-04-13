@@ -1,14 +1,21 @@
 import type { RouteRecordRaw } from 'vue-router';
+import { authRoutes } from 'src/modules/auth/router/routes';
 
 const routes: RouteRecordRaw[] = [
+  // Dashboard & Private Routes
   {
     path: '/',
     component: () => import('layouts/MainLayout.vue'),
-    children: [{ path: '', component: () => import('pages/IndexPage.vue') }],
+    meta: { requiresAuth: true },
+    children: [
+      { path: '', component: () => import('pages/IndexPage.vue') }
+    ],
   },
 
-  // Always leave this as last one,
-  // but you can also remove it
+  // Auth Module Routes
+  ...authRoutes,
+
+  // Always leave this as last one
   {
     path: '/:catchAll(.*)*',
     component: () => import('pages/ErrorNotFound.vue'),

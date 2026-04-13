@@ -24,4 +24,6 @@ public interface EmailVerificationService {
      * Si el usuario ya está verificado, lanza EMAIL_ALREADY_VERIFIED.
      */
     String resendVerificationToken(String email);
+
+    void createAndSendVerificationEmail(UserEntity user);
 }

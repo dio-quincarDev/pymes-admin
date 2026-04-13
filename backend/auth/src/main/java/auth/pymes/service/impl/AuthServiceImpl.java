@@ -106,9 +106,9 @@ public class AuthServiceImpl implements AuthService {
 
         userTenantRepository.save(userTenant);
 
-        // Generate email verification token (stored in Redis, TTL 15 min)
-        emailVerificationService.generateVerificationToken(user);
-        log.info("Token de verificación de email generado para: {}", user.getEmail());
+        // Generate and send email verification token
+        emailVerificationService.createAndSendVerificationEmail(user);
+        log.info("Token de verificación de email enviado a: {}", user.getEmail());
 
         String accessToken = jwtService.generateAccessToken(user, tenant.getId(), RoleName.OWNER.name(), tenant.getPlan().name());
         String refreshToken = jwtService.generateRefreshToken(user);
