@@ -1,75 +1,133 @@
 <template>
   <q-layout view="lHh Lpr lFf">
-    <q-header elevated>
-      <q-toolbar>
+    <!-- Header with Brand Glow -->
+    <q-header elevated class="bg-dark text-secondary brand-glow">
+      <q-toolbar class="q-px-lg">
         <q-btn flat dense round icon="menu" aria-label="Menu" @click="toggleLeftDrawer" />
 
-        <q-toolbar-title> Quasar App </q-toolbar-title>
+        <q-toolbar-title class="q-ml-md">
+          <span class="mesh-text-gradient text-h6 font-bold">PYMEQ</span>
+          <span class="q-ml-xs text-weight-thin">Audit Toolkit</span>
+        </q-toolbar-title>
 
-        <div>Quasar v{{ $q.version }}</div>
+        <div class="text-caption text-accent">v0.1.0</div>
       </q-toolbar>
     </q-header>
 
-    <q-drawer v-model="leftDrawerOpen" show-if-above bordered>
-      <q-list>
-        <q-item-label header> Essential Links </q-item-label>
+    <!-- Sidebar (Surface Pine - Part of the 3:9 Grid) -->
+    <q-drawer
+      v-model="leftDrawerOpen"
+      show-if-above
+      bordered
+      :width="300"
+      class="bg-surface-pine text-secondary"
+    >
+      <q-scroll-area class="fit">
+        <q-list padding>
+          <q-item-label header class="text-accent text-overline q-pt-md">
+            AUDITORÍA & CONTROL
+          </q-item-label>
 
-        <EssentialLink v-for="link in linksList" :key="link.title" v-bind="link" />
-      </q-list>
+          <q-item
+            v-for="link in linksList"
+            :key="link.title"
+            clickable
+            v-ripple
+            class="q-mx-sm q-my-xs rounded-borders"
+            active-class="bg-primary text-white brand-glow"
+          >
+            <q-item-section avatar>
+              <q-icon :name="link.icon" />
+            </q-item-section>
+            <q-item-section>
+              <q-item-label>{{ link.title }}</q-item-label>
+              <q-item-label caption class="text-accent">{{ link.caption }}</q-item-label>
+            </q-item-section>
+          </q-item>
+
+          <q-separator dark class="q-my-md q-mx-sm" />
+
+          <q-item
+            clickable
+            v-ripple
+            class="q-mx-sm q-my-xs rounded-borders text-negative"
+            @click="handleLogout"
+          >
+            <q-item-section avatar>
+              <q-icon name="logout" color="negative" />
+            </q-item-section>
+            <q-item-section>
+              <q-item-label class="text-weight-bold">Cerrar Sesión</q-item-label>
+              <q-item-label caption class="text-accent">Finalizar Centro de Control</q-item-label>
+            </q-item-section>
+          </q-item>
+        </q-list>
+      </q-scroll-area>
     </q-drawer>
 
-    <q-page-container>
-      <router-view />
+    <!-- Main Workspace (Part of the 3:9 Grid) -->
+    <q-page-container class="bg-forest-deep">
+      <div class="q-pa-xl" style="max-width: 1400px; margin: 0 auto">
+        <router-view />
+      </div>
     </q-page-container>
   </q-layout>
 </template>
 
 <script setup lang="ts">
-import { ref } from 'vue';
-import EssentialLink, { type EssentialLinkProps } from 'components/EssentialLink.vue';
+import { ref, onMounted } from 'vue';
+import { useQuasar } from 'quasar';
+import { useAuthStore } from 'src/modules/auth/store';
+import { useRouter } from 'vue-router';
 
-const linksList: EssentialLinkProps[] = [
+const $q = useQuasar();
+const authStore = useAuthStore();
+const router = useRouter();
+
+onMounted(() => {
+  // Force dark mode to match the Deep Forest theme
+  $q.dark.set(true);
+});
+
+const handleLogout = async () => {
+  try {
+    await authStore.logout();
+    $q.notify({
+      type: 'info',
+      message: 'Sesión finalizada',
+      caption: 'Hasta pronto en Pymeq',
+      position: 'top-right'
+    });
+    void router.push('/login');
+  } catch (error) {
+    console.error('Error durante el cierre de sesión', error);
+  }
+};
+
+const linksList = [
   {
-    title: 'Docs',
-    caption: 'quasar.dev',
-    icon: 'school',
-    link: 'https://quasar.dev',
+    title: 'Dashboard',
+    caption: 'Resumen Financiero',
+    icon: 'dashboard',
+    link: '#',
   },
   {
-    title: 'Github',
-    caption: 'github.com/quasarframework',
-    icon: 'code',
-    link: 'https://github.com/quasarframework',
+    title: 'Auditorías',
+    caption: 'Gestión de Controles',
+    icon: 'security',
+    link: '#',
   },
   {
-    title: 'Discord Chat Channel',
-    caption: 'chat.quasar.dev',
-    icon: 'chat',
-    link: 'https://chat.quasar.dev',
+    title: 'Reportes',
+    caption: 'Análisis de Riesgo',
+    icon: 'analytics',
+    link: '#',
   },
   {
-    title: 'Forum',
-    caption: 'forum.quasar.dev',
-    icon: 'record_voice_over',
-    link: 'https://forum.quasar.dev',
-  },
-  {
-    title: 'Twitter',
-    caption: '@quasarframework',
-    icon: 'rss_feed',
-    link: 'https://twitter.quasar.dev',
-  },
-  {
-    title: 'Facebook',
-    caption: '@QuasarFramework',
-    icon: 'public',
-    link: 'https://facebook.quasar.dev',
-  },
-  {
-    title: 'Quasar Awesome',
-    caption: 'Community Quasar projects',
-    icon: 'favorite',
-    link: 'https://awesome.quasar.dev',
+    title: 'Configuración',
+    caption: 'Parámetros del Sistema',
+    icon: 'settings',
+    link: '#',
   },
 ];
 
@@ -79,3 +137,12 @@ function toggleLeftDrawer() {
   leftDrawerOpen.value = !leftDrawerOpen.value;
 }
 </script>
+
+<style lang="scss">
+.bg-forest-deep {
+  background-color: #0b1210;
+}
+.rounded-borders {
+  border-radius: 8px;
+}
+</style>

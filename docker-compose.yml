@@ -9,15 +9,41 @@ services:
     restart: on-failure
     networks:
       - pymes-global-network
+    ports:
+      - "${FRONTEND_PORT:-9000}:9000"
+    depends_on:
+      gateway:
+        condition: service_healthy
+
+  # ==================== API GATEWAY ====================
+  gateway:
+    image: ${DOCKER_USERNAME:-pymes}/pymes-gateway:${TAG:-latest}
+    build:
+      context: ./backend/gateway-pymes
+      dockerfile: Dockerfile
+    container_name: pymes-gateway
+    restart: on-failure
+    networks:
+      - pymes-global-network
+      - pymes-internal-network
+    ports:
+      - "${GATEWAY_PORT:-8080}:8080"
+    environment:
+      - AUTH_SERVICE_HOST=pymes-auth-service
+      - REDIS_HOST=pymes-redis-auth
+      - CORS_ALLOWED_ORIGINS=${CORS_ALLOWED_ORIGINS:-http://localhost:9200}
+      - SERVER_PORT=8080
+      - JWT_SECRET=${JWT_SECRET:-change-this-secret-key-in-production-minimum-256-bits}
+    env_file:
+      - backend/auth/.env
     depends_on:
       auth-service:
         condition: service_healthy
     healthcheck:
-      test: ["CMD", "wget", "-qO-", "http://localhost:9000/"]
+      test: ["CMD", "wget", "-qO-", "http://localhost:8080/actuator/health"]
       interval: 10s
       timeout: 5s
       retries: 3
-      start_period: 10s
 
   # ==================== AUTH SERVICE ====================
   auth-service:
@@ -28,12 +54,13 @@ services:
     container_name: pymes-auth-service
     restart: on-failure
     networks:
-      - pymes-global-network
       - pymes-internal-network
     environment:
-      - DB_HOST=postgres-auth
+      - DB_HOST=pymes-postgres-auth
       - DB_PORT=5432
-      - REDIS_HOST=redis
+      - REDIS_HOST=pymes-redis-auth
+      - REDIS_PORT=6379
+      - SERVER_PORT=8081
     env_file:
       - backend/auth/.env
     depends_on:
@@ -42,11 +69,11 @@ services:
       redis:
         condition: service_started
     healthcheck:
-      test: ["CMD", "wget", "-qO-", "http://localhost:8081/api/v1/actuator/health"]
-      interval: 10s
-      timeout: 5s
-      retries: 5
-      start_period: 30s
+      test: ["CMD", "wget", "-qO-", "http://localhost:8081/actuator/health"]
+      interval: 15s
+      timeout: 10s
+      retries: 8
+      start_period: 45s
 
   # ==================== DATABASE (PostgreSQL) ====================
   postgres-auth:
@@ -58,13 +85,13 @@ services:
     env_file:
       - backend/auth/.env
     environment:
-      POSTGRES_DB: ${DB_NAME:-pymes_auth}
-      POSTGRES_USER: ${DB_USERNAME:-postgres}
-      POSTGRES_PASSWORD: ${DB_PASSWORD:-postgres}
+      POSTGRES_DB: ${DB_NAME:?DB_NAME is required}
+      POSTGRES_USER: ${DB_USERNAME:?DB_USERNAME is required}
+      POSTGRES_PASSWORD: ${DB_PASSWORD:?DB_PASSWORD is required}
     volumes:
-      - postgres-auth-data:/var/lib/postgresql/data
+      - pymes-postgres-auth-data:/var/lib/postgresql/data
     healthcheck:
-      test: ["CMD-SHELL", "pg_isready -U ${DB_USERNAME:-postgres} -d ${DB_NAME:-pymes_auth}"]
+      test: ["CMD-SHELL", "pg_isready -U $$POSTGRES_USER -d $$POSTGRES_DB"]
       interval: 10s
       timeout: 5s
       retries: 5
@@ -78,7 +105,7 @@ services:
     networks:
       - pymes-internal-network
     volumes:
-      - redis-data:/data
+      - pymes-redis-data:/data
     healthcheck:
       test: ["CMD", "redis-cli", "ping"]
       interval: 10s
@@ -87,16 +114,14 @@ services:
 
 # ==================== VOLUMES ====================
 volumes:
-  postgres-auth-data:
-    name: pymes-postgres-auth-data
-  redis-data:
-    name: pymes-redis-data
+  pymes-postgres-auth-data:
+    external: false
+  pymes-redis-data:
+    external: false
 
 # ==================== NETWORKS ====================
 networks:
   pymes-global-network:
     external: true
-    name: pymes-global-network
   pymes-internal-network:
     external: true
-    name: pymes-internal-network

@@ -1,0 +1,63 @@
+# Perfil de Integración (Testcontainers)
+spring:
+  datasource:
+    driver-class-name: org.postgresql.Driver
+    url: jdbc:postgresql://localhost:5432/testdb
+    username: test
+    password: test
+
+  jpa:
+    hibernate:
+      ddl-auto: none
+    show-sql: false
+    properties:
+      hibernate:
+        dialect: org.hibernate.dialect.PostgreSQLDialect
+        format_sql: true
+
+  flyway:
+    enabled: true
+    locations: classpath:db/migration
+
+  data:
+    redis:
+      repositories:
+        enabled: false
+
+  mail:
+    host: localhost
+    port: 25
+
+  autoconfigure:
+    exclude:
+      - org.springframework.boot.autoconfigure.mail.MailHealthContributorAutoConfiguration
+
+  security:
+    oauth2:
+      client:
+        registration:
+          google:
+            client-id: mock-google-client-id
+            client-secret: mock-google-client-secret
+          facebook:
+            client-id: mock-facebook-client-id
+            client-secret: mock-facebook-client-secret
+
+jwt:
+  secret: 404E635266556A586E3272357538782F413F4428472B4B6250645367566B5970_TEST_SECRET
+  access-expiration: 3600000
+  refresh-expiration: 86400000
+
+server:
+  port: 0
+
+app:
+  cors:
+    allowed-origins: http://localhost:9200
+  frontend:
+    url: http://localhost:9200
+
+management:
+  health:
+    mail:
+      enabled: false

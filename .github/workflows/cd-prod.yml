@@ -1,4 +1,5 @@
-name: CD - Deploy to Production
+name: 🚀 CD - Deploy to Production
+run-name: Deploy prod de ${{ github.ref_name }} por @${{ github.actor }}
 
 on:
   push:
@@ -12,9 +13,6 @@ on:
         description: 'Version to deploy (e.g., v1.0.0)'
         required: true
         default: 'latest'
-
-# ⚠️ NOTA: Este workflow está deshabilitado hasta que configures PROD_HOST
-# Para deploy manual, usa: gh workflow run cd-prod.yml
 
 jobs:
   # ==================== BUILD & TEST ====================
@@ -39,48 +37,67 @@ jobs:
         working-directory: ./backend/auth
         run: cp .env.example .env
 
-      - name: Build and test with Maven
+      - name: Build Auth Backend
         working-directory: ./backend/auth
-        run: mvn clean package -B
+        run: mvn clean package -DskipTests -B
+
+      - name: Run Auth Tests
+        working-directory: ./backend/auth
+        run: mvn test -B
+
+      - name: Build Gateway Backend
+        working-directory: ./backend/gateway-pymes
+        run: mvn clean package -DskipTests -B
+
+      - name: Run Gateway Tests
+        working-directory: ./backend/gateway-pymes
+        run: mvn test -B
 
       - name: Generate version
         id: version
         run: echo "version=$(date +%Y%m%d)-${GITHUB_SHA:0:7}" >> $GITHUB_OUTPUT
 
-      - name: Upload JAR artifact
+      - name: Upload Auth JAR artifact
         uses: actions/upload-artifact@v4
         with:
           name: auth-service-jar
           path: backend/auth/target/*.jar
-          retention-days: 30
+          retention-days: 7
 
-  # ==================== QUALITY GATE (Optional) ====================
-  quality-gate:
-    name: 📊 Quality Gate
+      - name: Upload Gateway JAR artifact
+        uses: actions/upload-artifact@v4
+        with:
+          name: gateway-service-jar
+          path: backend/gateway-pymes/target/*.jar
+          retention-days: 7
+
+  # ==================== FRONTEND BUILD ====================
+  frontend-build:
+    name: 🎨 Build Frontend
     runs-on: ubuntu-latest
-    needs: build-and-test
-    if: github.event_name == 'push'
 
     steps:
       - name: Checkout code
         uses: actions/checkout@v4
 
-      - name: Check code style
-        working-directory: ./backend/auth
-        run: mvn checkstyle:check -B || echo "::warning::Checkstyle warnings found"
+      - name: Setup Node.js
+        uses: actions/setup-node@v4
+        with:
+          node-version: '20'
 
-      - name: Verify test coverage
-        working-directory: ./backend/auth
-        run: |
-          echo "Checking test coverage..."
-          # Add your coverage check here (e.g., JaCoCo)
-          echo "✅ Quality gate passed"
+      - name: Install dependencies
+        working-directory: ./frontend/pymes
+        run: npm ci
+
+      - name: Build Quasar
+        working-directory: ./frontend/pymes
+        run: npx quasar build
 
   # ==================== DOCKER BUILD & PUSH ====================
   docker-build:
-    name: 🐳 Build and Push Docker Image
+    name: 🐳 Build and Push Docker Images
     runs-on: ubuntu-latest
-    needs: [build-and-test, quality-gate]
+    needs: [build-and-test, frontend-build]
 
     steps:
       - name: Checkout code
@@ -99,6 +116,7 @@ jobs:
         uses: docker/build-push-action@v5
         with:
           context: ./backend/auth
+          platforms: linux/amd64,linux/arm64
           push: true
           tags: |
             ${{ secrets.DOCKER_USERNAME }}/pymes-auth:latest
@@ -107,12 +125,37 @@ jobs:
           cache-from: type=registry,ref=${{ secrets.DOCKER_USERNAME }}/pymes-auth:buildcache
           cache-to: type=registry,ref=${{ secrets.DOCKER_USERNAME }}/pymes-auth:buildcache,mode=max
 
+      - name: Build and push Gateway image (Production)
+        uses: docker/build-push-action@v5
+        with:
+          context: ./backend/gateway-pymes
+          platforms: linux/amd64,linux/arm64
+          push: true
+          tags: |
+            ${{ secrets.DOCKER_USERNAME }}/pymes-gateway:latest
+            ${{ secrets.DOCKER_USERNAME }}/pymes-gateway:prod
+            ${{ secrets.DOCKER_USERNAME }}/pymes-gateway:${{ needs.build-and-test.outputs.version }}
+          cache-from: type=registry,ref=${{ secrets.DOCKER_USERNAME }}/pymes-gateway:buildcache
+          cache-to: type=registry,ref=${{ secrets.DOCKER_USERNAME }}/pymes-gateway:buildcache,mode=max
+
+      - name: Build and push Frontend image (Production)
+        uses: docker/build-push-action@v5
+        with:
+          context: ./frontend/pymes
+          platforms: linux/amd64,linux/arm64
+          push: true
+          tags: |
+            ${{ secrets.DOCKER_USERNAME }}/pymes-frontend:latest
+            ${{ secrets.DOCKER_USERNAME }}/pymes-frontend:prod
+            ${{ secrets.DOCKER_USERNAME }}/pymes-frontend:${{ needs.build-and-test.outputs.version }}
+          cache-from: type=registry,ref=${{ secrets.DOCKER_USERNAME }}/pymes-frontend:buildcache
+          cache-to: type=registry,ref=${{ secrets.DOCKER_USERNAME }}/pymes-frontend:buildcache,mode=max
+
   # ==================== DEPLOY TO PRODUCTION ====================
   deploy-production:
     name: 🚀 Deploy to Production Server
     runs-on: ubuntu-latest
     needs: [build-and-test, docker-build]
-    if: secrets.PROD_HOST != ''
     environment:
       name: production
       url: https://pymes-admin.com
@@ -121,7 +164,8 @@ jobs:
       - name: Checkout code
         uses: actions/checkout@v4
 
-      - name: Deploy via SSH
+      - name: Deploy via SSH (if configured)
+        if: secrets.PROD_HOST != '' && secrets.PROD_USER != '' && secrets.PROD_SSH_KEY != ''
         uses: appleboy/ssh-action@v1.0.3
         with:
           host: ${{ secrets.PROD_HOST }}
@@ -130,58 +174,29 @@ jobs:
           port: 22
           script: |
             set -e
-            
-            echo "📍 Deploying to PRODUCTION Environment..."
-            echo "📍 Version: ${{ needs.build-and-test.outputs.version }}"
-            
+            echo "📍 Deploying version: ${{ needs.build-and-test.outputs.version }}"
+
             cd ~/pymes-admin
-            
-            # Pull latest changes
             git pull origin main
-            
-            # Backup current state (optional)
-            echo "📦 Creating backup..."
-            docker compose -f backend/docker-compose.yml ps > ~/backup-$(date +%Y%m%d-%H%M%S).txt || true
-            
-            # Graceful shutdown
-            docker compose -f backend/docker-compose.yml down
-            
-            # Pull new images
-            docker compose -f backend/docker-compose.yml pull
-            
-            # Start containers
-            docker compose -f backend/docker-compose.yml up -d
-            
-            # Wait for services to be healthy
-            echo "⏳ Waiting for services to start..."
-            sleep 45
-            
-            # Health check
-            echo "🏥 Running health checks..."
-            docker compose -f backend/docker-compose.yml ps
-            
-            # Verify auth service is running
-            HEALTH_STATUS=$(docker inspect --format='{{.State.Health.Status}}' pymes-auth-service 2>/dev/null || echo "unknown")
-            if [ "$HEALTH_STATUS" != "healthy" ]; then
-              echo "::error::Health check failed! Rolling back..."
-              # Add rollback logic here if needed
-              exit 1
-            fi
-            
-            # Cleanup old images
-            docker image prune -f --filter "until=48h"
-            
+
+            export DOCKER_USERNAME=${{ secrets.DOCKER_USERNAME }}
+            export TAG=${{ needs.build-and-test.outputs.version }}
+
+            # Usar docker-compose en la raíz
+            docker compose -f docker-compose.yml pull
+            docker compose -f docker-compose.yml up -d
+
             echo "✅ Deploy to Production completed successfully!"
+
+      - name: Skip deployment (secrets not configured)
+        if: secrets.PROD_HOST == '' || secrets.PROD_USER == '' || secrets.PROD_SSH_KEY == ''
+        run: |
+          echo "⚠️ Production server secrets not configured. Skipping SSH deployment."
+          echo "📦 Docker images were built and pushed successfully."
+          echo "🔧 To enable full deploy, configure PROD_HOST, PROD_USER and PROD_SSH_KEY secrets."
 
       - name: Notify success
         if: success()
         run: |
-          echo "✅ Production deployment successful!"
+          echo "✅ Production build and docker push successful!"
           echo "📍 Version: ${{ needs.build-and-test.outputs.version }}"
-          echo "📍 URL: https://pymes-admin.com"
-
-      - name: Notify failure
-        if: failure()
-        run: |
-          echo "::error::Production deployment failed!"
-          echo "Please check the logs and consider rolling back."

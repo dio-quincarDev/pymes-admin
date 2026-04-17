@@ -1,7 +1,8 @@
-# PyMes Admin - SaaS Financial Management Platform 🚀
 
-> **Sistema de Gestión Financiera con IA para PYMEs**  
-> Multi-tenant SaaS platform con toolkit de contabilidad forense impulsado por IA
+# Pymeq - SaaS Financial Management Platform 🚀
+
+> **Sistema de Gestión Financiera con Inteligencia Forense para PYMEs**  
+> Multi-tenant SaaS platform con toolkit de contabilidad forense impulsado por IA.
 
 ---
 
@@ -9,13 +10,13 @@
 
 | Componente | Estado | Tecnología |
 |------------|--------|------------|
-| **Backend Auth** | ✅ Configurado | Java 21 + Spring Boot 3.4.3 |
+| **Backend Auth** | 💎 Core Estabilizado | Java 21 + Spring Boot 3.4.3 (OAuth2 + JWT) |
 | **Frontend** | ✅ Configurado | Quasar 2 + Vue 3 + TypeScript (PWA) |
-| **Database** | ✅ Configurado | PostgreSQL 15 (multi-tenant ready) |
-| **Cache** | ✅ Configurado | Redis 7 |
-| **CI/CD Staging** | ✅ Configurado | GitHub Actions + OCI Free Tier |
-| **CI/CD Producción** | ⏳ Pendiente | Oracle Cloud Free Tier |
-| **IA Toolkit** | 📝 En planificación | Python + FastAPI + Claude API |
+| **Database** | ✅ Configurado | PostgreSQL 15 (Relational Multi-tenancy) |
+| **Cache** | ✅ Configurado | Redis 7 (Blacklist & Permisos) |
+| **CI/CD Staging** | ✅ Configurado | GitHub Actions + OCI (ARM64) |
+| **CI/CD Producción** | ⏳ Pendiente | Oracle Cloud Free Tier (AMD64) |
+| **IA Toolkit** | 📝 Planificación | Python + FastAPI + Claude API |
 
 ---
 
@@ -70,19 +71,23 @@
 └──────────────────┘ └──────────────────┘ └──────────────────┘
 ```
 
-### Multi-tenancy Strategy
+### Multi-tenancy & Edge Security Strategy
 
-```java
-// Estrategia: Schema por tenant (PostgreSQL)
-@Entity
-@Table(name = "gastos", schema = "tenant_schema")
-public class Gasto {
-    // Aislamiento total de datos por cliente
-}
+La plataforma utiliza un modelo de **Seguridad en el Borde (Edge Validation)** para proteger los recursos internos:
+- **API Gateway (Entry Point)**: Única puerta de entrada. Realiza validación criptográfica de JWT y consulta la **Blacklist de Tokens** en Redis (Logout activo).
+- **Propagación de Identidad**: Tras validar el token, el Gateway inyecta cabeceras de identidad (`X-User-Id`, `X-Tenant-Id`, `X-User-Role`) hacia los microservicios internos.
+- **Internal Trust**: Los microservicios internos operan en una red aislada (`pymes-internal-network`) y confían en la identidad pre-validada por el Gateway, optimizando el consumo de CPU y base de datos.
 
-// Alternative: Row-level security con tenant_id
-@Where(clause = "tenant_id = :tenantId")
-public class Transaccion { ... }
+### 📦 Estrategia de Caché (Redis)
+
+| Servicio | Prefijo | Propósito |
+|----------|---------|-----------|
+| **Global** | `auth:token_blacklist:` | Revocación inmediata de sesiones (Logout) |
+| **Auth** | `auth:session:` | Cache de permisos y sesiones activas |
+| **Core** | `core:cache:` | Optimización de queries multi-tenant |
+
+```bash
+# Ejemplo keys: auth:session:{user_id}, core:cache:gastos:{tenant_id}
 ```
 
 ---
@@ -137,7 +142,7 @@ npm run dev
 
 # Backend (otra terminal)
 cd backend/auth
-./mvnw spring-boot:run
+./mvnw spring-boot:run -Pdev # Levanta el perfil de desarrollo
 ```
 
 ### Deploy en Servidor (Staging)
@@ -293,10 +298,11 @@ pymes-admin/
 ## 📊 Roadmap
 
 ### Fase 1: MVP Multi-tenant (Q2 2026)
-- [ ] Core features multi-tenant
-- [ ] Escaneo QR facturas
-- [ ] Reportes básicos
-- [ ] IA básica: detección anomalías
+- [x] **Core Auth Estabilizado**: OAuth2, Gestión de Invitaciones y Roles.
+- [ ] **Auth Local**: Registro y Login con usuario/contraseña.
+- [ ] **Core Business Service**: Gestión de gastos, ingresos y facturación.
+- [ ] **Escaneo QR Facturas**: Implementación en la PWA.
+- [ ] **IA Básica**: Detección de anomalías en transacciones.
 
 ### Fase 2: Beta con Usuarios Piloto (Q3 2026)
 - [ ] 10-20 negocios piloto
@@ -332,7 +338,7 @@ Para escalar el proyecto y mantener un pipeline de CI/CD robusto, se implementar
 
 ## 📄 Licencia
 
-MIT License - ver [LICENSE](LICENSE)
+Apache License 2.0 - ver [LICENSE](LICENSE)
 
 ---
 
@@ -347,6 +353,6 @@ MIT License - ver [LICENSE](LICENSE)
 **PyMes Admin** - Empoderando PYMEs con IA 💡
 
 [![CI/CD](https://github.com/dio-quincarDev/pymes-admin/actions/workflows/ci.yml/badge.svg)](https://github.com/dio-quincarDev/pymes-admin/actions)
-[![License: MIT](https://img.shields.io/badge/License-MIT-yellow.svg)](https://opensource.org/licenses/MIT)
+[![License: Apache 2.0](https://img.shields.io/badge/License-Apache_2.0-blue.svg)](https://www.apache.org/licenses/LICENSE-2.0)
 
 </div>

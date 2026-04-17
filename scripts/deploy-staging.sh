@@ -3,15 +3,16 @@
 # =============================================================================
 # PyMes Admin - Deploy Script for CI/CD
 # =============================================================================
-# Este script se ejecuta en el servidor de staging durante el deploy
-# Asume que Docker, Git y las dependencias ya están instaladas
-# Uso: ./scripts/deploy-staging.sh
+# Este script se ejecuta en el servidor de staging durante el deploy.
+# Uso: DOCKER_USERNAME=xxx TAG=xxx ./scripts/deploy-staging.sh
 # =============================================================================
 
 set -e
 
 echo "🚀 PyMes Admin - Staging Deploy"
 echo "================================"
+# No imprimimos el DOCKER_USERNAME completo por seguridad si fuera sensible
+echo "📍 Tag: ${TAG:-latest}"
 echo ""
 
 # =============================================================================
@@ -20,8 +21,12 @@ echo ""
 REPO_DIR="$HOME/pymes-admin"
 cd $REPO_DIR
 
+# Exportar para que docker-compose las vea (necesario para las imágenes en el .yml)
+export DOCKER_USERNAME=${DOCKER_USERNAME}
+export TAG=${TAG}
+
 # =============================================================================
-# 1. Pull Latest Changes
+# 1. Pull Latest Changes (Solo para actualizar scripts y docker-compose.yml)
 # =============================================================================
 echo "📥 Pulling latest changes from develop..."
 git pull origin develop
@@ -29,45 +34,38 @@ echo "✅ Code updated"
 echo ""
 
 # =============================================================================
-# 2. Stop Existing Containers
+# 2. Pull New Docker Images
 # =============================================================================
-echo "🛑 Stopping existing containers..."
-docker compose -f docker-compose.yml down
-echo "✅ Containers stopped"
-echo ""
-
-# =============================================================================
-# 3. Pull New Docker Images
-# =============================================================================
-echo "🐳 Pulling new Docker images..."
+echo "🐳 Pulling new Docker images from registry..."
 docker compose -f docker-compose.yml pull
 echo "✅ Images pulled"
 echo ""
 
 # =============================================================================
-# 4. Start Services
+# 3. Restart Services
 # =============================================================================
-echo "▶️  Starting services..."
+echo "▶️  Updating services..."
+# 'up -d' recreará solo los contenedores que tengan cambios en su imagen o config
 docker compose -f docker-compose.yml up -d
-echo "✅ Services started"
+echo "✅ Services updated and started"
 echo ""
 
 # =============================================================================
-# 5. Wait for Services to be Healthy
+# 4. Wait for Services
 # =============================================================================
-echo "⏳ Waiting for services to start..."
+echo "⏳ Waiting for services to stabilize (30s)..."
 sleep 30
 echo ""
 
 # =============================================================================
-# 6. Verify Deployment
+# 5. Verify Deployment
 # =============================================================================
-echo "🔍 Verifying deployment..."
+echo "🔍 Verifying deployment status..."
 docker compose -f docker-compose.yml ps
 echo ""
 
 # =============================================================================
-# 7. Cleanup Old Images
+# 6. Cleanup
 # =============================================================================
 echo "🧹 Cleaning up old images..."
 docker image prune -f --filter "until=24h"
@@ -75,20 +73,16 @@ echo "✅ Cleanup completed"
 echo ""
 
 # =============================================================================
-# Done
+# Summary
 # =============================================================================
 echo "======================================================================"
 echo "✅ Deploy to Staging completed!"
 echo "======================================================================"
 echo ""
-echo "📊 Services running:"
-echo "   - Frontend: http://localhost:9000"
-echo "   - Auth Service: http://localhost:8081/api/v1"
-echo "   - PostgreSQL: localhost:5432 (internal)"
-echo "   - Redis: localhost:6379 (internal)"
+echo "📊 Services status:"
+echo "   - Frontend:    http://localhost:9000 (Proxy)"
+echo "   - API Gateway: http://localhost:8080"
+echo "   - Auth Svc:    http://localhost:8081/api/v1"
 echo ""
-echo "🔧 Useful commands:"
-echo "   - View logs: docker compose -f docker-compose.yml logs -f"
-echo "   - Restart: docker compose -f docker-compose.yml restart"
-echo "   - Stop: docker compose -f docker-compose.yml down"
-echo ""
+echo "🔧 Logs: docker compose logs -f [service_name]"
+echo "======================================================================"

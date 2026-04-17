@@ -1,0 +1,29 @@
+# Gateway Perfil Desarrollo Local
+server:
+  port: 8080
+
+spring:
+  data:
+    redis:
+      host: ${REDIS_HOST:localhost}
+      port: 6379
+
+  cloud:
+    gateway:
+      routes:
+        - id: auth-service
+          uri: http://${AUTH_SERVICE_HOST:localhost}:8081
+          predicates:
+            - Path=/api/v1/**
+
+        # Swagger/OpenAPI spec - Auth Service (public)
+        # Naming convention: /v3/api-docs/{service-name}
+        - id: swagger-api-docs-auth
+          uri: http://${AUTH_SERVICE_HOST:localhost}:8081
+          predicates:
+            - Path=/v3/api-docs/auth
+
+logging:
+  level:
+    org.springframework.cloud.gateway: DEBUG
+    dev.dioquincar: DEBUG

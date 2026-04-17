@@ -1,1 +1,39 @@
-// app global css in SCSS form
+/* Global App Styles: Fintech Design System */
+
+/* Background Global */
+body {
+  background-color: $dark-page;
+  color: $secondary;
+  font-family: 'Roboto', sans-serif;
+}
+
+/* Mesh Gradient for Text (Copper 135deg) */
+.mesh-text-gradient {
+  color: #A3785E; /* Brand Copper solid */
+  font-weight: 800;
+  display: inline-block;
+}
+
+/* Tight Shadows: sombras cerradas para delimitación clara */
+.q-card, .tight-shadow {
+  box-shadow: 0 4px 10px rgba(0, 0, 0, 0.5) !important;
+  border: 1px solid rgba(113, 131, 127, 0.1); /* Sutil borde Sage */
+}
+
+/* Brand Glows: Micro-interacciones de brillo */
+.brand-glow {
+  box-shadow: 0 0 15px rgba(163, 120, 94, 0.3);
+}
+
+/* Interaction: Press Feedback & Scale */
+.q-btn {
+  transition: transform 0.2s cubic-bezier(0.4, 0, 0.2, 1);
+  &:active {
+    transform: scale(0.96);
+  }
+}
+
+/* Surface Surfaces */
+.bg-surface-pine {
+  background-color: $dark !important;
+}

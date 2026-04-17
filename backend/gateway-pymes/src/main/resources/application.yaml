@@ -1,0 +1,80 @@
+server:
+  port: 8080
+
+spring:
+  profiles:
+    active: @spring.profiles.active@
+  application:
+    name: pymes-gateway
+
+  data:
+    redis:
+      host: ${REDIS_HOST}
+      port: ${REDIS_PORT:6379}
+
+  cloud:
+    gateway:
+      routes:
+        # Public routes (no authentication)
+        # CORS se maneja globalmente en CorsGlobalFilter (Java)
+        - id: auth-public
+          uri: http://${AUTH_SERVICE_HOST}:8081
+          predicates:
+            - Path=/api/v1/auth/register, /api/v1/auth/login, /api/v1/auth/refresh, /api/v1/auth/verify-email, /api/v1/auth/resend-verification, /api/v1/auth/forgot-password, /api/v1/auth/reset-password, /api/v1/oauth2/**, /api/v1/login/**
+          filters:
+            - PreserveHostHeader
+
+        # Swagger/OpenAPI spec - Auth Service (public)
+        - id: swagger-api-docs-auth
+          uri: http://${AUTH_SERVICE_HOST}:8081
+          predicates:
+            - Path=/v3/api-docs/auth
+          filters:
+            - PreserveHostHeader
+
+        # Protected routes (require authentication)
+        - id: auth-protected
+          uri: http://${AUTH_SERVICE_HOST}:8081
+          predicates:
+            - Path=/api/v1/auth/logout, /api/v1/auth/me, /api/v1/tenants/**, /api/v1/invitations/**
+          filters:
+            - PreserveHostHeader
+            - AuthenticationFilter
+
+      globalcors:
+        add-to-simple-url-handler-mapping: true
+        cors-configurations:
+          '[/**]':
+            allowed-origin-patterns: "http://localhost:9*"
+            allowed-methods: "*"
+            allowed-headers: "*"
+            allow-credentials: true
+      default-filters:
+        - DedupeResponseHeader=Access-Control-Allow-Origin Access-Control-Allow-Credentials, RETAIN_FIRST
+
+jwt:
+  secret: ${jwt.secret:change-this-secret-key-in-production-minimum-256-bits}
+
+# ==================== SWAGGER AGGREGATION ====================
+# Each service's API docs are exposed via Gateway with named paths.
+# To add a new service:
+#   1. Add a route above (swagger-api-docs-{name})
+#   2. Add an entry to the urls list below
+#   3. Configure the service with: springdoc.api-docs.path=/v3/api-docs/{name}
+springdoc:
+  swagger-ui:
+    enabled: true
+    path: /swagger-ui.html
+    config-url: /v3/api-docs/swagger-config
+    urls:
+      - name: Auth Service
+        url: /v3/api-docs/auth
+
+management:
+  endpoints:
+    web:
+      exposure:
+        include: health,info
+  endpoint:
+    health:
+      show-details: always
