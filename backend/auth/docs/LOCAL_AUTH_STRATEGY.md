@@ -75,7 +75,7 @@ src/test/java/
 
 ---
 
-## 6. Roadmap de Ejecución (Actualizado 2026-04-12)
+## 6. Roadmap de Ejecución (Actualizado 2026-04-16)
 
 ### ✅ Completado recientemente
 - [x] **Desacoplamiento total**: Separación en dominios Auth, User, Tenant, Member e Invitation.
@@ -95,6 +95,7 @@ src/test/java/
 - [x] **Refresh Token Rotation (RTR)**: Rotación atómica con detección de reuso y revocación masiva. ✅ COMPLETADO.
 - [x] **JWT Uniqueness (jti)**: Incorporación de `jti` claim para evitar colisiones de hash en DB. ✅ COMPLETADO.
 - [x] **Data Integrity**: Migración V5 con restricción `UNIQUE` en `token_hash`. ✅ COMPLETADO.
+- [x] **Flexibilidad TenantService**: Soporte para Authentication genérica (JWT/OAuth2). ✅ COMPLETADO.
 
 ### 🔧 Fix Docker (2026-04-11)
 - [x] **Testcontainers** actualizado `1.20.5` → `1.21.4`. Docker 29.x requiere API ≥1.44; la versión antigua usaba `docker-java` con API 1.32.
@@ -144,9 +145,10 @@ src/test/java/
 ### 🔴 Fase 1: Seguridad & Integridad Crítica
 1. ~~**CORS Fix**~~: ✅ Implementado `CorsConfigurationSource` bean (2026-04-13).
 2. ~~**Email Real (JavaMailSender)**~~: ✅ Envío de emails HTML implementado (2026-04-13).
-3. **Alertas de Seguridad**: Implementar notificaciones activas (Webhooks/Slack) cuando se detecte un reuso de Refresh Token.
-4. **PKCE (Proof Key for Code Exchange)**: Implementar flujo para aplicaciones móviles/SPA.
-5. **Device Fingerprinting**: Registro de dispositivos confiables y detección de anomalías de ubicación.
+3. ~~**Flexibilidad de Identidad**~~: ✅ TenantService soporta JWT y OAuth2 (2026-04-16).
+4. **Alertas de Seguridad**: Implementar notificaciones activas (Webhooks/Slack) cuando se detecte un reuso de Refresh Token.
+5. **PKCE (Proof Key for Code Exchange)**: Implementar flujo para aplicaciones móviles/SPA.
+6. **Device Fingerprinting**: Registro de dispositivos confiables y detección de anomalías de ubicación.
 
 ### 🟡 Fase 2: Identidad & Social
 3. **MFA (Multi-Factor Authentication)**: Soporte para TOTP (Google Authenticator).
@@ -190,19 +192,31 @@ Durante las pruebas de carga y tests de integración, se detectó una colisión 
 - Se incorporó el claim **`jti` (JWT ID)** usando `UUID.randomUUID()`.
 - Esto garantiza que cada string de JWT sea único, eliminando colisiones de hash en la base de datos.
 
-### 🏗️ Integridad en DB (Migración V5)
+---
 
-Se reforzó la seguridad a nivel físico mediante una migración de Flyway:
-```sql
-ALTER TABLE refresh_tokens ADD CONSTRAINT refresh_tokens_token_hash_unique UNIQUE (token_hash);
-```
-Esto garantiza que Hibernate y PostgreSQL trabajen en sincronía, evitando errores de resultados no únicos.
+## 13. Estrategia Híbrida JWT/OAuth2 (Implementado 2026-04-16) 🛡️🤝
+
+### 🎯 El Problema
+Existía una fuerte dependencia de la clase `OAuth2User` en los servicios de Tenant. Esto impedía que los usuarios registrados localmente (que se autentican via JWT) pudieran crear empresas o cambiar de tenant activo, ya que el principal inyectado por el `JwtAuthenticationFilter` era un `UserEntity`, no un `OAuth2User`.
+
+### 📐 Solución Arquitectónica
+Se desacopló la capa de servicio de la implementación específica de Spring Security:
+1. **Interfaz Genérica**: Los controladores ahora reciben `Authentication`.
+2. **Extracción de Identidad**: Se implementó una lógica de inspección en `TenantServiceImpl`:
+   - Si el principal es `OAuth2User`, extrae el atributo `email`.
+   - Si el principal es `UserEntity`, extrae `getEmail()`.
+   - Fallback a `getName()` para máxima compatibilidad.
+
+Este cambio permite un flujo de frontend unificado donde el usuario puede iniciar la creación de su "Espacio" (Tenant) y luego elegir si autenticarse localmente o via Social Login sin perder el contexto.
+
+---
 
 ### 🧪 Cobertura de Tests
 - **Detección de Reuso**: Test unitario verifica la eliminación masiva de tokens ante intentos de reuso.
 - **Transaccionalidad**: Tests de integración validan que el token se marque como usado y se persista el nuevo en una sola operación.
+- **Identidad Híbrida**: 6 nuevos tests unitarios verifican la extracción de identidad para OAuth2User y UserEntity.
 
 ---
 
 ### 📊 Calificación de Salud Arquitectónica: 10/10
-> Sistema de seguridad de grado bancario implementado. RTR con detección de reuso, protección contra colisiones de tokens y validación atómica en DB. SaaS-Ready y listo para escalado enterprise. 🚀
+> Sistema de seguridad de grado bancario implementado. Soporte híbrido JWT/OAuth2 completo, RTR con detección de reuso, protección contra colisiones de tokens y validación atómica en DB. SaaS-Ready y listo para escalado enterprise. 🚀

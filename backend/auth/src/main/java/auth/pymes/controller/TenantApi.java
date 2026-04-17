@@ -13,8 +13,7 @@ import jakarta.validation.Valid;
 import org.springframework.data.domain.Page;
 import org.springframework.data.domain.Pageable;
 import org.springframework.http.ResponseEntity;
-import org.springframework.security.core.annotation.AuthenticationPrincipal;
-import org.springframework.security.oauth2.core.user.OAuth2User;
+import org.springframework.security.core.Authentication;
 import org.springframework.web.bind.annotation.GetMapping;
 import org.springframework.web.bind.annotation.PostMapping;
 import org.springframework.web.bind.annotation.RequestBody;
@@ -28,17 +27,17 @@ public interface TenantApi {
     @GetMapping
     ResponseEntity<ApiResponse<Page<UserTenantResponse>>> getUserTenants(
             Pageable pageable,
-            @AuthenticationPrincipal OAuth2User principal);
+            Authentication authentication);
 
     @Operation(summary = "Seleccionar tenant activo", description = "Cambia el tenant activo para el usuario")
     @PostMapping(ApiPathConstants.TENANTS_SELECT)
     ResponseEntity<ApiResponse<AuthResponse>> selectTenant(
             @Valid @RequestBody SelectTenantRequest request,
-            @AuthenticationPrincipal OAuth2User principal);
+            Authentication authentication);
 
     @Operation(summary = "Crear nuevo tenant", description = "Crea una nueva empresa/tenant para el usuario autenticado")
     @PostMapping
     ResponseEntity<ApiResponse<TenantResponse>> createTenant(
             @Valid @RequestBody CreateTenantRequest request,
-            @AuthenticationPrincipal OAuth2User principal);
+            Authentication authentication);
 }

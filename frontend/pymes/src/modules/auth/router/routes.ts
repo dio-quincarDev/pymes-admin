@@ -7,6 +7,11 @@ export const authRoutes: RouteRecordRaw[] = [
     component: () => import('../pages/LoginPage.vue'),
   },
   {
+    path: '/auth-options',
+    name: 'auth-options',
+    component: () => import('../pages/AuthOptionsPage.vue'),
+  },
+  {
     path: '/register',
     name: 'register',
     component: () => import('../pages/RegisterPage.vue'),
@@ -15,5 +20,11 @@ export const authRoutes: RouteRecordRaw[] = [
     path: '/auth/callback',
     name: 'auth-callback',
     component: () => import('../pages/AuthCallback.vue'),
+  },
+  {
+    path: '/verify',
+    name: 'verify-email',
+    component: () => import('../pages/VerifyEmailPage.vue'),
+    meta: { requiresAuth: false }
   }
 ];

@@ -13,7 +13,7 @@ import lombok.extern.slf4j.Slf4j;
 import org.springframework.data.domain.Page;
 import org.springframework.data.domain.Pageable;
 import org.springframework.http.ResponseEntity;
-import org.springframework.security.oauth2.core.user.OAuth2User;
+import org.springframework.security.core.Authentication;
 import org.springframework.web.bind.annotation.RestController;
 
 @RestController
@@ -25,22 +25,22 @@ public class TenantApiController implements TenantApi {
 
     @Override
     public ResponseEntity<ApiResponse<Page<UserTenantResponse>>> getUserTenants(
-            Pageable pageable, OAuth2User principal) {
-        Page<UserTenantResponse> tenants = tenantService.getUserTenants(pageable, principal);
+            Pageable pageable, Authentication authentication) {
+        Page<UserTenantResponse> tenants = tenantService.getUserTenants(pageable, authentication);
         return ResponseEntity.ok(ApiResponse.ok(tenants));
     }
 
     @Override
     public ResponseEntity<ApiResponse<AuthResponse>> selectTenant(
-            SelectTenantRequest request, OAuth2User principal) {
-        AuthResponse response = tenantService.selectTenant(request, principal);
+            SelectTenantRequest request, Authentication authentication) {
+        AuthResponse response = tenantService.selectTenant(request, authentication);
         return ResponseEntity.ok(ApiResponse.ok(response));
     }
 
     @Override
     public ResponseEntity<ApiResponse<TenantResponse>> createTenant(
-            CreateTenantRequest request, OAuth2User principal) {
-        TenantResponse tenant = tenantService.createTenant(request, principal);
+            CreateTenantRequest request, Authentication authentication) {
+        TenantResponse tenant = tenantService.createTenant(request, authentication);
         return ResponseEntity.ok(ApiResponse.ok(tenant));
     }
 }

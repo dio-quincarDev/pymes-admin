@@ -45,6 +45,67 @@ Tras la reconstrucción en Docker (modo PWA), el navegador accede a `http://loca
 1. **Depuración en Consola (Navegador):** Revisar errores de JavaScript (F12) para confirmar si es un fallo de inicialización de la App.
 2. **Validación de Componentes:** Verificar que los componentes de Quasar se cargan correctamente en la arquitectura modular (posible necesidad de imports explícitos en `quasar.config.ts`).
 3. **Limpieza de Persistencia:** Forzar borrado de `localStorage` y Service Workers en el navegador para asegurar un arranque limpio.
+---
+
+## 🚩 Feature Pendiente: Verificación de Email (2026-04-16)
+
+### Problema Identificado
+
+El sistema de autenticación **SÍ requiere verificación de email**, pero la implementación está incompleta en el frontend:
+
+| Etapa | Estado | Descripción |
+|------|--------|-------------|
+| **Registro** | ✅ | Backend envía email de verificación (`AuthServiceImpl.java:110`) |
+| **Login** | ✅ | Verifica `isEmailVerified()` antes de autenticar (líneas 137-140) |
+| **API Gateway** | ✅ | Ruta `/api/v1/auth/verify-email` expuesta como pública |
+| **Frontend** | ❌ | **NO existe** ruta `/verify` ni página de verificación |
+
+### Flujo Esperado vs Actual
+
+**Esperado:**
+1. Usuario se registra
+2. Sistema envia email con link: `http://localhost:9000/#/verify?token=xxx`
+3. Usuario hace clic en el enlace
+4. Frontend muestra página de verificación
+5. Sistema valida token → marca email como verificado
+6. Usuario puede hacer login
+
+**Actual:**
+1. Usuario se registra ✅
+2. Sistema envia email con link ❌ **El enlace no funciona**
+3. Intenta hacer login → Error "Email not verified" ❌ **Usuario bloqueado**
+
+### Rutas Faltantes en Frontend
+
+```typescript
+// src/modules/auth/router/routes.ts - FALTA:
+{
+  path: '/verify',
+  name: 'verify-email',
+  component: () => import('../pages/VerifyEmailPage.vue'),
+}
+```
+
+### Endpoints Involucrados
+
+| Endpoint | Método | Descripción |
+|----------|--------|-------------|
+| `/api/v1/auth/verify-email` | POST | Valida token y marca email como verificado |
+| `/api/v1/auth/resend-verification` | POST | Reenvía token de verificación |
+
+### Impacto
+
+- **Usuario nuevo:** Queda bloqueado tras registro - no puede fazer login
+- **Experiencia de usuario:** No hay forma de completar la verificación
+
+### Solución Sugerida
+
+1. Crear página `VerifyEmailPage.vue`
+2. Agregar ruta `/verify` al router
+3. Manejar query param `token`
+4. Llamar a `/api/v1/auth/verify-email`
+5. Mostrar UI de éxito/error al usuario
 
 ---
+
 *Documento generado por el equipo de arquitectura de Pymeq.*

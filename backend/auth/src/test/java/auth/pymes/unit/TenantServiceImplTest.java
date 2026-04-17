@@ -19,6 +19,9 @@ import auth.pymes.repositories.UserEntityRepository;
 import auth.pymes.repositories.UserTenantRepository;
 import auth.pymes.service.JwtService;
 import auth.pymes.service.impl.TenantServiceImpl;
+import auth.pymes.utils.exception.auth.AuthorizationException;
+import auth.pymes.utils.exception.custom.InvalidInputException;
+import org.junit.jupiter.api.DisplayName;
 import org.junit.jupiter.api.Test;
 import org.junit.jupiter.api.extension.ExtendWith;
 import org.mockito.InjectMocks;
@@ -28,14 +31,12 @@ import org.springframework.data.domain.Page;
 import org.springframework.data.domain.PageImpl;
 import org.springframework.data.domain.PageRequest;
 import org.springframework.data.domain.Pageable;
+import org.springframework.security.core.Authentication;
 import org.springframework.security.oauth2.core.user.OAuth2User;
 
 import java.util.List;
 import java.util.Optional;
 import java.util.UUID;
-
-import auth.pymes.utils.exception.custom.InvalidInputException;
-import auth.pymes.utils.exception.custom.ResourceNotFoundException;
 
 import static org.assertj.core.api.Assertions.assertThat;
 import static org.assertj.core.api.Assertions.assertThatThrownBy;
@@ -43,6 +44,7 @@ import static org.mockito.ArgumentMatchers.any;
 import static org.mockito.Mockito.*;
 
 @ExtendWith(MockitoExtension.class)
+@DisplayName("Unit Tests - TenantServiceImpl")
 public class TenantServiceImplTest {
 
     @Mock
@@ -62,32 +64,71 @@ public class TenantServiceImplTest {
     private TenantServiceImpl tenantService;
 
     @Test
-    void getUserTenants_WithValidPrincipal_ReturnsPageOfUserTenantResponses() {
-        OAuth2User principal = mock(OAuth2User.class);
-        String email = "test@example.com";
-        when(principal.getAttribute("email")).thenReturn(email);
+    @DisplayName("getUserTenants - Con Principal OAuth2User → Retorna página de tenants")
+    void getUserTenants_WithOAuth2User_ReturnsPage() {
+        // Arrange
+        String email = "oauth2@example.com";
+        OAuth2User oAuth2User = mock(OAuth2User.class);
+        when(oAuth2User.getAttribute("email")).thenReturn(email);
+
+        Authentication auth = mock(Authentication.class);
+        when(auth.getPrincipal()).thenReturn(oAuth2User);
 
         UserEntity user = UserEntity.builder().id(UUID.randomUUID()).email(email).build();
         when(userRepository.findByEmail(email)).thenReturn(Optional.of(user));
 
         Pageable pageable = PageRequest.of(0, 10);
-        Tenant tenant = Tenant.builder().id(UUID.randomUUID()).name("Tenant Name").slug("slug").build();
-        UserTenant userTenant = UserTenant.builder().tenantId(tenant.getId()).tenant(tenant).role(RoleName.ADMIN).isActive(true).build();
+        Tenant tenant = Tenant.builder().id(UUID.randomUUID()).name("OAuth2 Corp").slug("oauth2-corp").build();
+        UserTenant userTenant = UserTenant.builder().tenantId(tenant.getId()).tenant(tenant).role(RoleName.OWNER).isActive(true).build();
         Page<UserTenant> userTenantPage = new PageImpl<>(List.of(userTenant), pageable, 1);
 
         when(userTenantRepository.findByUserIdAndIsActiveTrue(user.getId(), pageable)).thenReturn(userTenantPage);
 
-        Page<UserTenantResponse> response = tenantService.getUserTenants(pageable, principal);
+        // Act
+        Page<UserTenantResponse> response = tenantService.getUserTenants(pageable, auth);
 
+        // Assert
         assertThat(response.getContent()).hasSize(1);
-        assertThat(response.getContent().get(0).tenantName()).isEqualTo("Tenant Name");
+        assertThat(response.getContent().get(0).tenantName()).isEqualTo("OAuth2 Corp");
+        verify(userRepository).findByEmail(email);
     }
 
     @Test
-    void selectTenant_WithValidRequest_ReturnsAuthResponse() {
-        OAuth2User principal = mock(OAuth2User.class);
-        String email = "test@example.com";
-        when(principal.getAttribute("email")).thenReturn(email);
+    @DisplayName("createTenant - Con Principal UserEntity (JWT) → Crea tenant exitosamente")
+    void createTenant_WithUserEntityPrincipal_Success() {
+        // Arrange
+        String email = "jwt@example.com";
+        UserEntity user = UserEntity.builder().id(UUID.randomUUID()).email(email).build();
+        
+        Authentication auth = mock(Authentication.class);
+        when(auth.getPrincipal()).thenReturn(user);
+
+        when(userRepository.findByEmail(email)).thenReturn(Optional.of(user));
+        when(userTenantRepository.countByUserIdAndRole(user.getId(), RoleName.OWNER)).thenReturn(0L);
+        when(tenantRepository.existsBySlug("new-space")).thenReturn(false);
+
+        Tenant savedTenant = Tenant.builder().id(UUID.randomUUID()).name("New Space").slug("new-space").plan(PlanName.FREE).build();
+        when(tenantRepository.save(any(Tenant.class))).thenReturn(savedTenant);
+        when(tenantMapper.toResponse(any())).thenReturn(new TenantResponse(savedTenant.getId(), "New Space", "new-space", PlanName.FREE, "TECH", null));
+
+        CreateTenantRequest request = new CreateTenantRequest("New Space", "new-space", "TECH");
+
+        // Act
+        TenantResponse response = tenantService.createTenant(request, auth);
+
+        // Assert
+        assertThat(response.name()).isEqualTo("New Space");
+        verify(tenantRepository).save(any(Tenant.class));
+    }
+
+    @Test
+    @DisplayName("selectTenant - Con Principal String (Fallback) → Retorna AuthResponse")
+    void selectTenant_WithStringPrincipal_Success() {
+        // Arrange
+        String email = "fallback@example.com";
+        Authentication auth = mock(Authentication.class);
+        when(auth.getPrincipal()).thenReturn("NotAUserEntityOrOAuth2User");
+        when(auth.getName()).thenReturn(email);
 
         UserEntity user = UserEntity.builder().id(UUID.randomUUID()).email(email).build();
         when(userRepository.findByEmail(email)).thenReturn(Optional.of(user));
@@ -98,78 +139,69 @@ public class TenantServiceImplTest {
         UserTenant userTenant = UserTenant.builder().userId(user.getId()).tenantId(tenantId).role(RoleName.ADMIN).isActive(true).build();
         when(userTenantRepository.findByUserIdAndTenantId(user.getId(), tenantId)).thenReturn(Optional.of(userTenant));
 
-        Tenant tenant = Tenant.builder().id(tenantId).name("Tenant Name").plan(PlanName.FREE).isActive(true).build();
+        Tenant tenant = Tenant.builder().id(tenantId).name("Select Corp").plan(PlanName.FREE).isActive(true).build();
         when(tenantRepository.findById(tenantId)).thenReturn(Optional.of(tenant));
 
         when(userMapper.toResponse(any())).thenReturn(new UserEntityResponse(user.getId(), email, "Name", null, AuthProvider.LOCAL));
-        when(tenantMapper.toResponse(any())).thenReturn(new TenantResponse(tenant.getId(), tenant.getName(), "slug", PlanName.FREE, "TECH", null));
+        when(tenantMapper.toResponse(any())).thenReturn(new TenantResponse(tenant.getId(), tenant.getName(), "select-corp", PlanName.FREE, "TECH", null));
 
-        when(jwtService.generateAccessToken(any(), any(), any(), any())).thenReturn("access");
-        when(jwtService.generateRefreshToken(user)).thenReturn("refresh");
+        when(jwtService.generateAccessToken(any(), any(), any(), any())).thenReturn("new-access-token");
+        when(jwtService.generateRefreshToken(user)).thenReturn("new-refresh-token");
 
-        AuthResponse response = tenantService.selectTenant(request, principal);
+        // Act
+        AuthResponse response = tenantService.selectTenant(request, auth);
 
-        assertThat(response.accessToken()).isEqualTo("access");
+        // Assert
+        assertThat(response.accessToken()).isEqualTo("new-access-token");
+        verify(userRepository).findByEmail(email);
     }
 
     @Test
-    void createTenant_WithValidRequest_ReturnsTenantResponse() {
-        OAuth2User principal = mock(OAuth2User.class);
-        String email = "owner@example.com";
-        when(principal.getAttribute("email")).thenReturn(email);
+    @DisplayName("createTenant - Límite de Plan FREE excedido → Lanza InvalidInputException")
+    void createTenant_LimitExceeded_ThrowsException() {
+        // Arrange
+        UserEntity user = UserEntity.builder().id(UUID.randomUUID()).email("owner@example.com").build();
+        Authentication auth = mock(Authentication.class);
+        when(auth.getPrincipal()).thenReturn(user);
 
-        UserEntity user = UserEntity.builder().id(UUID.randomUUID()).email(email).build();
-        when(userRepository.findByEmail(email)).thenReturn(Optional.of(user));
-
-        CreateTenantRequest request = new CreateTenantRequest("Mi Empresa", "mi-empresa", "TECHNOLOGY");
-        when(tenantRepository.existsBySlug("mi-empresa")).thenReturn(false);
-        when(userTenantRepository.countByUserIdAndRole(user.getId(), RoleName.OWNER)).thenReturn(0L);
-
-        Tenant savedTenant = Tenant.builder().id(UUID.randomUUID()).name("Mi Empresa").plan(PlanName.FREE).build();
-        when(tenantRepository.save(any(Tenant.class))).thenReturn(savedTenant);
-        when(tenantMapper.toResponse(any())).thenReturn(new TenantResponse(savedTenant.getId(), "Mi Empresa", "mi-empresa", PlanName.FREE, "TECH", null));
-
-        TenantResponse response = tenantService.createTenant(request, principal);
-
-        assertThat(response.name()).isEqualTo("Mi Empresa");
-    }
-
-    @Test
-    void createTenant_WhenUserAlreadyHasOneFreeTenant_ThrowsInvalidInputException() {
-        OAuth2User principal = mock(OAuth2User.class);
-        String email = "owner@example.com";
-        when(principal.getAttribute("email")).thenReturn(email);
-
-        UserEntity user = UserEntity.builder().id(UUID.randomUUID()).email(email).build();
-        when(userRepository.findByEmail(email)).thenReturn(Optional.of(user));
-
-        CreateTenantRequest request = new CreateTenantRequest("Second Tenant", "second-tenant", "TECHNOLOGY");
+        when(userRepository.findByEmail(user.getEmail())).thenReturn(Optional.of(user));
         when(userTenantRepository.countByUserIdAndRole(user.getId(), RoleName.OWNER)).thenReturn(1L);
 
-        assertThatThrownBy(() -> tenantService.createTenant(request, principal))
+        CreateTenantRequest request = new CreateTenantRequest("Too Many", "too-many", "TECH");
+
+        // Act & Assert
+        assertThatThrownBy(() -> tenantService.createTenant(request, auth))
                 .isInstanceOf(InvalidInputException.class)
                 .hasMessageContaining("FREE tenants");
     }
 
     @Test
-    void createTenant_WhenUserHasTenantsButNotAsOwner_ReturnsTenantResponse() {
-        OAuth2User principal = mock(OAuth2User.class);
-        String email = "member@example.com";
-        when(principal.getAttribute("email")).thenReturn(email);
+    @DisplayName("getEmailFromAuthentication - Authentication null → Lanza AuthorizationException")
+    void getEmail_NullAuth_ThrowsException() {
+        assertThatThrownBy(() -> tenantService.getUserTenants(PageRequest.of(0, 10), null))
+                .isInstanceOf(AuthorizationException.class)
+                .hasMessageContaining("No authentication found");
+    }
 
-        UserEntity user = UserEntity.builder().id(UUID.randomUUID()).email(email).build();
-        when(userRepository.findByEmail(email)).thenReturn(Optional.of(user));
+    @Test
+    @DisplayName("getEmailFromAuthentication - Principal no soportado → Lanza fallback a getName()")
+    void getEmail_UnknownPrincipal_UsesGetName() {
+        // Arrange
+        Authentication auth = mock(Authentication.class);
+        when(auth.getPrincipal()).thenReturn(new Object());
+        when(auth.getName()).thenReturn("fallback@example.com");
 
-        CreateTenantRequest request = new CreateTenantRequest("Mi Empresa", "mi-empresa", "TECHNOLOGY");
-        when(userTenantRepository.countByUserIdAndRole(user.getId(), RoleName.OWNER)).thenReturn(0L);
-        when(tenantRepository.existsBySlug("mi-empresa")).thenReturn(false);
+        UserEntity user = UserEntity.builder().id(UUID.randomUUID()).email("fallback@example.com").build();
+        when(userRepository.findByEmail("fallback@example.com")).thenReturn(Optional.of(user));
 
-        Tenant savedTenant = Tenant.builder().id(UUID.randomUUID()).name("Mi Empresa").plan(PlanName.FREE).build();
-        when(tenantRepository.save(any(Tenant.class))).thenReturn(savedTenant);
-        when(tenantMapper.toResponse(any())).thenReturn(new TenantResponse(savedTenant.getId(), "Mi Empresa", "mi-empresa", PlanName.FREE, "TECH", null));
+        Pageable pageable = PageRequest.of(0, 10);
+        when(userTenantRepository.findByUserIdAndIsActiveTrue(any(), any())).thenReturn(new PageImpl<>(List.of()));
 
-        TenantResponse response = tenantService.createTenant(request, principal);
+        // Act
+        tenantService.getUserTenants(pageable, auth);
 
-        assertThat(response.name()).isEqualTo("Mi Empresa");
+        // Assert
+        verify(auth).getName();
+        verify(userRepository).findByEmail("fallback@example.com");
     }
 }

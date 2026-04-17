@@ -9,13 +9,9 @@ body {
 
 /* Mesh Gradient for Text (Copper 135deg) */
 .mesh-text-gradient {
-  background: radial-gradient(at 0% 0%, #A3785E 0%, transparent 50%),
-              radial-gradient(at 100% 100%, #71837F 0%, transparent 50%);
-  background-clip: text;
-  -webkit-background-clip: text;
-  color: transparent;
+  color: #A3785E; /* Brand Copper solid */
+  font-weight: 800;
   display: inline-block;
-  font-weight: bold;
 }
 
 /* Tight Shadows: sombras cerradas para delimitación clara */

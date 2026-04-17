@@ -72,6 +72,9 @@ public enum CodigoError {
     
     // ==================== RESOURCE NOT FOUND (404) ====================
     RESOURCE_NOT_FOUND("RSC001", "The requested resource was not found", HttpStatus.NOT_FOUND),
+
+    // ==================== METHOD NOT ALLOWED (405) ====================
+    METHOD_NOT_ALLOWED("RSC002", "HTTP method not allowed for this endpoint", HttpStatus.METHOD_NOT_ALLOWED),
     
     // ==================== INTERNAL ERRORS (500) ====================
     INTERNAL_SERVER_ERROR("ERR999", "An unexpected error occurred", HttpStatus.INTERNAL_SERVER_ERROR);

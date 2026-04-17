@@ -20,5 +20,13 @@ export const authService = {
   
   refreshToken(token: string) {
     return api.post('/auth/refresh', { refreshToken: token });
+  },
+
+  verifyEmail(token: string) {
+    return api.post('/auth/verify-email', { token });
+  },
+
+  resendVerification(email: string) {
+    return api.post('/auth/resend-verification', { email });
   }
 };

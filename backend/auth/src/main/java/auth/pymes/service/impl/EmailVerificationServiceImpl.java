@@ -88,21 +88,23 @@ public class EmailVerificationServiceImpl implements EmailVerificationService {
             throw new DuplicateResourceException(CodigoError.EMAIL_ALREADY_VERIFIED);
         }
 
-        generateVerificationToken(user);
-        sendVerificationEmail(user);
-        return null;
+        String token = generateVerificationToken(user);
+        sendVerificationEmail(user, token);
+        return token;
     }
 
     @Override
     @Transactional
     public void createAndSendVerificationEmail(UserEntity user) {
         String token = generateVerificationToken(user);
-        sendVerificationEmail(user);
+        sendVerificationEmail(user, token);
         log.info("Email de verificación enviado a: {}", user.getEmail());
     }
 
-    private void sendVerificationEmail(UserEntity user) {
-        String verifyUrl = frontendUrl + "/verify?token=" + generateSecureTokenForEmail(user);
+    private void sendVerificationEmail(UserEntity user, String token) {
+        // Usamos el puerto 9200 para PWA y el prefijo /#/ para hash routing de Quasar
+        String baseUrl = frontendUrl.replace(":9000", ":9200");
+        String verifyUrl = baseUrl + "/#/verify?token=" + token + "&email=" + java.net.URLEncoder.encode(user.getEmail(), java.nio.charset.StandardCharsets.UTF_8);
 
         try {
             MimeMessage message = mailSender.createMimeMessage();

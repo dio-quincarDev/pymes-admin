@@ -25,6 +25,7 @@ import lombok.RequiredArgsConstructor;
 import lombok.extern.slf4j.Slf4j;
 import org.springframework.data.domain.Page;
 import org.springframework.data.domain.Pageable;
+import org.springframework.security.core.Authentication;
 import org.springframework.security.oauth2.core.user.OAuth2User;
 import org.springframework.stereotype.Service;
 import org.springframework.transaction.annotation.Transactional;
@@ -46,8 +47,8 @@ public class TenantServiceImpl implements TenantService {
     private final UserMapper userMapper;
 
     @Override
-    public Page<UserTenantResponse> getUserTenants(Pageable pageable, OAuth2User principal) {
-        String email = principal.getAttribute("email");
+    public Page<UserTenantResponse> getUserTenants(Pageable pageable, Authentication authentication) {
+        String email = getEmailFromAuthentication(authentication);
         UserEntity user = userRepository.findByEmail(email)
                 .orElseThrow(() -> new ResourceNotFoundException(USER_NOT_FOUND_BY_EMAIL, email));
 
@@ -65,8 +66,8 @@ public class TenantServiceImpl implements TenantService {
 
     @Override
     @Transactional
-    public AuthResponse selectTenant(SelectTenantRequest request, OAuth2User principal) {
-        String email = principal.getAttribute("email");
+    public AuthResponse selectTenant(SelectTenantRequest request, Authentication authentication) {
+        String email = getEmailFromAuthentication(authentication);
         UserEntity user = userRepository.findByEmail(email)
                 .orElseThrow(() -> new ResourceNotFoundException(USER_NOT_FOUND_BY_EMAIL, email));
 
@@ -95,8 +96,8 @@ public class TenantServiceImpl implements TenantService {
 
     @Override
     @Transactional
-    public TenantResponse createTenant(CreateTenantRequest request, OAuth2User principal) {
-        String email = principal.getAttribute("email");
+    public TenantResponse createTenant(CreateTenantRequest request, Authentication authentication) {
+        String email = getEmailFromAuthentication(authentication);
         UserEntity user = userRepository.findByEmail(email)
                 .orElseThrow(() -> new ResourceNotFoundException(USER_NOT_FOUND_BY_EMAIL, email));
 
@@ -133,5 +134,21 @@ public class TenantServiceImpl implements TenantService {
         log.info("Usuario {} creó tenant {} ({})", user.getEmail(), tenant.getName(), tenant.getId());
 
         return tenantMapper.toResponse(tenant);
+    }
+
+    private String getEmailFromAuthentication(Authentication authentication) {
+        if (authentication == null) {
+            throw new AuthorizationException(TOKEN_INVALID, "No authentication found");
+        }
+        
+        Object principal = authentication.getPrincipal();
+        if (principal instanceof OAuth2User oAuth2User) {
+            return oAuth2User.getAttribute("email");
+        } else if (principal instanceof UserEntity userEntity) {
+            return userEntity.getEmail();
+        }
+        
+        // Fallback para UsernamePasswordAuthenticationToken con string (principal)
+        return authentication.getName();
     }
 }

@@ -7,6 +7,10 @@ FROM node:20-alpine AS build
 
 WORKDIR /app
 
+#ARG for API_URL
+ARG API_URL
+ENV API_URL=${API_URL}
+
 # Install dependencies (including devDependencies for build)
 COPY package*.json ./
 RUN npm ci --ignore-scripts

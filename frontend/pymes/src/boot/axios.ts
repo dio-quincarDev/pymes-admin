@@ -15,7 +15,7 @@ const api = axios.create({
 
 // Interceptor para añadir el Token en cada petición
 api.interceptors.request.use((config) => {
-  const token = localStorage.getItem('pymes_auth_token');
+  const token = localStorage.getItem('pymeq_token');
   if (token) {
     config.headers.Authorization = `Bearer ${token}`;
   }
@@ -30,8 +30,10 @@ api.interceptors.response.use(
   (error) => {
     if (error.response && error.response.status === 401) {
       // Limpiar sesión y redirigir al login si el token es inválido/expirado
-      localStorage.removeItem('pymes_auth_token');
-      // window.location.href = '/login'; // Opcional, mejor usar router en el componente
+      localStorage.removeItem('pymeq_token');
+      localStorage.removeItem('pymeq_refresh_token');
+      localStorage.removeItem('pymeq_user');
+      // window.location.href = '#/login';
     }
     return Promise.reject(new Error(error instanceof Error ? error.message : String(error)));
   }

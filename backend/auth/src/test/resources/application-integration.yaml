@@ -1,11 +1,11 @@
 # Perfil de Integración (Testcontainers)
 spring:
   datasource:
-    # Estos valores son sobreescritos dinámicamente por AbstractIntegrationTest
     driver-class-name: org.postgresql.Driver
+    url: jdbc:postgresql://localhost:5432/testdb
     username: test
     password: test
-  
+
   jpa:
     hibernate:
       ddl-auto: none
@@ -24,6 +24,14 @@ spring:
       repositories:
         enabled: false
 
+  mail:
+    host: localhost
+    port: 25
+
+  autoconfigure:
+    exclude:
+      - org.springframework.boot.autoconfigure.mail.MailHealthContributorAutoConfiguration
+
   security:
     oauth2:
       client:
@@ -36,10 +44,20 @@ spring:
             client-secret: mock-facebook-client-secret
 
 jwt:
-  # Secreto de prueba (solo para tests de integración)
-  secret: ${JWT_SECRET_TEST:404E635266556A586E3272357538782F413F4428472B4B6250645367566B5970_TEST_SECRET}
+  secret: 404E635266556A586E3272357538782F413F4428472B4B6250645367566B5970_TEST_SECRET
   access-expiration: 3600000
   refresh-expiration: 86400000
 
 server:
   port: 0
+
+app:
+  cors:
+    allowed-origins: http://localhost:9200
+  frontend:
+    url: http://localhost:9200
+
+management:
+  health:
+    mail:
+      enabled: false

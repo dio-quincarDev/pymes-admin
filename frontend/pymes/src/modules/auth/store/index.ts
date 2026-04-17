@@ -3,10 +3,23 @@ import { api } from 'src/boot/axios';
 import { authService } from '../services/auth.service';
 import type { User, LoginRequest, RegisterRequest, ApiResponse, AuthResponse } from '../types';
 
+const safeParse = <T>(key: string, defaultValue: T): T => {
+  const item = localStorage.getItem(key);
+  if (!item) return defaultValue;
+  try {
+    return JSON.parse(item) as T;
+  } catch (e) {
+    console.error(`Error parsing localStorage key "${key}":`, e);
+    localStorage.removeItem(key);
+    return defaultValue;
+  }
+};
+
 export const useAuthStore = defineStore('auth', {
   state: () => ({
-    user: JSON.parse(localStorage.getItem('pymeq_user') || 'null') as User | null,
+    user: safeParse<User | null>('pymeq_user', null),
     accessToken: localStorage.getItem('pymeq_token') || null,
+    pendingTenant: safeParse<{ name: string; slug: string } | null>('pymeq_pending_tenant', null),
     loading: false,
     error: null as string | null,
   }),
@@ -16,6 +29,16 @@ export const useAuthStore = defineStore('auth', {
   },
 
   actions: {
+    setPendingTenant(name: string, slug: string) {
+      this.pendingTenant = { name, slug };
+      localStorage.setItem('pymeq_pending_tenant', JSON.stringify(this.pendingTenant));
+    },
+
+    clearPendingTenant() {
+      this.pendingTenant = null;
+      localStorage.removeItem('pymeq_pending_tenant');
+    },
+
     async login(credentials: LoginRequest) {
       this.loading = true;
       this.error = null;

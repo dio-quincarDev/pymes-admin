@@ -93,8 +93,6 @@ management:
       enabled: true
 
 app:
-  cors:
-    allowed-origins: ${CORS_ALLOWED_ORIGINS}
   frontend:
     url: ${APP_FRONTEND_URL:http://localhost:9000}
 

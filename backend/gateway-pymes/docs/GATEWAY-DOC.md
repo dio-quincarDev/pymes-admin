@@ -229,6 +229,65 @@ springdoc:
     api-docs:
       enabled: false
   ```
+---
+
+### 9. Configuración CORS - Problema "Invalid CORS request" (2026-04-16)
+
+**Estado:** ❌ PENDIENTE - Necesita solución
+
+#### Problema Actual
+
+| Petición | Resultado | Headers CORS |
+|----------|----------|-------------|
+| **OPTIONS** (preflight) | 200 OK | ✅ Enviados |
+| **POST** (registro) | 403 Forbidden | ❌ Bloqueado con "Invalid CORS request" |
+
+#### Síntomas
+
+```
+HTTP/1.1 403 Forbidden
+Vary: Origin
+Vary: Access-Control-Request-Method
+Vary: Access-Control-Request-Headers
+Access-Control-Allow-Origin: *
+...
+Invalid CORS request
+```
+
+#### Intentos de Solución Realizados
+
+| # | Solución Intentada | Ubicación | Resultado |
+|---|------------------|-----------|----------|
+| 1 | Custom CorsWebFilter (AbstractGatewayFilterFactory) | `gateway-pymes/filter/CorsWebFilter.java` | ❌ No se ejecuta - llega OPTIONS al backend |
+| 2 | Custom CorsGlobalFilter (GlobalFilter + @Order(HIGHEST_PRECEDENCE)) | `gateway-pymes/filter/CorsGlobalFilter.java` | ❌ No se ejecuta - processor interno de Spring lo intercepta antes |
+| 3 | Custom WebFilter (@Order(Ordered.HIGHEST_PRECEDENCE)) | `gateway-pymes/filter/CorsGlobalFilter.java` | ⚠️ OPTIONS = 200 OK, POST = 403 |
+| 4 | globalcors con allowedOrigins específicos | `application.yaml` | ❌ 403 "Invalid CORS request" |
+| 5 | globalcors con allowedOrigins: "\*" | `application.yaml` | ❌ 403 "Invalid CORS request" |
+| 6 | globalcors deshabilitado | `application.yaml` | ❌ OPTIONS llega al backend sin headers CORS |
+| 7 | Handler HttpRequestMethodNotSupportedException | `GlobalExceptionHandler.java` (auth) | ✅ Agregado pero no resuelve CORS |
+| 8 | Corrección variable JWT_SECRET | `.env` + `docker-compose.yml` | ✅ Resuelve error de inicio |
+
+#### Archivos Modificados Durante la Investigación
+
+- `backend/auth/.../GlobalExceptionHandler.java` - Agregado handler para `HttpRequestMethodNotSupportedException`
+- `backend/auth/.../CodigoError.java` - Agregado código `METHOD_NOT_ALLOWED` (RSC002)
+- `.env` - Actualizado con `CORS_ALLOWED_ORIGINS=http://localhost:9200`, `jwt.secret`
+- `docker-compose.yml` - Agregado `JWT_SECRET` para gateway
+- `gateway-pymes/application.yaml` - globalcors configurado, comentado y variado múltiples veces
+
+#### Causa Raíz Identificada (Investigación)
+
+- **Bug conocido en Spring Cloud Gateway 3.2.0+**: El procesador interno de CORS de Spring Web intercepta las peticiones CORS antes de que `globalcors` pueda procesarlas correctamente.
+- Los headers `Vary: Origin` en la respuesta indican que el processor interno de Spring está interfiriendo.
+- Referencias: GitHub Issues #31839, #1690, #2472, #3435 de Spring Cloud Gateway
+
+#### Soluciones a Investigar Próximas
+
+1. Agregar `default-filters: DedupeResponseHeader` para evitar duplicación de headers CORS
+2. Configurar CORS en Security del Gateway explícitamente (WebFilter + SecurityWebFilterChain)
+3. Deshabilitar CORS en microservicio Auth completamente (dejar que solo el gateway maneje CORS)
+4. Usar `allowedOriginPatterns` en lugar de `allowedOrigins`
 
 ---
-*Última actualización: 13 de Abril, 2026*
+
+*Última actualización: 16 de Abril, 2026*
