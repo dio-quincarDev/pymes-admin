@@ -51,6 +51,7 @@ public class SecurityConfig {
             // Actuator
             "/actuator/**",
             // OAuth2 login endpoint
+            "/oauth2/**",
             "/login/**",
             // Error page
             "/error",

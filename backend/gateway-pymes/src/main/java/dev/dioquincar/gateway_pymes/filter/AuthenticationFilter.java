@@ -13,27 +13,32 @@ import org.springframework.stereotype.Component;
 import org.springframework.web.server.ServerWebExchange;
 import reactor.core.publisher.Mono;
 
-import java.util.List;
-
 @Component
 @Slf4j
 public class AuthenticationFilter extends AbstractGatewayFilterFactory<AuthenticationFilter.Config> {
 
     private final JwtUtils jwtUtils;
     private final ReactiveRedisTemplate<String, String> redisTemplate;
-    
+    private final RouterValidator routerValidator;
+
     private static final String BLACKLIST_PREFIX = "auth:token_blacklist:";
 
-    public AuthenticationFilter(JwtUtils jwtUtils, ReactiveRedisTemplate<String, String> redisTemplate) {
+    public AuthenticationFilter(JwtUtils jwtUtils, ReactiveRedisTemplate<String, String> redisTemplate, RouterValidator routerValidator) {
         super(Config.class);
         this.jwtUtils = jwtUtils;
         this.redisTemplate = redisTemplate;
+        this.routerValidator = routerValidator;
     }
 
     @Override
     public GatewayFilter apply(Config config) {
         return (exchange, chain) -> {
             ServerHttpRequest request = exchange.getRequest();
+
+            // 0. Si la ruta es pública (whitelist), no aplicar seguridad
+            if (!routerValidator.isSecured.test(request)) {
+                return chain.filter(exchange);
+            }
 
             // 1. Obtener el token del header Authorization
             if (!request.getHeaders().containsKey(HttpHeaders.AUTHORIZATION)) {
@@ -62,7 +67,7 @@ public class AuthenticationFilter extends AbstractGatewayFilterFactory<Authentic
 
                         // 4. Inyectar claims en los headers para los microservicios internos
                         Claims claims = jwtUtils.getClaims(token);
-                        
+
                         ServerHttpRequest mutatedRequest = exchange.getRequest().mutate()
                                 .header("X-User-Id", String.valueOf(claims.get("userId")))
                                 .header("X-User-Email", claims.getSubject())

@@ -220,3 +220,106 @@ Este cambio permite un flujo de frontend unificado donde el usuario puede inicia
 
 ### 📊 Calificación de Salud Arquitectónica: 10/10
 > Sistema de seguridad de grado bancario implementado. Soporte híbrido JWT/OAuth2 completo, RTR con detección de reuso, protección contra colisiones de tokens y validación atómica en DB. SaaS-Ready y listo para escalado enterprise. 🚀
+
+---
+
+## 14. OAuth2 via Gateway (Implementado 2026-04-17) 🌐🔐
+
+### 🎯 El Problema Inicial
+El flujo OAuth2 no funcionaba porque:
+1. Las rutas OAuth2 (`/oauth2/**`) no estaban definidas en los perfiles (dev/stg/prod) del Gateway
+2. El Auth Service no tenía `/oauth2/**` en la whitelist de SecurityConfig
+3. El redirect URI apuntaba al puerto interno (8081) en lugar del Gateway (8080)
+
+### 📐 Solución Implementada
+
+**1. Gateway Routes (application-dev/stg/prod.yaml):**
+```yaml
+routes:
+  - id: auth-service-oauth2
+    uri: http://${AUTH_SERVICE_HOST:localhost}:8081
+    predicates:
+      - Path=/oauth2/**, /login/oauth2/**, /login/**, /v3/api-docs/auth
+    filters:
+      - PreserveHostHeader
+```
+
+**2. Auth Service SecurityConfig (SecurityConfig.java):**
+```java
+private static final String[] WHITE_LIST = {
+    // ...
+    "/oauth2/**",   // <-- Agregado
+    "/login/**",
+    // ...
+};
+```
+
+**3. Redirect URI Configurable (application.yaml):**
+```yaml
+security:
+  oauth2:
+    client:
+      registration:
+        google:
+          redirect-uri: "${OAUTH2_REDIRECT_URI:http://localhost:8080}/login/oauth2/code/google"
+        facebook:
+          redirect-uri: "${OAUTH2_REDIRECT_URI:http://localhost:8080}/login/oauth2/code/facebook"
+```
+
+**4. Variables de Entorno (.env):**
+```env
+OAUTH2_REDIRECT_URI=http://localhost:8080
+GOOGLE_CLIENT_ID=TU_CLIENT_ID_AQUI
+GOOGLE_CLIENT_SECRET=TU_CLIENT_SECRET_AQUI
+```
+
+### ✅ Validaciones Requeridas en Google Cloud Console
+
+Para que OAuth2 funcione, en **Google Cloud Console** → **APIs & Services** → **Credentials**:
+
+1. **Authorized JavaScript origins:**
+   ```
+   http://localhost:9200
+   ```
+
+2. **Authorized redirect URIs:**
+   ```
+   http://localhost:8080/login/oauth2/code/google
+   ```
+
+3. **OAuth consent screen:** Agregar email como test user (para apps no verificadas)
+
+### 🔲 Pendiente: Facebook OAuth2
+
+- **Estado**: ⏳ No testeado
+- **Credenciales**: Ya configuradas en `.env` (CLIENT_ID y CLIENT_SECRET)
+- **Redirect URI esperado**: `http://localhost:8080/login/oauth2/code/facebook`
+- **Validación requerida**: Registrar el redirect URI en Facebook Developer Console
+
+### ⚠️ Problema Conocido: Usuario OAuth2 sin Tenant
+
+**Descripción**: Al crear usuario via OAuth2 (Google), no se genera la relación en `user_tenants`, causando:
+- `tenant_id = null` en JWT generado
+- `tenant_id = null` en `refresh_tokens` insert
+
+**Causa raíz**: `CustomOAuth2UserService` no crea/asocia tenant automáticamente para usuarios OAuth2 (a diferencia del registro local que hace registro atómico User + Tenant + UserTenant).
+
+**Tabla de evidencia:**
+```sql
+-- Usuario creado
+SELECT id, email FROM users WHERE email = 'zar.ivan10@gmail.com';
+-- ✓ Usuario existe
+
+-- Relación vacía
+SELECT * FROM user_tenants WHERE user_id = 'df02cf6a-f59d-49d3-9f3f-854cde25d980';
+-- ✗ Sin registros - PROBLEMA AQUÍ
+```
+
+**Solución pendiente**: Modificar `CustomOAuth2UserService` para replicar la lógica de registro atómico:
+1. Crear Tenant con plan FREE
+2. Crear UserTenant con rol OWNER
+3. Asignar tenant_id al generar JWT
+
+---
+
+*Documentado: 2026-04-17*

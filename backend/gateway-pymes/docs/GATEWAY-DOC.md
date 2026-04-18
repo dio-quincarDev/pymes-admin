@@ -291,3 +291,54 @@ Invalid CORS request
 ---
 
 *Última actualización: 16 de Abril, 2026*
+
+---
+
+### 10. OAuth2 via Gateway - Rutas para Social Login (2026-04-17)
+
+**Problema:** Las rutas OAuth2 (`/oauth2/**`) no estaban definidas en los perfiles del Gateway, causando 404 al intentar login con Google/Facebook desde el frontend.
+
+**Causa:** Spring Cloud Gateway no mergea listas de rutas entre el `application.yaml` base y los perfiles (dev/stg/prod). Las rutas del perfil sobrescriben completamente las del base.
+
+**Solución implementada:**
+
+En `application-dev.yaml`, `application-stg.yaml`, `application-prod.yaml`:
+```yaml
+routes:
+  - id: auth-service-oauth2
+    uri: http://${AUTH_SERVICE_HOST:localhost}:8081
+    predicates:
+      - Path=/oauth2/**, /login/oauth2/**, /login/**, /v3/api-docs/auth
+    filters:
+      - PreserveHostHeader
+```
+
+**Validación requerida en consoles de desarrolladores:**
+
+| Proveedor | Redirect URI |
+|-----------|--------------|
+| **Google** | `http://localhost:8080/login/oauth2/code/google` |
+| **Facebook** | `http://localhost:8080/login/oauth2/code/facebook` |
+
+**Flujo resultante:**
+```
+Frontend (:9200) 
+  → Gateway (:8080/oauth2/authorization/google) 
+    → Auth Service (8081) 
+      → Google OAuth 
+        → Redirect a :8080/login/oauth2/code/google
+```
+
+**Variables de entorno relacionadas:**
+```env
+# En backend/auth/.env
+OAUTH2_REDIRECT_URI=http://localhost:8080
+GOOGLE_CLIENT_ID=...
+GOOGLE_CLIENT_SECRET=...
+```
+
+---
+
+**Estado:** ✅ Google funcionando | ⏳ Facebook pendiente
+
+*Última actualización: 17 de Abril, 2026*

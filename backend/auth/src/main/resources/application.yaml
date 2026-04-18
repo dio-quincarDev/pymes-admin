@@ -48,12 +48,12 @@ spring:
             client-id: ${GOOGLE_CLIENT_ID}
             client-secret: ${GOOGLE_CLIENT_SECRET}
             scope: email, profile
-            redirect-uri: "{baseUrl}/login/oauth2/code/google"
+            redirect-uri: "${OAUTH2_REDIRECT_URI:http://localhost:8080}/login/oauth2/code/google"
           facebook:
             client-id: ${FACEBOOK_CLIENT_ID}
             client-secret: ${FACEBOOK_CLIENT_SECRET}
             scope: email, public_profile
-            redirect-uri: "{baseUrl}/login/oauth2/code/facebook"
+            redirect-uri: "${OAUTH2_REDIRECT_URI:http://localhost:8080}/login/oauth2/code/facebook"
         provider:
           google:
             issuer-uri: https://accounts.google.com

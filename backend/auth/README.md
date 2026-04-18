@@ -29,6 +29,11 @@ Implementación de un motor de seguridad atómico en `JwtService`:
 - Inclusión del claim **`jti` (JWT ID)** en cada token generado.
 - Garantiza unicidad criptográfica absoluta, eliminando colisiones de hash en la base de datos incluso bajo condiciones de alta concurrencia.
 
+### 🌐 OAuth2 (Google/Social Login)
+- **Google**: ✅ Funcionando via Gateway (configurable via `OAUTH2_REDIRECT_URI`)
+- **Facebook**: ⏳ Pendiente de configuración
+- Configuración en `application.yaml` con variables de entorno
+
 ### 🛡️ Perímetro Endurecido
 - **Rate Limiting**: Bloqueo inteligente por combinación `IP:Email` en login (5 intentos → 429).
 - **Password Hashing**: BCrypt con validación de fortaleza (mínimo 1 letra + 1 número).
@@ -63,10 +68,17 @@ Ruta base: `/api/v1`
 | Recurso | Endpoint | Operación Crítica |
 |---------|----------|-------------------|
 | **Auth** | `/register` | Registro atómico: User + Tenant FREE + Rol OWNER. |
+| **Auth** | `/login` | Login con email/password. |
 | **Auth** | `/refresh` | Rotación de tokens con validación de reuso. |
 | **Auth** | `/verify-email` | Verificación de identidad vía Redis (TTL 15m). |
+| **Auth** | `/forgot-password` | Recuperación de contraseña vía Redis. |
+| **Auth** | `/reset-password` | Reset de contraseña con token válido. |
+| **OAuth2** | `/oauth2/authorization/google` | Redirección a Google OAuth2. |
+| **OAuth2** | `/login/oauth2/code/google` | Callback de Google OAuth2. |
 | **Tenants**| `/select` | Cambio de contexto de empresa con regeneración de tokens. |
 | **Members**| `/{userId}/role` | Cambio de rol con validación de jerarquía de poder. |
+
+> **Nota**: Los endpoints OAuth2 están disponibles también via Gateway en puerto 8080 (ruta `/oauth2/**`).
 
 ---
 
@@ -89,9 +101,19 @@ Ruta base: `/api/v1`
 |------|-------------|--------|
 | 🔴 **Fase 1** | **RTR + Reuse Detection + jti uniqueness** | ✅ COMPLETADO |
 | 🟡 **Fase 2** | ✅ Verificación de email + ✅ Recuperación de contraseña | ✅ COMPLETADO |
-| 🟡 **Fase 3** | **CORS Real Bean + Alertas Activas de Seguridad** | ⏳ Siguiente |
-| 🟢 **Fase 4** | PKCE para SPAs + Device Fingerprinting | 📅 En Plan |
-| 🔵 **Fase 5** | Enterprise: MFA (TOTP), SSO / SAML, Ownership Transfer | 📅 Backlog |
+| 🟡 **Fase 3** | ✅ OAuth2 Google funcionando + 🔲 Facebook Pendiente | ⚠️ Parcial |
+| 🟢 **Fase 4** | CORS Real Bean + Alertas Activas de Seguridad | ⏳ Siguiente |
+| 🔵 **Fase 5** | PKCE para SPAs + Device Fingerprinting | 📅 En Plan |
+| 🔵 **Fase 6** | Enterprise: MFA (TOTP), SSO / SAML, Ownership Transfer | 📅 Backlog |
+
+### ⚠️ Problema Conocido
+
+**Usuario OAuth2 sin Tenant**: Al crear usuario via OAuth2 (Google), no se genera la relación en `user_tenants`, causando `tenant_id = null` en JWT y refresh_tokens.
+
+- **Causa**: `CustomOAuth2UserService` no crea/asocia tenant automáticamente
+- **Solución**: Pendiente - requiere modificar el servicio para replicar lógica de registro atómico
+
+> Ver documentación detallada en: `docs/LOCAL_AUTH_STRATEGY.md`
 
 ---
 
