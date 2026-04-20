@@ -2,6 +2,8 @@
 
 Este documento define la arquitectura para integrar la autenticación por usuario/contraseña y el sistema de permisos jerárquicos, alineado con la visión de la plataforma SaaS PyMes Admin.
 
+---
+
 ## 1. Evolución del Modelo de Datos (IA & SaaS Ready)
 
 ### UserEntity (Identidad Universal)
@@ -23,7 +25,7 @@ El registro local no es solo un `INSERT` de usuario, es el **Aprovisionamiento d
   2. Crear `UserEntity` (Dueño).
   3. Crear `Tenant` (Empresa) con **Plan FREE** por defecto (`maxUsers = 1`).
   4. Vincular mediante `UserTenant` con rol **`OWNER`**.
-- **Límites de Plan**: 
+- **Límites de Plan**:
   - El `AuthService` validará que las invitaciones no superen el `maxUsers` del Tenant.
   - El `TenantService` validará que un usuario en Plan FREE no pueda crear más de 1 empresa como OWNER.
 
@@ -46,279 +48,85 @@ Se implementará seguridad en dos capas:
 
 ---
 
-## 5. Testing con Testcontainers (Implementado 2026-04-09)
+## 5. Testing con Testcontainers
 
-### ✅ Infraestructura de tests de integración configurada
+### ✅ Infraestructura de tests de integración
 
 **Estructura:**
 ```
 src/test/java/
-├── unit/                    # Unit tests existentes (Mockito) → 39 tests
-└── integration/             # Integration tests (Testcontainers) → 17 tests
-    ├── AbstractIntegrationTest.java  # Clase base con PostgreSQL + Redis
-    ├── AuthApplicationTests.java     # Context load test
+├── unit/                    # Unit tests (Mockito)
+└── integration/             # Integration tests (Testcontainers)
+    ├── AbstractIntegrationTest.java  # PostgreSQL + Redis
+    ├── AuthApplicationTests.java     # Context load
     └── api/
-        └── AuthApiIntegrationTest.java  # Tests de endpoints Auth API
+        └── AuthApiIntegrationTest.java  # Endpoints
 ```
 
-**Lo que se eliminó:**
-- [x] **H2** → Eliminado del pom.xml
-- [x] **application-test.yaml** → Se mantiene para compatibilidad pero ya no se usa en integración
+**依赖:**
+- `spring-boot-testcontainers`
+- `testcontainers:junit-jupiter`
+- `testcontainers:postgresql`
+- `testcontainers:redis`
 
-**Lo que se agregó:**
-- [x] **Dependencias**: `spring-boot-testcontainers`, `testcontainers:junit-jupiter`, `testcontainers:postgresql`
-- [x] **Maven Failsafe Plugin** → Corre tests del paquete `integration` en `mvn verify`
-- [x] **Maven Surefire** → Excluye paquete `integration` en `mvn test`
-- [x] **`.testcontainers.properties`** → `reuse.enable=true` para desarrollo
-- [x] **`application-integration.yaml`** → Config con Flyway activo, sin H2
-- [x] **`AbstractIntegrationTest`** → Clase base con contenedores `postgres:15-alpine` + `redis:7-alpine`, `@DynamicPropertySource`
+**Configuración:**
+- `.testcontainers.properties` → `reuse.enable=true`
+- `AbstractIntegrationTest` → `postgres:15-alpine` + `redis:7-alpine`
 
 ---
 
-## 6. Roadmap de Ejecución (Actualizado 2026-04-16)
+## 6. Roadmap de Próximos Pasos 📋
 
-### ✅ Completado recientemente
-- [x] **Desacoplamiento total**: Separación en dominios Auth, User, Tenant, Member e Invitation.
-- [x] **Estandarización de Mappers**: Uso profesional de MapStruct en todos los servicios.
-- [x] **Refactor de DTOs**: Eliminación de redundancia entre `UserTenantResponse` y `MemberResponse`.
-- [x] **Unit Tests JWT**: Cobertura del 100% en generación, validación y seguridad de firmas.
-- [x] **Eliminar `JwtTokenProvider`**: Bean zombie legacy eliminado.
-- [x] **Refactor `OAuth2AuthenticationSuccessHandler`**: `RuntimeException` → `ResourceNotFoundException`.
-- [x] **Validación de Password**: Regex en `RegisterRequest` (mínimo 1 letra + 1 número).
-- [x] **Límite de Plan FREE**: Usuario OWNER solo puede crear 1 tenant FREE.
-- [x] **Rate Limiting IP + Email**: Bloqueo por combinación `IP:email` en login.
-- [x] **Testcontainers**: Tests de integración contra PostgreSQL real + Redis real con Flyway.
-- [x] **SecurityConfig API-REST**: AuthenticationEntryPoint + AccessDeniedHandler (sin redirecciones 302).
-- [x] **Refactor `JwtAuthenticationFilter`**: 6 catch blocks de JJWT → 1 `catch (AuthApiException)`. Delegación a `JwtService.validateToken()`.
-- [x] **Bug `filterChain.doFilter` tras error**: Corregido con `return` inmediato.
-- [x] **Refactor `AuthApiController`**: Eliminado `RequestContextHolder`. Inyección explícita de `HttpServletRequest`.
-- [x] **Refresh Token Rotation (RTR)**: Rotación atómica con detección de reuso y revocación masiva. ✅ COMPLETADO.
-- [x] **JWT Uniqueness (jti)**: Incorporación de `jti` claim para evitar colisiones de hash en DB. ✅ COMPLETADO.
-- [x] **Data Integrity**: Migración V5 con restricción `UNIQUE` en `token_hash`. ✅ COMPLETADO.
-- [x] **Flexibilidad TenantService**: Soporte para Authentication genérica (JWT/OAuth2). ✅ COMPLETADO.
-
-### 🔧 Fix Docker (2026-04-11)
-- [x] **Testcontainers** actualizado `1.20.5` → `1.21.4`. Docker 29.x requiere API ≥1.44; la versión antigua usaba `docker-java` con API 1.32.
-
-### ✅ Verificación de Email (2026-04-11)
-- [x] **Migración V4**: Columna `email_verified_at` nullable en `users` + índice parcial.
-- [x] **UserEntity**: Campo `emailVerifiedAt` + helpers `isEmailVerified()`, `markEmailAsVerified()`.
-- [x] **Redis**: Tokens de verificación en `email:verify:{token}` → email, TTL 15 min.
-- [x] **Servicio**: `EmailVerificationService` (generate, verify, resend).
-- [x] **Excepción**: `EmailVerificationTokenInvalidException` (VER002).
-- [x] **Códigos de error**: VER001-VER004 en `CodigoError`.
-- [x] **Endpoints**: `POST /auth/verify-email`, `POST /auth/resend-verification`.
-- [x] **Register**: Genera token de verificación automáticamente.
-- [x] **Login**: Rechaza si `email_verified_at == null` → `403 FORBIDDEN (VER001)`.
-- [x] **Tests**: 8 unitarios + 5 integración. **Total: 76 tests (0 fallos).**
-
-### ✅ Recuperación de Contraseña (2026-04-11)
-- [x] **Migración**: No requerida (el campo `password` ya existe desde V2).
-- [x] **Redis**: Tokens en `password:reset:{token}` → email, TTL 15 min.
-- [x] **Servicio**: `PasswordResetService` (generateResetToken, resetPassword).
-- [x] **Excepción**: `PasswordResetTokenInvalidException` (RST001).
-- [x] **Códigos de error**: RST001 (token inválido), RST002 (token expirado).
-- [x] **Endpoints**: `POST /auth/forgot-password`, `POST /auth/reset-password`.
-- [x] **Timing Attack Prevention**: `POST /forgot-password` siempre retorna 200, aunque el email no exista.
-- [x] **Tests**: 7 unitarios.
-
-### ✅ CORS Configurado (2026-04-13)
-- [x] **Gateway**: `globalcors` en `application.yaml` con `${CORS_ALLOWED_ORIGINS}`.
-- [x] **Auth (defensa en profundidad)**: `UrlBasedCorsConfigurationSource` bean en `WebCorsConfig.java`.
-- [x] **SecurityConfig**: Vinculado `.cors(cors -> cors.configurationSource(...))`.
-- [x] **Eliminado**: `@EnableWebMvc` y `addCorsMappings` con strings vacíos.
-- [x] **Puertos**: Frontend Quasar `:9000`, Gateway `:8080`, Auth `:8081`.
-
-### ✅ Email Verification — Envío Real (2026-04-13)
-- [x] **Config**: `mail.*` → `spring.mail.*` en `application.yaml` (prefix correcto).
-- [x] **JavaMailSender**: Inyectado en `EmailVerificationServiceImpl`.
-- [x] **Template HTML**: Email inline con estilos, botón de verificación, branding.
-- [x] **Redis**: Tokens en `email:verify:{token}` → email, TTL 15 min.
-- [x] **Register**: `createAndSendVerificationEmail()` reemplaza a `generateVerificationToken()`.
-- [x] **Flujo**: Email → Frontend `:9000/verify?token=xxx` → Gateway `:8080/api/v1/auth/verify-email` → Auth.
-- [x] **.env.example**: `SPRING_MAIL_USERNAME`, `SPRING_MAIL_PASSWORD`, `APP_FRONTEND_URL`.
-
----
-
-## 7. Estrategia de Próximos Pasos 📋
-
-### 🔴 Fase 1: Seguridad & Integridad Crítica
-1. ~~**CORS Fix**~~: ✅ Implementado `CorsConfigurationSource` bean (2026-04-13).
-2. ~~**Email Real (JavaMailSender)**~~: ✅ Envío de emails HTML implementado (2026-04-13).
-3. ~~**Flexibilidad de Identidad**~~: ✅ TenantService soporta JWT y OAuth2 (2026-04-16).
-4. **Alertas de Seguridad**: Implementar notificaciones activas (Webhooks/Slack) cuando se detecte un reuso de Refresh Token.
-5. **PKCE (Proof Key for Code Exchange)**: Implementar flujo para aplicaciones móviles/SPA.
-6. **Device Fingerprinting**: Registro de dispositivos confiables y detección de anomalías de ubicación.
+### 🔴 Fase 1: Seguridad & Perímetro
+- [ ] Alertas de Seguridad (Webhooks/Slack) en detección de reuso
+- [ ] PKCE para SPAs
+- [ ] Device Fingerprinting
 
 ### 🟡 Fase 2: Identidad & Social
-3. **MFA (Multi-Factor Authentication)**: Soporte para TOTP (Google Authenticator).
-4. **SSO / SAML**: Integración con proveedores enterprise.
+- [ ] MFA (TOTP - Google Authenticator)
+- [ ] SSO / SAML
 
 ### 🟢 Fase 3: Cierre del Flujo de Invitaciones
-5. **Invitación completa**:
-   - `createInvitation` → loguea token (pendiente email real).
-   - `acceptInvitation` → si usuario no existe, permite registro con rol/tenant pre-asignado.
-   - Auditoría de invitaciones en `audit_log`.
+- [ ] Invitación completa con Email
+- [ ] `acceptInvitation` con registro pre-asignado
+- [ ] Auditoría en `audit_log`
 
 ### 🔵 Fase 4: Enterprise (post-MVP)
-6. **Transfer Ownership**: Endpoint para ceder el rol de OWNER.
-7. **Dashboard de Auditoría**: API paginada para consultar `audit_log`.
+- [ ] Transfer Ownership
+- [ ] Dashboard de Auditoría
 
 ---
 
-## 12. Rotación de Refresh Tokens & Detección de Reuso (Implementado 2026-04-12) 🔄🛡️
+## 📐 Estrategia JWT/OAuth2 Híbrida
 
 ### 🎯 El Problema
-Anteriormente, los Refresh Tokens eran estáticos hasta su expiración. Si un atacante robaba un Refresh Token, podía generar nuevos Access Tokens indefinidamente hasta que el token original expirara, incluso si el usuario legítimo seguía usando su sesión.
+Usuarios registrados localmente (JWT) no podían crear empresas porque los servicios dependían de `OAuth2User`.
 
-### 📐 Arquitectura RTR (Refresh Token Rotation)
-
-Se implementó un motor de seguridad atómico en `JwtServiceImpl` que orquesta la rotación:
-
-1.  **Solicitud de Refresco**: El cliente envía `oldRefreshToken`.
-2.  **Validación Atómica**:
-    *   Se verifica la firma y expiración del JWT.
-    *   Se busca el hash en PostgreSQL.
-    *   **Detección de Reuso**: Si el token ya está marcado como `revoked = true`, se dispara una alarma de seguridad.
-3.  **Estrategia de Mitigación**:
-    *   Al detectar reuso, el sistema **revoca automáticamente todos los tokens del usuario** (`deleteByUserId`), forzando un re-login en todos sus dispositivos.
-4.  **Emisión**: Si es válido, el token viejo se marca como `revoked` y se emite una nueva pareja (Access + Refresh).
-
-### 💎 Unicidad Criptográfica (`jti`)
-
-Durante las pruebas de carga y tests de integración, se detectó una colisión de tokens (dos tokens idénticos generados en el mismo milisegundo).
-
-**Solución**:
-- Se incorporó el claim **`jti` (JWT ID)** usando `UUID.randomUUID()`.
-- Esto garantiza que cada string de JWT sea único, eliminando colisiones de hash en la base de datos.
+### 📐 Solución
+1. Controladores reciben `Authentication` genérico
+2. `TenantServiceImpl` inspecciona el principal:
+   - Si `OAuth2User` → extrae `email`
+   - Si `UserEntity` → extrae `getEmail()`
+   - Fallback a `getName()`
 
 ---
 
-## 13. Estrategia Híbrida JWT/OAuth2 (Implementado 2026-04-16) 🛡️🤝
+## 📐 Rotación de Refresh Tokens (RTR)
 
 ### 🎯 El Problema
-Existía una fuerte dependencia de la clase `OAuth2User` en los servicios de Tenant. Esto impedía que los usuarios registrados localmente (que se autentican via JWT) pudieran crear empresas o cambiar de tenant activo, ya que el principal inyectado por el `JwtAuthenticationFilter` era un `UserEntity`, no un `OAuth2User`.
+Refresh Tokens estáticos hasta expiración. Un atacante podía generar Access Tokens indefinidamente.
 
-### 📐 Solución Arquitectónica
-Se desacopló la capa de servicio de la implementación específica de Spring Security:
-1. **Interfaz Genérica**: Los controladores ahora reciben `Authentication`.
-2. **Extracción de Identidad**: Se implementó una lógica de inspección en `TenantServiceImpl`:
-   - Si el principal es `OAuth2User`, extrae el atributo `email`.
-   - Si el principal es `UserEntity`, extrae `getEmail()`.
-   - Fallback a `getName()` para máxima compatibilidad.
+### 📐 Arquitectura RTR
+1. Cliente envía `oldRefreshToken`
+2. Validación atómica:
+   - Verifica firma y expiración
+   - Busca hash en PostgreSQL
+   - **Detección de Reuso**: Si `revoked = true` → alarma
+3. **Estrategia de Mitigación**: Revoca todos los tokens del usuario
+4. Emisión: Token viejo `revoked`, nueva pareja (Access + Refresh)
 
-Este cambio permite un flujo de frontend unificado donde el usuario puede iniciar la creación de su "Espacio" (Tenant) y luego elegir si autenticarse localmente o via Social Login sin perder el contexto.
-
----
-
-### 🧪 Cobertura de Tests
-- **Detección de Reuso**: Test unitario verifica la eliminación masiva de tokens ante intentos de reuso.
-- **Transaccionalidad**: Tests de integración validan que el token se marque como usado y se persista el nuevo en una sola operación.
-- **Identidad Híbrida**: 6 nuevos tests unitarios verifican la extracción de identidad para OAuth2User y UserEntity.
-
----
-
-### 📊 Calificación de Salud Arquitectónica: 10/10
-> Sistema de seguridad de grado bancario implementado. Soporte híbrido JWT/OAuth2 completo, RTR con detección de reuso, protección contra colisiones de tokens y validación atómica en DB. SaaS-Ready y listo para escalado enterprise. 🚀
-
----
-
-## 14. OAuth2 via Gateway (Implementado 2026-04-17) 🌐🔐
-
-### 🎯 El Problema Inicial
-El flujo OAuth2 no funcionaba porque:
-1. Las rutas OAuth2 (`/oauth2/**`) no estaban definidas en los perfiles (dev/stg/prod) del Gateway
-2. El Auth Service no tenía `/oauth2/**` en la whitelist de SecurityConfig
-3. El redirect URI apuntaba al puerto interno (8081) en lugar del Gateway (8080)
-
-### 📐 Solución Implementada
-
-**1. Gateway Routes (application-dev/stg/prod.yaml):**
-```yaml
-routes:
-  - id: auth-service-oauth2
-    uri: http://${AUTH_SERVICE_HOST:localhost}:8081
-    predicates:
-      - Path=/oauth2/**, /login/oauth2/**, /login/**, /v3/api-docs/auth
-    filters:
-      - PreserveHostHeader
-```
-
-**2. Auth Service SecurityConfig (SecurityConfig.java):**
-```java
-private static final String[] WHITE_LIST = {
-    // ...
-    "/oauth2/**",   // <-- Agregado
-    "/login/**",
-    // ...
-};
-```
-
-**3. Redirect URI Configurable (application.yaml):**
-```yaml
-security:
-  oauth2:
-    client:
-      registration:
-        google:
-          redirect-uri: "${OAUTH2_REDIRECT_URI:http://localhost:8080}/login/oauth2/code/google"
-        facebook:
-          redirect-uri: "${OAUTH2_REDIRECT_URI:http://localhost:8080}/login/oauth2/code/facebook"
-```
-
-**4. Variables de Entorno (.env):**
-```env
-OAUTH2_REDIRECT_URI=http://localhost:8080
-GOOGLE_CLIENT_ID=TU_CLIENT_ID_AQUI
-GOOGLE_CLIENT_SECRET=TU_CLIENT_SECRET_AQUI
-```
-
-### ✅ Validaciones Requeridas en Google Cloud Console
-
-Para que OAuth2 funcione, en **Google Cloud Console** → **APIs & Services** → **Credentials**:
-
-1. **Authorized JavaScript origins:**
-   ```
-   http://localhost:9200
-   ```
-
-2. **Authorized redirect URIs:**
-   ```
-   http://localhost:8080/login/oauth2/code/google
-   ```
-
-3. **OAuth consent screen:** Agregar email como test user (para apps no verificadas)
-
-### 🔲 Pendiente: Facebook OAuth2
-
-- **Estado**: ⏳ No testeado
-- **Credenciales**: Ya configuradas en `.env` (CLIENT_ID y CLIENT_SECRET)
-- **Redirect URI esperado**: `http://localhost:8080/login/oauth2/code/facebook`
-- **Validación requerida**: Registrar el redirect URI en Facebook Developer Console
-
-### ⚠️ Problema Conocido: Usuario OAuth2 sin Tenant
-
-**Descripción**: Al crear usuario via OAuth2 (Google), no se genera la relación en `user_tenants`, causando:
-- `tenant_id = null` en JWT generado
-- `tenant_id = null` en `refresh_tokens` insert
-
-**Causa raíz**: `CustomOAuth2UserService` no crea/asocia tenant automáticamente para usuarios OAuth2 (a diferencia del registro local que hace registro atómico User + Tenant + UserTenant).
-
-**Tabla de evidencia:**
-```sql
--- Usuario creado
-SELECT id, email FROM users WHERE email = 'zar.ivan10@gmail.com';
--- ✓ Usuario existe
-
--- Relación vacía
-SELECT * FROM user_tenants WHERE user_id = 'df02cf6a-f59d-49d3-9f3f-854cde25d980';
--- ✗ Sin registros - PROBLEMA AQUÍ
-```
-
-**Solución pendiente**: Modificar `CustomOAuth2UserService` para replicar la lógica de registro atómico:
-1. Crear Tenant con plan FREE
-2. Crear UserTenant con rol OWNER
-3. Asignar tenant_id al generar JWT
+### 💎 Unicidad (`jti`)
+Claim `jti` con `UUID.randomUUID()` para evitar colisiones de tokens.
 
 ---
 

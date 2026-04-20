@@ -2,6 +2,7 @@ package auth.pymes.controller.impl;
 
 import auth.pymes.common.models.dto.request.ForgotPasswordRequest;
 import auth.pymes.common.models.dto.request.LoginRequest;
+import auth.pymes.common.models.dto.request.OAuth2IntentRequest;
 import auth.pymes.common.models.dto.request.RegisterRequest;
 import auth.pymes.common.models.dto.request.ResendVerificationRequest;
 import auth.pymes.common.models.dto.request.ResetPasswordRequest;
@@ -10,9 +11,11 @@ import auth.pymes.common.models.dto.request.VerifyEmailRequest;
 import auth.pymes.common.models.dto.response.ApiResponse;
 import auth.pymes.common.models.dto.response.AuthResponse;
 import auth.pymes.common.models.dto.response.LogoutResponse;
+import auth.pymes.common.models.dto.response.OAuth2IntentResponse;
 import auth.pymes.controller.AuthApi;
 import auth.pymes.service.AuthService;
 import auth.pymes.service.EmailVerificationService;
+import auth.pymes.service.OAuth2IntentService;
 import auth.pymes.service.PasswordResetService;
 import jakarta.servlet.http.HttpServletRequest;
 import lombok.RequiredArgsConstructor;
@@ -30,6 +33,7 @@ public class AuthApiController implements AuthApi {
     private final AuthService authService;
     private final EmailVerificationService emailVerificationService;
     private final PasswordResetService passwordResetService;
+    private final OAuth2IntentService oauth2IntentService;
 
     @Override
     public ResponseEntity<ApiResponse<AuthResponse>> register(RegisterRequest request,
@@ -87,5 +91,11 @@ public class AuthApiController implements AuthApi {
     public ResponseEntity<ApiResponse<Void>> resetPassword(ResetPasswordRequest request) {
         passwordResetService.resetPassword(request.token(), request.newPassword());
         return ResponseEntity.ok(ApiResponse.ok());
+    }
+
+    @Override
+    public ResponseEntity<ApiResponse<OAuth2IntentResponse>> createOAuth2Intent(OAuth2IntentRequest request) {
+        OAuth2IntentResponse response = oauth2IntentService.createIntent(request);
+        return ResponseEntity.status(HttpStatus.CREATED).body(ApiResponse.ok(response));
     }
 }

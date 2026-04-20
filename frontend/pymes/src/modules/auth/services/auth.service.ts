@@ -28,5 +28,9 @@ export const authService = {
 
   resendVerification(email: string) {
     return api.post('/auth/resend-verification', { email });
+  },
+
+  createOAuth2Intent(data: { companyName: string; companySlug: string }) {
+    return api.post('/auth/oauth2/intent', data);
   }
 };

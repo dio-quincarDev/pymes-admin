@@ -63,7 +63,8 @@ public class SecurityConfig {
             ApiPathConstants.FULL_AUTH_RESEND_VERIFICATION,
             // Password recovery (public by design)
             ApiPathConstants.FULL_AUTH_FORGOT_PASSWORD,
-            ApiPathConstants.FULL_AUTH_RESET_PASSWORD
+            ApiPathConstants.FULL_AUTH_RESET_PASSWORD,
+            ApiPathConstants.FULL_AUTH_OAUTH2_INTENT
     };
 
     @Bean

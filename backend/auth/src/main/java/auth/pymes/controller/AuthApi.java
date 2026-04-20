@@ -64,4 +64,9 @@ public interface AuthApi {
     @PostMapping(ApiPathConstants.AUTH_RESET_PASSWORD)
     ResponseEntity<ApiResponse<Void>> resetPassword(
             @Valid @RequestBody ResetPasswordRequest request);
+
+    @Operation(summary = "Create OAuth2 Intent", description = "Crea un intento de registro OAuth2 con datos de empresa para ser procesado tras el login")
+    @PostMapping(ApiPathConstants.AUTH_OAUTH2_INTENT)
+    ResponseEntity<ApiResponse<auth.pymes.common.models.dto.response.OAuth2IntentResponse>> createOAuth2Intent(
+            @Valid @RequestBody auth.pymes.common.models.dto.request.OAuth2IntentRequest request);
 }

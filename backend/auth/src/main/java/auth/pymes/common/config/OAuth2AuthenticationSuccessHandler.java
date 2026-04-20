@@ -1,12 +1,16 @@
 package auth.pymes.common.config;
 
+import auth.pymes.common.models.dto.request.OAuth2IntentRequest;
 import auth.pymes.common.models.entities.Tenant;
 import auth.pymes.common.models.entities.UserEntity;
 import auth.pymes.common.models.entities.UserTenant;
+import auth.pymes.common.models.enums.PlanName;
+import auth.pymes.common.models.enums.RoleName;
 import auth.pymes.repositories.TenantRepository;
 import auth.pymes.repositories.UserEntityRepository;
 import auth.pymes.repositories.UserTenantRepository;
 import auth.pymes.service.JwtService;
+import auth.pymes.service.OAuth2IntentService;
 import auth.pymes.utils.exception.custom.ResourceNotFoundException;
 import jakarta.servlet.ServletException;
 import jakarta.servlet.http.HttpServletRequest;
@@ -18,11 +22,15 @@ import org.springframework.security.core.Authentication;
 import org.springframework.security.oauth2.core.user.OAuth2User;
 import org.springframework.security.web.authentication.SimpleUrlAuthenticationSuccessHandler;
 import org.springframework.stereotype.Component;
+import org.springframework.util.StringUtils;
 import org.springframework.web.util.UriComponentsBuilder;
 
 import java.io.IOException;
+import java.time.ZonedDateTime;
 import java.util.List;
+import java.util.Optional;
 import java.util.UUID;
+import java.util.regex.Pattern;
 
 import static auth.pymes.utils.exception.CodigoError.USER_NOT_FOUND_BY_EMAIL;
 
@@ -39,6 +47,7 @@ public class OAuth2AuthenticationSuccessHandler extends SimpleUrlAuthenticationS
     private final UserEntityRepository userRepository;
     private final UserTenantRepository userTenantRepository;
     private final TenantRepository tenantRepository;
+    private final OAuth2IntentService oauth2IntentService;
 
     @Value("${app.cors.allowed-origins}")
     private String frontendUrl;
@@ -49,46 +58,118 @@ public class OAuth2AuthenticationSuccessHandler extends SimpleUrlAuthenticationS
         
         OAuth2User oAuth2User = (OAuth2User) authentication.getPrincipal();
         String email = oAuth2User.getAttribute("email");
+        String state = request.getParameter("state");
 
-        log.info("OAuth2 Login exitoso para: {}", email);
+        log.info("OAuth2 Login exitoso para: {}. State: {}", email, state);
 
         // 1. Buscar usuario en DB
         UserEntity user = userRepository.findByEmail(email)
                 .orElseThrow(() -> new ResourceNotFoundException(USER_NOT_FOUND_BY_EMAIL, email));
 
-        // 2. Buscar sus empresas (Tenants)
-        List<UserTenant> userTenants = userTenantRepository.findByUserId(user.getId());
-        
         UUID activeTenantId = null;
-        String role = "USER"; // Rol por defecto si no tiene empresa
-
-        if (!userTenants.isEmpty()) {
-            // Por simplicidad, tomamos la primera empresa asociada
-            UserTenant ut = userTenants.get(0);
-            activeTenantId = ut.getTenantId();
-            role = ut.getRole().name();
-        }
-
-        // Get tenant plan
+        String role = "USER";
         String plan = "FREE";
-        if (activeTenantId != null) {
-            Tenant tenant = tenantRepository.findById(activeTenantId).orElse(null);
-            if (tenant != null) {
-                plan = tenant.getPlan().name();
+
+        // 2. Procesar Intent si existe el state
+        if (StringUtils.hasText(state)) {
+            Optional<OAuth2IntentRequest> intentOpt = oauth2IntentService.getIntent(state);
+            if (intentOpt.isPresent()) {
+                OAuth2IntentRequest intent = intentOpt.get();
+                log.info("Procesando intent para empresa: {}", intent.companyName());
+
+                // Crear Tenant
+                Tenant tenant = Tenant.builder()
+                        .name(intent.companyName())
+                        .slug(intent.companySlug())
+                        .plan(PlanName.FREE)
+                        .isActive(true)
+                        .build();
+                tenant = tenantRepository.save(tenant);
+
+                // Crear UserTenant (como OWNER)
+                UserTenant userTenant = UserTenant.builder()
+                        .userId(user.getId())
+                        .tenantId(tenant.getId())
+                        .role(RoleName.OWNER)
+                        .isActive(true)
+                        .acceptedAt(ZonedDateTime.now())
+                        .build();
+                userTenantRepository.save(userTenant);
+
+                activeTenantId = tenant.getId();
+                role = RoleName.OWNER.name();
+                plan = PlanName.FREE.name();
+
+                // Limpiar intent de Redis
+                oauth2IntentService.deleteIntent(state);
             }
         }
 
-        // 3. Generar Tokens JWT usando el nuevo JwtService
+        // 3. Si no hubo intent o el state no era válido, buscar tenants existentes
+        if (activeTenantId == null) {
+            List<UserTenant> userTenants = userTenantRepository.findByUserId(user.getId());
+
+            if (!userTenants.isEmpty()) {
+                UserTenant ut = userTenants.get(0);
+                activeTenantId = ut.getTenantId();
+                role = ut.getRole().name();
+
+                Tenant tenant = tenantRepository.findById(activeTenantId).orElse(null);
+                if (tenant != null) {
+                    plan = tenant.getPlan().name();
+                }
+            } else {
+                log.info("Usuario {} no tiene tenant, creando automáticamente", email);
+
+                String slug = generateSlugFromEmail(email);
+                Tenant defaultTenant = Tenant.builder()
+                        .name("Mi Empresa")
+                        .slug(slug)
+                        .plan(PlanName.FREE)
+                        .isActive(true)
+                        .build();
+                defaultTenant = tenantRepository.save(defaultTenant);
+
+                UserTenant userTenant = UserTenant.builder()
+                        .userId(user.getId())
+                        .tenantId(defaultTenant.getId())
+                        .role(RoleName.OWNER)
+                        .isActive(true)
+                        .acceptedAt(ZonedDateTime.now())
+                        .build();
+                userTenantRepository.save(userTenant);
+
+                activeTenantId = defaultTenant.getId();
+                role = RoleName.OWNER.name();
+                plan = PlanName.FREE.name();
+
+                log.info("Tenant creado automáticamente para {}: {} ({})", email, defaultTenant.getName(), defaultTenant.getId());
+            }
+        }
+
+        // 4. Generar Tokens JWT
         String accessToken = jwtService.generateAccessToken(user, activeTenantId, role, plan);
         String refreshToken = jwtService.generateRefreshToken(user);
         jwtService.saveRefreshToken(user, activeTenantId, refreshToken);
 
-        // 4. Construir URL de redirección al Frontend
+        // 5. Construir URL de redirección al Frontend
         String targetUrl = UriComponentsBuilder.fromUriString(frontendUrl + "/auth/callback")
                 .queryParam("token", accessToken)
                 .queryParam("refresh_token", refreshToken)
                 .build().toUriString();
 
         getRedirectStrategy().sendRedirect(request, response, targetUrl);
+    }
+
+    private String generateSlugFromEmail(String email) {
+        if (email == null || !email.contains("@")) {
+            return "mi-empresa-" + System.currentTimeMillis();
+        }
+        String localPart = email.split("@")[0];
+        return Pattern.compile("[^a-z0-9-]", Pattern.CASE_INSENSITIVE)
+                .matcher(localPart)
+                .replaceAll("")
+                .toLowerCase()
+                + "-" + System.currentTimeMillis();
     }
 }

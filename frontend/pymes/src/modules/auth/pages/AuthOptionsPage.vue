@@ -52,22 +52,53 @@
 import { storeToRefs } from 'pinia';
 import { useAuthStore } from '../store';
 import { useRouter } from 'vue-router';
-import { openURL } from 'quasar';
+import { openURL, useQuasar } from 'quasar';
+import { authService } from '../services/auth.service';
 
 const authStore = useAuthStore();
 const { pendingTenant } = storeToRefs(authStore);
 const router = useRouter();
+const $q = useQuasar();
 
 const goToRegister = () => {
   void router.push('/register');
 };
 
-const loginWithGoogle = () => {
-  openURL('http://localhost:8080/oauth2/authorization/google');
+const loginWithGoogle = async () => {
+  await handleOAuth2Login('google');
 };
 
-const loginWithFacebook = () => {
-  openURL('http://localhost:8080/oauth2/authorization/facebook');
+const loginWithFacebook = async () => {
+  await handleOAuth2Login('facebook');
+};
+
+const handleOAuth2Login = async (provider: 'google' | 'facebook') => {
+  try {
+    let url = `http://localhost:8080/oauth2/authorization/${provider}`;
+
+    // Si hay una empresa pendiente, creamos el intent
+    if (pendingTenant.value?.name && pendingTenant.value?.slug) {
+      $q.loading.show({ message: 'Preparando registro...' });
+      const { data } = await authService.createOAuth2Intent({
+        companyName: pendingTenant.value.name,
+        companySlug: pendingTenant.value.slug,
+      });
+
+      if (data.data?.intentId) {
+        url += `?state=${data.data.intentId}`;
+      }
+    }
+
+    openURL(url);
+  } catch (error) {
+    console.error(`Error initiating ${provider} login:`, error);
+    $q.notify({
+      type: 'negative',
+      message: 'No se pudo iniciar el proceso. Intenta de nuevo.',
+    });
+  } finally {
+    $q.loading.hide();
+  }
 };
 </script>
 
