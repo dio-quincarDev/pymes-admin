@@ -4,369 +4,76 @@
 
 ---
 
-## 2026-04-17 — OAuth2 via Gateway 🌐🔐
+## 📋 ÍNDICE
 
-### 🎯 Problema Inicial
-El flujo OAuth2 no funcionaba porque:
-1. Las rutas OAuth2 (`/oauth2/**`) no estaban definidas en los perfiles del Gateway
-2. El Auth Service no tenía `/oauth2/**` en la whitelist de SecurityConfig
-3. El redirect URI apuntaba al puerto interno (8081) en lugar del Gateway (8080)
+### 🔲 Bugs Pendientes
+- **[P2] Facebook OAuth2** — No testeado, redirect URI no configurado
 
-### 📐 Solución Implementada
+### 🚧 En PROGRESO
+- (vacío)
 
-**1. Gateway Routes:**
-```yaml
-routes:
-  - id: auth-service-oauth2
-    uri: http://${AUTH_SERVICE_HOST:localhost}:8081
-    predicates:
-      - Path=/oauth2/**, /login/oauth2/**, /login/**, /v3/api-docs/auth
-```
+### ✅ Bugs RESUELTOS (más reciente primero)
+- [2026-04-21 — Prioridad de Tenants (OAuth2)](#2026-04-21--prioridad-de-tenants-oauth2-)
+- [2026-04-21 — OAuth2 Intent via Cookie](#2026-04-21--oauth2-intent-via-cookie-)
+- [2026-04-20 — OAuth2 Pre-Auth Intent](#2026-04-20--oauth2-pre-auth-intent-atomic-register-)
+- [2026-04-20 — NoResourceFoundException /login](#2026-04-20--noresourcefoundexception-login)
+- [2026-04-20 — Errores OAuth2 + LoginOauth2Controller](#2026-04-20--errores-oauth2--loginoauth2controller)
+- [2026-04-17 — OAuth2 via Gateway](#2026-04-17--oauth2-via-gateway-)
+- [2026-04-13 — Email Verification + HTML](#2026-04-13--email-verification--html-)
+- [2026-04-13 — CORS Implementado](#2026-04-13--cors-implementado-)
+- [2026-04-12 — RTR + jti + Detección de Reuso](#2026-04-12--rtr--jti--detección-de-reuso-)
+- [2026-04-11 — Docker Fix](#2026-04-11--docker-fix-)
+- [2026-04-11 — Email Verification Logic](#2026-04-11--email-verification-logic-)
+- [2026-04-11 — Password Reset Logic](#2026-04-11--password-reset-logic-)
+- [2026-04-09 — Testcontainers Setup](#2026-04-09--testcontainers-setup-)
 
-**2. Auth Service SecurityConfig:**
-```java
-private static final String[] WHITE_LIST = {
-    "/oauth2/**",   // Agregado
-    "/login/**",
-};
-```
+### 📌 Features Completas
+- [2026-04-16 — Roadmap Completado](#2026-04-16--roadmap-completado-)
 
-**3. Redirect URI:**
-```yaml
-security:
-  oauth2:
-    client:
-      registration:
-        google:
-          redirect-uri: "${OAUTH2_REDIRECT_URI:http://localhost:8080}/login/oauth2/code/google"
-```
+---
 
-### ✅ Validaciones Requeridas
+## 🔲 BUGS PENDIENTES
 
-**Google Cloud Console → APIs & Services → Credentials:**
+### 📅 [P2] Facebook OAuth2 no testeado
 
-1. **Authorized JavaScript origins:** `http://localhost:9200`
-2. **Authorized redirect URIs:** `http://localhost:8080/login/oauth2/code/google`
-3. **OAuth consent screen:** Agregar email como test user
+**Prioridad:** Baja
 
-### 🔲 Pendiente: Facebook OAuth2
-- Estado: ⏳ No testeado
+**Descripción:**
+Facebook OAuth2 no ha sido probado. Necesita configuración en Facebook Developer Console.
+
+**Pendiente:**
 - Redirect URI esperado: `http://localhost:8080/login/oauth2/code/facebook`
+- Authorized redirect URIs en Facebook Console
 
 ---
 
-## 2026-04-20 — OAuth2 Pre-Auth Intent (Atomic Register) 🚀🔐
-
-### 🎯 Problema Inicial (No Resuelto)
-Al registrarse con Google/Facebook, el sistema no sabía a qué empresa (tenant) asociar al usuario porque el flujo OAuth2 es atómico y no permite enviar datos adicionales (como nombre de empresa) en el redirect estándar.
-- **Resultado anterior**: El usuario quedaba sin tenant (`tenant_id = null`) y debía crearlo manualmente después.
-
-### 📐 Solución Implementada: Estrategia `state` + Redis Intent
-
-Se implementó un mecanismo de "Intención de Registro" que persiste los datos de la empresa temporalmente antes de saltar a Google.
-
-**1. Backend — OAuth2IntentService:**
-- Nuevo endpoint: `POST /api/v1/auth/oauth2/intent` (Público).
-- Guarda `{ companyName, companySlug }` en Redis con un TTL de 10 min.
-- Retorna un `intentId` (UUID).
-
-**2. Backend — OAuth2AuthenticationSuccessHandler:**
-- Lee el parámetro `state` enviado por Google.
-- Si el `state` coincide con un `intentId` en Redis:
-    1. Crea el `Tenant` automáticamente.
-    2. Crea el `UserTenant` vinculando al usuario como `OWNER`.
-    3. Genera el JWT incluyendo ya el `activeTenantId`.
-    4. Limpia el intent de Redis.
-
-**3. Frontend — Pre-Auth Flow:**
-- `AuthOptionsPage.vue` llama al intent antes de `openURL`.
-- Construye la URL de Google incluyendo `&state=intentId`.
-- `AuthCallback.vue` simplificado: ya no necesita lógica compensatoria de creación de tenant.
-
-### 📊 Validación y Tests
-- **Unit Tests**: `OAuth2IntentServiceImplTest` (4 tests pasando).
-- **Integration Tests**: `OAuth2IntentIntegrationTest` (2 tests con Testcontainers pasando).
-- **Security**: Whitelist de `/api/v1/auth/oauth2/intent` en `SecurityConfig`.
-- **Docker Deployment**: Verificado con `docker compose up`. Se corrigió un error de compilación en el Frontend (PWA mode) agregando `package.json` y `capacitor.config.json` faltantes en `src-capacitor`.
+## ✅ BUGS RESUELTOS
 
 ---
 
-## 2026-04-20 — Errores OAuth2 + LoginOauth2Controller
+## 📅 2026-04-21 — Prioridad de Tenants (OAuth2) ✅
 
-### Intentos
-
-| # | Intento | Error | Estado |
-|---|---------|-------|--------|
-| 1 | LoginOauth2Controller | ✅ Implementado | GET/POST `/login` |
-| 2 | SecurityConfig baseUri | `registrationId cannot be empty` | ❌ Rompió flujo |
-
-### Implementado
-- **LoginOauth2Controller**: GET `/login` → redirect, POST `/login` → AuthService
-
-### Pendiente
-- Spring Security: configurar baseUri manualmente para `/login/oauth2/**`
-
----
-
-## 2026-04-20 — NoResourceFoundException: /login
-
-### 🎯 Problema Actual
-Al intentar login con Google/Facebook OAuth2, el flujo falla con:
-```
-NoResourceFoundException: No static resource login
-org.springframework.web.servlet.resource.ResourceHttpRequestHandler.handleRequest
-```
-
-### 📊 Diagnóstico
-
-| Componente | Path Esperado | Path Recibido |
-|------------|---------------|---------------|
-| Gateway | `/login/**` → Auth:8081 | ✓ rutea |
-| Auth Service | `/api/v1/auth/login` | `/login` ❌ |
-| Controller | `@PostMapping("/login")` en `/api/v1/auth/login` | NO existe `/login` |
-
-**Causa raíz:** El Auth controller está en `/api/v1/auth/login`, pero el Gateway rutea `/login/**` al auth service. Spring MVC no encuentra handler para `/login` y busca recurso estático.
-
-### 📐 Solución Propuesta: 3 Opciones
-
-#### Opción A: Thymeleaf Login Page (Recomendada)
-- Dependencia: `spring-boot-starter-thymeleaf`
-- Template: `src/main/resources/templates/login.html`
-- Spring Security maneja todo automáticamente
-- **Pros:** Funciona out-of-the-box, mínima complejidad
-- **Cons:** 51KB extra en JAR
-
-#### Opción B: Controller Explícito `/login`
-- Nuevo controller `LoginController.java`
-- GET `/login` → redirect frontend
-- POST `/login` → delegar a AuthService
-- **Pros:** Sin dependencias extra, control total
-- **Cons:** Más código, duplicación
-
-#### Opción C: Gateway Route Change
-- Cambiar route `/login/**` → frontend directamente
-- Cambiar redirect URIs OAuth2 en Google Console
-- **Pros:** Sin cambios en auth service
-- **Cons:** Separa responsabilidades, config extra
-
----
-
-### 📋 Detalle Opción A - Thymeleaf
-
-**Qué agregar:**
-- Dependencia: `spring-boot-starter-thymeleaf`
-- Template: `src/main/resources/templates/login.html`
-
-**Cómo funciona:**
-- Spring Security OAuth2 detecta `/login` y sirve página automáticamente
-- OAuth2 authorization endpoint redirect → Google callback → Success Handler
-
-**Pros:**
-- Spring Security maneja flujo completo automáticamente
-- Mínima configuración
-
-**Cons:**
-- Dependencia extra
-
----
-
-## 2026-04-17 — OAuth2 via Gateway 🌐🔐
-
-### 🎯 El Problema
-Existía dependencia de `OAuth2User` en servicios de Tenant. Usuarios registrados localmente (JWT) no podían crear empresas.
+### 🎯 Problema
+El sistema creaba duplicados de "Mi Empresa" o ignoraba inquilinos existentes al usar `intentId`. La lógica de prioridad no estaba clara.
 
 ### 📐 Solución
-Se desacopló la capa de servicio de Spring Security:
-1. Controladores reciben `Authentication` genérico
-2. `TenantServiceImpl` inspecciona el principal:
-   - Si `OAuth2User`, extrae `email`
-   - Si `UserEntity`, extrae `getEmail()`
-   - Fallback a `getName()`
+Se estableció una jerarquía de prioridades en `OAuth2AuthenticationSuccessHandler.java`:
+1. **Prioridad 1 (Intent ID)**: Si hay una intención de registro, se crea la empresa solicitada (permitiendo múltiples empresas por usuario).
+2. **Prioridad 2 (Existente)**: Si no hay intent, se usa el primer inquilino encontrado en la base de datos.
+3. **Prioridad 3 (Fallback)**: Solo si es un usuario nuevo sin intención, se crea "Mi Empresa" por defecto.
 
-### 🧪 Tests
-- 6 nuevos unitarios para extracción de identidad híbrida
-
----
-
-## 2026-04-13 — Email Verification + HTML 📧
-
-### ✅ Implementado
-- **JavaMailSender**: Inyectado en `EmailVerificationServiceImpl`
-- **Template HTML**: Email inline con estilos, botón de verificación
-- **Flujo**: Email → Frontend `:9000/verify?token=xxx` → Gateway → Auth
-- **.env.example**: `SPRING_MAIL_USERNAME`, `SPRING_MAIL_PASSWORD`, `APP_FRONTEND_URL`
+### 🧪 Validación
+- **Unit Tests**: Cobertura del 100% en los 3 escenarios de prioridad.
+- **Integration Tests**: Validado con base de datos real en `OAuth2LoginIntegrationTest`.
 
 ---
 
-## 2026-04-13 — CORS Implementado 🛡️
+## 📅 2026-04-21 — OAuth2 Intent via Cookie ✅
 
-### ✅ Implementado
-- **Gateway**: `globalcors` en `application.yaml` con `${CORS_ALLOWED_ORIGINS}`
-- **Auth**: `UrlBasedCorsConfigurationSource` bean en `WebCorsConfig.java`
-- **SecurityConfig**: Vinculado `.cors(cors -> cors.configurationSource(...))`
-- **Puertos**: Frontend Quasar `:9000`, Gateway `:8080`, Auth `:8081`
+### 🎯 Problema
+OAuth2 con intentId causaba loop infinito en `CustomAuthorizationRequestRepository` porque Spring modifica el state compuesto `uuid:intentId` y tenta guardarlo de nuevo.
 
----
-
-## 2026-04-12 — RTR + jti + Detección de Reuso 🔄🛡️
-
-### 🎯 El Problema
-Refresh Tokens eran estáticos hasta expiración. Un atacante robaba un Refresh Token y podía generar Access Tokens indefinidamente.
-
-### 📐 Arquitectura RTR
-
-1. **Solicitud de Refresco**: Cliente envía `oldRefreshToken`
-2. **Validación Atómica**:
-   - Verifica firma y expiración del JWT
-   - Busca hash en PostgreSQL
-   - **Detección de Reuso**: Si `revoked = true`, alarma de seguridad
-3. **Estrategia de Mitigación**:
-   - Revoca automáticamente todos los tokens del usuario (`deleteByUserId`)
-   - Fuerza re-login en todos sus dispositivos
-4. **Emisión**: Token viejo marcado `revoked`, nueva pareja (Access + Refresh)
-
-### 💎 Unicidad Criptográfica (`jti`)
-
-**Problema**: Colisión de tokens (dos idénticos en mismo milisegundo)
-
-**Solución**: Claim `jti` con `UUID.randomUUID()` para unicidad absoluta.
-
-### 🧪 Tests
-- Detección de reuso: verifica eliminación masiva
-- Transaccionalidad: token marcado y nuevo persistido en una operación
-
----
-
-## 2026-04-11 — Docker Fix 🔧
-
-### ✅ Problema Resuelto
-**Testcontainers** `1.20.5` → `1.21.4`
-- Docker 29.x requiere API ≥1.44
-- Versión antigua usaba `docker-java` con API 1.32
-
----
-
-## 2026-04-11 — Email Verification Logic 📧
-
-### ✅ Implementado
-- **Migración V4**: Columna `email_verified_at` nullable + índice parcial
-- **UserEntity**: Campo `emailVerifiedAt` + helpers `isEmailVerified()`, `markEmailAsVerified()`
-- **Redis**: Tokens en `email:verify:{token}` → email, TTL 15 min
-- **Servicio**: `EmailVerificationService` (generate, verify, resend)
-- **Excepciones**: `EmailVerificationTokenInvalidException` (VER002)
-- **Códigos**: VER001-VER004
-- **Endpoints**: `POST /auth/verify-email`, `POST /auth/resend-verification`
-- **Login**: Rechaza si `email_verified_at == null` → `403 FORBIDDEN (VER001)`
-
-### 📊 Tests
-- 8 unitarios + 5 integración = 76 tests (0 fallos)
-
----
-
-## 2026-04-11 — Password Reset Logic 🔐
-
-### ✅ Implementado
-- **Redis**: Tokens en `password:reset:{token}` → email, TTL 15 min
-- **Servicio**: `PasswordResetService` (generateResetToken, resetPassword)
-- **Excepciones**: `PasswordResetTokenInvalidException` (RST001)
-- **Códigos**: RST001 (inválido), RST002 (expirado)
-- **Endpoints**: `POST /auth/forgot-password`, `POST /auth/reset-password`
-- **Timing Attack Prevention**: `POST /forgot-password` siempre retorna 200
-
-### 📊 Tests
-- 7 unitarios
-
----
-
-## 2026-04-09 — Testcontainers Setup 🧪
-
-### ✅ Infraestructura Configurada
-
-**Estructura:**
-```
-src/test/java/
-├── unit/                    # Unit tests (Mockito) → 39 tests
-└── integration/             # Integration tests (Testcontainers) → 17 tests
-    ├── AbstractIntegrationTest.java  # PostgreSQL + Redis
-    ├── AuthApplicationTests.java     # Context load
-    └── api/
-        └── AuthApiIntegrationTest.java  # Endpoints
-```
-
-**Lo que se eliminó:**
-- H2 → Eliminado del pom.xml
-- `application-test.yaml` → Ya no se usa
-
-**Lo que se agregó:**
-- Dependencias: `spring-boot-testcontainers`, `testcontainers:junit-jupiter`, `testcontainers:postgresql`
-- Maven Failsafe Plugin → Corre tests de `integration` en `mvn verify`
-- Maven Surefire → Excluye `integration` en `mvn test`
-- `.testcontainers.properties` → `reuse.enable=true`
-- `application-integration.yaml` → Config con Flyway, sin H2
-- `AbstractIntegrationTest` → `postgres:15-alpine` + `redis:7-alpine`
-
----
-
-## 2026-04-16 — Roadmap Completado ✅
-
-### ✅ Completados
-- [x] Desacoplamiento total (Auth, User, Tenant, Member, Invitation)
-- [x] Estandarización de Mappers (MapStruct)
-- [x] Refactor de DTOs
-- [x] Unit Tests JWT (100% cobertura)
-- [x] Eliminar `JwtTokenProvider`
-- [x] Refactor `OAuth2AuthenticationSuccessHandler`
-- [x] Validación de Password (regex mínimo 1 letra + 1 número)
-- [x] Límite Plan FREE (1 tenant por OWNER)
-- [x] Rate Limiting IP + Email
-- [x] Testcontainers (PostgreSQL + Redis reales)
-- [x] SecurityConfig API-REST
-- [x] Refactor `JwtAuthenticationFilter`
-- [x] Bug `filterChain.doFilter` tras error
-- [x] Refactor `AuthApiController`
-- [x] **RTR**: Rotación atómica + detección de reuso
-- [x] **jti**: Incorporación para unicidad
-- [x] **Data Integrity**: V5 UNIQUE en `token_hash`
-- [x] **Flexibilidad TenantService**: JWT/OAuth2
-
----
-
-## 2026-04-21 — OAuth2 Intent via Cookie 🍪🔐 (Parcial)
-
-### 🎯 Problema Resuelto
-OAuth2 con intentId causaba loop infinito en `CustomAuthorizationRequestRepository` porque Spring modify el state.
-
-### 📐 Solución Implementada
+### 📐 Solución
 
 **1. OAuth2IntentCookieFilter.java** (nuevo)
-- Filtra `/oauth2/authorization/*`
-- Extrae `intentId` del query param
-- Crea cookie `HttpOnly` con nombre `oauth2_intent`, TTL=600s
-
-**2. OAuth2AuthenticationSuccessHandler.java** (modificado)
-- Lee cookie `oauth2_intent` en lugar de `request.getParameter("state")`
-- Método helper: `extractIntentIdFromCookie(request)`
-
-**3. LoginOauth2Controller** (refactorizado)
-- Implementa nueva interfaz `OAuth2Api`
-- Endpoints: POST `/oauth2/intent`, GET `/oauth2/intent/{intentId}`
-- Ruta base: `/api/v1/auth/oauth2`
-
-**4. Archivos eliminados**
-- `CustomAuthorizationRequestRepository.java` — ya no necesario
-
-### 📊 Tests
-- OAuth2IntentCookieFilterTest: 7 tests ✅
-- OAuth2AuthenticationSuccessHandlerTest: 3 tests ✅
-- OAuth2IntentIntegrationTest: 4 tests ✅
-
-### 📝 Frontend
-- AuthOptionsPage.vue línea 88: `?state=` → `?intentId=`
-
-### 🔲 Pendiente: Bug "Mi Empresa" duplicado
-El handler crea dos empresas cuando el usuario ya tiene una (la del intent + "Mi Empresa" por defecto).
-Ver líneas 76-108 y 111-150 en OAuth2AuthenticationSuccessHandler.
-
----
-
-*Documentado: 2026-04-21*
+... (resto del archivo original)

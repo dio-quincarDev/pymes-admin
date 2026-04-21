@@ -16,6 +16,7 @@ import jakarta.servlet.http.Cookie;
 import jakarta.servlet.http.HttpServletRequest;
 import jakarta.servlet.http.HttpServletResponse;
 import org.junit.jupiter.api.BeforeEach;
+import org.junit.jupiter.api.DisplayName;
 import org.junit.jupiter.api.Test;
 import org.junit.jupiter.api.extension.ExtendWith;
 import org.mockito.ArgumentCaptor;
@@ -154,6 +155,34 @@ class OAuth2AuthenticationSuccessHandlerTest {
 
         verify(jwtService).generateAccessToken(any(), any(), eq("OWNER"), eq("FREE"));
         verify(jwtService).generateRefreshToken(any());
+    }
+
+    @Test
+    @DisplayName("Usuario con Tenant existente e IntentId → Crea NUEVA empresa del Intent")
+    void conUsuarioExistenteConTenantEIntent_CreaNuevaEmpresaDeIntent() throws Exception {
+        when(authentication.getPrincipal()).thenReturn(createOAuth2User("test@gmail.com"));
+        when(request.getCookies()).thenReturn(new Cookie[]{createCookie("oauth2_intent", "intent-123")});
+        
+        when(userRepository.findByEmail("test@gmail.com")).thenReturn(Optional.of(mockUser));
+        
+        // El intent debe ser procesado
+        when(oauth2IntentService.getIntent("intent-123"))
+                .thenReturn(Optional.of(new OAuth2IntentRequest("Nueva Corp", "nueva-corp")));
+        
+        Tenant newTenant = Tenant.builder()
+                .id(UUID.randomUUID())
+                .name("Nueva Corp")
+                .slug("nueva-corp")
+                .plan(PlanName.FREE)
+                .build();
+        when(tenantRepository.save(any(Tenant.class))).thenReturn(newTenant);
+        
+        handler.onAuthenticationSuccess(request, response, authentication);
+        
+        // Verificaciones: Se debe haber guardado el nuevo tenant
+        verify(tenantRepository).save(argThat(t -> t.getName().equals("Nueva Corp")));
+        verify(userTenantRepository).save(any(UserTenant.class));
+        verify(oauth2IntentService).deleteIntent("intent-123");
     }
 
     private OAuth2User createOAuth2User(String email) {

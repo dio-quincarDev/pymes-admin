@@ -72,14 +72,13 @@ public class OAuth2AuthenticationSuccessHandler extends SimpleUrlAuthenticationS
         String role = "USER";
         String plan = "FREE";
 
-        // 2. Procesar Intent si existe el state
+        // 2. Prioridad 1: Si hay un intent, crear la nueva empresa (el usuario lo pidió explícitamente)
         if (StringUtils.hasText(intentId)) {
             Optional<OAuth2IntentRequest> intentOpt = oauth2IntentService.getIntent(intentId);
             if (intentOpt.isPresent()) {
                 OAuth2IntentRequest intent = intentOpt.get();
-                log.info("Procesando intent para empresa: {}", intent.companyName());
+                log.info("Procesando intent para empresa nueva: {}", intent.companyName());
 
-                // Crear Tenant
                 Tenant tenant = Tenant.builder()
                         .name(intent.companyName())
                         .slug(intent.companySlug())
@@ -88,7 +87,6 @@ public class OAuth2AuthenticationSuccessHandler extends SimpleUrlAuthenticationS
                         .build();
                 tenant = tenantRepository.save(tenant);
 
-                // Crear UserTenant (como OWNER)
                 UserTenant userTenant = UserTenant.builder()
                         .userId(user.getId())
                         .tenantId(tenant.getId())
@@ -102,54 +100,58 @@ public class OAuth2AuthenticationSuccessHandler extends SimpleUrlAuthenticationS
                 role = RoleName.OWNER.name();
                 plan = PlanName.FREE.name();
 
-                // Limpiar intent de Redis
                 oauth2IntentService.deleteIntent(intentId);
+                clearIntentCookie(request, response);
             }
         }
 
-        // 3. Si no hubo intent o el state no era válido, buscar tenants existentes
+        // 3. Prioridad 2: Si NO hubo intent o no era válido, buscar si ya tiene empresas existentes
         if (activeTenantId == null) {
             List<UserTenant> userTenants = userTenantRepository.findByUserId(user.getId());
-
             if (!userTenants.isEmpty()) {
                 UserTenant ut = userTenants.get(0);
                 activeTenantId = ut.getTenantId();
                 role = ut.getRole().name();
-
+                
                 Tenant tenant = tenantRepository.findById(activeTenantId).orElse(null);
                 if (tenant != null) {
                     plan = tenant.getPlan().name();
                 }
-            } else {
-                log.info("Usuario {} no tiene tenant, creando automáticamente", email);
-
-                String slug = generateSlugFromEmail(email);
-                Tenant defaultTenant = Tenant.builder()
-                        .name("Mi Empresa")
-                        .slug(slug)
-                        .plan(PlanName.FREE)
-                        .isActive(true)
-                        .build();
-                defaultTenant = tenantRepository.save(defaultTenant);
-
-                UserTenant userTenant = UserTenant.builder()
-                        .userId(user.getId())
-                        .tenantId(defaultTenant.getId())
-                        .role(RoleName.OWNER)
-                        .isActive(true)
-                        .acceptedAt(ZonedDateTime.now())
-                        .build();
-                userTenantRepository.save(userTenant);
-
-                activeTenantId = defaultTenant.getId();
-                role = RoleName.OWNER.name();
-                plan = PlanName.FREE.name();
-
-                log.info("Tenant creado automáticamente para {}: {} ({})", email, defaultTenant.getName(), defaultTenant.getId());
+                log.info("Usuario {} ya tiene tenant(s). Usando el existente: {} ({})", email, activeTenantId, role);
+                
+                // Limpiar cookie si existía pero no se usó porque el intent falló
+                clearIntentCookie(request, response);
             }
         }
 
-        // 4. Generar Tokens JWT
+        // 4. Prioridad 3: Solo si no hay intent Y no hay nada existente, crear "Mi Empresa"
+        if (activeTenantId == null) {
+            log.info("Usuario {} no tiene tenant ni intent, creando 'Mi Empresa' por defecto", email);
+
+            String slug = generateSlugFromEmail(email);
+            Tenant defaultTenant = Tenant.builder()
+                    .name("Mi Empresa")
+                    .slug(slug)
+                    .plan(PlanName.FREE)
+                    .isActive(true)
+                    .build();
+            defaultTenant = tenantRepository.save(defaultTenant);
+
+            UserTenant userTenant = UserTenant.builder()
+                    .userId(user.getId())
+                    .tenantId(defaultTenant.getId())
+                    .role(RoleName.OWNER)
+                    .isActive(true)
+                    .acceptedAt(ZonedDateTime.now())
+                    .build();
+            userTenantRepository.save(userTenant);
+
+            activeTenantId = defaultTenant.getId();
+            role = RoleName.OWNER.name();
+            plan = PlanName.FREE.name();
+        }
+
+        // 5. Generar Tokens JWT
         String accessToken = jwtService.generateAccessToken(user, activeTenantId, role, plan);
         String refreshToken = jwtService.generateRefreshToken(user);
         jwtService.saveRefreshToken(user, activeTenantId, refreshToken);
