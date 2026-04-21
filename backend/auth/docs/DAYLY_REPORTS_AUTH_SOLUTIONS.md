@@ -57,7 +57,7 @@ security:
 
 ## 2026-04-20 — OAuth2 Pre-Auth Intent (Atomic Register) 🚀🔐
 
-### 🎯 Problema Inicial (Resuelto)
+### 🎯 Problema Inicial (No Resuelto)
 Al registrarse con Google/Facebook, el sistema no sabía a qué empresa (tenant) asociar al usuario porque el flujo OAuth2 es atómico y no permite enviar datos adicionales (como nombre de empresa) en el redirect estándar.
 - **Resultado anterior**: El usuario quedaba sin tenant (`tenant_id = null`) y debía crearlo manualmente después.
 
@@ -91,7 +91,24 @@ Se implementó un mecanismo de "Intención de Registro" que persiste los datos d
 
 ---
 
-## 2026-04-20 — NoResourceFoundException: /login 🐛
+## 2026-04-20 — Errores OAuth2 + LoginOauth2Controller
+
+### Intentos
+
+| # | Intento | Error | Estado |
+|---|---------|-------|--------|
+| 1 | LoginOauth2Controller | ✅ Implementado | GET/POST `/login` |
+| 2 | SecurityConfig baseUri | `registrationId cannot be empty` | ❌ Rompió flujo |
+
+### Implementado
+- **LoginOauth2Controller**: GET `/login` → redirect, POST `/login` → AuthService
+
+### Pendiente
+- Spring Security: configurar baseUri manualmente para `/login/oauth2/**`
+
+---
+
+## 2026-04-20 — NoResourceFoundException: /login
 
 ### 🎯 Problema Actual
 Al intentar login con Google/Facebook OAuth2, el flujo falla con:
@@ -314,4 +331,42 @@ src/test/java/
 
 ---
 
-*Documentado: 2026-04-17*
+## 2026-04-21 — OAuth2 Intent via Cookie 🍪🔐 (Parcial)
+
+### 🎯 Problema Resuelto
+OAuth2 con intentId causaba loop infinito en `CustomAuthorizationRequestRepository` porque Spring modify el state.
+
+### 📐 Solución Implementada
+
+**1. OAuth2IntentCookieFilter.java** (nuevo)
+- Filtra `/oauth2/authorization/*`
+- Extrae `intentId` del query param
+- Crea cookie `HttpOnly` con nombre `oauth2_intent`, TTL=600s
+
+**2. OAuth2AuthenticationSuccessHandler.java** (modificado)
+- Lee cookie `oauth2_intent` en lugar de `request.getParameter("state")`
+- Método helper: `extractIntentIdFromCookie(request)`
+
+**3. LoginOauth2Controller** (refactorizado)
+- Implementa nueva interfaz `OAuth2Api`
+- Endpoints: POST `/oauth2/intent`, GET `/oauth2/intent/{intentId}`
+- Ruta base: `/api/v1/auth/oauth2`
+
+**4. Archivos eliminados**
+- `CustomAuthorizationRequestRepository.java` — ya no necesario
+
+### 📊 Tests
+- OAuth2IntentCookieFilterTest: 7 tests ✅
+- OAuth2AuthenticationSuccessHandlerTest: 3 tests ✅
+- OAuth2IntentIntegrationTest: 4 tests ✅
+
+### 📝 Frontend
+- AuthOptionsPage.vue línea 88: `?state=` → `?intentId=`
+
+### 🔲 Pendiente: Bug "Mi Empresa" duplicado
+El handler crea dos empresas cuando el usuario ya tiene una (la del intent + "Mi Empresa" por defecto).
+Ver líneas 76-108 y 111-150 en OAuth2AuthenticationSuccessHandler.
+
+---
+
+*Documentado: 2026-04-21*

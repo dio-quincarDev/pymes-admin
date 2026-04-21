@@ -21,6 +21,7 @@ public class ApiPathConstants {
     public static final String AUTH_FORGOT_PASSWORD = "/forgot-password";
     public static final String AUTH_RESET_PASSWORD = "/reset-password";
     public static final String AUTH_OAUTH2_INTENT = "/oauth2/intent";
+    public static final String AUTH_OAUTH2_INTENT_GET = "/oauth2/intent/{intentId}";
 
     // User sub-paths
     public static final String USERS_ME = "/me";

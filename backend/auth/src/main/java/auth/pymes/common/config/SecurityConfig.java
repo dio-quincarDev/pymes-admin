@@ -1,6 +1,5 @@
 package auth.pymes.common.config;
 import auth.pymes.common.constants.ApiPathConstants;
-import auth.pymes.repositories.CustomAuthorizationRequestRepository;
 import auth.pymes.repositories.UserEntityRepository;
 import auth.pymes.service.impl.CustomOAuth2UserService;
 import auth.pymes.utils.exception.CodigoError;
@@ -30,6 +29,9 @@ import org.springframework.security.web.access.AccessDeniedHandler;
 
 import jakarta.servlet.http.HttpServletRequest;
 import jakarta.servlet.http.HttpServletResponse;
+import org.springframework.boot.web.servlet.FilterRegistrationBean;
+import org.springframework.core.Ordered;
+
 import java.time.Instant;
 import java.util.Map;
 
@@ -42,9 +44,9 @@ public class SecurityConfig {
     private final CustomOAuth2UserService customOAuth2UserService;
     private final OAuth2AuthenticationSuccessHandler oAuth2AuthenticationSuccessHandler;
     private final JwtAuthenticationFilter jwtAuthenticationFilter;
+    private final OAuth2IntentCookieFilter oAuth2IntentCookieFilter;
     private final UserEntityRepository userRepository;
     private final ObjectMapper objectMapper;
-    private final CustomAuthorizationRequestRepository customAuthorizationRequestRepository;
 
     private static final String[] WHITE_LIST = {
             // Swagger / OpenAPI
@@ -66,7 +68,8 @@ public class SecurityConfig {
             // Password recovery (public by design)
             ApiPathConstants.FULL_AUTH_FORGOT_PASSWORD,
             ApiPathConstants.FULL_AUTH_RESET_PASSWORD,
-            ApiPathConstants.FULL_AUTH_OAUTH2_INTENT
+            ApiPathConstants.FULL_AUTH_OAUTH2_INTENT,
+            ApiPathConstants.V1_ROUTE + ApiPathConstants.AUTH_ROUTE + "/oauth2/intent/**"
     };
 
     @Bean
@@ -79,9 +82,6 @@ public class SecurityConfig {
                         .anyRequest().authenticated()
                 )
                 .oauth2Login(oauth2 -> oauth2
-                        .authorizationEndpoint(endpoint -> endpoint
-                                .authorizationRequestRepository(customAuthorizationRequestRepository)
-                        )
                         .userInfoEndpoint(userInfo -> userInfo.userService(customOAuth2UserService))
                         .successHandler(oAuth2AuthenticationSuccessHandler)
                 )
@@ -138,5 +138,14 @@ public class SecurityConfig {
     public UserDetailsService userDetailsService() {
         return username -> userRepository.findByEmail(username)
                 .orElseThrow(() -> new UsernameNotFoundException("User not found with email: " + username));
+    }
+
+    @Bean
+    public FilterRegistrationBean<OAuth2IntentCookieFilter> oAuth2IntentCookieFilterRegistration() {
+        FilterRegistrationBean<OAuth2IntentCookieFilter> registration = new FilterRegistrationBean<>();
+        registration.setFilter(oAuth2IntentCookieFilter);
+        registration.addUrlPatterns("/oauth2/authorization/*");
+        registration.setOrder(Ordered.HIGHEST_PRECEDENCE + 10);
+        return registration;
     }
 }

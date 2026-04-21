@@ -1,37 +1,41 @@
 package auth.pymes.controller.impl;
 
-import auth.pymes.common.models.dto.request.LoginRequest;
+import auth.pymes.common.models.dto.request.OAuth2IntentRequest;
 import auth.pymes.common.models.dto.response.ApiResponse;
-import auth.pymes.common.models.dto.response.AuthResponse;
-import auth.pymes.service.AuthService;
-import jakarta.servlet.http.HttpServletRequest;
+import auth.pymes.common.models.dto.response.OAuth2IntentResponse;
+import auth.pymes.controller.OAuth2Api;
+import auth.pymes.service.OAuth2IntentService;
+import auth.pymes.utils.exception.CodigoError;
+import auth.pymes.utils.exception.custom.ResourceNotFoundException;
 import jakarta.validation.Valid;
-import lombok.RequiredArgsConstructor;
-import org.springframework.http.ResponseEntity;
-import org.springframework.web.bind.annotation.GetMapping;
-import org.springframework.web.bind.annotation.PostMapping;
 import org.springframework.web.bind.annotation.RequestBody;
+import lombok.RequiredArgsConstructor;
+import org.springframework.http.HttpStatus;
+import org.springframework.http.ResponseEntity;
+import org.springframework.web.bind.annotation.PathVariable;
 import org.springframework.web.bind.annotation.RestController;
 
 @RestController
 @RequiredArgsConstructor
-public class LoginOauth2Controller {
+public class LoginOauth2Controller implements OAuth2Api {
 
-    private final AuthService authService;
+    private final OAuth2IntentService oauth2IntentService;
 
-    @GetMapping("/login")
-    public ResponseEntity<Void> loginPageRedirect(HttpServletRequest request) {
-        String frontendUrl = System.getenv().getOrDefault("APP_FRONTEND_URL", "http://localhost:9200");
-        return ResponseEntity.status(302)
-                .header("Location", frontendUrl + "/#/login")
-                .build();
+    @Override
+    @org.springframework.web.bind.annotation.PostMapping("/intent")
+    public ResponseEntity<ApiResponse<OAuth2IntentResponse>> createOAuth2Intent(
+            @Valid @RequestBody OAuth2IntentRequest request) {
+        OAuth2IntentResponse response = oauth2IntentService.createIntent(request);
+        return ResponseEntity.status(HttpStatus.CREATED).body(ApiResponse.ok(response));
     }
 
-    @PostMapping("/login")
-    public ResponseEntity<ApiResponse<AuthResponse>> login(
-            @Valid @RequestBody LoginRequest request,
-            HttpServletRequest httpRequest) {
-        AuthResponse response = authService.login(request, httpRequest);
-        return ResponseEntity.ok(ApiResponse.ok(response));
+    @Override
+    @org.springframework.web.bind.annotation.GetMapping("/intent/{intentId}")
+    public ResponseEntity<ApiResponse<OAuth2IntentRequest>> getOAuth2Intent(
+            @PathVariable String intentId) {
+        return oauth2IntentService.getIntent(intentId)
+                .<ResponseEntity<ApiResponse<OAuth2IntentRequest>>>map(intent ->
+                        ResponseEntity.ok(ApiResponse.ok(intent)))
+                .orElseThrow(() -> new ResourceNotFoundException(CodigoError.RESOURCE_NOT_FOUND, "OAuth2 Intent"));
     }
 }

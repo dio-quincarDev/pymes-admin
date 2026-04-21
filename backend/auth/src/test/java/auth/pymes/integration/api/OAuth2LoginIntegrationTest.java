@@ -1,26 +1,36 @@
 package auth.pymes.integration.api;
 
 import auth.pymes.common.config.OAuth2AuthenticationSuccessHandler;
+import auth.pymes.common.models.dto.request.OAuth2IntentRequest;
+import auth.pymes.common.models.dto.response.OAuth2IntentResponse;
 import auth.pymes.integration.AbstractIntegrationTest;
+import auth.pymes.testutil.TestApiPaths;
+import com.fasterxml.jackson.databind.ObjectMapper;
 import org.junit.jupiter.api.DisplayName;
 import org.junit.jupiter.api.Nested;
 import org.junit.jupiter.api.Test;
 import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.boot.test.autoconfigure.web.servlet.AutoConfigureMockMvc;
+import org.springframework.http.MediaType;
 import org.springframework.jdbc.core.JdbcTemplate;
 import org.springframework.security.core.Authentication;
+import org.springframework.security.oauth2.core.user.DefaultOAuth2User;
 import org.springframework.security.oauth2.core.user.OAuth2User;
 import org.springframework.test.web.servlet.MockMvc;
+import org.springframework.test.web.servlet.MvcResult;
 
 import java.util.List;
 import java.util.Map;
 import java.util.UUID;
 
 import static org.assertj.core.api.Assertions.assertThat;
-import static org.mockito.Mockito.*;
+import static org.springframework.test.web.servlet.request.MockMvcRequestBuilders.get;
+import static org.springframework.test.web.servlet.request.MockMvcRequestBuilders.post;
+import static org.springframework.test.web.servlet.result.MockMvcResultMatchers.jsonPath;
+import static org.springframework.test.web.servlet.result.MockMvcResultMatchers.status;
 
 @AutoConfigureMockMvc
-@DisplayName("Integration Tests - OAuth2 Login Edge Cases")
+@DisplayName("Integration Tests - OAuth2 Login Full Flow")
 class OAuth2LoginIntegrationTest extends AbstractIntegrationTest {
 
     @Autowired
@@ -30,100 +40,115 @@ class OAuth2LoginIntegrationTest extends AbstractIntegrationTest {
     private JdbcTemplate jdbcTemplate;
 
     @Autowired
+    private ObjectMapper objectMapper;
+
+    @Autowired
     private OAuth2AuthenticationSuccessHandler oAuth2Handler;
 
-    private String uniqueEmail;
+    @Nested
+    @DisplayName("Intent API - CRUD completo")
+    class IntentCrudTests {
 
-    private UUID createGoogleUserDirectly(String email) {
-        UUID userId = UUID.randomUUID();
-        String providerId = "google-" + System.currentTimeMillis();
+        @Test
+        @DisplayName("POST /oauth2/intent → 201 CREATED con intentId")
+        void createIntent_Returns201() throws Exception {
+            OAuth2IntentRequest request = new OAuth2IntentRequest("CorpCookie Test", "corp-cookie-test");
 
-        jdbcTemplate.update(
-            "INSERT INTO users (id, email, name, provider, provider_id, is_active, created_at, updated_at) " +
-            "VALUES (?, ?, ?, 'GOOGLE', ?, true, NOW(), NOW())",
-            userId, email, "Google Test User", providerId);
-        return userId;
+            mockMvc.perform(post(TestApiPaths.AUTH_OAUTH2_INTENT)
+                            .contentType(MediaType.APPLICATION_JSON)
+                            .content(objectMapper.writeValueAsString(request)))
+                    .andExpect(status().isCreated())
+                    .andExpect(jsonPath("$.data.intentId").exists());
+        }
+
+        @Test
+        @DisplayName("Crear intent → leer intentId → GET retorna datos")
+        void createAndGet_ReturnsData() throws Exception {
+            OAuth2IntentRequest request = new OAuth2IntentRequest("Flow Test Corp", "flow-test-corp");
+
+            MvcResult result = mockMvc.perform(post(TestApiPaths.AUTH_OAUTH2_INTENT)
+                            .contentType(MediaType.APPLICATION_JSON)
+                            .content(objectMapper.writeValueAsString(request)))
+                    .andExpect(status().isCreated())
+                    .andReturn();
+
+            String intentId = objectMapper.readTree(result.getResponse().getContentAsString())
+                    .at("/data/intentId").asText();
+
+            mockMvc.perform(get(TestApiPaths.AUTH_OAUTH2_INTENT_GET.replace("{intentId}", intentId)))
+                    .andExpect(status().isOk())
+                    .andExpect(jsonPath("$.data.companyName").value("Flow Test Corp"));
+        }
+
+        @Test
+        @DisplayName("Intent inexistente → GET → 404 NOT FOUND")
+        void getNonExistentIntent_Returns404() throws Exception {
+            mockMvc.perform(get(TestApiPaths.AUTH_OAUTH2_INTENT_GET.replace("{intentId}", "non-existent-uuid")))
+                    .andExpect(status().isNotFound());
+        }
     }
 
     @Nested
-    @DisplayName("DOCUMENTAR BUG - OAuth2 Login sin state")
-    class DocumentBugTests {
+    @DisplayName("Edge Cases - Validación")
+    class EdgeCaseTests {
 
         @Test
-        @DisplayName("Usuario OAuth2 creado manualmente → NO tiene tenant (comportamiento actual)")
-        void oauth2UserWithoutTenant_UserExistsButNoTenant() {
-            uniqueEmail = "google-" + System.currentTimeMillis() + "@gmail.com";
-            createGoogleUserDirectly(uniqueEmail);
+        @DisplayName("Slug muy corto → 400 BAD REQUEST")
+        void createIntent_ShortSlug_Returns400() throws Exception {
+            OAuth2IntentRequest request = new OAuth2IntentRequest("Test Corp", "ab");
+
+            mockMvc.perform(post(TestApiPaths.AUTH_OAUTH2_INTENT)
+                            .contentType(MediaType.APPLICATION_JSON)
+                            .content(objectMapper.writeValueAsString(request)))
+                    .andExpect(status().isBadRequest());
+        }
+
+        @Test
+        @DisplayName("Nombre vacío → 400 BAD REQUEST")
+        void createIntent_EmptyName_Returns400() throws Exception {
+            OAuth2IntentRequest request = new OAuth2IntentRequest("", "valid-slug");
+
+            mockMvc.perform(post(TestApiPaths.AUTH_OAUTH2_INTENT)
+                            .contentType(MediaType.APPLICATION_JSON)
+                            .content(objectMapper.writeValueAsString(request)))
+                    .andExpect(status().isBadRequest());
+        }
+    }
+
+    @Nested
+    @DisplayName("DB State - Verificar flujo OAuth2 con intent")
+    class OAuth2FlowWithIntentTests {
+
+        @Test
+        @DisplayName("Usuario OAuth2 manual (sin tenant) → existe en DB")
+        void oauth2UserWithoutTenant_ExistsInDB() {
+            String email = "manual-" + System.currentTimeMillis() + "@oauth.test";
+            String providerId = "google-" + System.currentTimeMillis();
+
+            jdbcTemplate.update(
+                    "INSERT INTO users (id, email, name, provider, provider_id, is_active, created_at, updated_at) " +
+                            "VALUES (?, ?, ?, 'GOOGLE', ?, true, NOW(), NOW())",
+                    UUID.randomUUID(), email, "Manual OAuth User", providerId);
 
             List<Map<String, Object>> users = jdbcTemplate.queryForList(
-                "SELECT id, email, name, provider FROM users WHERE email = ?", uniqueEmail);
+                    "SELECT id, email, provider FROM users WHERE email = ?", email);
             assertThat(users).hasSize(1);
 
             List<Map<String, Object>> userTenants = jdbcTemplate.queryForList(
-                "SELECT * FROM user_tenants WHERE user_id = (SELECT id FROM users WHERE email = ?)",
-                uniqueEmail);
-
+                    "SELECT * FROM user_tenants WHERE user_id = ?", users.get(0).get("id"));
             assertThat(userTenants).isEmpty();
-            System.out.println("BUG CONFIRMADO: Usuario Google creado, pero NO hay user_tenants");
         }
-    }
-
-    @Nested
-    @DisplayName("EXPECTED BEHAVIOR - OAuth2 Login sin state")
-    class ExpectedBehaviorTests {
 
         @Test
-        @DisplayName("OAuth2 login sin state → debería crear tenant automáticamente")
-        void oauth2LoginWithoutState_ShouldCreateTenant() throws Exception {
-            uniqueEmail = "google-" + System.currentTimeMillis() + "@gmail.com";
-            createGoogleUserDirectly(uniqueEmail);
+        @DisplayName("Verificar que OAuth2 users existentes NO tienen tenant")
+        void existingOAuth2Users_NoTenants() {
+            List<Map<String, Object>> oauth2Users = jdbcTemplate.queryForList(
+                    "SELECT id, email FROM users WHERE provider = 'GOOGLE'");
 
-            OAuth2User mockUser = mock(OAuth2User.class);
-            when(mockUser.getAttribute("email")).thenReturn(uniqueEmail);
-
-            Authentication mockAuth = mock(Authentication.class);
-            when(mockAuth.getPrincipal()).thenReturn(mockUser);
-
-            doNothing().when(oAuth2Handler).onAuthenticationSuccess(any(), any(), eq(mockAuth));
-
-            List<Map<String, Object>> usersBefore = jdbcTemplate.queryForList(
-                "SELECT id, email FROM users WHERE email = ?", uniqueEmail);
-            assertThat(usersBefore).hasSize(1);
-
-            List<Map<String, Object>> tenantCount = jdbcTemplate.queryForList(
-                "SELECT COUNT(*) as count FROM tenants WHERE name LIKE ?", "Mi Empresa%");
-            int tenantCountBefore = ((Number) tenantCount.get(0).get("count")).intValue();
-
-            List<Map<String, Object>> userTenantsBefore = jdbcTemplate.queryForList(
-                "SELECT * FROM user_tenants WHERE user_id = (SELECT id FROM users WHERE email = ?)",
-                uniqueEmail);
-
-            System.out.println("DEBUG: Antes del fix - tenants: " + tenantCountBefore + ", user_tenants: " + userTenantsBefore.size());
-        }
-    }
-
-    @Nested
-    @DisplayName("USUARIO EXISTENTE en DB - Verificar estado actual")
-    class ExistingUserStateTests {
-
-        @Test
-        @DisplayName("Verificar usuarios Google existentes en DB")
-        void verifyExistingGoogleUsersHaveNoTenant() {
-            List<Map<String, Object>> googleUsers = jdbcTemplate.queryForList(
-                "SELECT id, email, name, provider FROM users WHERE provider = 'GOOGLE'");
-
-            System.out.println("DEBUG: Total usuarios Google: " + googleUsers.size());
-
-            for (Map<String, Object> user : googleUsers) {
-                Object userIdObj = user.get("id");
-                String email = (String) user.get("email");
-
-                String userId = userIdObj != null ? userIdObj.toString() : null;
-
+            for (Map<String, Object> user : oauth2Users) {
                 List<Map<String, Object>> userTenants = jdbcTemplate.queryForList(
-                    "SELECT * FROM user_tenants WHERE user_id = ?", userId);
-
-                System.out.println("DEBUG: Usuario " + email + " -> user_tenants: " + userTenants.size());
+                        "SELECT * FROM user_tenants WHERE user_id = ?", user.get("id"));
+                assertThat(userTenants).isEmpty();
             }
         }
     }

@@ -6,7 +6,6 @@ import auth.pymes.common.models.entities.UserEntity;
 import auth.pymes.common.models.entities.UserTenant;
 import auth.pymes.common.models.enums.PlanName;
 import auth.pymes.common.models.enums.RoleName;
-import auth.pymes.repositories.CustomAuthorizationRequestRepository;
 import auth.pymes.repositories.TenantRepository;
 import auth.pymes.repositories.UserEntityRepository;
 import auth.pymes.repositories.UserTenantRepository;
@@ -14,6 +13,7 @@ import auth.pymes.service.JwtService;
 import auth.pymes.service.OAuth2IntentService;
 import auth.pymes.utils.exception.custom.ResourceNotFoundException;
 import jakarta.servlet.ServletException;
+import jakarta.servlet.http.Cookie;
 import jakarta.servlet.http.HttpServletRequest;
 import jakarta.servlet.http.HttpServletResponse;
 import lombok.RequiredArgsConstructor;
@@ -28,6 +28,7 @@ import org.springframework.web.util.UriComponentsBuilder;
 
 import java.io.IOException;
 import java.time.ZonedDateTime;
+import java.util.Arrays;
 import java.util.List;
 import java.util.Optional;
 import java.util.UUID;
@@ -59,10 +60,9 @@ public class OAuth2AuthenticationSuccessHandler extends SimpleUrlAuthenticationS
         
         OAuth2User oAuth2User = (OAuth2User) authentication.getPrincipal();
         String email = oAuth2User.getAttribute("email");
-        String compositeState = request.getParameter("state");
-        String intentId = CustomAuthorizationRequestRepository.extractIntentId(compositeState);
+        String intentId = extractIntentIdFromCookie(request);
 
-        log.info("OAuth2 Login exitoso para: {}. State: {}", email, compositeState, intentId);
+        log.info("OAuth2 Login exitoso para: {}. intentId: {}", email, intentId);
 
         // 1. Buscar usuario en DB
         UserEntity user = userRepository.findByEmail(email)
@@ -173,5 +173,30 @@ public class OAuth2AuthenticationSuccessHandler extends SimpleUrlAuthenticationS
                 .replaceAll("")
                 .toLowerCase()
                 + "-" + System.currentTimeMillis();
+    }
+
+    private String extractIntentIdFromCookie(HttpServletRequest request) {
+        Cookie[] cookies = request.getCookies();
+        if (cookies == null) return null;
+        return Arrays.stream(cookies)
+                .filter(c -> "oauth2_intent".equals(c.getName()))
+                .findFirst()
+                .map(Cookie::getValue)
+                .filter(v -> v != null && !v.isBlank())
+                .orElse(null);
+    }
+
+    private void clearIntentCookie(HttpServletRequest request, HttpServletResponse response) {
+        Cookie[] cookies = request.getCookies();
+        if (cookies == null) return;
+        Arrays.stream(cookies)
+                .filter(c -> "oauth2_intent".equals(c.getName()))
+                .findFirst()
+                .ifPresent(c -> {
+                    c.setValue("");
+                    c.setMaxAge(0);
+                    c.setPath("/");
+                    response.addCookie(c);
+                });
     }
 }
