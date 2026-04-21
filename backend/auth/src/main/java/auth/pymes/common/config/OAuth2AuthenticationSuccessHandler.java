@@ -6,6 +6,7 @@ import auth.pymes.common.models.entities.UserEntity;
 import auth.pymes.common.models.entities.UserTenant;
 import auth.pymes.common.models.enums.PlanName;
 import auth.pymes.common.models.enums.RoleName;
+import auth.pymes.repositories.CustomAuthorizationRequestRepository;
 import auth.pymes.repositories.TenantRepository;
 import auth.pymes.repositories.UserEntityRepository;
 import auth.pymes.repositories.UserTenantRepository;
@@ -58,9 +59,10 @@ public class OAuth2AuthenticationSuccessHandler extends SimpleUrlAuthenticationS
         
         OAuth2User oAuth2User = (OAuth2User) authentication.getPrincipal();
         String email = oAuth2User.getAttribute("email");
-        String state = request.getParameter("state");
+        String compositeState = request.getParameter("state");
+        String intentId = CustomAuthorizationRequestRepository.extractIntentId(compositeState);
 
-        log.info("OAuth2 Login exitoso para: {}. State: {}", email, state);
+        log.info("OAuth2 Login exitoso para: {}. State: {}", email, compositeState, intentId);
 
         // 1. Buscar usuario en DB
         UserEntity user = userRepository.findByEmail(email)
@@ -71,8 +73,8 @@ public class OAuth2AuthenticationSuccessHandler extends SimpleUrlAuthenticationS
         String plan = "FREE";
 
         // 2. Procesar Intent si existe el state
-        if (StringUtils.hasText(state)) {
-            Optional<OAuth2IntentRequest> intentOpt = oauth2IntentService.getIntent(state);
+        if (StringUtils.hasText(intentId)) {
+            Optional<OAuth2IntentRequest> intentOpt = oauth2IntentService.getIntent(intentId);
             if (intentOpt.isPresent()) {
                 OAuth2IntentRequest intent = intentOpt.get();
                 log.info("Procesando intent para empresa: {}", intent.companyName());
@@ -101,7 +103,7 @@ public class OAuth2AuthenticationSuccessHandler extends SimpleUrlAuthenticationS
                 plan = PlanName.FREE.name();
 
                 // Limpiar intent de Redis
-                oauth2IntentService.deleteIntent(state);
+                oauth2IntentService.deleteIntent(intentId);
             }
         }
 

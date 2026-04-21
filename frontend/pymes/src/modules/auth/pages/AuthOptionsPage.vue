@@ -85,7 +85,7 @@ const handleOAuth2Login = async (provider: 'google' | 'facebook') => {
       });
 
       if (data.data?.intentId) {
-        url += `?state=${data.data.intentId}`;
+        url += `?state=${data.data.intentId}`;  // antes era ?state=;
       }
     }
 

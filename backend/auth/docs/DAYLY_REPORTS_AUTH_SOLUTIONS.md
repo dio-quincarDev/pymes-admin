@@ -91,6 +91,68 @@ Se implementó un mecanismo de "Intención de Registro" que persiste los datos d
 
 ---
 
+## 2026-04-20 — NoResourceFoundException: /login 🐛
+
+### 🎯 Problema Actual
+Al intentar login con Google/Facebook OAuth2, el flujo falla con:
+```
+NoResourceFoundException: No static resource login
+org.springframework.web.servlet.resource.ResourceHttpRequestHandler.handleRequest
+```
+
+### 📊 Diagnóstico
+
+| Componente | Path Esperado | Path Recibido |
+|------------|---------------|---------------|
+| Gateway | `/login/**` → Auth:8081 | ✓ rutea |
+| Auth Service | `/api/v1/auth/login` | `/login` ❌ |
+| Controller | `@PostMapping("/login")` en `/api/v1/auth/login` | NO existe `/login` |
+
+**Causa raíz:** El Auth controller está en `/api/v1/auth/login`, pero el Gateway rutea `/login/**` al auth service. Spring MVC no encuentra handler para `/login` y busca recurso estático.
+
+### 📐 Solución Propuesta: 3 Opciones
+
+#### Opción A: Thymeleaf Login Page (Recomendada)
+- Dependencia: `spring-boot-starter-thymeleaf`
+- Template: `src/main/resources/templates/login.html`
+- Spring Security maneja todo automáticamente
+- **Pros:** Funciona out-of-the-box, mínima complejidad
+- **Cons:** 51KB extra en JAR
+
+#### Opción B: Controller Explícito `/login`
+- Nuevo controller `LoginController.java`
+- GET `/login` → redirect frontend
+- POST `/login` → delegar a AuthService
+- **Pros:** Sin dependencias extra, control total
+- **Cons:** Más código, duplicación
+
+#### Opción C: Gateway Route Change
+- Cambiar route `/login/**` → frontend directamente
+- Cambiar redirect URIs OAuth2 en Google Console
+- **Pros:** Sin cambios en auth service
+- **Cons:** Separa responsabilidades, config extra
+
+---
+
+### 📋 Detalle Opción A - Thymeleaf
+
+**Qué agregar:**
+- Dependencia: `spring-boot-starter-thymeleaf`
+- Template: `src/main/resources/templates/login.html`
+
+**Cómo funciona:**
+- Spring Security OAuth2 detecta `/login` y sirve página automáticamente
+- OAuth2 authorization endpoint redirect → Google callback → Success Handler
+
+**Pros:**
+- Spring Security maneja flujo completo automáticamente
+- Mínima configuración
+
+**Cons:**
+- Dependencia extra
+
+---
+
 ## 2026-04-17 — OAuth2 via Gateway 🌐🔐
 
 ### 🎯 El Problema

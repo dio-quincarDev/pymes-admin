@@ -1,5 +1,6 @@
 package auth.pymes.common.config;
 import auth.pymes.common.constants.ApiPathConstants;
+import auth.pymes.repositories.CustomAuthorizationRequestRepository;
 import auth.pymes.repositories.UserEntityRepository;
 import auth.pymes.service.impl.CustomOAuth2UserService;
 import auth.pymes.utils.exception.CodigoError;
@@ -43,6 +44,7 @@ public class SecurityConfig {
     private final JwtAuthenticationFilter jwtAuthenticationFilter;
     private final UserEntityRepository userRepository;
     private final ObjectMapper objectMapper;
+    private final CustomAuthorizationRequestRepository customAuthorizationRequestRepository;
 
     private static final String[] WHITE_LIST = {
             // Swagger / OpenAPI
@@ -77,9 +79,10 @@ public class SecurityConfig {
                         .anyRequest().authenticated()
                 )
                 .oauth2Login(oauth2 -> oauth2
-                        .userInfoEndpoint(userInfo -> userInfo
-                                .userService(customOAuth2UserService)
+                        .authorizationEndpoint(endpoint -> endpoint
+                                .authorizationRequestRepository(customAuthorizationRequestRepository)
                         )
+                        .userInfoEndpoint(userInfo -> userInfo.userService(customOAuth2UserService))
                         .successHandler(oAuth2AuthenticationSuccessHandler)
                 )
                 .addFilterBefore(jwtAuthenticationFilter, UsernamePasswordAuthenticationFilter.class)
