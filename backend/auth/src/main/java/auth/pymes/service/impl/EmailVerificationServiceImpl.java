@@ -143,31 +143,35 @@ public class EmailVerificationServiceImpl implements EmailVerificationService {
             <head>
                 <meta charset="UTF-8">
                 <style>
-                    body { font-family: Arial, sans-serif; background-color: #f4f4f4; margin: 0; padding: 20px; }
-                    .container { max-width: 600px; margin: 0 auto; background: #ffffff; border-radius: 8px; overflow: hidden; box-shadow: 0 2px 8px rgba(0,0,0,0.1); }
-                    .header { background: #4F46E5; color: white; padding: 30px; text-align: center; }
-                    .content { padding: 30px; }
-                    .button { display: inline-block; background: #4F46E5; color: white; padding: 14px 32px; text-decoration: none; border-radius: 6px; font-weight: bold; margin: 20px 0; }
-                    .footer { background: #f8f8f8; padding: 20px; text-align: center; color: #888; font-size: 12px; }
-                    .link-text { word-break: break-all; color: #4F46E5; }
+                    body { font-family: 'Segoe UI', Tahoma, Geneva, Verdana, sans-serif; background-color: #f9fafb; margin: 0; padding: 20px; color: #111827; }
+                    .container { max-width: 600px; margin: 0 auto; background: #ffffff; border-radius: 12px; overflow: hidden; box-shadow: 0 4px 6px -1px rgba(0,0,0,0.1); }
+                    .header { background: #4F46E5; color: white; padding: 40px 20px; text-align: center; }
+                    .content { padding: 40px 30px; line-height: 1.6; }
+                    .button-container { text-align: center; margin: 35px 0; }
+                    .button { display: inline-block; background-color: #4F46E5; color: #ffffff !important; padding: 16px 32px; text-decoration: none; border-radius: 8px; font-weight: bold; font-size: 16px; box-shadow: 0 2px 4px rgba(79, 70, 229, 0.3); }
+                    .footer { background: #f3f4f6; padding: 24px; text-align: center; color: #6b7280; font-size: 14px; }
+                    .warning { font-size: 13px; color: #9ca3af; margin-top: 25px; border-top: 1px solid #e5e7eb; padding-top: 20px; }
                 </style>
             </head>
             <body>
                 <div class="container">
                     <div class="header">
-                        <h1>Pymes Admin</h1>
-                        <p>Verifica tu cuenta</p>
+                        <h1 style="margin:0; font-size: 28px;">Pymes Admin</h1>
+                        <p style="margin:10px 0 0 0; opacity: 0.9;">Gestión inteligente para tu negocio</p>
                     </div>
                     <div class="content">
-                        <p>Hola <strong>%s</strong>,</p>
-                        <p>Gracias por registrarte en Pymes Admin. Para completar tu registro, haz clic en el botón de abajo:</p>
-                        <p style="text-align: center;">
+                        <p style="font-size: 18px;">Hola <strong>%s</strong>,</p>
+                        <p>Gracias por unirte a Pymes Admin. Estamos emocionados de tenerte a bordo. Para comenzar a utilizar todas las funciones de la plataforma, por favor confirma tu dirección de correo electrónico:</p>
+                        
+                        <div class="button-container">
                             <a href="%s" class="button">Verificar mi cuenta</a>
-                        </p>
-                        <p>O copia y pega el siguiente enlace en tu navegador:</p>
-                        <p class="link-text">%s</p>
-                        <p>Este enlace expirará en 15 minutos.</p>
-                        <p>Si no creaste esta cuenta, puedes ignorar este email.</p>
+                        </div>
+                        
+                        <p>Este enlace de seguridad expirará en <strong>15 minutos</strong>.</p>
+                        
+                        <div class="warning">
+                            <p>Si no has creado una cuenta en nuestra plataforma, puedes ignorar este mensaje de forma segura.</p>
+                        </div>
                     </div>
                     <div class="footer">
                         <p>Pymes Admin &copy; 2026. Todos los derechos reservados.</p>
@@ -175,7 +179,7 @@ public class EmailVerificationServiceImpl implements EmailVerificationService {
                 </div>
             </body>
             </html>
-            """.formatted(firstName, verifyUrl, verifyUrl);
+            """.formatted(firstName, verifyUrl);
     }
 
     private String generateSecureToken() {

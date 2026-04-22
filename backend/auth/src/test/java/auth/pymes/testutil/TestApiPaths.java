@@ -14,6 +14,8 @@ public final class TestApiPaths {
     public static final String AUTH_REFRESH = AUTH + ApiPathConstants.AUTH_REFRESH;
     public static final String AUTH_VERIFY_EMAIL = AUTH + ApiPathConstants.AUTH_VERIFY_EMAIL;
     public static final String AUTH_RESEND_VERIFICATION = AUTH + ApiPathConstants.AUTH_RESEND_VERIFICATION;
+    public static final String AUTH_FORGOT_PASSWORD = AUTH + ApiPathConstants.AUTH_FORGOT_PASSWORD;
+    public static final String AUTH_RESET_PASSWORD = AUTH + ApiPathConstants.AUTH_RESET_PASSWORD;
     public static final String AUTH_OAUTH2_INTENT = AUTH + ApiPathConstants.AUTH_OAUTH2_INTENT;
     public static final String AUTH_OAUTH2_INTENT_GET = AUTH + ApiPathConstants.AUTH_OAUTH2_INTENT_GET;
 
