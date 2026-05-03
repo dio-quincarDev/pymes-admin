@@ -7,12 +7,19 @@
 ## 📋 ÍNDICE
 
 ### 🔲 Bugs Pendientes
-- **[P2] Facebook OAuth2** — No testeado, redirect URI no configurado
+- **[P2] Facebook OAuth2** — POSTERGADO (Meta no aprobó empresa)
+- **[P1] Email Verification Token-Email Mismatch** — Validación cruzada缺失
+
+### 📌 Tareas por Hacer
+- **[P1] Thymeleaf Email System** — Refactorizar emails para usar plantillas Thymeleaf component-based
 
 ### 🚧 En PROGRESO
+- [2026-05-03 — Reingeniería del Flujo de Emails (Thymeleaf)](#2026-05-03--reingeniería-del-flujo-de-emails-thymeleaf-)
 - [2026-04-22 — InvitationService Technical Debt Coverage](#2026-04-22--invitationservice-technical-debt-coverage-)
 
 ### ✅ Bugs RESUELTOS (más reciente primero)
+- [2026-05-03 — Pruebas Unitarias e Integración (EmailService Refactor)](#2026-05-03--pruebas-unitarias-e-integración-emailservice-refactor-)
+- [2026-05-03 — Reingeniería del Flujo de Emails (Thymeleaf)](#2026-05-03--reingeniería-del-flujo-de-emails-thymeleaf-)
 - [2026-04-22 — InvitationService Technical Debt Coverage](#2026-04-22--invitationservice-technical-debt-coverage-)
 - [2026-04-22 — Password Reset Notification Flow](#2026-04-22--password-reset-notification-flow-)
 - [2026-04-22 — Token Exposure in Email Verification](#2026-04-22--token-exposure-in-email-verification-)
@@ -35,6 +42,42 @@
 
 ---
 
+## 📌 TAREAS POR HACER
+
+### 📅 [P1] Thymeleaf Email System (COMPLETADO)
+
+**Prioridad:** Alta (Completado 2026-05-03)
+
+**Descripción:**
+Refactorizar el sistema de emails para usar plantillas Thymeleaf component-based en lugar de HTML hardcodeado en strings Java.
+
+**Estado actual:**
+- ✅ Thymeleaf implementado y configurado.
+- ✅ Estructura component-based en `templates/`.
+- ✅ `_base.html` con estilos centralizados (Copper & Forest).
+- ✅ Components reusables (button, header, footer).
+- ✅ Templates específicos para cada tipo de email (verification, reset, invitation).
+- ✅ EmailTemplateService implementado.
+- ✅ EmailVerificationServiceImpl refactorizado.
+- ✅ PasswordResetServiceImpl refactorizado.
+- ✅ InvitationServiceImpl refactorizado.
+
+**Tareas:**
+- [x] Crear `_base.html` con estilos CSS
+- [x] Crear components en `templates/components/`
+- [x] Crear `templates/emails/verification.html`
+- [x] Crear `templates/emails/password-reset.html`
+- [x] Crear `templates/emails/invitation.html`
+- [x] Crear EmailTemplateService
+- [x] Refactorizar EmailVerificationServiceImpl
+- [x] Refactorizar PasswordResetServiceImpl
+- [x] Refactorizar InvitationServiceImpl
+- [ ] Pruebas de integración E2E con frontend actualizado
+
+**Referencia:** `backend/auth/docs/THYLEAF_EMAIL_SYSTEM.md`
+
+---
+
 ## 🔲 BUGS PENDIENTES
 
 ### 📅 [P2] Facebook OAuth2 no testeado
@@ -48,9 +91,117 @@ Facebook OAuth2 no ha sido probado. Necesita configuración en Facebook Develope
 - Redirect URI esperado: `http://localhost:8080/login/oauth2/code/facebook`
 - Authorized redirect URIs en Facebook Console
 
+**Estado:** POSTERGADO - Meta no ha aprobado la validación de la empresa. Queda pendiente indefinidamente hasta obtener credencialesvlidas de Meta/Facebook Developer Console.
+
+**Actualización (2026-04-28):**
+- Meta/Facebook Developer拒绝了 la solicitud de verificación de empresa
+- No se recibieron credenciales OAuth2
+- Se procedió con Google OAuth2 exclusivamente
+- El slug es generado automáticamente por el frontend y enviado en el payload de registro
+
+---
+
+### 📅 [P1] Email Verification Token-Email Mismatch
+
+**Prioridad:** Alta
+
+**Descripción:**
+El flujo de verificación de email no valida que el token coincida con el email del query param. El backend ignora el email enviado en la URL, permitiendo que cualquier token válido verifique cualquier cuenta asociada.
+
+**Fallas identificadas:**
+1. `VerifyEmailRequest` solo acepta `{ token }` - email ignorado
+2. Redis almacena `email:verify:{token}` → email pero no hay validación cruzada
+3. Frontend no puede confirmar qué email verifica antes del llamado
+4. Usuario ve el resultado DESPUÉS de hacer clic, no antes
+
+**Flujo vulnerable:**
+```
+Frontend envía: POST /verify-email { token: "abc123" }
+Backend recibe: solo valida token en Redis → cualquier email asociado
+```
+
+**Solución implementada:** Validación token-email + respuesta enriquecida
+
+**Tareas:**
+- [ ] Agregar `email` a `VerifyEmailRequest` DTO
+- [ ] Crear `VerifyEmailResponse` DTO
+- [ ] Modificar `EmailVerificationServiceImpl.verifyEmail()` con validación cruzada
+- [ ] Actualizar `AuthApiController.verifyEmail()`
+- [ ] Frontend: modificar `authService.verifyEmail()` para enviar `{ token, email }`
+
+**Referencia:** `backend/auth/docs/VERIFICATION_SECURITY_FIX.md`
+
 ---
 
 ## ✅ BUGS RESUELTOS
+
+---
+
+## 📅 2026-05-03 — Reingeniería del Flujo de Emails (Thymeleaf) ✅
+
+### 🎯 Problema
+El sistema de correos electrónicos tenía el HTML hardcodeado como strings dentro de los servicios de negocio (`EmailVerificationServiceImpl`, `PasswordResetServiceImpl`, `InvitationServiceImpl`), lo que dificultaba el mantenimiento, la edición visual y violaba el principio de responsabilidad única. Además, las plantillas existentes eran inconsistentes y los archivos `.html` en recursos estaban vacíos.
+
+### 📐 Solución
+Se implementó un sistema robusto y escalable basado en segmentos:
+1. **Infraestructura Core**:
+   - `EmailTemplateService`: Servicio especializado en el renderizado de plantillas Thymeleaf.
+   - `EmailService`: Fachada única para el envío de correos, abstrayendo la complejidad de `JavaMailSender`.
+2. **Sistema de Componentes**:
+   - `_base.html`: Layout maestro con estilos inline responsivos y paleta "Fintech Deep Forest & Copper".
+   - Fragmentos reusables: `_header`, `_footer` y `_button` (estilo Copper corporativo).
+3. **Migración de Contenidos**:
+   - Creación de plantillas específicas: `verification.html`, `password-reset.html` e `invitation.html`.
+4. **Refactorización de Servicios**:
+   - Se eliminaron todos los bloques de HTML hardcodeado en los servicios de auth.
+   - Se inyectó `EmailService` para delegar el envío, pasando únicamente el mapa de variables dinámicas.
+
+### 🧪 Validación
+- **Consistencia Visual**: Unificación estética entre todos los tipos de comunicación saliente.
+- **Mantenibilidad**: Los cambios de diseño ahora se realizan exclusivamente en archivos `.html` sin afectar la lógica de negocio.
+- **Limpieza de Código**: Reducción significativa de líneas de código y complejidad en los servicios de implementación.
+
+### 🔲 Pendientes
+- [ ] Pruebas de integración con servidor SMTP real (Mailtrap).
+- [ ] Adaptación de las páginas del frontend para alinearse con este nuevo flujo (Segmentos 3-5).
+
+---
+
+## 📅 2026-05-03 — Pruebas Unitarias e Integración (EmailService Refactor) ✅
+
+### 🎯 Problema
+Tras refactorizar el sistema de emails para usar `EmailService` (interfaz centralizada) en lugar de `JavaMailSender` directamente, las pruebas unitarias e integración fallaron:
+- Error de compilación: `JavaMailSender cannot be converted to EmailService`
+- Runtime errors por campos inexistentes (`fromEmail`)
+
+### 📐 Solución
+
+**1. Pruebas Unitarias (`src/test/java/auth/pymes/unit/`):**
+- `EmailVerificationServiceImplTest.java` - Reemplazado `JavaMailSender` → `EmailService` mock
+- `InvitationServiceImplTest.java` - Reemplazado `JavaMailSender` → `EmailService` mock
+- `PasswordResetServiceImplTest.java` - Reemplazado `JavaMailSender` → `EmailService` mock
+- Eliminados campos `fromEmail` (ahora en `EmailServiceImpl`)
+- Agregado `frontendUrl` via `ReflectionTestUtils`
+
+**2. Pruebas Integración (`src/test/java/auth/pymes/integration/`):**
+- `AbstractIntegrationTest.java` - Mock `EmailService` en vez de `JavaMailSender`
+- `InvitationServiceIntegrationTest.java` - Cleanup mejorado + edge cases
+- `PasswordResetIntegrationTest.java` - Edge cases agregados
+
+**3. Edge Cases Agregados:**
+| Test | Descripción |
+|------|------------|
+| `inviteWithInvalidEmailFormat()` | Email inválido → 400 |
+| `forgotPasswordInvalidEmailFormats()` | Múltiples formatos inválidos → 400 |
+
+### 🧪 Validación
+- Unit Tests: 103/103 ✅
+- Integration Tests: 5/5 ✅
+
+### 🔲 Pendientes
+- [ ] Pruebas E2E con servidor SMTP real
+
+---
 
 ---
 

@@ -3,11 +3,11 @@ package auth.pymes.unit;
 import auth.pymes.common.models.entities.UserEntity;
 import auth.pymes.common.models.enums.AuthProvider;
 import auth.pymes.repositories.UserEntityRepository;
+import auth.pymes.service.EmailService;
 import auth.pymes.service.PasswordResetService;
 import auth.pymes.service.impl.PasswordResetServiceImpl;
 import auth.pymes.utils.exception.auth.AuthenticationException;
 import auth.pymes.utils.exception.auth.PasswordResetTokenInvalidException;
-import jakarta.mail.internet.MimeMessage;
 import org.junit.jupiter.api.BeforeEach;
 import org.junit.jupiter.api.DisplayName;
 import org.junit.jupiter.api.Nested;
@@ -19,7 +19,6 @@ import org.mockito.Mock;
 import org.mockito.junit.jupiter.MockitoExtension;
 import org.springframework.data.redis.core.RedisTemplate;
 import org.springframework.data.redis.core.ValueOperations;
-import org.springframework.mail.javamail.JavaMailSender;
 import org.springframework.security.crypto.password.PasswordEncoder;
 import org.springframework.test.util.ReflectionTestUtils;
 
@@ -48,10 +47,7 @@ class PasswordResetServiceImplTest {
     private PasswordEncoder passwordEncoder;
 
     @Mock
-    private JavaMailSender mailSender;
-
-    @Mock
-    private MimeMessage mimeMessage;
+    private EmailService emailService;
 
     @InjectMocks
     private PasswordResetServiceImpl passwordResetService;
@@ -71,7 +67,6 @@ class PasswordResetServiceImplTest {
                 .build();
 
         ReflectionTestUtils.setField(passwordResetService, "frontendUrl", "http://localhost:9000");
-        ReflectionTestUtils.setField(passwordResetService, "fromEmail", "noreply@pymes.com");
     }
 
     // ==================== generateResetToken ====================
@@ -85,7 +80,6 @@ class PasswordResetServiceImplTest {
         void generateResetToken_ExistingEmail_ReturnsTrue() {
             when(userRepository.findByEmail("user@example.com")).thenReturn(Optional.of(testUser));
             when(redisTemplate.opsForValue()).thenReturn(valueOperations);
-            when(mailSender.createMimeMessage()).thenReturn(mimeMessage);
 
             boolean result = passwordResetService.generateResetToken("user@example.com");
 
@@ -100,9 +94,8 @@ class PasswordResetServiceImplTest {
             assertThat(keyCaptor.getValue()).hasSize("password:reset:".length() + 64); // 32 bytes hex = 64 chars
             assertThat(emailCaptor.getValue()).isEqualTo("user@example.com");
 
-            // Verify Email sending
-            verify(mailSender).send(any(MimeMessage.class));
-            verify(mailSender).createMimeMessage();
+            // Verify Email sending via EmailService
+            verify(emailService).send(eq("user@example.com"), anyString(), eq("password-reset"), any());
         }
 
         @Test
@@ -114,7 +107,7 @@ class PasswordResetServiceImplTest {
 
             assertThat(result).isFalse();
             verifyNoInteractions(redisTemplate);
-            verifyNoInteractions(mailSender);
+            verifyNoInteractions(emailService);
         }
     }
 

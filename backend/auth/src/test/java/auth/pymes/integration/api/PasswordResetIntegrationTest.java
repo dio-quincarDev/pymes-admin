@@ -119,4 +119,18 @@ class PasswordResetIntegrationTest extends AbstractIntegrationTest {
                         .content(objectMapper.writeValueAsString(resetRequest)))
                 .andExpect(status().isBadRequest());
     }
+
+    @Test
+    @DisplayName("Request Reset with multiple invalid formats → returns 200 (enumeration prevention)")
+    void forgotPasswordInvalidEmailFormats() throws Exception {
+        String[] invalidEmails = {"not-an-email", "missing@", "@domain.com", "spaces in@email.com"};
+
+        for (String email : invalidEmails) {
+            ForgotPasswordRequest forgotRequest = new ForgotPasswordRequest(email);
+            mockMvc.perform(post(TestApiPaths.AUTH_FORGOT_PASSWORD)
+                            .contentType(MediaType.APPLICATION_JSON)
+                            .content(objectMapper.writeValueAsString(forgotRequest)))
+                    .andExpect(status().isBadRequest());
+        }
+    }
 }

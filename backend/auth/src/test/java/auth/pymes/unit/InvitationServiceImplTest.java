@@ -12,12 +12,12 @@ import auth.pymes.repositories.InvitationRepository;
 import auth.pymes.repositories.TenantRepository;
 import auth.pymes.repositories.UserEntityRepository;
 import auth.pymes.repositories.UserTenantRepository;
+import auth.pymes.service.EmailService;
 import auth.pymes.service.impl.InvitationServiceImpl;
 import auth.pymes.utils.exception.auth.AuthorizationException;
 import auth.pymes.utils.exception.custom.DuplicateResourceException;
 import auth.pymes.utils.exception.custom.InvalidInputException;
 import auth.pymes.utils.exception.custom.ResourceNotFoundException;
-import jakarta.mail.internet.MimeMessage;
 import org.junit.jupiter.api.BeforeEach;
 import org.junit.jupiter.api.DisplayName;
 import org.junit.jupiter.api.Nested;
@@ -30,7 +30,7 @@ import org.springframework.data.domain.Page;
 import org.springframework.data.domain.PageImpl;
 import org.springframework.data.domain.PageRequest;
 import org.springframework.data.domain.Pageable;
-import org.springframework.mail.javamail.JavaMailSender;
+import auth.pymes.service.EmailService;
 import org.springframework.security.core.userdetails.UserDetails;
 import org.springframework.security.oauth2.core.user.OAuth2User;
 import org.springframework.test.util.ReflectionTestUtils;
@@ -58,10 +58,9 @@ public class InvitationServiceImplTest {
     private InvitationRepository invitationRepository;
     @Mock
     private InvitationMapper invitationMapper;
+
     @Mock
-    private JavaMailSender mailSender;
-    @Mock
-    private MimeMessage mimeMessage;
+    private EmailService emailService;
 
     @InjectMocks
     private InvitationServiceImpl invitationService;
@@ -69,7 +68,6 @@ public class InvitationServiceImplTest {
     @BeforeEach
     void setUp() {
         ReflectionTestUtils.setField(invitationService, "frontendUrl", "http://localhost:9000");
-        ReflectionTestUtils.setField(invitationService, "fromEmail", "noreply@pymes.com");
     }
 
     @Nested
@@ -209,7 +207,6 @@ public class InvitationServiceImplTest {
                     null,
                     false
             ));
-            when(mailSender.createMimeMessage()).thenReturn(mimeMessage);
 
             invitationService.createInvitation(request, inviterEmail);
 

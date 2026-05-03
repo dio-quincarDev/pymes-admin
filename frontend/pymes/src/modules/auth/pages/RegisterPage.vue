@@ -10,20 +10,19 @@
       </div>
 
       <q-card class="bg-surface-pine text-secondary tight-shadow q-pa-lg no-border-radius-custom">
-        <div v-if="pendingTenant" class="q-mb-lg bg-dark q-pa-md rounded-borders">
-          <div class="text-overline text-accent">Espacio de trabajo</div>
-          <div class="text-h6 text-primary">{{ pendingTenant.name }}</div>
-          <div class="text-caption text-accent">Slug: {{ pendingTenant.slug }}</div>
+        <div v-if="pendingTenant" class="q-mb-lg text-center">
+          <div class="text-overline text-accent">Registrando cuenta para</div>
+          <div class="text-h5 text-primary text-weight-bold">{{ pendingTenant.name }}</div>
         </div>
 
         <q-form @submit="onRegister" class="q-gutter-y-md">
           <q-input
             v-model="registerForm.name"
-            label="Nombre Completo"
+            label="Tu Nombre"
             dark filled color="primary" label-color="accent"
             :rules="[val => !!val || 'El nombre es requerido']"
           >
-            <template v-slot:prepend><q-icon name="badge" color="primary" /></template>
+            <template v-slot:prepend><q-icon name="person" color="primary" /></template>
           </q-input>
 
           <q-input
@@ -47,7 +46,7 @@
 
           <div class="q-mt-xl">
             <q-btn
-              label="FINALIZAR REGISTRO"
+              label="CREAR CUENTA"
               type="submit"
               color="primary"
               class="full-width brand-glow text-weight-bold"
@@ -55,11 +54,28 @@
               :loading="loading"
             />
           </div>
-
-          <div class="q-mt-md text-center">
-            <q-btn flat label="Volver a elegir método" color="accent" to="/auth-options" no-caps />
-          </div>
         </q-form>
+
+        <q-separator dark class="q-my-lg" label="O REGÍSTRATE CON" />
+
+        <div class="row justify-center">
+          <q-btn
+            outline
+            color="secondary"
+            class="social-btn full-width"
+            @click="loginWithGoogle"
+          >
+            <q-icon name="img:https://cdn.cdnlogo.com/logos/g/35/google-icon.svg" size="xs" class="q-mr-sm" />
+            Google
+          </q-btn>
+        </div>
+
+        <div class="q-mt-md text-center">
+          <div class="text-caption text-accent">
+            ¿Ya tienes cuenta?
+            <q-btn flat no-caps label="Inicia Sesión" color="primary" class="q-px-xs" to="/login" />
+          </div>
+        </div>
       </q-card>
     </div>
   </q-page>
@@ -68,9 +84,10 @@
 <script setup lang="ts">
 import { reactive, ref, onMounted } from 'vue';
 import { useAuthStore } from '../store';
-import { useQuasar } from 'quasar';
+import { useQuasar, openURL } from 'quasar';
 import { useRouter } from 'vue-router';
 import { storeToRefs } from 'pinia';
+import { authService } from '../services/auth.service';
 
 const authStore = useAuthStore();
 const { pendingTenant } = storeToRefs(authStore);
@@ -129,17 +146,57 @@ const onRegister = async () => {
     loading.value = false;
   }
 };
+
+const loginWithGoogle = async () => {
+  await handleOAuth2Login('google');
+};
+
+const handleOAuth2Login = async (provider: 'google') => {
+  try {
+    let url = `http://localhost:8080/oauth2/authorization/${provider}`;
+
+    if (pendingTenant.value?.name && pendingTenant.value?.slug) {
+      $q.loading.show({ message: 'Preparando registro con Google...' });
+      const { data } = await authService.createOAuth2Intent({
+        companyName: pendingTenant.value.name,
+        companySlug: pendingTenant.value.slug,
+      });
+
+      if (data.data?.intentId) {
+        url += `?intentId=${data.data.intentId}`;
+      }
+    }
+
+    openURL(url);
+  } catch (error) {
+    console.error(`Error initiating ${provider} login:`, error);
+    $q.notify({
+      type: 'negative',
+      message: 'No se pudo iniciar el proceso. Intenta de nuevo.',
+    });
+  } finally {
+    $q.loading.hide();
+  }
+};
 </script>
 
 <style lang="scss" scoped>
 .register-card-container {
   width: 100%;
-  max-width: 500px;
+  max-width: 450px;
 }
 .letter-spacing-2 {
   letter-spacing: 2px;
 }
-.rounded-borders {
-  border-radius: 8px;
+.social-btn {
+  text-transform: none;
+  border-color: rgba(226, 232, 228, 0.2);
+  &:hover {
+    background: rgba(113, 131, 127, 0.1);
+  }
+}
+:deep(.q-field--filled .q-field__control) {
+  background: rgba(0, 0, 0, 0.2);
+  border-radius: 4px;
 }
 </style>

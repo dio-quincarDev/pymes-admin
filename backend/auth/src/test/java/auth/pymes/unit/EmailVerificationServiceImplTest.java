@@ -1,12 +1,11 @@
 package auth.pymes.unit;
 
 import auth.pymes.repositories.UserEntityRepository;
+import auth.pymes.service.EmailService;
 import auth.pymes.service.impl.EmailVerificationServiceImpl;
 import auth.pymes.utils.exception.auth.AuthenticationException;
 import auth.pymes.utils.exception.auth.EmailVerificationTokenInvalidException;
 import auth.pymes.utils.exception.custom.DuplicateResourceException;
-import jakarta.mail.Session;
-import jakarta.mail.internet.MimeMessage;
 import org.junit.jupiter.api.BeforeEach;
 import org.junit.jupiter.api.Test;
 import org.junit.jupiter.api.extension.ExtendWith;
@@ -15,7 +14,6 @@ import org.mockito.Mock;
 import org.mockito.junit.jupiter.MockitoExtension;
 import org.springframework.data.redis.core.RedisTemplate;
 import org.springframework.data.redis.core.ValueOperations;
-import org.springframework.mail.javamail.JavaMailSender;
 import org.springframework.test.util.ReflectionTestUtils;
 
 import auth.pymes.common.models.entities.UserEntity;
@@ -23,7 +21,6 @@ import auth.pymes.common.models.enums.AuthProvider;
 
 import java.time.ZonedDateTime;
 import java.util.Optional;
-import java.util.Properties;
 import java.util.UUID;
 
 import static org.assertj.core.api.Assertions.assertThat;
@@ -46,11 +43,9 @@ class EmailVerificationServiceImplTest {
     private UserEntityRepository userRepository;
 
     @Mock
-    private JavaMailSender mailSender;
+    private EmailService emailService;
 
-    @Mock
-    private MimeMessage mimeMessage;
-
+    @InjectMocks
     private EmailVerificationServiceImpl emailVerificationService;
 
     private UserEntity unverifiedUser;
@@ -58,9 +53,8 @@ class EmailVerificationServiceImplTest {
 
     @BeforeEach
     void setUp() {
-        emailVerificationService = new EmailVerificationServiceImpl(redisTemplate, userRepository, mailSender);
+        emailVerificationService = new EmailVerificationServiceImpl(redisTemplate, userRepository, emailService);
         ReflectionTestUtils.setField(emailVerificationService, "frontendUrl", "http://localhost:9200");
-        ReflectionTestUtils.setField(emailVerificationService, "fromEmail", "noreply@pymes.com");
 
         unverifiedUser = UserEntity.builder()
                 .id(UUID.randomUUID())
@@ -83,7 +77,6 @@ class EmailVerificationServiceImplTest {
                 .build();
 
         lenient().when(redisTemplate.opsForValue()).thenReturn(valueOperations);
-        lenient().when(mailSender.createMimeMessage()).thenReturn(mimeMessage);
     }
 
     // ==================== generateVerificationToken ====================

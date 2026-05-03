@@ -1,0 +1,15 @@
+<!DOCTYPE html>
+<html xmlns:th="http://www.thymeleaf.org" th:replace="~{_base :: layout(~{::content})}">
+<body>
+    <div th:fragment="content">
+        <p>Hola,</p>
+        <p><strong th:text="${inviterName}">Usuario</strong> te ha invitado a formar parte del equipo de <strong th:text="${tenantName}">Empresa</strong> en Pymes Admin.</p>
+        <p>Al unirte, podrás colaborar en la gestión de la empresa según el rol que te ha sido asignado.</p>
+        
+        <div th:replace="~{components/_button :: button(${url}, 'Aceptar Invitación')}"></div>
+        
+        <p>Este enlace de invitación expirará en 7 días.</p>
+        <p>Si no esperabas esta invitación, puedes ignorar este correo.</p>
+    </div>
+</body>
+</html>

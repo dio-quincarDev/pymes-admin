@@ -98,24 +98,13 @@
               placeholder="Ej. Mi Abarrotería S.A."
               dark filled color="primary" label-color="accent"
               :rules="[val => !!val || 'El nombre es obligatorio']"
-              @update:model-value="updateSlug"
             >
               <template v-slot:prepend><q-icon name="apartment" color="primary" /></template>
             </q-input>
 
-            <q-input
-              v-model="companyForm.slug"
-              label="Identificador de tu Espacio (Slug)"
-              dark filled color="primary" label-color="accent"
-              hint="pymeq.com/tu-empresa"
-              :rules="[val => !!val || 'El identificador es obligatorio']"
-            >
-              <template v-slot:prepend><q-icon name="link" color="primary" /></template>
-            </q-input>
-
             <div class="q-mt-xl">
               <q-btn
-                label="ACTIVAR MI ESPACIO DE TRABAJO"
+                label="COMENZAR"
                 type="submit"
                 color="primary"
                 class="full-width brand-glow text-weight-bold q-py-md"
@@ -148,23 +137,20 @@ const authStore = useAuthStore();
 const router = useRouter();
 
 const companyForm = reactive({
-  name: '',
-  slug: ''
+  name: ''
 });
 
-const updateSlug = (val: string | number | null) => {
-  if (typeof val !== 'string') return;
-  companyForm.slug = val
+const startOnboarding = () => {
+  // Generamos el slug automáticamente pero no lo mostramos
+  const slug = companyForm.name
     .toLowerCase()
     .trim()
     .replace(/[^\w\s-]/g, '')
     .replace(/[\s_-]+/g, '-')
     .replace(/^-+|-+$/g, '');
-};
 
-const startOnboarding = () => {
-  authStore.setPendingTenant(companyForm.name, companyForm.slug);
-  void router.push('/auth-options');
+  authStore.setPendingTenant(companyForm.name, slug);
+  void router.push('/register');
 };
 
 const scrollToForm = () => {

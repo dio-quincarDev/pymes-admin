@@ -75,9 +75,9 @@ const resending = ref(false);
 const token = ref(route.query.token as string);
 const email = ref(route.query.email as string);
 
-const verifyEmail = async (verificationToken: string) => {
+const verifyEmail = async (verificationToken: string, userEmail: string) => {
   try {
-    await authService.verifyEmail(verificationToken);
+    await authService.verifyEmail(verificationToken, userEmail);
     success.value = true;
   } catch (err: unknown) {
     error.value = true;
@@ -132,7 +132,7 @@ onMounted(() => {
     errorMessage.value = 'Token de verificación ausente.';
     return;
   }
-  void verifyEmail(token.value);
+  void verifyEmail(token.value, email.value);
 });
 </script>
 

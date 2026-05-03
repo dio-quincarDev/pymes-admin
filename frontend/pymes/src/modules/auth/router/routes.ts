@@ -26,5 +26,23 @@ export const authRoutes: RouteRecordRaw[] = [
     name: 'verify-email',
     component: () => import('../pages/VerifyEmailPage.vue'),
     meta: { requiresAuth: false }
+  },
+  {
+    path: '/forgot-password',
+    name: 'forgot-password',
+    component: () => import('../pages/ForgotPasswordPage.vue'),
+    meta: { requiresAuth: false }
+  },
+  {
+    path: '/reset-password',
+    name: 'reset-password',
+    component: () => import('../pages/ResetPasswordPage.vue'),
+    meta: { requiresAuth: false }
+  },
+  {
+    path: '/accept-invitation',
+    name: 'accept-invitation',
+    component: () => import('../pages/AcceptInvitationPage.vue'),
+    meta: { requiresAuth: false }
   }
 ];

@@ -1,10 +1,8 @@
 package auth.pymes.integration;
 
-import jakarta.mail.Session;
-import jakarta.mail.internet.MimeMessage;
+import auth.pymes.service.EmailService;
 import org.junit.jupiter.api.BeforeEach;
 import org.springframework.boot.test.context.SpringBootTest;
-import org.springframework.mail.javamail.JavaMailSender;
 import org.springframework.test.context.ActiveProfiles;
 import org.springframework.test.context.DynamicPropertyRegistry;
 import org.springframework.test.context.DynamicPropertySource;
@@ -15,9 +13,11 @@ import org.testcontainers.junit.jupiter.Container;
 import org.testcontainers.junit.jupiter.Testcontainers;
 import org.testcontainers.utility.DockerImageName;
 
-import java.util.Properties;
+import java.util.Map;
 
 import static org.mockito.ArgumentMatchers.any;
+import static org.mockito.ArgumentMatchers.anyMap;
+import static org.mockito.ArgumentMatchers.anyString;
 import static org.mockito.Mockito.doNothing;
 import static org.mockito.Mockito.when;
 
@@ -27,9 +27,7 @@ import static org.mockito.Mockito.when;
 public abstract class AbstractIntegrationTest {
 
     @MockitoBean
-    private JavaMailSender mailSender;
-
-    private static Session mockSession;
+    private EmailService emailService;
 
     @Container
     static PostgreSQLContainer<?> postgres = new PostgreSQLContainer<>(DockerImageName.parse("postgres:15-alpine"))
@@ -52,13 +50,6 @@ public abstract class AbstractIntegrationTest {
 
     @BeforeEach
     void setUpMailMock() {
-        Properties props = new Properties();
-        props.put("mail.smtp.host", "localhost");
-        props.put("mail.smtp.port", "25");
-        mockSession = Session.getInstance(props);
-
-        MimeMessage mockMimeMessage = new MimeMessage(mockSession);
-        when(mailSender.createMimeMessage()).thenReturn(mockMimeMessage);
-        doNothing().when(mailSender).send(any(MimeMessage.class));
+        doNothing().when(emailService).send(anyString(), anyString(), anyString(), anyMap());
     }
 }

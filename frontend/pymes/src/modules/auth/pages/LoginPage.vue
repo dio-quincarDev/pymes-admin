@@ -50,7 +50,7 @@
 
                 <div class="row items-center justify-between q-mt-sm">
                   <q-checkbox v-model="rememberMe" label="Recordar sesión" dark color="primary" class="text-caption text-accent" />
-                  <q-btn flat no-caps label="¿Olvidaste tu contraseña?" color="accent" size="sm" />
+                  <q-btn flat no-caps label="¿Olvidaste tu contraseña?" color="accent" size="sm" to="/forgot-password" />
                 </div>
 
                 <div class="q-mt-xl">
@@ -69,24 +69,15 @@
             <q-separator dark class="q-my-lg" label="O CONTINUA CON" />
 
             <!-- Social Logins -->
-            <q-card-section class="row q-gutter-sm justify-center">
+            <q-card-section class="row justify-center">
               <q-btn
                 outline
                 color="secondary"
-                class="social-btn flex-1"
+                class="social-btn full-width"
                 @click="loginWithSocial('google')"
               >
                 <q-icon name="img:https://cdn.cdnlogo.com/logos/g/35/google-icon.svg" size="xs" class="q-mr-sm" />
                 Google
-              </q-btn>
-              <q-btn
-                outline
-                color="secondary"
-                class="social-btn flex-1"
-                @click="loginWithSocial('facebook')"
-              >
-                <q-icon name="facebook" color="blue-8" size="xs" class="q-mr-sm" />
-                Facebook
               </q-btn>
             </q-card-section>
 
@@ -150,9 +141,9 @@ const onLogin = async () => {
   }
 };
 
-const loginWithSocial = (provider: 'google' | 'facebook') => {
+const loginWithSocial = (provider: 'google') => {
   // Redirección directa al Gateway que maneja OAuth2
-  const gatewayUrl = 'http://localhost:8080/api/v1/oauth2/authorization/';
+  const gatewayUrl = 'http://localhost:8080/oauth2/authorization/';
   window.location.href = `${gatewayUrl}${provider}`;
 };
 </script>

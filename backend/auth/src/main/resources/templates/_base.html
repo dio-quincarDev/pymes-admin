@@ -1,0 +1,38 @@
+<!DOCTYPE html>
+<html xmlns:th="http://www.thymeleaf.org">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <link rel="stylesheet" th:href="@{/css/email.css}">
+    <style>
+        /* Fallback critical styles for email clients that block external CSS */
+        body { font-family: 'Inter', sans-serif; background-color: #f4f4f4; margin: 0; padding: 0; color: #111827; }
+        .wrapper { width: 100%; background-color: #f4f4f4; padding: 40px 0; }
+        .container { max-width: 600px; margin: 0 auto; background-color: #ffffff; border-radius: 8px; overflow: hidden; }
+        .header { padding: 32px 40px; text-align: center; border-bottom: 1px solid #f3f4f6; }
+        .content { padding: 40px; line-height: 1.6; }
+        .footer { padding: 32px 40px; text-align: center; background-color: #f9fafb; color: #6b7280; font-size: 14px; }
+        .btn { display: inline-block; background-color: #A3785E; color: #ffffff !important; padding: 14px 28px; text-decoration: none; border-radius: 6px; font-weight: 600; margin: 24px 0; }
+    </style>
+</head>
+<body th:fragment="layout(content)">
+    <div class="wrapper">
+        <div class="container">
+            <!-- Header -->
+            <div class="header">
+                <div th:replace="~{components/_header :: header}"></div>
+            </div>
+
+            <!-- Main Content -->
+            <div class="content">
+                <div th:replace="${content}"></div>
+            </div>
+
+            <!-- Footer -->
+            <div class="footer">
+                <div th:replace="~{components/_footer :: footer}"></div>
+            </div>
+        </div>
+    </div>
+</body>
+</html>

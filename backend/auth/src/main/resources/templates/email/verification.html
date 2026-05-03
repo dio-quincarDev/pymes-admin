@@ -1,0 +1,17 @@
+<!DOCTYPE html>
+<html xmlns:th="http://www.thymeleaf.org" th:replace="~{_base :: layout(~{::content})}">
+<body>
+    <div th:fragment="content">
+        <p th:text="'Hola ' + ${name} + ','">Hola Usuario,</p>
+        <p>Gracias por unirte a Pymes Admin. Estamos emocionados de tenerte a bordo. Para comenzar a utilizar todas las funciones de la plataforma, por favor confirma tu dirección de correo electrónico:</p>
+        
+        <div th:replace="~{components/_button :: button(${url}, 'Verificar mi cuenta')}"></div>
+        
+        <p>Este enlace de seguridad expirará en <strong>15 minutos</strong>.</p>
+        
+        <div style="font-size: 13px; color: #9ca3af; margin-top: 25px; border-top: 1px solid #e5e7eb; padding-top: 20px;">
+            <p>Si no has creado una cuenta en nuestra plataforma, puedes ignorar este mensaje de forma segura.</p>
+        </div>
+    </div>
+</body>
+</html>
