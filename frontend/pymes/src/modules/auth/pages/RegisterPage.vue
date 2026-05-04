@@ -39,6 +39,19 @@
         <template v-slot:prepend><q-icon name="lock" color="primary" /></template>
       </q-input>
 
+      <q-input
+        v-model="registerForm.confirmPassword"
+        label="Confirmar Contraseña"
+        type="password"
+        placeholder="Repite tu contraseña"
+        dark filled color="primary" label-color="accent"
+        :error="!!confirmPasswordError"
+        :error-message="confirmPasswordError"
+        :rules="[val => !!val || 'Confirma tu contraseña']"
+      >
+        <template v-slot:prepend><q-icon name="lock_outline" color="primary" /></template>
+      </q-input>
+
       <div class="q-mt-xl">
         <q-btn
           label="FINALIZAR Y CREAR EMPRESA"
@@ -72,7 +85,7 @@
 </template>
 
 <script setup lang="ts">
-import { reactive, ref, onMounted } from 'vue';
+import { reactive, ref, onMounted, watch } from 'vue';
 import { useAuthStore } from '../store';
 import { useQuasar } from 'quasar';
 import { useRouter } from 'vue-router';
@@ -85,11 +98,29 @@ const $q = useQuasar();
 const router = useRouter();
 
 const loading = ref(false);
+const confirmPasswordError = ref('');
 
 const registerForm = reactive({
   name: '',
   email: '',
-  password: ''
+  password: '',
+  confirmPassword: ''
+});
+
+watch(() => registerForm.password, () => {
+  if (registerForm.confirmPassword && registerForm.password !== registerForm.confirmPassword) {
+    confirmPasswordError.value = 'Las contraseñas no coinciden';
+  } else {
+    confirmPasswordError.value = '';
+  }
+});
+
+watch(() => registerForm.confirmPassword, () => {
+  if (registerForm.confirmPassword && registerForm.password !== registerForm.confirmPassword) {
+    confirmPasswordError.value = 'Las contraseñas no coinciden';
+  } else {
+    confirmPasswordError.value = '';
+  }
 });
 
 onMounted(() => {
@@ -108,8 +139,10 @@ const onRegister = async () => {
 
   loading.value = true;
   try {
+    // eslint-disable-next-line @typescript-eslint/no-unused-vars
+    const { confirmPassword: _confirmPassword, ...payload } = registerForm;
     const fullPayload = {
-      ...registerForm,
+      ...payload,
       companyName: pendingTenant.value.name,
       companySlug: pendingTenant.value.slug
     };

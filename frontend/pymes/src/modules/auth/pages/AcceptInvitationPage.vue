@@ -43,6 +43,7 @@ import { useRoute, useRouter } from 'vue-router';
 import { authService } from '../services/auth.service';
 import { useAuthStore } from '../store';
 import { useQuasar } from 'quasar';
+import type { ApiResponse, InvitationResponse } from '../types';
 
 const route = useRoute();
 const router = useRouter();
@@ -76,8 +77,8 @@ const onAccept = async () => {
   loading.value = true;
   try {
     const response = await authService.acceptInvitation(token.value);
-    // Ajuste según estructura de ApiResponse<T>
-    const data = (response.data as any).data; 
+    const apiResponse = response.data as ApiResponse<InvitationResponse>;
+    const data = apiResponse.data;
     tenantName.value = data?.tenant?.name || 'la empresa';
     success.value = true;
     $q.notify({

@@ -233,6 +233,9 @@
 					<include>**/application*.properties</include>
 					<include>**/*.txt</include>
 					<include>**/*.sql</include>
+					<include>**/templates/**/*.html</include>
+					<include>**/templates/**/*.css</include>
+					<include>**/db/migration/**</include>
 				</includes>
 			</resource>
 		</resources>

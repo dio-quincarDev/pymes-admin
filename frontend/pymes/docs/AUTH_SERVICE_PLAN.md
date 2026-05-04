@@ -86,13 +86,13 @@ const routes: RouteRecordRaw[] = [
 ## ✅ Checklist de Implementación
 
 ### Fase 1 (Inmediata)
-- [ ] Arreglar routing Login
-- [ ] Eliminar AuthOptionsPage
-- [ ] Limpiar Facebook code
+- [x] Arreglar routing Login
+- [x] Eliminar AuthOptionsPage (ya no existía)
+- [x] Limpiar Facebook code (no había)
 
 ### Fase 2 (Próximo Sprint)
-- [ ] IndexPage slug automático
-- [ ] RegisterPage confirmar password
+- [ ] IndexPage slug automático (ya estaba implementado)
+- [x] RegisterPage confirmar password
 
 ### Fase 3 (Futuro)
 - [ ] Unificar branding

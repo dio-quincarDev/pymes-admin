@@ -31,3 +31,12 @@ export interface ApiResponse<T> {
   mensaje: string;
   timestamp: string;
 }
+
+export interface InvitationResponse {
+  accessToken: string;
+  refreshToken: string;
+  user: User;
+  tenant: {
+    name: string;
+  };
+}
