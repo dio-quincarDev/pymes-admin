@@ -1,59 +1,57 @@
 <template>
-  <q-page class="flex flex-center bg-dark">
-    <q-card class="verify-card q-pa-lg text-white bg-grey-10 shadow-2">
-      <q-card-section class="text-center">
-        <div class="text-h5 q-mb-md">
-          <q-icon name="mail" size="lg" color="primary" class="q-mr-sm" />
-          Verificación de Email
-        </div>
+  <q-card class="bg-surface-pine text-secondary tight-shadow q-pa-lg no-border-radius-custom">
+    <q-card-section class="text-center">
+      <div class="text-h6 text-weight-medium q-mb-md">Verificación de Identidad</div>
 
-        <div v-if="loading" class="q-my-xl">
-          <q-spinner-oval color="primary" size="4em" />
-          <p class="q-mt-md text-subtitle1">Verificando tu cuenta...</p>
-        </div>
+      <div v-if="loading" class="q-my-xl">
+        <q-spinner-oval color="primary" size="4em" />
+        <p class="q-mt-md text-subtitle1 text-accent">Validando tus credenciales...</p>
+      </div>
 
-        <div v-else-if="success" class="q-my-md">
-          <q-icon name="check_circle" color="positive" size="5em" />
-          <p class="text-h6 q-mt-md">¡Email verificado!</p>
-          <p class="text-body1 text-grey-5">Tu cuenta ha sido activada correctamente. Ya puedes iniciar sesión.</p>
-        </div>
+      <div v-else-if="success" class="q-my-md text-center">
+        <q-icon name="check_circle" color="positive" size="5em" class="q-mb-md" />
+        <div class="text-h6 text-primary">¡Acceso Verificado!</div>
+        <p class="text-body2 text-accent q-mt-sm">
+          Tu cuenta ha sido activada correctamente en el sistema de auditoría.
+        </p>
+      </div>
 
-        <div v-else-if="error" class="q-my-md">
-          <q-icon name="error" color="negative" size="5em" />
-          <p class="text-h6 q-mt-md">Error de verificación</p>
-          <p class="text-body1 text-grey-5">{{ errorMessage }}</p>
-        </div>
-      </q-card-section>
+      <div v-else-if="error" class="q-my-md text-center">
+        <q-icon name="error" color="negative" size="5em" class="q-mb-md" />
+        <div class="text-h6 text-negative">Error de Verificación</div>
+        <p class="text-body2 text-accent q-mt-sm">{{ errorMessage }}</p>
+      </div>
+    </q-card-section>
 
-      <q-card-actions align="center" class="q-mt-md">
+    <q-card-actions align="center" class="q-mt-md">
+      <q-btn
+        v-if="success || (error && errorType !== 'expired')"
+        label="IR AL CENTRO DE CONTROL"
+        color="primary"
+        class="full-width brand-glow text-weight-bold"
+        size="lg"
+        to="/login"
+      />
+
+      <div v-if="error && errorType === 'expired'" class="full-width text-center">
         <q-btn
-          v-if="success || (error && errorType !== 'expired')"
-          label="Ir al Login"
+          label="REENVIAR ENLACE"
           color="primary"
-          unelevated
-          class="full-width"
-          to="/login"
+          class="full-width brand-glow text-weight-bold q-mb-md"
+          size="lg"
+          :loading="resending"
+          @click="handleResend"
         />
-
-        <div v-if="error && errorType === 'expired'" class="full-width text-center">
-          <q-btn
-            label="Reenviar enlace de verificación"
-            color="primary"
-            unelevated
-            class="full-width q-mb-sm"
-            :loading="resending"
-            @click="handleResend"
-          />
-          <q-btn
-            label="Volver al Login"
-            flat
-            color="grey-5"
-            to="/login"
-          />
-        </div>
-      </q-card-actions>
-    </q-card>
-  </q-page>
+        <q-btn
+          label="Volver al Login"
+          flat
+          color="accent"
+          to="/login"
+          no-caps
+        />
+      </div>
+    </q-card-actions>
+  </q-card>
 </template>
 
 <script setup lang="ts">
@@ -87,9 +85,9 @@ const verifyEmail = async (verificationToken: string, userEmail: string) => {
 
     if (status === 400 && errorData?.codigo === 'TOKEN_EXPIRED') {
       errorType.value = 'expired';
-      errorMessage.value = 'El enlace ha expirado. Por favor, solicita uno nuevo.';
+      errorMessage.value = 'El enlace de seguridad ha expirado.';
     } else {
-      errorMessage.value = errorData?.mensaje || 'No se pudo verificar el email. El token puede ser inválido o ya fue procesado.';
+      errorMessage.value = errorData?.mensaje || 'No se pudo verificar la identidad. El token puede ser inválido.';
     }
   } finally {
     loading.value = false;
@@ -100,7 +98,7 @@ const handleResend = async () => {
   if (!email.value) {
     $q.notify({
       type: 'negative',
-      message: 'No se encontró el email asociado. Por favor intenta desde el login.'
+      message: 'Email no detectado. Reintenta desde el login.'
     });
     return;
   }
@@ -110,7 +108,7 @@ const handleResend = async () => {
     await authService.resendVerification(email.value);
     $q.notify({
       type: 'positive',
-      message: 'Se ha enviado un nuevo enlace de verificación a tu correo.'
+      message: 'Nuevo enlace de seguridad enviado con éxito.'
     });
     errorType.value = '';
     errorMessage.value = 'Nuevo enlace enviado. Revisa tu bandeja de entrada.';
@@ -136,10 +134,9 @@ onMounted(() => {
 });
 </script>
 
-<style scoped>
-.verify-card {
-  width: 100%;
-  max-width: 400px;
-  border-radius: 12px;
+<style lang="scss" scoped>
+:deep(.q-field--filled .q-field__control) {
+  background: rgba(0, 0, 0, 0.2);
+  border-radius: 4px;
 }
 </style>

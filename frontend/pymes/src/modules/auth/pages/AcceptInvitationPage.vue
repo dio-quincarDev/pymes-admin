@@ -1,52 +1,40 @@
 <template>
-  <q-page class="flex flex-center bg-forest-deep">
-    <div class="auth-card-container q-pa-md">
-      <!-- Logo & Branding -->
-      <div class="text-center q-mb-xl">
-        <div class="text-h3 font-bold text-primary q-mb-xs">PYMEQ</div>
-        <div class="text-subtitle1 text-accent text-weight-light letter-spacing-2">
-          INVITACIÓN AL EQUIPO
-        </div>
+  <q-card class="bg-surface-pine text-secondary tight-shadow q-pa-lg no-border-radius-custom">
+    <q-card-section class="text-center q-pb-none">
+      <div class="text-h6 text-weight-medium q-mb-sm">Invitación al Equipo</div>
+      <p class="text-body2 text-accent">
+        Has sido invitado a colaborar en un espacio de trabajo. Confirma tu acceso para unirte.
+      </p>
+    </q-card-section>
+
+    <q-card-section>
+      <div v-if="success" class="text-center q-py-lg">
+        <q-icon name="group_add" color="positive" size="4rem" class="q-mb-md" />
+        <div class="text-h6 text-primary">¡Bienvenido al Equipo!</div>
+        <p class="text-accent q-mt-sm">Ahora eres parte de <strong>{{ tenantName }}</strong>.</p>
+        <q-btn label="IR AL PANEL DE CONTROL" color="primary" class="full-width brand-glow text-weight-bold q-mt-md" size="lg" to="/dashboard" no-caps />
       </div>
 
-      <q-card class="bg-surface-pine text-secondary tight-shadow q-pa-lg no-border-radius-custom">
-        <q-card-section class="text-center q-pb-none">
-          <div class="text-h6 text-weight-medium q-mb-sm">Aceptar Invitación</div>
-          <p class="text-body2 text-accent">
-            Has sido invitado a colaborar en un espacio de trabajo. Confirma para unirte al equipo.
-          </p>
-        </q-card-section>
+      <div v-else-if="error" class="text-center q-py-lg">
+        <q-icon name="error" color="negative" size="4rem" class="q-mb-md" />
+        <div class="text-h6 text-negative">Error de Invitación</div>
+        <p class="text-accent q-mt-sm">{{ errorMessage }}</p>
+        <q-btn flat label="Volver al Login" color="primary" to="/login" no-caps class="q-mt-md" />
+      </div>
 
-        <q-card-section>
-          <div v-if="success" class="text-center q-py-lg">
-            <q-icon name="group_add" color="positive" size="4rem" class="q-mb-md" />
-            <div class="text-h6">¡Bienvenido al equipo!</div>
-            <p class="text-accent q-mt-sm">Ahora eres parte de <strong>{{ tenantName }}</strong>.</p>
-            <q-btn label="Ir al Dashboard" color="primary" unelevated to="/dashboard" no-caps class="full-width q-mt-md" />
-          </div>
-
-          <div v-else-if="error" class="text-center q-py-lg">
-            <q-icon name="error" color="negative" size="4rem" class="q-mb-md" />
-            <div class="text-h6">Error al aceptar</div>
-            <p class="text-accent q-mt-sm">{{ errorMessage }}</p>
-            <q-btn flat label="Ir al Login" color="primary" to="/login" no-caps class="q-mt-md" />
-          </div>
-
-          <div v-else class="text-center q-py-md">
-            <q-btn
-              label="UNIRME AL EQUIPO"
-              color="primary"
-              class="full-width brand-glow text-weight-bold"
-              size="lg"
-              :loading="loading"
-              @click="onAccept"
-            />
-            <q-btn flat label="Cancelar" color="accent" to="/" no-caps class="q-mt-md" />
-          </div>
-        </q-card-section>
-      </q-card>
-    </div>
-  </q-page>
+      <div v-else class="text-center q-py-md">
+        <q-btn
+          label="ACEPTAR Y UNIRME AL EQUIPO"
+          color="primary"
+          class="full-width brand-glow text-weight-bold"
+          size="lg"
+          :loading="loading"
+          @click="onAccept"
+        />
+        <q-btn flat label="Cancelar" color="accent" to="/" no-caps class="q-mt-md" />
+      </div>
+    </q-card-section>
+  </q-card>
 </template>
 
 <script setup lang="ts">
@@ -88,17 +76,18 @@ const onAccept = async () => {
   loading.value = true;
   try {
     const response = await authService.acceptInvitation(token.value);
-    const data = response.data.data;
-    tenantName.value = data.tenant?.name || 'la empresa';
+    // Ajuste según estructura de ApiResponse<T>
+    const data = (response.data as any).data; 
+    tenantName.value = data?.tenant?.name || 'la empresa';
     success.value = true;
     $q.notify({
       type: 'positive',
-      message: 'Has aceptado la invitación correctamente.'
+      message: 'Acceso concedido correctamente.'
     });
   } catch (err: unknown) {
     error.value = true;
     const responseData = (err as { response?: { data?: { mensaje?: string } } })?.response?.data;
-    errorMessage.value = responseData?.mensaje || 'No se pudo aceptar la invitación. El enlace puede haber expirado o ya fue utilizado.';
+    errorMessage.value = responseData?.mensaje || 'No se pudo procesar la invitación. El enlace puede ser inválido o ya expiró.';
   } finally {
     loading.value = false;
   }
@@ -106,11 +95,8 @@ const onAccept = async () => {
 </script>
 
 <style lang="scss" scoped>
-.auth-card-container {
-  width: 100%;
-  max-width: 450px;
-}
-.letter-spacing-2 {
-  letter-spacing: 2px;
+:deep(.q-field--filled .q-field__control) {
+  background: rgba(0, 0, 0, 0.2);
+  border-radius: 4px;
 }
 </style>

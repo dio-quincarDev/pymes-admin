@@ -13,12 +13,10 @@ import { onMounted, ref } from 'vue';
 import { useRoute, useRouter } from 'vue-router';
 import { useAuthStore } from '../store';
 import { useQuasar } from 'quasar';
-import { storeToRefs } from 'pinia';
 
 const route = useRoute();
 const router = useRouter();
 const authStore = useAuthStore();
-const { pendingTenant } = storeToRefs(authStore);
 const $q = useQuasar();
 
 const statusMessage = ref('Preparando tu Toolkit de Auditoría');
@@ -32,14 +30,14 @@ onMounted(async () => {
       // 1. Guardar tokens y obtener perfil
       await authStore.handleOAuthCallback(token, refreshToken);
       
-      // Limpiar el tenant pendiente tras login exitoso (el backend ya creó el tenant si había intent)
-      if (pendingTenant.value) {
-        authStore.clearPendingTenant();
-      }
+      // 2. Limpiar el tenant pendiente tras login/registro exitoso
+      // El backend ya manejó la creación del tenant si existía un intent (vía state)
+      authStore.clearPendingTenant();
 
       $q.notify({
         type: 'positive',
-        message: 'Bienvenido a Pymeq',
+        message: 'Acceso autorizado',
+        caption: 'Bienvenido al Centro de Control',
         position: 'top-right'
       });
 

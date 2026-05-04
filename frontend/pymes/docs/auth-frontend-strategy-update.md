@@ -24,21 +24,30 @@
 
 ---
 
-## 🧩 Plan de Implementación Frontend
+## 🚀 Estado de Implementación (Actualizado 2026-05-04)
 
-### Segmento 3: Configuración y Servicios
-- Actualización de `auth.service.ts` con nuevos endpoints (`forgotPassword`, `resetPassword`, `acceptInvitation`).
-- Limpieza de modelos para eliminar campos de slug y Facebook.
-- Definición de nuevas rutas en el router de autenticación.
+### ✅ Finalizado: Flujo "Empresa Primero" (Company First)
+Se ha rediseñado el onboarding para priorizar la identidad del negocio:
+1.  **Home (Punto Único de Entrada):** El registro comienza obligatoriamente con el nombre de la empresa. El `slug` se genera automáticamente y de forma invisible para reducir la carga cognitiva.
+2.  **Registro Consolidado:** El `RegisterPage` actúa como el paso final de asignación de administrador, vinculando automáticamente los datos capturados en la Home.
+3.  **OAuth2 Intent:** Integración total con el backend para que el login con Google respete la empresa creada en el paso previo.
 
-### Segmento 4: Interfaces Unificadas
-- **Registro:** Componente de dos pasos o formulario fluido que priorice el nombre de la empresa.
-- **Login:** Diseño centrado, fondo forest deep, con integración clara de Google.
-- **Minimalismo:** Eliminación de sombras pesadas, uso de tipografía limpia y acentos en cobre.
+### ✅ Finalizado: Estructura Visual Unificada
+1.  **AuthLayout.vue:** Se implementó un layout centralizado para todas las páginas de autenticación.
+2.  **Branding Persistente:** Logo PYMEQ y estética "Fintech" (Forest Deep & Copper) aplicada consistentemente.
+3.  **Recordar Sesión:** Lógica de persistencia de email implementada en el login local.
 
-### Segmento 5: Flujos de Soporte
-- Implementación de `ForgotPasswordPage.vue`, `ResetPasswordPage.vue` y `AcceptInvitationPage.vue`.
-- Asegurar que el diseño sea consistente con `VerifyEmailPage.vue`.
+---
+
+## 🛠️ Próximos Pasos (En Curso)
+
+### Flujo de Verificación de Email
+- Implementar la lógica reactiva en `VerifyEmailPage.vue` para procesar el token que llega por URL.
+- Asegurar consistencia visual con el sistema de diseño.
+
+### Flujo de Reset Password
+- Refinar `ForgotPasswordPage.vue` y `ResetPasswordPage.vue`.
+- Validar la transición entre el envío del correo y el establecimiento de la nueva contraseña.
 
 ---
 

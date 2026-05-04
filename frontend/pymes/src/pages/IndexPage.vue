@@ -145,6 +145,8 @@ const startOnboarding = () => {
   const slug = companyForm.name
     .toLowerCase()
     .trim()
+    .normalize('NFD')
+    .replace(/[\u0300-\u036f]/g, '') // Remove accents
     .replace(/[^\w\s-]/g, '')
     .replace(/[\s_-]+/g, '-')
     .replace(/^-+|-+$/g, '');
