@@ -2,14 +2,51 @@
 <html xmlns:th="http://www.thymeleaf.org" th:replace="~{_base :: layout(~{::content})}">
 <body>
     <div th:fragment="content">
-        <p>Hola,</p>
-        <p><strong th:text="${inviterName}">Usuario</strong> te ha invitado a formar parte del equipo de <strong th:text="${tenantName}">Empresa</strong> en Pymes Admin.</p>
-        <p>Al unirte, podrás colaborar en la gestión de la empresa según el rol que te ha sido asignado.</p>
-        
-        <div th:replace="~{components/_button :: button(${url}, 'Aceptar Invitación')}"></div>
-        
-        <p>Este enlace de invitación expirará en 7 días.</p>
-        <p>Si no esperabas esta invitación, puedes ignorar este correo.</p>
+        <table width="100%" cellpadding="0" cellspacing="0">
+            <!-- Saludo -->
+            <tr>
+                <td style="padding-bottom:24px;">
+                    <p style="margin:0; font-size:18px; font-weight:600; color:#E2E8E4;">Hola,</p>
+                </td>
+            </tr>
+            
+            <!-- Invitación -->
+            <tr>
+                <td style="padding-bottom:20px;">
+                    <p style="margin:0; font-size:15px; color:#A8B3B0; line-height:1.6;">
+                        <strong th:text="${inviterName}" style="color:#E2E8E4; font-weight:600;">Usuario</strong> te ha invitado a formar parte del equipo de <strong th:text="${tenantName}" style="color:#E2E8E4; font-weight:600;">Empresa</strong> en PymeQ.
+                    </p>
+                </td>
+            </tr>
+            
+            <!-- Rol info -->
+            <tr>
+                <td style="padding-bottom:20px;">
+                    <p style="margin:0; font-size:15px; color:#A8B3B0; line-height:1.6;">Al unirte, podrás colaborar en la gestión de la empresa según el rol que te ha sido asignado.</p>
+                </td>
+            </tr>
+            
+            <!-- CTA -->
+            <tr>
+                <td style="padding:8px 0 24px;">
+                    <div th:replace="~{components/_button :: button(${url}, 'Aceptar Invitación')}"></div>
+                </td>
+            </tr>
+            
+            <!-- Divider -->
+            <tr>
+                <td>
+                    <div th:replace="~{components/_divider :: divider}"></div>
+                </td>
+            </tr>
+            
+            <!-- Info de seguridad -->
+            <tr>
+                <td style="padding-top:20px;">
+                    <div th:replace="~{components/_alert :: alert('Nota', 'Este enlace de invitación expirará en 7 días. Si no esperabas esta invitación, puedes ignorar este correo.')}"></div>
+                </td>
+            </tr>
+        </table>
     </div>
 </body>
 </html>

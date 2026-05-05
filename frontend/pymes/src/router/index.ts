@@ -32,10 +32,9 @@ export default defineRouter(function (/* { store, ssrContext } */) {
         path: '/login',
         query: { redirect: to.fullPath } // Guardamos a dónde quería ir
       });
-    } else if (authStore.isAuthenticated && (to.path === '/login' || to.path === '/register')) {
-      // Si ya está logueado e intenta ir al login, al dashboard
-      next('/');
     } else {
+      // Permitimos la navegación en el resto de casos (incluyendo login/register aunque esté logueado
+      // para evitar bloqueos por tokens expirados en localStorage)
       next();
     }
   });

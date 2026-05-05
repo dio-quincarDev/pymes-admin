@@ -40,6 +40,15 @@ public class JwtAuthenticationFilter extends OncePerRequestFilter {
     private final ObjectMapper objectMapper;
 
     @Override
+    protected boolean shouldNotFilter(HttpServletRequest request) {
+        String path = request.getRequestURI();
+        return path.contains("/forgot-password") || path.contains("/reset-password")
+                || path.contains("/register") || path.contains("/login")
+                || path.contains("/verify-email") || path.contains("/resend-verification")
+                || path.contains("/oauth2/") || path.contains("/refresh");
+    }
+
+    @Override
     protected void doFilterInternal(
             @NonNull HttpServletRequest request,
             @NonNull HttpServletResponse response,

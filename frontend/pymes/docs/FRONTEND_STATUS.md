@@ -45,3 +45,4 @@ Se ha consolidado la identidad de **SaaS Fintech** bajo el nombre **PYMEQ**, cen
 
 ---
 *Documento que refleja la arquitectura final del módulo de identidad.*
+  

@@ -8,14 +8,14 @@
 
 ### 🔲 Bugs Pendientes
 - **[P2] Facebook OAuth2** — POSTERGADO (Meta no aprobó empresa)
-- **[P1] Email Verification Token-Email Mismatch** — Validación cruzada缺失
 
 ### 📌 Tareas por Hacer
-- **[P1] Thymeleaf Email System** — Refactorizar emails para usar plantillas Thymeleaf component-based
+- **[P1] Logout Global** — Cerrar todas las sesiones del usuario
+- **[P1] Registro Pending Token** — No crear usuario hasta verificar email
 
 ### 🚧 En PROGRESO
+- [2026-05-05 — Diseño Profesionales Emails (Thymeleaf)](#2026-05-05--diseño-profesional-emails-thymeleaf-)
 - [2026-05-03 — Reingeniería del Flujo de Emails (Thymeleaf)](#2026-05-03--reingeniería-del-flujo-de-emails-thymeleaf-)
-- [2026-04-22 — InvitationService Technical Debt Coverage](#2026-04-22--invitationservice-technical-debt-coverage-)
 
 ### ✅ Bugs RESUELTOS (más reciente primero)
 - [2026-05-03 — Pruebas Unitarias e Integración (EmailService Refactor)](#2026-05-03--pruebas-unitarias-e-integración-emailservice-refactor-)
@@ -43,6 +43,73 @@
 ---
 
 ## 📌 TAREAS POR HACER
+
+### 📅 [P1] Logout Global (PENDIENTE)
+
+**Prioridad:** Alta
+
+**Descripción:**
+Cerrar TODAS las sesiones activas del usuario (no solo el device actual).
+
+**Flujo:**
+```
+POST /logout
+  1. Invalidar access token (blacklist) - ya implementado
+  2. Eliminar TODOS refresh tokens del usuario (nuevo)
+  3. Retornar { success: true, allSessionsRevoked: true }
+```
+
+**Backend:**
+- `AuthServiceImpl.logout()`: + `refreshTokenRepository.deleteByUserId(userId)`
+- `LogoutResponse`: + `allSessionsRevoked: true`
+
+**Tareas:**
+- [ ] Modificar `AuthServiceImpl.logout()` para eliminar todos los refresh tokens
+- [ ] Actualizar `LogoutResponse` con campo `allSessionsRevoked`
+- [ ] Frontend: limpiar todos los tokens del storage
+
+**Referencia:** `backend/auth/src/main/java/auth/pymes/service/impl/AuthServiceImpl.java`
+
+---
+
+### 📅 [P1] Registro Pending Token (PENDIENTE)
+
+**Prioridad:** Alta
+
+**Descripción:**
+No crear usuario en DB hasta verificar email. El usuario solo se crea DESPUÉS de verificar el enlace.
+
+**Flujo:**
+```
+1. POST /register { email, password, name, company... }
+   → NO crea usuario en DB
+2. Guardar datos temporales en Redis (key: temp-register:{token})
+   → TTL: 10 minutos
+3. Enviar email verificación
+
+4. POST /verify-email { token: "tempToken" }
+5. Validar token temporal en Redis
+6. Crear User + Tenant + UserTenant
+7. Generar auth tokens → Login automático
+8. Eliminar temp token
+```
+
+**Backend:**
+- Nuevo método `verifyAndRegister(token)` en AuthService
+- Almacenar datos temporales en Redis
+- Adaptar EmailVerificationService para pending registration
+
+**Tareas:**
+- [ ] Modificar `/register` para guardar datos en Redis (no en DB)
+- [ ] Crear método `verifyAndRegister(tempToken)` en AuthServiceImpl
+- [ ] Modificar flujo `/verify-email` para completar registro
+- [ ] Frontend: actualizar flujo register → login automático
+
+**Referencia:**
+- `backend/auth/src/main/java/auth/pymes/service/impl/AuthServiceImpl.java`
+- `backend/auth/src/main/java/auth/pymes/service/EmailVerificationService.java`
+
+---
 
 ### 📅 [P1] Thymeleaf Email System (COMPLETADO)
 
@@ -134,6 +201,45 @@ Backend recibe: solo valida token en Redis → cualquier email asociado
 ---
 
 ## ✅ BUGS RESUELTOS
+
+---
+
+## 📅 2026-05-05 — Diseño Profesional Emails (Thymeleaf) 📧
+
+### 🎯 Problema
+El diseño de los emails estaba muy sobrio y no reflejaba la identidad profesional de una fintech. Necesitaba un diseño responsive, agnóstico al dispositivo y con tipografía profesional.
+
+### 📐 Solución
+1. **Diseño Profesional**:
+   - Layout fluido responsive (max-width: 600px)
+   - Tipografía Inter (Google Fonts)
+   - Media queries para mobile
+   -.Header con branding (logo PymeQ)
+   -.Divisores decorativos
+
+2. **Paleta de Colores (Design System Frontend)**:
+| Variable | Hex | Uso |
+|----------|-----|-----|
+| `$primary` | `#A3785E` | Botones, CTAs |
+| `$secondary` | `#E2E8E4` | Texto principal |
+| `$accent` | `#71837F` | Texto secundario |
+| `$dark` | `#1B2624` | Tarjetas |
+| `$dark-page` | `#0B1210` | Fondo |
+
+3. **Componentes Creados**:
+| Archivo | Descripción |
+|---------|------------|
+| `_base.html` | Layout base responsive |
+| `_button.html` | CTA profesional |
+| `_alert.html` | Box de seguridad |
+| `_divider.html` | Divisor decorativo |
+| `password-reset.html` | Recuperación |
+| `verification.html` | Verificación |
+| `invitation.html` | Invitaciones |
+
+### 🔲 Pendientes
+- [ ] Validación visual en clientes de correo reales
+- [ ] Tests de renderizado
 
 ---
 

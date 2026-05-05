@@ -7,7 +7,7 @@
       <div class="text-caption text-accent q-mt-xs">Crea tu cuenta de administrador maestro</div>
     </div>
 
-    <q-form @submit="onRegister" class="q-gutter-y-md">
+    <q-form @submit.prevent="onRegister" class="q-gutter-y-md">
       <q-input
         v-model="registerForm.name"
         label="Nombre del Administrador"
@@ -31,18 +31,26 @@
       <q-input
         v-model="registerForm.password"
         label="Contraseña"
-        type="password"
+        :type="showPassword ? 'text' : 'password'"
         placeholder="Mínimo 8 caracteres"
         dark filled color="primary" label-color="accent"
         :rules="[val => !!val || 'La contraseña es requerida', val => val.length >= 8 || 'Mínimo 8 caracteres']"
       >
         <template v-slot:prepend><q-icon name="lock" color="primary" /></template>
+        <template v-slot:append>
+          <q-icon
+            :name="showPassword ? 'visibility' : 'visibility_off'"
+            class="cursor-pointer"
+            color="primary"
+            @click="showPassword = !showPassword"
+          />
+        </template>
       </q-input>
 
       <q-input
         v-model="registerForm.confirmPassword"
         label="Confirmar Contraseña"
-        type="password"
+        :type="showConfirmPassword ? 'text' : 'password'"
         placeholder="Repite tu contraseña"
         dark filled color="primary" label-color="accent"
         :error="!!confirmPasswordError"
@@ -50,6 +58,14 @@
         :rules="[val => !!val || 'Confirma tu contraseña']"
       >
         <template v-slot:prepend><q-icon name="lock_outline" color="primary" /></template>
+        <template v-slot:append>
+          <q-icon
+            :name="showConfirmPassword ? 'visibility' : 'visibility_off'"
+            class="cursor-pointer"
+            color="primary"
+            @click="showConfirmPassword = !showConfirmPassword"
+          />
+        </template>
       </q-input>
 
       <div class="q-mt-xl">
@@ -64,7 +80,12 @@
       </div>
     </q-form>
 
-    <q-separator dark class="q-my-lg" label="O REGÍSTRATE CON GOOGLE" />
+    <div class="relative-position q-my-lg">
+      <q-separator dark />
+      <div class="absolute-center bg-surface-pine q-px-sm text-caption text-accent text-weight-bold">
+        O REGÍSTRATE CON GOOGLE
+      </div>
+    </div>
 
     <div class="row justify-center">
       <q-btn
@@ -99,6 +120,8 @@ const router = useRouter();
 
 const loading = ref(false);
 const confirmPasswordError = ref('');
+const showPassword = ref(false);
+const showConfirmPassword = ref(false);
 
 const registerForm = reactive({
   name: '',

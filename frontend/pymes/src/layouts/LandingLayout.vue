@@ -20,7 +20,7 @@
       <router-view />
     </q-page-container>
 
-    <q-footer class="bg-transparent text-accent q-pa-xl text-center">
+    <q-footer class="bg-transparent text-accent q-pa-xl text-center" style="position: relative;">
       <div class="text-caption">
         &copy; 2026 Pymeq Admin. Sistema de Auditoría Inteligente para Pymes.
       </div>

@@ -2,16 +2,42 @@
 <html xmlns:th="http://www.thymeleaf.org" th:replace="~{_base :: layout(~{::content})}">
 <body>
     <div th:fragment="content">
-        <p th:text="'Hola ' + ${name} + ','">Hola Usuario,</p>
-        <p>Gracias por unirte a Pymes Admin. Estamos emocionados de tenerte a bordo. Para comenzar a utilizar todas las funciones de la plataforma, por favor confirma tu dirección de correo electrónico:</p>
-        
-        <div th:replace="~{components/_button :: button(${url}, 'Verificar mi cuenta')}"></div>
-        
-        <p>Este enlace de seguridad expirará en <strong>15 minutos</strong>.</p>
-        
-        <div style="font-size: 13px; color: #9ca3af; margin-top: 25px; border-top: 1px solid #e5e7eb; padding-top: 20px;">
-            <p>Si no has creado una cuenta en nuestra plataforma, puedes ignorar este mensaje de forma segura.</p>
-        </div>
+        <table width="100%" cellpadding="0" cellspacing="0">
+            <!-- Saludo -->
+            <tr>
+                <td style="padding-bottom:24px;">
+                    <p style="margin:0; font-size:18px; font-weight:600; color:#E2E8E4;" th:text="'Hola ' + ${name} + ','">Hola,</p>
+                </td>
+            </tr>
+            
+            <!-- Introducción -->
+            <tr>
+                <td style="padding-bottom:20px;">
+                    <p style="margin:0; font-size:15px; color:#A8B3B0; line-height:1.6;">Gracias por registrarte en PymeQ. Para comenzar a usar la plataforma, necesitamos verificar tu correo electrónico.</p>
+                </td>
+            </tr>
+            
+            <!-- CTA -->
+            <tr>
+                <td style="padding:8px 0 24px;">
+                    <div th:replace="~{components/_button :: button(${url}, 'Verificar mi cuenta')}"></div>
+                </td>
+            </tr>
+            
+            <!-- Divider -->
+            <tr>
+                <td>
+                    <div th:replace="~{components/_divider :: divider}"></div>
+                </td>
+            </tr>
+            
+            <!-- Info de seguridad -->
+            <tr>
+                <td style="padding-top:20px;">
+                    <div th:replace="~{components/_alert :: alert('Importante', 'Este enlace expirará en 15 minutos. Si no creaste una cuenta, puedes ignorar este mensaje de forma segura.')}"></div>
+                </td>
+            </tr>
+        </table>
     </div>
 </body>
 </html>

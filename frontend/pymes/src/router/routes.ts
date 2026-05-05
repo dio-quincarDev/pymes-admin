@@ -11,14 +11,7 @@ const routes: RouteRecordRaw[] = [
     ],
   },
 
-  // Auth Flow - Login como ruta independiente (fuera del nested para evitar conflicto de layouts)
-  {
-    path: '/login',
-    name: 'login',
-    component: () => import('src/modules/auth/pages/LoginPage.vue'),
-  },
-
-  // Auth Flow (remaining pages in AuthLayout)
+  // Auth Flow (Login, Register, etc.)
   ...authRoutes,
 
   // Private Dashboard Routes
