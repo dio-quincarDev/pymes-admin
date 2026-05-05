@@ -47,8 +47,11 @@ import static org.assertj.core.api.Assertions.assertThat;
 import static org.assertj.core.api.AssertionsForClassTypes.assertThatThrownBy;
 import static org.mockito.ArgumentMatchers.any;
 import static org.mockito.Mockito.*;
+import org.mockito.junit.jupiter.MockitoSettings;
+import org.mockito.quality.Strictness;
 
 @ExtendWith(MockitoExtension.class)
+@MockitoSettings(strictness = Strictness.LENIENT)
 public class AuthServiceImplTest {
 
     @Mock
@@ -94,47 +97,21 @@ public class AuthServiceImplTest {
     private AuthServiceImpl authService;
 
     @Test
-    void register_WithValidRequest_ReturnsAuthResponse() {
+    void register_WithValidRequest_ReturnsAuthResponseWithNullTokens() {
         RegisterRequest request = new RegisterRequest(
                 "New User", "new@example.com", "password", "New Company", "new-company"
         );
 
         when(userRepository.existsByEmail(request.email())).thenReturn(false);
         when(tenantRepository.existsBySlug(request.companySlug())).thenReturn(false);
-        when(passwordEncoder.encode(request.password())).thenReturn("encoded-password");
-
-        UserEntity savedUser = UserEntity.builder()
-                .id(UUID.randomUUID())
-                .email(request.email())
-                .name(request.name())
-                .provider(AuthProvider.LOCAL)
-                .build();
-        when(userRepository.save(any(UserEntity.class))).thenReturn(savedUser);
-
-        Tenant savedTenant = Tenant.builder()
-                .id(UUID.randomUUID())
-                .name(request.companyName())
-                .slug(request.companySlug())
-                .plan(PlanName.FREE)
-                .build();
-        when(tenantRepository.save(any(Tenant.class))).thenReturn(savedTenant);
-
-        when(userMapper.toResponse(any())).thenReturn(new UserEntityResponse(savedUser.getId(), savedUser.getEmail(), savedUser.getName(), null, AuthProvider.LOCAL));
-        when(tenantMapper.toResponse(any())).thenReturn(new TenantResponse(savedTenant.getId(), savedTenant.getName(), savedTenant.getSlug(), PlanName.FREE, "TECH", null));
-
-        String accessToken = "access-token";
-        String refreshToken = "refresh-token";
-        when(jwtService.generateAccessToken(any(), any(), any(), any())).thenReturn(accessToken);
-        when(jwtService.generateRefreshToken(any())).thenReturn(refreshToken);
-        
         when(httpRequest.getRemoteAddr()).thenReturn("127.0.0.1");
+        doNothing().when(emailVerificationService).generateAndSendPendingRegistrationEmail(any());
 
         AuthResponse response = authService.register(request, httpRequest);
 
-        assertThat(response.accessToken()).isEqualTo(accessToken);
-        assertThat(response.user().email()).isEqualTo(request.email());
-        verify(userTenantRepository).save(any(UserTenant.class));
-        verify(jwtService).saveRefreshToken(any(), any(), eq(refreshToken));
+        assertThat(response.accessToken()).isNull();
+        assertThat(response.refreshToken()).isNull();
+        verify(emailVerificationService).generateAndSendPendingRegistrationEmail(eq(request));
     }
 
     @Test

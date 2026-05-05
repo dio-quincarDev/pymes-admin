@@ -14,8 +14,6 @@
 - [x] **[P1] Registro Pending Token** — No crear usuario hasta verificar email (COMPLETADO 2026-05-05)
 
 ### 🚧 En PROGRESO
-- [2026-05-05 — Implementación Registro Pending Token (Redis)](#2026-05-05--implementación-registro-pending-token-redis-)
-- [2026-05-05 — Implementación Logout Global (Backend)](#2026-05-05--implementación-logout-global-backend-)
 - [2026-05-05 — Diseño Profesionales Emails (Thymeleaf)](#2026-05-05--diseño-profesional-emails-thymeleaf-)
 
 ### ✅ Bugs RESUELTOS (más reciente primero)

@@ -283,6 +283,7 @@ class ApiPathConsistencyTest {
             case "TenantApi" -> ApiPathConstants.TENANTS_ROUTE;
             case "MemberApi" -> ApiPathConstants.TENANTS_ROUTE + "/{tenantId}" + ApiPathConstants.MEMBERS_ROUTE;
             case "InvitationApi" -> ApiPathConstants.INVITATIONS_ROUTE;
+            case "OAuth2Api", "LoginOauth2Controller" -> ApiPathConstants.AUTH_ROUTE + "/oauth2";
             default -> throw new IllegalArgumentException("Unknown controller: " + controller.getSimpleName());
         };
     }
