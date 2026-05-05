@@ -1,11 +1,16 @@
 package auth.pymes.unit;
 
+import auth.pymes.common.models.dto.request.RegisterRequest;
+import auth.pymes.common.models.dto.request.VerifyEmailRequest;
+import auth.pymes.common.models.dto.response.AuthResponse;
+import auth.pymes.service.AuthService;
 import auth.pymes.repositories.UserEntityRepository;
 import auth.pymes.service.EmailService;
 import auth.pymes.service.impl.EmailVerificationServiceImpl;
 import auth.pymes.utils.exception.auth.AuthenticationException;
 import auth.pymes.utils.exception.auth.EmailVerificationTokenInvalidException;
 import auth.pymes.utils.exception.custom.DuplicateResourceException;
+import jakarta.servlet.http.HttpServletRequest;
 import org.junit.jupiter.api.BeforeEach;
 import org.junit.jupiter.api.Test;
 import org.junit.jupiter.api.extension.ExtendWith;
@@ -45,6 +50,9 @@ class EmailVerificationServiceImplTest {
     @Mock
     private EmailService emailService;
 
+    @Mock
+    private AuthService authService;
+
     @InjectMocks
     private EmailVerificationServiceImpl emailVerificationService;
 
@@ -53,7 +61,7 @@ class EmailVerificationServiceImplTest {
 
     @BeforeEach
     void setUp() {
-        emailVerificationService = new EmailVerificationServiceImpl(redisTemplate, userRepository, emailService);
+        emailVerificationService = new EmailVerificationServiceImpl(redisTemplate, userRepository, emailService, authService);
         ReflectionTestUtils.setField(emailVerificationService, "frontendUrl", "http://localhost:9200");
 
         unverifiedUser = UserEntity.builder()
@@ -79,6 +87,19 @@ class EmailVerificationServiceImplTest {
         lenient().when(redisTemplate.opsForValue()).thenReturn(valueOperations);
     }
 
+    // ==================== generateAndSendPendingRegistrationEmail ====================
+
+    @Test
+    void generateAndSendPendingRegistrationEmail_StoresRequestInRedisAndSendsEmail() {
+        RegisterRequest request = new RegisterRequest("New User", "new@example.com", "password", "New Company", "new-company");
+        when(redisTemplate.opsForValue()).thenReturn(valueOperations);
+
+        emailVerificationService.generateAndSendPendingRegistrationEmail(request);
+
+        verify(valueOperations).set(startsWith("temp-register:"), eq(request), any());
+        verify(emailService).send(eq("new@example.com"), eq("Verifica tu cuenta en Pymes Admin"), eq("verification"), any());
+    }
+
     // ==================== generateVerificationToken ====================
 
     @Test
@@ -95,50 +116,90 @@ class EmailVerificationServiceImplTest {
     // ==================== verifyEmail ====================
 
     @Test
-    void verifyEmail_WithValidToken_MarksUserAsVerified() {
-        String token = "valid-token";
+    void verifyEmail_WithPendingRegistration_MarksUserAsVerifiedAndCompletesLogin() {
+        String token = "pending-token";
+        RegisterRequest regRequest = new RegisterRequest("Test User", "test@example.com", "password", "Company", "company");
+        HttpServletRequest httpRequest = mock(HttpServletRequest.class);
+        AuthResponse authResponse = new AuthResponse("access", "refresh", null, null);
+
         when(redisTemplate.opsForValue()).thenReturn(valueOperations);
+        when(valueOperations.get("temp-register:" + token)).thenReturn(regRequest);
+        when(authService.completeRegistration(any(), any())).thenReturn(authResponse);
+
+        AuthResponse result = emailVerificationService.verifyEmail(new VerifyEmailRequest(token, "test@example.com"), httpRequest);
+
+        assertThat(result.accessToken()).isEqualTo("access");
+        verify(redisTemplate).delete("temp-register:" + token);
+    }
+
+    @Test
+    void verifyEmail_WithPendingRegistration_EmailMismatch_ThrowsException() {
+        String token = "pending-token";
+        RegisterRequest regRequest = new RegisterRequest("Test User", "test@example.com", "password", "Company", "company");
+        HttpServletRequest httpRequest = mock(HttpServletRequest.class);
+
+        when(redisTemplate.opsForValue()).thenReturn(valueOperations);
+        when(valueOperations.get("temp-register:" + token)).thenReturn(regRequest);
+
+        assertThatThrownBy(() -> emailVerificationService.verifyEmail(new VerifyEmailRequest(token, "wrong@example.com"), httpRequest))
+                .isInstanceOf(EmailVerificationTokenInvalidException.class);
+    }
+
+    @Test
+    void verifyEmail_WithLegacyToken_MarksUserAsVerified() {
+        String token = "legacy-token";
+        HttpServletRequest httpRequest = mock(HttpServletRequest.class);
+
+        when(redisTemplate.opsForValue()).thenReturn(valueOperations);
+        when(valueOperations.get("temp-register:" + token)).thenReturn(null);
         when(valueOperations.get("email:verify:" + token)).thenReturn("test@example.com");
         when(userRepository.findByEmail("test@example.com")).thenReturn(Optional.of(unverifiedUser));
         when(userRepository.save(any(UserEntity.class))).thenReturn(unverifiedUser);
 
-        emailVerificationService.verifyEmail(token);
+        AuthResponse result = emailVerificationService.verifyEmail(new VerifyEmailRequest(token, "test@example.com"), httpRequest);
 
         assertThat(unverifiedUser.isEmailVerified()).isTrue();
         assertThat(unverifiedUser.getEmailVerifiedAt()).isNotNull();
-
         verify(redisTemplate).delete("email:verify:" + token);
-        verify(userRepository).save(unverifiedUser);
     }
 
     @Test
     void verifyEmail_WithInvalidToken_ThrowsEmailVerificationTokenInvalidException() {
-        when(redisTemplate.opsForValue()).thenReturn(valueOperations);
-        when(valueOperations.get("email:verify:invalid")).thenReturn(null);
+        HttpServletRequest httpRequest = mock(HttpServletRequest.class);
 
-        assertThatThrownBy(() -> emailVerificationService.verifyEmail("invalid"))
+        when(redisTemplate.opsForValue()).thenReturn(valueOperations);
+        when(valueOperations.get("temp-register:" + "invalid")).thenReturn(null);
+        when(valueOperations.get("email:verify:" + "invalid")).thenReturn(null);
+
+        assertThatThrownBy(() -> emailVerificationService.verifyEmail(new VerifyEmailRequest("invalid", "test@example.com"), httpRequest))
                 .isInstanceOf(EmailVerificationTokenInvalidException.class);
     }
 
     @Test
     void verifyEmail_WithAlreadyVerifiedUser_ThrowsDuplicateResourceException() {
-        String token = "valid-token";
+        String token = "legacy-token";
+        HttpServletRequest httpRequest = mock(HttpServletRequest.class);
+
         when(redisTemplate.opsForValue()).thenReturn(valueOperations);
+        when(valueOperations.get("temp-register:" + token)).thenReturn(null);
         when(valueOperations.get("email:verify:" + token)).thenReturn("verified@example.com");
         when(userRepository.findByEmail("verified@example.com")).thenReturn(Optional.of(verifiedUser));
 
-        assertThatThrownBy(() -> emailVerificationService.verifyEmail(token))
+        assertThatThrownBy(() -> emailVerificationService.verifyEmail(new VerifyEmailRequest(token, "verified@example.com"), httpRequest))
                 .isInstanceOf(DuplicateResourceException.class);
     }
 
     @Test
     void verifyEmail_UserNotFoundInDB_ThrowsAuthenticationException() {
         String token = "orphan-token";
+        HttpServletRequest httpRequest = mock(HttpServletRequest.class);
+
         when(redisTemplate.opsForValue()).thenReturn(valueOperations);
+        when(valueOperations.get("temp-register:" + token)).thenReturn(null);
         when(valueOperations.get("email:verify:" + token)).thenReturn("deleted@example.com");
         when(userRepository.findByEmail("deleted@example.com")).thenReturn(Optional.empty());
 
-        assertThatThrownBy(() -> emailVerificationService.verifyEmail(token))
+        assertThatThrownBy(() -> emailVerificationService.verifyEmail(new VerifyEmailRequest(token, "deleted@example.com"), httpRequest))
                 .isInstanceOf(AuthenticationException.class);
     }
 
@@ -169,5 +230,17 @@ class EmailVerificationServiceImplTest {
 
         assertThatThrownBy(() -> emailVerificationService.resendVerificationToken("nonexistent@example.com"))
                 .isInstanceOf(AuthenticationException.class);
+    }
+
+    // ==================== createAndSendVerificationEmail ====================
+
+    @Test
+    void createAndSendVerificationEmail_SendsEmailToUnverifiedUser() {
+        when(redisTemplate.opsForValue()).thenReturn(valueOperations);
+
+        emailVerificationService.createAndSendVerificationEmail(unverifiedUser);
+
+        verify(valueOperations).set(startsWith("email:verify:"), eq("test@example.com"), any());
+        verify(emailService).send(eq("test@example.com"), eq("Verifica tu cuenta en Pymes Admin"), eq("verification"), any());
     }
 }

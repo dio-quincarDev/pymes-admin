@@ -10,14 +10,18 @@
 - **[P2] Facebook OAuth2** — POSTERGADO (Meta no aprobó empresa)
 
 ### 📌 Tareas por Hacer
-- **[P1] Logout Global** — Cerrar todas las sesiones del usuario
-- **[P1] Registro Pending Token** — No crear usuario hasta verificar email
+- [x] **[P1] Logout Global** — Cerrar todas las sesiones del usuario (COMPLETADO 2026-05-05)
+- [x] **[P1] Registro Pending Token** — No crear usuario hasta verificar email (COMPLETADO 2026-05-05)
 
 ### 🚧 En PROGRESO
+- [2026-05-05 — Implementación Registro Pending Token (Redis)](#2026-05-05--implementación-registro-pending-token-redis-)
+- [2026-05-05 — Implementación Logout Global (Backend)](#2026-05-05--implementación-logout-global-backend-)
 - [2026-05-05 — Diseño Profesionales Emails (Thymeleaf)](#2026-05-05--diseño-profesional-emails-thymeleaf-)
-- [2026-05-03 — Reingeniería del Flujo de Emails (Thymeleaf)](#2026-05-03--reingeniería-del-flujo-de-emails-thymeleaf-)
 
 ### ✅ Bugs RESUELTOS (más reciente primero)
+- [2026-05-05 — Registro Pending Token (Strict Persistence)](#2026-05-05--registro-pending-token-strict-persistence-)
+- [2026-05-05 — Email Verification Token-Email Mismatch](#2026-05-05--email-verification-token-email-mismatch-)
+- [2026-05-05 — Logout Global (Multi-session Revocation)](#2026-05-05--logout-global-multi-session-revocation-)
 - [2026-05-03 — Pruebas Unitarias e Integración (EmailService Refactor)](#2026-05-03--pruebas-unitarias-e-integración-emailservice-refactor-)
 - [2026-05-03 — Reingeniería del Flujo de Emails (Thymeleaf)](#2026-05-03--reingeniería-del-flujo-de-emails-thymeleaf-)
 - [2026-04-22 — InvitationService Technical Debt Coverage](#2026-04-22--invitationservice-technical-debt-coverage-)
@@ -193,14 +197,58 @@ Backend recibe: solo valida token en Redis → cualquier email asociado
 - [ ] Agregar `email` a `VerifyEmailRequest` DTO
 - [ ] Crear `VerifyEmailResponse` DTO
 - [ ] Modificar `EmailVerificationServiceImpl.verifyEmail()` con validación cruzada
-- [ ] Actualizar `AuthApiController.verifyEmail()`
-- [ ] Frontend: modificar `authService.verifyEmail()` para enviar `{ token, email }`
+- [x] Actualizar `AuthApiController.verifyEmail()`
+- [x] Frontend: modificar `authService.verifyEmail()` para enviar `{ token, email }`
 
 **Referencia:** `backend/auth/docs/VERIFICATION_SECURITY_FIX.md`
 
 ---
 
 ## ✅ BUGS RESUELTOS
+
+---
+
+## 📅 2026-05-05 — Registro Pending Token (Strict Persistence) ✅
+
+### 🎯 Problema
+El sistema creaba el usuario y la empresa en la base de datos inmediatamente después del formulario de registro, incluso si el email nunca se verificaba. Esto ensuciaba la base de datos con cuentas "fantasma" y bots.
+
+### 📐 Solución
+1. **Persistencia Temporal (Redis)**: Se modificó `AuthServiceImpl.register()` para que los datos del formulario (`RegisterRequest`) se guarden en Redis con un TTL de 15 minutos en lugar de la DB.
+2. **Registro Atómico Post-Verificación**: El método `AuthService.completeRegistration()` ahora es el encargado de crear el `User`, `Tenant` y `UserTenant` en una única transacción SQL solo después de que el email sea validado.
+3. **Login Automático**: Al completar la verificación con éxito, el servidor genera y devuelve los tokens JWT inmediatamente, permitiendo al frontend iniciar sesión sin pedir credenciales de nuevo.
+
+### 🧪 Validación
+- Compilación exitosa del backend.
+- Flujo de servicios verificado (Register -> Redis -> Verify -> SQL Persistence).
+
+---
+
+## 📅 2026-05-05 — Email Verification Token-Email Mismatch ✅
+
+### 🎯 Problema
+Vulnerabilidad de seguridad donde el sistema no validaba que el token de verificación perteneciera realmente al email proporcionado, permitiendo potenciales ataques de sustitución de tokens.
+
+### 📐 Solución
+1. **Validación Cruzada**: Se actualizó `VerifyEmailRequest` para incluir obligatoriamente el campo `email`.
+2. **Security Fix en Service**: `EmailVerificationServiceImpl.verifyEmail()` ahora compara el email almacenado en Redis contra el email enviado en la petición. Si no coinciden, lanza `EmailVerificationTokenInvalidException`.
+3. **Frontend Sync**: Se actualizó la página `VerifyEmailPage.vue` para extraer el email de la URL y enviarlo correctamente al backend.
+
+---
+
+## 📅 2026-05-05 — Logout Global (Multi-session Revocation) ✅
+
+### 🎯 Problema
+El sistema de logout solo invalidaba el access token actual en Redis, permitiendo que otras sesiones activas (en otros dispositivos o navegadores) permanecieran abiertas mediante el uso de refresh tokens válidos.
+
+### 📐 Solución
+1. **Invalidación Masiva**: Se modificó `AuthServiceImpl.logout()` para que, además de revocar el access token actual, elimine todos los refresh tokens asociados al `userId` en la base de datos.
+2. **DTO Enriquecido**: Se actualizó `LogoutResponse` para incluir el campo `allSessionsRevoked`, permitiendo al cliente confirmar la seguridad del cierre de sesión.
+3. **Persistencia Segura**: La operación se marcó como `@Transactional` para garantizar la atomicidad entre la revocación del JWT y la limpieza de la base de datos.
+
+### 🧪 Validación
+- **Unit Tests**: Actualización de `AuthServiceImplTest` verificando la extracción del `userId` del token y la llamada a `refreshTokenRepository.deleteByUserId()`.
+- **Resultados**: 10/10 tests pasando en `AuthServiceImplTest`.
 
 ---
 

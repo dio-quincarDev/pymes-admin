@@ -1,52 +1,54 @@
 <!DOCTYPE html>
-<html xmlns:th="http://www.thymeleaf.org" th:replace="~{_base :: layout(~{::content})}">
-<body>
-    <div th:fragment="content">
-        <table width="100%" cellpadding="0" cellspacing="0">
-            <!-- Saludo -->
-            <tr>
-                <td style="padding-bottom:24px;">
-                    <p style="margin:0; font-size:18px; font-weight:600; color:#E2E8E4;">Hola,</p>
-                </td>
-            </tr>
-            
-            <!-- Invitación -->
-            <tr>
-                <td style="padding-bottom:20px;">
-                    <p style="margin:0; font-size:15px; color:#A8B3B0; line-height:1.6;">
-                        <strong th:text="${inviterName}" style="color:#E2E8E4; font-weight:600;">Usuario</strong> te ha invitado a formar parte del equipo de <strong th:text="${tenantName}" style="color:#E2E8E4; font-weight:600;">Empresa</strong> en PymeQ.
-                    </p>
-                </td>
-            </tr>
-            
-            <!-- Rol info -->
-            <tr>
-                <td style="padding-bottom:20px;">
-                    <p style="margin:0; font-size:15px; color:#A8B3B0; line-height:1.6;">Al unirte, podrás colaborar en la gestión de la empresa según el rol que te ha sido asignado.</p>
-                </td>
-            </tr>
-            
-            <!-- CTA -->
-            <tr>
-                <td style="padding:8px 0 24px;">
-                    <div th:replace="~{components/_button :: button(${url}, 'Aceptar Invitación')}"></div>
-                </td>
-            </tr>
-            
-            <!-- Divider -->
-            <tr>
-                <td>
-                    <div th:replace="~{components/_divider :: divider}"></div>
-                </td>
-            </tr>
-            
-            <!-- Info de seguridad -->
-            <tr>
-                <td style="padding-top:20px;">
-                    <div th:replace="~{components/_alert :: alert('Nota', 'Este enlace de invitación expirará en 7 días. Si no esperabas esta invitación, puedes ignorar este correo.')}"></div>
-                </td>
-            </tr>
-        </table>
-    </div>
+<html xmlns:th="http://www.thymeleaf.org">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>PymeQ</title>
+    <link rel="preconnect" href="https://fonts.googleapis.com">
+    <link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700&display=swap" rel="stylesheet">
+    <style>
+        body { margin: 0; padding: 0; background-color: #0B1210; font-family: 'Inter', sans-serif; }
+    </style>
+</head>
+<body style="margin:0; padding:0; background-color:#0B1210; font-family:'Inter',sans-serif;">
+    <table width="100%" cellpadding="0" cellspacing="0" style="width:100%; padding:40px 0;">
+        <tr>
+            <td align="center">
+                <table width="100%" cellpadding="0" cellspacing="0" style="max-width:600px; background-color:#1B2624; border-radius:8px; overflow:hidden; box-shadow:0 1px 3px rgba(0,0,0,0.1);">
+                    <tr>
+                        <td style="padding:32px 40px; text-align:center; border-bottom:1px solid #71837F;">
+                            <span style="font-size:24px; font-weight:700; color:#A3785E;">PymeQ</span>
+                        </td>
+                    </tr>
+                    <tr>
+                        <td style="padding:40px; line-height:1.6;">
+                            <p style="margin:0 0 16px; font-size:18px; font-weight:600; color:#E2E8E4;">Hola,</p>
+                            <p style="margin:0 0 16px; font-size:15px; color:#A8B3B0;">
+                                <strong th:text="${inviterName}" style="color:#E2E8E4;">Usuario</strong> te ha invitado a 
+                                <strong th:text="${tenantName}" style="color:#E2E8E4;">Empresa</strong> en PymeQ.
+                            </p>
+                            <p style="margin:0 0 24px; font-size:15px; color:#A8B3B0;">Al unirte, podrás colaborar en la gestión de la empresa según el rol que te ha sido asignado.</p>
+                            <table width="100%" cellpadding="0" cellspacing="0">
+                                <tr>
+                                    <td align="center" style="padding:8px 0 24px;">
+                                        <a th:href="${url}" style="display:inline-block; background-color:#A3785E; color:#ffffff; padding:14px 28px; font-size:16px; font-weight:600; text-decoration:none; border-radius:6px; margin:24px 0;">Aceptar Invitación</a>
+                                    </td>
+                                </tr>
+                            </table>
+                            <hr style="border:none; border-top:1px solid #C5A059; margin:25px 0;">
+                            <p style="margin:0; font-size:13px; color:#71837F;">Este enlace de invitación expira en 7 días.<br>Si no esperabas esta invitación, puedes ignorar este correo.</p>
+                        </td>
+                    </tr>
+                </table>
+                <table width="100%" cellpadding="0" cellspacing="0" style="max-width:600px; padding:24px 0;">
+                    <tr>
+                        <td align="center">
+                            <p style="margin:0; font-size:14px; color:#71837F;">&copy; 2026 PymeQ. Todos los derechos reservados.</p>
+                        </td>
+                    </tr>
+                </table>
+            </td>
+        </tr>
+    </table>
 </body>
 </html>

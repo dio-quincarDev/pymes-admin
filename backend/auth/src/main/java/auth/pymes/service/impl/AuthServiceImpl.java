@@ -16,6 +16,7 @@ import auth.pymes.common.models.enums.RoleName;
 import auth.pymes.common.models.mappers.TenantMapper;
 import auth.pymes.common.models.mappers.UserMapper;
 import auth.pymes.repositories.AuditLogRepository;
+import auth.pymes.repositories.RefreshTokenRepository;
 import auth.pymes.repositories.TenantRepository;
 import auth.pymes.repositories.UserEntityRepository;
 import auth.pymes.repositories.UserTenantRepository;
@@ -52,6 +53,7 @@ public class AuthServiceImpl implements AuthService {
     private final TenantRepository tenantRepository;
     private final UserTenantRepository userTenantRepository;
     private final AuditLogRepository auditLogRepository;
+    private final RefreshTokenRepository refreshTokenRepository;
     private final JwtService jwtService;
     private final PasswordEncoder passwordEncoder;
     private final AuthenticationManager authenticationManager;
@@ -73,6 +75,19 @@ public class AuthServiceImpl implements AuthService {
             throw new DuplicateResourceException(TENANT_ALREADY_EXISTS, request.companySlug());
         }
 
+        // PENDING REGISTRATION: Store data in Redis and send email
+        emailVerificationService.generateAndSendPendingRegistrationEmail(request);
+        log.info("Registro pendiente iniciado para: {}. Email de verificación enviado.", request.email());
+
+        // Return empty response (tokens will be generated after verification)
+        return new AuthResponse(null, null, null, null);
+    }
+
+    @Override
+    @Transactional
+    public AuthResponse completeRegistration(RegisterRequest request, HttpServletRequest httpRequest) {
+        log.info("Completando registro para: {}", request.email());
+
         UserEntity user = UserEntity.builder()
                 .name(request.name())
                 .email(request.email())
@@ -80,10 +95,11 @@ public class AuthServiceImpl implements AuthService {
                 .provider(AuthProvider.LOCAL)
                 .providerId(request.email())
                 .isActive(true)
+                .emailVerifiedAt(ZonedDateTime.now()) // Ya viene verificado de Redis
                 .build();
 
         user = userRepository.save(user);
-        log.info("Usuario local registrado: {}", user.getEmail());
+        log.info("Usuario local creado: {}", user.getEmail());
 
         Tenant tenant = Tenant.builder()
                 .name(request.companyName())
@@ -106,15 +122,11 @@ public class AuthServiceImpl implements AuthService {
 
         userTenantRepository.save(userTenant);
 
-        // Generate and send email verification token
-        emailVerificationService.createAndSendVerificationEmail(user);
-        log.info("Token de verificación de email enviado a: {}", user.getEmail());
-
         String accessToken = jwtService.generateAccessToken(user, tenant.getId(), RoleName.OWNER.name(), tenant.getPlan().name());
         String refreshToken = jwtService.generateRefreshToken(user);
         jwtService.saveRefreshToken(user, tenant.getId(), refreshToken);
 
-        auditLoginAction(user, tenant.getId(), "REGISTER", httpRequest);
+        auditLoginAction(user, tenant.getId(), "REGISTER_COMPLETE", httpRequest);
 
         return new AuthResponse(accessToken, refreshToken, userMapper.toResponse(user), tenantMapper.toResponse(tenant));
     }
@@ -177,17 +189,28 @@ public class AuthServiceImpl implements AuthService {
     // ==================== TOKENS ====================
 
     @Override
+    @Transactional
     public LogoutResponse logout(String accessToken) {
+        boolean sessionsRevoked = false;
         if (accessToken != null && !accessToken.isBlank()) {
             try {
+                // 1. Invalidar access token (blacklist)
                 jwtService.revokeToken(accessToken);
-                log.info("Logout exitoso - token revocado");
+                log.info("Access token revocado");
+
+                // 2. Eliminar TODOS los refresh tokens del usuario (Logout Global)
+                UUID userId = jwtService.extractUserId(accessToken);
+                if (userId != null) {
+                    refreshTokenRepository.deleteByUserId(userId);
+                    sessionsRevoked = true;
+                    log.info("Global Logout - Todas las sesiones del usuario {} revocadas", userId);
+                }
             } catch (Exception e) {
-                log.warn("Error al revocar token: {}", e.getMessage());
+                log.warn("Error durante el proceso de logout: {}", e.getMessage());
             }
         }
 
-        return new LogoutResponse(true, "Logout successful", Instant.now());
+        return new LogoutResponse(true, "Logout successful", Instant.now(), sessionsRevoked);
     }
 
     @Override

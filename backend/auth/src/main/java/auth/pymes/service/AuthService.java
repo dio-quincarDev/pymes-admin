@@ -15,9 +15,14 @@ public interface AuthService {
     // ==================== LOCAL AUTH ====================
 
     /**
-     * Registro atómico: crea usuario, tenant (plan FREE) y vínculo OWNER.
+     * Inicia el registro: valida datos y envía email de verificación.
      */
     AuthResponse register(RegisterRequest request, HttpServletRequest httpRequest);
+
+    /**
+     * Completa el registro persistiendo en DB tras verificar email.
+     */
+    AuthResponse completeRegistration(RegisterRequest request, HttpServletRequest httpRequest);
 
     /**
      * Login con email y contraseña.

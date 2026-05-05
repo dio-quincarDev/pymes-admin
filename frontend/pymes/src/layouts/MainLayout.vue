@@ -91,13 +91,20 @@ onMounted(() => {
 
 const handleLogout = async () => {
   try {
-    await authStore.logout();
+    const response = await authStore.logout();
+    const allSessions = response?.data?.allSessionsRevoked;
+
     $q.notify({
       type: 'info',
-      message: 'Sesión finalizada',
-      caption: 'Hasta pronto en Pymeq',
-      position: 'top-right'
+      message: allSessions ? 'Todas las sesiones cerradas' : 'Sesión finalizada',
+      caption: allSessions 
+        ? 'Se han invalidado todos los accesos de tu cuenta' 
+        : 'Hasta pronto en Pymeq',
+      position: 'top-right',
+      icon: allSessions ? 'security' : 'logout'
     });
+    
+    // clearSession ya redirige a #/login, pero router push asegura el estado local
     void router.push('/login');
   } catch (error) {
     console.error('Error durante el cierre de sesión', error);

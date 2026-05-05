@@ -162,10 +162,12 @@ const onRegister = async () => {
 
   loading.value = true;
   try {
-    // eslint-disable-next-line @typescript-eslint/no-unused-vars
-    const { confirmPassword: _confirmPassword, ...payload } = registerForm;
+    authStore.clearSession();
+
     const fullPayload = {
-      ...payload,
+      name: registerForm.name,
+      email: registerForm.email,
+      password: registerForm.password,
       companyName: pendingTenant.value.name,
       companySlug: pendingTenant.value.slug
     };
@@ -174,19 +176,19 @@ const onRegister = async () => {
 
     $q.notify({
       type: 'positive',
-      message: 'Plataforma desplegada con éxito',
-      caption: 'Verifica tu email para activar el acceso',
+      message: 'Revisa tu correo electrónico',
+      caption: 'Te enviamos un enlace para verificar tu cuenta',
       position: 'top-right'
     });
 
     authStore.clearPendingTenant();
-    void router.push('/login');
+    void router.push('/verify');
   } catch (err: unknown) {
     const error = err as { response?: { data?: { mensaje?: string } } };
-    const message = error.response?.data?.mensaje || 'Error al aprovisionar el entorno';
+    const message = error.response?.data?.mensaje || 'Error al registrar';
     $q.notify({
       type: 'negative',
-      message: 'Fallo en el despliegue',
+      message: 'Error en el registro',
       caption: message,
       position: 'top-right'
     });

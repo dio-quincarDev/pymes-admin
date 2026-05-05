@@ -1,43 +1,64 @@
 <!DOCTYPE html>
-<html xmlns:th="http://www.thymeleaf.org" th:replace="~{_base :: layout(~{::content})}">
-<body>
-    <div th:fragment="content">
-        <table width="100%" cellpadding="0" cellspacing="0">
-            <!-- Saludo -->
-            <tr>
-                <td style="padding-bottom:24px;">
-                    <p style="margin:0; font-size:18px; font-weight:600; color:#E2E8E4;" th:text="'Hola ' + ${name} + ','">Hola,</p>
-                </td>
-            </tr>
-            
-            <!-- Introducción -->
-            <tr>
-                <td style="padding-bottom:20px;">
-                    <p style="margin:0; font-size:15px; color:#A8B3B0; line-height:1.6;">Gracias por registrarte en PymeQ. Para comenzar a usar la plataforma, necesitamos verificar tu correo electrónico.</p>
-                </td>
-            </tr>
-            
-            <!-- CTA -->
-            <tr>
-                <td style="padding:8px 0 24px;">
-                    <div th:replace="~{components/_button :: button(${url}, 'Verificar mi cuenta')}"></div>
-                </td>
-            </tr>
-            
-            <!-- Divider -->
-            <tr>
-                <td>
-                    <div th:replace="~{components/_divider :: divider}"></div>
-                </td>
-            </tr>
-            
-            <!-- Info de seguridad -->
-            <tr>
-                <td style="padding-top:20px;">
-                    <div th:replace="~{components/_alert :: alert('Importante', 'Este enlace expirará en 15 minutos. Si no creaste una cuenta, puedes ignorar este mensaje de forma segura.')}"></div>
-                </td>
-            </tr>
-        </table>
-    </div>
+<html xmlns:th="http://www.thymeleaf.org">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>PymeQ</title>
+    <link rel="preconnect" href="https://fonts.googleapis.com">
+    <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+    <link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700&display=swap" rel="stylesheet">
+    <style>
+        body { margin: 0; padding: 0; background-color: #0B1210; font-family: 'Inter', -apple-system, BlinkMacSystemFont, 'Segoe UI', sans-serif; -webkit-font-smoothing: antialiased; }
+        @media only screen and (max-width: 600px) { .container { width: 100% !important; } }
+    </style>
+</head>
+<body style="margin:0; padding:0; background-color:#0B1210; font-family:'Inter',-apple-system,BlinkMacSystemFont,'Segoe UI',sans-serif;">
+    <table width="100%" cellpadding="0" cellspacing="0" style="width:100%; padding:40px 0; table-layout:fixed;">
+        <tr>
+            <td align="center">
+                <table width="100%" cellpadding="0" cellspacing="0" style="max-width:600px; background-color:#1B2624; border-radius:8px; overflow:hidden; box-shadow:0 1px 3px rgba(0,0,0,0.1);">
+                    <!-- Header -->
+                    <tr>
+                        <td style="padding:32px 40px; text-align:center; border-bottom:1px solid #71837F;">
+                            <span style="font-size:24px; font-weight:700; color:#A3785E;">PymeQ</span>
+                        </td>
+                    </tr>
+                    <!-- Content -->
+                    <tr>
+                        <td style="padding:40px; line-height:1.6;">
+                            <!-- Saludo -->
+                            <p style="margin:0 0 16px; font-size:18px; font-weight:600; color:#E2E8E4;" th:text="${name} != null ? 'Hola ' + ${name} + ',' : 'Hola,'">Hola,</p>
+                            
+                            <!-- Mensaje principal -->
+                            <p style="margin:0 0 24px; font-size:15px; color:#A8B3B0; line-height:1.6;">Gracias por registrarte en PymeQ. Para activar tu cuenta, verifica tu correo electrónico.</p>
+                            
+                            <!-- Botón -->
+                            <table width="100%" cellpadding="0" cellspacing="0">
+                                <tr>
+                                    <td align="center" style="padding:8px 0 24px;">
+                                        <a th:href="${url}" style="display:inline-block; background-color:#A3785E; color:#ffffff; padding:14px 28px; font-size:16px; font-weight:600; text-decoration:none; border-radius:6px; margin:24px 0;">Verificar mi cuenta</a>
+                                    </td>
+                                </tr>
+                            </table>
+                            
+                            <!-- Divisor -->
+                            <hr style="border:none; border-top:1px solid #C5A059; margin:25px 0;">
+                            
+                            <!-- Info pie -->
+                            <p style="margin:0; font-size:13px; color:#71837F;">Este enlace expira en 15 minutos.<br>Si no creaste esta cuenta, ignora este mensaje de forma segura.</p>
+                        </td>
+                    </tr>
+                </table>
+                <!-- Footer -->
+                <table width="100%" cellpadding="0" cellspacing="0" style="max-width:600px; padding:24px 0;">
+                    <tr>
+                        <td align="center">
+                            <p style="margin:0; font-size:14px; color:#71837F;">&copy; 2026 PymeQ. Todos los derechos reservados.</p>
+                        </td>
+                    </tr>
+                </table>
+            </td>
+        </tr>
+    </table>
 </body>
 </html>

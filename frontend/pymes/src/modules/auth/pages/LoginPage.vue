@@ -134,13 +134,27 @@ const handleLoginClick = async () => {
       position: 'top-right'
     });
     void router.push('/');
-  } catch {
-    $q.notify({
-      type: 'negative',
-      message: 'Fallo de autenticación',
-      caption: authStore.error || 'Credenciales no reconocidas',
-      position: 'top-right'
-    });
+  } catch (err: unknown) {
+    const error = err as { response?: { status?: number; data?: { codigo?: string; mensaje?: string } } };
+    const errorStatus = error.response?.status;
+    const errorCode = error.response?.data?.codigo;
+    const errorMsg = error.response?.data?.mensaje;
+
+    if (errorStatus === 403 || errorCode === 'VER001') {
+      $q.notify({
+        type: 'warning',
+        message: 'Debes verificar tu email primero',
+        caption: 'Revisa tu bandeja de entrada o solicita un nuevo enlace',
+        position: 'top-right'
+      });
+    } else {
+      $q.notify({
+        type: 'negative',
+        message: 'Fallo de autenticación',
+        caption: errorMsg || authStore.error || 'Credenciales no reconocidas',
+        position: 'top-right'
+      });
+    }
   } finally {
     loading.value = false;
   }

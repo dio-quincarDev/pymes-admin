@@ -8,5 +8,6 @@ import java.time.Instant;
 public record LogoutResponse(
     boolean success,
     String message,
-    Instant timestamp
+    Instant timestamp,
+    boolean allSessionsRevoked
 ) {}

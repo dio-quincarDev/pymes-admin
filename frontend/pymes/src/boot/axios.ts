@@ -28,12 +28,18 @@ api.interceptors.request.use((config) => {
 api.interceptors.response.use(
   (response) => response,
   (error) => {
-    if (error.response && error.response.status === 401) {
-      // Limpiar sesión y redirigir al login si el token es inválido/expirado
-      localStorage.removeItem('pymeq_token');
-      localStorage.removeItem('pymeq_refresh_token');
-      localStorage.removeItem('pymeq_user');
-      // window.location.href = '#/login';
+    if (error.response) {
+      const { status, data } = error.response;
+      
+      if (status === 401) {
+        localStorage.removeItem('pymeq_token');
+        localStorage.removeItem('pymeq_refresh_token');
+        localStorage.removeItem('pymeq_user');
+      }
+      
+      if (status === 403 && data?.codigo === 'VER001') {
+        window.location.href = '#/login?verified=false';
+      }
     }
     return Promise.reject(new Error(error instanceof Error ? error.message : String(error)));
   }

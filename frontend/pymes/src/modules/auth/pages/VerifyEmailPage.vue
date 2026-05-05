@@ -25,8 +25,17 @@
 
     <q-card-actions align="center" class="q-mt-md">
       <q-btn
-        v-if="success || (error && errorType !== 'expired')"
-        label="IR AL CENTRO DE CONTROL"
+        v-if="success"
+        label="IR AL DASHBOARD"
+        color="primary"
+        class="full-width brand-glow text-weight-bold"
+        size="lg"
+        @click="router.push('/dashboard')"
+      />
+
+      <q-btn
+        v-if="error && errorType !== 'expired'"
+        label="VOLVER AL LOGIN"
         color="primary"
         class="full-width brand-glow text-weight-bold"
         size="lg"
@@ -56,12 +65,15 @@
 
 <script setup lang="ts">
 import { ref, onMounted } from 'vue';
-import { useRoute } from 'vue-router';
+import { useRoute, useRouter } from 'vue-router';
 import { authService } from '../services/auth.service';
+import { useAuthStore } from '../store';
 import { useQuasar } from 'quasar';
 
 const route = useRoute();
+const router = useRouter();
 const $q = useQuasar();
+const authStore = useAuthStore();
 
 const loading = ref(true);
 const success = ref(false);
@@ -75,8 +87,18 @@ const email = ref(route.query.email as string);
 
 const verifyEmail = async (verificationToken: string, userEmail: string) => {
   try {
-    await authService.verifyEmail(verificationToken, userEmail);
+    const response = await authStore.verifyEmail(verificationToken, userEmail);
     success.value = true;
+    
+    // Si tenemos tokens en la respuesta, fue un registro completo con auto-login
+    if (response && response.accessToken) {
+      $q.notify({
+        type: 'positive',
+        message: '¡Bienvenido a Pymeq!',
+        caption: 'Tu cuenta ha sido creada y verificada.',
+        position: 'top-right'
+      });
+    }
   } catch (err: unknown) {
     error.value = true;
     const response = (err as { response?: { status?: number; data?: { codigo?: string; mensaje?: string } } })?.response;

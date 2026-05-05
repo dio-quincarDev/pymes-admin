@@ -17,6 +17,7 @@ import auth.pymes.common.models.enums.RoleName;
 import auth.pymes.common.models.mappers.TenantMapper;
 import auth.pymes.common.models.mappers.UserMapper;
 import auth.pymes.repositories.AuditLogRepository;
+import auth.pymes.repositories.RefreshTokenRepository;
 import auth.pymes.repositories.TenantRepository;
 import auth.pymes.repositories.UserEntityRepository;
 import auth.pymes.repositories.UserTenantRepository;
@@ -61,6 +62,9 @@ public class AuthServiceImplTest {
 
     @Mock
     private AuditLogRepository auditLogRepository;
+
+    @Mock
+    private RefreshTokenRepository refreshTokenRepository;
 
     @Mock
     private JwtService jwtService;
@@ -177,14 +181,21 @@ public class AuthServiceImplTest {
     }
 
     @Test
-    void logout_WithValidToken_ReturnsLogoutResponseAndRevokesToken() {
+    void logout_WithValidToken_ReturnsLogoutResponseAndRevokesAllSessions() {
         String accessToken = "valid-access-token";
+        UUID userId = UUID.randomUUID();
+        
+        when(jwtService.extractUserId(accessToken)).thenReturn(userId);
         doNothing().when(jwtService).revokeToken(accessToken);
+        doNothing().when(refreshTokenRepository).deleteByUserId(userId);
 
         LogoutResponse response = authService.logout(accessToken);
 
         assertThat(response.success()).isTrue();
+        assertThat(response.allSessionsRevoked()).isTrue();
         verify(jwtService).revokeToken(accessToken);
+        verify(jwtService).extractUserId(accessToken);
+        verify(refreshTokenRepository).deleteByUserId(userId);
     }
 
     @Test

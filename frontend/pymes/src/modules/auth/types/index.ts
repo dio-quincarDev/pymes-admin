@@ -32,6 +32,13 @@ export interface ApiResponse<T> {
   timestamp: string;
 }
 
+export interface LogoutResponse {
+  success: boolean;
+  message: string;
+  timestamp: string;
+  allSessionsRevoked: boolean;
+}
+
 export interface InvitationResponse {
   accessToken: string;
   refreshToken: string;
