@@ -44,7 +44,51 @@
 
 ---
 
-## 📌 TAREAS POR HACER
+## 📅 2026-05-05 — CI/CD Fix (Tests Separation) ✅
+
+### 🎯 Problema
+El pipeline de CI fallaba porque:
+1. Usaba `verify` que ejecuta tanto `surefire` (unit) como `failsafe` (integration)
+2. Con perfil `test` intentaba conectarse a PostgreSQL pero sin testcontainers
+3. Los integration tests necesitan Docker y perfiles específicos
+
+### 📐 Solución
+1. **Separación de jobs en CI (.github/workflows/ci.yml)**:
+   - `backend-auth-unit-test`: Solo unit tests (`mvn test`) with profile `test` → H2
+   - `backend-auth-integration-test`: Integration tests (`mvn verify`) with profile `integration` → Testcontainers
+
+2. **Docker service**: Añadido en workflow para testcontainers:
+```yaml
+services:
+  docker:
+    image: docker:20.10.16
+    options: --privileged
+```
+
+3. **Fix en pom.xml**: Excluído `AuthApplicationTests` de surefire (extendía `AbstractIntegrationTest` con testcontainers)
+
+### 🧪 Validación
+- Unit Tests: ✅ 120 tests passing (H2 in-memory)
+- Integration Tests: ✅ Working (testcontainers creates PostgreSQL + Redis)
+
+### 📋 Cómo correr tests
+
+**Unit Tests (sin Docker):**
+```bash
+cd backend/auth && ./mvnw test -B -Dspring.profiles.active=test
+```
+
+**Integration Tests (necesita Docker):**
+```bash
+cd backend/auth && ./mvnw verify -B -Dspring.profiles.active=integration
+```
+
+### 🔲 Pendiente
+- [ ] Full CI validation in GitHub Actions
+
+---
+
+## 📋 TAREAS POR HACER
 
 ### 📅 [P1] Logout Global (PENDIENTE)
 

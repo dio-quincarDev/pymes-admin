@@ -115,6 +115,44 @@ public class AuthServiceImplTest {
     }
 
     @Test
+    void completeRegistration_WithValidRequest_ReturnsAuthResponse() {
+        RegisterRequest request = new RegisterRequest(
+                "New User", "new@example.com", "password", "New Company", "new-company"
+        );
+
+        UserEntity user = UserEntity.builder()
+                .id(UUID.randomUUID())
+                .email(request.email())
+                .name(request.name())
+                .build();
+        
+        Tenant tenant = Tenant.builder()
+                .id(UUID.randomUUID())
+                .name(request.companyName())
+                .slug(request.companySlug())
+                .plan(PlanName.FREE)
+                .build();
+
+        when(passwordEncoder.encode(any())).thenReturn("encoded-password");
+        when(userRepository.save(any())).thenReturn(user);
+        when(tenantRepository.save(any())).thenReturn(tenant);
+        when(userMapper.toResponse(any())).thenReturn(new UserEntityResponse(user.getId(), user.getEmail(), user.getName(), null, AuthProvider.LOCAL));
+        when(tenantMapper.toResponse(any())).thenReturn(new TenantResponse(tenant.getId(), tenant.getName(), tenant.getSlug(), PlanName.FREE, null, null));
+        
+        String accessToken = "access-token";
+        String refreshToken = "refresh-token";
+        when(jwtService.generateAccessToken(any(), any(), any(), any())).thenReturn(accessToken);
+        when(jwtService.generateRefreshToken(any())).thenReturn(refreshToken);
+
+        AuthResponse response = authService.completeRegistration(request, httpRequest);
+
+        assertThat(response.accessToken()).isEqualTo(accessToken);
+        assertThat(response.refreshToken()).isEqualTo(refreshToken);
+        assertThat(response.user().email()).isEqualTo(request.email());
+        verify(jwtService).saveRefreshToken(eq(user), eq(tenant.getId()), eq(refreshToken));
+    }
+
+    @Test
     void login_WithValidCredentials_ReturnsAuthResponse() {
         LoginRequest request = new LoginRequest("user@example.com", "password");
         when(httpRequest.getRemoteAddr()).thenReturn("127.0.0.1");

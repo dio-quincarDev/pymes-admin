@@ -19,13 +19,13 @@ import org.springframework.web.bind.annotation.RestController;
 
 @RestController
 @RequiredArgsConstructor
-@RequestMapping(ApiPathConstants.V1_ROUTE + ApiPathConstants.AUTH_ROUTE + "/oauth2")
+@RequestMapping(ApiPathConstants.V1_ROUTE + ApiPathConstants.AUTH_ROUTE + ApiPathConstants.AUTH_OAUTH2)
 public class LoginOauth2Controller implements OAuth2Api {
 
     private final OAuth2IntentService oauth2IntentService;
 
     @Override
-    @org.springframework.web.bind.annotation.PostMapping(ApiPathConstants.AUTH_OAUTH2_INTENT)
+    @org.springframework.web.bind.annotation.PostMapping(ApiPathConstants.OAUTH2_INTENT)
     public ResponseEntity<ApiResponse<OAuth2IntentResponse>> createOAuth2Intent(
             @Valid @RequestBody OAuth2IntentRequest request) {
         OAuth2IntentResponse response = oauth2IntentService.createIntent(request);
@@ -33,7 +33,7 @@ public class LoginOauth2Controller implements OAuth2Api {
     }
 
     @Override
-    @org.springframework.web.bind.annotation.GetMapping(ApiPathConstants.AUTH_OAUTH2_INTENT_GET)
+    @org.springframework.web.bind.annotation.GetMapping(ApiPathConstants.OAUTH2_INTENT_GET)
     public ResponseEntity<ApiResponse<OAuth2IntentRequest>> getOAuth2Intent(
             @PathVariable String intentId) {
         return oauth2IntentService.getIntent(intentId)

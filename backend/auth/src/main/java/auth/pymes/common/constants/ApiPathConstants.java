@@ -20,8 +20,11 @@ public class ApiPathConstants {
     public static final String AUTH_RESEND_VERIFICATION = "/resend-verification";
     public static final String AUTH_FORGOT_PASSWORD = "/forgot-password";
     public static final String AUTH_RESET_PASSWORD = "/reset-password";
-    public static final String AUTH_OAUTH2_INTENT = "/oauth2/intent";
-    public static final String AUTH_OAUTH2_INTENT_GET = "/oauth2/intent/{intentId}";
+    
+    // OAuth2 paths
+    public static final String AUTH_OAUTH2 = "/oauth2";
+    public static final String OAUTH2_INTENT = "/intent";
+    public static final String OAUTH2_INTENT_GET = "/intent/{intentId}";
 
     // User sub-paths
     public static final String USERS_ME = "/me";
@@ -41,5 +44,5 @@ public class ApiPathConstants {
     public static final String FULL_AUTH_RESEND_VERIFICATION = V1_ROUTE + AUTH_ROUTE + AUTH_RESEND_VERIFICATION;
     public static final String FULL_AUTH_FORGOT_PASSWORD = V1_ROUTE + AUTH_ROUTE + AUTH_FORGOT_PASSWORD;
     public static final String FULL_AUTH_RESET_PASSWORD = V1_ROUTE + AUTH_ROUTE + AUTH_RESET_PASSWORD;
-    public static final String FULL_AUTH_OAUTH2_INTENT = V1_ROUTE + AUTH_ROUTE + AUTH_OAUTH2_INTENT;
+    public static final String FULL_AUTH_OAUTH2_INTENT = V1_ROUTE + AUTH_ROUTE + AUTH_OAUTH2 + OAUTH2_INTENT;
 }

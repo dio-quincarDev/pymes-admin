@@ -15,15 +15,15 @@ import org.springframework.web.bind.annotation.RequestBody;
 import org.springframework.web.bind.annotation.RequestMapping;
 
 @Tag(name = "OAuth2", description = "Endpoints OAuth2")
-@RequestMapping(ApiPathConstants.V1_ROUTE + ApiPathConstants.AUTH_ROUTE + "/oauth2")
+@RequestMapping(ApiPathConstants.V1_ROUTE + ApiPathConstants.AUTH_ROUTE + ApiPathConstants.AUTH_OAUTH2)
 public interface OAuth2Api {
 
     @Operation(summary = "Create OAuth2 Intent", description = "Crea un intento de registro OAuth2 con datos de empresa para ser procesado tras el login")
-    @PostMapping("/intent")
+    @PostMapping(ApiPathConstants.OAUTH2_INTENT)
     ResponseEntity<ApiResponse<OAuth2IntentResponse>> createOAuth2Intent(
             @Valid @RequestBody OAuth2IntentRequest request);
 
     @Operation(summary = "Get OAuth2 Intent", description = "Obtiene los datos de un intento OAuth2 existente")
-    @GetMapping("/intent/{intentId}")
+    @GetMapping(ApiPathConstants.OAUTH2_INTENT_GET)
     ResponseEntity<ApiResponse<OAuth2IntentRequest>> getOAuth2Intent(@PathVariable String intentId);
 }

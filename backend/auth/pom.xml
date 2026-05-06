@@ -283,6 +283,7 @@
 				<configuration>
 					<excludes>
 						<exclude>**/integration/**</exclude>
+						<exclude>**/AuthApplicationTests.java</exclude>
 					</excludes>
 				</configuration>
 			</plugin>
