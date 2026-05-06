@@ -45,21 +45,36 @@ class PasswordResetIntegrationTest extends AbstractIntegrationTest {
     @BeforeEach
     void setUp() throws Exception {
         // Limpiar Redis
-        Set<String> keys = redisTemplate.keys("password:reset:*");
+        java.util.Set<String> keys = redisTemplate.keys("password:reset:*");
         if (keys != null) redisTemplate.delete(keys);
+        
+        java.util.Set<String> pendingKeys = redisTemplate.keys("temp-register:*");
+        if (pendingKeys != null) redisTemplate.delete(pendingKeys);
 
-        // Crear usuario de prueba
+        // Limpiar usuario de prueba
+        jdbcTemplate.execute("DELETE FROM user_tenants WHERE user_id IN (SELECT id FROM users WHERE email = '" + testEmail + "')");
         jdbcTemplate.execute("DELETE FROM users WHERE email = '" + testEmail + "'");
+
         RegisterRequest registerRequest = new RegisterRequest(
                 "Reset User", testEmail, testPassword, "Test Corp", "reset-corp-" + System.currentTimeMillis());
         
+        // 1. Iniciar registro
         mockMvc.perform(post(TestApiPaths.AUTH_REGISTER)
                         .contentType(MediaType.APPLICATION_JSON)
                         .content(objectMapper.writeValueAsString(registerRequest)))
-                .andExpect(status().isCreated());
+                .andExpect(status().isOk());
 
-        // Marcar email como verificado para poder loguear después si fuera necesario
-        jdbcTemplate.update("UPDATE users SET email_verified_at = CURRENT_TIMESTAMP WHERE email = ?", testEmail);
+        // 2. Extraer token de Redis y completar verificación para crear el usuario en DB
+        java.util.Set<String> tokens = redisTemplate.keys("temp-register:*");
+        String token = tokens.iterator().next().replace("temp-register:", "");
+        
+        auth.pymes.common.models.dto.request.VerifyEmailRequest verifyRequest = 
+                new auth.pymes.common.models.dto.request.VerifyEmailRequest(token, testEmail);
+
+        mockMvc.perform(post(TestApiPaths.AUTH_VERIFY_EMAIL)
+                        .contentType(MediaType.APPLICATION_JSON)
+                        .content(objectMapper.writeValueAsString(verifyRequest)))
+                .andExpect(status().isOk());
     }
 
     @Test

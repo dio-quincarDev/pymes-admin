@@ -17,6 +17,7 @@
 - [2026-05-05 — Diseño Profesionales Emails (Thymeleaf)](#2026-05-05--diseño-profesional-emails-thymeleaf-)
 
 ### ✅ Bugs RESUELTOS (más reciente primero)
+- [2026-05-06 — CI Fix & Integration Test Optimization (Singleton Containers)](#2026-05-06--ci-fix--integration-test-optimization-singleton-containers-)
 - [2026-05-05 — Registro Pending Token (Strict Persistence)](#2026-05-05--registro-pending-token-strict-persistence-)
 - [2026-05-05 — Email Verification Token-Email Mismatch](#2026-05-05--email-verification-token-email-mismatch-)
 - [2026-05-05 — Logout Global (Multi-session Revocation)](#2026-05-05--logout-global-multi-session-revocation-)
@@ -41,6 +42,25 @@
 
 ### 📌 Features Completas
 - [2026-04-16 — Roadmap Completado](#2026-04-16--roadmap-completado-)
+
+---
+
+## 📅 2026-05-06 — CI Fix & Integration Test Optimization (Singleton Containers) ✅
+
+### 🎯 Problema
+1. **Conflicto en CI**: El bloque `services: docker` en `ci.yml` interfería con Testcontainers en GitHub Actions.
+2. **Loop de Redis**: Lettuce intentaba reconectar indefinidamente a contenedores detenidos por JUnit, bloqueando el cierre de los tests.
+3. **Regresión en Tests**: `Invitation` y `PasswordReset` integration tests fallaban al esperar `201 Created` y persistencia inmediata en un flujo que ahora es "Pending Registration" (Redis primero).
+
+### 📐 Solución
+1. **CI Cleanup**: Eliminación del servicio Docker redundante en `ci.yml`.
+2. **Singleton Pattern**: Refactorización de `AbstractIntegrationTest.java` para usar una única instancia de contenedores PostgreSQL/Redis durante toda la JVM, evitando reinicios costosos.
+3. **Lettuce Fix**: Forzado de `spring.data.redis.lettuce.shutdown-timeout=0ms` para evitar loops de reconexión al apagar el contexto de Spring.
+4. **Test Alignment**: Actualización de los métodos `setUp` para seguir el flujo: `Register (200 OK)` -> `Verify Email (Redis Token)` -> `Login/SQL Persistence`.
+
+### 🧪 Validación
+- **Limpieza Local**: `mvn clean verify -Dspring.profiles.active=integration` exitoso (31/31 tests passing).
+- **Estabilidad**: Eliminados los warnings de reconexión de Lettuce y tiempos de ejecución reducidos.
 
 ---
 

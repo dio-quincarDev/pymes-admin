@@ -12,6 +12,7 @@ import org.junit.jupiter.api.DisplayName;
 import org.junit.jupiter.api.Test;
 import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.boot.test.autoconfigure.web.servlet.AutoConfigureMockMvc;
+import org.springframework.data.redis.core.RedisTemplate;
 import org.springframework.http.MediaType;
 import org.springframework.jdbc.core.JdbcTemplate;
 import org.springframework.test.web.servlet.MockMvc;
@@ -34,6 +35,9 @@ class InvitationServiceIntegrationTest extends AbstractIntegrationTest {
     private ObjectMapper objectMapper;
 
     @Autowired
+    private RedisTemplate<String, Object> redisTemplate;
+
+    @Autowired
     private JdbcTemplate jdbcTemplate;
 
     private String ownerToken;
@@ -51,13 +55,28 @@ class InvitationServiceIntegrationTest extends AbstractIntegrationTest {
         RegisterRequest registerRequest = new RegisterRequest(
                 "Int Owner", ownerEmail, ownerPassword, "Int Test Corp", tenantSlug);
 
+        // 1. Iniciar registro (ahora retorna 200 OK y guarda en Redis)
         mockMvc.perform(post(TestApiPaths.AUTH_REGISTER)
                         .contentType(MediaType.APPLICATION_JSON)
                         .content(objectMapper.writeValueAsString(registerRequest)))
-                .andExpect(status().isCreated());
+                .andExpect(status().isOk());
 
-        verifyUserEmail(ownerEmail);
-        ownerToken = performLoginAndGetToken(ownerEmail, ownerPassword);
+        // 2. Extraer token de Redis y completar verificación
+        java.util.Set<String> keys = redisTemplate.keys("temp-register:*");
+        String token = keys.iterator().next().replace("temp-register:", "");
+
+        auth.pymes.common.models.dto.request.VerifyEmailRequest verifyRequest = 
+                new auth.pymes.common.models.dto.request.VerifyEmailRequest(token, ownerEmail);
+        
+        MvcResult result = mockMvc.perform(post(TestApiPaths.AUTH_VERIFY_EMAIL)
+                        .contentType(MediaType.APPLICATION_JSON)
+                        .content(objectMapper.writeValueAsString(verifyRequest)))
+                .andExpect(status().isOk())
+                .andReturn();
+
+        // 3. Obtener token de acceso de la respuesta de verificación
+        String json = result.getResponse().getContentAsString();
+        ownerToken = objectMapper.readTree(json).at("/data/accessToken").asText();
 
         tenantId = jdbcTemplate.queryForObject(
                 "SELECT id FROM tenants WHERE slug = ?",

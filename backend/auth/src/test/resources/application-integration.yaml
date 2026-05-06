@@ -21,6 +21,8 @@ spring:
 
   data:
     redis:
+      host: localhost
+      port: 6379
       repositories:
         enabled: false
 
@@ -59,5 +61,7 @@ app:
 
 management:
   health:
+    redis:
+      enabled: false
     mail:
       enabled: false
