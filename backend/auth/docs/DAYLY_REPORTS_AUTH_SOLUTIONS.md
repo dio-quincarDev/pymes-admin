@@ -12,11 +12,13 @@
 ### 📌 Tareas por Hacer
 - [x] **[P1] Logout Global** — Cerrar todas las sesiones del usuario (COMPLETADO 2026-05-05)
 - [x] **[P1] Registro Pending Token** — No crear usuario hasta verificar email (COMPLETADO 2026-05-05)
+- [x] **[P1] CI Flake: InvitationServiceIntegrationTest** — Optimización de limpieza de Redis (COMPLETADO 2026-05-08)
 
 ### 🚧 En PROGRESO
-- [2026-05-05 — Diseño Profesionales Emails (Thymeleaf)](#2026-05-05--diseño-profesional-emails-thymeleaf-)
+- [2026-05-08 — Validación Visual Emails Reales](#2026-05-08--validación-visual-emails-reales-)
 
 ### ✅ Bugs RESUELTOS (más reciente primero)
+- [2026-05-08 — CI Flake: InvitationServiceIntegrationTest (Redis Cleanup)](#2026-05-08--ci-flake-invitationserviceintegrationtest-redis-cleanup-)
 - [2026-05-07 — Tenant Shutdown (Soft Delete)](#2026-05-07--tenant-shutdown-soft-delete-)
 - [2026-05-06 — CI Fix & Integration Test Optimization (Singleton Containers)](#2026-05-06--ci-fix--integration-test-optimization-singleton-containers-)
 - [2026-05-05 — Registro Pending Token (Strict Persistence)](#2026-05-05--registro-pending-token-strict-persistence-)
@@ -43,6 +45,28 @@
 
 ### 📌 Features Completas
 - [2026-04-16 — Roadmap Completado](#2026-04-16--roadmap-completado-)
+
+---
+
+## 📅 2026-05-08 — CI Flake: InvitationServiceIntegrationTest (COMPLETADO) ✅
+
+**Problema**: El test `InvitationServiceIntegrationTest` fallaba inconsistentemente en GitHub Actions con error 400 en el `setUp` (línea 77: verify-email), pero pasa siempre localmente.
+
+**Síntomas en CI**:
+- `Status expected:<200> but was:<400>`
+- Error en `setUp` línea 77 (verify-email endpoint)
+- Local: 100% passing | CI: ~50% failure rate
+
+**Análisis**:
+- Los contenedores Singleton (Redis) en `AbstractIntegrationTest` mantenían estado entre tests.
+- El uso de `redisTemplate.keys("temp-register:*")` recuperaba tokens "huérfanos" de tests anteriores, causando un *Token-Email Mismatch* por el security fix de email.
+
+**Solución aplicada**:
+1. **Limpieza Determinista**: Se implementó `flushRedis()` en `AbstractIntegrationTest` usando `flushAll()` síncrono antes de cada test.
+2. **Infraestructura Base**: Centralización de `RedisTemplate` en la clase base para garantizar limpieza atómica en toda la suite de integración.
+3. **Eliminación de Delays**: Se removió el `Thread.sleep(100)` del `setUp`, sustituyéndolo por un estado limpio garantizado por software.
+
+**Estado**: COMPLETADO - Verificado localmente (31/31 tests passing).
 
 ---
 
@@ -127,9 +151,9 @@ cd backend/auth && ./mvnw verify -B -Dspring.profiles.active=integration
 
 ---
 
-## 📋 TAREAS POR HACER
+## ✅ TAREAS COMPLETADAS
 
-### 📅 [P1] Logout Global (PENDIENTE)
+### 📅 [P1] Logout Global (COMPLETADO)
 
 **Prioridad:** Alta
 
@@ -149,15 +173,15 @@ POST /logout
 - `LogoutResponse`: + `allSessionsRevoked: true`
 
 **Tareas:**
-- [ ] Modificar `AuthServiceImpl.logout()` para eliminar todos los refresh tokens
-- [ ] Actualizar `LogoutResponse` con campo `allSessionsRevoked`
-- [ ] Frontend: limpiar todos los tokens del storage
+- [x] Modificar `AuthServiceImpl.logout()` para eliminar todos los refresh tokens
+- [x] Actualizar `LogoutResponse` con campo `allSessionsRevoked`
+- [x] Frontend: limpiar todos los tokens del storage
 
 **Referencia:** `backend/auth/src/main/java/auth/pymes/service/impl/AuthServiceImpl.java`
 
 ---
 
-### 📅 [P1] Registro Pending Token (PENDIENTE)
+### 📅 [P1] Registro Pending Token (COMPLETADO)
 
 **Prioridad:** Alta
 
@@ -185,10 +209,10 @@ No crear usuario en DB hasta verificar email. El usuario solo se crea DESPUÉS d
 - Adaptar EmailVerificationService para pending registration
 
 **Tareas:**
-- [ ] Modificar `/register` para guardar datos en Redis (no en DB)
-- [ ] Crear método `verifyAndRegister(tempToken)` en AuthServiceImpl
-- [ ] Modificar flujo `/verify-email` para completar registro
-- [ ] Frontend: actualizar flujo register → login automático
+- [x] Modificar `/register` para guardar datos en Redis (no en DB)
+- [x] Crear método `verifyAndRegister(tempToken)` en AuthServiceImpl
+- [x] Modificar flujo `/verify-email` para completar registro
+- [x] Frontend: actualizar flujo register → login automático
 
 **Referencia:**
 - `backend/auth/src/main/java/auth/pymes/service/impl/AuthServiceImpl.java`
@@ -253,12 +277,12 @@ Facebook OAuth2 no ha sido probado. Necesita configuración en Facebook Develope
 
 ---
 
-### 📅 [P1] Email Verification Token-Email Mismatch
+### 📅 [P1] Email Verification Token-Email Mismatch (COMPLETADO) ✅
 
 **Prioridad:** Alta
 
 **Descripción:**
-El flujo de verificación de email no valida que el token coincida con el email del query param. El backend ignora el email enviado en la URL, permitiendo que cualquier token válido verifique cualquier cuenta asociada.
+El flujo de verificación de email no validaba que el token coincida con el email del query param. El backend ignora el email enviado en la URL, permitiendo que cualquier token válido verifique cualquier cuenta asociada.
 
 **Fallas identificadas:**
 1. `VerifyEmailRequest` solo acepta `{ token }` - email ignorado
@@ -275,9 +299,9 @@ Backend recibe: solo valida token en Redis → cualquier email asociado
 **Solución implementada:** Validación token-email + respuesta enriquecida
 
 **Tareas:**
-- [ ] Agregar `email` a `VerifyEmailRequest` DTO
-- [ ] Crear `VerifyEmailResponse` DTO
-- [ ] Modificar `EmailVerificationServiceImpl.verifyEmail()` con validación cruzada
+- [x] Agregar `email` a `VerifyEmailRequest` DTO
+- [x] Crear `VerifyEmailResponse` DTO
+- [x] Modificar `EmailVerificationServiceImpl.verifyEmail()` con validación cruzada
 - [x] Actualizar `AuthApiController.verifyEmail()`
 - [x] Frontend: modificar `authService.verifyEmail()` para enviar `{ token, email }`
 

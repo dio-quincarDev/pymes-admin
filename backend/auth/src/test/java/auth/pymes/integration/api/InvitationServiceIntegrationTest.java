@@ -37,9 +37,6 @@ class InvitationServiceIntegrationTest extends AbstractIntegrationTest {
     private ObjectMapper objectMapper;
 
     @Autowired
-    private RedisTemplate<String, Object> redisTemplate;
-
-    @Autowired
     private JdbcTemplate jdbcTemplate;
 
     private String ownerToken;
@@ -53,9 +50,7 @@ class InvitationServiceIntegrationTest extends AbstractIntegrationTest {
     @BeforeEach
     void setUp() throws Exception {
         cleanUp();
-
-        // Wait for Redis to be ready after cleanup
-        Thread.sleep(100);
+        flushRedis();
 
         RegisterRequest registerRequest = new RegisterRequest(
                 "Int Owner", ownerEmail, ownerPassword, "Int Test Corp", tenantSlug);
@@ -68,6 +63,9 @@ class InvitationServiceIntegrationTest extends AbstractIntegrationTest {
 
         // 2. Extraer token de Redis y completar verificación
         java.util.Set<String> keys = redisTemplate.keys("temp-register:*");
+        if (keys == null || keys.isEmpty()) {
+            throw new IllegalStateException("No registration token found in Redis for email: " + ownerEmail);
+        }
         String token = keys.iterator().next().replace("temp-register:", "");
 
         auth.pymes.common.models.dto.request.VerifyEmailRequest verifyRequest = 

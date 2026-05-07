@@ -2,6 +2,7 @@ package auth.pymes.integration;
 
 import auth.pymes.service.EmailService;
 import org.junit.jupiter.api.BeforeEach;
+import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.boot.test.context.SpringBootTest;
 import org.springframework.boot.testcontainers.service.connection.ServiceConnection;
 import org.springframework.test.context.DynamicPropertyRegistry;
@@ -43,8 +44,15 @@ public abstract class AbstractIntegrationTest {
         registry.add("spring.data.redis.lettuce.shutdown-timeout", () -> "0ms");
     }
 
+    @Autowired
+    protected org.springframework.data.redis.core.RedisTemplate<String, Object> redisTemplate;
+
     @BeforeEach
     void setUpMailMock() {
         doNothing().when(emailService).send(anyString(), anyString(), anyString(), anyMap());
+    }
+
+    protected void flushRedis() {
+        redisTemplate.getConnectionFactory().getConnection().serverCommands().flushAll();
     }
 }
