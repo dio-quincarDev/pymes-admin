@@ -204,4 +204,113 @@ public class TenantServiceImplTest {
         verify(auth).getName();
         verify(userRepository).findByEmail("fallback@example.com");
     }
+
+    @Test
+    @DisplayName("shutdown - Owner hace shutdown exitosamente")
+    void shutdown_OwnerSuccess() {
+        // Arrange
+        String email = "owner@example.com";
+        UserEntity user = UserEntity.builder().id(UUID.randomUUID()).email(email).build();
+
+        Authentication auth = mock(Authentication.class);
+        when(auth.getPrincipal()).thenReturn(user);
+
+        UUID tenantId = UUID.randomUUID();
+        Tenant tenant = Tenant.builder().id(tenantId).name("My Company").slug("my-company").isActive(true).build();
+
+        UserTenant userTenant = UserTenant.builder()
+                .userId(user.getId())
+                .tenantId(tenantId)
+                .role(RoleName.OWNER)
+                .isActive(true)
+                .build();
+
+        when(userRepository.findByEmail(email)).thenReturn(Optional.of(user));
+        when(userTenantRepository.findByUserIdAndTenantId(user.getId(), tenantId)).thenReturn(Optional.of(userTenant));
+        when(tenantRepository.findById(tenantId)).thenReturn(Optional.of(tenant));
+
+        // Act
+        tenantService.shutdown(tenantId, auth);
+
+        // Assert
+        verify(tenantRepository).save(argThat(t -> !t.getIsActive()));
+    }
+
+    @Test
+    @DisplayName("shutdown - No owner lanza AuthorizationException")
+    void shutdown_NotOwner_ThrowsException() {
+        // Arrange
+        String email = "admin@example.com";
+        UserEntity user = UserEntity.builder().id(UUID.randomUUID()).email(email).build();
+
+        Authentication auth = mock(Authentication.class);
+        when(auth.getPrincipal()).thenReturn(user);
+
+        UUID tenantId = UUID.randomUUID();
+        UserTenant userTenant = UserTenant.builder()
+                .userId(user.getId())
+                .tenantId(tenantId)
+                .role(RoleName.ADMIN)
+                .isActive(true)
+                .build();
+
+        when(userRepository.findByEmail(email)).thenReturn(Optional.of(user));
+        when(userTenantRepository.findByUserIdAndTenantId(user.getId(), tenantId)).thenReturn(Optional.of(userTenant));
+
+        // Act & Assert
+        assertThatThrownBy(() -> tenantService.shutdown(tenantId, auth))
+                .isInstanceOf(AuthorizationException.class)
+                .hasMessageContaining("owner");
+    }
+
+    @Test
+    @DisplayName("shutdown - Usuario no miembro lanza AuthorizationException")
+    void shutdown_NotMember_ThrowsException() {
+        // Arrange
+        String email = "outsider@example.com";
+        UserEntity user = UserEntity.builder().id(UUID.randomUUID()).email(email).build();
+
+        Authentication auth = mock(Authentication.class);
+        when(auth.getPrincipal()).thenReturn(user);
+
+        UUID tenantId = UUID.randomUUID();
+
+        when(userRepository.findByEmail(email)).thenReturn(Optional.of(user));
+        when(userTenantRepository.findByUserIdAndTenantId(user.getId(), tenantId)).thenReturn(Optional.empty());
+
+        // Act & Assert
+        assertThatThrownBy(() -> tenantService.shutdown(tenantId, auth))
+                .isInstanceOf(AuthorizationException.class)
+                .hasMessageContaining("not belong");
+    }
+
+    @Test
+    @DisplayName("shutdown - Tenant inactivo lanza AuthorizationException")
+    void shutdown_AlreadyInactive_ThrowsException() {
+        // Arrange
+        String email = "owner@example.com";
+        UserEntity user = UserEntity.builder().id(UUID.randomUUID()).email(email).build();
+
+        Authentication auth = mock(Authentication.class);
+        when(auth.getPrincipal()).thenReturn(user);
+
+        UUID tenantId = UUID.randomUUID();
+        Tenant tenant = Tenant.builder().id(tenantId).name("My Company").isActive(false).build();
+
+        UserTenant userTenant = UserTenant.builder()
+                .userId(user.getId())
+                .tenantId(tenantId)
+                .role(RoleName.OWNER)
+                .isActive(true)
+                .build();
+
+        when(userRepository.findByEmail(email)).thenReturn(Optional.of(user));
+        when(userTenantRepository.findByUserIdAndTenantId(user.getId(), tenantId)).thenReturn(Optional.of(userTenant));
+        when(tenantRepository.findById(tenantId)).thenReturn(Optional.of(tenant));
+
+        // Act & Assert
+        assertThatThrownBy(() -> tenantService.shutdown(tenantId, auth))
+                .isInstanceOf(AuthorizationException.class)
+                .hasMessageContaining("already inactive");
+    }
 }

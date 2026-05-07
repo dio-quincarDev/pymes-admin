@@ -9,6 +9,8 @@ import org.springframework.data.domain.Page;
 import org.springframework.data.domain.Pageable;
 import org.springframework.security.core.Authentication;
 
+import java.util.UUID;
+
 public interface TenantService {
     /**
      * Obtiene todos los tenants del usuario (paginado).
@@ -24,4 +26,12 @@ public interface TenantService {
      * Crea un nuevo tenant para el usuario autenticado.
      */
     TenantResponse createTenant(CreateTenantRequest request, Authentication authentication);
+
+    /**
+     * Realiza el shutdown (soft delete) de un tenant.
+     * Solo el OWNER puede ejecutar esta acción.
+     * @param tenantId ID del tenant a cerrar
+     * @param authentication Contexto de autenticación
+     */
+    void shutdown(UUID tenantId, Authentication authentication);
 }

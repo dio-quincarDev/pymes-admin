@@ -17,6 +17,7 @@
 - [2026-05-05 — Diseño Profesionales Emails (Thymeleaf)](#2026-05-05--diseño-profesional-emails-thymeleaf-)
 
 ### ✅ Bugs RESUELTOS (más reciente primero)
+- [2026-05-07 — Tenant Shutdown (Soft Delete)](#2026-05-07--tenant-shutdown-soft-delete-)
 - [2026-05-06 — CI Fix & Integration Test Optimization (Singleton Containers)](#2026-05-06--ci-fix--integration-test-optimization-singleton-containers-)
 - [2026-05-05 — Registro Pending Token (Strict Persistence)](#2026-05-05--registro-pending-token-strict-persistence-)
 - [2026-05-05 — Email Verification Token-Email Mismatch](#2026-05-05--email-verification-token-email-mismatch-)
@@ -61,6 +62,23 @@
 ### 🧪 Validación
 - **Limpieza Local**: `mvn clean verify -Dspring.profiles.active=integration` exitoso (31/31 tests passing).
 - **Estabilidad**: Eliminados los warnings de reconexión de Lettuce y tiempos de ejecución reducidos.
+
+---
+
+## 📅 2026-05-07 — Tenant Shutdown (Soft Delete) ✅
+
+**Problema**: Owner no podía cerrar su workspace. Ya existía la restricción `OWNER_CANNOT_BE_REMOVED` pero sin forma de transferir ownership ni cerrar.
+
+**Solución**: `DELETE /api/v1/tenants/{tenantId}` - soft delete del tenant (solo OWNER).
+
+**Implementación**:
+- `TenantService.shutdown()` - Valida rol OWNER + membresía activa + tenant activo
+- Reutiliza `@SQLDelete` existente de la entidad (`UPDATE tenants SET is_active = false`)
+- `@Transactional` para consistencia
+
+**Archivos**: TenantService, TenantServiceImpl, TenantApi, TenantApiController
+
+**Tests**: 4 nuevos casos (success, not owner, not member, already inactive), 10/10 pasando.
 
 ---
 

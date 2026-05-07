@@ -31,6 +31,7 @@ import org.springframework.stereotype.Service;
 import org.springframework.transaction.annotation.Transactional;
 
 import java.time.ZonedDateTime;
+import java.util.UUID;
 
 import static auth.pymes.utils.exception.CodigoError.*;
 
@@ -134,6 +135,37 @@ public class TenantServiceImpl implements TenantService {
         log.info("Usuario {} creó tenant {} ({})", user.getEmail(), tenant.getName(), tenant.getId());
 
         return tenantMapper.toResponse(tenant);
+    }
+
+    @Override
+    @Transactional
+    public void shutdown(UUID tenantId, Authentication authentication) {
+        String email = getEmailFromAuthentication(authentication);
+        UserEntity user = userRepository.findByEmail(email)
+                .orElseThrow(() -> new ResourceNotFoundException(USER_NOT_FOUND_BY_EMAIL, email));
+
+        UserTenant userTenant = userTenantRepository.findByUserIdAndTenantId(user.getId(), tenantId)
+                .orElseThrow(() -> new AuthorizationException(USER_NOT_IN_TENANT, tenantId));
+
+        if (userTenant.getRole() != RoleName.OWNER) {
+            throw new AuthorizationException(INSUFFICIENT_PERMISSIONS, "Only the owner can shutdown the tenant");
+        }
+
+        if (!userTenant.getIsActive()) {
+            throw new AuthorizationException(USER_NOT_IN_TENANT, "Your access to this tenant is inactive");
+        }
+
+        Tenant tenant = tenantRepository.findById(tenantId)
+                .orElseThrow(() -> new ResourceNotFoundException(TENANT_NOT_FOUND, tenantId));
+
+        if (!tenant.getIsActive()) {
+            throw new AuthorizationException(TENANT_INACTIVE, "Tenant is already inactive");
+        }
+
+        tenant.setIsActive(false);
+        tenantRepository.save(tenant);
+
+        log.info("Usuario {} realizo shutdown del tenant {} ({})", user.getEmail(), tenant.getName(), tenantId);
     }
 
     private String getEmailFromAuthentication(Authentication authentication) {
