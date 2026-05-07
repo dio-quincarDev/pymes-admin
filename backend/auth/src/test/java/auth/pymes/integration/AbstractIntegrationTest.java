@@ -20,7 +20,7 @@ import static org.mockito.Mockito.doNothing;
 public abstract class AbstractIntegrationTest {
 
     @MockitoBean
-    private EmailService emailService;
+    protected EmailService emailService;
 
     @ServiceConnection
     static PostgreSQLContainer<?> postgres = new PostgreSQLContainer<>(DockerImageName.parse("postgres:15-alpine"))

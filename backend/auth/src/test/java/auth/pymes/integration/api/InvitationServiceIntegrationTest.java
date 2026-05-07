@@ -10,22 +10,26 @@ import com.fasterxml.jackson.databind.ObjectMapper;
 import org.junit.jupiter.api.BeforeEach;
 import org.junit.jupiter.api.DisplayName;
 import org.junit.jupiter.api.Test;
+import org.mockito.ArgumentCaptor;
 import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.boot.test.autoconfigure.web.servlet.AutoConfigureMockMvc;
-import org.springframework.data.redis.core.RedisTemplate;
 import org.springframework.http.MediaType;
 import org.springframework.jdbc.core.JdbcTemplate;
-import org.springframework.test.annotation.DirtiesContext;
 import org.springframework.test.web.servlet.MockMvc;
 import org.springframework.test.web.servlet.MvcResult;
 
+import java.util.Map;
 import java.util.UUID;
 
+import static org.mockito.ArgumentMatchers.anyMap;
+import static org.mockito.ArgumentMatchers.anyString;
+import static org.mockito.ArgumentMatchers.eq;
+import static org.mockito.Mockito.atLeastOnce;
+import static org.mockito.Mockito.verify;
 import static org.springframework.test.web.servlet.request.MockMvcRequestBuilders.post;
 import static org.springframework.test.web.servlet.result.MockMvcResultMatchers.jsonPath;
 import static org.springframework.test.web.servlet.result.MockMvcResultMatchers.status;
 
-@DirtiesContext(classMode = DirtiesContext.ClassMode.AFTER_EACH_TEST_METHOD)
 @AutoConfigureMockMvc
 @DisplayName("Integration Tests - Invitation API")
 class InvitationServiceIntegrationTest extends AbstractIntegrationTest {
@@ -48,6 +52,7 @@ class InvitationServiceIntegrationTest extends AbstractIntegrationTest {
     private final String tenantSlug = "int-test-" + uniqueId;
 
     @BeforeEach
+    @SuppressWarnings("unchecked")
     void setUp() throws Exception {
         cleanUp();
         flushRedis();
@@ -55,18 +60,18 @@ class InvitationServiceIntegrationTest extends AbstractIntegrationTest {
         RegisterRequest registerRequest = new RegisterRequest(
                 "Int Owner", ownerEmail, ownerPassword, "Int Test Corp", tenantSlug);
 
-        // 1. Iniciar registro (ahora retorna 200 OK y guarda en Redis)
+        // 1. Iniciar registro
         mockMvc.perform(post(TestApiPaths.AUTH_REGISTER)
                         .contentType(MediaType.APPLICATION_JSON)
                         .content(objectMapper.writeValueAsString(registerRequest)))
                 .andExpect(status().isOk());
 
-        // 2. Extraer token de Redis y completar verificación
-        java.util.Set<String> keys = redisTemplate.keys("temp-register:*");
-        if (keys == null || keys.isEmpty()) {
-            throw new IllegalStateException("No registration token found in Redis for email: " + ownerEmail);
-        }
-        String token = keys.iterator().next().replace("temp-register:", "");
+        // 2. Capturar token del "email" enviado (DETERMINÍSTICO)
+        ArgumentCaptor<Map<String, Object>> variablesCaptor = ArgumentCaptor.forClass(Map.class);
+        verify(emailService, atLeastOnce()).send(eq(ownerEmail), anyString(), eq("verification"), variablesCaptor.capture());
+        
+        String url = (String) variablesCaptor.getValue().get("url");
+        String token = url.substring(url.indexOf("token=") + 6, url.indexOf("&email="));
 
         auth.pymes.common.models.dto.request.VerifyEmailRequest verifyRequest = 
                 new auth.pymes.common.models.dto.request.VerifyEmailRequest(token, ownerEmail);
