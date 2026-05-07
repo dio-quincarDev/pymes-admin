@@ -46,6 +46,24 @@
 
 ---
 
+## 📅 2026-05-07 — Tenant Shutdown (Soft Delete) ✅
+
+**Problema**: Owner no podía cerrar su workspace. Ya existía la restricción `OWNER_CANNOT_BE_REMOVED` pero sin forma de transferir ownership ni cerrar.
+
+**Solución**: `DELETE /api/v1/tenants/{tenantId}` - soft delete del tenant (solo OWNER).
+
+**Implementación**:
+- `TenantService.shutdown()` - Valida rol OWNER + membresía activa + tenant activo
+- Reutiliza `@SQLDelete` existente de la entidad (`UPDATE tenants SET is_active = false`)
+- `@Transactional` para consistencia
+
+**Archivos**: TenantService, TenantServiceImpl, TenantApi, TenantApiController
+
+**Tests**: 4 nuevos casos (success, not owner, not member, already inactive), 10/10 pasando.
+
+
+---
+
 ## 📅 2026-05-06 — CI Fix & Integration Test Optimization (Singleton Containers) ✅
 
 ### 🎯 Problema
@@ -62,23 +80,6 @@
 ### 🧪 Validación
 - **Limpieza Local**: `mvn clean verify -Dspring.profiles.active=integration` exitoso (31/31 tests passing).
 - **Estabilidad**: Eliminados los warnings de reconexión de Lettuce y tiempos de ejecución reducidos.
-
----
-
-## 📅 2026-05-07 — Tenant Shutdown (Soft Delete) ✅
-
-**Problema**: Owner no podía cerrar su workspace. Ya existía la restricción `OWNER_CANNOT_BE_REMOVED` pero sin forma de transferir ownership ni cerrar.
-
-**Solución**: `DELETE /api/v1/tenants/{tenantId}` - soft delete del tenant (solo OWNER).
-
-**Implementación**:
-- `TenantService.shutdown()` - Valida rol OWNER + membresía activa + tenant activo
-- Reutiliza `@SQLDelete` existente de la entidad (`UPDATE tenants SET is_active = false`)
-- `@Transactional` para consistencia
-
-**Archivos**: TenantService, TenantServiceImpl, TenantApi, TenantApiController
-
-**Tests**: 4 nuevos casos (success, not owner, not member, already inactive), 10/10 pasando.
 
 ---
 

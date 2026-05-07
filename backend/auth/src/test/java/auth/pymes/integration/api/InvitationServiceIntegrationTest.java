@@ -52,6 +52,9 @@ class InvitationServiceIntegrationTest extends AbstractIntegrationTest {
     void setUp() throws Exception {
         cleanUp();
 
+        // Wait for Redis to be ready after cleanup
+        Thread.sleep(100);
+
         RegisterRequest registerRequest = new RegisterRequest(
                 "Int Owner", ownerEmail, ownerPassword, "Int Test Corp", tenantSlug);
 
