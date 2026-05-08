@@ -139,6 +139,10 @@ export default defineConfig((ctx) => {
     //   bexManifestFile: 'src-bex/manifest.json
     // },
 
+    bin: {
+      linuxAndroidStudio: '/snap/bin/android-studio'
+    },
+
     // https://v2.quasar.dev/quasar-cli-vite/developing-ssr/configuring-ssr
     ssr: {
       prodPort: 3000, // The default port that the production server should use
@@ -184,6 +188,13 @@ export default defineConfig((ctx) => {
     // Full list of options: https://v2.quasar.dev/quasar-cli-vite/developing-capacitor-apps/configuring-capacitor
     capacitor: {
       hideSplashscreen: true,
+      extendConfig: {
+        server: {
+          hostname: '10.0.2.2',
+          port: 9200,
+          cleartext: true,
+        },
+      },
     },
 
     // Full list of options: https://v2.quasar.dev/quasar-cli-vite/developing-electron-apps/configuring-electron

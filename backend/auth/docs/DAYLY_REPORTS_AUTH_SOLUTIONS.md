@@ -50,23 +50,18 @@
 
 ## 📅 2026-05-08 — CI Flake: InvitationServiceIntegrationTest (COMPLETADO) ✅
 
-**Problema**: El test `InvitationServiceIntegrationTest` fallaba inconsistentemente en GitHub Actions con error 400 en el `setUp` (línea 77: verify-email), pero pasa siempre localmente.
+**Problema**: El test `InvitationServiceIntegrationTest` fallaba inconsistentemente en GitHub Actions con error 400 en el `setUp` (línea 77: verify-email), debido a un mismatch entre el token recuperado y el email del test.
 
-**Síntomas en CI**:
-- `Status expected:<200> but was:<400>`
-- Error en `setUp` línea 77 (verify-email endpoint)
-- Local: 100% passing | CI: ~50% failure rate
+**Análisis Final**:
+- La causa raíz era el uso de `redisTemplate.keys("temp-register:*")`. Al ser contenedores Singleton, esta búsqueda no era determinista y ocasionalmente recuperaba tokens de otros usuarios/tests.
+- El "Security Fix" del 2026-05-05 (Validación cruzada Token-Email) convirtió este comportamiento aleatorio en un error fatal (400 Bad Request).
 
-**Análisis**:
-- Los contenedores Singleton (Redis) en `AbstractIntegrationTest` mantenían estado entre tests.
-- El uso de `redisTemplate.keys("temp-register:*")` recuperaba tokens "huérfanos" de tests anteriores, causando un *Token-Email Mismatch* por el security fix de email.
+**Solución Definitiva**:
+1. **Captura Determinística**: Se refactorizó el test para usar `ArgumentCaptor` sobre el `EmailService` (Mock). Ahora el test captura el token directamente de la URL de verificación generada en el mismo hilo de ejecución.
+2. **Exposición de Infraestructura**: Se cambió la visibilidad de `emailService` a `protected` en `AbstractIntegrationTest` para permitir verificación en tests hijos.
+3. **Limpieza de Estado**: Se implementó `flushRedis()` en la clase base para asegurar un entorno limpio, eliminando la necesidad de `Thread.sleep()` o `@DirtiesContext`.
 
-**Solución aplicada**:
-1. **Limpieza Determinista**: Se implementó `flushRedis()` en `AbstractIntegrationTest` usando `flushAll()` síncrono antes de cada test.
-2. **Infraestructura Base**: Centralización de `RedisTemplate` en la clase base para garantizar limpieza atómica en toda la suite de integración.
-3. **Eliminación de Delays**: Se removió el `Thread.sleep(100)` del `setUp`, sustituyéndolo por un estado limpio garantizado por software.
-
-**Estado**: COMPLETADO - Verificado localmente (31/31 tests passing).
+**Resultado**: Estabilidad total del pipeline de CI (31/31 tests passing en 38s).
 
 ---
 

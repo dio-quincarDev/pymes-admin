@@ -1,0 +1,46 @@
+export interface BackendError {
+  codigo: string | null;
+  mensaje: string;
+  path: string | null;
+  timestamp: string | null;
+  detalles: Record<string, string> | null;
+}
+
+export interface ApiError extends Error {
+  code: string | undefined;
+  status: number | undefined;
+  details: Record<string, string> | undefined;
+  isBackendError: boolean;
+}
+
+export const ERROR_CODES = {
+  INVALID_CREDENTIALS: 'AUTH001',
+  UNAUTHORIZED: 'AUTH002',
+  TOKEN_EXPIRED: 'AUTH003',
+  TOKEN_INVALID: 'AUTH004',
+  TOKEN_REVOKED: 'AUTH005',
+  REFRESH_TOKEN_EXPIRED: 'AUTH006',
+  REFRESH_TOKEN_INVALID: 'AUTH007',
+  RATE_LIMIT_EXCEEDED: 'AUTH009',
+  USER_NOT_FOUND: 'USR001',
+  USER_NOT_FOUND_BY_EMAIL: 'USR002',
+  USER_ALREADY_EXISTS: 'USR004',
+  USER_INACTIVE: 'USR005',
+  USER_LOCKED: 'USR006',
+  TENANT_NOT_FOUND: 'TNT001',
+  TENANT_ALREADY_EXISTS: 'TNT003',
+  TENANT_INACTIVE: 'TNT004',
+  INVITATION_NOT_FOUND: 'INV001',
+  INVITATION_EXPIRED: 'INV002',
+  INVITATION_ALREADY_ACCEPTED: 'INV003',
+  EMAIL_NOT_VERIFIED: 'VER001',
+  VERIFICATION_TOKEN_INVALID: 'VER002',
+  VERIFICATION_TOKEN_EXPIRED: 'VER003',
+  RESET_TOKEN_INVALID: 'RST001',
+  RESET_TOKEN_EXPIRED: 'RST002',
+  VALIDATION_ERROR: 'VAL001',
+  CONSTRAINT_VIOLATION: 'VAL003',
+  DUPLICATE_RESOURCE: 'VAL004',
+  RESOURCE_NOT_FOUND: 'RSC001',
+  INTERNAL_SERVER_ERROR: 'ERR999',
+} as const;

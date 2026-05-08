@@ -42,7 +42,148 @@ Se ha consolidado la identidad de **SaaS Fintech** bajo el nombre **PYMEQ**, cen
 1.  **Dashboard Shell:** Implementación del contenedor principal tras el login exitoso.
 2.  **Multitenancy UI:** Selector de empresas para usuarios con múltiples entornos.
 3.  **Audit Logs:** Primera fase de visualización de trazabilidad de seguridad.
+---
+
+*Documento que refleja la arquitectura final del módulo de identidad.*
 
 ---
-*Documento que refleja la arquitectura final del módulo de identidad.*
+
+## 🔧 Estado del Setup de Desarrollo - Pymeq (07 de Mayo, 2026)
+
+### Herramientas Instaladas
+| Herramienta | Ruta | Estado |
+|-------------|------|--------|
+| Node.js | v22.22.2 | ✅ OK |
+| npm | 11.13.0 | ✅ OK |
+| Quasar CLI | `/usr/local/bin/quasar` | ✅ OK |
+| Gradle (global) | `/snap/bin/gradle` v8.14.4 | ✅ OK |
+| Android SDK | `/home/dio/Android/Sdk` | ✅ OK |
+| Emulador | Pixel_7 (API 33) | ✅ Disponible |
+| Android Studio | `/snap/bin/android-studio` | ✅ Vinculado |
+
+### Estructura del Proyecto (Corregida)
+```
+frontend/pymes/
+├── src/              # Código fuente Vue/Quasar
+├── src-pwa/          # Configuración PWA
+├── src-capacitor/    
+│   ├── android/      # Proyecto Android RESTRUCTURADO (Gradle OK)
+│   └── capacitor.config.json
+└── quasar.config.ts  # Configuración (bin.linuxAndroidStudio añadido)
+```
+
+---
+
+## ✅ Correcciones Técnicas Realizadas
+1.  **Saneamiento de Directorios:** Eliminación de `src-capacitor/android` y `android/` que carecían de Gradle Wrapper y tenían conflictos de plugins.
+2.  **Re-generación Nativa:** Ejecución de `npx cap add android` para crear la estructura estándar con `gradlew`.
+3.  **Sincronización de Puente:** Uso de `quasar build -m capacitor` para inyectar assets web en el entorno nativo.
+4.  **Automatización de IDE:** Configuración de la ruta de Snap de Android Studio en `quasar.config.ts` para habilitar el flag `--ide`.
+
+---
+
+## 🔄 Comandos de Desarrollo Atualizados
+
+### Desarrollo PWA (Navegador)
+```bash
+cd frontend/pymes
+quasar dev -m pwa
+# Puerto: 9200
+# URL: http://localhost:9200/
+```
+
+### Desarrollo Android (Emulador)
+```bash
+# Opción 1: Quasar (falla por Gradle)
+quasar dev -m capacitor -T android
+
+# Opción 2: Android Studio (alternativa)
+quasar dev -m capacitor -T android --ide
+
+# Opción 3: Build manual
+npm run build
+cd src-capacitor && npx cap sync android
+cd ../android && gradle assembleDebug
+```
+
+### Verificación de Emulador
+```bash
+# Listar emuladores
+emulator -list-avds
+
+# Iniciar emulador en segundo plano
+emulator @Pixel_7 &
+```
+
+---
+
+## 📋 Acciones Pendientes
+
+1. **Reconstruir estructura Android:** Eliminar y recrear proyecto Capacitor desde cero
+2. **Verificar repo Gradle:** Asegurar que `google()` y `mavenCentral()` estén accesibles
+3. **Probar con Android Studio:** Usar `--ide` para verificar desde el IDE
+
+---
+
+## 🎨 Roadmap de Modernización UX - PWA
+
+### 1. Modernización del Flujo de Usuario
+**Prioridad:** Alta
+
+**Objetivos:**
+- Simplificar onboarding (reducir pasos)
+- Feedback visual inmediato en todas las acciones
+- Micro-interacciones para mejorar engagement
+- Estados de carga más intuitivos
+- Manejo de errores más amigable y contextual
+
+### 2. Tipografía Moderna
+**Prioridad:** Alta
+
+**Objetivos:**
+- Migrar a tipografía más legible (ej: Inter, Roboto, Nunito)
+- Escalar mejor en móvil (responsive typography)
+- Mejorar jerarquía visual
+- Reducir tamaño de fuentes en elementos no críticos
+- Implementar fluid typography (tamaños dinámicos)
+
+### 3. Botones y Componentes
+**Prioridad:** Alta
+
+**Objetivos:**
+- Modernizar diseño de botones (más espacio, bordes redondeados)
+- Estados claros: default, hover, active, disabled, loading
+- Animaciones sutiles en interacción (ripple effect, scale)
+- Botones primarios y secundarios más diferenciados
+- CTAs más prominentes y attractivos
+
+### 4. Tokens de Diseño (Design Tokens)
+**Prioridad:** Media
+
+**Objetivos:**
+- Consolidar variables CSS para colores, espaciado, tipografía
+- Facilitar theming futuro (light/dark mode preparado)
+- Implementar spacing system consistente (4px base)
+
+### 5. Animaciones y Micro-interacciones
+**Prioridad:** Media
+
+**Objetivos:**
+- Transiciones suaves entre páginas
+- Loading skeletons en lugar de spinners
+- Animaciones de entrada/salida de componentes
+
+---
+
+## ✅ Verificaciones Exitosas
+
+- [x] Errores TypeScript corregidos en `src/types/error.ts`, `src/boot/axios.ts`, `src/utils/errors.ts`
+- [x] ESLint sin errores (`npm run lint`)
+- [x] TypeScript sin errores (`npx vue-tsc --noEmit`)
+- [x] PWA build funcional en puerto 9200
+- [ ] Capacitor Android build (pendiente)
+
+---
+
+*Última actualización: 07 de Mayo, 2026*
   
