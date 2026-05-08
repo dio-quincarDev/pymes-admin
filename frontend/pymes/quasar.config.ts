@@ -20,15 +20,11 @@ export default defineConfig((ctx) => {
     // https://github.com/quasarframework/quasar/tree/dev/extras
     extras: [
       'ionicons-v4',
-      // 'mdi-v7',
-      // 'fontawesome-v6',
-      // 'eva-icons',
-      // 'themify',
-      // 'line-awesome',
-      // 'roboto-font-latin-ext', // this or either 'roboto-font', NEVER both!
+      'material-icons',
 
-      'roboto-font', // optional, you are not bound to it
-      'material-icons', // optional, you are not bound to it
+      'roboto-font-latin-ext',
+
+      'fontawesome-v6',
     ],
 
     // Full list of options: https://v2.quasar.dev/quasar-cli-vite/quasar-config-file#build
@@ -62,6 +58,16 @@ export default defineConfig((ctx) => {
 
       // extendViteConf (viteConf) {},
       // viteVuePluginOptions: {},
+      extendViteConf(viteConf) {
+        viteConf.css = viteConf.css || {};
+        viteConf.css.preprocessorOptions = viteConf.css.preprocessorOptions || {};
+        (viteConf.css.preprocessorOptions as any).sass = {
+          api: 'legacy',
+        };
+        (viteConf.css.preprocessorOptions as any).scss = {
+          api: 'legacy',
+        };
+      },
 
       vitePlugins: [
         [

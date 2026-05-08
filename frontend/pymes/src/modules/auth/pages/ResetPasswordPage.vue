@@ -1,102 +1,141 @@
 <template>
-  <q-card class="bg-surface-pine text-secondary tight-shadow q-pa-lg no-border-radius-custom">
-    <q-card-section class="text-center q-pb-none">
-      <div class="text-h6 text-weight-medium q-mb-sm">Restablecer Contraseña</div>
-      <p class="text-body2 text-accent">
-        Introduce tu nueva contraseña maestra para recuperar el acceso a tu cuenta.
-      </p>
-    </q-card-section>
-
-    <q-card-section>
-      <div v-if="success" class="text-center q-py-lg">
-        <q-icon name="check_circle" color="positive" size="4rem" class="q-mb-md" />
-        <div class="text-h6 text-primary">Contraseña actualizada</div>
-        <p class="text-accent q-mt-sm">Tu contraseña ha sido cambiada correctamente.</p>
-        <q-btn label="IR AL CENTRO DE CONTROL" color="primary" class="full-width brand-glow text-weight-bold q-mt-md" size="lg" to="/login" no-caps />
-      </div>
-
-      <q-form v-else @submit="onSubmit" class="q-gutter-y-md">
-        <q-input
-          v-model="newPassword"
-          label="Nueva Contraseña"
-          type="password"
-          dark filled color="primary" label-color="accent"
-          :rules="[val => !!val || 'La contraseña es requerida', val => val.length >= 8 || 'Mínimo 8 caracteres']"
-        >
-          <template v-slot:prepend><q-icon name="lock" color="primary" /></template>
-        </q-input>
-
-        <q-input
-          v-model="confirmPassword"
-          label="Confirmar Contraseña"
-          type="password"
-          dark filled color="primary" label-color="accent"
-          :rules="[
-            val => !!val || 'Debes confirmar la contraseña',
-            val => val === newPassword || 'Las contraseñas no coinciden'
-          ]"
-        >
-          <template v-slot:prepend><q-icon name="lock_reset" color="primary" /></template>
-        </q-input>
-
-        <div class="q-mt-xl">
-          <q-btn
-            label="ACTUALIZAR CONTRASEÑA"
-            type="submit"
-            color="primary"
-            class="full-width brand-glow text-weight-bold"
-            size="lg"
-            :loading="loading"
-          />
+  <div class="reset-password-page-wrapper">
+    <SkeletonLoader :is-loading="initialLoading" layout="form">
+      <BaseCard variant="elevated" class="q-pa-lg">
+        <div class="text-center q-mb-lg">
+          <div class="text-h6 text-weight-medium q-mb-xs">Nueva Contraseña</div>
+          <div class="text-caption text-accent">Establece tus nuevas credenciales</div>
         </div>
-      </q-form>
-    </q-card-section>
-  </q-card>
+
+        <q-form @submit.prevent="handleResetPassword" class="q-gutter-y-md">
+          <q-input
+            v-model="passwordForm.password"
+            label="Nueva Contraseña"
+            :type="showPassword ? 'text' : 'password'"
+            placeholder="Mínimo 8 caracteres"
+            dark filled color="primary" label-color="accent"
+            class="focus-ring radius-xs"
+            :rules="[val => !!val || 'La contraseña es requerida', val => val.length >= 8 || 'Mínimo 8 caracteres']"
+          >
+            <template v-slot:prepend><q-icon name="lock" color="primary" /></template>
+            <template v-slot:append>
+              <q-icon
+                :name="showPassword ? 'visibility' : 'visibility_off'"
+                class="cursor-pointer"
+                color="primary"
+                @click="showPassword = !showPassword"
+              />
+            </template>
+          </q-input>
+
+          <q-input
+            v-model="passwordForm.confirmPassword"
+            label="Confirmar Contraseña"
+            :type="showConfirmPassword ? 'text' : 'password'"
+            placeholder="Repite tu contraseña"
+            dark filled color="primary" label-color="accent"
+            class="focus-ring radius-xs"
+            :error="passwordMismatch"
+            error-message="Las contraseñas no coinciden"
+            :rules="[val => !!val || 'Confirma tu contraseña']"
+          >
+            <template v-slot:prepend><q-icon name="lock_outline" color="primary" /></template>
+            <template v-slot:append>
+              <q-icon
+                :name="showConfirmPassword ? 'visibility' : 'visibility_off'"
+                class="cursor-pointer"
+                color="primary"
+                @click="showConfirmPassword = !showConfirmPassword"
+              />
+            </template>
+          </q-input>
+
+          <div class="q-mt-xl">
+            <BaseButton
+              label="CAMBIAR CONTRASEÑA"
+              type="submit"
+              class="full-width"
+              size="lg"
+              :loading="loading"
+              :disabled="passwordMismatch || !passwordForm.password"
+            >
+              CAMBIAR CONTRASEÑA
+            </BaseButton>
+          </div>
+        </q-form>
+      </BaseCard>
+    </SkeletonLoader>
+  </div>
 </template>
 
 <script setup lang="ts">
-import { ref, onMounted } from 'vue';
+import { ref, reactive, computed, onMounted } from 'vue';
 import { useRoute, useRouter } from 'vue-router';
-import { authService } from '../services/auth.service';
 import { useQuasar } from 'quasar';
+import { authService } from '../services/auth.service';
+import BaseCard from 'src/components/base/BaseCard.vue';
+import BaseButton from 'src/components/base/BaseButton.vue';
+import SkeletonLoader from 'src/components/ui/SkeletonLoader.vue';
 
 const route = useRoute();
 const router = useRouter();
 const $q = useQuasar();
 
-const token = ref(route.query.token as string);
-const newPassword = ref('');
-const confirmPassword = ref('');
-const loading = ref(false);
-const success = ref(false);
+const token = route.query.token as string;
+const email = route.query.email as string;
 
-onMounted(() => {
-  if (!token.value) {
-    $q.notify({
-      type: 'negative',
-      message: 'Token de seguridad ausente. Solicita un nuevo enlace.'
-    });
-    void router.push('/forgot-password');
-  }
+const loading = ref(false);
+const initialLoading = ref(true);
+const showPassword = ref(false);
+const showConfirmPassword = ref(false);
+
+const passwordForm = reactive({
+  password: '',
+  confirmPassword: ''
 });
 
-const onSubmit = async () => {
+const passwordMismatch = computed(() => {
+  return passwordForm.confirmPassword !== '' && passwordForm.password !== passwordForm.confirmPassword;
+});
+
+onMounted(() => {
+  if (!token || !email) {
+    $q.notify({
+      type: 'negative',
+      message: 'Enlace inválido',
+      caption: 'Faltan parámetros de seguridad'
+    });
+    void router.push('/login');
+    return;
+  }
+  
+  setTimeout(() => {
+    initialLoading.value = false;
+  }, 600);
+});
+
+const handleResetPassword = async () => {
   loading.value = true;
   try {
     await authService.resetPassword({
-      token: token.value,
-      newPassword: newPassword.value
+      token,
+      newPassword: passwordForm.password
     });
-    success.value = true;
+
     $q.notify({
       type: 'positive',
-      message: 'Contraseña restablecida con éxito'
+      message: 'Contraseña actualizada',
+      caption: 'Ya puedes iniciar sesión con tu nueva contraseña',
+      position: 'top-right'
     });
+
+    void router.push('/login');
   } catch (err: unknown) {
     const message = (err as { response?: { data?: { mensaje?: string } } })?.response?.data?.mensaje;
     $q.notify({
       type: 'negative',
-      message: message || 'No se pudo restablecer la contraseña. El enlace puede haber expirado.',
+      message: 'Error al cambiar contraseña',
+      caption: message || 'El enlace puede haber expirado',
       position: 'top-right'
     });
   } finally {
@@ -106,8 +145,23 @@ const onSubmit = async () => {
 </script>
 
 <style lang="scss" scoped>
+.reset-password-page-wrapper {
+  width: 100%;
+}
+
 :deep(.q-field--filled .q-field__control) {
   background: rgba(0, 0, 0, 0.2);
-  border-radius: 4px;
+  border: 1px solid rgba(113, 131, 127, 0.1);
+  transition: all 0.2s ease;
+  
+  &:hover {
+    background: rgba(0, 0, 0, 0.3);
+    border-color: rgba(163, 120, 94, 0.3);
+  }
+}
+
+:deep(.q-field--focused .q-field__control) {
+  border-color: $primary;
+  box-shadow: 0 0 10px rgba(163, 120, 94, 0.2);
 }
 </style>

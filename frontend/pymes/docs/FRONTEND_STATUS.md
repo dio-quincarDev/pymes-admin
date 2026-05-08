@@ -175,15 +175,19 @@ emulator @Pixel_7 &
 
 ---
 
-## ✅ Verificaciones Exitosas
+## ✅ Verificaciones Exitosas (Actualizado 08 de Mayo, 2026)
 
-- [x] Errores TypeScript corregidos en `src/types/error.ts`, `src/boot/axios.ts`, `src/utils/errors.ts`
-- [x] ESLint sin errores (`npm run lint`)
-- [x] TypeScript sin errores (`npx vue-tsc --noEmit`)
-- [x] PWA build funcional en puerto 9200
-- [ ] Capacitor Android build (pendiente)
+- [x] **Estabilización de Dependencias:** Reversión a Vite 7 y Quasar 2.18 para evitar bugs de PWA en versiones superiores.
+- [x] **Fix de Sass:** Versión fijada a `sass@1.32.12` (exacta) con prefijo `pq-` en variables personalizadas para evitar colisiones con Quasar.
+- [x] **Sincronización de Lockfile:** `package-lock.json` regenerado y verificado con `npm ci` localmente.
+- [x] **Modernización UI:** `BaseCard`, `BaseButton` y `SkeletonLoader` integrados en todo el flujo de Auth y Dashboard.
+- [x] **Linter/TS:** Limpieza de errores en `axios.ts` y `ResetPasswordPage.vue`.
 
 ---
 
-*Última actualización: 07 de Mayo, 2026*
+## ⚠️ Estado del Docker
+- **Problema Detectado:** Inconsistencia persistente en `npm ci` dentro del contenedor a pesar de la sincronización local.
+- **Acción:** Forzar reconstrucción limpia y verificación de caché del demonio de Docker.
+
+*Última actualización: 08 de Mayo, 2026 14:40*
   

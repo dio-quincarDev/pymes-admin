@@ -1,127 +1,134 @@
 <template>
-  <q-page class="bg-forest-deep text-secondary overflow-x-hidden">
-    <!-- Hero Section -->
-    <div class="hero-container flex flex-center q-px-md q-py-xl text-center">
-      <div class="max-width-800">
-        <h1 class="text-h2 font-bold text-primary q-mb-md brand-glow-text">
-          Tu negocio en orden, sin complicaciones.
+  <q-page class="index-page bg-forest-deep text-secondary">
+    <!-- Hero Section: Practical Education -->
+    <section class="hero-section flex flex-center q-px-md">
+      <div class="hero-content text-center stagger-children">
+        <div class="hero-badge q-mb-lg">
+          <span class="text-overline text-primary border-light q-px-md q-py-xs radius-full text-weight-bold">
+            ⚡ GESTIÓN FINANCIERA INTELIGENTE
+          </span>
+        </div>
+        
+        <h1 class="text-h2 font-bold q-mb-md">
+          Organiza tu empresa y <br />
+          <span class="mesh-text-gradient">toma el control.</span>
         </h1>
-        <p class="text-h5 text-accent text-weight-light q-mb-xl line-height-relaxed">
-          Pymeq es la herramienta sencilla para organizar tus cuentas, entender tus gastos y tener el control total de tu empresa desde tu celular.
+        
+        <p class="text-h5 text-accent text-weight-light q-mb-xl max-width-700 mx-auto line-height-relaxed">
+          Pymeq es tu aliado estratégico para entender tus flujos de caja y optimizar cada centavo de tu negocio.
         </p>
-        <q-btn
-          label="CREAR MI ESPACIO DE TRABAJO"
-          color="primary"
-          class="brand-glow q-px-xl q-py-md text-weight-bold no-border-radius"
-          size="lg"
-          @click="scrollToForm"
-          no-caps
-        />
-      </div>
-    </div>
 
-    <!-- Core Features Grid -->
-    <div class="features-section q-pa-xl bg-surface-pine shadow-inner">
-      <div class="row q-col-gutter-xl items-center justify-center max-width-1200 mx-auto">
-        <!-- Manual + QR Input -->
-        <div class="col-12 col-md-5 text-center text-md-left">
-          <div class="feature-icon q-mb-md">
-            <q-icon name="qr_code_scanner" size="4rem" color="primary" />
-            <q-icon name="edit_note" size="4rem" color="accent" class="q-ml-sm" />
-          </div>
-          <h2 class="text-h4 font-bold q-mb-md">Registra facturas QR o recibos a mano.</h2>
-          <p class="text-body1 text-accent line-height-relaxed">
-            Diseñado para la realidad de tu día a día. Escanea facturas digitales en segundos o anota rápidamente ese recibo que te entregaron por escrito. Nada se pierde, todo queda organizado en un solo lugar.
-          </p>
+        <!-- Onboarding Group -->
+        <div class="onboarding-container row justify-center q-mt-xl gap-sm">
+          <q-input
+            v-model="companyForm.name"
+            placeholder="Nombre de tu negocio"
+            dark
+            filled
+            color="primary"
+            class="company-input focus-ring"
+            @keyup.enter="startOnboarding"
+          >
+            <template v-slot:prepend>
+              <q-icon name="store" color="primary" />
+            </template>
+          </q-input>
+          
+          <BaseButton 
+            size="lg" 
+            class="onboarding-btn"
+            @click="startOnboarding"
+          >
+            CREAR MI ESPACIO
+          </BaseButton>
         </div>
-        <div class="col-12 col-md-5 flex flex-center">
-          <div class="visual-placeholder q-pa-xl flex flex-center shadow-24">
-            <q-icon name="receipt_long" size="8rem" color="primary" class="opacity-20" />
-            <q-icon name="check_circle" size="3rem" color="primary" class="absolute-bottom-right q-ma-lg" />
-          </div>
+        
+        <div class="text-caption text-accent q-mt-md opacity-50">
+          Sin complicaciones • Diseñado para la realidad de LATAM
         </div>
       </div>
-    </div>
+    </section>
 
-    <!-- Silent Assistant (Subtle AI) -->
-    <div class="ai-section q-pa-xl">
-      <div class="row q-col-gutter-xl items-center justify-center reverse-md max-width-1200 mx-auto">
-        <div class="col-12 col-md-5 flex flex-center">
-          <div class="alert-mockup q-pa-lg bg-dark tight-shadow rounded-borders">
-            <div class="row items-center q-mb-sm">
-              <q-icon name="error" color="negative" size="sm" class="q-mr-sm" />
-              <span class="text-overline text-negative">Alerta de Seguridad</span>
+    <!-- Bento Features Grid -->
+    <section id="features" class="features-section q-pa-lg q-pa-md-xl">
+      <div class="max-width-1200 mx-auto">
+        <div class="text-overline text-primary text-center q-mb-sm">HERRAMIENTAS PARA CRECER</div>
+        <h2 class="text-h4 text-center font-bold q-mb-xl">Control total de forma sencilla.</h2>
+        
+        <div class="bento-grid">
+          <!-- Feature 1: Scan & Manual -->
+          <BaseCard class="bento-item feature-main q-pa-xl" variant="elevated">
+            <div class="column full-height justify-between">
+              <div>
+                <q-icon name="history_edu" size="4rem" color="primary" class="q-mb-md" />
+                <h3 class="text-h4 font-bold q-mb-md">Orden Absoluto.</h3>
+                <p class="text-body1 text-accent line-height-relaxed">
+                  Tus facturas y recibos en un solo lugar. Ya sea escaneando un QR o anotando a mano, 
+                  nada se escapa. El primer paso para ahorrar es saber en qué gastas.
+                </p>
+              </div>
+              <div class="visual-placeholder q-mt-lg flex flex-center">
+                 <q-icon name="receipt_long" size="8rem" color="primary" class="opacity-10" />
+                 <div class="absolute-bottom-right q-ma-lg">
+                   <q-icon name="verified" size="3rem" color="primary" class="brand-glow" />
+                 </div>
+              </div>
             </div>
-            <div class="text-subtitle2 text-secondary">
-              Gasto inusual detectado en "Servicios".
-              <span class="text-primary block q-mt-xs">+35% respecto al mes pasado</span>
-            </div>
-          </div>
-        </div>
-        <div class="col-12 col-md-5 text-center text-md-left">
-          <h2 class="text-h4 font-bold q-mb-md">Alertas que cuidan tu dinero.</h2>
-          <p class="text-body1 text-accent line-height-relaxed">
-            Pymeq aprende de tus gastos y te avisa si algo anda mal: un aumento inusual en un servicio o una factura que parece duplicada. No necesitas ser contador para saber que tu dinero está bien cuidado.
-          </p>
+          </BaseCard>
+
+          <!-- Feature 2: Silent Assistant -->
+          <BaseCard class="bento-item feature-ai q-pa-lg" variant="ghost">
+             <div class="row items-center q-mb-sm">
+                <q-icon name="tips_and_updates" color="primary" size="sm" class="q-mr-sm" />
+                <span class="text-overline text-primary">Ahorro Promedio: 18%</span>
+              </div>
+              <h4 class="text-h5 font-bold q-mb-sm">Alertas que te cuidan</h4>
+              <p class="text-body2 text-accent">
+                Te avisamos si un gasto sube demasiado o si hay una factura duplicada. 
+                Cuidamos tu bolsillo como si fuera el nuestro.
+              </p>
+              <div class="mockup-alert q-mt-md q-pa-md bg-dark border-light radius-sm">
+                <div class="row items-center gap-xs">
+                  <q-icon name="notifications_active" color="warning" />
+                  <span class="text-caption text-weight-bold">Gasto inusual detectado</span>
+                </div>
+              </div>
+          </BaseCard>
+
+          <!-- Feature 3: PWA / Mobile -->
+          <BaseCard class="bento-item feature-pwa q-pa-lg" variant="elevated">
+              <q-icon name="smartphone" size="3rem" color="primary" class="q-mb-md" />
+              <h4 class="text-h5 font-bold q-mb-sm">Tu oficina móvil.</h4>
+              <p class="text-body2 text-accent">
+                Lleva el control de tu empresa en el bolsillo. Funciona rápido, incluso sin internet.
+              </p>
+          </BaseCard>
+
+          <!-- Feature 4: Security -->
+          <BaseCard class="bento-item feature-security q-pa-lg" variant="outlined">
+              <h4 class="text-h6 font-bold q-mb-sm">Transparencia Total</h4>
+              <p class="text-caption text-accent">
+                Datos cifrados y seguros. Tú eres el único dueño de tu información financiera.
+              </p>
+              <div class="q-mt-sm row gap-xs">
+                <q-icon name="lock" color="primary" />
+                <q-icon name="shield" color="accent" />
+              </div>
+          </BaseCard>
         </div>
       </div>
-    </div>
+    </section>
 
-    <!-- PWA / Accessibility -->
-    <div class="pwa-section q-pa-xl bg-surface-pine shadow-inner">
-      <div class="row q-col-gutter-xl items-center justify-center max-width-1200 mx-auto">
-        <div class="col-12 col-md-5 text-center text-md-left">
-          <h2 class="text-h4 font-bold q-mb-md">Siempre contigo, en cualquier lugar.</h2>
-          <p class="text-body1 text-accent line-height-relaxed">
-            Instala Pymeq como una aplicación en tu celular. Funciona rápido, es liviano y está listo para que registres un gasto justo en el momento que sucede. Tu oficina está donde tú estés.
-          </p>
-        </div>
-        <div class="col-12 col-md-5 flex flex-center">
-          <q-icon name="devices" size="10rem" color="primary" class="opacity-50" />
-        </div>
+    <!-- Social Proof / Sectors -->
+    <section id="trust" class="trust-section q-pa-xl text-center">
+      <div class="text-overline text-accent opacity-70 q-mb-xl">CONFIABLE PARA CUALQUIER SECTOR</div>
+      <div class="row justify-center gap-lg gap-md-xl items-center opacity-50 filter-grayscale text-weight-bolder">
+        <div class="text-subtitle1 letter-spacing-2">COMERCIO</div>
+        <div class="text-subtitle1 letter-spacing-2">SERVICIOS</div>
+        <div class="text-subtitle1 letter-spacing-2">TALLERES</div>
+        <div class="text-subtitle1 letter-spacing-2">EMPRENDEDORES</div>
       </div>
-    </div>
-
-    <!-- Final Call to Action / Space Creation -->
-    <div id="setup-form" class="cta-section q-pa-xl flex flex-center min-height-80vh">
-      <q-card class="bg-surface-pine text-secondary tight-shadow q-pa-xl no-border-radius max-width-600 w-100">
-        <q-card-section class="text-center">
-          <div class="text-h4 font-bold q-mb-md">Empieza a organizar tu negocio hoy mismo.</div>
-          <div class="text-subtitle1 text-accent q-mb-lg">Comienza configurando la identidad de tu empresa</div>
-        </q-card-section>
-
-        <q-card-section>
-          <q-form @submit="startOnboarding" class="q-gutter-y-lg">
-            <q-input
-              v-model="companyForm.name"
-              label="Nombre de la Empresa"
-              placeholder="Ej. Mi Abarrotería S.A."
-              dark filled color="primary" label-color="accent"
-              :rules="[val => !!val || 'El nombre es obligatorio']"
-            >
-              <template v-slot:prepend><q-icon name="apartment" color="primary" /></template>
-            </q-input>
-
-            <div class="q-mt-xl">
-              <q-btn
-                label="COMENZAR"
-                type="submit"
-                color="primary"
-                class="full-width brand-glow text-weight-bold q-py-md"
-                size="lg"
-                no-caps
-              />
-            </div>
-          </q-form>
-        </q-card-section>
-
-        <q-card-section class="text-center q-pt-none text-accent">
-          <div class="text-caption">
-            Al registrarte, accedes a un entorno de alta seguridad para tus datos.
-          </div>
-        </q-card-section>
-      </q-card>
-    </div>
+    </section>
   </q-page>
 </template>
 
@@ -129,9 +136,8 @@
 import { reactive } from 'vue';
 import { useAuthStore } from 'src/modules/auth/store';
 import { useRouter } from 'vue-router';
-import { scroll } from 'quasar';
-
-const { getScrollTarget, setVerticalScrollPosition } = scroll;
+import BaseButton from 'src/components/base/BaseButton.vue';
+import BaseCard from 'src/components/base/BaseCard.vue';
 
 const authStore = useAuthStore();
 const router = useRouter();
@@ -141,7 +147,8 @@ const companyForm = reactive({
 });
 
 const startOnboarding = () => {
-  // Generamos el slug automáticamente pero no lo mostramos
+  if (!companyForm.name.trim()) return;
+
   const slug = companyForm.name
     .toLowerCase()
     .trim()
@@ -154,61 +161,122 @@ const startOnboarding = () => {
   authStore.setPendingTenant(companyForm.name, slug);
   void router.push('/register');
 };
-
-const scrollToForm = () => {
-  const el = document.getElementById('setup-form');
-  if (el) {
-    const target = getScrollTarget(el);
-    const offset = el.offsetTop;
-    setVerticalScrollPosition(target, offset, 500);
-  }
-};
 </script>
 
 <style lang="scss" scoped>
-.hero-container {
-  min-height: 80vh;
+.hero-section {
+  min-height: 90vh;
+  position: relative;
+  overflow: hidden;
+
+  &::before {
+    content: '';
+    position: absolute;
+    top: 40%;
+    left: 50%;
+    width: 800px;
+    height: 800px;
+    background: radial-gradient(circle, rgba(163, 120, 94, 0.07) 0%, transparent 70%);
+    transform: translate(-50%, -50%);
+    pointer-events: none;
+  }
 }
-.max-width-800 { max-width: 800px; }
+
+.hero-content {
+  position: relative;
+  z-index: 1;
+  max-width: 900px;
+}
+
+.max-width-700 { max-width: 700px; }
 .max-width-1200 { max-width: 1200px; }
-.max-width-600 { max-width: 600px; }
-.w-100 { width: 100%; }
 .mx-auto { margin-left: auto; margin-right: auto; }
-.min-height-80vh { min-height: 80vh; }
-.opacity-50 { opacity: 0.5; }
-.opacity-20 { opacity: 0.2; }
-.line-height-relaxed { line-height: 1.8; }
+.line-height-relaxed { line-height: 1.6; }
+.letter-spacing-2 { letter-spacing: 2px; }
+
+.onboarding-container {
+  .company-input {
+    width: 100%;
+    max-width: 400px;
+    
+    :deep(.q-field__control) {
+      height: 64px;
+      border-radius: $pq-radius-sm;
+      background: rgba(255, 255, 255, 0.05);
+      border: 1px solid rgba(113, 131, 127, 0.2);
+      transition: all 0.2s ease;
+      
+      &:hover {
+        border-color: rgba(163, 120, 94, 0.5);
+        background: rgba(255, 255, 255, 0.08);
+      }
+    }
+  }
+
+  .onboarding-btn {
+    height: 64px;
+    min-width: 200px;
+  }
+}
+
+.bento-grid {
+  display: grid;
+  grid-template-columns: 1fr; // Mobile First: 1 columna por defecto
+  grid-auto-rows: auto;
+  gap: $pq-space-md;
+
+  @media (min-width: 600px) {
+    grid-template-columns: repeat(2, 1fr);
+    gap: $pq-space-lg;
+  }
+
+  @media (min-width: 1024px) {
+    grid-template-columns: repeat(4, 1fr);
+    grid-template-rows: repeat(2, 320px);
+  }
+}
+
+.feature-main {
+  grid-column: span 1;
+  
+  @media (min-width: 600px) {
+    grid-column: span 2;
+    grid-row: span 2;
+  }
+}
+
+.feature-ai {
+  grid-column: span 1;
+  
+  @media (min-width: 600px) {
+    grid-column: span 2;
+  }
+}
+
+.feature-pwa, .feature-security {
+  grid-column: span 1;
+}
 
 .visual-placeholder {
-  width: 280px;
-  height: 280px;
-  background: rgba(163, 120, 94, 0.05);
-  border: 1px solid rgba(163, 120, 94, 0.1);
-  border-radius: 20px;
+  height: 180px;
+  background: rgba(163, 120, 94, 0.03);
+  border: 1px dashed rgba(163, 120, 94, 0.1);
+  border-radius: $pq-radius-md;
   position: relative;
 }
 
-.no-border-radius {
-  border-radius: 0;
+.border-light {
+  border: 1px solid rgba(113, 131, 127, 0.1);
 }
 
-.brand-glow-text {
-  text-shadow: 0 0 20px rgba(163, 120, 94, 0.4);
+.filter-grayscale {
+  filter: grayscale(1);
 }
 
-.alert-mockup {
-  border-left: 4px solid var(--q-negative);
-  width: 100%;
-  max-width: 320px;
-}
+.opacity-10 { opacity: 0.1; }
+.opacity-20 { opacity: 0.2; }
+.opacity-50 { opacity: 0.5; }
+.opacity-70 { opacity: 0.7; }
 
-.shadow-inner {
-  box-shadow: inset 0 10px 30px rgba(0,0,0,0.5);
-}
-
-.reverse-md {
-  @media (min-width: 1024px) {
-    flex-direction: row-reverse;
-  }
-}
+.gap-xs { gap: 4px; }
 </style>

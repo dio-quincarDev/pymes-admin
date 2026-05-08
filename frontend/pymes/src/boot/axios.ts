@@ -1,7 +1,7 @@
 import { defineBoot } from '#q-app/wrappers';
 import axios, { type AxiosInstance } from 'axios';
 import { parseBackendError } from 'src/utils/errors';
-import type { BackendError, ApiError } from 'src/types/error';
+import type { BackendError } from 'src/types/error';
 
 declare module 'vue' {
   interface ComponentCustomProperties {
@@ -66,7 +66,7 @@ api.interceptors.response.use(
       details: parsedError.details,
       isBackendError: parsedError.isBackendError,
     });
-    return Promise.reject(customError as ApiError);
+    return Promise.reject(customError);
   }
 );
 

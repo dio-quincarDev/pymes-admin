@@ -12,7 +12,11 @@
           </div>
 
           <!-- Aquí se renderizan las páginas (Login, Register, ForgotPassword, etc.) -->
-          <router-view />
+          <router-view v-slot="{ Component }">
+            <transition name="fade" mode="out-in">
+              <component :is="Component" />
+            </transition>
+          </router-view>
 
           <!-- Footer de Seguridad -->
           <div class="text-center q-mt-xl text-accent text-caption opacity-70">

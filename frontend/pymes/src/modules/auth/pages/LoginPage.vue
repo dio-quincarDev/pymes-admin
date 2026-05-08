@@ -1,108 +1,124 @@
 <template>
-  <q-card class="bg-surface-pine text-secondary tight-shadow q-pa-lg no-border-radius-custom">
-    <q-card-section class="text-center">
-      <div class="text-h6 text-weight-medium q-mb-md">Acceso al Centro de Control</div>
-      <div class="text-caption text-accent">Introduce tus credenciales forenses</div>
-    </q-card-section>
+  <div class="login-page-wrapper">
+    <SkeletonLoader :is-loading="initialLoading" layout="form">
+      <BaseCard variant="elevated" class="q-pa-lg">
+        <div class="text-center q-mb-lg">
+          <div class="text-h6 text-weight-medium q-mb-xs">Centro de Control</div>
+          <div class="text-caption text-accent">Introduce tus credenciales de acceso</div>
+        </div>
 
-    <q-card-section>
-      <q-input
-        v-model="loginForm.email"
-        label="Correo Electrónico"
-        dark
-        filled
-        color="primary"
-        label-color="accent"
-      >
-        <template v-slot:prepend>
-          <q-icon name="email" color="primary" />
-        </template>
-      </q-input>
-
-      <q-input
-        v-model="loginForm.password"
-        label="Contraseña"
-        :type="showPassword ? 'text' : 'password'"
-        dark
-        filled
-        color="primary"
-        label-color="accent"
-      >
-        <template v-slot:prepend>
-          <q-icon name="lock" color="primary" />
-        </template>
-        <template v-slot:append>
-          <q-icon
-            :name="showPassword ? 'visibility' : 'visibility_off'"
-            class="cursor-pointer"
+        <div class="q-gutter-y-md">
+          <q-input
+            v-model="loginForm.email"
+            label="Correo Electrónico"
+            dark
+            filled
             color="primary"
-            @click="showPassword = !showPassword"
-          />
-        </template>
-      </q-input>
+            label-color="accent"
+            class="focus-ring radius-xs"
+          >
+            <template v-slot:prepend>
+              <q-icon name="email" color="primary" />
+            </template>
+          </q-input>
 
-      <div class="row items-center justify-between q-mt-sm">
-        <q-checkbox v-model="rememberMe" label="Recordar sesión" dark color="primary" class="text-caption text-accent" />
-        <q-btn flat no-caps label="¿Olvidaste tu contraseña?" color="accent" size="sm" to="/forgot-password" />
-      </div>
+          <q-input
+            v-model="loginForm.password"
+            label="Contraseña"
+            :type="showPassword ? 'text' : 'password'"
+            dark
+            filled
+            color="primary"
+            label-color="accent"
+            class="focus-ring radius-xs"
+          >
+            <template v-slot:prepend>
+              <q-icon name="lock" color="primary" />
+            </template>
+            <template v-slot:append>
+              <q-icon
+                :name="showPassword ? 'visibility' : 'visibility_off'"
+                class="cursor-pointer"
+                color="primary"
+                @click="showPassword = !showPassword"
+              />
+            </template>
+          </q-input>
 
-      <q-btn
-        label="INICIAR SESIÓN"
-        type="button"
-        color="primary"
-        class="full-width brand-glow text-weight-bold q-mt-xl"
-        size="lg"
-        :loading="loading"
-        @click="handleLoginClick"
-      />
-    </q-card-section>
+          <div class="row items-center justify-between q-mt-sm">
+            <q-checkbox v-model="rememberMe" label="Recordar sesión" dark color="primary" class="text-caption text-accent" />
+            <q-btn flat no-caps label="¿Olvidaste tu contraseña?" color="accent" size="sm" to="/forgot-password" class="radius-xs" />
+          </div>
 
-    <div class="relative-position q-my-lg">
-      <q-separator dark />
-      <div class="absolute-center bg-surface-pine q-px-sm text-caption text-accent text-weight-bold">
-        O CONTINUA CON
-      </div>
-    </div>
+          <BaseButton
+            label="INICIAR SESIÓN"
+            class="full-width q-mt-lg"
+            size="lg"
+            :loading="loading"
+            @click="handleLoginClick"
+          >
+            INICIAR SESIÓN
+          </BaseButton>
+        </div>
 
-    <q-card-section class="row justify-center">
-      <q-btn
-        outline
-        color="secondary"
-        class="social-btn full-width"
-        @click="loginWithSocial('google')"
-      >
-        <q-icon name="img:https://cdn.cdnlogo.com/logos/g/35/google-icon.svg" size="xs" class="q-mr-sm" />
-        Google
-      </q-btn>
-    </q-card-section>
+        <div class="relative-position q-my-xl">
+          <q-separator dark />
+          <div class="absolute-center bg-dark-page q-px-md text-caption text-accent text-weight-bold">
+            O CONTINUA CON
+          </div>
+        </div>
 
-    <q-card-section class="text-center q-pt-none">
-      <div class="text-caption text-accent">
-        ¿No tienes una empresa?
-        <q-btn flat no-caps label="Crea tu espacio de trabajo" color="primary" class="q-px-xs" to="/" />
-      </div>
-    </q-card-section>
-  </q-card>
+        <div class="row justify-center q-mb-lg">
+          <BaseButton
+            variant="secondary"
+            class="full-width"
+            @click="loginWithSocial('google')"
+          >
+            <q-icon name="img:https://cdn.cdnlogo.com/logos/g/35/google-icon.svg" size="xs" class="q-mr-sm" />
+            Google
+          </BaseButton>
+        </div>
+
+        <div class="text-center">
+          <div class="text-caption text-accent">
+            ¿No tienes una empresa?
+            <q-btn flat no-caps label="Crea tu espacio de trabajo" color="primary" class="q-px-xs text-weight-bold" to="/" />
+          </div>
+        </div>
+      </BaseCard>
+    </SkeletonLoader>
+  </div>
 </template>
 
 <script setup lang="ts">
-import { ref, reactive } from 'vue';
+import { ref, reactive, onMounted } from 'vue';
 import { useAuthStore } from '../store';
 import { useQuasar } from 'quasar';
 import { useRouter } from 'vue-router';
 import { authService } from '../services/auth.service';
+import BaseCard from 'src/components/base/BaseCard.vue';
+import BaseButton from 'src/components/base/BaseButton.vue';
+import SkeletonLoader from 'src/components/ui/SkeletonLoader.vue';
 
 const authStore = useAuthStore();
 const $q = useQuasar();
 const router = useRouter();
 
 const loading = ref(false);
+const initialLoading = ref(true);
 const rememberMe = ref(localStorage.getItem('pymeq_remember') === 'true');
 const showPassword = ref(false);
 
 const loginForm = reactive({
   email: localStorage.getItem('pymeq_email') || '',
   password: ''
+});
+
+onMounted(() => {
+  // Simulamos carga inicial para mostrar el skeleton
+  setTimeout(() => {
+    initialLoading.value = false;
+  }, 800);
 });
 
 const handleLoginClick = async () => {
@@ -193,33 +209,23 @@ const loginWithSocial = async (provider: 'google') => {
 </script>
 
 <style lang="scss" scoped>
-.login-card-container {
+.login-page-wrapper {
   width: 100%;
-  max-width: 450px;
-}
-
-.no-border-radius-custom {
-  border-radius: 4px;
-}
-
-.letter-spacing-2 {
-  letter-spacing: 2px;
-}
-
-.social-btn {
-  text-transform: none;
-  border-color: rgba(226, 232, 228, 0.2);
-  &:hover {
-    background: rgba(113, 131, 127, 0.1);
-  }
-}
-
-.flex-1 {
-  flex: 1;
 }
 
 :deep(.q-field--filled .q-field__control) {
   background: rgba(0, 0, 0, 0.2);
-  border-radius: 4px;
+  border: 1px solid rgba(113, 131, 127, 0.1);
+  transition: all 0.2s ease;
+  
+  &:hover {
+    background: rgba(0, 0, 0, 0.3);
+    border-color: rgba(163, 120, 94, 0.3);
+  }
+}
+
+:deep(.q-field--focused .q-field__control) {
+  border-color: $primary;
+  box-shadow: 0 0 10px rgba(163, 120, 94, 0.2);
 }
 </style>

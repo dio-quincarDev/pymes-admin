@@ -1,66 +1,63 @@
 <template>
-  <q-card class="bg-surface-pine text-secondary tight-shadow q-pa-lg no-border-radius-custom">
-    <q-card-section class="text-center">
-      <div class="text-h6 text-weight-medium q-mb-md">Verificación de Identidad</div>
+  <div class="verify-page-wrapper">
+    <SkeletonLoader :is-loading="loading" layout="card">
+      <BaseCard variant="elevated" class="q-pa-lg text-center">
+        <div v-if="success" class="verify-success fade-in-up">
+          <q-icon name="check_circle" color="positive" size="5em" class="q-mb-md brand-glow" />
+          <div class="text-h6 text-primary text-weight-bold">¡Acceso Verificado!</div>
+          <p class="text-body2 text-accent q-mt-sm">
+            Tu cuenta ha sido activada correctamente en el sistema de auditoría.
+          </p>
+          <div class="q-mt-xl">
+            <BaseButton
+              label="IR AL DASHBOARD"
+              class="full-width"
+              size="lg"
+              @click="router.push('/dashboard')"
+            >
+              IR AL DASHBOARD
+            </BaseButton>
+          </div>
+        </div>
 
-      <div v-if="loading" class="q-my-xl">
-        <q-spinner-oval color="primary" size="4em" />
-        <p class="q-mt-md text-subtitle1 text-accent">Validando tus credenciales...</p>
-      </div>
+        <div v-else-if="error" class="verify-error fade-in-up">
+          <q-icon name="error" color="negative" size="5em" class="q-mb-md" />
+          <div class="text-h6 text-negative text-weight-bold">Error de Verificación</div>
+          <p class="text-body2 text-accent q-mt-sm">{{ errorMessage }}</p>
 
-      <div v-else-if="success" class="q-my-md text-center">
-        <q-icon name="check_circle" color="positive" size="5em" class="q-mb-md" />
-        <div class="text-h6 text-primary">¡Acceso Verificado!</div>
-        <p class="text-body2 text-accent q-mt-sm">
-          Tu cuenta ha sido activada correctamente en el sistema de auditoría.
-        </p>
-      </div>
-
-      <div v-else-if="error" class="q-my-md text-center">
-        <q-icon name="error" color="negative" size="5em" class="q-mb-md" />
-        <div class="text-h6 text-negative">Error de Verificación</div>
-        <p class="text-body2 text-accent q-mt-sm">{{ errorMessage }}</p>
-      </div>
-    </q-card-section>
-
-    <q-card-actions align="center" class="q-mt-md">
-      <q-btn
-        v-if="success"
-        label="IR AL DASHBOARD"
-        color="primary"
-        class="full-width brand-glow text-weight-bold"
-        size="lg"
-        @click="router.push('/dashboard')"
-      />
-
-      <q-btn
-        v-if="error && errorType !== 'expired'"
-        label="VOLVER AL LOGIN"
-        color="primary"
-        class="full-width brand-glow text-weight-bold"
-        size="lg"
-        to="/login"
-      />
-
-      <div v-if="error && errorType === 'expired'" class="full-width text-center">
-        <q-btn
-          label="REENVIAR ENLACE"
-          color="primary"
-          class="full-width brand-glow text-weight-bold q-mb-md"
-          size="lg"
-          :loading="resending"
-          @click="handleResend"
-        />
-        <q-btn
-          label="Volver al Login"
-          flat
-          color="accent"
-          to="/login"
-          no-caps
-        />
-      </div>
-    </q-card-actions>
-  </q-card>
+          <div class="q-mt-xl">
+            <div v-if="errorType === 'expired'" class="full-width">
+              <BaseButton
+                label="REENVIAR ENLACE"
+                class="full-width q-mb-md"
+                size="lg"
+                :loading="resending"
+                @click="handleResend"
+              >
+                REENVIAR ENLACE
+              </BaseButton>
+              <BaseButton
+                variant="ghost"
+                class="full-width"
+                @click="router.push('/login')"
+              >
+                Volver al Login
+              </BaseButton>
+            </div>
+            <BaseButton
+              v-else
+              label="VOLVER AL LOGIN"
+              class="full-width"
+              size="lg"
+              @click="router.push('/login')"
+            >
+              VOLVER AL LOGIN
+            </BaseButton>
+          </div>
+        </div>
+      </BaseCard>
+    </SkeletonLoader>
+  </div>
 </template>
 
 <script setup lang="ts">
@@ -69,6 +66,9 @@ import { useRoute, useRouter } from 'vue-router';
 import { authService } from '../services/auth.service';
 import { useAuthStore } from '../store';
 import { useQuasar } from 'quasar';
+import BaseCard from 'src/components/base/BaseCard.vue';
+import BaseButton from 'src/components/base/BaseButton.vue';
+import SkeletonLoader from 'src/components/ui/SkeletonLoader.vue';
 
 const route = useRoute();
 const router = useRouter();
@@ -90,7 +90,6 @@ const verifyEmail = async (verificationToken: string, userEmail: string) => {
     const response = await authStore.verifyEmail(verificationToken, userEmail);
     success.value = true;
     
-    // Si tenemos tokens en la respuesta, fue un registro completo con auto-login
     if (response && response.accessToken) {
       $q.notify({
         type: 'positive',
@@ -112,7 +111,10 @@ const verifyEmail = async (verificationToken: string, userEmail: string) => {
       errorMessage.value = errorData?.mensaje || 'No se pudo verificar la identidad. El token puede ser inválido.';
     }
   } finally {
-    loading.value = false;
+    // Retraso artificial para suavizar la transición del skeleton
+    setTimeout(() => {
+      loading.value = false;
+    }, 600);
   }
 };
 
@@ -157,8 +159,7 @@ onMounted(() => {
 </script>
 
 <style lang="scss" scoped>
-:deep(.q-field--filled .q-field__control) {
-  background: rgba(0, 0, 0, 0.2);
-  border-radius: 4px;
+.verify-page-wrapper {
+  width: 100%;
 }
 </style>
