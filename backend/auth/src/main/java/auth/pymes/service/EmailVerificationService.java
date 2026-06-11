@@ -17,6 +17,11 @@ public interface EmailVerificationService {
     void generateAndSendPendingRegistrationEmail(RegisterRequest request);
 
     /**
+     * Verifica si existe un registro pendiente para el email dado.
+     */
+    boolean existsPendingRegistration(String email);
+
+    /**
      * Genera un token de verificación, lo guarda en Redis (TTL 15 min)
      * y retorna el token para su envío por email.
      */

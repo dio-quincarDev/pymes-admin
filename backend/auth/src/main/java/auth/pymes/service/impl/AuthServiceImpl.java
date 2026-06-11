@@ -71,6 +71,10 @@ public class AuthServiceImpl implements AuthService {
             throw new DuplicateResourceException(USER_ALREADY_EXISTS, request.email());
         }
 
+        if (emailVerificationService.existsPendingRegistration(request.email())) {
+            throw new DuplicateResourceException(USER_ALREADY_EXISTS, request.email());
+        }
+
         if (tenantRepository.existsBySlug(request.companySlug())) {
             throw new DuplicateResourceException(TENANT_ALREADY_EXISTS, request.companySlug());
         }

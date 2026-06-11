@@ -5,6 +5,7 @@ import org.junit.jupiter.api.BeforeEach;
 import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.boot.test.context.SpringBootTest;
 import org.springframework.boot.testcontainers.service.connection.ServiceConnection;
+import org.springframework.test.context.ActiveProfiles;
 import org.springframework.test.context.DynamicPropertyRegistry;
 import org.springframework.test.context.DynamicPropertySource;
 import org.springframework.test.context.bean.override.mockito.MockitoBean;
@@ -16,13 +17,13 @@ import static org.mockito.ArgumentMatchers.anyMap;
 import static org.mockito.ArgumentMatchers.anyString;
 import static org.mockito.Mockito.doNothing;
 
+@ActiveProfiles("integration")
 @SpringBootTest(webEnvironment = SpringBootTest.WebEnvironment.RANDOM_PORT)
 public abstract class AbstractIntegrationTest {
 
     @MockitoBean
     protected EmailService emailService;
 
-    @ServiceConnection
     static PostgreSQLContainer<?> postgres = new PostgreSQLContainer<>(DockerImageName.parse("postgres:15-alpine"))
             .withDatabaseName("testdb")
             .withUsername("test")
@@ -39,7 +40,12 @@ public abstract class AbstractIntegrationTest {
 
     @DynamicPropertySource
     static void registerProperties(DynamicPropertyRegistry registry) {
-        // Desactiva health check de Redis y evita el loop de reconexión de Lettuce al apagar el contexto
+        String jdbcUrl = postgres.getJdbcUrl();
+        String urlWithSchema = jdbcUrl.contains("?") ? jdbcUrl + "&currentSchema=auth" : jdbcUrl + "?currentSchema=auth";
+        registry.add("spring.datasource.url", () -> urlWithSchema);
+        registry.add("spring.datasource.username", postgres::getUsername);
+        registry.add("spring.datasource.password", postgres::getPassword);
+        registry.add("spring.jpa.properties.hibernate.default_schema", () -> "auth");
         registry.add("management.health.redis.enabled", () -> "false");
         registry.add("spring.data.redis.lettuce.shutdown-timeout", () -> "0ms");
     }

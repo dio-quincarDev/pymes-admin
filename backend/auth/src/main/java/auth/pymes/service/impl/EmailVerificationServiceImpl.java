@@ -62,9 +62,17 @@ public class EmailVerificationServiceImpl implements EmailVerificationService {
 
         // Guardar el DTO completo en Redis
         redisTemplate.opsForValue().set(key, request, TOKEN_TTL);
+        // Índice por email para detección rápida de duplicados
+        redisTemplate.opsForValue().set(PENDING_REG_PREFIX + "email:" + request.email(), token, TOKEN_TTL);
         log.info("Registro pendiente guardado en Redis para: {} (Token: {})", request.email(), token);
 
         sendVerificationEmail(request.name(), request.email(), token);
+    }
+
+    @Override
+    public boolean existsPendingRegistration(String email) {
+        String key = PENDING_REG_PREFIX + "email:" + email;
+        return Boolean.TRUE.equals(redisTemplate.hasKey(key));
     }
 
     @Override
@@ -99,6 +107,7 @@ public class EmailVerificationServiceImpl implements EmailVerificationService {
             // Completar registro y login automático
             AuthResponse response = authService.completeRegistration(regRequest, httpRequest);
             redisTemplate.delete(pendingKey);
+            redisTemplate.delete(PENDING_REG_PREFIX + "email:" + regRequest.email());
             log.info("Registro completado y email verificado vía Redis para: {}", email);
             return response;
         }

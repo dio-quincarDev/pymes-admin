@@ -5,7 +5,7 @@ server:
 # Forzar configuración externa estricta
 spring:
   datasource:
-    url: jdbc:postgresql://${DB_HOST}:${DB_PORT}/${DB_NAME}
+    url: jdbc:postgresql://${DB_HOST}:${DB_PORT}/${DB_NAME}?currentSchema=auth
     username: ${DB_USERNAME}
     password: ${DB_PASSWORD}
 
