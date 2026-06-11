@@ -16,6 +16,9 @@ CREATE TABLE users (
     provider_id VARCHAR(255) NOT NULL,
     picture_url TEXT,
     phone VARCHAR(20),
+    password VARCHAR(255),
+    email_verified_at TIMESTAMP WITH TIME ZONE,
+    deleted_at TIMESTAMP WITH TIME ZONE,
     is_active BOOLEAN DEFAULT TRUE NOT NULL,
     created_at TIMESTAMP WITH TIME ZONE DEFAULT CURRENT_TIMESTAMP NOT NULL,
     updated_at TIMESTAMP WITH TIME ZONE DEFAULT CURRENT_TIMESTAMP NOT NULL,
@@ -42,6 +45,7 @@ CREATE TABLE tenants (
     logo_url TEXT,
     timezone VARCHAR(50) DEFAULT 'America/Panama' NOT NULL,
     currency VARCHAR(3) DEFAULT 'USD' NOT NULL,
+    deleted_at TIMESTAMP WITH TIME ZONE,
     is_active BOOLEAN DEFAULT TRUE NOT NULL,
     created_at TIMESTAMP WITH TIME ZONE DEFAULT CURRENT_TIMESTAMP NOT NULL,
     updated_at TIMESTAMP WITH TIME ZONE DEFAULT CURRENT_TIMESTAMP NOT NULL,
@@ -65,6 +69,7 @@ CREATE TABLE user_tenants (
     invited_at TIMESTAMP WITH TIME ZONE DEFAULT CURRENT_TIMESTAMP NOT NULL,
     accepted_at TIMESTAMP WITH TIME ZONE,
     is_active BOOLEAN DEFAULT TRUE NOT NULL,
+    deleted_at TIMESTAMP WITH TIME ZONE,
     created_at TIMESTAMP WITH TIME ZONE DEFAULT CURRENT_TIMESTAMP NOT NULL,
 
     CONSTRAINT user_tenants_user_tenant_unique UNIQUE (user_id, tenant_id),
@@ -104,6 +109,7 @@ CREATE TABLE refresh_tokens (
     user_id UUID NOT NULL REFERENCES users(id) ON DELETE CASCADE,
     tenant_id UUID REFERENCES tenants(id) ON DELETE SET NULL,
     token_hash VARCHAR(255) NOT NULL,
+    CONSTRAINT refresh_tokens_token_hash_unique UNIQUE (token_hash),
     expires_at TIMESTAMP WITH TIME ZONE NOT NULL,
     revoked BOOLEAN DEFAULT FALSE NOT NULL,
     created_at TIMESTAMP WITH TIME ZONE DEFAULT CURRENT_TIMESTAMP NOT NULL
@@ -133,6 +139,10 @@ CREATE INDEX idx_audit_log_tenant ON audit_log(tenant_id);
 CREATE INDEX idx_audit_log_user ON audit_log(user_id);
 CREATE INDEX idx_audit_log_action ON audit_log(action);
 CREATE INDEX idx_audit_log_created ON audit_log(created_at);
+
+-- Índice parcial para usuarios no verificados
+CREATE INDEX idx_users_email_verified ON users(email_verified_at)
+    WHERE email_verified_at IS NULL;
 
 -- ============================================================
 -- TRIGGERS - Actualizar updated_at automáticamente
@@ -172,3 +182,9 @@ COMMENT ON COLUMN tenants.slug IS 'Identificador URL-friendly único';
 COMMENT ON COLUMN user_tenants.role IS 'Rol del usuario en el tenant: OWNER, ADMIN, CONTABLE, VIEWER';
 COMMENT ON COLUMN invitations.token IS 'Token único para aceptar invitación';
 COMMENT ON COLUMN refresh_tokens.token_hash IS 'Hash del token (no se guarda plain text)';
+
+COMMENT ON COLUMN users.password IS 'Hash BCrypt para auth LOCAL; NULL para OAuth2';
+COMMENT ON COLUMN users.email_verified_at IS 'Fecha de verificación del email (null = no verificado)';
+COMMENT ON COLUMN users.deleted_at IS 'Timestamp de desvinculación lógica (soft delete forense)';
+COMMENT ON COLUMN tenants.deleted_at IS 'Timestamp de baja del tenant (soft delete forense)';
+COMMENT ON COLUMN user_tenants.deleted_at IS 'Timestamp de desvinculación usuario-tenant (soft delete forense)';
