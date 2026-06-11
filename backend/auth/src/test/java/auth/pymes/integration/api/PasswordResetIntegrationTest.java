@@ -66,7 +66,11 @@ class PasswordResetIntegrationTest extends AbstractIntegrationTest {
 
         // 2. Extraer token de Redis y completar verificación para crear el usuario en DB
         java.util.Set<String> tokens = redisTemplate.keys("temp-register:*");
-        String token = tokens.iterator().next().replace("temp-register:", "");
+        String token = tokens.stream()
+                .filter(k -> k.matches("temp-register:[0-9a-f]{64}"))
+                .findFirst()
+                .map(k -> k.replace("temp-register:", ""))
+                .orElseThrow(() -> new IllegalStateException("No registration token found in Redis"));
         
         auth.pymes.common.models.dto.request.VerifyEmailRequest verifyRequest = 
                 new auth.pymes.common.models.dto.request.VerifyEmailRequest(token, testEmail);
