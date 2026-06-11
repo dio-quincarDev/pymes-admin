@@ -105,7 +105,7 @@ class AuthApiIntegrationTest extends AbstractIntegrationTest {
             mockMvc.perform(post(TestApiPaths.AUTH_REGISTER)
                             .contentType(MediaType.APPLICATION_JSON)
                             .content(objectMapper.writeValueAsString(validRegisterRequest)))
-                    .andExpect(status().isOk());
+                    .andExpect(status().isConflict());
         }
 
         @Test

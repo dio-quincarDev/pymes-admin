@@ -136,7 +136,7 @@ class PasswordResetIntegrationTest extends AbstractIntegrationTest {
     }
 
     @Test
-    @DisplayName("Request Reset with multiple invalid formats → returns 200 (enumeration prevention)")
+    @DisplayName("Request Reset with multiple invalid formats → 400 Bad Request (validation error)")
     void forgotPasswordInvalidEmailFormats() throws Exception {
         String[] invalidEmails = {"not-an-email", "missing@", "@domain.com", "spaces in@email.com"};
 

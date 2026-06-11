@@ -42,9 +42,9 @@ public class PasswordResetServiceImpl implements PasswordResetService {
     public boolean generateResetToken(String email) {
         UserEntity user = userRepository.findByEmail(email).orElse(null);
 
-        // Timing attack prevention: siempre toma el mismo tiempo, aunque el email no exista
         if (user == null) {
             log.warn("Solicitud de reset para email no existente: {}", email);
+            simulateProcessingDelay();
             return false;
         }
 
@@ -90,6 +90,14 @@ public class PasswordResetServiceImpl implements PasswordResetService {
 
         redisTemplate.delete(key);
         log.info("Contraseña actualizada exitosamente para usuario: {}", email);
+    }
+
+    private void simulateProcessingDelay() {
+        try {
+            Thread.sleep(200);
+        } catch (InterruptedException e) {
+            Thread.currentThread().interrupt();
+        }
     }
 
     private String generateSecureToken() {
