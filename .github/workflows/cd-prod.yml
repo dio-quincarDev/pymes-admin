@@ -33,10 +33,6 @@ jobs:
           distribution: 'temurin'
           cache: 'maven'
 
-      - name: Create .env from example (placeholders)
-        working-directory: ./backend/auth
-        run: cp .env.example .env
-
       - name: Build Auth Backend
         working-directory: ./backend/auth
         run: mvn clean package -DskipTests -B
@@ -179,12 +175,28 @@ jobs:
             cd ~/pymes-admin
             git pull origin main
 
-            export DOCKER_USERNAME=${{ secrets.DOCKER_USERNAME }}
-            export TAG=${{ needs.build-and-test.outputs.version }}
+            cat > .env <<EOF
+            DOCKER_USERNAME=${{ secrets.DOCKER_USERNAME }}
+            TAG=${{ needs.build-and-test.outputs.version }}
+            DB_NAME=${{ secrets.DB_NAME }}
+            DB_USERNAME=${{ secrets.DB_USERNAME }}
+            DB_PASSWORD=${{ secrets.DB_PASSWORD }}
+            JWT_SECRET=${{ secrets.JWT_SECRET }}
+            JWT_ACCESS_EXPIRATION=${{ secrets.JWT_ACCESS_EXPIRATION }}
+            JWT_REFRESH_EXPIRATION=${{ secrets.JWT_REFRESH_EXPIRATION }}
+            CORS_ALLOWED_ORIGINS=${{ secrets.CORS_ALLOWED_ORIGINS_PROD }}
+            GOOGLE_CLIENT_ID=${{ secrets.GOOGLE_CLIENT_ID }}
+            GOOGLE_CLIENT_SECRET=${{ secrets.GOOGLE_CLIENT_SECRET }}
+            FACEBOOK_CLIENT_ID=${{ secrets.FACEBOOK_CLIENT_ID }}
+            FACEBOOK_CLIENT_SECRET=${{ secrets.FACEBOOK_CLIENT_SECRET }}
+            SPRING_MAIL_USERNAME=${{ secrets.SPRING_MAIL_USERNAME }}
+            SPRING_MAIL_PASSWORD=${{ secrets.SPRING_MAIL_PASSWORD }}
+            OAUTH2_REDIRECT_URI=${{ secrets.OAUTH2_REDIRECT_URI }}
+            EOF
 
-            # Usar docker-compose en la raíz
-            docker compose -f docker-compose.yml pull
-            docker compose -f docker-compose.yml up -d
+            docker compose pull
+            docker compose up -d
+            docker image prune -af
 
             echo "✅ Deploy to Production completed successfully!"
 

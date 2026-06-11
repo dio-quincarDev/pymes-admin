@@ -69,9 +69,6 @@ jobs:
       - name: Checkout code
         uses: actions/checkout@v4
 
-      - name: Create .env from example (placeholders)
-        run: cp .env.example .env
-
       - name: Setup Java 21
         uses: actions/setup-java@v4
         with:
@@ -83,7 +80,7 @@ jobs:
         run: chmod +x mvnw
 
       - name: Run Unit Tests
-        run: ./mvnw test -B -Dspring.profiles.active=test
+        run: ./mvnw test -B
 
       - name: Upload Unit Test Results
         if: always()
@@ -116,9 +113,6 @@ jobs:
       - name: Checkout code
         uses: actions/checkout@v4
 
-      - name: Create .env from example (placeholders)
-        run: cp .env.example .env
-
       - name: Setup Java 21
         uses: actions/setup-java@v4
         with:
@@ -133,7 +127,7 @@ jobs:
         run: chmod +x mvnw
 
       - name: Build and Run Integration Tests
-        run: ./mvnw verify -B -Dspring-boot.run.profiles=integration
+        run: ./mvnw verify -B
 
       - name: Upload JAR artifact
         uses: actions/upload-artifact@v4
@@ -183,7 +177,7 @@ jobs:
         run: chmod +x mvnw
 
       - name: Run Tests
-        run: ./mvnw test -B -Dspring.profiles.active=test
+        run: ./mvnw test -B
 
       - name: Upload JAR artifact
         uses: actions/upload-artifact@v4
