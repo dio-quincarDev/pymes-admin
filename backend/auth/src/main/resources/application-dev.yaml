@@ -26,7 +26,7 @@ jwt:
 
 app:
   cors:
-    allowed-origins: "http://localhost:9000"
+    allowed-origins: "http://localhost:9200"
 
 logging:
   level:
