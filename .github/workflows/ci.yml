@@ -127,7 +127,7 @@ jobs:
         run: chmod +x mvnw
 
       - name: Build and Run Integration Tests
-        run: ./mvnw verify -B
+        run: ./mvnw verify -B -Dspring.profiles.active=test -Ddocker.client.api.version=1.44
 
       - name: Upload JAR artifact
         uses: actions/upload-artifact@v4
