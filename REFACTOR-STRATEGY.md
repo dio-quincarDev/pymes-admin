@@ -134,3 +134,39 @@ Se conserva como está. Contiene las mismas variables que el root `.env` pero co
 | C.4 | 🟡 Importante | Tests con assertions incorrectas | `AuthApiIntegrationTest:97-109` | Assert `409 Conflict` en register duplicado. Assert `400` en forgotPasswordInvalidEmail |
 | C.5 | 🟡 Importante | Bypass `path.contains` en filtro JWT | `JwtAuthenticationFilter:43-49` | Usar `path.startsWith()` o `AntPathMatcher` en vez de `contains` |
 | C.6 | 🟢 Mantenimiento | Logs `ExpiredJwtException` en ERROR | `JwtAuthenticationFilter` (o handler) | Bajar a DEBUG o WARN — la expiración es esperada y no es error |
+
+---
+
+## Post-Mortem: Merge `f959c9e` → `develop` (12-Jun-2026)
+
+### Resumen
+Se realizó merge de `feature/refactor` (commit `f959c9e`) contra `develop` usando `git merge -X theirs` para resolver conflictos automáticamente. El resultado fue un merge contaminado que rompió los tests de integración.
+
+### Causa raíz
+`develop` tenía migrations V2–V5 que agregaban columnas (`password`, `deleted_at`, `email_verified_at`, `unique token_hash`) que `feature/refactor` ya incluía dentro de `V1__initial_schema.sql`. El merge con `-X theirs` trajo V2–V5 a `feature/refactor`, causando que Flyway fallara al ejecutar `ALTER TABLE ... ADD COLUMN` sobre columnas ya existentes.
+
+```
+ERROR: column "password" of relation "users" already exists
+```
+
+→ Flyway falla → JPA no crea EntityManagerFactory → contexto no arranca → todos los tests de integración fallan.
+
+### Errores cometidos
+1. **`-X theirs` indiscriminado**: resolvió TODOS los conflictos tomando la versión de `develop`, sobrescribiendo cambios intencionales de `feature/refactor` y trayendo archivos que no debían existir (V2–V5).
+2. **No revisar migrations post-merge**: no se verificó que V2–V5 eran incompatibles con V1 de `feature/refactor`.
+3. **Perseguir síntomas en vez de causa raíz**: se modificaron configs (`application.yaml`, `application-integration.yaml`) innecesariamente, cuando el único problema era V2–V5.
+
+### Lecciones
+- **Nunca usar `-X theirs` ni `-X ours`** sin revisar cada archivo en conflicto.
+- **Ante error de contexto en tests**, capturar el stack trace completo (`mvn verify -e | grep -C 10 "Caused by"`) antes de especular.
+- **Revisar `db/migration/`** antes y después de cada merge para detectar migrations duplicadas o conflictivas.
+- **El merge correcto** es `git merge develop` y resolver manualmente, archivo por archivo.
+
+### Fix aplicado
+- Reset de `feature/refactor` a `f959c9e` (commit sano previo al merge).
+- Cherry-pick de commits post-merge que sí eran útiles:
+  - `adc79ae` — CI/CD workflows + SECRETS.md
+  - `076c31e` — WebCorsConfig + CORS env vars
+  - `241ece5` — Best logic for CI/CD
+- Sin V2–V5, sin cambios extra en configs.
+- Estado actual: `b3e58f8`
