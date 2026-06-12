@@ -1,111 +1,193 @@
-# 📄 Estado del Frontend - Pymeq (13 de Abril, 2026)
+# 📄 Estado del Frontend - Pymeq (04 de Mayo, 2026)
 
 ## 🎯 Resumen de la Identidad Visual y Arquitectura
-Se ha realizado una transición completa desde un "boilerplate" genérico hacia una identidad de **SaaS Fintech** bajo el nombre **Pymeq**.
+Se ha consolidado la identidad de **SaaS Fintech** bajo el nombre **PYMEQ**, centrada en un flujo de usuario simplificado y un diseño minimalista de alta gama.
 
-### 1. Arquitectura Modular (Feature-based)
-- **Ubicación:** `src/modules/auth`
-- **Componentes:**
-    - `store/`: Estado de sesión centralizado (Pinia).
-    - `services/`: Capa de red desacoplada (Axios).
-    - `pages/`: Vistas de Login, Register y AuthCallback.
-    - `types/`: Contratos de TypeScript para el dominio de identidad.
-- **Impacto:** El proyecto está preparado para escalar añadiendo módulos como `audit`, `inventory` o `billing` sin colisiones.
+### 1. Mandato "Empresa Primero" (Company First)
+- **Home (`IndexPage`):** Único punto de inicio para el registro, capturando exclusivamente el nombre de la empresa. El slug se genera de forma robusta e invisible (remoción de acentos y caracteres especiales).
+- **Registro Atómico:** `RegisterPage` simplificada como "Paso Final" para asignar el administrador. No hay campos de empresa en el formulario de registro; estos se heredan del estado global (`pendingTenant`).
 
-### 2. Sistema de Diseño: Deep Forest & Copper
-- **Fondo:** Forest Deep (`#0B1210`).
-- **Acento:** Brand Copper (`#A3785E`).
-- **Layout:** Proporción 3:9 (Sidebar vs Espacio de Trabajo) con Gutter de 40px.
-- **Tipografía:** Roboto con espaciado amplio y gradientes de malla en títulos.
+### 2. Estructura de Interfaz Unificada (AuthLayout)
+- **Centralización:** Todas las páginas de autenticación se renderizan dentro de `AuthLayout.vue`.
+- **Beneficios:** Eliminación de inconsistencias visuales en "Olvide mi contraseña" y otros flujos de soporte. Branding y seguridad (AES-256) persistentes.
 
 ---
 
-## 🛠️ Funcionalidades Implementadas
-- **Login Local:** Formulario integrado con `authStore.login`.
-- **Registro de Entidad:** Formulario con creación automática de `slug` de empresa.
-- **Flujo OAuth2:** Preparado el componente `AuthCallback.vue` para recibir tokens de Google/Facebook.
-- **Protección de Rutas:** Navigation Guard activo que redirige a `/login` si no hay sesión.
-- **Modo PWA:** Configuración de Docker y Quasar ajustada para construir y servir una Progressive Web App.
+## 🛠️ Funcionalidades Implementadas (Actualizado 04 de Mayo, 2026)
+
+### 🔐 Autenticación y Onboarding
+- **Onboarding Obligatorio:** Flujo Home -> Registro bloqueado si no hay empresa definida.
+- **Login Inteligente:** 
+    - **Recordar mi sesión:** Persistencia de email en `localStorage`.
+    - **Google OAuth2 + Intent:** Sincronización de identidad empresarial mediante el sistema de `intentId` (state parameter) del backend.
+- **Support Pages:** 
+    - `VerifyEmailPage`: Verificación reactiva con manejo de tokens expirados.
+    - `ForgotPasswordPage`: Solicitud de recuperación integrada al diseño.
+    - `ResetPasswordPage`: Cambio de contraseña maestra con validación.
+
+### 🎨 Sistema de Diseño: Fintech Core
+- **Paleta:** Forest Deep (`#0B1210`), Surface Pine (`#1B2624`), Brand Copper (`#A3785E`).
+- **Interactividad:** Efectos `brand-glow`, transiciones suaves y estados de carga personalizados.
 
 ---
 
-## ⚠️ Inconvenientes Actuales (Bloqueos)
-
-### 🚩 El Problema de la "Pantalla Negra"
-Tras la reconstrucción en Docker (modo PWA), el navegador accede a `http://localhost:9000/#/login?redirect=/` pero solo renderiza el color de fondo, sin el contenido de la página.
-
-**Causas Probables bajo Investigación:**
-1. **Errores de Runtime en JS:** Posible fallo en la inicialización del `authStore` (ej. error al parsear `localStorage` o variables de entorno no definidas).
-2. **Resolución de Rutas Modulares:** Vite/Quasar podrían estar fallando al resolver los imports dinámicos `import('../pages/LoginPage.vue')` dentro de los contenedores si la estructura de carpetas tiene discrepancias de permisos.
-3. **Configuración de PWA/Service Worker:** El Service Worker podría estar sirviendo una versión corrupta o incompleta del índice.
+## ✅ Problemas Críticos Resueltos
+- **Inconsistencias en UI de Soporte:** Resuelto mediante la unificación en `AuthLayout`.
+- **Conflictos de Registro:** Eliminado el campo manual de slug y la posibilidad de registrarse sin empresa.
+- **Build Errors:** Limpieza total de errores de ESLint (unused vars, unbound methods, explicit any).
 
 ---
 
-## 📋 Próximos Pasos Recomendados
-1. **Depuración en Consola (Navegador):** Revisar errores de JavaScript (F12) para confirmar si es un fallo de inicialización de la App.
-2. **Validación de Componentes:** Verificar que los componentes de Quasar se cargan correctamente en la arquitectura modular (posible necesidad de imports explícitos en `quasar.config.ts`).
-3. **Limpieza de Persistencia:** Forzar borrado de `localStorage` y Service Workers en el navegador para asegurar un arranque limpio.
+## 📋 Próximos Pasos Prioritarios
+1.  **Dashboard Shell:** Implementación del contenedor principal tras el login exitoso.
+2.  **Multitenancy UI:** Selector de empresas para usuarios con múltiples entornos.
+3.  **Audit Logs:** Primera fase de visualización de trazabilidad de seguridad.
 ---
 
-## 🚩 Feature Pendiente: Verificación de Email (2026-04-16)
+*Documento que refleja la arquitectura final del módulo de identidad.*
 
-### Problema Identificado
+---
 
-El sistema de autenticación **SÍ requiere verificación de email**, pero la implementación está incompleta en el frontend:
+## 🔧 Estado del Setup de Desarrollo - Pymeq (07 de Mayo, 2026)
 
-| Etapa | Estado | Descripción |
-|------|--------|-------------|
-| **Registro** | ✅ | Backend envía email de verificación (`AuthServiceImpl.java:110`) |
-| **Login** | ✅ | Verifica `isEmailVerified()` antes de autenticar (líneas 137-140) |
-| **API Gateway** | ✅ | Ruta `/api/v1/auth/verify-email` expuesta como pública |
-| **Frontend** | ❌ | **NO existe** ruta `/verify` ni página de verificación |
+### Herramientas Instaladas
+| Herramienta | Ruta | Estado |
+|-------------|------|--------|
+| Node.js | v22.22.2 | ✅ OK |
+| npm | 11.13.0 | ✅ OK |
+| Quasar CLI | `/usr/local/bin/quasar` | ✅ OK |
+| Gradle (global) | `/snap/bin/gradle` v8.14.4 | ✅ OK |
+| Android SDK | `/home/dio/Android/Sdk` | ✅ OK |
+| Emulador | Pixel_7 (API 33) | ✅ Disponible |
+| Android Studio | `/snap/bin/android-studio` | ✅ Vinculado |
 
-### Flujo Esperado vs Actual
-
-**Esperado:**
-1. Usuario se registra
-2. Sistema envia email con link: `http://localhost:9000/#/verify?token=xxx`
-3. Usuario hace clic en el enlace
-4. Frontend muestra página de verificación
-5. Sistema valida token → marca email como verificado
-6. Usuario puede hacer login
-
-**Actual:**
-1. Usuario se registra ✅
-2. Sistema envia email con link ❌ **El enlace no funciona**
-3. Intenta hacer login → Error "Email not verified" ❌ **Usuario bloqueado**
-
-### Rutas Faltantes en Frontend
-
-```typescript
-// src/modules/auth/router/routes.ts - FALTA:
-{
-  path: '/verify',
-  name: 'verify-email',
-  component: () => import('../pages/VerifyEmailPage.vue'),
-}
+### Estructura del Proyecto (Corregida)
+```
+frontend/pymes/
+├── src/              # Código fuente Vue/Quasar
+├── src-pwa/          # Configuración PWA
+├── src-capacitor/    
+│   ├── android/      # Proyecto Android RESTRUCTURADO (Gradle OK)
+│   └── capacitor.config.json
+└── quasar.config.ts  # Configuración (bin.linuxAndroidStudio añadido)
 ```
 
-### Endpoints Involucrados
+---
 
-| Endpoint | Método | Descripción |
-|----------|--------|-------------|
-| `/api/v1/auth/verify-email` | POST | Valida token y marca email como verificado |
-| `/api/v1/auth/resend-verification` | POST | Reenvía token de verificación |
-
-### Impacto
-
-- **Usuario nuevo:** Queda bloqueado tras registro - no puede fazer login
-- **Experiencia de usuario:** No hay forma de completar la verificación
-
-### Solución Sugerida
-
-1. Crear página `VerifyEmailPage.vue`
-2. Agregar ruta `/verify` al router
-3. Manejar query param `token`
-4. Llamar a `/api/v1/auth/verify-email`
-5. Mostrar UI de éxito/error al usuario
+## ✅ Correcciones Técnicas Realizadas
+1.  **Saneamiento de Directorios:** Eliminación de `src-capacitor/android` y `android/` que carecían de Gradle Wrapper y tenían conflictos de plugins.
+2.  **Re-generación Nativa:** Ejecución de `npx cap add android` para crear la estructura estándar con `gradlew`.
+3.  **Sincronización de Puente:** Uso de `quasar build -m capacitor` para inyectar assets web en el entorno nativo.
+4.  **Automatización de IDE:** Configuración de la ruta de Snap de Android Studio en `quasar.config.ts` para habilitar el flag `--ide`.
 
 ---
 
-*Documento generado por el equipo de arquitectura de Pymeq.*
+## 🔄 Comandos de Desarrollo Atualizados
+
+### Desarrollo PWA (Navegador)
+```bash
+cd frontend/pymes
+quasar dev -m pwa
+# Puerto: 9200
+# URL: http://localhost:9200/
+```
+
+### Desarrollo Android (Emulador)
+```bash
+# Opción 1: Quasar (falla por Gradle)
+quasar dev -m capacitor -T android
+
+# Opción 2: Android Studio (alternativa)
+quasar dev -m capacitor -T android --ide
+
+# Opción 3: Build manual
+npm run build
+cd src-capacitor && npx cap sync android
+cd ../android && gradle assembleDebug
+```
+
+### Verificación de Emulador
+```bash
+# Listar emuladores
+emulator -list-avds
+
+# Iniciar emulador en segundo plano
+emulator @Pixel_7 &
+```
+
+---
+
+## 📋 Acciones Pendientes
+
+1. **Reconstruir estructura Android:** Eliminar y recrear proyecto Capacitor desde cero
+2. **Verificar repo Gradle:** Asegurar que `google()` y `mavenCentral()` estén accesibles
+3. **Probar con Android Studio:** Usar `--ide` para verificar desde el IDE
+
+---
+
+## 🎨 Roadmap de Modernización UX - PWA
+
+### 1. Modernización del Flujo de Usuario
+**Prioridad:** Alta
+
+**Objetivos:**
+- Simplificar onboarding (reducir pasos)
+- Feedback visual inmediato en todas las acciones
+- Micro-interacciones para mejorar engagement
+- Estados de carga más intuitivos
+- Manejo de errores más amigable y contextual
+
+### 2. Tipografía Moderna
+**Prioridad:** Alta
+
+**Objetivos:**
+- Migrar a tipografía más legible (ej: Inter, Roboto, Nunito)
+- Escalar mejor en móvil (responsive typography)
+- Mejorar jerarquía visual
+- Reducir tamaño de fuentes en elementos no críticos
+- Implementar fluid typography (tamaños dinámicos)
+
+### 3. Botones y Componentes
+**Prioridad:** Alta
+
+**Objetivos:**
+- Modernizar diseño de botones (más espacio, bordes redondeados)
+- Estados claros: default, hover, active, disabled, loading
+- Animaciones sutiles en interacción (ripple effect, scale)
+- Botones primarios y secundarios más diferenciados
+- CTAs más prominentes y attractivos
+
+### 4. Tokens de Diseño (Design Tokens)
+**Prioridad:** Media
+
+**Objetivos:**
+- Consolidar variables CSS para colores, espaciado, tipografía
+- Facilitar theming futuro (light/dark mode preparado)
+- Implementar spacing system consistente (4px base)
+
+### 5. Animaciones y Micro-interacciones
+**Prioridad:** Media
+
+**Objetivos:**
+- Transiciones suaves entre páginas
+- Loading skeletons en lugar de spinners
+- Animaciones de entrada/salida de componentes
+
+---
+
+## ✅ Verificaciones Exitosas (Actualizado 08 de Mayo, 2026)
+
+- [x] **Estabilización de Dependencias:** Reversión a Vite 7 y Quasar 2.18 para evitar bugs de PWA en versiones superiores.
+- [x] **Fix de Sass:** Versión fijada a `sass@1.32.12` (exacta) con prefijo `pq-` en variables personalizadas para evitar colisiones con Quasar.
+- [x] **Sincronización de Lockfile:** `package-lock.json` regenerado y verificado con `npm ci` localmente.
+- [x] **Modernización UI:** `BaseCard`, `BaseButton` y `SkeletonLoader` integrados en todo el flujo de Auth y Dashboard.
+- [x] **Linter/TS:** Limpieza de errores en `axios.ts` y `ResetPasswordPage.vue`.
+
+---
+
+## ⚠️ Estado del Docker
+- **Problema Detectado:** Inconsistencia persistente en `npm ci` dentro del contenedor a pesar de la sincronización local.
+- **Acción:** Forzar reconstrucción limpia y verificación de caché del demonio de Docker.
+
+*Última actualización: 08 de Mayo, 2026 14:40*
+  

@@ -3,6 +3,7 @@ package auth.pymes.unit;
 import auth.pymes.common.models.entities.UserEntity;
 import auth.pymes.common.models.enums.AuthProvider;
 import auth.pymes.repositories.UserEntityRepository;
+import auth.pymes.service.EmailService;
 import auth.pymes.service.PasswordResetService;
 import auth.pymes.service.impl.PasswordResetServiceImpl;
 import auth.pymes.utils.exception.auth.AuthenticationException;
@@ -19,6 +20,7 @@ import org.mockito.junit.jupiter.MockitoExtension;
 import org.springframework.data.redis.core.RedisTemplate;
 import org.springframework.data.redis.core.ValueOperations;
 import org.springframework.security.crypto.password.PasswordEncoder;
+import org.springframework.test.util.ReflectionTestUtils;
 
 import java.util.Optional;
 import java.util.UUID;
@@ -44,6 +46,9 @@ class PasswordResetServiceImplTest {
     @Mock
     private PasswordEncoder passwordEncoder;
 
+    @Mock
+    private EmailService emailService;
+
     @InjectMocks
     private PasswordResetServiceImpl passwordResetService;
 
@@ -60,6 +65,8 @@ class PasswordResetServiceImplTest {
                 .isActive(true)
                 .password("oldHashedPassword")
                 .build();
+
+        ReflectionTestUtils.setField(passwordResetService, "frontendUrl", "http://localhost:9000");
     }
 
     // ==================== generateResetToken ====================
@@ -69,7 +76,7 @@ class PasswordResetServiceImplTest {
     class GenerateResetTokenTests {
 
         @Test
-        @DisplayName("Existing email → returns true and stores token in Redis")
+        @DisplayName("Existing email → returns true, stores token in Redis and sends email")
         void generateResetToken_ExistingEmail_ReturnsTrue() {
             when(userRepository.findByEmail("user@example.com")).thenReturn(Optional.of(testUser));
             when(redisTemplate.opsForValue()).thenReturn(valueOperations);
@@ -78,6 +85,7 @@ class PasswordResetServiceImplTest {
 
             assertThat(result).isTrue();
 
+            // Verify Redis storage
             ArgumentCaptor<String> keyCaptor = ArgumentCaptor.forClass(String.class);
             ArgumentCaptor<String> emailCaptor = ArgumentCaptor.forClass(String.class);
             verify(valueOperations).set(keyCaptor.capture(), emailCaptor.capture(), any());
@@ -85,10 +93,13 @@ class PasswordResetServiceImplTest {
             assertThat(keyCaptor.getValue()).startsWith("password:reset:");
             assertThat(keyCaptor.getValue()).hasSize("password:reset:".length() + 64); // 32 bytes hex = 64 chars
             assertThat(emailCaptor.getValue()).isEqualTo("user@example.com");
+
+            // Verify Email sending via EmailService
+            verify(emailService).send(eq("user@example.com"), anyString(), eq("password-reset"), any());
         }
 
         @Test
-        @DisplayName("Non-existent email → returns false (timing attack prevention)")
+        @DisplayName("Non-existent email → returns false and no email is sent")
         void generateResetToken_NonExistentEmail_ReturnsFalse() {
             when(userRepository.findByEmail("nonexistent@example.com")).thenReturn(Optional.empty());
 
@@ -96,6 +107,7 @@ class PasswordResetServiceImplTest {
 
             assertThat(result).isFalse();
             verifyNoInteractions(redisTemplate);
+            verifyNoInteractions(emailService);
         }
     }
 

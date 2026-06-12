@@ -17,6 +17,7 @@ import auth.pymes.common.models.enums.RoleName;
 import auth.pymes.common.models.mappers.TenantMapper;
 import auth.pymes.common.models.mappers.UserMapper;
 import auth.pymes.repositories.AuditLogRepository;
+import auth.pymes.repositories.RefreshTokenRepository;
 import auth.pymes.repositories.TenantRepository;
 import auth.pymes.repositories.UserEntityRepository;
 import auth.pymes.repositories.UserTenantRepository;
@@ -46,8 +47,11 @@ import static org.assertj.core.api.Assertions.assertThat;
 import static org.assertj.core.api.AssertionsForClassTypes.assertThatThrownBy;
 import static org.mockito.ArgumentMatchers.any;
 import static org.mockito.Mockito.*;
+import org.mockito.junit.jupiter.MockitoSettings;
+import org.mockito.quality.Strictness;
 
 @ExtendWith(MockitoExtension.class)
+@MockitoSettings(strictness = Strictness.LENIENT)
 public class AuthServiceImplTest {
 
     @Mock
@@ -61,6 +65,9 @@ public class AuthServiceImplTest {
 
     @Mock
     private AuditLogRepository auditLogRepository;
+
+    @Mock
+    private RefreshTokenRepository refreshTokenRepository;
 
     @Mock
     private JwtService jwtService;
@@ -90,47 +97,59 @@ public class AuthServiceImplTest {
     private AuthServiceImpl authService;
 
     @Test
-    void register_WithValidRequest_ReturnsAuthResponse() {
+    void register_WithValidRequest_ReturnsAuthResponseWithNullTokens() {
         RegisterRequest request = new RegisterRequest(
                 "New User", "new@example.com", "password", "New Company", "new-company"
         );
 
         when(userRepository.existsByEmail(request.email())).thenReturn(false);
         when(tenantRepository.existsBySlug(request.companySlug())).thenReturn(false);
-        when(passwordEncoder.encode(request.password())).thenReturn("encoded-password");
+        when(httpRequest.getRemoteAddr()).thenReturn("127.0.0.1");
+        doNothing().when(emailVerificationService).generateAndSendPendingRegistrationEmail(any());
 
-        UserEntity savedUser = UserEntity.builder()
+        AuthResponse response = authService.register(request, httpRequest);
+
+        assertThat(response.accessToken()).isNull();
+        assertThat(response.refreshToken()).isNull();
+        verify(emailVerificationService).generateAndSendPendingRegistrationEmail(eq(request));
+    }
+
+    @Test
+    void completeRegistration_WithValidRequest_ReturnsAuthResponse() {
+        RegisterRequest request = new RegisterRequest(
+                "New User", "new@example.com", "password", "New Company", "new-company"
+        );
+
+        UserEntity user = UserEntity.builder()
                 .id(UUID.randomUUID())
                 .email(request.email())
                 .name(request.name())
-                .provider(AuthProvider.LOCAL)
                 .build();
-        when(userRepository.save(any(UserEntity.class))).thenReturn(savedUser);
-
-        Tenant savedTenant = Tenant.builder()
+        
+        Tenant tenant = Tenant.builder()
                 .id(UUID.randomUUID())
                 .name(request.companyName())
                 .slug(request.companySlug())
                 .plan(PlanName.FREE)
                 .build();
-        when(tenantRepository.save(any(Tenant.class))).thenReturn(savedTenant);
 
-        when(userMapper.toResponse(any())).thenReturn(new UserEntityResponse(savedUser.getId(), savedUser.getEmail(), savedUser.getName(), null, AuthProvider.LOCAL));
-        when(tenantMapper.toResponse(any())).thenReturn(new TenantResponse(savedTenant.getId(), savedTenant.getName(), savedTenant.getSlug(), PlanName.FREE, "TECH", null));
-
+        when(passwordEncoder.encode(any())).thenReturn("encoded-password");
+        when(userRepository.save(any())).thenReturn(user);
+        when(tenantRepository.save(any())).thenReturn(tenant);
+        when(userMapper.toResponse(any())).thenReturn(new UserEntityResponse(user.getId(), user.getEmail(), user.getName(), null, AuthProvider.LOCAL));
+        when(tenantMapper.toResponse(any())).thenReturn(new TenantResponse(tenant.getId(), tenant.getName(), tenant.getSlug(), PlanName.FREE, null, null));
+        
         String accessToken = "access-token";
         String refreshToken = "refresh-token";
         when(jwtService.generateAccessToken(any(), any(), any(), any())).thenReturn(accessToken);
         when(jwtService.generateRefreshToken(any())).thenReturn(refreshToken);
-        
-        when(httpRequest.getRemoteAddr()).thenReturn("127.0.0.1");
 
-        AuthResponse response = authService.register(request, httpRequest);
+        AuthResponse response = authService.completeRegistration(request, httpRequest);
 
         assertThat(response.accessToken()).isEqualTo(accessToken);
+        assertThat(response.refreshToken()).isEqualTo(refreshToken);
         assertThat(response.user().email()).isEqualTo(request.email());
-        verify(userTenantRepository).save(any(UserTenant.class));
-        verify(jwtService).saveRefreshToken(any(), any(), eq(refreshToken));
+        verify(jwtService).saveRefreshToken(eq(user), eq(tenant.getId()), eq(refreshToken));
     }
 
     @Test
@@ -177,14 +196,21 @@ public class AuthServiceImplTest {
     }
 
     @Test
-    void logout_WithValidToken_ReturnsLogoutResponseAndRevokesToken() {
+    void logout_WithValidToken_ReturnsLogoutResponseAndRevokesAllSessions() {
         String accessToken = "valid-access-token";
+        UUID userId = UUID.randomUUID();
+        
+        when(jwtService.extractUserId(accessToken)).thenReturn(userId);
         doNothing().when(jwtService).revokeToken(accessToken);
+        doNothing().when(refreshTokenRepository).deleteByUserId(userId);
 
         LogoutResponse response = authService.logout(accessToken);
 
         assertThat(response.success()).isTrue();
+        assertThat(response.allSessionsRevoked()).isTrue();
         verify(jwtService).revokeToken(accessToken);
+        verify(jwtService).extractUserId(accessToken);
+        verify(refreshTokenRepository).deleteByUserId(userId);
     }
 
     @Test

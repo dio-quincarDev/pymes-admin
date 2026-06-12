@@ -35,7 +35,11 @@ public class AuthApiController implements AuthApi {
     public ResponseEntity<ApiResponse<AuthResponse>> register(RegisterRequest request,
                                                               HttpServletRequest httpRequest) {
         AuthResponse response = authService.register(request, httpRequest);
-        return ResponseEntity.status(HttpStatus.CREATED).body(ApiResponse.ok(response));
+        // Si hay tokens, es registro completado → 201, si no → 200 (pending verification)
+        if (response.accessToken() != null) {
+            return ResponseEntity.status(HttpStatus.CREATED).body(ApiResponse.ok(response));
+        }
+        return ResponseEntity.ok(ApiResponse.ok(response));
     }
 
     @Override
@@ -65,9 +69,9 @@ public class AuthApiController implements AuthApi {
     }
 
     @Override
-    public ResponseEntity<ApiResponse<Void>> verifyEmail(VerifyEmailRequest request) {
-        emailVerificationService.verifyEmail(request.token());
-        return ResponseEntity.ok(ApiResponse.ok());
+    public ResponseEntity<ApiResponse<AuthResponse>> verifyEmail(VerifyEmailRequest request, HttpServletRequest httpRequest) {
+        AuthResponse response = emailVerificationService.verifyEmail(request, httpRequest);
+        return ResponseEntity.ok(ApiResponse.ok(response));
     }
 
     @Override
@@ -78,7 +82,6 @@ public class AuthApiController implements AuthApi {
 
     @Override
     public ResponseEntity<ApiResponse<Void>> forgotPassword(ForgotPasswordRequest request) {
-        // Siempre retorna 200 para prevenir timing attacks (no revelar si el email existe)
         passwordResetService.generateResetToken(request.email());
         return ResponseEntity.ok(ApiResponse.ok());
     }

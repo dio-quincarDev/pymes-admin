@@ -1,69 +1,79 @@
 <template>
-  <q-page class="flex flex-center bg-dark">
-    <q-card class="verify-card q-pa-lg text-white bg-grey-10 shadow-2">
-      <q-card-section class="text-center">
-        <div class="text-h5 q-mb-md">
-          <q-icon name="mail" size="lg" color="primary" class="q-mr-sm" />
-          Verificación de Email
+  <div class="verify-page-wrapper">
+    <SkeletonLoader :is-loading="loading" layout="card">
+      <BaseCard variant="elevated" class="q-pa-lg text-center">
+        <div v-if="success" class="verify-success fade-in-up">
+          <q-icon name="check_circle" color="positive" size="5em" class="q-mb-md brand-glow" />
+          <div class="text-h6 text-primary text-weight-bold">¡Acceso Verificado!</div>
+          <p class="text-body2 text-accent q-mt-sm">
+            Tu cuenta ha sido activada correctamente en el sistema de auditoría.
+          </p>
+          <div class="q-mt-xl">
+            <BaseButton
+              label="IR AL DASHBOARD"
+              class="full-width"
+              size="lg"
+              @click="router.push('/dashboard')"
+            >
+              IR AL DASHBOARD
+            </BaseButton>
+          </div>
         </div>
 
-        <div v-if="loading" class="q-my-xl">
-          <q-spinner-oval color="primary" size="4em" />
-          <p class="q-mt-md text-subtitle1">Verificando tu cuenta...</p>
-        </div>
+        <div v-else-if="error" class="verify-error fade-in-up">
+          <q-icon name="error" color="negative" size="5em" class="q-mb-md" />
+          <div class="text-h6 text-negative text-weight-bold">Error de Verificación</div>
+          <p class="text-body2 text-accent q-mt-sm">{{ errorMessage }}</p>
 
-        <div v-else-if="success" class="q-my-md">
-          <q-icon name="check_circle" color="positive" size="5em" />
-          <p class="text-h6 q-mt-md">¡Email verificado!</p>
-          <p class="text-body1 text-grey-5">Tu cuenta ha sido activada correctamente. Ya puedes iniciar sesión.</p>
+          <div class="q-mt-xl">
+            <div v-if="errorType === 'expired'" class="full-width">
+              <BaseButton
+                label="REENVIAR ENLACE"
+                class="full-width q-mb-md"
+                size="lg"
+                :loading="resending"
+                @click="handleResend"
+              >
+                REENVIAR ENLACE
+              </BaseButton>
+              <BaseButton
+                variant="ghost"
+                class="full-width"
+                @click="router.push('/login')"
+              >
+                Volver al Login
+              </BaseButton>
+            </div>
+            <BaseButton
+              v-else
+              label="VOLVER AL LOGIN"
+              class="full-width"
+              size="lg"
+              @click="router.push('/login')"
+            >
+              VOLVER AL LOGIN
+            </BaseButton>
+          </div>
         </div>
-
-        <div v-else-if="error" class="q-my-md">
-          <q-icon name="error" color="negative" size="5em" />
-          <p class="text-h6 q-mt-md">Error de verificación</p>
-          <p class="text-body1 text-grey-5">{{ errorMessage }}</p>
-        </div>
-      </q-card-section>
-
-      <q-card-actions align="center" class="q-mt-md">
-        <q-btn
-          v-if="success || (error && errorType !== 'expired')"
-          label="Ir al Login"
-          color="primary"
-          unelevated
-          class="full-width"
-          to="/login"
-        />
-
-        <div v-if="error && errorType === 'expired'" class="full-width text-center">
-          <q-btn
-            label="Reenviar enlace de verificación"
-            color="primary"
-            unelevated
-            class="full-width q-mb-sm"
-            :loading="resending"
-            @click="handleResend"
-          />
-          <q-btn
-            label="Volver al Login"
-            flat
-            color="grey-5"
-            to="/login"
-          />
-        </div>
-      </q-card-actions>
-    </q-card>
-  </q-page>
+      </BaseCard>
+    </SkeletonLoader>
+  </div>
 </template>
 
 <script setup lang="ts">
 import { ref, onMounted } from 'vue';
-import { useRoute } from 'vue-router';
+import { useRoute, useRouter } from 'vue-router';
 import { authService } from '../services/auth.service';
+import { useAuthStore } from '../store';
 import { useQuasar } from 'quasar';
+import BaseCard from 'src/components/base/BaseCard.vue';
+import BaseButton from 'src/components/base/BaseButton.vue';
+import SkeletonLoader from 'src/components/ui/SkeletonLoader.vue';
 
 const route = useRoute();
+const router = useRouter();
 const $q = useQuasar();
+const authStore = useAuthStore();
 
 const loading = ref(true);
 const success = ref(false);
@@ -75,10 +85,19 @@ const resending = ref(false);
 const token = ref(route.query.token as string);
 const email = ref(route.query.email as string);
 
-const verifyEmail = async (verificationToken: string) => {
+const verifyEmail = async (verificationToken: string, userEmail: string) => {
   try {
-    await authService.verifyEmail(verificationToken);
+    const response = await authStore.verifyEmail(verificationToken, userEmail);
     success.value = true;
+    
+    if (response && response.accessToken) {
+      $q.notify({
+        type: 'positive',
+        message: '¡Bienvenido a Pymeq!',
+        caption: 'Tu cuenta ha sido creada y verificada.',
+        position: 'top-right'
+      });
+    }
   } catch (err: unknown) {
     error.value = true;
     const response = (err as { response?: { status?: number; data?: { codigo?: string; mensaje?: string } } })?.response;
@@ -87,12 +106,15 @@ const verifyEmail = async (verificationToken: string) => {
 
     if (status === 400 && errorData?.codigo === 'TOKEN_EXPIRED') {
       errorType.value = 'expired';
-      errorMessage.value = 'El enlace ha expirado. Por favor, solicita uno nuevo.';
+      errorMessage.value = 'El enlace de seguridad ha expirado.';
     } else {
-      errorMessage.value = errorData?.mensaje || 'No se pudo verificar el email. El token puede ser inválido o ya fue procesado.';
+      errorMessage.value = errorData?.mensaje || 'No se pudo verificar la identidad. El token puede ser inválido.';
     }
   } finally {
-    loading.value = false;
+    // Retraso artificial para suavizar la transición del skeleton
+    setTimeout(() => {
+      loading.value = false;
+    }, 600);
   }
 };
 
@@ -100,7 +122,7 @@ const handleResend = async () => {
   if (!email.value) {
     $q.notify({
       type: 'negative',
-      message: 'No se encontró el email asociado. Por favor intenta desde el login.'
+      message: 'Email no detectado. Reintenta desde el login.'
     });
     return;
   }
@@ -110,7 +132,7 @@ const handleResend = async () => {
     await authService.resendVerification(email.value);
     $q.notify({
       type: 'positive',
-      message: 'Se ha enviado un nuevo enlace de verificación a tu correo.'
+      message: 'Nuevo enlace de seguridad enviado con éxito.'
     });
     errorType.value = '';
     errorMessage.value = 'Nuevo enlace enviado. Revisa tu bandeja de entrada.';
@@ -132,14 +154,12 @@ onMounted(() => {
     errorMessage.value = 'Token de verificación ausente.';
     return;
   }
-  void verifyEmail(token.value);
+  void verifyEmail(token.value, email.value);
 });
 </script>
 
-<style scoped>
-.verify-card {
+<style lang="scss" scoped>
+.verify-page-wrapper {
   width: 100%;
-  max-width: 400px;
-  border-radius: 12px;
 }
 </style>

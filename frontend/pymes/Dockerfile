@@ -13,7 +13,7 @@ ENV API_URL=${API_URL}
 
 # Install dependencies (including devDependencies for build)
 COPY package*.json ./
-RUN npm ci --ignore-scripts
+RUN npm install --legacy-peer-deps --ignore-scripts
 
 # Copy source code
 COPY . .

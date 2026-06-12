@@ -14,7 +14,10 @@ import org.springframework.data.domain.Page;
 import org.springframework.data.domain.Pageable;
 import org.springframework.http.ResponseEntity;
 import org.springframework.security.core.Authentication;
+import org.springframework.web.bind.annotation.PathVariable;
 import org.springframework.web.bind.annotation.RestController;
+
+import java.util.UUID;
 
 @RestController
 @RequiredArgsConstructor
@@ -42,5 +45,12 @@ public class TenantApiController implements TenantApi {
             CreateTenantRequest request, Authentication authentication) {
         TenantResponse tenant = tenantService.createTenant(request, authentication);
         return ResponseEntity.ok(ApiResponse.ok(tenant));
+    }
+
+    @Override
+    public ResponseEntity<ApiResponse<Void>> shutdownTenant(
+            UUID tenantId, Authentication authentication) {
+        tenantService.shutdown(tenantId, authentication);
+        return ResponseEntity.ok(ApiResponse.ok(null));
     }
 }

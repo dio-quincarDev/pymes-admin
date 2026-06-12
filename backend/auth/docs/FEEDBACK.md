@@ -1,121 +1,77 @@
-# ✦ Feedback Crudo — Auth Microservice (Re-evaluación 2026-04-12)
+# ✦ Feedback Crudo — Auth Microservice (Re-evaluación 2026-06-10)
 
 ---
 
 ## 🟢 Lo Bueno (Estado del Arte)
 
 - **Refresh Token Rotation (RTR) con Detección de Reuso**
-  Has pasado de un sistema vulnerable a uno de grado bancario. La rotación atómica y la invalidación masiva de la familia de tokens ante sospecha de reuso es, por lejos, lo más robusto del microservicio ahora.
+  Lógica robusta de rotación atómica e invalidación masiva de la familia de tokens ante sospecha de reuso. Es el pilar más sólido de la seguridad de sesión actual.
 
 - **Unicidad Criptográfica (`jti`)**
-  La corrección del bug de colisión mediante `jti` demuestra que el sistema no solo es seguro, sino que es estable bajo alta concurrencia. Muchos ingenieros senior pasan esto por alto.
+  Mitigación de colisiones de tokens mediante identificador único (`jti`), garantizando estabilidad bajo alta concurrencia.
 
-- **Arquitectura por dominios & SRP**
-  Separación clara: Auth, User, Tenant, Member, Invitation. El código no es un espagueti; es una orquesta bien dirigida.
+- **Arquitectura limpia por dominios**
+  Separación clara de responsabilidades: Auth, User, Tenant, Member, e Invitations. El código es altamente legible y modular.
 
-- **Testing de Élite (96+ tests)**
-  Testcontainers (PostgreSQL + Redis) + Reflection para consistencia de rutas. Tienes una red de seguridad que permite refactorizar sin miedo a romper nada.
-
-- **Flyway & Integridad Física**
-  Uso de restricciones `UNIQUE` y tipos nativos en PostgreSQL. La base de datos no es solo un cubo de basura de datos, es el primer filtro de integridad.
-
-- **Soft delete forense + audit log**
-  `deleted_at` funcional con Hibernate `@SQLDelete` y `@Where`. Base sólida para cumplimiento legal (GDPR/compliance).
+- **Soft delete + logs de auditoría**
+  Implementación funcional de `deleted_at` mediante anotaciones de Hibernate y rastreo de acciones de login/registro para auditorías.
 
 ---
 
-## 🔴 Lo Malo (Deuda Técnica y Agujeros)
+## 🔴 Lo Malo (Deuda Técnica y Agujeros Críticos)
 
-- **CORS es un "Placebo"**
-  Tienes la variable `${CORS_ALLOWED_ORIGINS}` en el YAML, pero **NO hay un `CorsConfigurationSource` bean en `SecurityConfig`**. Si apagas el API Gateway y alguien ataca el microservicio directo, el navegador no bloqueará nada. Es código decorativo e inútil hasta que lo implementes en Spring Security.
+- **Falsa Mitigación de Timing Attacks en Password Reset**
+  El código en [PasswordResetServiceImpl.java](file:///home/dio/desarrollo/side-projects/pymes-admin/backend/auth/src/main/java/auth/pymes/service/impl/PasswordResetServiceImpl.java#L45-L49) tiene un `return false` inmediato si el usuario no existe. Si el usuario existe, ejecuta generación de tokens, Redis y un envío de correo (que en producción tarda cientos de milisegundos). Esto crea una vulnerabilidad crítica que permite enumerar emails de la base de datos a través del tiempo de respuesta del endpoint `/forgot-password`.
 
-- **Detección de Reuso Pasiva**
-  Cuando detectas un reuso de Refresh Token, tiras un `log.error`. **Nadie lee los logs en tiempo real.** Si no hay una alerta a Slack/Email o un bloqueo automático de la IP en Redis, el atacante tiene tiempo de sobra para seguir intentando otras cosas. Es como un detector de humo que escribe un diario mientras la casa se quema.
+- **Crash (500 Error) en Login de Google con Cuenta Existente**
+  En [CustomOAuth2UserService.java](file:///home/dio/desarrollo/side-projects/pymes-admin/backend/auth/src/main/java/auth/pymes/service/impl/CustomOAuth2UserService.java#L37-L48), si un usuario se registró de forma `LOCAL` y luego intenta iniciar sesión con `GOOGLE` usando el mismo correo, la aplicación intenta insertar un nuevo registro con el mismo email debido a que la consulta por proveedor y ID retorna vacía. Esto viola la restricción `UNIQUE` de la tabla de usuarios, provocando una caída con error 500 (`DataIntegrityViolationException`) en lugar de enlazar cuentas o controlar el error.
 
-- **Secretos Estáticos**
-  El `JWT_SECRET` es una constante en el entorno. Si se filtra, el desastre es total. Falta soporte para rotación de llaves, versionado de secretos (ej. AWS Secrets Manager / HashiCorp Vault) o al menos un mecanismo de "Grace Period" para cambio de llaves.
+- **Tests "Falsos" en la Suite de Integración**
+  - El test `registerDuplicateEmail` en [AuthApiIntegrationTest.java](file:///home/dio/desarrollo/side-projects/pymes-admin/backend/auth/src/test/java/auth/pymes/integration/api/AuthApiIntegrationTest.java#L97-L109) aserta `200 OK` para ambas peticiones consecutivas a pesar de que su display name dice esperar un `409 Conflict`. Esto oculta que el endpoint de registro permite contaminar Redis con múltiples registros pendientes concurrentes para el mismo email.
+  - El test `forgotPasswordInvalidEmailFormats` aserta `400 Bad Request` pero su display name afirma esperar un `200 OK`.
 
-- **Verificación de Email de "Teatrito"**
-  Generas el token, lo guardas en Redis, lanzas el log... y ya. Sin una integración real (SendGrid, AWS SES), el flujo está roto para el usuario final. Un microservicio de Auth sin comunicación externa es un sistema sordo-mudo.
+- **Bypass Potencial de Filtro de Seguridad**
+  [JwtAuthenticationFilter.java](file:///home/dio/desarrollo/side-projects/pymes-admin/backend/auth/src/main/java/auth/pymes/common/config/JwtAuthenticationFilter.java#L43-L49) utiliza `path.contains(...)` para omitir la validación de tokens. Es un antipatrón de seguridad. Si una ruta protegida contiene un subsegmento como `/login` (ej: `/api/v1/tenants/login/settings`), omitirá la verificación del token en este filtro.
 
-- **Sin 2FA/MFA ni PKCE**
-  Sigue siendo la gran barrera para ser un producto "Enterprise". Si una SPA (React/Vue) usa tu flujo de Authorization Code sin PKCE, es vulnerable a intercepción de código.
+- **Condición de Carrera en Rate Limiting (Bloqueo Permanente)**
+  En [RateLimitService.java](file:///home/dio/desarrollo/side-projects/pymes-admin/backend/auth/src/main/java/auth/pymes/common/config/RateLimitService.java#L28-L43), si la petición incrementa la clave de Redis a 1 pero el servidor sufre una interrupción o latencia antes de llamar a `expire(...)`, la clave se guardará en Redis **sin tiempo de vida (TTL)**, bloqueando indefinidamente a ese usuario/IP. Además, el limitador es de ventana fija (no sliding window) y no protege los endpoints de registro o recuperación de contraseña.
 
----
-
-## 🟡 Lo que se Arregló (Puntos de Dolor superados)
-
-| Punto anterior | Estado | Cuándo se arregló |
-|---|---|---|
-| "Refresh token rotation incompleto" | ✅ RTR con Detección de Reuso | 2026-04-12 |
-| "Bug de colisión de tokens" | ✅ Implementación de `jti` | 2026-04-12 |
-| "Dependencias muertas en AuthService" | ✅ Limpieza de RefreshTokenRepository | 2026-04-12 |
-| "Sin CI/CD" | ✅ GitHub Actions (mvn verify) | 2026-04-12 |
-| "Sin verificación de email" | ✅ Flujo completo (lógica interna) | 2026-04-11 |
-| "CORS es un Placebo" | ✅ `CorsConfigurationSource` bean en `SecurityConfig` | 2026-04-13 |
-| "Verificación de Email de Teatrito" | ✅ Envío real de emails con `JavaMailSender` + HTML | 2026-04-13 |
+- **Ruido en Logs de Producción**
+  Capturar la expiración normal de tokens (`ExpiredJwtException`) y registrarla a nivel `ERROR` genera ruido innecesario en los sistemas de monitoreo y logs de producción.
 
 ---
 
-## 📊 Comparación con el Mercado
+## 🟡 Lo que se Arregló (Puntos superados del reporte anterior)
 
-| Dimensión             | Tu servicio | Auth0/Keycloak | Startup promedio |
-|----------------------|------------|----------------|------------------|
-| RTR + Reuse Detection| ✅         | ✅             | ❌               |
-| JWT Uniqueness (jti) | ✅         | ✅             | ❌               |
-| Multi-tenant         | ✅         | ✅             | ❌               |
-| Rate limiting        | ✅         | ✅             | ❌               |
-| Audit log            | ✅         | ✅             | ❌               |
-| Testcontainers       | ✅         | N/A            | ❌               |
-| 2FA/MFA              | ❌         | ✅             | ❌               |
-| PKCE                 | ❌         | ✅             | ❌               |
-
----
-
-## 🧾 Veredicto Actualizado
-
-- **Nivel: Production Ready (Mid-Market)**
-- Has escalado de "Startup Competente" a "Infraestructura Profesional".
-- La implementación de RTR te pone por encima del 95% de los microservicios de auth hechos a medida.
-
----
-
-## 📌 Valor Actual (Abril 2026)
-
-### Lo que vale HOY:
-
-| Región | Freelance Senior       | Agencia                |
-|--------|-----------------------|------------------------|
-| LATAM  | $18,000 – $25,000 USD | $35,000 – $55,000 USD |
-| USA/EU | $45,000 – $75,000 USD | $80,000 – $130,000 USD |
-
-*El valor se disparó por la robustez del motor de tokens y la suite de tests que garantiza cero regresiones.*
+- **CORS funcional**
+  Implementado correctamente como un Spring Bean (`CorsConfigurationSource`) en `SecurityConfig`.
+- **Integración de Email Real**
+  Migrado del simple log a envío real de correos mediante HTML y el bean de `JavaMailSender`.
 
 ---
 
 ## 📊 Score por Dimensión
 
-| Dimensión | Score | Por qué |
-|---|---|---|
-| Arquitectura | 10/10 | Limpia, extensible y ahora con mejor encapsulamiento. |
-| Seguridad de Sesión | 10/10 | RTR + Reuse Detection + jti. Impecable. |
-| Seguridad de Perímetro| 9/10 | **CORS implementado** en Gateway y Auth (defensa en profundidad). |
-| Testing | 10/10 | 96 tests, cobertura total de flujos críticos. |
-| DevOps | 9/10 | CI/CD robusto, pero falta manejo dinámico de secrets. |
-| Production readiness | 9.5/10 | **Email funcional**. Solo resta 2FA/MFA y PKCE. |
+| Dimensión | Anterior | Actual | Razón del cambio |
+|---|---|---|---|
+| **Arquitectura** | 10/10 | **9/10** | Degradado levemente por el bypass inseguro de `path.contains` en el filtro de seguridad. |
+| **Seguridad de Sesión / Auth** | 10/10 | **6/10** | Caída drástica por la timing attack en password reset, la ausencia de control en duplicados de OAuth2 y el riesgo de bloqueo permanente en Redis. |
+| **Seguridad de Perímetro** | 9/10 | **8/10** | Falta rate limiting en endpoints costosos de registro y recuperación de contraseña. |
+| **Testing** | 10/10 | **7/10** | Presencia de tests mal diseñados con aserciones dummy (ej. registro duplicado que da 200 pero afirma esperar 409). |
+| **DevOps** | 9/10 | **9/10** | CI/CD funcional con GitHub Actions. |
+| **Production Readiness** | 9.5/10 | **8/10** | Los errores de duplicidad en inicio con Google y de lógica en rate limits comprometen la estabilidad en producción. |
 
-**Promedio: 9.58/10 → Redondeo: 9.5/10** (Subió tras fix de CORS y Email)
+**Promedio General: 7.8/10** (Bajó de 9.5/10 por descubrimientos de lógica crítica y fallos en tests)
 
 ---
 
-## ⚡ Prioridades Reales (Sin contemplaciones)
+## ⚡ Prioridades Reales (Sin complacencias)
 
 | # | Acción | Impacto | Esfuerzo |
 |---|--------|---------|----------|
-| 1 | ~~**Fix de CORS (Spring Bean)**~~ | ✅ Completado 2026-04-13 | |
-| 2 | ~~**Integración Email Real (JavaMailSender)**~~ | ✅ Completado 2026-04-13 | |
-| 3 | PKCE para SPAs | 🟡 Importante | Medio (4-8 hrs) |
-| 4 | 2FA/MFA (TOTP) | 🟡 Importante | Alto (16-24 hrs) |
-| 5 | Alertas Activas en Reuse Detection | 🟢 Seguridad | Bajo (1 hr) |
-
-**Estado Final:** Has construido un tanque, pero le falta la radio para avisar cuando le disparan y cerrar la escotilla de CORS.
+| 1 | **Corregir timing attack en Password Reset** | 🔴 Crítico (Seguridad) | Bajo (1 hr) |
+| 2 | **Implementar fusión / account linking en OAuth2** | 🔴 Crítico (Estabilidad) | Medio (3 hrs) |
+| 3 | **Hacer atómico el seteo de TTL en RateLimitService** | 🔴 Crítico (Disponibilidad) | Bajo (1 hr) |
+| 4 | **Corregir lógica del test de registro duplicado y assertions** | 🟡 Importante (Calidad) | Medio (2 hrs) |
+| 5 | **Eliminar bypass laxo de `path.contains` en Jwt Filter** | 🟡 Importante (Seguridad) | Bajo (1 hr) |
+| 6 | **Reducir logging de `ExpiredJwtException` a nivel DEBUG** | 🟢 Mantenimiento | Bajo (10 min) |

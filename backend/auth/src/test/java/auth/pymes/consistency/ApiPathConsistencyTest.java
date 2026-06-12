@@ -112,6 +112,8 @@ class ApiPathConsistencyTest {
                     ApiPathConstants.FULL_AUTH_FORGOT_PASSWORD);
             assertEquals(ApiPathConstants.V1_ROUTE + ApiPathConstants.AUTH_ROUTE + ApiPathConstants.AUTH_RESET_PASSWORD,
                     ApiPathConstants.FULL_AUTH_RESET_PASSWORD);
+            assertEquals(ApiPathConstants.V1_ROUTE + ApiPathConstants.AUTH_ROUTE + ApiPathConstants.AUTH_OAUTH2 + ApiPathConstants.OAUTH2_INTENT,
+                    ApiPathConstants.FULL_AUTH_OAUTH2_INTENT);
         }
     }
 
@@ -277,12 +279,21 @@ class ApiPathConsistencyTest {
     // ==================== HELPER METHODS ====================
 
     private String getRouteConstantForController(Class<?> controller) {
-        return switch (controller.getSimpleName()) {
+        String name = controller.getSimpleName();
+        if (name.endsWith("Controller")) {
+            name = name.substring(0, name.length() - "Controller".length());
+        }
+        if (name.endsWith("ApiController")) {
+            name = name.substring(0, name.length() - "ApiController".length()) + "Api";
+        }
+
+        return switch (name) {
             case "AuthApi" -> ApiPathConstants.AUTH_ROUTE;
             case "UserApi" -> ApiPathConstants.USERS_ROUTE;
             case "TenantApi" -> ApiPathConstants.TENANTS_ROUTE;
             case "MemberApi" -> ApiPathConstants.TENANTS_ROUTE + "/{tenantId}" + ApiPathConstants.MEMBERS_ROUTE;
             case "InvitationApi" -> ApiPathConstants.INVITATIONS_ROUTE;
+            case "OAuth2Api", "LoginOauth2" -> ApiPathConstants.AUTH_ROUTE + ApiPathConstants.AUTH_OAUTH2;
             default -> throw new IllegalArgumentException("Unknown controller: " + controller.getSimpleName());
         };
     }

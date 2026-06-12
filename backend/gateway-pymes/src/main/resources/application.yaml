@@ -15,31 +15,23 @@ spring:
   cloud:
     gateway:
       routes:
-        # Public routes (no authentication)
-        # CORS se maneja globalmente en CorsGlobalFilter (Java)
-        - id: auth-public
+        # Auth Service Route (API v1)
+        - id: auth-service-api
           uri: http://${AUTH_SERVICE_HOST}:8081
           predicates:
-            - Path=/api/v1/auth/register, /api/v1/auth/login, /api/v1/auth/refresh, /api/v1/auth/verify-email, /api/v1/auth/resend-verification, /api/v1/auth/forgot-password, /api/v1/auth/reset-password, /api/v1/oauth2/**, /api/v1/login/**
-          filters:
-            - PreserveHostHeader
-
-        # Swagger/OpenAPI spec - Auth Service (public)
-        - id: swagger-api-docs-auth
-          uri: http://${AUTH_SERVICE_HOST}:8081
-          predicates:
-            - Path=/v3/api-docs/auth
-          filters:
-            - PreserveHostHeader
-
-        # Protected routes (require authentication)
-        - id: auth-protected
-          uri: http://${AUTH_SERVICE_HOST}:8081
-          predicates:
-            - Path=/api/v1/auth/logout, /api/v1/auth/me, /api/v1/tenants/**, /api/v1/invitations/**
+            - Path=/api/v1/**
           filters:
             - PreserveHostHeader
             - AuthenticationFilter
+
+        # Auth Service Route (OAuth2 & Login standards)
+        - id: auth-service-oauth2
+          uri: http://${AUTH_SERVICE_HOST}:8081
+          predicates:
+            - Path=/oauth2/**, /login/oauth2/**, /login/**, /v3/api-docs/auth
+          filters:
+            - PreserveHostHeader
+            # NO usamos AuthenticationFilter aquí porque son rutas de entrada/login
 
       globalcors:
         add-to-simple-url-handler-mapping: true

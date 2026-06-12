@@ -26,12 +26,27 @@ El Gateway actúa como el **guardia de seguridad principal** de la plataforma, r
 
 | Tipo | Prefijo de Ruta | Seguridad | Destino |
 |------|-----------------|-----------|---------|
-| **Públicas** | `/api/v1/auth/register`, `/api/v1/auth/login`, `/api/v1/auth/refresh`, `/api/v1/oauth2/**` | Ninguna | `auth-service` |
+| **Públicas - Auth** | `/api/v1/auth/register`, `/api/v1/auth/login`, `/api/v1/auth/refresh`, `/api/v1/auth/verify-email`, `/api/v1/auth/forgot-password`, `/api/v1/auth/reset-password` | Ninguna | `auth-service` |
+| **Públicas - OAuth2** | `/oauth2/**`, `/login/oauth2/**`, `/login/**` | Ninguna | `auth-service` |
 | **Protegidas** | `/api/v1/auth/logout`, `/api/v1/auth/me`, `/api/v1/tenants/**`, `/api/v1/invitations/**` | **JWT + Redis Blacklist** | `auth-service` |
+
+> **OAuth2 Estado:** ✅ Google funcionando | ⏳ Facebook pendiente
 
 ---
 
-## ⚙️ Configuración & Perfiles
+## 🛡️ Funciones de Seguridad
+
+### AuthenticationFilter (JWT + Blacklist)
+1. **Extracción**: Captura el `Authorization: Bearer <token>` de la cabecera.
+2. **Validación Criptográfica**: Verifica la firma y expiración del JWT localmente (usando `JWT_SECRET`).
+3. **Verificación en Redis (Blacklist)**: Consulta reactiva para asegurar que el token no haya sido revocado (Logout).
+   - Key: `auth:token_blacklist:<token>`
+4. **Inyección de Identidad**: Headers propagados al microservicio destino:
+   - `X-User-Id`, `X-User-Email`, `X-Tenant-Id`, `X-User-Role`
+
+### RouterValidator
+- Whitelist de rutas públicas que no requieren validación JWT
+- Incluye rutas OAuth2, Swagger, Actuator y endpoints públicos de auth
 
 El Gateway utiliza **Perfiles de Maven** para gestionar la conectividad y el nivel de logging por entorno.
 

@@ -8,9 +8,11 @@ const routes: RouteRecordRaw[] = [
     component: () => import('layouts/LandingLayout.vue'),
     children: [
       { path: '', component: () => import('pages/IndexPage.vue') },
-      ...authRoutes,
     ],
   },
+
+  // Auth Flow (Login, Register, etc.)
+  ...authRoutes,
 
   // Private Dashboard Routes
   {

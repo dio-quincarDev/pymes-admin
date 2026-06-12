@@ -14,10 +14,14 @@ import org.springframework.data.domain.Page;
 import org.springframework.data.domain.Pageable;
 import org.springframework.http.ResponseEntity;
 import org.springframework.security.core.Authentication;
+import org.springframework.web.bind.annotation.DeleteMapping;
 import org.springframework.web.bind.annotation.GetMapping;
+import org.springframework.web.bind.annotation.PathVariable;
 import org.springframework.web.bind.annotation.PostMapping;
 import org.springframework.web.bind.annotation.RequestBody;
 import org.springframework.web.bind.annotation.RequestMapping;
+
+import java.util.UUID;
 
 @Tag(name = "Tenants", description = "Endpoints de gestión de empresas/tenants")
 @RequestMapping(ApiPathConstants.V1_ROUTE + ApiPathConstants.TENANTS_ROUTE)
@@ -39,5 +43,11 @@ public interface TenantApi {
     @PostMapping
     ResponseEntity<ApiResponse<TenantResponse>> createTenant(
             @Valid @RequestBody CreateTenantRequest request,
+            Authentication authentication);
+
+    @Operation(summary = "Shutdown tenant", description = "Realiza el shutdown (soft delete) de un tenant. Solo el OWNER puede ejecutar esta accion.")
+    @DeleteMapping("/{tenantId}")
+    ResponseEntity<ApiResponse<Void>> shutdownTenant(
+            @PathVariable UUID tenantId,
             Authentication authentication);
 }

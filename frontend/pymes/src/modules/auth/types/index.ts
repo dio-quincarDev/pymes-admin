@@ -31,3 +31,19 @@ export interface ApiResponse<T> {
   mensaje: string;
   timestamp: string;
 }
+
+export interface LogoutResponse {
+  success: boolean;
+  message: string;
+  timestamp: string;
+  allSessionsRevoked: boolean;
+}
+
+export interface InvitationResponse {
+  accessToken: string;
+  refreshToken: string;
+  user: User;
+  tenant: {
+    name: string;
+  };
+}

@@ -1,7 +1,7 @@
 import { defineStore } from 'pinia';
 import { api } from 'src/boot/axios';
 import { authService } from '../services/auth.service';
-import type { User, LoginRequest, RegisterRequest, ApiResponse, AuthResponse } from '../types';
+import type { User, LoginRequest, RegisterRequest, ApiResponse, AuthResponse, LogoutResponse } from '../types';
 
 const safeParse = <T>(key: string, defaultValue: T): T => {
   const item = localStorage.getItem(key);
@@ -62,10 +62,35 @@ export const useAuthStore = defineStore('auth', {
       try {
         const response = await authService.register(data);
         const { data: authData } = response.data as ApiResponse<AuthResponse>;
-        this.setSession(authData.accessToken, authData.refreshToken, authData.user);
+        
+        // Con Pending Registration, authData vendrá vacío (null)
+        if (authData && authData.accessToken) {
+          this.setSession(authData.accessToken, authData.refreshToken, authData.user);
+        }
         return authData;
       } catch (err: unknown) {
         const errorMessage = err instanceof Error ? err.message : 'Error en el registro';
+        this.error = errorMessage;
+        throw err;
+      } finally {
+        this.loading = false;
+      }
+    },
+
+    async verifyEmail(token: string, email: string) {
+      this.loading = true;
+      this.error = null;
+      try {
+        const response = await authService.verifyEmail(token, email);
+        const { data: authData } = response.data as ApiResponse<AuthResponse>;
+        
+        // Auto-login después de verificar
+        if (authData && authData.accessToken) {
+          this.setSession(authData.accessToken, authData.refreshToken, authData.user);
+        }
+        return authData;
+      } catch (err: unknown) {
+        const errorMessage = err instanceof Error ? err.message : 'Error en la verificación';
         this.error = errorMessage;
         throw err;
       } finally {
@@ -93,7 +118,8 @@ export const useAuthStore = defineStore('auth', {
 
     async logout() {
       try {
-        await authService.logout();
+        const response = await authService.logout();
+        return response.data as ApiResponse<LogoutResponse>;
       } finally {
         this.clearSession();
       }

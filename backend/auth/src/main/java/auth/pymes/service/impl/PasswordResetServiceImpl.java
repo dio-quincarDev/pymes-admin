@@ -3,11 +3,13 @@ package auth.pymes.service.impl;
 import auth.pymes.common.models.entities.UserEntity;
 import auth.pymes.repositories.UserEntityRepository;
 import auth.pymes.service.PasswordResetService;
+import auth.pymes.service.EmailService;
 import auth.pymes.utils.exception.CodigoError;
 import auth.pymes.utils.exception.auth.AuthenticationException;
 import auth.pymes.utils.exception.auth.PasswordResetTokenInvalidException;
 import lombok.RequiredArgsConstructor;
 import lombok.extern.slf4j.Slf4j;
+import org.springframework.beans.factory.annotation.Value;
 import org.springframework.data.redis.core.RedisTemplate;
 import org.springframework.security.crypto.password.PasswordEncoder;
 import org.springframework.stereotype.Service;
@@ -16,6 +18,7 @@ import org.springframework.transaction.annotation.Transactional;
 import java.security.SecureRandom;
 import java.time.Duration;
 import java.util.HexFormat;
+import java.util.Map;
 
 @Service
 @RequiredArgsConstructor
@@ -29,15 +32,19 @@ public class PasswordResetServiceImpl implements PasswordResetService {
     private final RedisTemplate<String, Object> redisTemplate;
     private final UserEntityRepository userRepository;
     private final PasswordEncoder passwordEncoder;
+    private final EmailService emailService;
+
+    @Value("${app.frontend.url}")
+    private String frontendUrl;
 
     @Override
     @Transactional
     public boolean generateResetToken(String email) {
         UserEntity user = userRepository.findByEmail(email).orElse(null);
 
-        // Timing attack prevention: siempre toma el mismo tiempo, aunque el email no exista
         if (user == null) {
             log.warn("Solicitud de reset para email no existente: {}", email);
+            simulateProcessingDelay();
             return false;
         }
 
@@ -47,7 +54,21 @@ public class PasswordResetServiceImpl implements PasswordResetService {
         redisTemplate.opsForValue().set(key, user.getEmail(), TOKEN_TTL);
         log.info("Token de reset generado para usuario: {} (TTL: {} min)", user.getEmail(), TOKEN_TTL.toMinutes());
 
+        sendResetEmail(user, token);
+
         return true;
+    }
+
+    private void sendResetEmail(UserEntity user, String token) {
+        String baseUrl = frontendUrl.replace(":9000", ":9200");
+        String resetUrl = baseUrl + "/#/reset-password?token=" + token;
+
+        Map<String, Object> variables = Map.of(
+                "name", user.getName(),
+                "url", resetUrl
+        );
+
+        emailService.send(user.getEmail(), "Recupera tu contraseña - Pymes Admin", "password-reset", variables);
     }
 
     @Override
@@ -69,6 +90,14 @@ public class PasswordResetServiceImpl implements PasswordResetService {
 
         redisTemplate.delete(key);
         log.info("Contraseña actualizada exitosamente para usuario: {}", email);
+    }
+
+    private void simulateProcessingDelay() {
+        try {
+            Thread.sleep(200);
+        } catch (InterruptedException e) {
+            Thread.currentThread().interrupt();
+        }
     }
 
     private String generateSecureToken() {

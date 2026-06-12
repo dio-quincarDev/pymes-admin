@@ -1,11 +1,5 @@
 # Perfil de Integración (Testcontainers)
 spring:
-  datasource:
-    driver-class-name: org.postgresql.Driver
-    url: jdbc:postgresql://localhost:5432/testdb
-    username: test
-    password: test
-
   jpa:
     hibernate:
       ddl-auto: none
@@ -13,14 +7,18 @@ spring:
     properties:
       hibernate:
         dialect: org.hibernate.dialect.PostgreSQLDialect
+        default_schema: auth
         format_sql: true
 
   flyway:
     enabled: true
+    schemas: auth
     locations: classpath:db/migration
 
   data:
     redis:
+      host: localhost
+      port: 6379
       repositories:
         enabled: false
 
@@ -59,5 +57,7 @@ app:
 
 management:
   health:
+    redis:
+      enabled: false
     mail:
       enabled: false

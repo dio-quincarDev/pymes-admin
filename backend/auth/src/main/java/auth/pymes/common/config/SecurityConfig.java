@@ -29,6 +29,9 @@ import org.springframework.security.web.access.AccessDeniedHandler;
 
 import jakarta.servlet.http.HttpServletRequest;
 import jakarta.servlet.http.HttpServletResponse;
+import org.springframework.boot.web.servlet.FilterRegistrationBean;
+import org.springframework.core.Ordered;
+
 import java.time.Instant;
 import java.util.Map;
 
@@ -41,6 +44,7 @@ public class SecurityConfig {
     private final CustomOAuth2UserService customOAuth2UserService;
     private final OAuth2AuthenticationSuccessHandler oAuth2AuthenticationSuccessHandler;
     private final JwtAuthenticationFilter jwtAuthenticationFilter;
+    private final OAuth2IntentCookieFilter oAuth2IntentCookieFilter;
     private final UserEntityRepository userRepository;
     private final ObjectMapper objectMapper;
 
@@ -51,6 +55,7 @@ public class SecurityConfig {
             // Actuator
             "/actuator/**",
             // OAuth2 login endpoint
+            "/oauth2/**",
             "/login/**",
             // Error page
             "/error",
@@ -62,7 +67,9 @@ public class SecurityConfig {
             ApiPathConstants.FULL_AUTH_RESEND_VERIFICATION,
             // Password recovery (public by design)
             ApiPathConstants.FULL_AUTH_FORGOT_PASSWORD,
-            ApiPathConstants.FULL_AUTH_RESET_PASSWORD
+            ApiPathConstants.FULL_AUTH_RESET_PASSWORD,
+            ApiPathConstants.FULL_AUTH_OAUTH2_INTENT,
+            ApiPathConstants.V1_ROUTE + ApiPathConstants.AUTH_ROUTE + "/oauth2/intent/**"
     };
 
     @Bean
@@ -75,9 +82,7 @@ public class SecurityConfig {
                         .anyRequest().authenticated()
                 )
                 .oauth2Login(oauth2 -> oauth2
-                        .userInfoEndpoint(userInfo -> userInfo
-                                .userService(customOAuth2UserService)
-                        )
+                        .userInfoEndpoint(userInfo -> userInfo.userService(customOAuth2UserService))
                         .successHandler(oAuth2AuthenticationSuccessHandler)
                 )
                 .addFilterBefore(jwtAuthenticationFilter, UsernamePasswordAuthenticationFilter.class)
@@ -133,5 +138,14 @@ public class SecurityConfig {
     public UserDetailsService userDetailsService() {
         return username -> userRepository.findByEmail(username)
                 .orElseThrow(() -> new UsernameNotFoundException("User not found with email: " + username));
+    }
+
+    @Bean
+    public FilterRegistrationBean<OAuth2IntentCookieFilter> oAuth2IntentCookieFilterRegistration() {
+        FilterRegistrationBean<OAuth2IntentCookieFilter> registration = new FilterRegistrationBean<>();
+        registration.setFilter(oAuth2IntentCookieFilter);
+        registration.addUrlPatterns("/oauth2/authorization/*");
+        registration.setOrder(Ordered.HIGHEST_PRECEDENCE + 10);
+        return registration;
     }
 }

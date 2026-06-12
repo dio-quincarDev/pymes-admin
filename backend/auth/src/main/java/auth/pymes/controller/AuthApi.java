@@ -47,8 +47,9 @@ public interface AuthApi {
 
     @Operation(summary = "Verify email", description = "Verifica el email del usuario usando el token enviado por correo")
     @PostMapping(ApiPathConstants.AUTH_VERIFY_EMAIL)
-    ResponseEntity<ApiResponse<Void>> verifyEmail(
-            @Valid @RequestBody VerifyEmailRequest request);
+    ResponseEntity<ApiResponse<AuthResponse>> verifyEmail(
+            @Valid @RequestBody VerifyEmailRequest request,
+            HttpServletRequest httpRequest);
 
     @Operation(summary = "Resend verification email", description = "Reenvía un token de verificación al email del usuario")
     @PostMapping(ApiPathConstants.AUTH_RESEND_VERIFICATION)

@@ -11,6 +11,7 @@ import auth.pymes.repositories.InvitationRepository;
 import auth.pymes.repositories.TenantRepository;
 import auth.pymes.repositories.UserEntityRepository;
 import auth.pymes.repositories.UserTenantRepository;
+import auth.pymes.service.EmailService;
 import auth.pymes.service.InvitationService;
 import auth.pymes.utils.exception.auth.AuthorizationException;
 import auth.pymes.utils.exception.custom.DuplicateResourceException;
@@ -18,13 +19,16 @@ import auth.pymes.utils.exception.custom.InvalidInputException;
 import auth.pymes.utils.exception.custom.ResourceNotFoundException;
 import lombok.RequiredArgsConstructor;
 import lombok.extern.slf4j.Slf4j;
+import org.springframework.beans.factory.annotation.Value;
 import org.springframework.data.domain.Page;
 import org.springframework.data.domain.Pageable;
+import org.springframework.security.core.userdetails.UserDetails;
 import org.springframework.security.oauth2.core.user.OAuth2User;
 import org.springframework.stereotype.Service;
 import org.springframework.transaction.annotation.Transactional;
 
 import java.time.ZonedDateTime;
+import java.util.Map;
 import java.util.UUID;
 
 import static auth.pymes.utils.exception.CodigoError.*;
@@ -39,10 +43,14 @@ public class InvitationServiceImpl implements InvitationService {
     private final UserTenantRepository userTenantRepository;
     private final InvitationRepository invitationRepository;
     private final InvitationMapper invitationMapper;
+    private final EmailService emailService;
+
+    @Value("${app.frontend.url}")
+    private String frontendUrl;
 
     @Override
-    public Page<InvitationResponse> getPendingInvitations(Pageable pageable, OAuth2User principal) {
-        String email = principal.getAttribute("email");
+    public Page<InvitationResponse> getPendingInvitations(Pageable pageable, Object principal) {
+        String email = extractEmail(principal);
         Page<Invitation> invitations = invitationRepository.findByEmailAndAcceptedAtIsNull(email, pageable);
         
         return invitations.map(invitation -> {
@@ -54,8 +62,8 @@ public class InvitationServiceImpl implements InvitationService {
 
     @Override
     @Transactional
-    public InvitationResponse createInvitation(CreateInvitationRequest request, OAuth2User principal) {
-        String inviterEmail = principal.getAttribute("email");
+    public InvitationResponse createInvitation(CreateInvitationRequest request, Object principal) {
+        String inviterEmail = extractEmail(principal);
         UserEntity inviter = userRepository.findByEmail(inviterEmail)
                 .orElseThrow(() -> new ResourceNotFoundException(USER_NOT_FOUND_BY_EMAIL, inviterEmail));
 
@@ -104,13 +112,15 @@ public class InvitationServiceImpl implements InvitationService {
         log.info("Usuario {} invitó a {} al tenant {} con rol {}", 
                 inviter.getEmail(), request.email(), tenant.getName(), request.role());
 
+        sendInvitationEmail(inviter, tenant, invitation);
+
         return invitationMapper.toResponse(invitation, tenant, inviter);
     }
 
     @Override
     @Transactional
-    public InvitationResponse acceptInvitation(String invitationToken, OAuth2User principal) {
-        String email = principal.getAttribute("email");
+    public InvitationResponse acceptInvitation(String invitationToken, Object principal) {
+        String email = extractEmail(principal);
 
         Invitation invitation = invitationRepository.findByTokenAndAcceptedAtIsNull(invitationToken)
                 .orElseThrow(() -> new ResourceNotFoundException(INVITATION_NOT_FOUND, invitationToken));
@@ -150,8 +160,8 @@ public class InvitationServiceImpl implements InvitationService {
 
     @Override
     @Transactional
-    public void cancelInvitation(UUID invitationId, OAuth2User principal) {
-        String inviterEmail = principal.getAttribute("email");
+    public void cancelInvitation(UUID invitationId, Object principal) {
+        String inviterEmail = extractEmail(principal);
         UserEntity inviter = userRepository.findByEmail(inviterEmail)
                 .orElseThrow(() -> new ResourceNotFoundException(USER_NOT_FOUND_BY_EMAIL, inviterEmail));
 
@@ -170,4 +180,34 @@ public class InvitationServiceImpl implements InvitationService {
         invitationRepository.delete(invitation);
         log.info("Invitación {} cancelada por {}", invitationId, inviter.getEmail());
     }
+
+    private String extractEmail(Object principal) {
+        if (principal instanceof OAuth2User oAuth2User) {
+            return oAuth2User.getAttribute("email");
+        }
+        if (principal instanceof UserDetails userDetails) {
+            return userDetails.getUsername();
+        }
+        if (principal instanceof String email) {
+            return email;
+        }
+        throw new AuthorizationException(UNAUTHORIZED_ACCESS, "Could not extract email from principal");
+    }
+
+    private void sendInvitationEmail(UserEntity inviter, Tenant tenant, Invitation invitation) {
+        String baseUrl = frontendUrl.replace(":9000", ":9200");
+        String acceptUrl = baseUrl + "/#/accept-invitation?token=" + invitation.getToken();
+
+        Map<String, Object> variables = Map.of(
+                "inviterName", inviter.getName(),
+                "tenantName", tenant.getName(),
+                "url", acceptUrl
+        );
+
+        emailService.send(invitation.getEmail(),
+                "Fuiste invitado a unirte a " + tenant.getName() + " en Pymes Admin",
+                "invitation",
+                variables);
+    }
+
 }

@@ -25,23 +25,23 @@ public interface InvitationApi {
     @GetMapping
     ResponseEntity<ApiResponse<Page<InvitationResponse>>> getPendingInvitations(
             Pageable pageable,
-            @AuthenticationPrincipal OAuth2User principal);
+            @AuthenticationPrincipal Object principal);
 
     @Operation(summary = "Crear invitación", description = "Invita a un usuario a un tenant")
     @PostMapping
     ResponseEntity<ApiResponse<InvitationResponse>> createInvitation(
             @Valid @RequestBody CreateInvitationRequest request,
-            @AuthenticationPrincipal OAuth2User principal);
+            @AuthenticationPrincipal Object principal);
 
     @Operation(summary = "Aceptar invitación", description = "Acepta una invitación usando el token")
     @PostMapping(ApiPathConstants.INVITATIONS_ACCEPT)
     ResponseEntity<ApiResponse<InvitationResponse>> acceptInvitation(
             @Valid @RequestBody AcceptInvitationRequest request,
-            @AuthenticationPrincipal OAuth2User principal);
+            @AuthenticationPrincipal Object principal);
 
     @Operation(summary = "Cancelar invitación", description = "Cancela una invitación pendiente")
     @DeleteMapping("/{invitationId}")
     ResponseEntity<ApiResponse<Void>> cancelInvitation(
             @PathVariable UUID invitationId,
-            @AuthenticationPrincipal OAuth2User principal);
+            @AuthenticationPrincipal Object principal);
 }

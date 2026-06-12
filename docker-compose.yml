@@ -10,7 +10,7 @@ services:
     networks:
       - pymes-global-network
     ports:
-      - "${FRONTEND_PORT:-9000}:9000"
+      - "${FRONTEND_PORT:-9200}:9200"
     depends_on:
       gateway:
         condition: service_healthy
@@ -31,11 +31,9 @@ services:
     environment:
       - AUTH_SERVICE_HOST=pymes-auth-service
       - REDIS_HOST=pymes-redis-auth
-      - CORS_ALLOWED_ORIGINS=${CORS_ALLOWED_ORIGINS:-http://localhost:9200}
+      - CORS_ALLOWED_ORIGINS=${CORS_ALLOWED_ORIGINS:-http://localhost:9000}
       - SERVER_PORT=8080
       - JWT_SECRET=${JWT_SECRET:-change-this-secret-key-in-production-minimum-256-bits}
-    env_file:
-      - backend/auth/.env
     depends_on:
       auth-service:
         condition: service_healthy
@@ -58,11 +56,24 @@ services:
     environment:
       - DB_HOST=pymes-postgres-auth
       - DB_PORT=5432
+      - DB_NAME=${DB_NAME}
+      - DB_USERNAME=${DB_USERNAME}
+      - DB_PASSWORD=${DB_PASSWORD}
       - REDIS_HOST=pymes-redis-auth
       - REDIS_PORT=6379
       - SERVER_PORT=8081
-    env_file:
-      - backend/auth/.env
+      - JWT_SECRET=${JWT_SECRET}
+      - JWT_ACCESS_EXPIRATION=${JWT_ACCESS_EXPIRATION}
+      - JWT_REFRESH_EXPIRATION=${JWT_REFRESH_EXPIRATION}
+      - GOOGLE_CLIENT_ID=${GOOGLE_CLIENT_ID}
+      - GOOGLE_CLIENT_SECRET=${GOOGLE_CLIENT_SECRET}
+      - FACEBOOK_CLIENT_ID=${FACEBOOK_CLIENT_ID}
+      - FACEBOOK_CLIENT_SECRET=${FACEBOOK_CLIENT_SECRET}
+      - OAUTH2_REDIRECT_URI=${OAUTH2_REDIRECT_URI}
+      - SPRING_MAIL_HOST=${SPRING_MAIL_HOST}
+      - SPRING_MAIL_PORT=${SPRING_MAIL_PORT}
+      - SPRING_MAIL_USERNAME=${SPRING_MAIL_USERNAME}
+      - SPRING_MAIL_PASSWORD=${SPRING_MAIL_PASSWORD}
     depends_on:
       postgres-auth:
         condition: service_healthy
@@ -82,8 +93,6 @@ services:
     restart: on-failure
     networks:
       - pymes-internal-network
-    env_file:
-      - backend/auth/.env
     environment:
       POSTGRES_DB: ${DB_NAME:?DB_NAME is required}
       POSTGRES_USER: ${DB_USERNAME:?DB_USERNAME is required}

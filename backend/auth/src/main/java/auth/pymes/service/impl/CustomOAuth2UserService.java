@@ -33,19 +33,34 @@ public class CustomOAuth2UserService extends DefaultOAuth2UserService {
         String name = (String) attributes.get("name");
         String picture = getPictureUrl(attributes, registrationId);
 
-        // Buscar o crear el usuario en la base de datos
-        userEntityRepository.findByProviderAndProviderId(authProvider, providerId)
-                .orElseGet(() -> {
-                    UserEntity newUser = UserEntity.builder()
-                            .email(email)
-                            .name(name)
-                            .provider(authProvider)
-                            .providerId(providerId)
-                            .pictureUrl(picture)
-                            .isActive(true)
-                            .build();
-                    return userEntityRepository.save(newUser);
-                });
+        // 1. Buscar por provider + providerId (login OAuth2 normal)
+        UserEntity user = userEntityRepository.findByProviderAndProviderId(authProvider, providerId)
+                .orElse(null);
+
+        if (user == null) {
+            // 2. No encontrado por provider → buscar por email (account linking)
+            user = userEntityRepository.findByEmail(email).orElse(null);
+
+            if (user != null) {
+                // 3. Usuario existe con otro provider → account linking
+                user.setProvider(authProvider);
+                user.setProviderId(providerId);
+                user.setPictureUrl(picture);
+                user.setName(name);
+            } else {
+                // 4. Usuario nuevo → crear
+                user = UserEntity.builder()
+                        .email(email)
+                        .name(name)
+                        .provider(authProvider)
+                        .providerId(providerId)
+                        .pictureUrl(picture)
+                        .isActive(true)
+                        .build();
+            }
+
+            userEntityRepository.save(user);
+        }
 
         return oAuth2User;
     }

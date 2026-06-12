@@ -22,22 +22,18 @@ export default defineRouter(function (/* { store, ssrContext } */) {
   });
 
   // Global Navigation Guard: Protección de rutas Pymeq
-  Router.beforeEach((to, from, next) => {
+  Router.beforeEach((to) => {
     const authStore = useAuthStore();
     const requiresAuth = to.matched.some(record => record.meta.requiresAuth);
 
     if (requiresAuth && !authStore.isAuthenticated) {
       // Si la ruta es protegida y no hay token, al login
-      next({
+      return {
         path: '/login',
         query: { redirect: to.fullPath } // Guardamos a dónde quería ir
-      });
-    } else if (authStore.isAuthenticated && (to.path === '/login' || to.path === '/register')) {
-      // Si ya está logueado e intenta ir al login, al dashboard
-      next('/');
-    } else {
-      next();
+      };
     }
+    // Si no se retorna nada o se retorna undefined, la navegación continúa normalmente
   });
 
   return Router;

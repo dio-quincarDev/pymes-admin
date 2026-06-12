@@ -111,7 +111,7 @@ public class JwtServiceImpl implements JwtService {
             return new ValidatedToken(userId, tenantId, role, email);
 
         } catch (ExpiredJwtException e) {
-            log.error("Token JWT expirado: {}", e.getMessage());
+            log.debug("Token JWT expirado: {}", e.getMessage());
             throw new TokenExpiredException();
         } catch (SignatureException e) {
             log.error("Firma JWT inválida: {}", e.getMessage());

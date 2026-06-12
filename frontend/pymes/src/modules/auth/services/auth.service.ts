@@ -22,11 +22,27 @@ export const authService = {
     return api.post('/auth/refresh', { refreshToken: token });
   },
 
-  verifyEmail(token: string) {
-    return api.post('/auth/verify-email', { token });
+  verifyEmail(token: string, email: string) {
+    return api.post('/auth/verify-email', { token, email });
   },
 
   resendVerification(email: string) {
     return api.post('/auth/resend-verification', { email });
+  },
+
+  createOAuth2Intent(data: { companyName: string; companySlug: string }) {
+    return api.post('/auth/oauth2/intent', data);
+  },
+
+  forgotPassword(email: string) {
+    return api.post('/auth/forgot-password', { email });
+  },
+
+  resetPassword(data: { token: string; newPassword: string }) {
+    return api.post('/auth/reset-password', data);
+  },
+
+  acceptInvitation(invitationToken: string) {
+    return api.post('/invitations/accept', { invitationToken });
   }
 };

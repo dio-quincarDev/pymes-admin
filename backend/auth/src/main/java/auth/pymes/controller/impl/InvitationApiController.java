@@ -25,28 +25,28 @@ public class InvitationApiController implements InvitationApi {
 
     @Override
     public ResponseEntity<ApiResponse<Page<InvitationResponse>>> getPendingInvitations(
-            Pageable pageable, OAuth2User principal) {
+            Pageable pageable, Object principal) {
         Page<InvitationResponse> invitations = invitationService.getPendingInvitations(pageable, principal);
         return ResponseEntity.ok(ApiResponse.ok(invitations));
     }
 
     @Override
     public ResponseEntity<ApiResponse<InvitationResponse>> createInvitation(
-            CreateInvitationRequest request, OAuth2User principal) {
+            CreateInvitationRequest request, Object principal) {
         InvitationResponse response = invitationService.createInvitation(request, principal);
         return ResponseEntity.ok(ApiResponse.ok(response));
     }
 
     @Override
     public ResponseEntity<ApiResponse<InvitationResponse>> acceptInvitation(
-            AcceptInvitationRequest request, OAuth2User principal) {
+            AcceptInvitationRequest request, Object principal) {
         InvitationResponse response = invitationService.acceptInvitation(request.invitationToken(), principal);
         return ResponseEntity.ok(ApiResponse.ok(response));
     }
 
     @Override
     public ResponseEntity<ApiResponse<Void>> cancelInvitation(
-            UUID invitationId, OAuth2User principal) {
+            UUID invitationId, Object principal) {
         invitationService.cancelInvitation(invitationId, principal);
         return ResponseEntity.ok(ApiResponse.ok());
     }

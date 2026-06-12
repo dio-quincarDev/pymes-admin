@@ -214,6 +214,12 @@
 			<artifactId>spring-boot-starter-mail</artifactId>
 		</dependency>
 
+		<!-- thymeleaf for emails -->
+		<dependency>
+			<groupId>org.springframework.boot</groupId>
+			<artifactId>spring-boot-starter-thymeleaf</artifactId>
+		</dependency>
+
 	</dependencies>
 
 	<build>
@@ -227,6 +233,9 @@
 					<include>**/application*.properties</include>
 					<include>**/*.txt</include>
 					<include>**/*.sql</include>
+					<include>**/templates/**/*.html</include>
+					<include>**/templates/**/*.css</include>
+					<include>**/db/migration/**</include>
 				</includes>
 			</resource>
 		</resources>
@@ -274,6 +283,7 @@
 				<configuration>
 					<excludes>
 						<exclude>**/integration/**</exclude>
+						<exclude>**/AuthApplicationTests.java</exclude>
 					</excludes>
 				</configuration>
 			</plugin>

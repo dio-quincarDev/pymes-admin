@@ -1,65 +1,64 @@
 package auth.pymes.integration;
 
-import jakarta.mail.Session;
-import jakarta.mail.internet.MimeMessage;
+import auth.pymes.service.EmailService;
 import org.junit.jupiter.api.BeforeEach;
+import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.boot.test.context.SpringBootTest;
-import org.springframework.boot.test.mock.mockito.MockBean;
-import org.springframework.mail.javamail.JavaMailSender;
+import org.springframework.boot.testcontainers.service.connection.ServiceConnection;
 import org.springframework.test.context.ActiveProfiles;
 import org.springframework.test.context.DynamicPropertyRegistry;
 import org.springframework.test.context.DynamicPropertySource;
+import org.springframework.test.context.bean.override.mockito.MockitoBean;
 import org.testcontainers.containers.GenericContainer;
 import org.testcontainers.containers.PostgreSQLContainer;
-import org.testcontainers.junit.jupiter.Container;
-import org.testcontainers.junit.jupiter.Testcontainers;
 import org.testcontainers.utility.DockerImageName;
 
-import java.util.Properties;
-
-import static org.mockito.ArgumentMatchers.any;
+import static org.mockito.ArgumentMatchers.anyMap;
+import static org.mockito.ArgumentMatchers.anyString;
 import static org.mockito.Mockito.doNothing;
-import static org.mockito.Mockito.mock;
-import static org.mockito.Mockito.when;
 
-@Testcontainers
-@SpringBootTest(webEnvironment = SpringBootTest.WebEnvironment.RANDOM_PORT)
 @ActiveProfiles("integration")
+@SpringBootTest(webEnvironment = SpringBootTest.WebEnvironment.RANDOM_PORT)
 public abstract class AbstractIntegrationTest {
 
-    @MockBean
-    private JavaMailSender mailSender;
+    @MockitoBean
+    protected EmailService emailService;
 
-    private static Session mockSession;
-
-    @Container
     static PostgreSQLContainer<?> postgres = new PostgreSQLContainer<>(DockerImageName.parse("postgres:15-alpine"))
             .withDatabaseName("testdb")
             .withUsername("test")
             .withPassword("test");
 
-    @Container
+    @ServiceConnection(name = "redis")
     static GenericContainer<?> redis = new GenericContainer<>(DockerImageName.parse("redis:7-alpine"))
             .withExposedPorts(6379);
 
+    static {
+        postgres.start();
+        redis.start();
+    }
+
     @DynamicPropertySource
     static void registerProperties(DynamicPropertyRegistry registry) {
-        registry.add("spring.datasource.url", postgres::getJdbcUrl);
+        String jdbcUrl = postgres.getJdbcUrl();
+        String urlWithSchema = jdbcUrl.contains("?") ? jdbcUrl + "&currentSchema=auth" : jdbcUrl + "?currentSchema=auth";
+        registry.add("spring.datasource.url", () -> urlWithSchema);
         registry.add("spring.datasource.username", postgres::getUsername);
         registry.add("spring.datasource.password", postgres::getPassword);
-        registry.add("spring.data.redis.host", redis::getHost);
-        registry.add("spring.data.redis.port", redis::getFirstMappedPort);
+        registry.add("spring.jpa.properties.hibernate.default_schema", () -> "auth");
+        registry.add("management.health.redis.enabled", () -> "false");
+        registry.add("spring.data.redis.lettuce.shutdown-timeout", () -> "0ms");
     }
+
+    @Autowired
+    protected org.springframework.data.redis.core.RedisTemplate<String, Object> redisTemplate;
 
     @BeforeEach
     void setUpMailMock() {
-        Properties props = new Properties();
-        props.put("mail.smtp.host", "localhost");
-        props.put("mail.smtp.port", "25");
-        mockSession = Session.getInstance(props);
+        doNothing().when(emailService).send(anyString(), anyString(), anyString(), anyMap());
+    }
 
-        MimeMessage mockMimeMessage = new MimeMessage(mockSession);
-        when(mailSender.createMimeMessage()).thenReturn(mockMimeMessage);
-        doNothing().when(mailSender).send(any(MimeMessage.class));
+    protected void flushRedis() {
+        redisTemplate.getConnectionFactory().getConnection().serverCommands().flushAll();
     }
 }

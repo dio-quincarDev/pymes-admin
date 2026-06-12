@@ -1,8 +1,9 @@
-// Quasar SCSS (& Sass) Variables
+// Quasar SCSS Variables
 // --------------------------------------------------
-
 // Fintech Design System: Deep Forest & Copper
-$primary   : #A3785E; // Brand Copper
+
+// Paleta de Colores (60/30/10 Rule)
+$primary   : #A3785E; // Brand Copper (Acento 10%)
 $secondary : #E2E8E4; // Parchment (Texto/Valores)
 $accent    : #71837F; // Sage Muted (Soporte/Hover)
 
@@ -16,3 +17,59 @@ $warning   : #C5A059; // Gold/Copper Muted
 
 // Custom Spacing & Gutter
 $grid-gutter: 40px;
+
+// --------------------------------------------------
+// Design Tokens: Spacing System (8px base) - Prefixed to avoid collision
+// --------------------------------------------------
+$pq-space-4xs: 4px;
+$pq-space-3xs: 6px;
+$pq-space-2xs: 8px;
+$pq-space-xs: 12px;
+$pq-space-sm: 16px;
+$pq-space-md: 24px;
+$pq-space-lg: 32px;
+$pq-space-xl: 40px;
+$pq-space-2xl: 48px;
+$pq-space-3xl: 64px;
+
+// --------------------------------------------------
+// Design Tokens: Border Radius
+// --------------------------------------------------
+$pq-radius-2xs: 2px;
+$pq-radius-xs: 4px;
+$pq-radius-sm: 6px;
+$pq-radius-md: 8px;
+$pq-radius-lg: 12px;
+$pq-radius-xl: 16px;
+$pq-radius-2xl: 20px;
+$pq-radius-full: 9999px;
+
+// --------------------------------------------------
+// Design Tokens: Shadows
+// --------------------------------------------------
+$shadow-subtle: 0 2px 8px rgba(0, 0, 0, 0.15);
+$shadow-sm: 0 4px 10px rgba(0, 0, 0, 0.3);
+$shadow-md: 0 10px 30px rgba(0, 0, 0, 0.2);
+$shadow-lg: 0 20px 50px rgba(0, 0, 0, 0.25);
+$shadow-brand: 0 0 15px rgba(163, 120, 94, 0.3);
+$shadow-brand-hover: 0 0 20px rgba(163, 120, 94, 0.5);
+
+// --------------------------------------------------
+// Design Tokens: Transitions
+// --------------------------------------------------
+$transition-fast: 0.15s ease;
+$transition-base: 0.2s cubic-bezier(0.4, 0, 0.2, 1);
+$transition-smooth: 0.3s cubic-bezier(0.4, 0, 0.2, 1);
+$transition-slow: 0.4s ease;
+
+// --------------------------------------------------
+// Design Tokens: Z-Index Scale
+// --------------------------------------------------
+$z-base: 1;
+$z-dropdown: 100;
+$z-sticky: 200;
+$z-fixed: 300;
+$z-modal-backdrop: 400;
+$z-modal: 500;
+$z-popover: 600;
+$z-tooltip: 700;
