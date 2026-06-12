@@ -15,7 +15,7 @@ spring:
   cloud:
     gateway:
       routes:
-        # Auth Service Route (API v1)
+        # Auth Service Route (API v1) — requiere autenticación
         - id: auth-service-api
           uri: http://${AUTH_SERVICE_HOST}:8081
           predicates:
@@ -24,20 +24,19 @@ spring:
             - PreserveHostHeader
             - AuthenticationFilter
 
-        # Auth Service Route (OAuth2 & Login standards)
+        # Auth Service Route (OAuth2 & Login) — rutas públicas de entrada
         - id: auth-service-oauth2
           uri: http://${AUTH_SERVICE_HOST}:8081
           predicates:
             - Path=/oauth2/**, /login/oauth2/**, /login/**, /v3/api-docs/auth
           filters:
             - PreserveHostHeader
-            # NO usamos AuthenticationFilter aquí porque son rutas de entrada/login
-
+            # Sin AuthenticationFilter — son rutas públicas de entrada/login
       globalcors:
         add-to-simple-url-handler-mapping: true
         cors-configurations:
           '[/**]':
-            allowed-origin-patterns: "http://localhost:9*"
+            allowed-origin-patterns: "${CORS_ALLOWED_ORIGINS}"
             allowed-methods: "*"
             allowed-headers: "*"
             allow-credentials: true
