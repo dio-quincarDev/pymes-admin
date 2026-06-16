@@ -1,4 +1,4 @@
-# 📄 Estado del Frontend - Pymeq (04 de Mayo, 2026)
+# 📄 Estado del Frontend - Pymeq (16 de Junio, 2026)
 
 ## 🎯 Resumen de la Identidad Visual y Arquitectura
 Se ha consolidado la identidad de **SaaS Fintech** bajo el nombre **PYMEQ**, centrada en un flujo de usuario simplificado y un diseño minimalista de alta gama.
@@ -117,61 +117,106 @@ emulator @Pixel_7 &
 
 ---
 
-## 📋 Acciones Pendientes
+## 📋 Acciones Pendientes (Actualizado 16 de Junio, 2026)
 
 1. **Reconstruir estructura Android:** Eliminar y recrear proyecto Capacitor desde cero
 2. **Verificar repo Gradle:** Asegurar que `google()` y `mavenCentral()` estén accesibles
 3. **Probar con Android Studio:** Usar `--ide` para verificar desde el IDE
+4. **Aplicar mejoras de auditoría frontend:** Ver sección "Roadmap de Mejoras" más abajo (A, B, C, D)
 
 ---
 
-## 🎨 Roadmap de Modernización UX - PWA
+## 📋 Roadmap de Mejoras (16 de Junio, 2026)
 
-### 1. Modernización del Flujo de Usuario
-**Prioridad:** Alta
+> Auditoría completa del frontend. Fuente: skills `quasar-skilld` (v2.19.3), `vue-best-practices`, `frontend-design`.
 
-**Objetivos:**
-- Simplificar onboarding (reducir pasos)
-- Feedback visual inmediato en todas las acciones
-- Micro-interacciones para mejorar engagement
-- Estados de carga más intuitivos
-- Manejo de errores más amigable y contextual
+---
 
-### 2. Tipografía Moderna
-**Prioridad:** Alta
+### A. Quasar Upgrade Readiness (v2.19.3)
 
-**Objetivos:**
-- Migrar a tipografía más legible (ej: Inter, Roboto, Nunito)
-- Escalar mejor en móvil (responsive typography)
-- Mejorar jerarquía visual
-- Reducir tamaño de fuentes en elementos no críticos
-- Implementar fluid typography (tamaños dinámicos)
+Items necesarios para alinear con Quasar 2.19.3 — evitar deprecaciones y adoptar nuevas APIs.
 
-### 3. Botones y Componentes
-**Prioridad:** Alta
+| # | Item | Justificacion | Prioridad | Archivos Afectados |
+|---|---|---|---|---|
+| A.1 | Reemplazar `content-class`/`content-style` por `class`/`style` en QDrawer/QDialog/QMenu/QTooltip | Deprecado — en actualizaciones futuras dejara de funcionar | Alta | `MainLayout.vue` (QDrawer) |
+| A.2 | Adoptar `useMeta` composable para meta tags | Reemplaza la property `meta` en componentes (deprecada) | Media | `IndexPage.vue`, `LoginPage.vue` |
+| A.3 | Integrar Regle para validacion de QInput/QField | Validacion robusta y externalizada vs. validacion inline manual | Media | `LoginPage.vue`, `RegisterPage.vue`, `ForgotPasswordPage.vue`, `ResetPasswordPage.vue` |
+| A.4 | Agregar Loading Bar Plugin | Progreso global Ajax sin instanciar QAjaxBar manualmente | Baja | `quasar.config.ts`, `boot/axios.ts` |
+| A.5 | Auditar QImg por props deprecadas | `transition`, `basic`, `no-default-spinner` estan deprecados | Baja | Componentes con QImg |
+| A.6 | Auditar QScrollArea por API cambiada | `getScrollPosition` devuelve `{top, left}`, `setScrollPosition` requiere `axis` | Baja | Componentes con QScrollArea |
 
-**Objetivos:**
-- Modernizar diseño de botones (más espacio, bordes redondeados)
-- Estados claros: default, hover, active, disabled, loading
-- Animaciones sutiles en interacción (ripple effect, scale)
-- Botones primarios y secundarios más diferenciados
-- CTAs más prominentes y attractivos
+---
 
-### 4. Tokens de Diseño (Design Tokens)
-**Prioridad:** Media
+### B. Vue Best Practices / Arquitectura
 
-**Objetivos:**
-- Consolidar variables CSS para colores, espaciado, tipografía
-- Facilitar theming futuro (light/dark mode preparado)
-- Implementar spacing system consistente (4px base)
+Mejoras de mantenibilidad, composables, y estructura de componentes.
 
-### 5. Animaciones y Micro-interacciones
-**Prioridad:** Media
+| # | Item | Justificacion | Prioridad | Archivos Afectados |
+|---|---|---|---|---|
+| B.1 | Crear directorio `src/composables/` | Logica compartida (formularios, errores, auth) no tiene composables — todo esta en componentes | Alta | Nuevo: `composables/useAuthForm.ts`, `useAuthError.ts` |
+| B.2 | Dividir `DashboardPage.vue` | 3+ secciones (stats, accion principal, actividad) — viola single-responsibility | Alta | `DashboardPage.vue` → `components/dashboard/DashboardStats.vue`, `DashboardActionCard.vue`, `RecentActivity.vue` |
+| B.3 | Dividir `IndexPage.vue` | Fusiona hero, feature grid (4 cards), trust section | Alta | `IndexPage.vue` → `components/landing/LandingHero.vue`, `FeatureGrid.vue`, `TrustSection.vue` |
+| B.4 | Eliminar scaffold remnants | `EssentialLink.vue`, `ExampleComponent.vue`, `models.ts`, `example-store.ts` — codigo muerto | Alta | 4 archivos a eliminar |
+| B.5 | Consolidar SkeletonLoader + BaseSkeleton | Ambos tienen overlap en variantes/tipos — BaseSkeleton podria ser interno de SkeletonLoader | Media | `BaseSkeleton.vue`, `SkeletonLoader.vue` |
+| B.6 | Extraer composable `useLogout()` | Logica de logout (authStore.logout + Notify + router) duplicada en MainLayout y potencialmente otros lados | Media | Nuevo: `composables/useLogout.ts` |
+| B.7 | Type-safe `ref()` con genericos | Varios `ref('')` sin tipo explicito — en strict mode `ref<string>('')` es mas seguro | Baja | Paginas de auth module |
+| B.8 | Eliminar delays simulados en SkeletonLoader | Delays fijos (600-800ms) crean percepcion de lentitud innecesaria — usar estado real de carga | Baja | `LoginPage.vue`, `ForgotPasswordPage.vue`, `VerifyEmailPage.vue` |
 
-**Objetivos:**
-- Transiciones suaves entre páginas
-- Loading skeletons en lugar de spinners
-- Animaciones de entrada/salida de componentes
+---
+
+### C. Frontend Design / Identidad Visual
+
+Mejoras de calidad visual, tipografia, interaccion, y experiencia.
+
+| # | Item | Justificacion | Prioridad |
+|---|---|---|---|
+| C.1 | Cambiar tipografia de Inter a una mas distintiva | Inter esta clasificado como "generic AI font" — proponer pairing Satoshi (display) + HK Grotesk (body) o Instrument Sans + Source Serif 4 | Alta |
+| C.2 | Agregar micro-interacciones en botones | BaseButton solo tiene `active: scale(0.97)` — agregar ripple effect, transicion de fondo en hover, estado focus mas visible | Alta |
+| C.3 | Scroll-triggered animations en landing | Hero actual es estatico — agregar staggered reveal en secciones con IntersectionObserver composable | Media |
+| C.4 | Refinar glassmorphism con grain texture | `.glass` usa `rgba(255,255,255,0.05)` muy sutil — agregar noise texture SVG (grain overlay) para dar textura atmosferica | Media |
+| C.5 | Brand loading screen entre rutas protegidas | No hay transicion de carga — splash con logo mesh-gradient y animacion de respiracion | Media |
+| C.6 | Empty states con ilustracion | Dashboard muestra datos dummy — componente `EmptyState.vue` con ilustracion mesh-gradient + copy generico | Media |
+| C.7 | Refinar fondo de AuthLayout | 100vh + centered box funcional pero generico — patron geometrico sutil o gradient mesh mas dramatico | Baja |
+| C.8 | Auditar jerarquia tipografica | No hay clases tipograficas semanticas (`.text-display`, `.text-title`, `.text-body`) en app.scss | Baja |
+
+---
+
+### D. Estructura y Arquitectura
+
+| # | Item | Justificacion | Prioridad |
+|---|---|---|---|
+| D.1 | Crear `.env.example` y validar variables de entorno | No existe `.env` — `API_URL` se resuelve a `localhost` si `process.env.API_URL` es undefined | Media |
+| D.2 | API service layer centralizado | `auth.module/services/` vive dentro del modulo — para escalar, crear `src/services/` base que module-specific services extiendan | Baja |
+| D.3 | Confirmar decision hash routing | Hash routing correcto segun AGENTS.md, pero limita SSR futuro — documentar decision arquitectonica | Baja |
+
+---
+
+### Prioridad de Implementacion Sugerida
+
+**Fase 1 — Quick wins (1-2 dias)**
+- B.4 Eliminar scaffold remnants
+- B.1 Crear composables
+- B.6 Composable `useLogout()`
+- B.7 Type-safe `ref()`
+
+**Fase 2 — Arquitectura (3-5 dias)**
+- B.2 Dividir DashboardPage
+- B.3 Dividir IndexPage
+- B.5 Consolidar skeletons
+- D.1 Crear `.env.example`
+
+**Fase 3 — Quasar upgrade prep (2-3 dias)**
+- A.1 content-class → class/style
+- A.2 useMeta composable
+- A.3 Regle para validacion
+
+**Fase 4 — Visual polish (3-5 dias)**
+- C.1 Cambio tipografico
+- C.2 Micro-interacciones en botones
+- C.3 Scroll animations en landing
+- C.4 Grain texture en glassmorphism
+- C.5 Brand loading screen
+- C.6 Empty states
 
 ---
 
@@ -189,5 +234,5 @@ emulator @Pixel_7 &
 - **Problema Detectado:** Inconsistencia persistente en `npm ci` dentro del contenedor a pesar de la sincronización local.
 - **Acción:** Forzar reconstrucción limpia y verificación de caché del demonio de Docker.
 
-*Última actualización: 08 de Mayo, 2026 14:40*
+*Última actualización: 16 de Junio, 2026*
   

@@ -33,3 +33,8 @@ nginx-proxy-manager/
 tmp/
 temp/
 *.tmp
+
+# Agent instruction files (local-only)
+AGENTS.md
+.opencode/
+.agents/
