@@ -8,6 +8,7 @@
       { 'is-loading': loading, 'is-disabled': disabled }
     ]"
     :disabled="disabled || loading"
+    :aria-busy="loading || undefined"
     v-bind="$attrs"
     @click="handleClick"
   >
@@ -65,22 +66,39 @@ const handleClick = (e: MouseEvent) => {
   align-items: center;
   justify-content: center;
   gap: 8px;
-  font-family: inherit;
+  font-family: 'Outfit', 'Source Sans 3', sans-serif;
   font-weight: 600;
   cursor: pointer;
   border: none;
   border-radius: 6px;
-  transition: all 0.2s cubic-bezier(0.4, 0, 0.2, 1);
+  transition: all 0.25s cubic-bezier(0.4, 0, 0.2, 1);
   position: relative;
   overflow: hidden;
 
+  // Ripple effect
+  &::after {
+    content: '';
+    position: absolute;
+    inset: 0;
+    background: radial-gradient(circle at var(--ripple-x, 50%) var(--ripple-y, 50%), rgba(255, 255, 255, 0.3) 0%, transparent 60%);
+    opacity: 0;
+    transition: opacity 0.4s ease;
+    pointer-events: none;
+  }
+
+  &:active:not(.is-disabled)::after {
+    opacity: 1;
+    transition: opacity 0s;
+  }
+
   &:focus-visible {
     outline: 2px solid $primary;
-    outline-offset: 2px;
+    outline-offset: 3px;
+    box-shadow: 0 0 0 6px rgba(163, 120, 94, 0.15);
   }
 
   &:active:not(.is-disabled) {
-    transform: scale(0.96);
+    transform: scale(0.97);
   }
 
   &.is-disabled {
@@ -112,13 +130,14 @@ const handleClick = (e: MouseEvent) => {
 
   // Variants
   &.variant-primary {
-    background: $primary;
+    background: linear-gradient(135deg, $primary 0%, #B08A6F 100%);
     color: white;
-    box-shadow: 0 0 15px rgba(163, 120, 94, 0.3);
+    box-shadow: 0 2px 12px rgba(163, 120, 94, 0.3);
 
     &:hover:not(.is-disabled) {
-      background: #B08A6F;
-      box-shadow: 0 0 20px rgba(163, 120, 94, 0.5);
+      background: linear-gradient(135deg, #B08A6F 0%, #C5A07A 100%);
+      box-shadow: 0 4px 20px rgba(163, 120, 94, 0.5);
+      transform: translateY(-1px);
     }
   }
 
@@ -129,7 +148,8 @@ const handleClick = (e: MouseEvent) => {
 
     &:hover:not(.is-disabled) {
       background: rgba(27, 38, 36, 0.9);
-      border-color: rgba(163, 120, 94, 0.3);
+      border-color: rgba(163, 120, 94, 0.4);
+      transform: translateY(-1px);
     }
   }
 
@@ -138,26 +158,28 @@ const handleClick = (e: MouseEvent) => {
     color: $accent;
 
     &:hover:not(.is-disabled) {
-      background: rgba(113, 131, 127, 0.1);
+      background: rgba(113, 131, 127, 0.12);
       color: $secondary;
     }
   }
 
   &.variant-danger {
-    background: $negative;
+    background: linear-gradient(135deg, $negative 0%, #A0522D 100%);
     color: white;
 
     &:hover:not(.is-disabled) {
-      background: #7A3D11;
+      background: linear-gradient(135deg, #A0522D 0%, #B8653A 100%);
+      transform: translateY(-1px);
     }
   }
 
   &.variant-success {
-    background: $positive;
+    background: linear-gradient(135deg, $positive 0%, #3A7A33 100%);
     color: white;
 
     &:hover:not(.is-disabled) {
-      background: #254D22;
+      background: linear-gradient(135deg, #3A7A33 0%, #4A9A42 100%);
+      transform: translateY(-1px);
     }
   }
 

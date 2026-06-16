@@ -10,10 +10,10 @@
         <q-space />
 
         <!-- Navigation Links: Hidden on extra small screens only -->
-        <div class="gt-xs row items-center gap-md q-mr-md">
+        <nav class="gt-xs row items-center gap-md q-mr-md" aria-label="Navegación principal">
           <BaseButton variant="ghost" size="sm" @click="scrollTo('features')">Funciones</BaseButton>
           <BaseButton variant="ghost" size="sm" @click="scrollTo('trust')">Sectores</BaseButton>
-        </div>
+        </nav>
 
         <BaseButton 
           variant="primary" 
@@ -27,11 +27,13 @@
     </q-header>
 
     <q-page-container>
+      <main>
       <router-view v-slot="{ Component }">
         <transition name="fade" mode="out-in">
           <component :is="Component" />
         </transition>
       </router-view>
+      </main>
     </q-page-container>
 
     <!-- Footer: More compact and focused -->
@@ -51,8 +53,8 @@
           </div>
           <div class="col-12 col-md-4 text-center text-md-right">
              <div class="row justify-center justify-md-end gap-sm">
-                <BaseButton variant="ghost" size="xs">Legal</BaseButton>
-                <BaseButton variant="ghost" size="xs">Contacto</BaseButton>
+                <BaseButton variant="ghost" size="xs" aria-disabled="true">Legal</BaseButton>
+                <BaseButton variant="ghost" size="xs" aria-disabled="true">Contacto</BaseButton>
              </div>
           </div>
         </div>

@@ -47,7 +47,12 @@
                 :name="showPassword ? 'visibility' : 'visibility_off'"
                 class="cursor-pointer"
                 color="primary"
+                role="button"
+                tabindex="0"
+                :aria-label="showPassword ? 'Ocultar contraseña' : 'Mostrar contraseña'"
                 @click="showPassword = !showPassword"
+                @keydown.enter="showPassword = !showPassword"
+                @keydown.space.prevent="showPassword = !showPassword"
               />
             </template>
           </q-input>
@@ -69,7 +74,12 @@
                 :name="showConfirmPassword ? 'visibility' : 'visibility_off'"
                 class="cursor-pointer"
                 color="primary"
+                role="button"
+                tabindex="0"
+                :aria-label="showConfirmPassword ? 'Ocultar confirmación' : 'Mostrar confirmación'"
                 @click="showConfirmPassword = !showConfirmPassword"
+                @keydown.enter="showConfirmPassword = !showConfirmPassword"
+                @keydown.space.prevent="showConfirmPassword = !showConfirmPassword"
               />
             </template>
           </q-input>
@@ -117,11 +127,15 @@
 
 <script setup lang="ts">
 import { reactive, ref, onMounted, watch } from 'vue';
+import { useMeta } from 'quasar';
+
+useMeta({ title: 'Registro — PYMEQ' });
 import { useAuthStore } from '../store';
 import { useQuasar } from 'quasar';
 import { useRouter } from 'vue-router';
 import { storeToRefs } from 'pinia';
 import { authService } from '../services/auth.service';
+import { useAuthForm } from 'src/composables/useAuthForm';
 import BaseCard from 'src/components/base/BaseCard.vue';
 import BaseButton from 'src/components/base/BaseButton.vue';
 import SkeletonLoader from 'src/components/ui/SkeletonLoader.vue';
@@ -130,12 +144,9 @@ const authStore = useAuthStore();
 const { pendingTenant } = storeToRefs(authStore);
 const $q = useQuasar();
 const router = useRouter();
+const { loading, initialLoading, showPassword, showConfirmPassword } = useAuthForm();
 
-const loading = ref(false);
-const initialLoading = ref(true);
 const confirmPasswordError = ref('');
-const showPassword = ref(false);
-const showConfirmPassword = ref(false);
 
 const registerForm = reactive({
   name: '',
@@ -164,9 +175,6 @@ onMounted(() => {
   if (!pendingTenant.value) {
     void router.push('/');
   }
-  setTimeout(() => {
-    initialLoading.value = false;
-  }, 800);
 });
 
 const goBackToHome = () => {
@@ -254,21 +262,5 @@ const handleOAuth2Login = async (provider: 'google') => {
 
 .letter-spacing-1 {
   letter-spacing: 1px;
-}
-
-:deep(.q-field--filled .q-field__control) {
-  background: rgba(0, 0, 0, 0.2);
-  border: 1px solid rgba(113, 131, 127, 0.1);
-  transition: all 0.2s ease;
-  
-  &:hover {
-    background: rgba(0, 0, 0, 0.3);
-    border-color: rgba(163, 120, 94, 0.3);
-  }
-}
-
-:deep(.q-field--focused .q-field__control) {
-  border-color: $primary;
-  box-shadow: 0 0 10px rgba(163, 120, 94, 0.2);
 }
 </style>

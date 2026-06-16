@@ -23,7 +23,12 @@
                 :name="showPassword ? 'visibility' : 'visibility_off'"
                 class="cursor-pointer"
                 color="primary"
+                role="button"
+                tabindex="0"
+                :aria-label="showPassword ? 'Ocultar contraseña' : 'Mostrar contraseña'"
                 @click="showPassword = !showPassword"
+                @keydown.enter="showPassword = !showPassword"
+                @keydown.space.prevent="showPassword = !showPassword"
               />
             </template>
           </q-input>
@@ -45,7 +50,12 @@
                 :name="showConfirmPassword ? 'visibility' : 'visibility_off'"
                 class="cursor-pointer"
                 color="primary"
+                role="button"
+                tabindex="0"
+                :aria-label="showConfirmPassword ? 'Ocultar confirmación' : 'Mostrar confirmación'"
                 @click="showConfirmPassword = !showConfirmPassword"
+                @keydown.enter="showConfirmPassword = !showConfirmPassword"
+                @keydown.space.prevent="showConfirmPassword = !showConfirmPassword"
               />
             </template>
           </q-input>
@@ -69,10 +79,14 @@
 </template>
 
 <script setup lang="ts">
-import { ref, reactive, computed, onMounted } from 'vue';
+import { reactive, computed, onMounted } from 'vue';
+import { useMeta } from 'quasar';
+
+useMeta({ title: 'Nueva Contraseña — PYMEQ' });
 import { useRoute, useRouter } from 'vue-router';
 import { useQuasar } from 'quasar';
 import { authService } from '../services/auth.service';
+import { useAuthForm } from 'src/composables/useAuthForm';
 import BaseCard from 'src/components/base/BaseCard.vue';
 import BaseButton from 'src/components/base/BaseButton.vue';
 import SkeletonLoader from 'src/components/ui/SkeletonLoader.vue';
@@ -80,14 +94,10 @@ import SkeletonLoader from 'src/components/ui/SkeletonLoader.vue';
 const route = useRoute();
 const router = useRouter();
 const $q = useQuasar();
+const { loading, initialLoading, showPassword, showConfirmPassword } = useAuthForm(600);
 
 const token = route.query.token as string;
 const email = route.query.email as string;
-
-const loading = ref(false);
-const initialLoading = ref(true);
-const showPassword = ref(false);
-const showConfirmPassword = ref(false);
 
 const passwordForm = reactive({
   password: '',
@@ -106,12 +116,7 @@ onMounted(() => {
       caption: 'Faltan parámetros de seguridad'
     });
     void router.push('/login');
-    return;
   }
-  
-  setTimeout(() => {
-    initialLoading.value = false;
-  }, 600);
 });
 
 const handleResetPassword = async () => {
@@ -147,21 +152,5 @@ const handleResetPassword = async () => {
 <style lang="scss" scoped>
 .reset-password-page-wrapper {
   width: 100%;
-}
-
-:deep(.q-field--filled .q-field__control) {
-  background: rgba(0, 0, 0, 0.2);
-  border: 1px solid rgba(113, 131, 127, 0.1);
-  transition: all 0.2s ease;
-  
-  &:hover {
-    background: rgba(0, 0, 0, 0.3);
-    border-color: rgba(163, 120, 94, 0.3);
-  }
-}
-
-:deep(.q-field--focused .q-field__control) {
-  border-color: $primary;
-  box-shadow: 0 0 10px rgba(163, 120, 94, 0.2);
 }
 </style>

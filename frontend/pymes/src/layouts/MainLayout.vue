@@ -7,6 +7,7 @@
           variant="ghost"
           icon-left="menu"
           class="q-mr-sm"
+          aria-label="Abrir menú"
           @click="toggleLeftDrawer"
         />
 
@@ -17,9 +18,9 @@
 
         <div class="row items-center gap-sm">
           <div class="text-caption text-accent hide-mobile">v0.1.0</div>
-          <q-btn round flat>
+          <q-btn round flat aria-label="Menú de usuario" aria-haspopup="menu">
             <q-avatar size="32px">
-              <img src="https://cdn.quasar.dev/img/avatar.png">
+              <img src="https://cdn.quasar.dev/img/avatar.png" alt="" aria-hidden="true">
             </q-avatar>
             <q-menu dark class="bg-surface-pine border-light">
               <q-list style="min-width: 200px">
@@ -53,7 +54,7 @@
       <div class="column full-height">
         <div class="q-pa-lg">
           <div class="text-overline text-accent q-mb-md">Menú Principal</div>
-          <q-list class="q-gutter-y-xs">
+          <q-list class="q-gutter-y-xs" role="navigation" aria-label="Menú principal">
             <q-item
               v-for="link in linksList"
               :key="link.title"
@@ -92,13 +93,13 @@
 
     <!-- Main Workspace -->
     <q-page-container class="bg-forest-deep">
-      <div class="q-pa-lg q-pa-md-xl" style="max-width: 1400px; margin: 0 auto">
+      <main class="q-pa-lg q-pa-md-xl" style="max-width: 1400px; margin: 0 auto">
         <router-view v-slot="{ Component }">
           <transition name="fade" mode="out-in">
             <component :is="Component" />
           </transition>
         </router-view>
-      </div>
+      </main>
     </q-page-container>
   </q-layout>
 </template>
@@ -106,15 +107,15 @@
 <script setup lang="ts">
 import { ref, onMounted, computed } from 'vue';
 import { useQuasar } from 'quasar';
-import { useAuthStore } from 'src/modules/auth/store';
-import { useRouter, useRoute } from 'vue-router';
+import { useRoute, useRouter } from 'vue-router';
+import { useLogout } from 'src/composables/useLogout';
 import BaseButton from 'src/components/base/BaseButton.vue';
 import BaseCard from 'src/components/base/BaseCard.vue';
 
 const $q = useQuasar();
-const authStore = useAuthStore();
-const router = useRouter();
 const route = useRoute();
+const router = useRouter();
+const { logout: handleLogout } = useLogout();
 
 const leftDrawerOpen = ref(false);
 const activeRoute = computed(() => route.path);
@@ -122,23 +123,6 @@ const activeRoute = computed(() => route.path);
 onMounted(() => {
   $q.dark.set(true);
 });
-
-const handleLogout = async () => {
-  try {
-    const response = await authStore.logout();
-    const allSessions = response?.data?.allSessionsRevoked;
-
-    $q.notify({
-      type: 'info',
-      message: allSessions ? 'Todas las sesiones cerradas' : 'Sesión finalizada',
-      position: 'top-right'
-    });
-    
-    void router.push('/login');
-  } catch (error) {
-    console.error('Logout error', error);
-  }
-};
 
 const linksList = [
   { title: 'Dashboard', icon: 'dashboard', path: '/dashboard' },

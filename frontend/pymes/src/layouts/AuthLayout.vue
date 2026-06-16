@@ -1,7 +1,7 @@
 <template>
   <q-layout view="lHh Lpr lFf" class="bg-forest-deep">
     <q-page-container>
-      <div class="auth-layout-wrapper flex flex-center q-pa-md">
+      <main class="auth-layout-wrapper flex flex-center q-pa-md">
         <div class="auth-container">
           <!-- Logo & Branding Persistente -->
           <div class="text-center q-mb-xl cursor-pointer" @click="$router.push('/')">
@@ -19,12 +19,12 @@
           </router-view>
 
           <!-- Footer de Seguridad -->
-          <div class="text-center q-mt-xl text-accent text-caption opacity-70">
+          <footer class="text-center q-mt-xl text-accent text-caption opacity-70">
             <q-icon name="security" size="xs" class="q-mr-xs" />
             Plataforma Segura y Confiable para la Gestión de Auditorías
-          </div>
+          </footer>
         </div>
-      </div>
+      </main>
     </q-page-container>
   </q-layout>
 </template>

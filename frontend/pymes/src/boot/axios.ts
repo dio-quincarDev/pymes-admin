@@ -10,9 +10,8 @@ declare module 'vue' {
   }
 }
 
-// URL base del API Gateway (Configurar en .env después)
-const api = axios.create({ 
-  baseURL: process.env.API_URL || 'http://localhost:8080/api/v1' 
+const api = axios.create({
+  baseURL: import.meta.env.VITE_API_URL || 'http://localhost:8080/api/v1'
 });
 
 // Interceptor para añadir el Token en cada petición

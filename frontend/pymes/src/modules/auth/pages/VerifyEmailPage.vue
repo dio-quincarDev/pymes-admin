@@ -62,6 +62,9 @@
 
 <script setup lang="ts">
 import { ref, onMounted } from 'vue';
+import { useMeta } from 'quasar';
+
+useMeta({ title: 'Verificar Email — PYMEQ' });
 import { useRoute, useRouter } from 'vue-router';
 import { authService } from '../services/auth.service';
 import { useAuthStore } from '../store';

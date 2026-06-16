@@ -1,12 +1,20 @@
 // Global App Styles: Fintech Design System
 
+@import url('https://fonts.googleapis.com/css2?family=Outfit:wght@400;500;600;700;800&family=Source+Sans+3:wght@300;400;500;600;700&display=swap');
+
 // Background Global
 body {
   background-color: $dark-page;
   color: $secondary;
-  font-family: 'Inter', -apple-system, BlinkMacSystemFont, 'Segoe UI', sans-serif;
+  font-family: 'Source Sans 3', -apple-system, BlinkMacSystemFont, 'Segoe UI', sans-serif;
   font-size: 14px;
   line-height: 1.5;
+}
+
+// Display font for headings
+.text-h1, .text-h2, .text-h3, .text-h4, .text-h5, .text-h6,
+.font-bold, .text-weight-bold, .text-weight-medium {
+  font-family: 'Outfit', 'Source Sans 3', sans-serif;
 }
 
 // --------------------------------------------------
@@ -29,6 +37,23 @@ body {
   backdrop-filter: blur(12px);
   -webkit-backdrop-filter: blur(12px);
   border: 1px solid rgba(113, 131, 127, 0.1);
+  position: relative;
+
+  &::before {
+    content: '';
+    position: absolute;
+    inset: 0;
+    background: url("data:image/svg+xml,%3Csvg viewBox='0 0 256 256' xmlns='http://www.w3.org/2000/svg'%3E%3Cfilter id='noise'%3E%3CfeTurbulence type='fractalNoise' baseFrequency='0.9' numOctaves='4' stitchTiles='stitch'/%3E%3C/filter%3E%3Crect width='100%25' height='100%25' filter='url(%23noise)' opacity='0.04'/%3E%3C/svg%3E");
+    background-size: 128px 128px;
+    pointer-events: none;
+    border-radius: inherit;
+    z-index: 0;
+  }
+
+  > * {
+    position: relative;
+    z-index: 1;
+  }
 }
 
 .glass-light {
@@ -253,4 +278,32 @@ body {
     outline: 2px solid $primary;
     outline-offset: 2px;
   }
+}
+
+// Reduced motion
+@media (prefers-reduced-motion: reduce) {
+  *, *::before, *::after {
+    animation-duration: 0.01ms !important;
+    animation-iteration-count: 1 !important;
+    transition-duration: 0.01ms !important;
+  }
+}
+
+// --------------------------------------------------
+// Auth Form Fields (shared across auth pages)
+// --------------------------------------------------
+:deep(.q-field--filled .q-field__control) {
+  background: rgba(0, 0, 0, 0.2);
+  border: 1px solid rgba(113, 131, 127, 0.1);
+  transition: all 0.2s ease;
+
+  &:hover {
+    background: rgba(0, 0, 0, 0.3);
+    border-color: rgba(163, 120, 94, 0.3);
+  }
+}
+
+:deep(.q-field--focused .q-field__control) {
+  border-color: $primary;
+  box-shadow: 0 0 10px rgba(163, 120, 94, 0.2);
 }

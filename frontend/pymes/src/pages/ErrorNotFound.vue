@@ -19,5 +19,7 @@
 </template>
 
 <script setup lang="ts">
-//
+import { useMeta } from 'quasar';
+
+useMeta({ title: '404 — PYMEQ' });
 </script>

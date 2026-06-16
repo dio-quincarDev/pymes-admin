@@ -67,27 +67,24 @@
 </template>
 
 <script setup lang="ts">
-import { ref, onMounted } from 'vue';
+import { ref } from 'vue';
+import { useMeta } from 'quasar';
+
+useMeta({ title: 'Recuperar Contraseña — PYMEQ' });
 import { useRouter } from 'vue-router';
 import { useQuasar } from 'quasar';
 import { authService } from '../services/auth.service';
+import { useAuthForm } from 'src/composables/useAuthForm';
 import BaseCard from 'src/components/base/BaseCard.vue';
 import BaseButton from 'src/components/base/BaseButton.vue';
 import SkeletonLoader from 'src/components/ui/SkeletonLoader.vue';
 
 const router = useRouter();
 const $q = useQuasar();
+const { loading, initialLoading } = useAuthForm(600);
 
 const email = ref('');
-const loading = ref(false);
-const initialLoading = ref(true);
 const submitted = ref(false);
-
-onMounted(() => {
-  setTimeout(() => {
-    initialLoading.value = false;
-  }, 600);
-});
 
 const handleForgotPassword = async () => {
   loading.value = true;
@@ -117,21 +114,5 @@ const handleForgotPassword = async () => {
 <style lang="scss" scoped>
 .forgot-password-page-wrapper {
   width: 100%;
-}
-
-:deep(.q-field--filled .q-field__control) {
-  background: rgba(0, 0, 0, 0.2);
-  border: 1px solid rgba(113, 131, 127, 0.1);
-  transition: all 0.2s ease;
-  
-  &:hover {
-    background: rgba(0, 0, 0, 0.3);
-    border-color: rgba(163, 120, 94, 0.3);
-  }
-}
-
-:deep(.q-field--focused .q-field__control) {
-  border-color: $primary;
-  box-shadow: 0 0 10px rgba(163, 120, 94, 0.2);
 }
 </style>

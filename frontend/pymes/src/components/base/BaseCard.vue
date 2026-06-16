@@ -1,5 +1,5 @@
 <template>
-  <div class="base-card hover-lift" :class="[`variant-${variant}`, { 'no-padding': !padding }]">
+  <div class="base-card hover-lift" :class="[`variant-${variant}`, { 'no-padding': !padding }]" role="group">
     <slot />
   </div>
 </template>

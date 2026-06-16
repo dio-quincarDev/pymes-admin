@@ -1,6 +1,6 @@
 <template>
   <Transition name="fade" mode="out-in">
-    <div v-if="isLoading" :class="['skeleton-loader', `layout-${layout}`]" :data-loading-id="skeletonId">
+    <div v-if="isLoading" :class="['skeleton-loader', `layout-${layout}`]" :data-loading-id="skeletonId" role="status" aria-label="Cargando contenido">
       <template v-if="layout === 'card'">
         <BaseCard>
           <div class="skeleton-content q-pa-md">

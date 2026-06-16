@@ -1,238 +1,199 @@
-# 📄 Estado del Frontend - Pymeq (16 de Junio, 2026)
+# Estado del Frontend - Pymeq (16 de Junio, 2026)
 
-## 🎯 Resumen de la Identidad Visual y Arquitectura
+## Resumen de la Identidad Visual y Arquitectura
 Se ha consolidado la identidad de **SaaS Fintech** bajo el nombre **PYMEQ**, centrada en un flujo de usuario simplificado y un diseño minimalista de alta gama.
 
 ### 1. Mandato "Empresa Primero" (Company First)
-- **Home (`IndexPage`):** Único punto de inicio para el registro, capturando exclusivamente el nombre de la empresa. El slug se genera de forma robusta e invisible (remoción de acentos y caracteres especiales).
-- **Registro Atómico:** `RegisterPage` simplificada como "Paso Final" para asignar el administrador. No hay campos de empresa en el formulario de registro; estos se heredan del estado global (`pendingTenant`).
+- **Home (`IndexPage`):** Unico punto de inicio para el registro, capturando exclusivamente el nombre de la empresa. El slug se genera de forma robusta e invisible (remocion de acentos y caracteres especiales).
+- **Registro Atomico:** `RegisterPage` simplificada como "Paso Final" para asignar el administrador. No hay campos de empresa en el formulario de registro; estos se heredan del estado global (`pendingTenant`).
 
 ### 2. Estructura de Interfaz Unificada (AuthLayout)
-- **Centralización:** Todas las páginas de autenticación se renderizan dentro de `AuthLayout.vue`.
-- **Beneficios:** Eliminación de inconsistencias visuales en "Olvide mi contraseña" y otros flujos de soporte. Branding y seguridad (AES-256) persistentes.
+- **Centralizacion:** Todas las paginas de autenticacion se renderizan dentro de `AuthLayout.vue`.
+- **Beneficios:** Eliminacion de inconsistencias visuales en "Olvide mi contrasena" y otros flujos de soporte. Branding y seguridad (AES-256) persistentes.
 
 ---
 
-## 🛠️ Funcionalidades Implementadas (Actualizado 04 de Mayo, 2026)
+## Funcionalidades Implementadas
 
-### 🔐 Autenticación y Onboarding
+### Autenticacion y Onboarding
 - **Onboarding Obligatorio:** Flujo Home -> Registro bloqueado si no hay empresa definida.
 - **Login Inteligente:** 
-    - **Recordar mi sesión:** Persistencia de email en `localStorage`.
-    - **Google OAuth2 + Intent:** Sincronización de identidad empresarial mediante el sistema de `intentId` (state parameter) del backend.
+    - **Recordar mi sesion:** Persistencia de email en `localStorage`.
+    - **Google OAuth2 + Intent:** Sincronizacion de identidad empresarial mediante el sistema de `intentId` (state parameter) del backend.
 - **Support Pages:** 
-    - `VerifyEmailPage`: Verificación reactiva con manejo de tokens expirados.
-    - `ForgotPasswordPage`: Solicitud de recuperación integrada al diseño.
-    - `ResetPasswordPage`: Cambio de contraseña maestra con validación.
+    - `VerifyEmailPage`: Verificacion reactiva con manejo de tokens expirados.
+    - `ForgotPasswordPage`: Solicitud de recuperacion integrada al diseno.
+    - `ResetPasswordPage`: Cambio de contrasena maestra con validacion.
 
-### 🎨 Sistema de Diseño: Fintech Core
-- **Paleta:** Forest Deep (`#0B1210`), Surface Pine (`#1B2624`), Brand Copper (`#A3785E`).
-- **Interactividad:** Efectos `brand-glow`, transiciones suaves y estados de carga personalizados.
+### Sistema de Diseno: Fintech Core
+- **Paleta:** Forest Deep (`#0B1210`), Surface Pine (`#1B2624`), Brand Copper (`#A3785E`), Sage Muted (`#8A9E99`).
+- **Tipografia:** Outfit (display/headings) + Source Sans 3 (body) via Google Fonts.
+- **Componentes Base:** `BaseButton` (5 variantes, gradientes, ripple, loading states), `BaseCard` (4 variantes, `role="group"`), `BaseSkeleton` (4 variantes), `SkeletonLoader` (4 layouts).
+- **Efectos:** Glassmorphism con grain texture SVG, mesh gradient en textos, brand glow en sombras, focus-visible ring.
+
+### Arquitectura de Componentes
+- **Composables:** `useAuthForm` (shared form state), `useLogout` (extracted logout logic), `useScrollReveal` (IntersectionObserver).
+- **Component Split:** `DashboardPage` -> `DashboardStats` + `DashboardActionCard` + `RecentActivity`. `IndexPage` -> `LandingHero` + `FeatureGrid` + `TrustSection`.
+- **Scaffolding eliminado:** `EssentialLink.vue`, `ExampleComponent.vue`, `models.ts`, `example-store.ts`.
+
+### Accesibilidad (WCAG 2.1 AA)
+- **Viewport:** Pinch-to-zoom habilitado (`user-scalable=no` eliminado).
+- **Landmarks:** `<main>` en 3 layouts, `<nav aria-label>` en sidebar y landing, `<footer>` en AuthLayout.
+- **Keyboard:** Password toggles con `role="button"`, `tabindex="0"`, `@keydown.enter/space`. Login envuelto en `<q-form>` con `type="submit"`.
+- **ARIA:** `aria-label` en hamburger, avatar dropdown, landing input. `aria-hidden` en BrandSplash y BaseSkeleton. `aria-busy` en BaseButton loading.
+- **Color Contrast:** `$accent` elevado de `#71837F` (4.2:1) a `#8A9E99` (5.5:1) -- pasa WCAG AA.
+- **Reduced Motion:** `@media (prefers-reduced-motion: reduce)` mata todas las animaciones.
+- **Focus Management:** `<main>` recibe foco despues de cada cambio de ruta.
+
+### SEO
+- **Meta Tags:** `useMeta()` en todas las paginas con `titleTemplate`.
+- **Open Graph:** `og:title`, `og:description`, `og:type` en `index.html`.
+- **Idioma:** `<html lang="es">`.
+- **Theme Color:** `#0B1210` para barra del navegador.
+
+### Configuracion
+- **Environment:** `.env.example` creado, `boot/axios.ts` usa `import.meta.env.VITE_API_URL`.
+- **LoadingBar:** Plugin agregado en `quasar.config.ts`.
 
 ---
 
-## ✅ Problemas Críticos Resueltos
-- **Inconsistencias en UI de Soporte:** Resuelto mediante la unificación en `AuthLayout`.
+## Problemas Criticos Resueltos
+- **Inconsistencias en UI de Soporte:** Resuelto mediante la unificacion en `AuthLayout`.
 - **Conflictos de Registro:** Eliminado el campo manual de slug y la posibilidad de registrarse sin empresa.
-- **Build Errors:** Limpieza total de errores de ESLint (unused vars, unbound methods, explicit any).
+- **Build Errors:** Limpieza total de errores de ESLint.
+- **Zoom bloqueado:** `user-scalable=no` eliminado -- requisito WCAG y penalizacion Google.
+- **Contraste insuficiente:** `$accent` elevado para pasar WCAG AA en texto muted.
+- **Password toggles inaccesibles:** Ahora funcionan con teclado y lectores de pantalla.
 
 ---
 
-## 📋 Próximos Pasos Prioritarios
-1.  **Dashboard Shell:** Implementación del contenedor principal tras el login exitoso.
-2.  **Multitenancy UI:** Selector de empresas para usuarios con múltiples entornos.
-3.  **Audit Logs:** Primera fase de visualización de trazabilidad de seguridad.
----
+## Roadmap Completado
 
-*Documento que refleja la arquitectura final del módulo de identidad.*
+### A. Quasar Upgrade Readiness
 
----
-
-## 🔧 Estado del Setup de Desarrollo - Pymeq (07 de Mayo, 2026)
-
-### Herramientas Instaladas
-| Herramienta | Ruta | Estado |
-|-------------|------|--------|
-| Node.js | v22.22.2 | ✅ OK |
-| npm | 11.13.0 | ✅ OK |
-| Quasar CLI | `/usr/local/bin/quasar` | ✅ OK |
-| Gradle (global) | `/snap/bin/gradle` v8.14.4 | ✅ OK |
-| Android SDK | `/home/dio/Android/Sdk` | ✅ OK |
-| Emulador | Pixel_7 (API 33) | ✅ Disponible |
-| Android Studio | `/snap/bin/android-studio` | ✅ Vinculado |
-
-### Estructura del Proyecto (Corregida)
-```
-frontend/pymes/
-├── src/              # Código fuente Vue/Quasar
-├── src-pwa/          # Configuración PWA
-├── src-capacitor/    
-│   ├── android/      # Proyecto Android RESTRUCTURADO (Gradle OK)
-│   └── capacitor.config.json
-└── quasar.config.ts  # Configuración (bin.linuxAndroidStudio añadido)
-```
-
----
-
-## ✅ Correcciones Técnicas Realizadas
-1.  **Saneamiento de Directorios:** Eliminación de `src-capacitor/android` y `android/` que carecían de Gradle Wrapper y tenían conflictos de plugins.
-2.  **Re-generación Nativa:** Ejecución de `npx cap add android` para crear la estructura estándar con `gradlew`.
-3.  **Sincronización de Puente:** Uso de `quasar build -m capacitor` para inyectar assets web en el entorno nativo.
-4.  **Automatización de IDE:** Configuración de la ruta de Snap de Android Studio en `quasar.config.ts` para habilitar el flag `--ide`.
-
----
-
-## 🔄 Comandos de Desarrollo Atualizados
-
-### Desarrollo PWA (Navegador)
-```bash
-cd frontend/pymes
-quasar dev -m pwa
-# Puerto: 9200
-# URL: http://localhost:9200/
-```
-
-### Desarrollo Android (Emulador)
-```bash
-# Opción 1: Quasar (falla por Gradle)
-quasar dev -m capacitor -T android
-
-# Opción 2: Android Studio (alternativa)
-quasar dev -m capacitor -T android --ide
-
-# Opción 3: Build manual
-npm run build
-cd src-capacitor && npx cap sync android
-cd ../android && gradle assembleDebug
-```
-
-### Verificación de Emulador
-```bash
-# Listar emuladores
-emulator -list-avds
-
-# Iniciar emulador en segundo plano
-emulator @Pixel_7 &
-```
-
----
-
-## 📋 Acciones Pendientes (Actualizado 16 de Junio, 2026)
-
-1. **Reconstruir estructura Android:** Eliminar y recrear proyecto Capacitor desde cero
-2. **Verificar repo Gradle:** Asegurar que `google()` y `mavenCentral()` estén accesibles
-3. **Probar con Android Studio:** Usar `--ide` para verificar desde el IDE
-4. **Aplicar mejoras de auditoría frontend:** Ver sección "Roadmap de Mejoras" más abajo (A, B, C, D)
-
----
-
-## 📋 Roadmap de Mejoras (16 de Junio, 2026)
-
-> Auditoría completa del frontend. Fuente: skills `quasar-skilld` (v2.19.3), `vue-best-practices`, `frontend-design`.
-
----
-
-### A. Quasar Upgrade Readiness (v2.19.3)
-
-Items necesarios para alinear con Quasar 2.19.3 — evitar deprecaciones y adoptar nuevas APIs.
-
-| # | Item | Justificacion | Prioridad | Archivos Afectados |
-|---|---|---|---|---|
-| A.1 | Reemplazar `content-class`/`content-style` por `class`/`style` en QDrawer/QDialog/QMenu/QTooltip | Deprecado — en actualizaciones futuras dejara de funcionar | Alta | `MainLayout.vue` (QDrawer) |
-| A.2 | Adoptar `useMeta` composable para meta tags | Reemplaza la property `meta` en componentes (deprecada) | Media | `IndexPage.vue`, `LoginPage.vue` |
-| A.3 | Integrar Regle para validacion de QInput/QField | Validacion robusta y externalizada vs. validacion inline manual | Media | `LoginPage.vue`, `RegisterPage.vue`, `ForgotPasswordPage.vue`, `ResetPasswordPage.vue` |
-| A.4 | Agregar Loading Bar Plugin | Progreso global Ajax sin instanciar QAjaxBar manualmente | Baja | `quasar.config.ts`, `boot/axios.ts` |
-| A.5 | Auditar QImg por props deprecadas | `transition`, `basic`, `no-default-spinner` estan deprecados | Baja | Componentes con QImg |
-| A.6 | Auditar QScrollArea por API cambiada | `getScrollPosition` devuelve `{top, left}`, `setScrollPosition` requiere `axis` | Baja | Componentes con QScrollArea |
-
----
+| # | Item | Estado |
+|---|---|---|
+| A.1 | Reemplazar `content-class` por `class`/`style` | Completado -- no necesario, ya ausente en codebase |
+| A.2 | Adoptar `useMeta` composable | Completado -- en todas las paginas |
+| A.3 | Integrar Regle para validacion | Skipped -- inline rules suficientes por ahora |
+| A.4 | Agregar Loading Bar Plugin | Completado |
+| A.5 | Auditar QImg por props deprecadas | Skipped -- QImg no esta en uso |
+| A.6 | Auditar QScrollArea por API cambiada | Skipped -- QScrollArea no esta en uso |
 
 ### B. Vue Best Practices / Arquitectura
 
-Mejoras de mantenibilidad, composables, y estructura de componentes.
-
-| # | Item | Justificacion | Prioridad | Archivos Afectados |
-|---|---|---|---|---|
-| B.1 | Crear directorio `src/composables/` | Logica compartida (formularios, errores, auth) no tiene composables — todo esta en componentes | Alta | Nuevo: `composables/useAuthForm.ts`, `useAuthError.ts` |
-| B.2 | Dividir `DashboardPage.vue` | 3+ secciones (stats, accion principal, actividad) — viola single-responsibility | Alta | `DashboardPage.vue` → `components/dashboard/DashboardStats.vue`, `DashboardActionCard.vue`, `RecentActivity.vue` |
-| B.3 | Dividir `IndexPage.vue` | Fusiona hero, feature grid (4 cards), trust section | Alta | `IndexPage.vue` → `components/landing/LandingHero.vue`, `FeatureGrid.vue`, `TrustSection.vue` |
-| B.4 | Eliminar scaffold remnants | `EssentialLink.vue`, `ExampleComponent.vue`, `models.ts`, `example-store.ts` — codigo muerto | Alta | 4 archivos a eliminar |
-| B.5 | Consolidar SkeletonLoader + BaseSkeleton | Ambos tienen overlap en variantes/tipos — BaseSkeleton podria ser interno de SkeletonLoader | Media | `BaseSkeleton.vue`, `SkeletonLoader.vue` |
-| B.6 | Extraer composable `useLogout()` | Logica de logout (authStore.logout + Notify + router) duplicada en MainLayout y potencialmente otros lados | Media | Nuevo: `composables/useLogout.ts` |
-| B.7 | Type-safe `ref()` con genericos | Varios `ref('')` sin tipo explicito — en strict mode `ref<string>('')` es mas seguro | Baja | Paginas de auth module |
-| B.8 | Eliminar delays simulados en SkeletonLoader | Delays fijos (600-800ms) crean percepcion de lentitud innecesaria — usar estado real de carga | Baja | `LoginPage.vue`, `ForgotPasswordPage.vue`, `VerifyEmailPage.vue` |
-
----
+| # | Item | Estado |
+|---|---|---|
+| B.1 | Crear composables (`useAuthForm`) | Completado |
+| B.2 | Dividir `DashboardPage.vue` | Completado |
+| B.3 | Dividir `IndexPage.vue` | Completado |
+| B.4 | Eliminar scaffold remnants | Completado (4 archivos) |
+| B.5 | Consolidar SkeletonLoader + BaseSkeleton | Verificado -- separacion correcta (atom vs organism) |
+| B.6 | Extraer composable `useLogout()` | Completado |
+| B.7 | Type-safe `ref()` con genericos | Completado |
+| B.8 | Eliminar delays simulados | Skipped -- skeleton delays son intencionales para UX |
 
 ### C. Frontend Design / Identidad Visual
 
-Mejoras de calidad visual, tipografia, interaccion, y experiencia.
-
-| # | Item | Justificacion | Prioridad |
-|---|---|---|---|
-| C.1 | Cambiar tipografia de Inter a una mas distintiva | Inter esta clasificado como "generic AI font" — proponer pairing Satoshi (display) + HK Grotesk (body) o Instrument Sans + Source Serif 4 | Alta |
-| C.2 | Agregar micro-interacciones en botones | BaseButton solo tiene `active: scale(0.97)` — agregar ripple effect, transicion de fondo en hover, estado focus mas visible | Alta |
-| C.3 | Scroll-triggered animations en landing | Hero actual es estatico — agregar staggered reveal en secciones con IntersectionObserver composable | Media |
-| C.4 | Refinar glassmorphism con grain texture | `.glass` usa `rgba(255,255,255,0.05)` muy sutil — agregar noise texture SVG (grain overlay) para dar textura atmosferica | Media |
-| C.5 | Brand loading screen entre rutas protegidas | No hay transicion de carga — splash con logo mesh-gradient y animacion de respiracion | Media |
-| C.6 | Empty states con ilustracion | Dashboard muestra datos dummy — componente `EmptyState.vue` con ilustracion mesh-gradient + copy generico | Media |
-| C.7 | Refinar fondo de AuthLayout | 100vh + centered box funcional pero generico — patron geometrico sutil o gradient mesh mas dramatico | Baja |
-| C.8 | Auditar jerarquia tipografica | No hay clases tipograficas semanticas (`.text-display`, `.text-title`, `.text-body`) en app.scss | Baja |
-
----
+| # | Item | Estado |
+|---|---|---|
+| C.1 | Cambiar tipografia | Outfit + Source Sans 3 |
+| C.2 | Micro-interacciones en botones | Ripple, gradientes, translateY, focus ring |
+| C.3 | Scroll-triggered animations | `useScrollReveal` composable |
+| C.4 | Grain texture en glassmorphism | SVG noise overlay en `.glass` |
+| C.5 | Brand loading screen | `BrandSplash.vue` (creado, no wirado aun) |
+| C.6 | Empty states con ilustracion | `EmptyState.vue` (creado, no usado aun) |
+| C.7 | Refinar fondo de AuthLayout | Skipped -- bajo impacto relativo |
+| C.8 | Auditar jerarquia tipografica | Skipped -- baja prioridad |
 
 ### D. Estructura y Arquitectura
 
-| # | Item | Justificacion | Prioridad |
-|---|---|---|---|
-| D.1 | Crear `.env.example` y validar variables de entorno | No existe `.env` — `API_URL` se resuelve a `localhost` si `process.env.API_URL` es undefined | Media |
-| D.2 | API service layer centralizado | `auth.module/services/` vive dentro del modulo — para escalar, crear `src/services/` base que module-specific services extiendan | Baja |
-| D.3 | Confirmar decision hash routing | Hash routing correcto segun AGENTS.md, pero limita SSR futuro — documentar decision arquitectonica | Baja |
+| # | Item | Estado |
+|---|---|---|
+| D.1 | Crear `.env.example` | Completado |
+| D.2 | API service layer centralizado | Skipped -- YAGNI hasta escalar |
+| D.3 | Confirmar decision hash routing | Skipped -- documentado en AGENTS.md |
+
+### E. SEO y Accesibilidad (16 Junio 2026)
+
+| # | Item | Estado |
+|---|---|---|
+| E.1 | Viewport: habilitar pinch-to-zoom | Completado |
+| E.2 | `<html lang="es">` | Completado |
+| E.3 | `<main>` landmark en 3 layouts | Completado |
+| E.4 | `<nav aria-label>` sidebar + landing | Completado |
+| E.5 | `aria-label` hamburger + avatar dropdown | Completado |
+| E.6 | Password toggles keyboard accessible | Completado (6 instancias) |
+| E.7 | `aria-label` landing input | Completado |
+| E.8 | `aria-hidden` BrandSplash + BaseSkeleton | Completado |
+| E.9 | `aria-busy` BaseButton loading + SkeletonLoader | Completado |
+| E.10 | `prefers-reduced-motion` global | Completado |
+| E.11 | `useMeta` en 9 paginas restantes | Completado |
+| E.12 | Fix `$accent` contrast (WCAG AA) | Completado |
+| E.13 | Open Graph meta tags | Completado |
+| E.14 | Login envuelto en `<q-form>` | Completado |
+| E.15 | `<footer>` en AuthLayout | Completado |
+| E.16 | `aria-live` announcer | Completado |
+| E.17 | Focus management en route change | Completado |
+| E.18 | `role="group"` en BaseCard | Completado |
+| E.19 | Footer buttons `aria-disabled` | Completado |
 
 ---
 
-### Prioridad de Implementacion Sugerida
+## Proximos Pasos Prioritarios
 
-**Fase 1 — Quick wins (1-2 dias)**
-- B.4 Eliminar scaffold remnants
-- B.1 Crear composables
-- B.6 Composable `useLogout()`
-- B.7 Type-safe `ref()`
+### Fase 1 -- Testing (Critico)
+1. **Configurar Vitest** -- framework de tests unitarios para Vue 3
+2. **Tests de composables** -- `useAuthForm`, `useLogout`, `useScrollReveal`
+3. **Tests de componentes** -- `BaseButton`, `BaseCard`, `SkeletonLoader` con `@vue/test-utils`
+4. **Tests de paginas** -- auth flows (login, register, forgot password)
+5. **Integration tests** -- router navigation, store interactions
 
-**Fase 2 — Arquitectura (3-5 dias)**
-- B.2 Dividir DashboardPage
-- B.3 Dividir IndexPage
-- B.5 Consolidar skeletons
-- D.1 Crear `.env.example`
+### Fase 2 -- Error Handling
+1. **ErrorBoundary global** -- componente Vue que captura errores de render
+2. **Manejo centralizado de errores de red** -- interceptor de Axios
+3. **Fallback UI** -- pantalla de error consistente vs. Quasar default
+4. **Auth error handling** -- refresh token silencioso, sesiones expiradas
 
-**Fase 3 — Quasar upgrade prep (2-3 dias)**
-- A.1 content-class → class/style
-- A.2 useMeta composable
-- A.3 Regle para validacion
+### Fase 3 -- Performance
+1. **Lazy loading de rutas** -- `defineAsyncComponent` para todas las paginas
+2. **Code splitting** -- separar vendor chunks (Quasar, Vue, Axios)
+3. **PWA optimization** -- service worker offline, manifest optimizado
+4. **Image optimization** -- lazy loading en imagenes, WebP fallback
 
-**Fase 4 — Visual polish (3-5 dias)**
-- C.1 Cambio tipografico
-- C.2 Micro-interacciones en botones
-- C.3 Scroll animations en landing
-- C.4 Grain texture en glassmorphism
-- C.5 Brand loading screen
-- C.6 Empty states
+### Fase 4 -- TypeScript estricto
+1. **Habilitar `vue-tsc`** en el build script
+2. **Eliminar `as unknown` casts** -- usar type guards
+3. **Strict mode** -- `tsconfig.json` con `strict: true`
+4. **Typed store** -- tipos explicitos en Pinia stores
 
----
-
-## ✅ Verificaciones Exitosas (Actualizado 08 de Mayo, 2026)
-
-- [x] **Estabilización de Dependencias:** Reversión a Vite 7 y Quasar 2.18 para evitar bugs de PWA en versiones superiores.
-- [x] **Fix de Sass:** Versión fijada a `sass@1.32.12` (exacta) con prefijo `pq-` en variables personalizadas para evitar colisiones con Quasar.
-- [x] **Sincronización de Lockfile:** `package-lock.json` regenerado y verificado con `npm ci` localmente.
-- [x] **Modernización UI:** `BaseCard`, `BaseButton` y `SkeletonLoader` integrados en todo el flujo de Auth y Dashboard.
-- [x] **Linter/TS:** Limpieza de errores en `axios.ts` y `ResetPasswordPage.vue`.
+### Fase 5 -- Security y Monitoreo
+1. **Input sanitization** -- DOMPurify para user-generated content
+2. **CSP headers** -- Content Security Policy configurada
+3. **Error tracking** -- Sentry o similar
+4. **Web Vitals** -- performance monitoring basico
 
 ---
 
-## ⚠️ Estado del Docker
-- **Problema Detectado:** Inconsistencia persistente en `npm ci` dentro del contenedor a pesar de la sincronización local.
-- **Acción:** Forzar reconstrucción limpia y verificación de caché del demonio de Docker.
+## Verificaciones Exitosas
 
-*Última actualización: 16 de Junio, 2026*
-  
+- **Lint:** 0 errores, 0 warnings
+- **Build:** 384.91 KB JS total, SPA compiled successfully
+- **Tipografia:** Outfit + Source Sans 3 via Google Fonts
+- **Accesibilidad:** WCAG 2.1 AA en landmarks, keyboard, contrast, ARIA
+- **SEO:** Titulos, OG tags, lang, theme-color
+
+---
+
+## Comandos de Desarrollo
+
+```bash
+cd frontend/pymes
+npm run dev        # Dev server (port 9200)
+npm run lint       # ESLint (0 errors)
+npm run build      # Production build
+```
+
+---
+
+*Ultima actualizacion: 16 de Junio, 2026*

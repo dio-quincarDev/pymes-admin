@@ -10,6 +10,9 @@
 
 <script setup lang="ts">
 import { onMounted, ref } from 'vue';
+import { useMeta } from 'quasar';
+
+useMeta({ title: 'Sincronizando — PYMEQ' });
 import { useRoute, useRouter } from 'vue-router';
 import { useAuthStore } from '../store';
 import { useQuasar } from 'quasar';

@@ -7,7 +7,7 @@
           <div class="text-caption text-accent">Introduce tus credenciales de acceso</div>
         </div>
 
-        <div class="q-gutter-y-md">
+        <q-form @submit.prevent="handleLoginClick" class="q-gutter-y-md">
           <q-input
             v-model="loginForm.email"
             label="Correo Electrónico"
@@ -40,7 +40,12 @@
                 :name="showPassword ? 'visibility' : 'visibility_off'"
                 class="cursor-pointer"
                 color="primary"
+                role="button"
+                tabindex="0"
+                :aria-label="showPassword ? 'Ocultar contraseña' : 'Mostrar contraseña'"
                 @click="showPassword = !showPassword"
+                @keydown.enter="showPassword = !showPassword"
+                @keydown.space.prevent="showPassword = !showPassword"
               />
             </template>
           </q-input>
@@ -51,15 +56,14 @@
           </div>
 
           <BaseButton
-            label="INICIAR SESIÓN"
+            type="submit"
             class="full-width q-mt-lg"
             size="lg"
             :loading="loading"
-            @click="handleLoginClick"
           >
             INICIAR SESIÓN
           </BaseButton>
-        </div>
+        </q-form>
 
         <div class="relative-position q-my-xl">
           <q-separator dark />
@@ -91,34 +95,29 @@
 </template>
 
 <script setup lang="ts">
-import { ref, reactive, onMounted } from 'vue';
+import { ref, reactive } from 'vue';
+import { useMeta } from 'quasar';
 import { useAuthStore } from '../store';
 import { useQuasar } from 'quasar';
 import { useRouter } from 'vue-router';
 import { authService } from '../services/auth.service';
+import { useAuthForm } from 'src/composables/useAuthForm';
 import BaseCard from 'src/components/base/BaseCard.vue';
 import BaseButton from 'src/components/base/BaseButton.vue';
 import SkeletonLoader from 'src/components/ui/SkeletonLoader.vue';
 
+useMeta({ title: 'Iniciar Sesión — PYMEQ' });
+
 const authStore = useAuthStore();
 const $q = useQuasar();
 const router = useRouter();
+const { loading, initialLoading, showPassword } = useAuthForm();
 
-const loading = ref(false);
-const initialLoading = ref(true);
 const rememberMe = ref(localStorage.getItem('pymeq_remember') === 'true');
-const showPassword = ref(false);
 
 const loginForm = reactive({
   email: localStorage.getItem('pymeq_email') || '',
   password: ''
-});
-
-onMounted(() => {
-  // Simulamos carga inicial para mostrar el skeleton
-  setTimeout(() => {
-    initialLoading.value = false;
-  }, 800);
 });
 
 const handleLoginClick = async () => {
@@ -211,21 +210,5 @@ const loginWithSocial = async (provider: 'google') => {
 <style lang="scss" scoped>
 .login-page-wrapper {
   width: 100%;
-}
-
-:deep(.q-field--filled .q-field__control) {
-  background: rgba(0, 0, 0, 0.2);
-  border: 1px solid rgba(113, 131, 127, 0.1);
-  transition: all 0.2s ease;
-  
-  &:hover {
-    background: rgba(0, 0, 0, 0.3);
-    border-color: rgba(163, 120, 94, 0.3);
-  }
-}
-
-:deep(.q-field--focused .q-field__control) {
-  border-color: $primary;
-  box-shadow: 0 0 10px rgba(163, 120, 94, 0.2);
 }
 </style>
