@@ -47,11 +47,7 @@ import static org.assertj.core.api.Assertions.assertThat;
 import static org.assertj.core.api.AssertionsForClassTypes.assertThatThrownBy;
 import static org.mockito.ArgumentMatchers.any;
 import static org.mockito.Mockito.*;
-import org.mockito.junit.jupiter.MockitoSettings;
-import org.mockito.quality.Strictness;
-
 @ExtendWith(MockitoExtension.class)
-@MockitoSettings(strictness = Strictness.LENIENT)
 public class AuthServiceImplTest {
 
     @Mock
@@ -103,8 +99,6 @@ public class AuthServiceImplTest {
         );
 
         when(userRepository.existsByEmail(request.email())).thenReturn(false);
-        when(tenantRepository.existsBySlug(request.companySlug())).thenReturn(false);
-        when(httpRequest.getRemoteAddr()).thenReturn("127.0.0.1");
         doNothing().when(emailVerificationService).generateAndSendPendingRegistrationEmail(any());
 
         AuthResponse response = authService.register(request, httpRequest);

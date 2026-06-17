@@ -13,8 +13,11 @@ import org.junit.jupiter.api.extension.ExtendWith;
 import org.mockito.InjectMocks;
 import org.mockito.Mock;
 import org.mockito.junit.jupiter.MockitoExtension;
+import org.springframework.security.core.userdetails.User;
+import org.springframework.security.core.userdetails.UserDetails;
 import org.springframework.security.oauth2.core.user.OAuth2User;
 
+import java.util.Collections;
 import java.util.Optional;
 import java.util.UUID;
 
@@ -53,6 +56,43 @@ public class UserServiceImplTest {
 
         assertThat(response.email()).isEqualTo(email);
         verify(userRepository).findByEmail(email);
+    }
+
+    @Test
+    void getCurrentUser_WithUserDetailsPrincipal_ReturnsUserResponse() {
+        String email = "userdetails@example.com";
+        UserDetails principal = User.withUsername(email).password("ignored").authorities(Collections.emptyList()).build();
+
+        UserEntity user = UserEntity.builder()
+                .id(UUID.randomUUID())
+                .email(email)
+                .name("UserDetails User")
+                .build();
+
+        when(userRepository.findByEmail(email)).thenReturn(Optional.of(user));
+        when(userMapper.toResponse(user)).thenReturn(new UserEntityResponse(user.getId(), email, "UserDetails User", null, AuthProvider.LOCAL));
+
+        UserEntityResponse response = userService.getCurrentUser(principal);
+
+        assertThat(response.email()).isEqualTo(email);
+    }
+
+    @Test
+    void getCurrentUser_WithStringPrincipal_ReturnsUserResponse() {
+        String email = "string@example.com";
+
+        UserEntity user = UserEntity.builder()
+                .id(UUID.randomUUID())
+                .email(email)
+                .name("String Principal User")
+                .build();
+
+        when(userRepository.findByEmail(email)).thenReturn(Optional.of(user));
+        when(userMapper.toResponse(user)).thenReturn(new UserEntityResponse(user.getId(), email, "String Principal User", null, AuthProvider.LOCAL));
+
+        UserEntityResponse response = userService.getCurrentUser(email);
+
+        assertThat(response.email()).isEqualTo(email);
     }
 
     @Test

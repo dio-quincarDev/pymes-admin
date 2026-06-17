@@ -260,15 +260,14 @@ class JwtServiceImplTest {
         ReflectionTestUtils.setField(jwtService, "accessTokenExpiration", ACCESS_EXPIRATION);
 
         // Act & Assert
-        org.assertj.core.api.ThrowableAssert.ThrowingCallable call = () -> jwtService.validateToken(expiredToken);
-        org.assertj.core.api.Assertions.assertThatThrownBy(call)
+        assertThatThrownBy(() -> jwtService.validateToken(expiredToken))
                 .isInstanceOf(TokenExpiredException.class);
     }
 
     @Test
     void validateToken_WithMalformedToken_ThrowsTokenInvalidException() {
         // Act & Assert
-        org.assertj.core.api.Assertions.assertThatThrownBy(() -> jwtService.validateToken("not.a.jwt"))
+        assertThatThrownBy(() -> jwtService.validateToken("not.a.jwt"))
                 .isInstanceOf(TokenInvalidException.class);
     }
 
@@ -286,7 +285,7 @@ class JwtServiceImplTest {
                 .compact();
 
         // Act & Assert
-        org.assertj.core.api.Assertions.assertThatThrownBy(() -> jwtService.validateToken(invalidSignedToken))
+        assertThatThrownBy(() -> jwtService.validateToken(invalidSignedToken))
                 .isInstanceOf(TokenInvalidException.class);
     }
 
@@ -297,7 +296,7 @@ class JwtServiceImplTest {
         when(tokenBlacklistService.isTokenRevoked(token)).thenReturn(true);
 
         // Act & Assert
-        org.assertj.core.api.Assertions.assertThatThrownBy(() -> jwtService.validateToken(token))
+        assertThatThrownBy(() -> jwtService.validateToken(token))
                 .isInstanceOf(TokenRevokedException.class);
     }
 

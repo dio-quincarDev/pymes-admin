@@ -216,6 +216,13 @@ class SecurityConstraintIntegrationTest extends AbstractIntegrationTest {
             mockMvc.perform(get(TestApiPaths.MEMBERS.replace("{tenantId}", tenantId.toString())))
                     .andExpect(status().isUnauthorized());
         }
+
+        @Test
+        @DisplayName("GET /users/me without token -> 401")
+        void getCurrentUser_NoToken_401() throws Exception {
+            mockMvc.perform(get(TestApiPaths.USERS_ME))
+                    .andExpect(status().isUnauthorized());
+        }
     }
 
     // ==================== INVALID TOKENS (401) ====================
@@ -378,10 +385,15 @@ class SecurityConstraintIntegrationTest extends AbstractIntegrationTest {
             // 3. Login
             String accessToken = loginAndGetToken(userEmail, userPassword);
 
-            // 4. Access protected endpoint (GET /tenants works with both OAuth2User and JWT UserEntity)
+            // 4. Access protected endpoint (GET /tenants and GET /users/me work with JWT UserEntity)
             mockMvc.perform(get(TestApiPaths.TENANTS + "?page=0&size=10")
                             .header("Authorization", "Bearer " + accessToken))
                     .andExpect(status().isOk());
+
+            mockMvc.perform(get(TestApiPaths.USERS_ME)
+                            .header("Authorization", "Bearer " + accessToken))
+                    .andExpect(status().isOk())
+                    .andExpect(jsonPath("$.data.email").value(userEmail));
 
             // 5. Logout
             mockMvc.perform(post(TestApiPaths.AUTH_LOGOUT)
