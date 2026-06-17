@@ -28,6 +28,9 @@ onMounted(async () => {
   const token = route.query.token as string;
   const refreshToken = route.query.refresh_token as string;
 
+  // ponytail: limpiar tokens de la URL inmediatamente — leak en barra/historial/referrer
+  window.history.replaceState({}, '', window.location.pathname + window.location.hash);
+
   if (token && refreshToken) {
     try {
       // 1. Guardar tokens y obtener perfil

@@ -170,3 +170,66 @@ ERROR: column "password" of relation "users" already exists
   - `241ece5` — Best logic for CI/CD
 - Sin V2–V5, sin cambios extra en configs.
 - Estado actual: `b3e58f8`
+
+---
+
+## Pilar D: Frontend — Token Security (CSP + httpOnly Cookie)
+
+### Contexto
+
+El frontend almacena `pymeq_token` y `pymeq_refresh_token` en `localStorage`, accesibles desde cualquier script inyectado (XSS) o herramientas DevTools. Si bien `AuthCallback.vue` ya limpia la URL tras recibir el callback OAuth2 (`replaceState`), el verdadero riesgo persiste:
+
+| Vector | Estado actual | Riesgo |
+|--------|---------------|--------|
+| URL parameters | ✅ Limpiado con `replaceState` | Bajo |
+| `localStorage` (`pymeq_token`, `pymeq_refresh_token`) | ❌ Accesible vía `localStorage.getItem()` | Alto |
+| Pinia store | ❌ Accesible vía Vue DevTools | Medio |
+| Network (`Authorization: Bearer`) | ❌ Visible en DevTools → Network | Medio |
+
+### D.1 — CSP Headers en Gateway (prevenir XSS como vector de ataque)
+
+| # | Acción | Archivo | Detalle técnico |
+|---|--------|---------|-----------------|
+| D.1.1 | Agregar `Content-Security-Policy` como default filter | `gateway-pymes/src/main/resources/application.yaml` | Cabecera: `default-src 'self'; script-src 'self'; style-src 'self' 'unsafe-inline'; img-src 'self' data:; connect-src 'self' https://*.googleapis.com; frame-src 'none'; object-src 'none'` |
+| D.1.2 | Ajustar `frame-ancestors` para anti-clickjacking | Mismo archivo | `frame-ancestors 'none'` |
+
+Impacto: bloquea inline scripts no autorizados, reduce superficie de XSS → protege localStorage indirectamente. Cero cambios en frontend.
+
+### D.2 — Refresh Token en httpOnly Cookie
+
+| # | Acción | Archivo | Detalle técnico |
+|---|--------|---------|-----------------|
+| D.2.1 | Login response: refresh token como cookie en vez de body JSON | `auth-service/.../AuthController.java` | `ResponseCookie.from("refresh_token", token).httpOnly(true).secure(true).sameSite("Strict").path("/api/v1/auth").maxAge(Duration.ofMillis(refreshExpiration)).build()` |
+| D.2.2 | OAuth2 callback: mismo cambio en `CustomOAuth2UserService` o manejador de éxito | `auth-service/.../CustomOAuth2UserService.java` | Setear cookie httpOnly en lugar de incluir refresh token en redirect URL |
+| D.2.3 | Agregar endpoint `POST /api/v1/auth/refresh` que lea cookie | `auth-service/.../AuthController.java` | Recibe cookie `refresh_token`, valida, emite nuevo access token + renueva cookie. No devuelve refresh token en body |
+| D.2.4 | Ajustar `application.yaml` para permitir cookie en CORS | `auth-service/src/main/resources/application.yaml` | `allowed-origins` + `allow-credentials: true` |
+
+### D.3 — Frontend: Access Token solo en Memoria
+
+| # | Acción | Archivo | Detalle técnico |
+|---|--------|---------|-----------------|
+| D.3.1 | Eliminar `localStorage.setItem('pymeq_token', ...)` y `localStorage.setItem('pymeq_refresh_token', ...)` | `auth/store/index.ts` | Quitar de `handleOAuthCallback()` (L103-104) y `setSession()` (L131-132). El access token solo vive en `this.accessToken` (Pinia state) |
+| D.3.2 | Cambiar estado inicial: no leer token de localStorage | `auth/store/index.ts` | `accessToken: null` en lugar de `localStorage.getItem('pymeq_token')` |
+| D.3.3 | Agregar axios interceptor para refresh automático en 401 | `boot/axios.ts` o nuevo archivo | En respuesta 401: `POST /api/v1/auth/refresh` (cookie se envía automática por ser httpOnly) → actualizar `accessToken` en store → reintentar request original. Si refresh falla: `clearSession()` → redirect a login |
+| D.3.4 | Remover `localStorage.removeItem` de refresh token en `clearSession()` | `auth/store/index.ts` | Solo limpiar access token de memoria, ya no hay refresh token en localStorage |
+| D.3.5 | Eliminar `pymeq_refresh_token` de `clearSession()` (ya no existe) | `auth/store/index.ts` | L141 |
+
+### D.4 — Cleanup de URL en AuthCallback
+
+| # | Acción | Archivo | Detalle técnico |
+|---|--------|---------|-----------------|
+| D.4.1 | ✅ Implementado | `AuthCallback.vue` | `window.history.replaceState({}, '', window.location.pathname + window.location.hash)` ejecutado inmediatamente tras leer query params. Tokens removidos de URL bar |
+
+### Assets y consideraciones
+
+**Lo que se pierde:**
+- Sesión persistente al cerrar y abrir pestaña (el access token muere al cerrar la pestaña). El refresh token en cookie httpOnly persiste entre sesiones del navegador.
+
+**Lo que NO se puede evitar:**
+- El access token en memoria puede leerse con breakpoints en DevTools. Es un límite fundamental de cualquier SPA.
+- El header `Authorization: Bearer` es visible en Network tab.
+
+**Prioridad de implementación:**
+1. D.1 (CSP) — solo gateway, 15 min, mitiga XSS
+2. D.2 (cookie httpOnly) — auth backend, ~3 endpoints/filtros nuevos
+3. D.3 (frontend memoria) — store + axios interceptor, ~50 líneas netas

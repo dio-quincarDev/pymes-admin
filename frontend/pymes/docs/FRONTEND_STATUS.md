@@ -142,43 +142,43 @@ Se ha consolidado la identidad de **SaaS Fintech** bajo el nombre **PYMEQ**, cen
 
 ## Proximos Pasos Prioritarios
 
-### Fase 1 -- Testing (Critico)
-1. **Configurar Vitest** -- framework de tests unitarios para Vue 3
-2. **Tests de composables** -- `useAuthForm`, `useLogout`, `useScrollReveal`
-3. **Tests de componentes** -- `BaseButton`, `BaseCard`, `SkeletonLoader` con `@vue/test-utils`
-4. **Tests de paginas** -- auth flows (login, register, forgot password)
-5. **Integration tests** -- router navigation, store interactions
+### Fase 1 -- Testing
+1. **Configurar Vitest** -- Completado (`vitest`, `@vue/test-utils`, `happy-dom` instalados)
+2. **Tests de utilidades** -- Completado (7 tests en `errors.spec.ts`)
+3. **Tests de composables** -- Pendiente (`useAuthForm`, `useLogout`, `useScrollReveal`)
+4. **Tests de componentes** -- Pendiente
+5. **Integration tests** -- Pendiente
 
 ### Fase 2 -- Error Handling
-1. **ErrorBoundary global** -- componente Vue que captura errores de render
-2. **Manejo centralizado de errores de red** -- interceptor de Axios
-3. **Fallback UI** -- pantalla de error consistente vs. Quasar default
-4. **Auth error handling** -- refresh token silencioso, sesiones expiradas
+1. **ErrorBoundary global** -- Completado (`error-handler.ts` boot, `app.config.errorHandler` + Notify)
+2. **Manejo centralizado de errores de red** -- Completado (interceptor Axios + `parseBackendError`)
+3. **Fallback UI** -- Completado (Notify para errores de render, redirect 401/403 en interceptor)
+4. **Auth error handling** -- Completado (redirect en 401/403, manejo de tokens)
 
 ### Fase 3 -- Performance
-1. **Lazy loading de rutas** -- `defineAsyncComponent` para todas las paginas
-2. **Code splitting** -- separar vendor chunks (Quasar, Vue, Axios)
-3. **PWA optimization** -- service worker offline, manifest optimizado
-4. **Image optimization** -- lazy loading en imagenes, WebP fallback
+1. **Lazy loading de rutas** -- Completado (todas las rutas usan `() => import(...)`)
+2. **Code splitting** -- Separacion automatica por Vite (32 JS chunks generados)
+3. **PWA optimization** -- Workbox `InjectManifest` configurado en `quasar.config.ts`
+4. **Image optimization** -- Pendiente (lazy loading nativo, WebP)
 
 ### Fase 4 -- TypeScript estricto
-1. **Habilitar `vue-tsc`** en el build script
-2. **Eliminar `as unknown` casts** -- usar type guards
-3. **Strict mode** -- `tsconfig.json` con `strict: true`
-4. **Typed store** -- tipos explicitos en Pinia stores
+1. **`vue-tsc` en build** -- Completado (via `vite-plugin-checker` con `vueTsc: true`)
+2. **Eliminar `as unknown` casts** -- Completado (0 ocurrencias en el codebase)
+3. **Strict mode** -- Completado (`strict: true` en `.quasar/tsconfig.json` + `quasar.config.ts`)
+4. **Typed store** -- Completado (interfaces explicitas en `auth/types/index.ts`)
 
 ### Fase 5 -- Security y Monitoreo
-1. **Input sanitization** -- DOMPurify para user-generated content
-2. **CSP headers** -- Content Security Policy configurada
-3. **Error tracking** -- Sentry o similar
-4. **Web Vitals** -- performance monitoring basico
+1. **Input sanitization** -- Skipped (sin UGC por ahora, agregar DOMPurify cuando haya)
+2. **CSP headers** -- Skipped (responsabilidad del backend/infraestructura)
+3. **Error tracking** -- Skipped (agregar Sentry cuando haya usuarios reales)
+4. **Web Vitals** -- Completado (`web-vitals.ts` boot, PerformanceObserver nativo, 0 deps)
 
 ---
 
 ## Verificaciones Exitosas
 
 - **Lint:** 0 errores, 0 warnings
-- **Build:** 384.91 KB JS total, SPA compiled successfully
+- **Build:** 385.71 KB JS total, 32 chunks, SPA compiled successfully
 - **Tipografia:** Outfit + Source Sans 3 via Google Fonts
 - **Accesibilidad:** WCAG 2.1 AA en landmarks, keyboard, contrast, ARIA
 - **SEO:** Titulos, OG tags, lang, theme-color
@@ -189,11 +189,13 @@ Se ha consolidado la identidad de **SaaS Fintech** bajo el nombre **PYMEQ**, cen
 
 ```bash
 cd frontend/pymes
-npm run dev        # Dev server (port 9200)
-npm run lint       # ESLint (0 errors)
-npm run build      # Production build
+npm run dev          # Dev server (port 9200)
+npm run lint         # ESLint (0 errors)
+npm run build        # Production build (TS strict + vue-tsc)
+npm test             # Vitest (7 tests)
+npm run test:watch   # Vitest watch mode
 ```
 
 ---
 
-*Ultima actualizacion: 16 de Junio, 2026*
+*Ultima actualizacion: 17 de Junio, 2026*

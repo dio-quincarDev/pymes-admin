@@ -2,7 +2,24 @@
   <div class="verify-page-wrapper">
     <SkeletonLoader :is-loading="loading" layout="card">
       <BaseCard variant="elevated" class="q-pa-lg text-center">
-        <div v-if="success" class="verify-success fade-in-up">
+        <div v-if="pending" class="verify-pending fade-in-up">
+          <q-icon name="mark_email_unread" color="primary" size="5em" class="q-mb-md" />
+          <div class="text-h6 text-primary text-weight-bold">Revisa tu correo electrónico</div>
+          <p class="text-body2 text-accent q-mt-sm q-mb-lg">
+            Te enviamos un enlace para verificar tu cuenta.
+            <br>Si no lo encuentras, revisa tu bandeja de spam.
+          </p>
+          <BaseButton
+            label="IR AL LOGIN"
+            class="full-width"
+            size="lg"
+            @click="router.push('/login')"
+          >
+            IR AL LOGIN
+          </BaseButton>
+        </div>
+
+        <div v-else-if="success" class="verify-success fade-in-up">
           <q-icon name="check_circle" color="positive" size="5em" class="q-mb-md brand-glow" />
           <div class="text-h6 text-primary text-weight-bold">¡Acceso Verificado!</div>
           <p class="text-body2 text-accent q-mt-sm">
@@ -79,6 +96,7 @@ const $q = useQuasar();
 const authStore = useAuthStore();
 
 const loading = ref(true);
+const pending = ref(false);
 const success = ref(false);
 const error = ref(false);
 const errorMessage = ref('');
@@ -153,8 +171,7 @@ const handleResend = async () => {
 onMounted(() => {
   if (!token.value) {
     loading.value = false;
-    error.value = true;
-    errorMessage.value = 'Token de verificación ausente.';
+    pending.value = true;
     return;
   }
   void verifyEmail(token.value, email.value);

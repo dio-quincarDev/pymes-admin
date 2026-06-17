@@ -52,8 +52,11 @@ public class AuthenticationFilter extends AbstractGatewayFilterFactory<Authentic
 
             String token = authHeader.substring(7);
 
-            // 2. Validar firma y expiración del JWT
-            if (jwtUtils.isInvalid(token)) {
+            // 2. Validar firma y expiración del JWT (una sola vez)
+            Claims claims;
+            try {
+                claims = jwtUtils.getClaims(token);
+            } catch (Exception e) {
                 return onError(exchange, "Invalid JWT token", HttpStatus.UNAUTHORIZED);
             }
 
@@ -66,13 +69,11 @@ public class AuthenticationFilter extends AbstractGatewayFilterFactory<Authentic
                         }
 
                         // 4. Inyectar claims en los headers para los microservicios internos
-                        Claims claims = jwtUtils.getClaims(token);
-
                         ServerHttpRequest mutatedRequest = exchange.getRequest().mutate()
-                                .header("X-User-Id", String.valueOf(claims.get("userId")))
+                                .header("X-User-Id", claims.get("userId") != null ? String.valueOf(claims.get("userId")) : null)
                                 .header("X-User-Email", claims.getSubject())
-                                .header("X-Tenant-Id", String.valueOf(claims.get("tenantId")))
-                                .header("X-User-Role", (String) claims.get("role"))
+                                .header("X-Tenant-Id", claims.get("tenantId") != null ? String.valueOf(claims.get("tenantId")) : null)
+                                .header("X-User-Role", claims.get("role") != null ? String.valueOf(claims.get("role")) : null)
                                 .build();
 
                         return chain.filter(exchange.mutate().request(mutatedRequest).build());

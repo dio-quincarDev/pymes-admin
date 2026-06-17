@@ -8,7 +8,6 @@
 
 ### 🔲 Bugs Pendientes
 - **[P2] Facebook OAuth2** — POSTERGADO (Meta no aprobó empresa)
-- **[P1] @AuthenticationPrincipal OAuth2User en endpoints JWT** — Cuando un usuario se autentica con JWT (no OAuth2), el principal es un `UserEntity`. Los endpoints que declaran `@AuthenticationPrincipal OAuth2User principal` reciben `null` causando NPE 500. Afecta `GET /api/v1/users/me` (UserApi). MemberApi ya fue corregido.
 
 ### 📌 Tareas por Hacer
 - [x] **[P1] Logout Global** — Cerrar todas las sesiones del usuario (COMPLETADO 2026-05-05)
@@ -19,6 +18,7 @@
 - [2026-05-08 — Validación Visual Emails Reales](#2026-05-08--validación-visual-emails-reales-)
 
 ### ✅ Bugs RESUELTOS (más reciente primero)
+- [2026-06-16 — Code Review: Cascade, @Transactional, Dead Code & Test Cleanup](#2026-06-16--code-review-cascade-transactional-dead-code--test-cleanup-)
 - [2026-06-16 — @AuthenticationPrincipal OAuth2User en MemberApi + SecurityConstraintIntegrationTest](#2026-06-16--authenticationprincipal-oauth2user-en-memberapi--securityconstraintintegrationtest-)
 - [2026-05-08 — CI Flake: InvitationServiceIntegrationTest (Redis Cleanup)](#2026-05-08--ci-flake-invitationserviceintegrationtest-redis-cleanup-)
 - [2026-05-07 — Tenant Shutdown (Soft Delete)](#2026-05-07--tenant-shutdown-soft-delete-)
@@ -274,28 +274,8 @@ Facebook OAuth2 no ha sido probado. Necesita configuración en Facebook Develope
 
 ---
 
-### 📅 [P1] @AuthenticationPrincipal OAuth2User en UserApi (PENDIENTE)
-
-**Prioridad:** Alta
-
-**Descripcion:**
-El `JwtAuthenticationFilter` guarda un `UserEntity` como principal en el SecurityContext. El endpoint `GET /api/v1/users/me` (UserApi) declara `@AuthenticationPrincipal OAuth2User principal`, igual que hacia MemberApi antes del fix.
-
-Cuando un usuario se autentica con JWT (no OAuth2), Spring no puede convertir `UserEntity` a `OAuth2User`, por lo que el parametro `principal` llega `null` y al llamar `principal.getAttribute("email")` se produce un `NullPointerException` → 500.
-
-**Endpoints afectados:**
-- `GET /api/v1/users/me` (UserApiController.getCurrentUser)
-
-**Archivos pendientes de corregir:**
-- `controller/UserApi.java`
-- `controller/impl/UserApiController.java`
-- `service/UserService.java`
-- `service/impl/UserServiceImpl.java`
-
-**Solucion propuesta:**
-Aplicar el mismo patron que en MemberApi: cambiar `OAuth2User principal` a `Object principal` y usar el metodo `extractEmail()` para soportar `OAuth2User` (OAuth2/Google), `UserDetails` (JWT) y `String` (testing).
-
 ---
+
 
 ### 📅 [P1] Email Verification Token-Email Mismatch (COMPLETADO) ✅
 
@@ -360,6 +340,71 @@ El `JwtAuthenticationFilter` guarda un `UserEntity` como principal en el Securit
 **Validacion:**
 - Unit tests: 124/124 pasando
 - Integration tests: 46/46 pasando
+
+---
+
+## 📅 2026-06-16 — Code Review: Cascade, @Transactional, Dead Code & Test Cleanup ✅
+
+**Problemas detectados en code review con skills java-springboot + spring-jpa-testing:**
+
+### 1. CascadeType.ALL peligroso
+`CascadeType.ALL + orphanRemoval = true` en todos los `@OneToMany` de `UserEntity` y `Tenant`. Al soft-deletear un usuario/empresa se hard-deleteaban registros de auditoría, refresh tokens e invitaciones.
+
+**Solución:** Quitar cascade+orphan de `auditLogs`, `refreshTokens`, `sentInvitations` (UserEntity) e `invitations`, `refreshTokens`, `auditLogs` (Tenant). Solo se conservó en `userTenants` (composición real).
+
+### 2. Missing @Transactional en OAuth2
+`CustomOAuth2UserService.loadUser()` no tenía `@Transactional`. El account linking (buscar/crear usuario al hacer login con Google/Facebook) no era atómico.
+
+**Solución:** Agregar `@Transactional` al método.
+
+### 3. ApiDocConfig vacío
+La metadata de OpenAPI (Swagger) tenía title/description/contact en blanco o con espacios.
+
+**Solución:** Llenar con nombre real del proyecto y datos de contacto.
+
+### 4. Dead code eliminado (5 archivos)
+| Archivo | Motivo |
+|---------|--------|
+| `service/TokenBlacklistService.java` | Interface vacía sin implementadores |
+| `service/PermissionCacheService.java` | Interface vacía |
+| `service/SessionService.java` | Interface vacía |
+| `utils/exception/auth/TotalAuthException.java` | Nunca usado en el código |
+| `utils/pageable/PageResponse.java` | Nunca usado |
+
+### 5. Fix @AuthenticationPrincipal OAuth2User en UserApi
+Mismo patrón que MemberApi: `@AuthenticationPrincipal OAuth2User` → `Object principal` + `extractEmail()` en UserApi/UserApiController/UserService/UserServiceImpl. Ahora soporta OAuth2User (Google), UserDetails (JWT) y String (testing).
+
+### 6. Test cleanup (Mockito strictness + imports)
+| Archivo | Cambio |
+|---------|--------|
+| `AuthServiceImplTest.java` | Eliminado `@MockitoSettings(LENIENT)` — enmascaraba `UnnecessaryStubbingException`. Limpiados los stubs muertos |
+| `InvitationServiceImplTest.java` | Eliminado import duplicado de `EmailService` |
+| `OAuth2IntentCookieFilterTest.java` | Eliminado import muerto `java.lang.reflect.Field` |
+| `JwtServiceImplTest.java` | Reemplazadas llamadas AssertJ fully-qualified → static imports |
+| `EmailVerificationServiceImplTest.java` | Eliminadas 10 líneas de stubs redundantes (ya cubiertos por `lenient()` en `@BeforeEach`) |
+
+**Archivos modificados/eliminados (14):**
+- `common/models/entities/UserEntity.java`
+- `common/models/entities/Tenant.java`
+- `service/impl/CustomOAuth2UserService.java`
+- `common/config/ApiDocConfig.java`
+- `controller/UserApi.java`
+- `controller/impl/UserApiController.java`
+- `service/UserService.java`
+- `service/impl/UserServiceImpl.java`
+- `service/TokenBlacklistService.java` (eliminado)
+- `service/PermissionCacheService.java` (eliminado)
+- `service/SessionService.java` (eliminado)
+- `utils/exception/auth/TotalAuthException.java` (eliminado)
+- `utils/pageable/PageResponse.java` (eliminado)
+- `unit/AuthServiceImplTest.java`
+- `unit/InvitationServiceImplTest.java`
+- `unit/OAuth2IntentCookieFilterTest.java`
+- `unit/JwtServiceImplTest.java`
+- `unit/EmailVerificationServiceImplTest.java`
+- `integration/api/SecurityConstraintIntegrationTest.java`
+
+**Validación:** 126 unit + 47 integration = **173 tests, 0 failures**.
 
 ---
 
