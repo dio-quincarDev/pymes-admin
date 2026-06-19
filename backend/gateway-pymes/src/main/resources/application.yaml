@@ -37,14 +37,19 @@ spring:
         cors-configurations:
           '[/**]':
             allowed-origin-patterns: "${CORS_ALLOWED_ORIGINS}"
-            allowed-methods: "*"
+            allowed-methods: "GET,POST,PUT,PATCH,DELETE,OPTIONS"
             allowed-headers: "*"
             allow-credentials: true
       default-filters:
         - DedupeResponseHeader=Access-Control-Allow-Origin Access-Control-Allow-Credentials, RETAIN_FIRST
+        # Security headers
+        - AddResponseHeader=Strict-Transport-Security, "max-age=31536000; includeSubDomains"
+        - AddResponseHeader=X-Frame-Options, DENY
+        - AddResponseHeader=X-Content-Type-Options, nosniff
+        - AddResponseHeader=Referrer-Policy, strict-origin-when-cross-origin
 
 jwt:
-  secret: ${jwt.secret:change-this-secret-key-in-production-minimum-256-bits}
+  secret: ${jwt.secret}
 
 # ==================== SWAGGER AGGREGATION ====================
 # Each service's API docs are exposed via Gateway with named paths.

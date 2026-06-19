@@ -15,9 +15,10 @@
 - [x] **[P1] CI Flake: InvitationServiceIntegrationTest** — Optimización de limpieza de Redis (COMPLETADO 2026-05-08)
 
 ### 🚧 En PROGRESO
-- [2026-05-08 — Validación Visual Emails Reales](#2026-05-08--validación-visual-emails-reales-)
+- [2026-06-19 — Defensa en profundidad + Code Exchange OAuth2](#2026-06-19--defensa-en-profundidad--code-exchange-oauth2-)
 
 ### ✅ Bugs RESUELTOS (más reciente primero)
+- [2026-06-19 — Defensa en profundidad + Code Exchange OAuth2](#2026-06-19--defensa-en-profundidad--code-exchange-oauth2-)
 - [2026-06-16 — Code Review: Cascade, @Transactional, Dead Code & Test Cleanup](#2026-06-16--code-review-cascade-transactional-dead-code--test-cleanup-)
 - [2026-06-16 — @AuthenticationPrincipal OAuth2User en MemberApi + SecurityConstraintIntegrationTest](#2026-06-16--authenticationprincipal-oauth2user-en-memberapi--securityconstraintintegrationtest-)
 - [2026-05-08 — CI Flake: InvitationServiceIntegrationTest (Redis Cleanup)](#2026-05-08--ci-flake-invitationserviceintegrationtest-redis-cleanup-)
@@ -313,7 +314,59 @@ Backend recibe: solo valida token en Redis → cualquier email asociado
 
 ---
 
-## 📅 2026-06-16 — @AuthenticationPrincipal OAuth2User en MemberApi + SecurityConstraintIntegrationTest
+## 📅 2026-06-19 — Defensa en profundidad + Code Exchange OAuth2 ✅
+
+**Problema 1 — JWT en URL de OAuth2 callback:**
+`OAuth2AuthenticationSuccessHandler` redirecteaba al frontend con `?token=<jwt>&refresh_token=<jwt>` en la URL. Los JWT quedaban expuestos en URL bar, historial, logs del servidor y header `Referer`.
+
+**Solución 1 — Code exchange (Pilar 0):**
+1. El handler guarda `{accessToken, refreshToken}` en Redis con clave `oauth:code:<uuid>` y TTL 2 min
+2. Redirectea con `?code=<uuid>` en vez de los JWT
+3. Frontend canjea el código por tokens reales vía `POST /api/v1/auth/exchange`
+4. `AuthCallback.vue` modificado para usar el exchange
+
+**Archivos modificados (4):**
+- `common/config/OAuth2AuthenticationSuccessHandler.java` (+ RedisTemplate, UUID code)
+- `controller/AuthApi.java` (+ exchange endpoint)
+- `controller/impl/AuthApiController.java` (+ exchange implementation)
+- `common/config/SecurityConfig.java` (+ `/api/v1/auth/exchange` en WHITE_LIST)
+- `common/constants/ApiPathConstants.java` (+ AUTH_EXCHANGE)
+
+---
+
+**Problema 2 — Múltiples leaks de seguridad:**
+- `AuthenticationFilter` logueaba el JWT completo en gateway
+- `GlobalExceptionHandler` devolvía `dbMessage` del error SQL en response
+- `EmailVerificationServiceImpl` logueaba tokens de verificación
+- Secret JWT con fallback default en gateway
+- CORS aceptaba cualquier método HTTP (`*`)
+- `ResetPasswordRequest` sin validación de complejidad (consistente con Register)
+
+**Solución 2 — Defensa en profundidad (Pilar D):**
+
+| # | Archivo | Cambio |
+|---|---------|--------|
+| D.1 | `gateway-pymes/application.yaml` | Security headers (HSTS, XFO, XCTO, Referrer-Policy) vía `AddResponseHeader` |
+| D.2 | `AuthenticationFilter.java` | Quitar JWT del log |
+| D.3 | `GlobalExceptionHandler.java` | Quitar `dbMessage` del response |
+| D.4 | `EmailVerificationServiceImpl.java` | Quitar token del log |
+| D.5 | `gateway-pymes/application.yaml` | `${jwt.secret}` sin default — falla si no está configurado |
+| D.6 | `frontend/pymes/package.json` | `axios` ^1.2.1 → ^1.6.0 (CVE-2023-45857) |
+| D.7 | `ResetPasswordRequest.java` | `@Pattern` de complejidad (letra + número) |
+| D.8 | `gateway-pymes/application.yaml` | CORS `*` → `GET,POST,PUT,PATCH,DELETE,OPTIONS` |
+| D.9 | `AuthCallback.vue`, `VerifyEmailPage.vue`, `ResetPasswordPage.vue` | `replaceState` fix para hash routing — `location.hash.replace(/\?.*$/, '')` |
+
+**Frontend — URL cleanup:**
+- `replaceState` existente en `AuthCallback.vue` no funcionaba correctamente con hash routing (`/#/ruta?param=valor` → `location.hash` incluye los query params)
+- Fix: `location.hash.replace(/\?.*$/, '')` en 3 páginas
+- `VerifyEmailPage.vue`: limpia token y email de la URL inmediatamente
+- `ResetPasswordPage.vue`: limpia token y email de la URL inmediatamente
+- `AcceptInvitationPage.vue`: se omite intencionalmente (requiere token post-login redirect)
+
+**Validación:**
+- Auth unit tests: 126/126 pasando
+- Gateway compile: ✅
+- Frontend vue-tsc + ESLint: 0 errores
 
 **Problema:**
 Tres tests en `SecurityConstraintIntegrationTest$InsufficientRoleTests` fallaban:

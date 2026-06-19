@@ -20,6 +20,8 @@ import org.springframework.web.bind.annotation.PostMapping;
 import org.springframework.web.bind.annotation.RequestBody;
 import org.springframework.web.bind.annotation.RequestMapping;
 
+import java.util.Map;
+
 @Tag(name = "Authentication", description = "Endpoints de autenticación y gestión de tokens")
 @RequestMapping(ApiPathConstants.V1_ROUTE + ApiPathConstants.AUTH_ROUTE)
 public interface AuthApi {
@@ -65,4 +67,8 @@ public interface AuthApi {
     @PostMapping(ApiPathConstants.AUTH_RESET_PASSWORD)
     ResponseEntity<ApiResponse<Void>> resetPassword(
             @Valid @RequestBody ResetPasswordRequest request);
+
+    @Operation(summary = "OAuth2 exchange", description = "Intercambia un código de un solo uso por los tokens JWT (OAuth2 callback)")
+    @PostMapping(ApiPathConstants.AUTH_EXCHANGE)
+    ResponseEntity<ApiResponse<AuthResponse>> exchange(@RequestBody Map<String, String> body);
 }

@@ -64,7 +64,7 @@ public class EmailVerificationServiceImpl implements EmailVerificationService {
         redisTemplate.opsForValue().set(key, request, TOKEN_TTL);
         // Índice por email para detección rápida de duplicados
         redisTemplate.opsForValue().set(PENDING_REG_PREFIX + "email:" + request.email(), token, TOKEN_TTL);
-        log.info("Registro pendiente guardado en Redis para: {} (Token: {})", request.email(), token);
+        log.info("Registro pendiente guardado en Redis para: {}", request.email());
 
         sendVerificationEmail(request.name(), request.email(), token);
     }

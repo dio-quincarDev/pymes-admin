@@ -111,5 +111,29 @@ PENDIENTES:
   GatewayPymesApplicationTests.java (WebTestClient + Testcontainers Redis)
 
 ---
-Actualizado: 2026-06-17
+## Nuevo (2026-06-19)
+
+### C6 — Security headers como default-filters
+Se agregaron 4 security headers vía `AddResponseHeader` en default-filters. Sin clase Java nueva.
+
+Headers: Strict-Transport-Security, X-Frame-Options (DENY), X-Content-Type-Options (nosniff), Referrer-Policy (strict-origin-when-cross-origin).
+
+Estado: ✅ RESUELTO
+Archivo: application.yaml:44-49
+
+### C7 — JWT secret sin fallback
+`${jwt.secret:...}` → `${jwt.secret}`. Sin default, falla al startup si JWT_SECRET no está configurado.
+
+Estado: ✅ RESUELTO
+Archivo: application.yaml:51
+
+### C8 — CORS allowed-methods restringido
+`allowed-methods: "*"` → `allowed-methods: "GET,POST,PUT,PATCH,DELETE,OPTIONS"`. Lista explícita en vez de comodín.
+
+Estado: ✅ RESUELTO
+Archivo: application.yaml:40
+
+---
+
+Actualizado: 2026-06-19
 Creado: 2026-06-16 — Code review session

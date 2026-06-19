@@ -174,6 +174,7 @@ onMounted(() => {
     pending.value = true;
     return;
   }
+  window.history.replaceState({}, '', window.location.pathname + window.location.hash.replace(/\?.*$/, ''));
   void verifyEmail(token.value, email.value);
 });
 </script>

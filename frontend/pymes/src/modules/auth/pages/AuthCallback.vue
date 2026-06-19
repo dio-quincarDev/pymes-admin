@@ -16,6 +16,7 @@ useMeta({ title: 'Sincronizando — PYMEQ' });
 import { useRoute, useRouter } from 'vue-router';
 import { useAuthStore } from '../store';
 import { useQuasar } from 'quasar';
+import { api } from 'src/boot/axios';
 
 const route = useRoute();
 const router = useRouter();
@@ -25,19 +26,19 @@ const $q = useQuasar();
 const statusMessage = ref('Preparando tu Toolkit de Auditoría');
 
 onMounted(async () => {
-  const token = route.query.token as string;
-  const refreshToken = route.query.refresh_token as string;
+  const code = route.query.code as string;
 
-  // ponytail: limpiar tokens de la URL inmediatamente — leak en barra/historial/referrer
-  window.history.replaceState({}, '', window.location.pathname + window.location.hash);
+  window.history.replaceState({}, '', window.location.pathname + window.location.hash.replace(/\?.*$/, ''));
 
-  if (token && refreshToken) {
+  if (code) {
     try {
-      // 1. Guardar tokens y obtener perfil
-      await authStore.handleOAuthCallback(token, refreshToken);
-      
-      // 2. Limpiar el tenant pendiente tras login/registro exitoso
-      // El backend ya manejó la creación del tenant si existía un intent (vía state)
+      const { data } = await api.post('/auth/exchange', { code });
+      const authData = data.data;
+      if (!authData?.accessToken) {
+        throw new Error('No se recibieron tokens');
+      }
+      await authStore.handleOAuthCallback(authData.accessToken, authData.refreshToken);
+
       authStore.clearPendingTenant();
 
       $q.notify({

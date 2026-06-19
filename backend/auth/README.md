@@ -1,103 +1,242 @@
 # PyMes Admin - Auth Microservice
 
-Centro de Identidad Multi-tenant para la plataforma PyMes Admin.
+Servicio de identidad y multi-tenancy para la plataforma SaaS PyMes Admin. Gestiona autenticacion, sesiones, y aislamiento de datos por empresa.
 
 [![Spring Boot](https://img.shields.io/badge/Spring%20Boot-3.4.3-6DB33F?logo=springboot)](https://spring.io/projects/spring-boot)
 [![Java](https://img.shields.io/badge/Java-21-ED8B00?logo=openjdk&logoColor=ffffff)](https://www.oracle.com/java/technologies/downloads/)
 [![PostgreSQL](https://img.shields.io/badge/PostgreSQL-15-336791?logo=postgresql)](https://www.postgresql.org/)
 [![Redis](https://img.shields.io/badge/Redis-DC382D?logo=redis&logoColor=ffffff)](https://redis.io/)
-[![OAuth2](https://img.shields.io/badge/OAuth2-2.0-000000?logo=oauth)](https://oauth.net/2/)
-[![JWT](https://img.shields.io/badge/JWT-0.12.6-000000?logo=json)](https://jwt.io/)
+[![JWT](https://img.shields.io/badge/JJWT-0.12.6-000000?logo=json)](https://jwt.io/)
 
 ---
 
-## Descripcion
+## Que Hace
 
-Este microservicio es el nucleo de identidad de la plataforma PyMes Admin. Gestiona el acceso y orquesta la estructura multi-tenant de forma atomica y segura, disenado para escalar en entornos SaaS B2B.
+Centro de identidad multi-tenant. Orquesta el ciclo de vida completo del usuario: registro, autenticacion, sesiones, y workspace switching con aislamiento de datos por tenant.
 
-### Arquitectura Orientada a Dominios
-Separacion fisica y logica de responsabilidades:
-1. Auth Domain: Ciclo de vida de sesion (Login, Registro, RTR, Logout Global).
-2. User Domain: Gestion de identidad y perfiles globales.
-3. Member Domain: Gestion de membresias y roles dentro de tenants (OWNER > ADMIN > CONTABLE > VIEWER).
-4. Invitation Domain: Flujo completo de invitaciones para nuevos colaboradores.
+### Dominios
+
+| Dominio | Responsabilidad |
+|---------|----------------|
+| **Auth** | Login, registro, logout global, rotacion de tokens (RTR), rate limiting |
+| **User** | Perfiles de identidad globales |
+| **Tenant** | Workspaces, switching de contexto, limites de plan FREE |
+| **Member** | Roles jerarquicos (OWNER > ADMIN > CONTABLE > VIEWER) |
+| **Invitation** | Flujo completo de invitacion para nuevos colaboradores |
+
+### Stack Tecnico
+
+Spring Boot 3.4.3 / Java 21 / PostgreSQL 15 / Redis / JJWT 0.12.6 / MapStruct 1.6.3 / Spring Security OAuth2 / Flyway / Thymeleaf
 
 ---
 
-## Caracteristicas de Seguridad
+## Como Funciona
+
+### Registro y Verificacion
+
+```
+POST /register
+  -> User + Tenant FREE + Rol OWNER (transaccion atomica)
+  -> Token en Redis (email:verify:{token}, TTL 15min)
+  -> Email HTML con link de verificacion
+
+POST /verify-email
+  -> Validacion cruzada token-email
+  -> isEmailVerified = true
+  -> Eliminacion del token (one-time use)
+```
+
+El usuario queda en estado "pending" hasta verificar su email. No puede autenticarse hasta completar la verificacion.
+
+### Autenticacion
+
+```
+POST /login
+  -> Rate Limit: 5 intentos / 15 min por IP:Email (Redis atomic increment)
+  -> Validacion: isActive + isEmailVerified
+  -> Audit log: IP (X-Forwarded-For / X-Real-IP / RemoteAddr) + User-Agent
+  -> Par JWT: Access Token (stateless) + Refresh Token (stateful, SHA-256 hash en DB)
+```
 
 ### JWT y Tokens
-- Refresh Token Rotation (RTR): Rotacion por cada uso, el Refresh Token viejo se invalida al solicitar uno nuevo.
-- Deteccion de Reuso: Si se intenta usar un Refresh Token ya revocado, se revoca automaticamente todos los tokens del usuario.
-- Identidad Unica de Tokens: Inclusion del claim `jti` (JWT ID) en cada token generado.
+
+- **Access Token**: Claims: sub(email), userId, tenantId, role, plan, jti. TTL configurable.
+- **Refresh Token**: Payload minimo (userId). Almacenado en DB con hash SHA-256.
+- **Refresh Token Rotation (RTR)**: Cada uso invalida el Refresh anterior.
+- **Reuse Detection**: Si se reusa un Refresh revocado -> eliminacion de todos los tokens del usuario (full re-auth).
+- **Blacklist**: Logout inmediato via Redis. Key: `auth:token_blacklist:{jwt}`, TTL = restante del token. O(1) lookup.
+
+### Multi-tenancy
+
+- **Registro atomico**: User + Tenant + UserTenant en una transaccion.
+- **selectTenant**: Verifica membresia -> genera nuevo JWT con tenantId/role/plan -> rota Refresh Token.
+- **FREE plan**: Limite de 1 tenant por usuario. Crear mas requiere upgrade.
+- **Roles**: OWNER > ADMIN > CONTABLE > VIEWER. Jerarquia enforced en cambios de rol.
 
 ### OAuth2
-- Google OAuth2 implementado via Gateway.
-- Facebook: Pendiente de configuracion.
 
-### Medidas de Proteccion
-- Rate Limiting: Bloqueo por combinacion `IP:Email` en login (5 intentos -> 429).
-- Password Hashing: BCrypt con validacion de fortaleza.
-- Audit Log: Trazabilidad de REGISTER y LOGIN con IP y User-Agent.
-- Timing Attack Prevention: Respuestas de tiempo constante en recuperacion de contrasena.
-- Soft Delete: Uso de `deleted_at` en entidades.
-- Token-Email Validation: Validacion cruzada token-email en verificacion.
+- Google OAuth2 implementado via Gateway. JIT provisioning (find-or-create).
+- **Intent Cookie**: Pre-registro de tenant en Redis antes del redirect. Flujo:
+  1. `POST /oauth2/intent` -> guarda {name, slug} en Redis, retorna intentId
+  2. Redirect `/oauth2/authorization/google?state={intentId}`
+  3. SuccessHandler lee state -> consulta Redis -> crea Tenant + UserTenant
+  4. JWT ya contiene tenantId
+- Facebook: pendiente de configuracion en Facebook Developer Console.
+
+### Email System
+
+- Templates Thymeleaf (verification, password-reset, invitation).
+- JavaMailSender con MimeMessage HTML responsive.
+- Layout base con componentes reutilizables (_base, _button, _alert, _divider).
+- Color palette consistente con el frontend.
+
+### Password Reset
+
+```
+POST /forgot-password -> Token en Redis (password:reset:{token}, TTL 15min)
+POST /reset-password  -> Valida token -> BCrypt update -> Elimina token
+```
+
+Timing attack mitigation: respuesta consistente aunque el email no exista.
+
+### Permission Cache
+
+- Cache en Redis con TTL de 5 minutos.
+- Key: `auth:permissions:{userId}:{tenantId}`.
+- Invalidation granular (por tenant) o global (por usuario).
 
 ---
 
-## Stack Tecnologico y Calidad
-
-- **Core:** Spring Boot 3.4.3, Java 21, MapStruct 1.6.3.
-- **Security:** Spring Security OAuth2 (Google/FB), JJWT 0.12.6, Redis (Blacklist).
-- **Persistencia:** PostgreSQL 15, Flyway (V5: UNIQUE constraints on tokens).
-- **Testing:** JUnit 5, Mockito, **Testcontainers** (Postgres + Redis).
-
-### Suite de Pruebas Automatizadas
-
-| Tipo de Test | Cantidad | Descripción |
-|--------------|----------|-------------|
-| **Unitarios** | 124 tests | Cobertura total de servicios y lógica de rotación. |
-| **Integración** | 31 tests | Flujos E2E con PostgreSQL y Redis reales. |
-| **TOTAL** | **155 tests** | **0 fallos - 100% Integridad.** |
-
----
-
-## Endpoints Principales
+## Endpoints
 
 Ruta base: `/api/v1`
 
-| Recurso | Endpoint | Descripcion |
-|---------|----------|-------------|
-| Auth | POST /register | Registro atomico: User + Tenant FREE + Rol OWNER (pending token). |
-| Auth | POST /login | Login con email/password + Rate Limiting. |
-| Auth | POST /logout | Logout global - invalida todos los refresh tokens del usuario. |
-| Auth | POST /refresh | Rotacion de tokens con validacion de reuso. |
-| Auth | POST /verify-email | Verificacion de identidad con validacion token-email cruzada. |
-| Auth | POST /forgot-password | Recuperacion de contrasena via Redis. |
-| Auth | POST /reset-password | Reset de contrasena con token valido. |
-| Tenants | GET /tenants | Lista tenants del usuario (paginado). |
-| Tenants | POST /tenants | Crear nuevo tenant (solo FREE). |
-| Tenants | POST /tenants/select | Cambio de contexto de empresa con regeneracion de tokens. |
-| Members | GET /tenants/{id}/members | Lista miembros de un tenant. |
-| Members | PUT /tenants/{id}/members/{userId}/role | Cambio de rol con validacion de jerarquia. |
-| Members | DELETE /tenants/{id}/members/{userId} | Desvincular miembro - solo OWNER. |
-| Invitations | GET /invitations | Lista invitaciones pendientes del usuario. |
-| Invitations | POST /invitations | Crear invitacion. |
-| Invitations | POST /invitations/accept | Aceptar invitacion. |
-| Invitations | DELETE /invitations/{id} | Cancelar invitacion. |
+| Metodo | Ruta | Auth | Descripcion |
+|--------|------|------|-------------|
+| POST | /auth/register | No | User + Tenant + Owner (pending verification) |
+| POST | /auth/login | No | Rate-limited, audit log |
+| POST | /auth/logout | Si | Invalida todos los refresh tokens del usuario |
+| POST | /auth/refresh | No | RTR + reuse detection |
+| POST | /auth/verify-email | No | Token-Email cross validation |
+| POST | /auth/resend-verification | No | Regenera token (TTL reset a 15min) |
+| POST | /auth/forgot-password | No | Token Redis TTL 15min |
+| POST | /auth/reset-password | No | BCrypt update + token cleanup |
+| GET | /tenants | Si | Lista tenants del usuario (paginado) |
+| POST | /tenants | Si | Crear nuevo tenant (solo FREE) |
+| POST | /tenants/select | Si | Switch contexto + JWT regeneration |
+| GET | /tenants/{id}/members | Si | Lista miembros del tenant |
+| PUT | /tenants/{id}/members/{userId}/role | Si | Cambio de rol (validacion jerarquica) |
+| DELETE | /tenants/{id}/members/{userId} | Si | Desvincular miembro (solo OWNER) |
+| GET | /invitations | Si | Invitaciones pendientes del usuario |
+| POST | /invitations | Si | Crear invitacion |
+| POST | /invitations/accept | Si | Aceptar invitacion |
+| DELETE | /invitations/{id} | Si | Cancelar invitacion |
 
 ---
 
-## Configuracion y DevOps
+## Suite de Pruebas
+
+### Ejecucion
+
+| Comando | Scope | Requisitos |
+|---------|-------|------------|
+| `./mvnw test -B` | Unitarios | Ninguno |
+| `./mvnw verify -B -Dspring.profiles.active=integration` | Integracion | Docker (Testcontainers) |
+
+Maven Surefire ejecuta solo `**/integration/**` excluido. Failsafe ejecuta solo `**/integration/**`.
+
+### Cobertura por Dominio
+
+| Dominio | Unit | Integration | Consistency |
+|---------|------|-------------|-------------|
+| Auth (login/register/refresh/logout) | 11 | 10 | — |
+| JWT (tokens/blacklist/validacion) | 20 | — | — |
+| OAuth2 (intent/filter/handler) | 19 | 10 | — |
+| Email (verificacion/reset) | 16 | 4 | — |
+| Tenant (CRUD/select/shutdown) | 9 | — | — |
+| Member (roles/delete) | 3 | — | — |
+| Invitation (create/accept/cancel) | 16 | 2 | — |
+| Security (constraints/RBAC) | — | 16 | — |
+| API paths (constantes vs produccion) | — | — | 10 |
+| **Total** | **100** | **43** | **10** |
+
+### Infraestructura de Test
+
+- **Unitarios**: H2 in-memory (PostgreSQL compat mode), Mockito, sin Docker. Archivo: `application-test.yaml`.
+- **Integracion**: Testcontainers (PostgreSQL 15-alpine + Redis 7-alpine), MockMvc, `@DynamicPropertySource`.
+- **Base class**: `AbstractIntegrationTest` provee lifecycle de containers, `@MockitoBean` en EmailService (suprime envios), helper `flushRedis()`.
+- **TestApiPaths**: Utilidad que replica `ApiPathConstants` para tests. Evita strings hardcodeados.
+
+### Archivos de Test
+
+```
+src/test/java/auth/pymes/
+├── AuthApplicationTests.java              # Context load
+├── consistency/
+│   └── ApiPathConsistencyTest.java        # 10 tests: paths vs constants vs whitelist
+├── integration/
+│   ├── AbstractIntegrationTest.java       # Base class (Testcontainers)
+│   └── api/
+│       ├── AuthApiIntegrationTest.java    # 10 tests: endpoints auth
+│       ├── InvitationServiceIntegrationTest.java  # 2 tests
+│       ├── OAuth2IntentIntegrationTest.java       # 4 tests
+│       ├── OAuth2LoginIntegrationTest.java        # 6 tests
+│       ├── PasswordResetIntegrationTest.java      # 4 tests
+│       └── SecurityConstraintIntegrationTest.java  # 16 tests: 401/403 + RBAC
+├── testutil/
+│   └── TestApiPaths.java
+└── unit/
+    ├── AuthServiceImplTest.java           # 11 tests
+    ├── EmailVerificationServiceImplTest.java  # 11 tests
+    ├── InvitationServiceImplTest.java     # 16 tests
+    ├── JwtServiceImplTest.java            # 20 tests
+    ├── MemberServiceImplTest.java         # 3 tests
+    ├── OAuth2AuthenticationSuccessHandlerTest.java  # 4 tests
+    ├── OAuth2IntentCookieFilterTest.java  # 7 tests
+    ├── OAuth2IntentServiceImplTest.java   # 8 tests
+    ├── PasswordResetServiceImplTest.java  # 5 tests
+    ├── TenantServiceImplTest.java         # 9 tests
+    └── UserServiceImplTest.java           # 5 tests
+```
+
+### Gaps Conocidos
+
+- Sin tests directos para `TokenBlacklistService`, `JwtAuthenticationFilter`, `GlobalExceptionHandler`.
+- Mappers y repositories solo cubiertos via integracion, sin unit tests dedicados.
+- Happy-path integration para tenant/member/user/invitation CRUD pendiente.
+- Sin test de CORS o configuracion de templates Thymeleaf.
+
+---
+
+## Configuracion
 
 ### Perfiles de Maven
-- `dev`: Desarrollo local con logs en DEBUG. Carga secretos via .env.
-- `stg`: Staging con configuracion estricta de variables de entorno.
-- `prod`: Produccion optimizada con logs en WARN.
 
-### CI/CD
-- GitHub Actions: Pipeline automatizado que ejecuta `mvn verify` en cada PR.
-- Docker-Ready: El microservicio esta listo para ser orquestado junto a PostgreSQL y Redis.
+| Perfil | Proposito | Comando |
+|--------|-----------|---------|
+| dev | Desarrollo local (DEBUG, .env) | `./mvnw spring-boot:run -Pdev` |
+| stg | Staging (INFO) | `./mvnw package -Pstg` |
+| prod | Produccion (WARN) | `./mvnw package -Pprod` |
+| integration | Tests con Testcontainers | `./mvnw verify -B -Dspring.profiles.active=integration` |
+
+### Variables de Entorno
+
+Copiar `.env.example` a `.env` para desarrollo local. El servicio usa `spring-dotenv` para cargar variables.
+
+| Variable | Descripcion |
+|----------|-------------|
+| JWT_SECRET | Secreto para firma HS256 (min 256 bits) |
+| DB_HOST / DB_PORT / DB_NAME / DB_USERNAME / DB_PASSWORD | PostgreSQL |
+| REDIS_HOST / REDIS_PORT | Redis (blacklist + cache) |
+| SPRING_MAIL_USERNAME / SPRING_MAIL_PASSWORD | SMTP para emails |
+| APP_FRONTEND_URL | Base URL para links de verificacion |
+| GOOGLE_CLIENT_ID / GOOGLE_CLIENT_SECRET | OAuth2 Google |
+
+---
+
+## CI/CD
+
+GitHub Actions ejecuta `mvn verify` en cada PR a main/develop/feature/*.
 
 ---
 
@@ -105,26 +244,14 @@ Ruta base: `/api/v1`
 
 | Fase | Descripcion | Estado |
 |------|-------------|--------|
-| Fase 1 | RTR + Reuse Detection + jti uniqueness | COMPLETADO |
-| Fase 2 | Verificacion de email + Registro Pending Token + Token-Email Mismatch Fix | COMPLETADO |
-| Fase 3 | OAuth2 Google + OAuth2 Intent Cookie | COMPLETADO |
-| Fase 4 | Logout Global + Thymeleaf Email Templates | COMPLETADO |
-| Fase 5 | Member Management (roles, invitaciones) | COMPLETADO |
-| Fase 6 | Password Reset + Forgot Password | COMPLETADO |
-| Fase 7 | Facebook OAuth2 | PENDIENTE |
-| Fase 8 | MFA (TOTP), PKCE, Enterprise SSO | BACKLOG |
-
-### Features Implementadas Recientemente
-
-- Registro Pending Token: Usuario no se crea en DB hasta verificar email.
-- Logout Global: Cierra todas las sesiones activas del usuario.
-- Token-Email Mismatch Fix: Validacion cruzada token-email en verificacion.
-- Member Management: Gestion de roles y membresias por tenant.
-- Thymeleaf Email System: Plantillas profesionales responsivas.
-
-### Problema Conocido
-
-Facebook OAuth2: Pendiente de configuracion en Facebook Developer Console.
+| 1 | RTR + Reuse Detection + jti uniqueness | COMPLETADO |
+| 2 | Verificacion de email + Pending Token | COMPLETADO |
+| 3 | OAuth2 Google + Intent Cookie | COMPLETADO |
+| 4 | Logout Global + Thymeleaf Email Templates | COMPLETADO |
+| 5 | Member Management (roles, invitaciones) | COMPLETADO |
+| 6 | Password Reset + Forgot Password | COMPLETADO |
+| 7 | Facebook OAuth2 | PENDIENTE |
+| 8 | MFA (TOTP), PKCE, Enterprise SSO | BACKLOG |
 
 ---
 

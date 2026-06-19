@@ -249,8 +249,7 @@ public class GlobalExceptionHandler {
         ErrorResponse errorResponse = new ErrorResponse(
                 CodigoError.CONSTRAINT_VIOLATION.getCodigo(),
                 userMessage,
-                request.getRequestURI(),
-                Map.of("details", dbMessage)
+                request.getRequestURI()
         );
         
         return ResponseEntity.status(HttpStatus.CONFLICT).body(errorResponse);

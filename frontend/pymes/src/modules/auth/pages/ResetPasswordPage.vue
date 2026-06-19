@@ -109,6 +109,7 @@ const passwordMismatch = computed(() => {
 });
 
 onMounted(() => {
+  window.history.replaceState({}, '', window.location.pathname + window.location.hash.replace(/\?.*$/, ''));
   if (!token || !email) {
     $q.notify({
       type: 'negative',

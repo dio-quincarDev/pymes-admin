@@ -19,6 +19,7 @@ import jakarta.servlet.http.HttpServletResponse;
 import lombok.RequiredArgsConstructor;
 import lombok.extern.slf4j.Slf4j;
 import org.springframework.beans.factory.annotation.Value;
+import org.springframework.data.redis.core.RedisTemplate;
 import org.springframework.security.core.Authentication;
 import org.springframework.security.oauth2.core.user.OAuth2User;
 import org.springframework.security.web.authentication.SimpleUrlAuthenticationSuccessHandler;
@@ -27,9 +28,11 @@ import org.springframework.util.StringUtils;
 import org.springframework.web.util.UriComponentsBuilder;
 
 import java.io.IOException;
+import java.time.Duration;
 import java.time.ZonedDateTime;
 import java.util.Arrays;
 import java.util.List;
+import java.util.Map;
 import java.util.Optional;
 import java.util.UUID;
 import java.util.regex.Pattern;
@@ -50,9 +53,12 @@ public class OAuth2AuthenticationSuccessHandler extends SimpleUrlAuthenticationS
     private final UserTenantRepository userTenantRepository;
     private final TenantRepository tenantRepository;
     private final OAuth2IntentService oauth2IntentService;
+    private final RedisTemplate<String, Object> redisTemplate;
 
     @Value("${app.cors.allowed-origins}")
     private String frontendUrl;
+
+    private static final Duration CODE_TTL = Duration.ofMinutes(2);
 
     @Override
     public void onAuthenticationSuccess(HttpServletRequest request, HttpServletResponse response,
@@ -156,10 +162,13 @@ public class OAuth2AuthenticationSuccessHandler extends SimpleUrlAuthenticationS
         String refreshToken = jwtService.generateRefreshToken(user);
         jwtService.saveRefreshToken(user, activeTenantId, refreshToken);
 
-        // 5. Construir URL de redirección al Frontend
+        // 6. Guardar tokens en Redis con código de un solo uso
+        String code = UUID.randomUUID().toString();
+        redisTemplate.opsForValue().set("oauth:code:" + code, Map.of("accessToken", accessToken, "refreshToken", refreshToken), CODE_TTL);
+
+        // 7. Redirigir al frontend solo con el código (sin JWT en URL)
         String targetUrl = UriComponentsBuilder.fromUriString(frontendUrl + "/auth/callback")
-                .queryParam("token", accessToken)
-                .queryParam("refresh_token", refreshToken)
+                .queryParam("code", code)
                 .build().toUriString();
 
         getRedirectStrategy().sendRedirect(request, response, targetUrl);

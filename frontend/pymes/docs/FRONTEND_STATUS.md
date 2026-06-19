@@ -140,6 +140,26 @@ Se ha consolidado la identidad de **SaaS Fintech** bajo el nombre **PYMEQ**, cen
 
 ---
 
+### 3. Cambios de Seguridad Recientes (19 Junio 2026)
+
+#### OAuth2 Code Exchange
+- **AuthCallback.vue**: Ya no recibe JWT directos en la URL. Recibe un código de un solo uso (`?code=xxx`) que se canjea por tokens via `POST /api/v1/auth/exchange`. Elimina la exposición de JWT en URL bar, historial y header Referer.
+- **Impacto**: Sin cambios en UX — el flujo sigue siendo transparente para el usuario.
+
+#### replaceState fix para hash routing
+Las 3 páginas que reciben tokens por URL ahora limpian correctamente los query params del hash:
+
+| Página | Tokens en URL | replaceState |
+|--------|--------------|--------------|
+| `AuthCallback.vue` | `?code=...` | ✅ `hash.replace(/\?.*$/, '')` |
+| `VerifyEmailPage.vue` | `?token=...&email=...` | ✅ `hash.replace(/\?.*$/, '')` |
+| `ResetPasswordPage.vue` | `?token=...&email=...` | ✅ `hash.replace(/\?.*$/, '')` |
+| `AcceptInvitationPage.vue` | `?token=...` | ❌ Intencional — necesita token post-login redirect |
+
+Fix técnico: `window.location.hash` en hash routing incluye los query params dentro del hash (`#/ruta?param=valor`). El `replace(/\?.*$/, '')` recorta el query string manteniendo el path del hash.
+
+---
+
 ## Proximos Pasos Prioritarios
 
 ### Fase 1 -- Testing

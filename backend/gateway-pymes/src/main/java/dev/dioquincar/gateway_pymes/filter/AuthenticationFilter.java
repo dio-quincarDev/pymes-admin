@@ -64,7 +64,7 @@ public class AuthenticationFilter extends AbstractGatewayFilterFactory<Authentic
             return redisTemplate.hasKey(BLACKLIST_PREFIX + token)
                     .flatMap(isRevoked -> {
                         if (isRevoked) {
-                            log.warn("Intento de acceso con token revocado: {}", token);
+                            log.warn("Intento de acceso con token revocado");
                             return onError(exchange, "Token is revoked", HttpStatus.UNAUTHORIZED);
                         }
 

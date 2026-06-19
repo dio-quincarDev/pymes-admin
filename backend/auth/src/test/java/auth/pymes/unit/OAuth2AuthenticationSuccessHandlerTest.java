@@ -24,6 +24,8 @@ import org.mockito.Captor;
 import org.mockito.InjectMocks;
 import org.mockito.Mock;
 import org.mockito.junit.jupiter.MockitoExtension;
+import org.springframework.data.redis.core.RedisTemplate;
+import org.springframework.data.redis.core.ValueOperations;
 import org.springframework.security.core.Authentication;
 import org.springframework.security.oauth2.core.user.DefaultOAuth2User;
 import org.springframework.security.oauth2.core.user.OAuth2User;
@@ -56,6 +58,12 @@ class OAuth2AuthenticationSuccessHandlerTest {
     private OAuth2IntentService oauth2IntentService;
 
     @Mock
+    private RedisTemplate<String, Object> redisTemplate;
+
+    @Mock
+    private ValueOperations<String, Object> valueOperations;
+
+    @Mock
     private HttpServletRequest request;
 
     @Mock
@@ -79,6 +87,9 @@ class OAuth2AuthenticationSuccessHandlerTest {
                 .email("test@gmail.com")
                 .name("Test User")
                 .build();
+        when(redisTemplate.opsForValue()).thenReturn(valueOperations);
+        when(jwtService.generateAccessToken(any(), any(), any(), any())).thenReturn("access-token");
+        when(jwtService.generateRefreshToken(any())).thenReturn("refresh-token");
     }
 
     @Test
