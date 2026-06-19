@@ -216,17 +216,17 @@ pymes-postgres-auth (una sola instancia)
 
 ---
 
-## Checklist de Implementación
+## Checklist de Implementacion
 
-- [ ] Cambiar Docker Compose: pymes_auth → pymes_db
-- [ ] Eliminar servicio postgres-core
-- [ ] Auth application.yml: Agregar spring.flyway.schemas: auth
-- [ ] Core application.yml: Agregar spring.flyway.schemas: core
-- [ ] Core Flyway V1: Crear schema core al inicio
-- [ ] Gateway routes: Agregar /api/core/**
-- [ ] Variables env: DB_SCHEMA para Core (opcional, puede omitirse si ya especifica en yml)
-- [ ] Test: Conectar ambos servicios a la misma instancia
-- [ ] Validar: \dn en psql muestra auth + core
+- [x] Cambiar Docker Compose: pymes_auth → pymes_db
+- [x] Eliminar servicio postgres-core
+- [x] Auth application.yml: spring.flyway.schemas: auth
+- [x] Core application.yml: spring.flyway.schemas: core
+- [x] Core Flyway V1: Crear schema core al inicio
+- [x] Gateway routes: Agregar /api/core/**
+- [x] Variables env: DB_NAME, DB_USERNAME, DB_PASSWORD
+- [x] Test: Conectar ambos servicios a la misma instancia
+- [x] Validar: ambos schemas en una sola DB
 
 ---
 
