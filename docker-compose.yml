@@ -33,6 +33,7 @@ services:
       - REDIS_HOST=pymes-redis-auth
       - CORS_ALLOWED_ORIGINS=${CORS_ALLOWED_ORIGINS:-http://localhost:9000}
       - SERVER_PORT=8080
+      - CORE_SERVICE_HOST=pymes-core-service
       - JWT_SECRET=${JWT_SECRET:-change-this-secret-key-in-production-minimum-256-bits}
     depends_on:
       auth-service:
@@ -81,6 +82,40 @@ services:
         condition: service_started
     healthcheck:
       test: ["CMD", "wget", "-qO-", "http://localhost:8081/actuator/health"]
+      interval: 15s
+      timeout: 10s
+      retries: 8
+      start_period: 45s
+
+  # ==================== CORE SERVICE ====================
+  core-service:
+    image: ${DOCKER_USERNAME:-pymes}/pymes-core:${TAG:-latest}
+    build:
+      context: ./backend/core
+      dockerfile: Dockerfile
+    container_name: pymes-core-service
+    restart: on-failure
+    networks:
+      - pymes-internal-network
+    environment:
+      - DB_HOST=pymes-postgres-auth
+      - DB_PORT=5432
+      - DB_NAME=${DB_NAME}
+      - DB_USERNAME=${DB_USERNAME}
+      - DB_PASSWORD=${DB_PASSWORD}
+      - REDIS_HOST=pymes-redis-auth
+      - REDIS_PORT=6379
+      - SERVER_PORT=8082
+      - AUTH_SERVICE_URL=http://pymes-auth-service:8081
+    depends_on:
+      postgres-auth:
+        condition: service_healthy
+      redis:
+        condition: service_started
+      auth-service:
+        condition: service_healthy
+    healthcheck:
+      test: ["CMD", "wget", "-qO-", "http://localhost:8082/actuator/health"]
       interval: 15s
       timeout: 10s
       retries: 8

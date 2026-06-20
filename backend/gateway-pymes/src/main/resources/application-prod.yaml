@@ -11,6 +11,14 @@ spring:
   cloud:
     gateway:
       routes:
+        - id: core-service
+          uri: http://${CORE_SERVICE_HOST}:8082
+          predicates:
+            - Path=/api/v1/core/**
+          filters:
+            - PreserveHostHeader
+            - AuthenticationFilter
+
         - id: auth-service
           uri: http://${AUTH_SERVICE_HOST}:8081
           predicates:

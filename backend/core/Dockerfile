@@ -9,6 +9,6 @@ RUN addgroup -S spring && adduser -S spring -G spring
 COPY --from=builder /app/target/*.jar app.jar
 RUN chown spring:spring app.jar
 USER spring:spring
-EXPOSE 8081
+EXPOSE 8082
 ENV JAVA_TOOL_OPTIONS="-XX:+UseContainerSupport -XX:MaxRAMPercentage=75.0"
 ENTRYPOINT ["java", "-jar", "app.jar"]
