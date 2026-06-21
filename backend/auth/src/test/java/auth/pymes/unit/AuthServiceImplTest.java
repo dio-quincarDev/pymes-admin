@@ -193,12 +193,13 @@ public class AuthServiceImplTest {
     void logout_WithValidToken_ReturnsLogoutResponseAndRevokesAllSessions() {
         String accessToken = "valid-access-token";
         UUID userId = UUID.randomUUID();
-        
+
+        when(httpRequest.getHeader("Authorization")).thenReturn("Bearer " + accessToken);
         when(jwtService.extractUserId(accessToken)).thenReturn(userId);
         doNothing().when(jwtService).revokeToken(accessToken);
         doNothing().when(refreshTokenRepository).deleteByUserId(userId);
 
-        LogoutResponse response = authService.logout(accessToken);
+        LogoutResponse response = authService.logout(httpRequest);
 
         assertThat(response.success()).isTrue();
         assertThat(response.allSessionsRevoked()).isTrue();

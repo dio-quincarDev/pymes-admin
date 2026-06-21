@@ -34,10 +34,15 @@ public interface AuthService {
     /**
      * Hace logout del usuario (invalida tokens).
      */
-    LogoutResponse logout(String accessToken);
+    LogoutResponse logout(HttpServletRequest request);
 
     /**
      * Refresca el access token usando el refresh token.
      */
     AuthResponse refreshToken(TokenRefreshRequest request);
+
+    /**
+     * Intercambia un código OAuth2 de un solo uso por tokens JWT.
+     */
+    AuthResponse exchange(String code);
 }
