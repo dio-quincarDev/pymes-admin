@@ -13,33 +13,68 @@ Este documento registra de manera cronológica el historial de decisiones técni
 - **Defensa en profundidad + Code Exchange OAuth2** — En proceso de validación y robustecimiento continuo.
 
 ### ✅ Historial de Soluciones (Orden Cronológico Inverso)
-1. [2026-06-19 — Defensa en profundidad + Code Exchange OAuth2](#-2026-06-19--defensa-en-profundidad--code-exchange-oauth2)
-2. [2026-06-16 — Code Review: Cascade, @Transactional, Dead Code & Test Cleanup](#-2026-06-16--code-review-cascade-transactional-dead-code--test-cleanup)
-3. [2026-05-08 — CI Flake: InvitationServiceIntegrationTest (Redis Cleanup)](#-2026-05-08--ci-flake-invitationserviceintegrationtest-redis-cleanup)
-4. [2026-05-07 — Tenant Shutdown (Soft Delete)](#-2026-05-07--tenant-shutdown-soft-delete)
-5. [2026-05-06 — CI Fix & Integration Test Optimization (Singleton Containers)](#-2026-05-06--ci-fix--integration-test-optimization-singleton-containers)
-6. [2026-05-05 — Registro Pending Token (Strict Persistence)](#-2026-05-05--registro-pending-token-strict-persistence)
-7. [2026-05-05 — Email Verification Token-Email Mismatch](#-2026-05-05--email-verification-token-email-mismatch)
-8. [2026-05-05 — Logout Global (Multi-session Revocation)](#-2026-05-05--logout-global-multi-session-revocation)
-9. [2026-05-05 — Diseño Profesional de Emails (Thymeleaf)](#-2026-05-05--diseño-profesional-de-emails-thymeleaf)
-10. [2026-05-03 — Reingeniería del Flujo de Emails (Thymeleaf)](#-2026-05-03--reingeniería-del-flujo-de-emails-thymeleaf)
-11. [2026-05-03 — Pruebas Unitarias e Integración (EmailService Refactor)](#-2026-05-03--pruebas-unitarias-e-integración-emailservice-refactor)
-12. [2026-04-22 — InvitationService Technical Debt Coverage](#-2026-04-22--invitationservice-technical-debt-coverage)
-13. [2026-04-22 — Password Reset Notification Flow](#-2026-04-22--password-reset-notification-flow)
-14. [2026-04-22 — Token Exposure in Email Verification](#-2026-04-22--token-exposure-in-email-verification)
-15. [2026-04-21 — Prioridad de Tenants (OAuth2)](#-2026-04-21--prioridad-de-tenants-oauth2)
-16. [2026-04-21 — OAuth2 Intent via Cookie](#-2026-04-21--oauth2-intent-via-cookie)
-17. [2026-04-20 — OAuth2 Pre-Auth Intent (Atomic Register)](#-2026-04-20--oauth2-pre-auth-intent-atomic-register)
-18. [2026-04-20 — NoResourceFoundException /login](#-2026-04-20--noresourcefoundexception-login)
-19. [2026-04-20 — Errores OAuth2 + LoginOauth2Controller](#-2026-04-20--errores-oauth2--loginoauth2controller)
-20. [2026-04-17 — OAuth2 via Gateway](#-2026-04-17--oauth2-via-gateway)
-21. [2026-04-13 — Email Verification + HTML](#-2026-04-13--email-verification--html)
-22. [2026-04-13 — CORS Implementado](#-2026-04-13--cors-implementado)
-23. [2026-04-12 — RTR + jti + Detección de Reuso](#-2026-04-12--rtr--jti--detección-de-reuso)
-24. [2026-04-11 — Docker Fix](#-2026-04-11--docker-fix)
-25. [2026-04-11 — Email Verification Logic](#-2026-04-11--email-verification-logic)
-26. [2026-04-11 — Password Reset Logic](#-2026-04-11--password-reset-logic)
-27. [2026-04-09 — Testcontainers Setup](#-2026-04-09--testcontainers-setup)
+1. [2026-06-21 — Cleanup AuthApiController: Business Logic Extraction](#-2026-06-21--cleanup-authapicontroller-business-logic-extraction)
+2. [2026-06-19 — Defensa en profundidad + Code Exchange OAuth2](#-2026-06-19--defensa-en-profundidad--code-exchange-oauth2)
+3. [2026-06-16 — Code Review: Cascade, @Transactional, Dead Code & Test Cleanup](#-2026-06-16--code-review-cascade-transactional-dead-code--test-cleanup)
+4. [2026-05-08 — CI Flake: InvitationServiceIntegrationTest (Redis Cleanup)](#-2026-05-08--ci-flake-invitationserviceintegrationtest-redis-cleanup)
+5. [2026-05-07 — Tenant Shutdown (Soft Delete)](#-2026-05-07--tenant-shutdown-soft-delete)
+6. [2026-05-06 — CI Fix & Integration Test Optimization (Singleton Containers)](#-2026-05-06--ci-fix--integration-test-optimization-singleton-containers)
+7. [2026-05-05 — Registro Pending Token (Strict Persistence)](#-2026-05-05--registro-pending-token-strict-persistence)
+8. [2026-05-05 — Email Verification Token-Email Mismatch](#-2026-05-05--email-verification-token-email-mismatch)
+9. [2026-05-05 — Logout Global (Multi-session Revocation)](#-2026-05-05--logout-global-multi-session-revocation)
+10. [2026-05-05 — Diseño Profesional de Emails (Thymeleaf)](#-2026-05-05--diseño-profesional-de-emails-thymeleaf)
+11. [2026-05-03 — Reingeniería del Flujo de Emails (Thymeleaf)](#-2026-05-03--reingeniería-del-flujo-de-emails-thymeleaf)
+12. [2026-05-03 — Pruebas Unitarias e Integración (EmailService Refactor)](#-2026-05-03--pruebas-unitarias-e-integración-emailservice-refactor)
+13. [2026-04-22 — InvitationService Technical Debt Coverage](#-2026-04-22--invitationservice-technical-debt-coverage)
+14. [2026-04-22 — Password Reset Notification Flow](#-2026-04-22--password-reset-notification-flow)
+15. [2026-04-22 — Token Exposure in Email Verification](#-2026-04-22--token-exposure-in-email-verification)
+16. [2026-04-21 — Prioridad de Tenants (OAuth2)](#-2026-04-21--prioridad-de-tenants-oauth2)
+17. [2026-04-21 — OAuth2 Intent via Cookie](#-2026-04-21--oauth2-intent-via-cookie)
+18. [2026-04-20 — OAuth2 Pre-Auth Intent (Atomic Register)](#-2026-04-20--oauth2-pre-auth-intent-atomic-register)
+19. [2026-04-20 — NoResourceFoundException /login](#-2026-04-20--noresourcefoundexception-login)
+20. [2026-04-20 — Errores OAuth2 + LoginOauth2Controller](#-2026-04-20--errores-oauth2--loginoauth2controller)
+21. [2026-04-17 — OAuth2 via Gateway](#-2026-04-17--oauth2-via-gateway)
+22. [2026-04-13 — Email Verification + HTML](#-2026-04-13--email-verification--html)
+23. [2026-04-13 — CORS Implementado](#-2026-04-13--cors-implementado)
+24. [2026-04-12 — RTR + jti + Detección de Reuso](#-2026-04-12--rtr--jti--detección-de-reuso)
+25. [2026-04-11 — Docker Fix](#-2026-04-11--docker-fix)
+26. [2026-04-11 — Email Verification Logic](#-2026-04-11--email-verification-logic)
+27. [2026-04-11 — Password Reset Logic](#-2026-04-11--password-reset-logic)
+28. [2026-04-09 — Testcontainers Setup](#-2026-04-09--testcontainers-setup)
+
+---
+
+## 2026-06-21 — Cleanup AuthApiController: Business Logic Extraction
+
+### Problemas
+
+AuthApiController tenia logica de negocio que no le correspondia:
+- Redis access directo en exchange (get/delete ops)
+- Bearer token parsing manual en logout
+- Condicion muerta `if (accessToken != null)` en register (siempre null)
+
+### Solucion
+
+- `AuthServiceImpl.exchange()` encapsula acceso a Redis y construccion de DTOs
+- `AuthServiceImpl.logout(HttpServletRequest)` extrae el Bearer token internamente
+- `register`: eliminada condicion muerta, retorna 200 directamente
+- Eliminadas importaciones innecesarias (RedisTemplate, StringUtils, HttpStatus)
+- Controller: **0 logica de negocio**, 9 metodos, 9 one-liners de delegacion
+
+### Decision clave
+
+No se fusionaron `EmailVerificationService` ni `PasswordResetService` en `AuthService` — son dominios distintos (YAGNI). Controller con 3 services inyectados es Spring idiomatico.
+
+### Files tocados
+
+- `controller/impl/AuthApiController.java`
+- `service/AuthService.java`
+- `service/impl/AuthServiceImpl.java`
+- `test/unit/AuthServiceImplTest.java`
+
+### Resultado
+
+126 tests unitarios, 0 fallos, BUILD SUCCESS.
 
 ---
 

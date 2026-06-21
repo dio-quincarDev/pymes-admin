@@ -29,6 +29,18 @@ Registro de lo implementado y lo pendiente
 - OpenFeign configurado (@EnableFeignClients) aunque sin clientes aún
 - Actuator habilitado (health endpoint)
 
+### Seed Data
+- Flyway V2: tablas `industries`, `template_categories` (3 niveles con padre auto-ref), `template_locations`
+- `SeedDataRunner`: `@Component` idempotente que inserta seed al startup vía JdbcTemplate
+- 3 industrias seedadas: restaurante (59 cats, 5 locs), bares (61, 5), salón belleza (68, 4)
+
+### Testing
+- `SetupServiceImplTest`: 4 tests unitarios con Mockito
+- `AbstractIntegrationTest`: base class con Testcontainers PostgreSQL
+- `SetupSeedIntegrationTest`: 5 tests de integración (seed data + API setup)
+- `CoreApplicationTests`: smoke test de contexto con Testcontainers
+- Testcontainers 1.21.4 agregado a pom.xml
+
 ### Arquitectura
 - Estructura modular: `setup/` contiene controller/domain/service/repository
 - Paquete base: `core_pymes`
@@ -39,9 +51,13 @@ Registro de lo implementado y lo pendiente
 ## Pendiente 🚧
 
 ### Inmediato
-- [ ] Seed data con plantillas precargadas por industria (Flyway V2+)
-- [ ] Tests unitarios para SetupServiceImpl
-- [ ] Tests de integración (SetupApi + repositorio con Testcontainers)
+- [ ] CRUD de categorías, ubicaciones, unidades para Configuración
+
+### Implementado en esta sesión
+- [x] GlobalExceptionHandler (@RestControllerAdvice — 404/400/500)
+- [x] Industry validation en completeOnboarding (JdbcTemplate + industries table)
+- [x] Seeds se usan globales (sin copia a tenant-specific tables)
+- [x] Manejo de errores global (RestControllerAdvice)
 
 ### Próximos módulos (orden sugerido)
 - [ ] **Inventory** — productos, presentaciones, stock, movimientos
@@ -52,7 +68,6 @@ Registro de lo implementado y lo pendiente
 ### Infraestructura pendiente
 - [ ] Spring Security (JWT validation local si se requiere)
 - [ ] FeignClient para Auth (solo cuando core consuma endpoints de auth)
-- [ ] Manejo de errores global (RestControllerAdvice)
 - [ ] Cache con Redis
 - [ ] Systema de eventos cross-module (Spring Events)
 
@@ -67,3 +82,5 @@ Registro de lo implementado y lo pendiente
 | Docker | `COPY . .` + `mvn package` | `dependency:go-offline` separado |
 | Comunicación | Spring Events | RabbitMQ (post-MVP) |
 | Concurrencia | Virtual Threads + @Async | Thread pool tradicional |
+| Seed data | Java `ApplicationRunner` + JdbcTemplate | Flyway SQL, JPA entities |
+| Test infra | Testcontainers PostgreSQL, no Redis | Docker Compose externo |

@@ -4,6 +4,119 @@ Registro cronológico de decisiones técnicas, refactors y post-mortems del proy
 
 ---
 
+## 2026-06-21 — Core: Global Exception Handler + Industry Validation
+
+### Que se hizo
+
+1. **GlobalExceptionHandler** (`common/exception/`)
+   - `EntityNotFoundException` → 404
+   - `MethodArgumentNotValidException` → 400 (validation errors)
+   - `IllegalArgumentException` → 400
+   - `Exception` → 500 (log + mensaje generico)
+
+2. **Industry validation** en `completeOnboarding`
+   - SetupServiceImpl inyecta `JdbcTemplate`
+   - Verifica `SELECT COUNT(*) FROM industries WHERE code = ?` antes de settear industry
+   - Si no existe → lanza `IllegalArgumentException("Industry not found: ...")`
+
+3. **No se copia seed data a tablas tenant-specific**
+   - Templates se usan globales filtrados por `industry_code`
+   - Decisión: Opcion C del analisis (YAGNI)
+
+### Tests agregados
+
+- Unit: `completeOnboarding_InvalidIndustry_Throws` (verifica excepcion + no llamadas a repo)
+- Integration: POST con industry inexistente → 400 + mensaje de error
+
+### Files tocados
+
+- `common/exception/GlobalExceptionHandler.java` (nuevo)
+- `setup/service/impl/SetupServiceImpl.java` (+JdbcTemplate, +validation)
+- `test/unit/SetupServiceImplTest.java` (+mock JdbcTemplate, +invalid test)
+- `test/integration/SetupSeedIntegrationTest.java` (+invalid industry test)
+
+---
+
+---
+
+## 2026-06-21 — Cleanup AuthApiController: Business Logic Extraction
+
+### Problemas
+
+AuthApiController tenia logica de negocio que no le correspondia:
+- Redis access directo en exchange (get/delete ops)
+- Bearer token parsing manual en logout
+- Condicion muerta `if (accessToken != null)` en register (siempre null)
+
+### Solucion
+
+- `AuthServiceImpl.exchange()` encapsula acceso a Redis y construccion de DTOs
+- `AuthServiceImpl.logout(HttpServletRequest)` extrae el Bearer token internamente
+- `register`: eliminada condicion muerta, retorna 200 directamente
+- Eliminadas importaciones innecesarias (RedisTemplate, StringUtils, HttpStatus)
+- Controller: **0 logica de negocio**, 9 metodos, 9 one-liners de delegacion
+
+### Decision clave
+
+No se fusionaron `EmailVerificationService` ni `PasswordResetService` en `AuthService` — son dominios distintos (YAGNI). Controller con 3 services inyectados es Spring idiomatico.
+
+### Files tocados
+
+- `controller/impl/AuthApiController.java`
+- `service/AuthService.java`
+- `service/impl/AuthServiceImpl.java`
+- `test/unit/AuthServiceImplTest.java`
+
+### Resultado
+
+126 tests unitarios, 0 fallos, BUILD SUCCESS.
+
+---
+
+## 2026-06-21 — Core Service: Seed Data y Test Infrastructure
+
+### Problema
+
+Core service solo tenia la tabla `tenant_setup` sin datos de referencia.
+Al registrar un tenant no habia categorias, ubicaciones ni configuracion
+precargada por industria.
+
+### Solucion
+
+- Flyway V2: tablas `industries`, `template_categories` (3 niveles con
+  padre auto-ref), `template_locations`
+- `SeedDataRunner`: componente idempotente que inserta seed data al
+  startup via JdbcTemplate
+- 3 industrias seedadas: restaurante (~59 categorias, 5 ubicaciones),
+  bares (~61, 5), salon belleza (~68, 4)
+- Seed data en Java (ApplicationRunner), no en SQL, para mantener
+  flexibilidad
+- `SetupServiceImplTest`: 4 tests unitarios con Mockito
+- `AbstractIntegrationTest`: clase base con Testcontainers PostgreSQL
+- `SetupSeedIntegrationTest`: 5 tests de integracion (seed + API)
+- Testcontainers 1.21.4 agregado a pom.xml
+
+### Decision clave
+
+Seed data se implemento como Java component (no Flyway SQL) y solo
+categorias/locations (sin units ni movement reasons) porque el modulo
+inventario aun no existe (YAGNI).
+
+### Files tocados
+
+- `db/migration/V2__config_schema.sql`
+- `common/seed/SeedDataRunner.java`
+- `test/java/core_pymes/unit/SetupServiceImplTest.java`
+- `test/java/core_pymes/integration/AbstractIntegrationTest.java`
+- `test/java/core_pymes/integration/SetupSeedIntegrationTest.java`
+- `pom.xml` (testcontainers dependency)
+
+### Resultado
+
+10 tests (4 unit + 6 integration), 0 fallos, BUILD SUCCESS.
+
+---
+
 ## 2026-06-12 — Post-Mortem: Merge catastrófico `feature/refactor` → `develop`
 
 ### Qué pasó
