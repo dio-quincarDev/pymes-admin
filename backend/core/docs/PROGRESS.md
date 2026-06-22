@@ -32,14 +32,15 @@ Registro de lo implementado y lo pendiente
 ### Seed Data
 - Flyway V2: tablas `industries`, `template_categories` (3 niveles con padre auto-ref), `template_locations`
 - `SeedDataRunner`: `@Component` idempotente que inserta seed al startup vía JdbcTemplate
-- 3 industrias seedadas: restaurante (59 cats, 5 locs), bares (61, 5), salón belleza (68, 4)
+  - Crea vía DDL: `template_units`, `template_movement_reasons`, `template_payment_methods` (CREATE TABLE IF NOT EXISTS + índices en industry_code)
+  - 8 industrias seedadas: restaurante, bares, salon_belleza, ferreteria, mini_super, taller_mecanico, farmacia, default
+  - 6 tablas template: industries, categories, locations, units, movement_reasons, payment_methods
 
 ### Testing
-- `SetupServiceImplTest`: 4 tests unitarios con Mockito
+- `SetupServiceImplTest`: 5 tests unitarios con Mockito
 - `AbstractIntegrationTest`: base class con Testcontainers PostgreSQL
-- `SetupSeedIntegrationTest`: 5 tests de integración (seed data + API setup)
+- `SetupSeedIntegrationTest`: 6 tests de integración (8 industrias, 6 tablas template)
 - `CoreApplicationTests`: smoke test de contexto con Testcontainers
-- Testcontainers 1.21.4 agregado a pom.xml
 
 ### Arquitectura
 - Estructura modular: `setup/` contiene controller/domain/service/repository
@@ -58,6 +59,9 @@ Registro de lo implementado y lo pendiente
 - [x] Industry validation en completeOnboarding (JdbcTemplate + industries table)
 - [x] Seeds se usan globales (sin copia a tenant-specific tables)
 - [x] Manejo de errores global (RestControllerAdvice)
+- [x] Expansión seed: 3 → 8 industrias (ferreteria, mini_super, taller_mecanico, farmacia, default)
+- [x] Nuevas tablas: `template_units`, `template_movement_reasons`, `template_payment_methods` (creación DDL + datos)
+- [x] SQL review: rename `tipo` → `movement_type`, índices en `industry_code` para las 3 tablas nuevas
 
 ### Próximos módulos (orden sugerido)
 - [ ] **Inventory** — productos, presentaciones, stock, movimientos
