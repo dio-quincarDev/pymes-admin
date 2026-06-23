@@ -17,6 +17,7 @@ import { useRoute, useRouter } from 'vue-router';
 import { useAuthStore } from '../store';
 import { useQuasar } from 'quasar';
 import { api } from 'src/boot/axios';
+import { setupService } from 'src/modules/core/services/setup.service';
 
 const route = useRoute();
 const router = useRouter();
@@ -40,6 +41,19 @@ onMounted(async () => {
       await authStore.handleOAuthCallback(authData.accessToken, authData.refreshToken);
 
       authStore.clearPendingTenant();
+
+      const tenantId = authStore.user?.tenantId;
+      if (tenantId) {
+        try {
+          const { data: setup } = await setupService.get(tenantId);
+          if (!setup.onboardingCompleted) {
+            void router.push('/onboarding');
+            return;
+          }
+        } catch {
+          // ponytail: si falla, ir al dashboard normalmente
+        }
+      }
 
       $q.notify({
         type: 'positive',

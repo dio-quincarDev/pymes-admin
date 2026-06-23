@@ -253,6 +253,141 @@ Timing attack, account linking OAuth2, rate limit atómico, `AntPathRequestMatch
 
 ---
 
+---
+
+## 2026-06-23 — Core: Módulos Product + Invoice (Fase 1 - Parte 2)
+
+### Qué se hizo
+
+Dos módulos modulares completos con eventos asíncronos, siguiendo patrón `setup/`.
+
+### Módulo Product (`core_pymes/product/`)
+
+- `Producto` + `Presentacion` entidades JPA (soft-delete, timestamps, dual-field FK)
+- CRUD completo: `GET/POST/PUT/DELETE /api/v1/core/productos`, `GET/POST/DELETE presentaciones`
+- `ProductoMapper` (MapStruct — primer mapper real del proyecto)
+- Eventos: `ProductoCreadoEvent`, `PresentacionCreadaEvent`
+- Flyway V3: `core.products`, `core.product_presentations`
+
+### Módulo Invoice (`core_pymes/invoice/`)
+
+- `Proveedor`, `Factura`, `ItemFactura` entidades JPA (cascade, snapshots, soft-delete)
+- CRUD completo: `GET/POST/PUT/DELETE /api/v1/core/proveedores`, `GET/POST /api/v1/core/facturas`, `POST /api/v1/core/facturas/{id}/pagar`
+- Invoice number auto-generado: `F-PROV-{year}-{sequential:04d}` por tenant
+- Eventos: `FacturaCreadaEvent`, `FacturaPagadaEvent`
+- Flyway V4: `core.providers`, `core.invoices`, `core.invoice_items`
+
+### Testing
+
+- `ProductoServiceImplTest`: 6 unit tests (CRUD + eventos + tenant isolation)
+- `FacturaServiceImplTest`: 7 unit tests (total calc + descuento + estados + tenant isolation)
+- `ProductoIntegrationTest` (4 tests) + `FacturaIntegrationTest` (4 tests) — pendientes de Docker
+- Total: 18 unit tests, 0 fallos, BUILD SUCCESS
+
+### Arquitectura
+
+- Estructura modular: `setup/`, `product/`, `invoice/` con controller/domain/dto/event/mapper/repository/service
+- Todos los controllers con interface+impl pattern
+- EventConfig con `@EnableAsync` + virtual threads
+- `CorePath.java` actualizado con rutas de producto, proveedor, factura
+
+### Decisiones clave
+
+- Soft-delete con `@SQLDelete` + `@Where` en todas las entities
+- Dual-field relation pattern (UUID field + @ManyToOne read-only) para FK
+- Response sin wrapper (consistente con módulo setup existente)
+- Nomenclatura en español (Producto, Factura, Proveedor)
+
+### Files creados/tocados
+
+```
+backend/core/src/main/java/core_pymes/product/     # 12 archivos (controller/, domain/, dto/, event/, mapper/, repository/, service/)
+backend/core/src/main/java/core_pymes/invoice/     # 14 archivos (misma estructura)
+backend/core/src/main/resources/db/migration/V3__product_schema.sql
+backend/core/src/main/resources/db/migration/V4__invoice_schema.sql
+backend/core/src/main/java/core_pymes/common/constant/CorePath.java
+backend/core/src/test/java/core_pymes/unit/ProductoServiceImplTest.java  (6 tests)
+backend/core/src/test/java/core_pymes/unit/FacturaServiceImplTest.java   (7 tests)
+backend/core/src/test/java/core_pymes/integration/ProductoIntegrationTest.java  (4 tests)
+backend/core/src/test/java/core_pymes/integration/FacturaIntegrationTest.java   (4 tests)
+backend/core/docs/PROGRESS.md       (actualizado)
+backend/core/docs/FASE1_CORE.md     (checklist actualizado)
+```
+
+### Próximo
+
+- Módulo Accounting: MetricaFinanciera + listener + endpoint de resumen financiero
+- Pendiente decisión: Gastos Operativos (tipo=GASTO vs módulo aparte)
+- Pendiente decisão: Ventas (módulo propio vs desde Movimientos)
+- Integration tests contra Docker real
+
+---
+
+## 2026-06-23 — Frontend: Onboarding Post-Login
+
+### Qué se hizo
+
+Página `/onboarding` con selección de industria + router guard que redirige si `onboardingCompleted=false`.
+
+### Detalle
+
+- **Setup service**: `GET /core/setup/{tenantId}` + `POST /core/setup/{tenantId}/onboarding`
+- **OnboardingPage.vue**: 8 cards clickeables (restaurante, bares, salon_belleza, ferreteria, mini_super, taller_mecanico, farmacia, default)
+- **Check de onboarding**: en `AuthCallback.vue` después del exchange (no en router guard — evitar async en cada navegación)
+- **Ruta `/onboarding`**: standalone (fuera de `/dashboard`), `meta: { requiresAuth: true }`
+
+### Gateway
+
+Ambas rutas `/api/v1/core/setup/**` pasan con JWT — confirmado en `RouterValidator` (no están en `openEndPoints`) + `AuthenticationFilter` (valida firma + blacklist).
+
+### Files creados/tocados
+
+```
+frontend/pymes/src/modules/core/services/setup.service.ts      (nuevo)
+frontend/pymes/src/modules/core/pages/OnboardingPage.vue       (nuevo)
+frontend/pymes/src/modules/core/router/routes.ts               (+onboardingRoute export)
+frontend/pymes/src/router/routes.ts                            (+onboardingRoute import)
+frontend/pymes/src/modules/auth/pages/AuthCallback.vue         (+setup check post-login)
+```
+
+---
+
+## 2026-06-23 — Frontend: Módulo Core (Productos, Proveedores, Facturas)
+
+### Qué se hizo
+
+Módulo `src/modules/core/` con 4 páginas CRUD, servicios API y rutas.
+
+### Detalle
+
+- **Types**: DTOs (`Producto`, `Presentacion`, `Proveedor`, `Factura`, `ItemFactura`, `SetupInfo`)
+- **Services**: `producto.service.ts` (CRUD + presentaciones), `proveedor.service.ts`, `factura.service.ts` (CRUD + pagar)
+- **Pages**: ProductosPage, ProveedoresPage, FacturasPage, ConfiguracionPage — todas con QTable + QForm + QDialog
+- **Router**: `/core/productos`, `/core/proveedores`, `/core/facturas`, `/core/configuracion`
+- **Integración**: `coreRoutes` merge en dashboard children, sidebar links actualizados
+- **TenantId**: derivado de `authStore.user?.tenantId`
+
+### Build
+
+- `vue-tsc --noEmit`: ✅ 0 errores
+- `npm run lint`: ✅ 0 errores
+- `npm run build`: ✅ exitoso
+
+### Files creados/tocados
+
+```
+frontend/pymes/src/modules/core/         # 9 archivos nuevos
+frontend/pymes/src/router/routes.ts      # +coreRoutes import
+frontend/pymes/src/layouts/MainLayout.vue # +sidebar links
+```
+
+### Pendiente menor
+
+- Reorder SFC a `<script>` → `<template>` → `<style>` en FacturasPage + ConfiguracionPage
+- Reemplazar `Math.random()` como key en MainLayout sidebar v-for
+
+---
+
 *Nota: El post-mortem del merge catastrofico (2026-06-12) esta consolidado en `REFACTOR-STRATEGY.md` (raiz). Este archivo mantiene el registro historico completo.*
 
 *Creado: 2026-06-19 | Consolidacion de REFACTOR-STRATEGY.md + .github/REFACTOR.md*

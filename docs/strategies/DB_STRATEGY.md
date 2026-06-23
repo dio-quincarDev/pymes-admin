@@ -1,5 +1,7 @@
 # Estrategia: PostgreSQL Compartido con Schemas Separados
 
+> Detalle de implementación del schema `core`: [`backend/core/docs/PROGRESS.md`](/backend/core/docs/PROGRESS.md)
+
 ## Resumen Ejecutivo
 
 Usar 1 instancia PostgreSQL con 2 schemas separados (auth y core) en lugar de 2 instancias. Esto optimiza recursos en infraestructura limitada (OCI Free Tier) sin comprometer seguridad ni escalabilidad.

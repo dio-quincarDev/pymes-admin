@@ -2,6 +2,8 @@
 
 Registro de lo implementado y lo pendiente
 
+> Ver también: [`docs/` raíz](/docs/) — estrategias globales (DB, infra, testcontainers) y bitácora diaria en `DAILY_REPORTS_PROJECT.md`.
+
 ---
 
 ## Implementado ✅
@@ -42,8 +44,49 @@ Registro de lo implementado y lo pendiente
 - `SetupSeedIntegrationTest`: 6 tests de integración (8 industrias, 6 tablas template)
 - `CoreApplicationTests`: smoke test de contexto con Testcontainers
 
+### Módulo Product (`core_pymes/product/`)
+
+- `Producto` entidad JPA (UUID, tenantId, soft-delete con `@SQLDelete`+`@Where`, timestamps)
+- `Presentacion` entidad JPA (FK → producto, soft-delete, dual-field con `productId` UUID + `@ManyToOne` read-only)
+- `ProductoRepository` + `PresentacionRepository` (Spring Data JPA)
+- `ProductoService` interface + `ProductoServiceImpl` (CRUD completo + tenant isolation)
+- `ProductoApi` interface + `ProductoController`
+  - `GET/POST/PUT/DELETE /api/v1/core/productos`
+  - `GET/POST /api/v1/core/productos/{id}/presentaciones`
+  - `DELETE /api/v1/core/productos/presentaciones/{id}`
+- DTOs: `ProductoRequest/Response`, `PresentacionRequest/Response` (Java records)
+- Mapper: `ProductoMapper` (MapStruct, primer mapper real del proyecto)
+- Eventos: `ProductoCreadoEvent`, `PresentacionCreadaEvent`
+- Flyway V3: tablas `core.products`, `core.product_presentations`
+
+### Módulo Invoice (`core_pymes/invoice/`)
+
+- `Proveedor` entidad JPA (UUID, tenantId, soft-delete)
+- `Factura` entidad JPA (UUID, items cascade ALL, FK → proveedor + productos, dual-field relations)
+- `ItemFactura` entidad JPA (productName snapshot, subtotal calculado)
+- `ProveedorRepository` + `FacturaRepository`
+- `FacturaService` interface + `FacturaServiceImpl` (CRUD + total auto-calc + estado workflow)
+- `ProveedorApi` interface + `ProveedorController`
+- `FacturaApi` interface + `FacturaController`
+  - `GET/POST/PUT/DELETE /api/v1/core/proveedores`
+  - `GET/POST /api/v1/core/facturas`
+  - `POST /api/v1/core/facturas/{id}/pagar`
+  - `DELETE /api/v1/core/facturas/{id}`
+- DTOs: `ProveedorRequest/Response`, `FacturaRequest/Response`, `ItemFacturaRequest/Response` (Java records)
+- Mapper: `FacturaMapper` (MapStruct)
+- Eventos: `FacturaCreadaEvent`, `FacturaPagadaEvent`
+- Flyway V4: tablas `core.providers`, `core.invoices`, `core.invoice_items`
+- Invoice number auto-generado: `F-PROV-{year}-{sequential:04d}` por tenant via native query
+
+### Testing
+
+- `ProductoServiceImplTest`: 6 unit tests (CRUD + eventos + tenant isolation)
+- `FacturaServiceImplTest`: 7 unit tests (total calc + descuento + estados + tenant isolation)
+- `ProductoIntegrationTest`: 4 integration tests (pendiente — necesita Docker)
+- `FacturaIntegrationTest`: 4 integration tests (pendiente — necesita Docker)
+
 ### Arquitectura
-- Estructura modular: `setup/` contiene controller/domain/service/repository
+- Estructura modular: `setup/`, `product/`, `invoice/` cada uno con controller/domain/dto/event/mapper/repository/service
 - Paquete base: `core_pymes`
 - Controller interface+impl dentro del módulo (no plano)
 
@@ -52,28 +95,29 @@ Registro de lo implementado y lo pendiente
 ## Pendiente 🚧
 
 ### Inmediato
-- [ ] CRUD de categorías, ubicaciones, unidades para Configuración
+- [ ] **Accounting** — `core_pymes/accounting/`: MetricaFinanciera entity + listener FacturaCreada → recalcula márgenes
+  - [ ] GET `contabilidad/metricas?tenantId=&year=&month=`
+  - [ ] EventListener on FacturaCreada / FacturaPagada / (futuro VentaRegistrada)
+  - [ ] Cálculos: ingresos, egresos, COGS, gastos operativos, márgenes
+- [ ] Ejecutar integration tests (requiere Docker)
+- [ ] Decisión pendiente: Gastos Operativos → Opción A (tipo=GASTO en facturas) o B (módulo separado)
+- [ ] Decisión pendiente: Ventas → Opción A (módulo Ventas propio) o B (desde Movimientos futuro)
 
-### Implementado en esta sesión
-- [x] GlobalExceptionHandler (@RestControllerAdvice — 404/400/500)
-- [x] Industry validation en completeOnboarding (JdbcTemplate + industries table)
-- [x] Seeds se usan globales (sin copia a tenant-specific tables)
-- [x] Manejo de errores global (RestControllerAdvice)
-- [x] Expansión seed: 3 → 8 industrias (ferreteria, mini_super, taller_mecanico, farmacia, default)
-- [x] Nuevas tablas: `template_units`, `template_movement_reasons`, `template_payment_methods` (creación DDL + datos)
-- [x] SQL review: rename `tipo` → `movement_type`, índices en `industry_code` para las 3 tablas nuevas
-
-### Próximos módulos (orden sugerido)
-- [ ] **Inventory** — productos, presentaciones, stock, movimientos
-- [ ] **Invoices** — facturas, items, proveedores
-- [ ] **Accounting** — márgenes, COGS, flujo de caja
-- [ ] **Reports** — dashboards, KPIs, alertas
+### Mediate
+- [ ] **Reports** — dashboard consolidado con KPIs, últimas facturas/ventas, alertas
+- [ ] CRUD de configuración (categorías, ubicaciones, unidades) para edición por tenant
+- [ ] Módulo Ventas (si se opta por Opción A)
+- [ ] Movimientos de stock (Parte 3 — asociados a facturas+ventas)
 
 ### Infraestructura pendiente
 - [ ] Spring Security (JWT validation local si se requiere)
 - [ ] FeignClient para Auth (solo cuando core consuma endpoints de auth)
 - [ ] Cache con Redis
-- [ ] Systema de eventos cross-module (Spring Events)
+- [x] Sistema de eventos cross-module (Spring Events — implementado en product + invoice; faltan listeners accounting+reports)
+
+### Frontend
+- [x] Onboarding post-login — página `/onboarding` + router guard que llama `GET/POST /core/setup/{tenantId}`
+- [x] Módulo Core frontend — Productos, Proveedores, Facturas, Configuración (CRUD completo)
 
 ---
 
@@ -88,3 +132,9 @@ Registro de lo implementado y lo pendiente
 | Concurrencia | Virtual Threads + @Async | Thread pool tradicional |
 | Seed data | Java `ApplicationRunner` + JdbcTemplate | Flyway SQL, JPA entities |
 | Test infra | Testcontainers PostgreSQL, no Redis | Docker Compose externo |
+| Mapper | MapStruct con interface + @Mapping | Manual setters, Lombok Builder |
+| Relaciones FK | Dual-field pattern (UUID field + @ManyToOne read-only) | @ManyToOne con cascade completo |
+| Entidades nomenclatura | Español (Producto, Factura, Proveedor) | Inglés (Product, Invoice) |
+| Invoice numbering | Native query secuencial por tenant/año | UUID, secuencia global, lógica en app |
+| Soft-delete | @SQLDelete + @Where(clause = "is_active = true") | @ManyToMany, tabla aparte |
+| Response wrapper | Sin wrapper (response directo) | ApiResponse envelope genérico |

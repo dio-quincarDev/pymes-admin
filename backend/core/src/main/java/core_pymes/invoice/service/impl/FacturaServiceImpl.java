@@ -1,0 +1,197 @@
+package core_pymes.invoice.service.impl;
+
+import core_pymes.invoice.domain.Factura;
+import core_pymes.invoice.domain.ItemFactura;
+import core_pymes.invoice.domain.Proveedor;
+import core_pymes.invoice.dto.*;
+import core_pymes.invoice.event.FacturaCreadaEvent;
+import core_pymes.invoice.event.FacturaPagadaEvent;
+import core_pymes.invoice.mapper.FacturaMapper;
+import core_pymes.invoice.repository.FacturaRepository;
+import core_pymes.invoice.repository.ProveedorRepository;
+import core_pymes.invoice.service.FacturaService;
+import jakarta.persistence.EntityNotFoundException;
+import lombok.RequiredArgsConstructor;
+import lombok.extern.slf4j.Slf4j;
+import org.springframework.context.ApplicationEventPublisher;
+import org.springframework.jdbc.core.JdbcTemplate;
+import org.springframework.stereotype.Service;
+import org.springframework.transaction.annotation.Transactional;
+
+import java.math.BigDecimal;
+import java.time.LocalDate;
+import java.time.Year;
+import java.util.List;
+import java.util.UUID;
+
+@Service
+@RequiredArgsConstructor
+@Slf4j
+public class FacturaServiceImpl implements FacturaService {
+
+    private final ProveedorRepository proveedorRepository;
+    private final FacturaRepository facturaRepository;
+    private final FacturaMapper mapper;
+    private final ApplicationEventPublisher eventPublisher;
+    private final JdbcTemplate jdbc;
+
+    // -- Proveedores --
+
+    @Override
+    @Transactional(readOnly = true)
+    public List<ProveedorResponse> findAllProveedores(UUID tenantId) {
+        return mapper.toProveedorResponseList(proveedorRepository.findByTenantId(tenantId));
+    }
+
+    @Override
+    @Transactional(readOnly = true)
+    public ProveedorResponse findProveedor(UUID id, UUID tenantId) {
+        return mapper.toProveedorResponse(getProveedor(id, tenantId));
+    }
+
+    @Override
+    @Transactional
+    public ProveedorResponse createProveedor(ProveedorRequest request) {
+        var proveedor = Proveedor.builder()
+                .tenantId(request.tenantId())
+                .name(request.name())
+                .ruc(request.ruc())
+                .build();
+        proveedor = proveedorRepository.save(proveedor);
+        return mapper.toProveedorResponse(proveedor);
+    }
+
+    @Override
+    @Transactional
+    public ProveedorResponse updateProveedor(UUID id, UUID tenantId, ProveedorRequest request) {
+        var proveedor = getProveedor(id, tenantId);
+        proveedor.setName(request.name());
+        proveedor.setRuc(request.ruc());
+        proveedor = proveedorRepository.save(proveedor);
+        return mapper.toProveedorResponse(proveedor);
+    }
+
+    @Override
+    @Transactional
+    public void deleteProveedor(UUID id, UUID tenantId) {
+        getProveedor(id, tenantId);
+        proveedorRepository.deleteById(id);
+    }
+
+    // -- Facturas --
+
+    @Override
+    @Transactional(readOnly = true)
+    public List<FacturaResponse> findAllFacturas(UUID tenantId) {
+        return facturaRepository.findByTenantIdOrderByCreatedAtDesc(tenantId).stream()
+                .map(f -> mapper.toResponse(f, mapper.toItemResponseList(f.getItems())))
+                .toList();
+    }
+
+    @Override
+    @Transactional(readOnly = true)
+    public FacturaResponse findFactura(UUID id, UUID tenantId) {
+        var factura = getFactura(id, tenantId);
+        return mapper.toResponse(factura, mapper.toItemResponseList(factura.getItems()));
+    }
+
+    @Override
+    @Transactional
+    public FacturaResponse createFactura(FacturaRequest request) {
+        var proveedor = proveedorRepository.findById(request.proveedorId())
+                .orElseThrow(() -> new EntityNotFoundException("Proveedor not found: " + request.proveedorId()));
+
+        var invoiceNumber = generateInvoiceNumber(request.tenantId(), request.fecha().getYear());
+
+        var factura = Factura.builder()
+                .tenantId(request.tenantId())
+                .providerId(request.proveedorId())
+                .invoiceNumber(invoiceNumber)
+                .issueDate(request.fecha())
+                .type(request.tipo())
+                .globalDiscount(request.descuentoGlobal() != null ? request.descuentoGlobal() : BigDecimal.ZERO)
+                .paymentMethod(request.metodoPago())
+                .status("REGISTRADA")
+                .total(BigDecimal.ZERO)
+                .build();
+
+        BigDecimal total = BigDecimal.ZERO;
+        for (var itemReq : request.items()) {
+            var discount = itemReq.descuento() != null ? itemReq.descuento() : BigDecimal.ZERO;
+            var subtotal = itemReq.cantidad().multiply(itemReq.precioUnitario()).subtract(discount);
+            total = total.add(subtotal);
+
+            var productoName = jdbc.queryForObject(
+                    "SELECT name FROM core.products WHERE id = ?", String.class, itemReq.productoId());
+
+            var item = ItemFactura.builder()
+                    .factura(factura)
+                    .productId(itemReq.productoId())
+                    .productName(productoName)
+                    .quantity(itemReq.cantidad())
+                    .unitPrice(itemReq.precioUnitario())
+                    .discount(discount)
+                    .subtotal(subtotal)
+                    .build();
+            factura.getItems().add(item);
+        }
+
+        factura.setTotal(total.subtract(factura.getGlobalDiscount()));
+        factura = facturaRepository.save(factura);
+
+        eventPublisher.publishEvent(new FacturaCreadaEvent(factura));
+        log.debug("Factura created: {} for tenant {}", factura.getId(), factura.getTenantId());
+
+        return mapper.toResponse(factura, mapper.toItemResponseList(factura.getItems()));
+    }
+
+    @Override
+    @Transactional
+    public FacturaResponse pagarFactura(UUID id, UUID tenantId) {
+        var factura = getFactura(id, tenantId);
+        if (!"REGISTRADA".equals(factura.getStatus())) {
+            throw new IllegalStateException("Factura already " + factura.getStatus());
+        }
+        factura.setStatus("PAGADA");
+        factura = facturaRepository.save(factura);
+        eventPublisher.publishEvent(new FacturaPagadaEvent(factura));
+        return mapper.toResponse(factura, mapper.toItemResponseList(factura.getItems()));
+    }
+
+    @Override
+    @Transactional
+    public void deleteFactura(UUID id, UUID tenantId) {
+        var factura = getFactura(id, tenantId);
+        if (!"REGISTRADA".equals(factura.getStatus())) {
+            throw new IllegalStateException("Cannot delete factura in status " + factura.getStatus());
+        }
+        facturaRepository.delete(factura);
+    }
+
+    // -- helpers --
+
+    private Proveedor getProveedor(UUID id, UUID tenantId) {
+        var proveedor = proveedorRepository.findById(id)
+                .orElseThrow(() -> new EntityNotFoundException("Proveedor not found: " + id));
+        if (!proveedor.getTenantId().equals(tenantId)) {
+            throw new EntityNotFoundException("Proveedor not found: " + id);
+        }
+        return proveedor;
+    }
+
+    private Factura getFactura(UUID id, UUID tenantId) {
+        var factura = facturaRepository.findById(id)
+                .orElseThrow(() -> new EntityNotFoundException("Factura not found: " + id));
+        if (!factura.getTenantId().equals(tenantId)) {
+            throw new EntityNotFoundException("Factura not found: " + id);
+        }
+        return factura;
+    }
+
+    private String generateInvoiceNumber(UUID tenantId, int year) {
+        var prefix = "F-PROV-" + year + "-";
+        var max = facturaRepository.findMaxInvoiceNumber(tenantId, prefix + "%");
+        var next = max.map(s -> Integer.parseInt(s.substring(prefix.length())) + 1).orElse(1);
+        return prefix + String.format("%04d", next);
+    }
+}

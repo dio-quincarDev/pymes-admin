@@ -55,24 +55,24 @@
         <div class="q-pa-lg">
           <div class="text-overline text-accent q-mb-md">Menú Principal</div>
           <q-list class="q-gutter-y-xs" role="navigation" aria-label="Menú principal">
-            <q-item
-              v-for="link in linksList"
-              :key="link.title"
-              clickable
-              v-ripple
-              class="radius-sm interactive"
-              :active="activeRoute === link.path"
-              @click="navigateTo(link.path)"
-            >
-              <q-item-section avatar>
-                <q-icon :name="link.icon" :color="activeRoute === link.path ? 'primary' : 'accent'" />
-              </q-item-section>
-              <q-item-section>
-                <q-item-label :class="{ 'text-primary text-weight-bold': activeRoute === link.path }">
-                  {{ link.title }}
-                </q-item-label>
-              </q-item-section>
-            </q-item>
+            <template v-for="link in linksList" :key="link.title || 'sep-' + Math.random()">
+              <q-separator v-if="link.separator" dark class="q-mx-md q-my-sm" style="opacity: 0.3" />
+              <q-item
+                v-else-if="link.path"
+                clickable v-ripple class="radius-sm interactive"
+                :active="activeRoute === link.path"
+                @click="navigateTo(link.path)"
+              >
+                <q-item-section avatar>
+                  <q-icon :name="link.icon" :color="activeRoute === link.path ? 'primary' : 'accent'" />
+                </q-item-section>
+                <q-item-section>
+                  <q-item-label :class="{ 'text-primary text-weight-bold': activeRoute === link.path }">
+                    {{ link.title }}
+                  </q-item-label>
+                </q-item-section>
+              </q-item>
+            </template>
           </q-list>
         </div>
 
@@ -126,9 +126,12 @@ onMounted(() => {
 
 const linksList = [
   { title: 'Dashboard', icon: 'dashboard', path: '/dashboard' },
-  { title: 'Auditorías', icon: 'security', path: '/audits' },
-  { title: 'Reportes', icon: 'analytics', path: '/reports' },
-  { title: 'Configuración', icon: 'settings', path: '/settings' },
+  { separator: true },
+  { title: 'Productos', icon: 'inventory_2', path: '/dashboard/productos' },
+  { title: 'Proveedores', icon: 'people', path: '/dashboard/proveedores' },
+  { title: 'Facturas', icon: 'receipt_long', path: '/dashboard/facturas' },
+  { separator: true },
+  { title: 'Configuración', icon: 'settings', path: '/dashboard/configuracion' },
 ];
 
 function toggleLeftDrawer() {

@@ -4,6 +4,98 @@ Registro cronológico de decisiones, problemas resueltos y estado del frontend.
 
 ---
 
+## 2026-06-23 — Onboarding Post-Login (Selección de Industria)
+
+### Problema
+
+Después de OAuth2 con Google, el usuario cae al `/dashboard` sin industria configurada. El backend tiene `POST /core/setup/{tenantId}/onboarding` pero el frontend nunca lo llamaba.
+
+### Solución
+
+Página `/onboarding` + router guard que redirige si `onboardingCompleted=false`.
+
+### Archivos creados
+
+- `src/modules/core/services/setup.service.ts` — `GET /core/setup/{tenantId}` + `POST /core/setup/{tenantId}/onboarding`
+- `src/modules/core/pages/OnboardingPage.vue` — 8 cards de industria (restaurante, bares, salon_belleza, ferreteria, mini_super, taller_mecanico, farmacia, default)
+
+### Archivos modificados
+
+- `src/modules/core/router/routes.ts` — exporta `onboardingRoute`
+- `src/router/routes.ts` — `/onboarding` como ruta standalone (fuera de `/dashboard`)
+- `src/modules/auth/pages/AuthCallback.vue` — después del exchange, llama `GET /core/setup/{tenantId}` y redirige a `/onboarding` si `onboardingCompleted=false`
+
+### Flujo
+
+```
+OAuth2 → AuthCallback → handleOAuthCallback() → fetchCurrentUser()
+→ GET /core/setup/{tenantId}
+  → onboardingCompleted=false → /onboarding → seleccionar industria → /dashboard
+  → onboardingCompleted=true → /dashboard
+```
+
+### Gateway
+
+Ambas rutas `/api/v1/core/setup/**` pasan con JWT (confirmado en `RouterValidator` + `AuthenticationFilter`).
+
+---
+
+## 2026-06-23 — Módulo Core: Productos, Proveedores, Facturas, Configuración
+
+### Qué se hizo
+
+Módulo `src/modules/core/` completo con 4 páginas CRUD, rutas y servicios API.
+
+### Estructura
+
+```
+src/modules/core/
+├── types/index.ts          # DTOs: Producto, Presentacion, Proveedor, Factura, ItemFactura, SetupInfo
+├── services/
+│   ├── producto.service.ts  # CRUD productos + presentaciones
+│   ├── proveedor.service.ts # CRUD proveedores
+│   └── factura.service.ts   # CRUD facturas + pagar
+├── pages/
+│   ├── ProductosPage.vue    # QTable + CRUD + dialog presentaciones
+│   ├── ProveedoresPage.vue  # QTable + CRUD
+│   ├── FacturasPage.vue     # QTable + CRUD + pagar + filtros por estado/proveedor/fecha
+│   └── ConfiguracionPage.vue # Vista-only: categorías, unidades, ubicaciones, motivos, métodos pago
+└── router/routes.ts         # /core/productos, /core/proveedores, /core/facturas, /core/configuracion
+```
+
+### Integración
+
+- Router: `coreRoutes` importado en `src/router/routes.ts`, merged en dashboard children
+- Sidebar: MainLayout linksList actualizado con Productos, Proveedores, Facturas + separadores
+- TenantId: derivado de `authStore.user?.tenantId`
+- API: servicios apuntan a `/core/...` via `api` instance de `boot/axios` (baseURL `http://localhost:8080/api/v1`)
+
+### Stack usado
+
+- `<script setup lang="ts">` Composition API
+- QTable + QInput + QBtn + QDialog + QForm + QSelect + QChip (Quasar)
+- `shallowRef` para state que no necesita deep reactivity
+- `computed` para datos derivados
+- Dark theme: `dark` prop en QTable/QDialog/QInput, `bg-surface-pine` en cards
+
+### Archivos tocados
+
+```
+src/modules/core/types/index.ts          (nuevo)
+src/modules/core/services/*.service.ts   (3 archivos nuevos)
+src/modules/core/pages/*.vue             (4 archivos nuevos)
+src/modules/core/router/routes.ts        (nuevo)
+src/router/routes.ts                     (+coreRoutes import)
+src/layouts/MainLayout.vue               (+sidebar links, +separadores)
+```
+
+### Pendiente
+
+- FacturasPage.vue y ConfiguracionPage.vue: reorder SFC a `<script>` → `<template>` → `<style>`
+- MainLayout: reemplazar `Math.random()` como key en v-for del sidebar
+
+---
+
 ## 2026-06-19 — Seguridad OAuth2 y replaceState
 
 ### OAuth2 Code Exchange

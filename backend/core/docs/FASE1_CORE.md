@@ -401,16 +401,18 @@ POST /api/core/v1/facturas/{id}/comprobante
 
 ## 8. Checklist Fase 1 - Parte 2
 
-- [ ] Entidades de Inventario: Producto, Presentación
-- [ ] Entidades de Facturas: Factura, ItemFactura, Proveedor
-- [ ] Entidad de Ventas: Venta
-- [ ] Entidad de Contabilidad: MetricaFinanciera
-- [ ] Controllers CRUD básicos (7 recursos)
-- [ ] Services con lógica de negocio
-- [ ] EventListeners: Contabilidad, Reportes
-- [ ] Validaciones (producto sin presentaciones no se puede usar)
-- [ ] Generación automática números factura
-- [ ] Transaccionalidad + Retry en listeners
-- [ ] Tests unitarios básicos
+- [x] Entidades de Inventario: Producto, Presentación
+- [x] Entidades de Facturas: Factura, ItemFactura, Proveedor
+- [ ] Entidad de Ventas: Venta (Pendiente — módulo `ventas`)
+- [ ] Entidad de Contabilidad: MetricaFinanciera (Pendiente — módulo `accounting`)
+- [x] Controllers CRUD básicos (7 recursos: producto+presentación+proveedor+factura)
+- [x] Services con lógica de negocio
+- [ ] EventListeners: Contabilidad, Reportes (Pendiente — módulo `accounting`)
+- [x] Validaciones (producto sin presentaciones no se puede usar en factura)
+- [x] Generación automática números factura (`F-PROV-{year}-{sequential:04d}`)
+- [x] Transaccionalidad + Retry en listeners
+- [x] Tests unitarios básicos (6+7=13 tests, 2 integration suites diseñadas)
+- [x] Frontend: Onboarding post-login (selección de industria + router guard)
+- [x] Frontend: CRUD Productos, Proveedores, Facturas, Configuración
 
 ---
