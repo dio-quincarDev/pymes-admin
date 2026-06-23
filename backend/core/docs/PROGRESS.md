@@ -94,6 +94,9 @@ Registro de lo implementado y lo pendiente
 
 ## Pendiente 🚧
 
+### Template loading (post-onboarding)
+- [ ] **Template loading**: `POST /core/setup/{tenantId}/onboarding` guarda `industry` y marca `onboardingCompleted=true`, pero no carga productos/categorias/etc. especificos de la industria. Pendiente implementar en `SetupServiceImpl.completeOnboarding()` o via evento.
+
 ### Inmediato
 - [ ] **Accounting** — `core_pymes/accounting/`: MetricaFinanciera entity + listener FacturaCreada → recalcula márgenes
   - [ ] GET `contabilidad/metricas?tenantId=&year=&month=`

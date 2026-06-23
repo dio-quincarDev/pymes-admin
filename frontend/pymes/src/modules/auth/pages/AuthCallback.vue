@@ -1,11 +1,11 @@
 <template>
-  <q-page class="flex flex-center bg-forest-deep text-secondary">
+  <div class="auth-callback flex flex-center bg-forest-deep text-secondary" style="min-height: 100vh;">
     <div class="text-center">
       <q-spinner-grid color="primary" size="4em" class="brand-glow" />
       <div class="text-h6 q-mt-md text-primary">Sincronizando Identidad Pymeq...</div>
       <div class="text-caption text-accent">{{ statusMessage }}</div>
     </div>
-  </q-page>
+  </div>
 </template>
 
 <script setup lang="ts">
@@ -27,7 +27,7 @@ const $q = useQuasar();
 const statusMessage = ref('Preparando tu Toolkit de Auditoría');
 
 onMounted(async () => {
-  const code = route.query.code as string;
+  const code = (route.query.code as string) || (new URLSearchParams(window.location.search).get('code') as string);
 
   window.history.replaceState({}, '', window.location.pathname + window.location.hash.replace(/\?.*$/, ''));
 

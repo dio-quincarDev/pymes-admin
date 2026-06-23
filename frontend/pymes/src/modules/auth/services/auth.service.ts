@@ -15,7 +15,7 @@ export const authService = {
   },
   
   fetchMe() {
-    return api.get('/auth/me');
+    return api.get('/users/me');
   },
   
   refreshToken(token: string) {

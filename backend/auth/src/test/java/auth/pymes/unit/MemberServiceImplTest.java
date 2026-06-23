@@ -66,7 +66,7 @@ public class MemberServiceImplTest {
         Page<UserTenant> page = new PageImpl<>(List.of(memberRelation));
         
         when(userTenantRepository.findByTenantIdAndIsActiveTrue(tenantId, pageable)).thenReturn(page);
-        when(userMapper.toResponse(any())).thenReturn(new UserEntityResponse(member.getId(), "m@ex.com", "Member", null, AuthProvider.LOCAL));
+        when(userMapper.toResponse(any())).thenReturn(new UserEntityResponse(member.getId(), "m@ex.com", "Member", null, AuthProvider.LOCAL, null, null, null));
 
         Page<MemberResponse> response = memberService.getTenantUsers(tenantId, pageable, principal);
 
@@ -92,7 +92,7 @@ public class MemberServiceImplTest {
         UserTenant targetRelation = UserTenant.builder().user(targetUser).userId(targetUserId).role(RoleName.VIEWER).build();
         when(userTenantRepository.findByUserIdAndTenantId(targetUserId, tenantId)).thenReturn(Optional.of(targetRelation));
         
-        when(userMapper.toResponse(any())).thenReturn(new UserEntityResponse(targetUserId, "t@ex.com", "Target", null, AuthProvider.LOCAL));
+        when(userMapper.toResponse(any())).thenReturn(new UserEntityResponse(targetUserId, "t@ex.com", "Target", null, AuthProvider.LOCAL, null, null, null));
 
         MemberResponse response = memberService.updateUserRole(tenantId, targetUserId, "ADMIN", principal);
 

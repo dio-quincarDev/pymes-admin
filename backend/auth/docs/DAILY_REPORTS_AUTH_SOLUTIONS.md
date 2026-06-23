@@ -13,7 +13,8 @@ Este documento registra de manera cronológica el historial de decisiones técni
 - **Defensa en profundidad + Code Exchange OAuth2** — En proceso de validación y robustecimiento continuo.
 
 ### ✅ Historial de Soluciones (Orden Cronológico Inverso)
-1. [2026-06-21 — Cleanup AuthApiController: Business Logic Extraction](#-2026-06-21--cleanup-authapicontroller-business-logic-extraction)
+1. [2026-06-23 — Fix OAuth2 redirect + Redis serialization + APP_FRONTEND_URL](#-2026-06-23--fix-oauth2-redirect--redis-serialization--app_frontend_url)
+2. [2026-06-21 — Cleanup AuthApiController: Business Logic Extraction](#-2026-06-21--cleanup-authapicontroller-business-logic-extraction)
 2. [2026-06-19 — Defensa en profundidad + Code Exchange OAuth2](#-2026-06-19--defensa-en-profundidad--code-exchange-oauth2)
 3. [2026-06-16 — Code Review: Cascade, @Transactional, Dead Code & Test Cleanup](#-2026-06-16--code-review-cascade-transactional-dead-code--test-cleanup)
 4. [2026-05-08 — CI Flake: InvitationServiceIntegrationTest (Redis Cleanup)](#-2026-05-08--ci-flake-invitationserviceintegrationtest-redis-cleanup)
@@ -378,3 +379,29 @@ Falta de entorno determinista para pruebas de integración de base de datos y ca
 
 ### 📐 Solución
 Configuración de la clase base `AbstractIntegrationTest` para levantar PostgreSQL y Redis en Docker de forma automatizada mediante Testcontainers durante la suite de pruebas.
+
+---
+
+## 📅 2026-06-23 — Fix OAuth2 redirect + Redis serialization + APP_FRONTEND_URL
+
+### 🎯 Problemas
+1. OAuth2 redirect iba a `http://localhost:9000/#/auth/callback?code=xxx` pero frontend esta en puerto 9200.
+2. `UriComponentsBuilder.fromUriString(...).queryParam(...)` ponia el `?code=` antes del `#` en la URL → browsers strippean el fragmento de 302 redirects.
+3. `Map.of()` crea `ImmutableCollections$MapN`, clase interna JDK que `GenericJackson2JsonRedisSerializer` no puede deserializar.
+4. `APP_FRONTEND_URL` no se inyectaba al auth-service en docker-compose.yml.
+
+### 📐 Soluciones
+| # | Fix | Archivo |
+|---|-----|---------|
+| 1 | Agregar `APP_FRONTEND_URL=http://localhost:9200` al `.env` raiz y pasarlo al auth-service en docker-compose.yml | `.env`, `docker-compose.yml:73` |
+| 2 | Construccion manual de URL en vez de `UriComponentsBuilder`: `frontendUrl + "/#/auth/callback?code=" + code` | `OAuth2AuthenticationSuccessHandler.java:170` |
+| 3 | `new HashMap<>(Map.of(...))` para que Jackson pueda deserializar el Map desde Redis | `OAuth2AuthenticationSuccessHandler.java:167` |
+| 4 | `/users/me` ahora retorna `tenantId`, `role`, `plan` desde `UserTenantRepository` + `TenantRepository` | `UserServiceImpl.java` |
+
+### 🔬 Lecciones
+- `UriComponentsBuilder` con fragmentos: query params se agregan antes del `#`. Para URLs tipo `/#/path?key=val` hay que concatenar manualmente.
+- `GenericJackson2JsonRedisSerializer` + `DefaultTyping.NON_FINAL` no soporta `ImmutableCollections` de `Map.of()`. Usar siempre `HashMap` explicito.
+- Las variables de entorno en docker-compose no tienen defaults "inteligentes" — hay que pasarlas explicitamente incluso si parecen obvias.
+
+**Archivos modificados:** `OAuth2AuthenticationSuccessHandler.java`, `.env`, `docker-compose.yml`, `UserServiceImpl.java`, `UserEntityResponse.java`, `UserMapper.java`
+**Estado:** ✅ RESUELTO

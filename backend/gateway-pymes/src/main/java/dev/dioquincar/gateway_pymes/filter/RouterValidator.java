@@ -20,6 +20,7 @@ public class RouterValidator {
             "/api/v1/auth/resend-verification",
             "/api/v1/auth/forgot-password",
             "/api/v1/auth/reset-password",
+            "/api/v1/auth/exchange",
             "/api/v1/auth/oauth2/**",
             "/login/**",
             "/oauth2/**",

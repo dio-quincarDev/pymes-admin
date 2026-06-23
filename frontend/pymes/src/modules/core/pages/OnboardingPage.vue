@@ -41,7 +41,7 @@ async function confirm() {
 </script>
 
 <template>
-  <q-page class="flex flex-center bg-forest-deep text-secondary">
+  <div class="flex flex-center bg-forest-deep text-secondary" style="min-height: 100vh;">
     <div class="column items-center q-pa-xl" style="max-width: 700px; width: 100%">
       <div class="text-h4 text-primary text-center q-mb-xs" style="font-weight: 700">Configura tu empresa</div>
       <div class="text-body1 text-accent text-center q-mb-lg">Selecciona tu tipo de negocio para cargar plantillas automáticas</div>
@@ -78,7 +78,7 @@ async function confirm() {
         style="min-width: 200px"
       />
     </div>
-  </q-page>
+  </div>
 </template>
 
 <style scoped>

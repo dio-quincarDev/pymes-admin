@@ -25,6 +25,7 @@ class RouterValidatorTest {
             "/api/v1/auth/resend-verification",
             "/api/v1/auth/forgot-password",
             "/api/v1/auth/reset-password",
+            "/api/v1/auth/exchange",
             "/api/v1/auth/oauth2/callback",
             "/login/oauth2/code/google",
             "/oauth2/authorization/google",

@@ -4,6 +4,37 @@ Registro cronológico de problemas resueltos y decisiones de implementación en 
 
 ---
 
+## 2026-06-23 — Open endpoints: `/api/v1/auth/exchange` + `/api/v1/auth/oauth2/intent`
+
+### Problema
+`RouterValidator.openEndPoints` no incluia `/api/v1/auth/exchange` ni `/api/v1/auth/oauth2/intent`. Usuarios nuevos (sin token en cache) recibian 401 al intentar el code exchange post-OAuth2. El auth-service tiene estos endpoints como publicos en su `SecurityConfig`, pero el gateway los interceptaba antes.
+
+### Solucion
+Agregadas ambas rutas al set `openEndPoints` en `RouterValidator.java`.
+
+```java
+private static final Set<String> openEndPoints = Set.of(
+    "/api/v1/auth/register",
+    "/api/v1/auth/login",
+    "/api/v1/auth/refresh",
+    "/api/v1/auth/verify-email",
+    "/api/v1/auth/resend-verification",
+    "/api/v1/auth/forgot-password",
+    "/api/v1/auth/reset-password",
+    "/api/v1/auth/exchange",
+    "/api/v1/auth/oauth2/intent",
+    // ...
+);
+```
+
+### Tests
+`RouterValidatorTest` actualizado: 22 cases (15 open + 6 secured + 1 query string).
+
+**Archivos:** `RouterValidator.java:23`, `RouterValidatorTest.java`
+**Estado:** ✅ RESUELTO
+
+---
+
 ## Code Review — 2026-06-16 / 2026-06-19
 
 Skills usadas: java-springboot, spring-webflux-testing, spring-security-testing.

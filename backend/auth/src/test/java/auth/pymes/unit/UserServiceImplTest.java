@@ -50,7 +50,7 @@ public class UserServiceImplTest {
                 .build();
         
         when(userRepository.findByEmail(email)).thenReturn(Optional.of(user));
-        when(userMapper.toResponse(user)).thenReturn(new UserEntityResponse(user.getId(), email, "Test User", null, AuthProvider.LOCAL));
+        when(userMapper.toResponse(user)).thenReturn(new UserEntityResponse(user.getId(), email, "Test User", null, AuthProvider.LOCAL, null, null, null));
 
         UserEntityResponse response = userService.getCurrentUser(principal);
 
@@ -70,7 +70,7 @@ public class UserServiceImplTest {
                 .build();
 
         when(userRepository.findByEmail(email)).thenReturn(Optional.of(user));
-        when(userMapper.toResponse(user)).thenReturn(new UserEntityResponse(user.getId(), email, "UserDetails User", null, AuthProvider.LOCAL));
+        when(userMapper.toResponse(user)).thenReturn(new UserEntityResponse(user.getId(), email, "UserDetails User", null, AuthProvider.LOCAL, null, null, null));
 
         UserEntityResponse response = userService.getCurrentUser(principal);
 
@@ -88,7 +88,7 @@ public class UserServiceImplTest {
                 .build();
 
         when(userRepository.findByEmail(email)).thenReturn(Optional.of(user));
-        when(userMapper.toResponse(user)).thenReturn(new UserEntityResponse(user.getId(), email, "String Principal User", null, AuthProvider.LOCAL));
+        when(userMapper.toResponse(user)).thenReturn(new UserEntityResponse(user.getId(), email, "String Principal User", null, AuthProvider.LOCAL, null, null, null));
 
         UserEntityResponse response = userService.getCurrentUser(email);
 
@@ -104,7 +104,7 @@ public class UserServiceImplTest {
                 .build();
 
         when(userRepository.findByEmail(email)).thenReturn(Optional.of(user));
-        when(userMapper.toResponse(user)).thenReturn(new UserEntityResponse(user.getId(), email, "Name", null, AuthProvider.LOCAL));
+        when(userMapper.toResponse(user)).thenReturn(new UserEntityResponse(user.getId(), email, "Name", null, AuthProvider.LOCAL, null, null, null));
 
         UserEntityResponse response = userService.getUserByEmail(email);
 

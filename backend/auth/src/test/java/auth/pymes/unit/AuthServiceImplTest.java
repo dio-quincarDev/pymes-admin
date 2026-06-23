@@ -130,7 +130,7 @@ public class AuthServiceImplTest {
         when(passwordEncoder.encode(any())).thenReturn("encoded-password");
         when(userRepository.save(any())).thenReturn(user);
         when(tenantRepository.save(any())).thenReturn(tenant);
-        when(userMapper.toResponse(any())).thenReturn(new UserEntityResponse(user.getId(), user.getEmail(), user.getName(), null, AuthProvider.LOCAL));
+        when(userMapper.toResponse(any())).thenReturn(new UserEntityResponse(user.getId(), user.getEmail(), user.getName(), null, AuthProvider.LOCAL, null, null, null));
         when(tenantMapper.toResponse(any())).thenReturn(new TenantResponse(tenant.getId(), tenant.getName(), tenant.getSlug(), PlanName.FREE, null, null));
         
         String accessToken = "access-token";
@@ -174,7 +174,7 @@ public class AuthServiceImplTest {
         when(userTenantRepository.findByUserIdAndIsActiveTrue(user.getId())).thenReturn(List.of(userTenant));
         when(tenantRepository.findById(tenant.getId())).thenReturn(Optional.of(tenant));
 
-        when(userMapper.toResponse(any())).thenReturn(new UserEntityResponse(user.getId(), user.getEmail(), "Name", null, AuthProvider.LOCAL));
+        when(userMapper.toResponse(any())).thenReturn(new UserEntityResponse(user.getId(), user.getEmail(), "Name", null, AuthProvider.LOCAL, null, null, null));
         when(tenantMapper.toResponse(any())).thenReturn(new TenantResponse(tenant.getId(), tenant.getName(), "slug", PlanName.FREE, "TECH", null));
 
         String accessToken = "access-token";
@@ -227,7 +227,7 @@ public class AuthServiceImplTest {
         when(userTenantRepository.findByUserIdAndTenantId(userId, tenantId)).thenReturn(Optional.of(userTenant));
         when(tenantRepository.findById(tenantId)).thenReturn(Optional.of(tenant));
 
-        when(userMapper.toResponse(any())).thenReturn(new UserEntityResponse(user.getId(), user.getEmail(), "Name", null, AuthProvider.LOCAL));
+        when(userMapper.toResponse(any())).thenReturn(new UserEntityResponse(user.getId(), user.getEmail(), "Name", null, AuthProvider.LOCAL, null, null, null));
         when(tenantMapper.toResponse(any())).thenReturn(new TenantResponse(tenant.getId(), tenant.getName(), "slug", PlanName.FREE, "TECH", null));
 
         when(jwtService.generateAccessToken(any(), any(), any(), any())).thenReturn("new-access");
@@ -319,7 +319,7 @@ public class AuthServiceImplTest {
 
         when(authenticationManager.authenticate(any())).thenReturn(null);
         when(userTenantRepository.findByUserIdAndIsActiveTrue(any())).thenReturn(List.of());
-        when(userMapper.toResponse(any())).thenReturn(new UserEntityResponse(UUID.randomUUID(), "test", "test", null, AuthProvider.LOCAL));
+        when(userMapper.toResponse(any())).thenReturn(new UserEntityResponse(UUID.randomUUID(), "test", "test", null, AuthProvider.LOCAL, null, null, null));
 
         authService.login(request1, httpRequest);
         authService.login(request2, httpRequest);

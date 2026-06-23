@@ -4,6 +4,34 @@ Registro cronológico de decisiones, problemas resueltos y estado del frontend.
 
 ---
 
+## 2026-06-23 — Fix OAuth2 callback + QPage standalone + hash redirect
+
+### Problemas
+1. **OAuth2 redirect sin hash**: Backend redirigia a `/auth/callback?code=xxx` en vez de `/#/auth/callback?code=xxx`. Vue Router en hash mode ignora el path → caia a IndexPage → redirect a login.
+2. **Code en query param no en hash**: `/#/auth/callback?code=xxx` se construia con `UriComponentsBuilder.queryParam()` que pone el `?code=` antes del `#` → browsers strippean fragmento de 302 redirects.
+3. **AuthCallback `<q-page>` sin `<q-layout>`**: Quasar requiere `<q-layout>` ancestro. AuthCallback era ruta standalone sin layout → runtime error.
+4. **OnboardingPage mismo error**: `<q-page>` sin `<q-layout>`.
+5. **`/auth/me` no existe**: `auth.service.ts` llamaba a `/auth/me` pero el endpoint real es `/users/me`.
+
+### Soluciones
+| # | Fix | Archivo |
+|---|-----|---------|
+| 1 | Backend redirige a `frontendUrl + "/#/auth/callback?code=" + code` (code dentro del hash) | `OAuth2AuthenticationSuccessHandler.java:170` (backend) |
+| 2 | AuthCallback lee code de `route.query.code` con fallback a `window.location.search` | `AuthCallback.vue:30` |
+| 3 | `<q-page>` reemplazado por `<div>` con `min-height: 100vh` en AuthCallback | `AuthCallback.vue:2` |
+| 4 | `<q-page>` reemplazado por `<div>` con `min-height: 100vh` en OnboardingPage | `OnboardingPage.vue:44` |
+| 5 | `auth.service.ts` cambiado de `/auth/me` a `/users/me` | `auth.service.ts:18` |
+
+### Lecciones
+- **Hash mode + redirects**: Vue Router en hash mode usa `location.hash`. Redirects desde el backend deben poner TODO (path + query) dentro del `#/...`.
+- **`<q-page>` no es standalone**: Siempre necesita un `<q-layout>` ancestro. Para paginas sin layout usar `<div>` con `min-height: 100vh`.
+- **Service Worker cache**: Tras cambios al frontend, el service worker de la PWA puede servir versiones viejas. Usar Ctrl+F5 o `caches.keys().then(keys => keys.forEach(k => caches.delete(k)))` en DevTools.
+
+**Archivos modificados:** `AuthCallback.vue`, `OnboardingPage.vue`, `auth.service.ts`
+**Estado:** ✅ RESUELTO
+
+---
+
 ## 2026-06-23 — Onboarding Post-Login (Selección de Industria)
 
 ### Problema

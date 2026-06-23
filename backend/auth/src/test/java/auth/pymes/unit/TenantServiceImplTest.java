@@ -142,7 +142,7 @@ public class TenantServiceImplTest {
         Tenant tenant = Tenant.builder().id(tenantId).name("Select Corp").plan(PlanName.FREE).isActive(true).build();
         when(tenantRepository.findById(tenantId)).thenReturn(Optional.of(tenant));
 
-        when(userMapper.toResponse(any())).thenReturn(new UserEntityResponse(user.getId(), email, "Name", null, AuthProvider.LOCAL));
+        when(userMapper.toResponse(any())).thenReturn(new UserEntityResponse(user.getId(), email, "Name", null, AuthProvider.LOCAL, null, null, null));
         when(tenantMapper.toResponse(any())).thenReturn(new TenantResponse(tenant.getId(), tenant.getName(), "select-corp", PlanName.FREE, "TECH", null));
 
         when(jwtService.generateAccessToken(any(), any(), any(), any())).thenReturn("new-access-token");

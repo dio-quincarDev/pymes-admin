@@ -28,6 +28,8 @@ import org.springframework.util.StringUtils;
 import org.springframework.web.util.UriComponentsBuilder;
 
 import java.io.IOException;
+import java.util.HashMap;
+import java.util.Map;
 import java.time.Duration;
 import java.time.ZonedDateTime;
 import java.util.Arrays;
@@ -164,12 +166,10 @@ public class OAuth2AuthenticationSuccessHandler extends SimpleUrlAuthenticationS
 
         // 6. Guardar tokens en Redis con código de un solo uso
         String code = UUID.randomUUID().toString();
-        redisTemplate.opsForValue().set("oauth:code:" + code, Map.of("accessToken", accessToken, "refreshToken", refreshToken), CODE_TTL);
+        redisTemplate.opsForValue().set("oauth:code:" + code, new HashMap<>(Map.of("accessToken", accessToken, "refreshToken", refreshToken)), CODE_TTL);
 
         // 7. Redirigir al frontend solo con el código (sin JWT en URL)
-        String targetUrl = UriComponentsBuilder.fromUriString(frontendUrl + "/auth/callback")
-                .queryParam("code", code)
-                .build().toUriString();
+        String targetUrl = frontendUrl + "/#/auth/callback?code=" + code;
 
         getRedirectStrategy().sendRedirect(request, response, targetUrl);
     }
