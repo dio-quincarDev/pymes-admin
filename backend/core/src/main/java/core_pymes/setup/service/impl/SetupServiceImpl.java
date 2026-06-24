@@ -1,12 +1,15 @@
 package core_pymes.setup.service.impl;
 
 import core_pymes.setup.domain.TenantSetup;
+import core_pymes.setup.dto.SetupResponse;
+import core_pymes.setup.mapper.SetupMapper;
 import core_pymes.setup.repository.TenantSetupRepository;
 import core_pymes.setup.service.SetupService;
 import org.springframework.jdbc.core.JdbcTemplate;
 import org.springframework.stereotype.Service;
 import org.springframework.transaction.annotation.Transactional;
 
+import java.util.List;
 import java.util.UUID;
 
 @Service
@@ -14,37 +17,58 @@ public class SetupServiceImpl implements SetupService {
 
     private final TenantSetupRepository repository;
     private final JdbcTemplate jdbc;
+    private final SetupMapper mapper;
 
-    public SetupServiceImpl(TenantSetupRepository repository, JdbcTemplate jdbc) {
+    public SetupServiceImpl(TenantSetupRepository repository, JdbcTemplate jdbc, SetupMapper mapper) {
         this.repository = repository;
         this.jdbc = jdbc;
+        this.mapper = mapper;
     }
 
     @Transactional
     @Override
-    public TenantSetup getOrInitialize(UUID tenantId) {
-        return repository.findByTenantId(tenantId)
-                .orElseGet(() -> {
-                    var config = new TenantSetup(tenantId);
-                    return repository.save(config);
-                });
+    public SetupResponse getOrInitialize(UUID tenantId) {
+        var config = repository.findByTenantId(tenantId)
+                .orElseGet(() -> repository.save(new TenantSetup(tenantId)));
+        return buildResponse(config);
     }
 
     @Transactional
     @Override
-    public TenantSetup completeOnboarding(UUID tenantId, String industry) {
+    public SetupResponse completeOnboarding(UUID tenantId, String industry) {
         var count = jdbc.queryForObject(
                 "SELECT COUNT(*) FROM industries WHERE code = ?", Integer.class, industry);
         if (count == null || count == 0) {
             throw new IllegalArgumentException("Industry not found: " + industry);
         }
         var config = repository.findByTenantId(tenantId)
-                .orElseGet(() -> {
-                    var c = new TenantSetup(tenantId);
-                    repository.save(c);
-                    return c;
-                });
+                .orElseGet(() -> repository.save(new TenantSetup(tenantId)));
         config.completeOnboarding(industry);
-        return repository.save(config);
+        repository.save(config);
+        return buildResponse(config);
+    }
+
+    private SetupResponse buildResponse(TenantSetup config) {
+        var industry = config.getIndustry();
+        List<SetupResponse.ItemDTO> categories = List.of();
+        List<SetupResponse.ItemDTO> units = List.of();
+        List<SetupResponse.ItemDTO> locations = List.of();
+
+        if (industry != null) {
+            categories = jdbc.query(
+                "SELECT id AS code, name FROM template_categories WHERE industry_code = ? ORDER BY sort_order",
+                (rs, row) -> new SetupResponse.ItemDTO(rs.getString("code"), rs.getString("name")),
+                industry);
+            units = jdbc.query(
+                "SELECT id AS code, name FROM template_units WHERE industry_code = ? ORDER BY sort_order",
+                (rs, row) -> new SetupResponse.ItemDTO(rs.getString("code"), rs.getString("name")),
+                industry);
+            locations = jdbc.query(
+                "SELECT id AS code, name FROM template_locations WHERE industry_code = ? ORDER BY sort_order",
+                (rs, row) -> new SetupResponse.ItemDTO(rs.getString("code"), rs.getString("name")),
+                industry);
+        }
+
+        return mapper.toResponse(config, categories, units, locations);
     }
 }

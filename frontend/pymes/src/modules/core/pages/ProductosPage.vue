@@ -2,8 +2,9 @@
 import { ref, onMounted } from 'vue'
 import { useQuasar } from 'quasar'
 import { useAuthStore } from 'src/modules/auth/store'
+import { api } from 'src/boot/axios'
 import { productoService } from '../services/producto.service'
-import type { Producto, ProductoRequest, Presentacion, PresentacionRequest } from '../types'
+import type { Producto, ProductoRequest, Presentacion, PresentacionRequest, SetupInfo } from '../types'
 
 const $q = useQuasar()
 const authStore = useAuthStore()
@@ -14,6 +15,9 @@ const loading = ref(false)
 const filter = ref('')
 const pagination = ref({ sortBy: 'name', descending: false, page: 1, rowsPerPage: 15 })
 
+const catOptions = ref<{ label: string; value: string }[]>([])
+const unitOptions = ref<{ label: string; value: string }[]>([])
+
 const columns = [
   { name: 'name', label: 'Nombre', field: 'name', align: 'left' as const, sortable: true },
   { name: 'sku', label: 'SKU', field: 'sku', align: 'left' as const, sortable: true },
@@ -22,6 +26,15 @@ const columns = [
   { name: 'presentaciones', label: 'Presentaciones', field: 'id', align: 'left' as const, sortable: false },
   { name: 'actions', label: 'Acciones', field: 'id', align: 'right' as const, sortable: false },
 ]
+
+async function loadSetup() {
+  if (!tenantId) return
+  try {
+    const res = await api.get<SetupInfo>(`/core/setup/${tenantId}`)
+    catOptions.value = (res.data.categories || []).map(c => ({ label: c.name, value: c.code }))
+    unitOptions.value = (res.data.units || []).map(u => ({ label: u.name, value: u.code }))
+  } catch { /* template data non-critical */ }
+}
 
 async function load() {
   loading.value = true
@@ -48,6 +61,8 @@ function openEdit(p: Producto) {
   form.value = { tenantId: p.tenantId, name: p.name, sku: p.sku, category: p.category, baseUnit: p.baseUnit }
   dialogOpen.value = true
 }
+
+onMounted(async () => { await load(); await loadSetup() })
 
 async function save() {
   saving.value = true
@@ -129,7 +144,6 @@ async function remove() {
   }
 }
 
-onMounted(load)
 </script>
 
 <template>
@@ -190,8 +204,8 @@ onMounted(load)
           <q-form @submit.prevent="save" class="q-gutter-y-md">
             <q-input dark filled v-model="form.name" label="Nombre" :rules="[v => !!v || 'Requerido']" />
             <q-input dark filled v-model="form.sku" label="SKU" :rules="[v => !!v || 'Requerido']" />
-            <q-input dark filled v-model="form.category" label="Categoría" />
-            <q-input dark filled v-model="form.baseUnit" label="Unidad base" />
+            <q-select dark filled v-model="form.category" label="Categoría" :options="catOptions" option-value="value" option-label="label" emit-value map-options use-input input-debounce="0" @filter="(val, update) => { update(() => catOptions.filter((o: { label: string; value: string }) => !val || o.label.toLowerCase().includes(val.toLowerCase()))) }" />
+            <q-select dark filled v-model="form.baseUnit" label="Unidad base" :options="unitOptions" option-value="value" option-label="label" emit-value map-options use-input input-debounce="0" @filter="(val, update) => { update(() => unitOptions.filter((o: { label: string; value: string }) => !val || o.label.toLowerCase().includes(val.toLowerCase()))) }" />
             <div class="row justify-end q-gutter-x-sm">
               <q-btn flat label="Cancelar" color="accent" v-close-popup />
               <q-btn type="submit" label="Guardar" color="primary" :loading="saving" />

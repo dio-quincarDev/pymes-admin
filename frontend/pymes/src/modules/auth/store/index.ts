@@ -86,7 +86,10 @@ export const useAuthStore = defineStore('auth', {
         
         // Auto-login después de verificar
         if (authData && authData.accessToken) {
-          this.setSession(authData.accessToken, authData.refreshToken, authData.user);
+          const user = authData.activeTenant
+            ? { ...authData.user, tenantId: authData.activeTenant.id }
+            : authData.user;
+          this.setSession(authData.accessToken, authData.refreshToken, user);
         }
         return authData;
       } catch (err: unknown) {

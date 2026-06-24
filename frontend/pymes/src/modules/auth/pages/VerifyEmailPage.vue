@@ -30,7 +30,7 @@
               label="IR AL DASHBOARD"
               class="full-width"
               size="lg"
-              @click="router.push('/dashboard')"
+              @click="goToDashboard"
             >
               IR AL DASHBOARD
             </BaseButton>
@@ -89,6 +89,7 @@ import { useQuasar } from 'quasar';
 import BaseCard from 'src/components/base/BaseCard.vue';
 import BaseButton from 'src/components/base/BaseButton.vue';
 import SkeletonLoader from 'src/components/ui/SkeletonLoader.vue';
+import { setupService } from 'src/modules/core/services/setup.service';
 
 const route = useRoute();
 const router = useRouter();
@@ -109,9 +110,19 @@ const email = ref(route.query.email as string);
 const verifyEmail = async (verificationToken: string, userEmail: string) => {
   try {
     const response = await authStore.verifyEmail(verificationToken, userEmail);
-    success.value = true;
-    
-    if (response && response.accessToken) {
+
+    if (response?.accessToken) {
+      const tenantId = authStore.user?.tenantId;
+      if (tenantId) {
+        try {
+          const { data: setup } = await setupService.get(tenantId);
+          if (!setup.onboardingCompleted) {
+            await router.push('/onboarding');
+            return;
+          }
+        } catch { /* ponytail: ir al dashboard igual */ }
+      }
+
       $q.notify({
         type: 'positive',
         message: '¡Bienvenido a Pymeq!',
@@ -119,6 +130,8 @@ const verifyEmail = async (verificationToken: string, userEmail: string) => {
         position: 'top-right'
       });
     }
+
+    success.value = true;
   } catch (err: unknown) {
     error.value = true;
     const response = (err as { response?: { status?: number; data?: { codigo?: string; mensaje?: string } } })?.response;
@@ -167,6 +180,20 @@ const handleResend = async () => {
     resending.value = false;
   }
 };
+
+async function goToDashboard() {
+  const tenantId = authStore.user?.tenantId;
+  if (tenantId) {
+    try {
+      const { data: setup } = await setupService.get(tenantId);
+      if (!setup.onboardingCompleted) {
+        void router.push('/onboarding');
+        return;
+      }
+    } catch { /* ponytail: si falla, ir al dashboard igual */ }
+  }
+  void router.push('/dashboard');
+}
 
 onMounted(() => {
   if (!token.value) {

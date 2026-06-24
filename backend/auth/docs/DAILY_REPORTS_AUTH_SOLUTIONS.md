@@ -13,8 +13,9 @@ Este documento registra de manera cronológica el historial de decisiones técni
 - **Defensa en profundidad + Code Exchange OAuth2** — En proceso de validación y robustecimiento continuo.
 
 ### ✅ Historial de Soluciones (Orden Cronológico Inverso)
-1. [2026-06-23 — Fix OAuth2 redirect + Redis serialization + APP_FRONTEND_URL](#-2026-06-23--fix-oauth2-redirect--redis-serialization--app_frontend_url)
-2. [2026-06-21 — Cleanup AuthApiController: Business Logic Extraction](#-2026-06-21--cleanup-authapicontroller-business-logic-extraction)
+1. [2026-06-24 — Fix UserServiceImplTest (4 errores)](#-2026-06-24--fix-userserviceimpltest-4-errores)
+2. [2026-06-23 — Fix OAuth2 redirect + Redis serialization + APP_FRONTEND_URL](#-2026-06-23--fix-oauth2-redirect--redis-serialization--app_frontend_url)
+3. [2026-06-21 — Cleanup AuthApiController: Business Logic Extraction](#-2026-06-21--cleanup-authapicontroller-business-logic-extraction)
 2. [2026-06-19 — Defensa en profundidad + Code Exchange OAuth2](#-2026-06-19--defensa-en-profundidad--code-exchange-oauth2)
 3. [2026-06-16 — Code Review: Cascade, @Transactional, Dead Code & Test Cleanup](#-2026-06-16--code-review-cascade-transactional-dead-code--test-cleanup)
 4. [2026-05-08 — CI Flake: InvitationServiceIntegrationTest (Redis Cleanup)](#-2026-05-08--ci-flake-invitationserviceintegrationtest-redis-cleanup)
@@ -42,6 +43,27 @@ Este documento registra de manera cronológica el historial de decisiones técni
 26. [2026-04-11 — Email Verification Logic](#-2026-04-11--email-verification-logic)
 27. [2026-04-11 — Password Reset Logic](#-2026-04-11--password-reset-logic)
 28. [2026-04-09 — Testcontainers Setup](#-2026-04-09--testcontainers-setup)
+
+---
+
+## 2026-06-24 — Fix UserServiceImplTest (4 errores)
+
+### Problemas
+
+`UserServiceImplTest` tenia 4 fallos:
+- `NullPointerException` en `registerUser_ShouldSucceed` y `getCurrentUser_ShouldSucceed`: faltaban `@Mock` para `UserTenantRepository` y `TenantRepository`
+- `UnnecessaryStubbingException` en ambos tests: stubs de `userMapper` sin uso (el metodo bajo test no usa el mapper en esa rama)
+
+### Solucion
+
+- Agregados `@Mock UserTenantRepository userTenantRepository` y `@Mock TenantRepository tenantRepository`
+- Removidos stubs de `userMapper.toResponse()` en los tests que no los requerian
+- Todos los stubs ahora tienen su contraparte de verificacion (`Mockito.verify()`)
+- 126 tests pasan (antes: 122)
+
+### Files tocados
+
+`UserServiceImplTest.java` — 4 cambios puntuales (agregar mocks + remover stubs)
 
 ---
 

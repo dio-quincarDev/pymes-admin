@@ -13,8 +13,10 @@ Registro de lo implementado y lo pendiente
 - `TenantSetupRepository` (findByTenantId, existsByTenantId)
 - `SetupService` interface + `SetupServiceImpl` (getOrInitialize lazy, completeOnboarding)
 - `SetupApi` controller interface + `SetupController` impl
-  - `GET /api/v1/core/setup/{tenantId}` — lazy init si no existe
-  - `POST /api/v1/core/setup/{tenantId}/onboarding` — completa onboarding con industry
+  - `GET /api/v1/core/setup/{tenantId}` — lazy init si no existe, devuelve `SetupResponse` con template data
+  - `POST /api/v1/core/setup/{tenantId}/onboarding` — completa onboarding con industry, devuelve `SetupResponse` con template data
+- `SetupResponse` record DTO en `setup.dto` con `id`, `tenantId`, `industry`, `onboardingCompleted`, `categories[]`, `units[]`, `locations[]`
+- `SetupMapper` (MapStruct): `toResponse(entity, categories, units, locations)` transforma entity + lists → DTO
 - Flyway V1: tabla `core.tenant_setup`
 
 ### Infraestructura
@@ -95,7 +97,7 @@ Registro de lo implementado y lo pendiente
 ## Pendiente 🚧
 
 ### Template loading (post-onboarding)
-- [ ] **Template loading**: `POST /core/setup/{tenantId}/onboarding` guarda `industry` y marca `onboardingCompleted=true`, pero no carga productos/categorias/etc. especificos de la industria. Pendiente implementar en `SetupServiceImpl.completeOnboarding()` o via evento.
+- [x] **Template loading**: `POST /core/setup/{tenantId}/onboarding` y `GET /core/setup/{tenantId}` devuelven `SetupResponse` con `categories[]`, `units[]`, `locations[]` cargados de las tablas template filtradas por `industry_code`. Implementado via `SetupServiceImpl.buildResponse()` (private, reusado en ambos endpoints).
 
 ### Inmediato
 - [ ] **Accounting** — `core_pymes/accounting/`: MetricaFinanciera entity + listener FacturaCreada → recalcula márgenes

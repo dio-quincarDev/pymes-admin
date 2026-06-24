@@ -133,6 +133,7 @@ Lógica de logout extraída del store para reuso en navbar, menú de usuario, et
 
 | Fecha | Decisión |
 |-------|----------|
+| 2026-06-24 | `verifyEmail` auto-redirect a `/onboarding` si tenant no completó setup — store mergea `activeTenant.id` en user |
 | 2026-04-13 | Hash routing elegido (`/#/ruta`) — documentado en AGENTS.md |
 | 2026-05-03 | LoginPage extraída del nested layout (conflicto de dos `<q-layout>`) |
 | 2026-04-28 | `verifyEmail()` incluye email junto al token (fix token-email mismatch) |

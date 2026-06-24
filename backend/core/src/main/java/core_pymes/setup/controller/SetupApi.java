@@ -1,7 +1,7 @@
 package core_pymes.setup.controller;
 
 import core_pymes.common.constant.CorePath;
-import core_pymes.setup.domain.TenantSetup;
+import core_pymes.setup.dto.SetupResponse;
 import io.swagger.v3.oas.annotations.Operation;
 import io.swagger.v3.oas.annotations.tags.Tag;
 import org.springframework.http.ResponseEntity;
@@ -16,11 +16,11 @@ public interface SetupApi {
 
     @Operation(summary = "Get or initialize tenant setup")
     @GetMapping("/{tenantId}")
-    ResponseEntity<TenantSetup> getOrInitialize(@PathVariable UUID tenantId);
+    ResponseEntity<SetupResponse> getOrInitialize(@PathVariable UUID tenantId);
 
     @Operation(summary = "Complete tenant onboarding with industry")
     @PostMapping("/{tenantId}/onboarding")
-    ResponseEntity<TenantSetup> completeOnboarding(
+    ResponseEntity<SetupResponse> completeOnboarding(
             @PathVariable UUID tenantId,
             @RequestBody Map<String, String> body);
 }

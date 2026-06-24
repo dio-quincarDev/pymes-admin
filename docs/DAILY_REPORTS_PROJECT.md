@@ -4,6 +4,60 @@ Registro cronológico de decisiones técnicas, refactors y post-mortems del proy
 
 ---
 
+## 2026-06-24 — Docker PostgreSQL rename + Template loading + Auth test fix + Frontend onboarding redirect
+
+### Que se hizo
+
+1. **Docker Compose: rename PostgreSQL container/service**
+   - Service `postgres-auth:` → `postgres:`
+   - Container name `pymes-postgres-auth` → `pymes-postgres-db`
+   - Volume `pymes-postgres-auth-data` → `pymes-postgres-db-data`
+   - `DB_HOST=pymes-postgres-auth` → `pymes-postgres-db` en auth-service y core-service
+   - `depends_on: postgres-auth` → `postgres:` en ambos services
+
+2. **Core: SetupResponse DTO + template loading en endpoints**
+   - `SetupResponse` record DTO con `categories[]`, `units[]`, `locations[]`
+   - `SetupMapper` (MapStruct) que transforma entity + lists → DTO
+   - `GET /core/setup/{tenantId}` y `POST /core/setup/{tenantId}/onboarding` devuelven `SetupResponse` con template data filtrada por industry
+
+3. **Auth: UserServiceImplTest fix (4 errores)**
+   - `@Mock` faltantes para `UserTenantRepository` y `TenantRepository`
+   - Stubs huérfanos de `userMapper` removidos
+   - 126 tests unitarios pasan (antes: 122)
+
+4. **Frontend: Onboarding auto-redirect post verifyEmail**
+   - `auth store`: mergea `authData.activeTenant.id` en user para poblarlo con `tenantId` (UserMapper lo ignoraba)
+   - `VerifyEmailPage.vue`: después de verify exitoso, llama `setupService.get(tenantId)` → redirect automático a `/onboarding` si `!onboardingCompleted`
+   - `types/index.ts`: se agrega `activeTenant?: { id, name, slug }` a `AuthResponse`
+
+5. **Frontend: ProductosPage con template options**
+   - category y `baseUnit` cambiaron de `<q-input>` a `<q-select>` con opciones cargadas desde `GET /setup/{tenantId}`
+   - `setup.service.ts`: `completeOnboarding` devuelve `SetupInfo` en vez de `TenantSetup`
+
+### Files tocados
+
+```
+docker-compose.yml                              # rename postgres-auth → postgres
+backend/core/src/main/java/core_pymes/setup/    # SetupResponse, SetupMapper, SetupService, SetupController
+backend/core/src/test/java/core_pymes/unit/     # SetupServiceImplTest actualizado
+backend/auth/src/test/java/auth/pymes/unit/     # UserServiceImplTest fix
+frontend/pymes/src/modules/auth/store/index.ts  # activeTenant merge en verifyEmail
+frontend/pymes/src/modules/auth/types/index.ts  # +activeTenant field
+frontend/pymes/src/modules/auth/pages/VerifyEmailPage.vue  # onboarding redirect
+frontend/pymes/src/modules/core/pages/ProductosPage.vue    # q-select con template options
+frontend/pymes/src/modules/core/services/setup.service.ts  # completeOnboarding return type
+```
+
+### Tests
+
+| Suite | Tests | Resultado |
+|-------|-------|-----------|
+| Core unit | 18 | ✅ |
+| Auth unit | 126 | ✅ |
+| Frontend build | — | ✅ |
+
+---
+
 ## 2026-06-21 — Core: Global Exception Handler + Industry Validation
 
 ### Que se hizo

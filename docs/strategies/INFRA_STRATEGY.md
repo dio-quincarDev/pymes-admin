@@ -70,9 +70,9 @@ JAVA_OPTS: -Xmx384m -Xms256m -XX:MaxMetaspaceSize=128m -XX:+UseG1GC
 
 No usar Netflix Eureka ni Consul — consumen 512MB-1GB de RAM.
 
-**Tactica:** DNS interno de Docker. Los servicios se referencian por `container_name` en `docker-compose.yml`:
+**Tactica:** DNS interno de Docker. Los servicios se referencian por service name en `docker-compose.yml`:
 ```yaml
-# En gateway, apuntar al auth-service por nombre
+# Los servicios se referencian por service name (DNS de Docker Compose)
 AUTH_SERVICE_HOST: pymes-auth-service
 ```
 

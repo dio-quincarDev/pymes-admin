@@ -10,6 +10,7 @@ export interface AuthResponse {
   accessToken: string;
   refreshToken: string;
   user: User;
+  activeTenant?: { id: string; name: string; slug: string };
 }
 
 export interface LoginRequest {

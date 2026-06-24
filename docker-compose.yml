@@ -55,7 +55,7 @@ services:
     networks:
       - pymes-internal-network
     environment:
-      - DB_HOST=pymes-postgres-auth
+      - DB_HOST=pymes-postgres-db
       - DB_PORT=5432
       - DB_NAME=${DB_NAME}
       - DB_USERNAME=${DB_USERNAME}
@@ -77,7 +77,7 @@ services:
       - SPRING_MAIL_USERNAME=${SPRING_MAIL_USERNAME}
       - SPRING_MAIL_PASSWORD=${SPRING_MAIL_PASSWORD}
     depends_on:
-      postgres-auth:
+      postgres:
         condition: service_healthy
       redis:
         condition: service_started
@@ -99,7 +99,7 @@ services:
     networks:
       - pymes-internal-network
     environment:
-      - DB_HOST=pymes-postgres-auth
+      - DB_HOST=pymes-postgres-db
       - DB_PORT=5432
       - DB_NAME=${DB_NAME}
       - DB_USERNAME=${DB_USERNAME}
@@ -109,7 +109,7 @@ services:
       - SERVER_PORT=8082
       - AUTH_SERVICE_URL=http://pymes-auth-service:8081
     depends_on:
-      postgres-auth:
+      postgres:
         condition: service_healthy
       redis:
         condition: service_started
@@ -123,9 +123,9 @@ services:
       start_period: 45s
 
   # ==================== DATABASE (PostgreSQL) ====================
-  postgres-auth:
+  postgres:
     image: postgres:15-alpine
-    container_name: pymes-postgres-auth
+    container_name: pymes-postgres-db
     restart: on-failure
     networks:
       - pymes-internal-network
@@ -134,7 +134,7 @@ services:
       POSTGRES_USER: ${DB_USERNAME:?DB_USERNAME is required}
       POSTGRES_PASSWORD: ${DB_PASSWORD:?DB_PASSWORD is required}
     volumes:
-      - pymes-postgres-auth-data:/var/lib/postgresql/data
+      - pymes-postgres-db-data:/var/lib/postgresql/data
     healthcheck:
       test: ["CMD-SHELL", "pg_isready -U $$POSTGRES_USER -d $$POSTGRES_DB"]
       interval: 10s
@@ -159,7 +159,7 @@ services:
 
 # ==================== VOLUMES ====================
 volumes:
-  pymes-postgres-auth-data:
+  pymes-postgres-db-data:
     external: false
   pymes-redis-data:
     external: false

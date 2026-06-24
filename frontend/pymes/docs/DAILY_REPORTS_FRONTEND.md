@@ -4,6 +4,30 @@ Registro cronológico de decisiones, problemas resueltos y estado del frontend.
 
 ---
 
+## 2026-06-24 — Onboarding auto-redirect post verifyEmail + ProductosPage template options
+
+### Problemas
+
+1. **Local registration saltaba onboarding**: Tras verificar email, `VerifyEmailPage.vue` redirigia a `/dashboard` sin pasar por onboarding. OAuth2 si lo hacía via `AuthCallback.vue`.
+2. **`authStore.user?.tenantId` undefined**: `UserMapper` en backend ignora `tenantId`, y el store no leía `activeTenant` del `AuthResponse`.
+3. **ProductosPage campos libres**: category y `baseUnit` eran `<q-input>` en vez de `<q-select>` con opciones del template.
+
+### Soluciones
+
+| # | Fix | Archivo |
+|---|-----|---------|
+| 1 | `VerifyEmailPage.vue`: después de verify exitoso, redirige a `/onboarding` via `setupService.get(tenantId)` | `VerifyEmailPage.vue` |
+| 2 | `auth store`: mergea `authData.activeTenant.id` en user antes de `setSession` | `store/index.ts` |
+| 2b | `types/index.ts`: agregado `activeTenant?: { id, name, slug }` a `AuthResponse` | `types/index.ts` |
+| 3 | `ProductosPage.vue`: category y baseUnit como `<q-select>` con opciones de template (filterable) | `ProductosPage.vue` |
+| 3b | `setup.service.ts`: `completeOnboarding` return type cambiado a `SetupInfo` | `setup.service.ts` |
+
+### Arquivos tocados
+
+`VerifyEmailPage.vue`, `store/index.ts`, `types/index.ts`, `ProductosPage.vue`, `setup.service.ts`
+
+---
+
 ## 2026-06-23 — Fix OAuth2 callback + QPage standalone + hash redirect
 
 ### Problemas
