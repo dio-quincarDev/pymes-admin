@@ -4,6 +4,51 @@ Registro cronológico de decisiones, problemas resueltos y estado del frontend.
 
 ---
 
+## 2026-06-24 — Onboarding 2 pasos: preview de categorías/subcategorías
+
+### Contexto
+
+El onboarding actual muestra 8 cards de industria y al hacer clic llama `POST /onboarding`. El usuario no sabe qué categorías cargará antes de confirmar. Se necesita un preview de las categorías jerárquicas (categorías → subcategorías → ítems) antes de que el usuario confirme.
+
+### Plan
+
+1. **`CategoryTree.vue`** — Componente que recibe un array de categorías con estructura `{ code, name, children[] }` y renderiza el árbol visual con indentación. Solo lectura (sin checkbox ni edición).
+
+2. **`OnboardingPage.vue`** — Flujo de 2 pasos con `step` ref:
+   - Paso 1: Selección de industria (cards existentes)
+   - Paso 2: Preview del árbol de categorías usando `CategoryTree` + botón "Comenzar"
+
+3. **`setup.service.ts`** — Nuevo método `preview(industry: string)` que llama `GET /setup/preview/{industry}`.
+
+4. **`types/index.ts`** — Actualizar `SetupInfo.categories` con `parentId?: string` y `children?: SetupInfo['categories']`.
+
+### Arquitectura del componente
+
+```
+CategoryTree.vue
+├── Props: categories (array con children nested)
+├── Render recursivo: <CategoryNode> que se llama a sí mismo
+├── Estilo: borde izquierdo copper (#A3785E), padding indentado
+└── Solo lectura — sin emits ni interacción
+```
+
+### Flujo UX
+
+```
+Onboarding → Paso 1: industria → Paso 2: preview árbol → "Comenzar" → POST → /dashboard
+```
+
+### Files a crear/modificar
+
+```
+frontend/pymes/src/components/onboarding/CategoryTree.vue      # nuevo
+frontend/pymes/src/modules/core/pages/OnboardingPage.vue       # flujo 2 pasos
+frontend/pymes/src/modules/core/services/setup.service.ts      # +preview()
+frontend/pymes/src/modules/core/types/index.ts                 # +parentId, +children
+```
+
+---
+
 ## 2026-06-24 — Onboarding auto-redirect post verifyEmail + ProductosPage template options
 
 ### Problemas

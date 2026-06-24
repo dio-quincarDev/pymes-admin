@@ -8,4 +8,7 @@ export const setupService = {
   completeOnboarding(tenantId: string, industry: string) {
     return api.post<SetupInfo>(`/core/setup/${tenantId}/onboarding`, { industry })
   },
+  preview(industry: string) {
+    return api.get<SetupInfo>(`/core/setup/preview/${industry}`)
+  },
 }

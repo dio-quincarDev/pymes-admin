@@ -12,5 +12,9 @@ public record SetupResponse(
     List<ItemDTO> units,
     List<ItemDTO> locations
 ) {
-    public record ItemDTO(String code, String name) {}
+    public record ItemDTO(String code, String name, String parentId, List<ItemDTO> children) {
+        public static ItemDTO flat(String code, String name) {
+            return new ItemDTO(code, name, null, List.of());
+        }
+    }
 }

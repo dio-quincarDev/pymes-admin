@@ -124,4 +124,96 @@ class SetupServiceImplTest {
         verify(repository, never()).findByTenantId(any());
         verify(repository, never()).save(any());
     }
+
+    @Test
+    void previewIndustry_ValidIndustry_ReturnsSetupResponse() {
+        var industry = "restaurante";
+        when(jdbc.queryForObject(anyString(), eq(Integer.class), eq(industry))).thenReturn(1);
+        when(jdbc.query(anyString(), any(org.springframework.jdbc.core.RowMapper.class), eq(industry)))
+                .thenReturn(List.of());
+
+        var result = service.previewIndustry(industry);
+
+        assertThat(result.industry()).isEqualTo(industry);
+        assertThat(result.tenantId()).isNull();
+        assertThat(result.onboardingCompleted()).isFalse();
+        verify(repository, never()).findByTenantId(any());
+        verify(repository, never()).save(any());
+    }
+
+    @Test
+    void previewIndustry_InvalidIndustry_Throws() {
+        when(jdbc.queryForObject(anyString(), eq(Integer.class), eq("inventada"))).thenReturn(0);
+
+        assertThatThrownBy(() -> service.previewIndustry("inventada"))
+                .isInstanceOf(IllegalArgumentException.class)
+                .hasMessageContaining("Industry not found");
+
+        verify(repository, never()).findByTenantId(any());
+    }
+
+    @Test
+    void buildCategoryTree_FlatList_ReturnsRootsOnly() {
+        var industry = "restaurante";
+        var flat = List.of(
+            new SetupResponse.ItemDTO("cat1", "Alimentos", null, null),
+            new SetupResponse.ItemDTO("cat2", "Bebidas", null, null)
+        );
+        when(jdbc.query(anyString(), any(org.springframework.jdbc.core.RowMapper.class), eq(industry)))
+                .thenReturn(flat);
+
+        var result = service.buildCategoryTree(industry);
+
+        assertThat(result).hasSize(2);
+        assertThat(result.get(0).code()).isEqualTo("cat1");
+        assertThat(result.get(0).children()).isEmpty();
+        assertThat(result.get(1).code()).isEqualTo("cat2");
+        assertThat(result.get(1).children()).isEmpty();
+    }
+
+    @Test
+    void buildCategoryTree_HierarchicalList_ReturnsTree() {
+        var industry = "restaurante";
+        var flat = List.of(
+            new SetupResponse.ItemDTO("cat1", "Alimentos", null, null),
+            new SetupResponse.ItemDTO("sub1", "Carnes", "cat1", null),
+            new SetupResponse.ItemDTO("sub2", "Verduras", "cat1", null),
+            new SetupResponse.ItemDTO("cat2", "Bebidas", null, null),
+            new SetupResponse.ItemDTO("sub3", "Gaseosas", "cat2", null)
+        );
+        when(jdbc.query(anyString(), any(org.springframework.jdbc.core.RowMapper.class), eq(industry)))
+                .thenReturn(flat);
+
+        var result = service.buildCategoryTree(industry);
+
+        assertThat(result).hasSize(2);
+        // cat1 with 2 children
+        assertThat(result.get(0).code()).isEqualTo("cat1");
+        assertThat(result.get(0).children()).hasSize(2);
+        assertThat(result.get(0).children().get(0).code()).isEqualTo("sub1");
+        assertThat(result.get(0).children().get(1).code()).isEqualTo("sub2");
+        // cat2 with 1 child
+        assertThat(result.get(1).code()).isEqualTo("cat2");
+        assertThat(result.get(1).children()).hasSize(1);
+        assertThat(result.get(1).children().get(0).code()).isEqualTo("sub3");
+    }
+
+    @Test
+    void buildCategoryTree_ThreeLevelDepth_ReturnsNestedTree() {
+        var industry = "restaurante";
+        var flat = List.of(
+            new SetupResponse.ItemDTO("cat1", "Alimentos", null, null),
+            new SetupResponse.ItemDTO("sub1", "Carnes", "cat1", null),
+            new SetupResponse.ItemDTO("item1", "Res", "sub1", null)
+        );
+        when(jdbc.query(anyString(), any(org.springframework.jdbc.core.RowMapper.class), eq(industry)))
+                .thenReturn(flat);
+
+        var result = service.buildCategoryTree(industry);
+
+        assertThat(result).hasSize(1);
+        assertThat(result.get(0).children()).hasSize(1);
+        assertThat(result.get(0).children().get(0).children()).hasSize(1);
+        assertThat(result.get(0).children().get(0).children().get(0).code()).isEqualTo("item1");
+    }
 }

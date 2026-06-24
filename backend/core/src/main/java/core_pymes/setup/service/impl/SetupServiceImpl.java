@@ -9,8 +9,7 @@ import org.springframework.jdbc.core.JdbcTemplate;
 import org.springframework.stereotype.Service;
 import org.springframework.transaction.annotation.Transactional;
 
-import java.util.List;
-import java.util.UUID;
+import java.util.*;
 
 @Service
 public class SetupServiceImpl implements SetupService {
@@ -48,6 +47,25 @@ public class SetupServiceImpl implements SetupService {
         return buildResponse(config);
     }
 
+    @Override
+    public SetupResponse previewIndustry(String industry) {
+        var count = jdbc.queryForObject(
+                "SELECT COUNT(*) FROM industries WHERE code = ?", Integer.class, industry);
+        if (count == null || count == 0) {
+            throw new IllegalArgumentException("Industry not found: " + industry);
+        }
+        var categories = buildCategoryTree(industry);
+        var units = jdbc.query(
+                "SELECT id AS code, name FROM template_units WHERE industry_code = ? ORDER BY sort_order",
+                (rs, row) -> SetupResponse.ItemDTO.flat(rs.getString("code"), rs.getString("name")),
+                industry);
+        var locations = jdbc.query(
+                "SELECT id AS code, name FROM template_locations WHERE industry_code = ? ORDER BY sort_order",
+                (rs, row) -> SetupResponse.ItemDTO.flat(rs.getString("code"), rs.getString("name")),
+                industry);
+        return new SetupResponse(null, null, industry, false, categories, units, locations);
+    }
+
     private SetupResponse buildResponse(TenantSetup config) {
         var industry = config.getIndustry();
         List<SetupResponse.ItemDTO> categories = List.of();
@@ -55,20 +73,50 @@ public class SetupServiceImpl implements SetupService {
         List<SetupResponse.ItemDTO> locations = List.of();
 
         if (industry != null) {
-            categories = jdbc.query(
-                "SELECT id AS code, name FROM template_categories WHERE industry_code = ? ORDER BY sort_order",
-                (rs, row) -> new SetupResponse.ItemDTO(rs.getString("code"), rs.getString("name")),
-                industry);
+            categories = buildCategoryTree(industry);
             units = jdbc.query(
                 "SELECT id AS code, name FROM template_units WHERE industry_code = ? ORDER BY sort_order",
-                (rs, row) -> new SetupResponse.ItemDTO(rs.getString("code"), rs.getString("name")),
+                (rs, row) -> SetupResponse.ItemDTO.flat(rs.getString("code"), rs.getString("name")),
                 industry);
             locations = jdbc.query(
                 "SELECT id AS code, name FROM template_locations WHERE industry_code = ? ORDER BY sort_order",
-                (rs, row) -> new SetupResponse.ItemDTO(rs.getString("code"), rs.getString("name")),
+                (rs, row) -> SetupResponse.ItemDTO.flat(rs.getString("code"), rs.getString("name")),
                 industry);
         }
 
         return mapper.toResponse(config, categories, units, locations);
+    }
+
+    // ponytail: flat list → tree via parent_id, O(n) with map. Good enough for ~60 categories per industry.
+    public List<SetupResponse.ItemDTO> buildCategoryTree(String industry) {
+        var flat = jdbc.query(
+            "SELECT id AS code, name, parent_id FROM template_categories WHERE industry_code = ? ORDER BY sort_order",
+            (rs, row) -> new SetupResponse.ItemDTO(
+                rs.getString("code"),
+                rs.getString("name"),
+                rs.getString("parentId"),
+                null),
+            industry);
+
+        var map = new LinkedHashMap<String, SetupResponse.ItemDTO>();
+        var roots = new ArrayList<SetupResponse.ItemDTO>();
+
+        // first pass: index by code, with empty children
+        for (var item : flat) {
+            map.put(item.code(), new SetupResponse.ItemDTO(item.code(), item.name(), item.parentId(), new ArrayList<>()));
+        }
+
+        // second pass: wire children
+        for (var item : map.values()) {
+            var parentId = item.parentId();
+            if (parentId != null && map.containsKey(parentId)) {
+                var children = (ArrayList<SetupResponse.ItemDTO>) map.get(parentId).children();
+                children.add(item);
+            } else {
+                roots.add(item);
+            }
+        }
+
+        return roots;
     }
 }

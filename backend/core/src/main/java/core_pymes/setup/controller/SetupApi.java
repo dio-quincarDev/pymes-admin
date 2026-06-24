@@ -23,4 +23,8 @@ public interface SetupApi {
     ResponseEntity<SetupResponse> completeOnboarding(
             @PathVariable UUID tenantId,
             @RequestBody Map<String, String> body);
+
+    @Operation(summary = "Preview categories/units/locations for an industry (read-only)")
+    @GetMapping("/preview/{industry}")
+    ResponseEntity<SetupResponse> preview(@PathVariable String industry);
 }

@@ -100,6 +100,11 @@ Registro de lo implementado y lo pendiente
 - [x] **Template loading**: `POST /core/setup/{tenantId}/onboarding` y `GET /core/setup/{tenantId}` devuelven `SetupResponse` con `categories[]`, `units[]`, `locations[]` cargados de las tablas template filtradas por `industry_code`. Implementado via `SetupServiceImpl.buildResponse()` (private, reusado en ambos endpoints).
 
 ### Inmediato
+- [ ] **Onboarding preview de categorías** — Endpoint `GET /setup/preview/{industry}` + `ItemDTO` con `parentId` + `children` para jerarquía
+  - [ ] `SetupResponse.ItemDTO`: agregar `parentId` (String nullable) + `children` (List&lt;ItemDTO&gt;)
+  - [ ] `SetupServiceImpl.buildResponse()`: query con `parent_id`, método `buildCategoryTree()` que convierte lista plana en árbol
+  - [ ] `SetupApi` + `SetupController`: `GET /setup/preview/{industry}` (solo lectura, sin persistencia)
+  - [ ] Test unitario `buildCategoryTree()` + test integración endpoint preview
 - [ ] **Accounting** — `core_pymes/accounting/`: MetricaFinanciera entity + listener FacturaCreada → recalcula márgenes
   - [ ] GET `contabilidad/metricas?tenantId=&year=&month=`
   - [ ] EventListener on FacturaCreada / FacturaPagada / (futuro VentaRegistrada)
@@ -111,6 +116,8 @@ Registro de lo implementado y lo pendiente
 ### Mediate
 - [ ] **Reports** — dashboard consolidado con KPIs, últimas facturas/ventas, alertas
 - [ ] CRUD de configuración (categorías, ubicaciones, unidades) para edición por tenant
+  - [x] Preview de solo lectura: `GET /setup/preview/{industry}` (jerarquía de categorías)
+  - [ ] Edición de configuración (CRUD completo por tenant)
 - [ ] Módulo Ventas (si se opta por Opción A)
 - [ ] Movimientos de stock (Parte 3 — asociados a facturas+ventas)
 
@@ -123,6 +130,11 @@ Registro de lo implementado y lo pendiente
 ### Frontend
 - [x] Onboarding post-login — página `/onboarding` + router guard que llama `GET/POST /core/setup/{tenantId}`
 - [x] Módulo Core frontend — Productos, Proveedores, Facturas, Configuración (CRUD completo)
+- [ ] Onboarding 2 pasos — flujo select industria → preview categorías → confirmar
+  - [ ] `CategoryTree.vue` — componente visual de árbol de categorías (solo lectura)
+  - [ ] `OnboardingPage.vue` — flujo 2 pasos con preview antes de confirmar
+  - [ ] `setup.service.ts` — agregar `preview()` para `GET /setup/preview/{industry}`
+  - [ ] `SetupInfo` type — actualizar con categorías jerárquicas (`parentId` + `children`)
 
 ---
 
@@ -143,3 +155,4 @@ Registro de lo implementado y lo pendiente
 | Invoice numbering | Native query secuencial por tenant/año | UUID, secuencia global, lógica en app |
 | Soft-delete | @SQLDelete + @Where(clause = "is_active = true") | @ManyToMany, tabla aparte |
 | Response wrapper | Sin wrapper (response directo) | ApiResponse envelope genérico |
+| Categorías jerarquicas | En nested DTO (`children` list) en el mismo `ItemDTO` | DTO separado por nivel, adjancency list con query recursiva |

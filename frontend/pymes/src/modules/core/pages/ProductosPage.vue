@@ -4,7 +4,7 @@ import { useQuasar } from 'quasar'
 import { useAuthStore } from 'src/modules/auth/store'
 import { api } from 'src/boot/axios'
 import { productoService } from '../services/producto.service'
-import type { Producto, ProductoRequest, Presentacion, PresentacionRequest, SetupInfo } from '../types'
+import type { Producto, ProductoRequest, Presentacion, PresentacionRequest, SetupInfo, SetupCategory } from '../types'
 
 const $q = useQuasar()
 const authStore = useAuthStore()
@@ -27,11 +27,20 @@ const columns = [
   { name: 'actions', label: 'Acciones', field: 'id', align: 'right' as const, sortable: false },
 ]
 
+function flattenCategories(cats: SetupCategory[]): { label: string; value: string }[] {
+  const result: { label: string; value: string }[] = []
+  for (const c of cats) {
+    result.push({ label: c.name, value: c.code })
+    if (c.children?.length) result.push(...flattenCategories(c.children))
+  }
+  return result
+}
+
 async function loadSetup() {
   if (!tenantId) return
   try {
     const res = await api.get<SetupInfo>(`/core/setup/${tenantId}`)
-    catOptions.value = (res.data.categories || []).map(c => ({ label: c.name, value: c.code }))
+    catOptions.value = flattenCategories(res.data.categories || [])
     unitOptions.value = (res.data.units || []).map(u => ({ label: u.name, value: u.code }))
   } catch { /* template data non-critical */ }
 }

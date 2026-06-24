@@ -1,10 +1,10 @@
 <template>
   <q-page class="dashboard-page">
-    <div class="q-mb-md fade-in-up">
-      <h1 class="text-h4 text-primary font-bold q-ma-none brand-glow-text">
-        Bienvenido, {{ authStore.user?.nombre || 'Auditor' }}
+    <div class="dashboard-header fade-in-up">
+      <h1 class="dashboard-title">
+        {{ greeting }}, <span class="dashboard-title__name">{{ authStore.user?.nombre || 'Auditor' }}</span>
       </h1>
-      <p class="text-subtitle1 text-accent q-mt-xs">Panel de control de auditoría inteligente</p>
+      <p class="dashboard-subtitle">Panel de control de auditoria inteligente</p>
     </div>
 
     <DashboardStats />
@@ -21,15 +21,17 @@
 </template>
 
 <script setup lang="ts">
-import { useMeta } from 'quasar';
-import { useAuthStore } from 'src/modules/auth/store';
+import { useMeta } from 'quasar'
+import { useAuthStore } from 'src/modules/auth/store'
+import { useGreeting } from 'src/composables/useGreeting'
+import DashboardStats from 'src/components/dashboard/DashboardStats.vue'
+import DashboardActionCard from 'src/components/dashboard/DashboardActionCard.vue'
+import RecentActivity from 'src/components/dashboard/RecentActivity.vue'
 
-useMeta({ title: 'Dashboard — PYMEQ' });
-import DashboardStats from 'src/components/dashboard/DashboardStats.vue';
-import DashboardActionCard from 'src/components/dashboard/DashboardActionCard.vue';
-import RecentActivity from 'src/components/dashboard/RecentActivity.vue';
+useMeta({ title: 'Dashboard — PYMEQ' })
 
-const authStore = useAuthStore();
+const authStore = useAuthStore()
+const { greeting } = useGreeting()
 </script>
 
 <style lang="scss" scoped>
@@ -37,7 +39,26 @@ const authStore = useAuthStore();
   width: 100%;
 }
 
-.brand-glow-text {
-  text-shadow: 0 0 20px rgba(163, 120, 94, 0.3);
+.dashboard-header {
+  margin-bottom: 1.5rem;
+}
+
+.dashboard-title {
+  font-family: 'Outfit', sans-serif;
+  font-weight: 700;
+  font-size: 1.75rem;
+  color: #E2E8E4;
+  margin: 0;
+  text-shadow: 0 0 20px rgba(163, 120, 94, 0.15);
+
+  &__name {
+    color: #A3785E;
+  }
+}
+
+.dashboard-subtitle {
+  font-size: 0.95rem;
+  color: #8A9E99;
+  margin: 0.25rem 0 0;
 }
 </style>

@@ -4,6 +4,52 @@ Registro cronológico de decisiones técnicas, refactors y post-mortems del proy
 
 ---
 
+## 2026-06-24 — Onboarding: preview de categorías/subcategorías por industria
+
+### Contexto
+
+El sistema PYMEQ analiza gastos en facturas, no inventario. El onboarding actual carga categorías planas sin jerarquía. Para una mejor experiencia de usuario, se quiere mostrar un preview de las categorías y subcategorías antes de confirmar el onboarding.
+
+### Qué se planea
+
+1. **Backend**: Agregar `GET /setup/preview/{industry}` — endpoint de solo lectura que retorna categorías jerárquicas sin persistir.
+2. **Backend**: Actualizar `SetupResponse.ItemDTO` con `parentId` (nullable) + `children` (nested list) para representar la jerarquía de 3 niveles.
+3. **Backend**: Método `buildCategoryTree()` que convierte la lista plana de la query en un árbol anidado.
+4. **Frontend**: Componente `CategoryTree.vue` que muestra el árbol de categorías visualmente (solo lectura).
+5. **Frontend**: OnboardingPage flujo de 2 pasos: paso 1 seleccionar industria, paso 2 preview del árbol de categorías → "Comenzar" → POST onboarding → dashboard.
+6. **Frontend**: Nuevo método `preview()` en `setup.service.ts`.
+7. **Frontend**: Actualizar tipo `SetupInfo` con categorías jerárquicas (`parentId` + `children`).
+
+### Decisión clave
+
+`ItemDTO` se mantiene como el mismo DTO para categorías, unidades y ubicaciones. Las categorías anidan en `children`, unidades y ubicaciones siguen siendo listas planas. No se crea un DTO separado por nivel (YAGNI).
+
+### Files a crear/modificar
+
+```
+backend/core/src/main/java/core_pymes/setup/dto/SetupResponse.java          # +parentId, +children
+backend/core/src/main/java/core_pymes/setup/service/impl/SetupServiceImpl.java  # +buildCategoryTree, +previewIndustry
+backend/core/src/main/java/core_pymes/setup/controller/SetupApi.java         # +GET /preview/{industry}
+backend/core/src/main/java/core_pymes/setup/controller/impl/SetupController.java  # impl del endpoint
+backend/core/src/test/java/core_pymes/unit/SetupServiceImplTest.java         # +buildCategoryTree test
+backend/core/src/test/java/core_pymes/integration/SetupSeedIntegrationTest.java  # +preview integration test
+
+frontend/pymes/src/modules/core/types/index.ts                               # +parentId, +children en SetupInfo
+frontend/pymes/src/modules/core/services/setup.service.ts                    # +preview()
+frontend/pymes/src/components/onboarding/CategoryTree.vue                    # nuevo componente
+frontend/pymes/src/modules/core/pages/OnboardingPage.vue                     # flujo 2 pasos
+```
+
+### Test plan
+
+- Unit: `buildCategoryTree()` con lista de 3 niveles → árbol anidado correcto.
+- Unit: `previewIndustry()` retorna setup con categorías jerárquicas.
+- Integration: `GET /setup/preview/restaurante` → 200 + categorías con `children`.
+- Frontend: `CategoryTree` renderiza subcategorías indentadas.
+- Frontend: `OnboardingPage` paso 1 → paso 2 → "Comenzar" → dashboard.
+
+---
+
 ## 2026-06-24 — Docker PostgreSQL rename + Template loading + Auth test fix + Frontend onboarding redirect
 
 ### Que se hizo

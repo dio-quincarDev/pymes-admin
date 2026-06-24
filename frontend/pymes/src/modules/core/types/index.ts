@@ -92,7 +92,14 @@ export interface FacturaRequest {
 export interface SetupInfo {
   onboardingCompleted: boolean
   industry: string | null
-  categories: { code: string; name: string }[]
+  categories: SetupCategory[]
   units: { code: string; name: string }[]
   locations: { code: string; name: string }[]
+}
+
+export interface SetupCategory {
+  code: string
+  name: string
+  parentId: string | null
+  children: SetupCategory[]
 }

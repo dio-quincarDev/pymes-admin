@@ -8,4 +8,5 @@ import java.util.UUID;
 public interface SetupService {
     SetupResponse getOrInitialize(UUID tenantId);
     SetupResponse completeOnboarding(UUID tenantId, String industry);
+    SetupResponse previewIndustry(String industry);
 }

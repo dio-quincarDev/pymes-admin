@@ -30,4 +30,10 @@ public class SetupController implements SetupApi {
         log.debug("Completing onboarding for tenant {} with industry {}", tenantId, industry);
         return ResponseEntity.ok(setupService.completeOnboarding(tenantId, industry));
     }
+
+    @Override
+    public ResponseEntity<SetupResponse> preview(String industry) {
+        log.debug("Previewing setup for industry {}", industry);
+        return ResponseEntity.ok(setupService.previewIndustry(industry));
+    }
 }
