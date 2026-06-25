@@ -8,6 +8,7 @@ import java.util.UUID;
 
 public record ItemFacturaRequest(
         @NotNull UUID productoId,
+        @NotNull UUID presentacionId,
         @NotNull @Positive BigDecimal cantidad,
         @NotNull @Positive BigDecimal precioUnitario,
         BigDecimal descuento

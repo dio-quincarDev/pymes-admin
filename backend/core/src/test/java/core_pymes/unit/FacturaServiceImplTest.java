@@ -10,6 +10,9 @@ import core_pymes.invoice.mapper.FacturaMapper;
 import core_pymes.invoice.repository.FacturaRepository;
 import core_pymes.invoice.repository.ProveedorRepository;
 import core_pymes.invoice.service.impl.FacturaServiceImpl;
+import core_pymes.product.domain.Presentacion;
+import core_pymes.product.domain.Producto;
+import core_pymes.product.repository.PresentacionRepository;
 import jakarta.persistence.EntityNotFoundException;
 import org.junit.jupiter.api.Test;
 import org.junit.jupiter.api.extension.ExtendWith;
@@ -39,18 +42,26 @@ class FacturaServiceImplTest {
     @Mock FacturaMapper mapper;
     @Mock ApplicationEventPublisher eventPublisher;
     @Mock JdbcTemplate jdbc;
+    @Mock PresentacionRepository presentacionRepository;
     @InjectMocks FacturaServiceImpl service;
+
+    private Presentacion mockPresentacion(UUID productId, int conversion) {
+        var producto = Producto.builder().id(productId).build();
+        return Presentacion.builder().id(UUID.randomUUID()).producto(producto).conversion(conversion).build();
+    }
 
     @Test
     void createFactura_withValidRequest_calculatesTotalAndGeneratesNumber() {
         var tenantId = UUID.randomUUID();
         var proveedorId = UUID.randomUUID();
+        var productId = UUID.randomUUID();
+        var presentacion = mockPresentacion(productId, 1);
         var proveedor = Proveedor.builder().id(proveedorId).tenantId(tenantId).name("Distribuidora ABC").build();
         when(proveedorRepository.findById(proveedorId)).thenReturn(Optional.of(proveedor));
         when(facturaRepository.findMaxInvoiceNumber(eq(tenantId), anyString())).thenReturn(Optional.empty());
-        when(jdbc.queryForObject(anyString(), eq(String.class), any())).thenReturn("Arroz");
+        when(presentacionRepository.findById(presentacion.getId())).thenReturn(Optional.of(presentacion));
 
-        var item = new ItemFacturaRequest(UUID.randomUUID(), new BigDecimal("10"), new BigDecimal("5.50"), BigDecimal.ZERO);
+        var item = new ItemFacturaRequest(productId, presentacion.getId(), new BigDecimal("10"), new BigDecimal("5.50"), BigDecimal.ZERO);
         var request = new FacturaRequest(tenantId, proveedorId, LocalDate.of(2026, 6, 1),
                 "FACTURA", "EFECTIVO", BigDecimal.ZERO, List.of(item));
 
@@ -58,8 +69,8 @@ class FacturaServiceImplTest {
                 .invoiceNumber("F-PROV-2026-0001").total(new BigDecimal("55.00")).status("REGISTRADA")
                 .issueDate(request.fecha()).type(request.tipo()).build();
         when(facturaRepository.save(any())).thenAnswer(i -> i.getArgument(0));
-        var itemResponse = new ItemFacturaResponse(UUID.randomUUID(), UUID.randomUUID(), "Arroz",
-                new BigDecimal("10"), new BigDecimal("5.50"), BigDecimal.ZERO, new BigDecimal("55.00"));
+        var itemResponse = new ItemFacturaResponse(UUID.randomUUID(), productId, "Arroz",
+                presentacion.getId(), 1, new BigDecimal("10"), new BigDecimal("5.50"), BigDecimal.ZERO, new BigDecimal("55.00"));
         when(mapper.toItemResponseList(anyList())).thenReturn(List.of(itemResponse));
         var facturaResponse = new FacturaResponse(savedFactura.getId(), tenantId, proveedorId, "Distribuidora ABC",
                 "F-PROV-2026-0001", LocalDate.of(2026, 6, 1), "FACTURA",
@@ -77,12 +88,14 @@ class FacturaServiceImplTest {
     void createFactura_withGlobalDiscount_subtractsFromTotal() {
         var tenantId = UUID.randomUUID();
         var proveedorId = UUID.randomUUID();
+        var productId = UUID.randomUUID();
+        var presentacion = mockPresentacion(productId, 1);
         var proveedor = Proveedor.builder().id(proveedorId).tenantId(tenantId).build();
         when(proveedorRepository.findById(proveedorId)).thenReturn(Optional.of(proveedor));
         when(facturaRepository.findMaxInvoiceNumber(eq(tenantId), anyString())).thenReturn(Optional.empty());
-        when(jdbc.queryForObject(anyString(), eq(String.class), any())).thenReturn("Producto");
+        when(presentacionRepository.findById(presentacion.getId())).thenReturn(Optional.of(presentacion));
 
-        var item = new ItemFacturaRequest(UUID.randomUUID(), new BigDecimal("5"), new BigDecimal("20.00"), BigDecimal.ZERO);
+        var item = new ItemFacturaRequest(productId, presentacion.getId(), new BigDecimal("5"), new BigDecimal("20.00"), BigDecimal.ZERO);
         var request = new FacturaRequest(tenantId, proveedorId, LocalDate.of(2026, 6, 1),
                 "FACTURA", null, new BigDecimal("10.00"), List.of(item));
 
@@ -100,7 +113,6 @@ class FacturaServiceImplTest {
 
         var result = service.createFactura(request);
 
-        // 5 × 20.00 = 100.00 - 10.00 descuento = 90.00
         assertThat(result.total()).isEqualByComparingTo(new BigDecimal("90.00"));
         assertThat(result.globalDiscount()).isEqualByComparingTo(new BigDecimal("10.00"));
     }
@@ -109,10 +121,12 @@ class FacturaServiceImplTest {
     void createFactura_withValidRequest_publishesEvent() {
         var tenantId = UUID.randomUUID();
         var proveedorId = UUID.randomUUID();
+        var productId = UUID.randomUUID();
+        var presentacion = mockPresentacion(productId, 1);
         var proveedor = Proveedor.builder().id(proveedorId).tenantId(tenantId).build();
         when(proveedorRepository.findById(proveedorId)).thenReturn(Optional.of(proveedor));
         when(facturaRepository.findMaxInvoiceNumber(eq(tenantId), anyString())).thenReturn(Optional.empty());
-        when(jdbc.queryForObject(anyString(), eq(String.class), any())).thenReturn("Prod");
+        when(presentacionRepository.findById(presentacion.getId())).thenReturn(Optional.of(presentacion));
         when(facturaRepository.save(any())).thenAnswer(i -> i.getArgument(0));
         when(mapper.toItemResponseList(anyList())).thenReturn(List.of());
         when(mapper.toResponse(any(), anyList())).thenReturn(
@@ -121,11 +135,32 @@ class FacturaServiceImplTest {
 
         service.createFactura(new FacturaRequest(tenantId, proveedorId, LocalDate.of(2026, 6, 1),
                 "FACTURA", null, BigDecimal.ZERO,
-                List.of(new ItemFacturaRequest(UUID.randomUUID(), BigDecimal.ONE, BigDecimal.TEN, BigDecimal.ZERO))));
+                List.of(new ItemFacturaRequest(productId, presentacion.getId(), BigDecimal.ONE, BigDecimal.TEN, BigDecimal.ZERO))));
 
         var captor = ArgumentCaptor.forClass(FacturaCreadaEvent.class);
         verify(eventPublisher).publishEvent(captor.capture());
         assertThat(captor.getValue().factura()).isNotNull();
+    }
+
+    @Test
+    void createFactura_withUnmatchedPresentacion_throws() {
+        var tenantId = UUID.randomUUID();
+        var proveedorId = UUID.randomUUID();
+        var productId = UUID.randomUUID();
+        var otherProductId = UUID.randomUUID();
+        var presentacion = mockPresentacion(otherProductId, 1);
+        var proveedor = Proveedor.builder().id(proveedorId).tenantId(tenantId).build();
+        when(proveedorRepository.findById(proveedorId)).thenReturn(Optional.of(proveedor));
+        when(facturaRepository.findMaxInvoiceNumber(eq(tenantId), anyString())).thenReturn(Optional.empty());
+        when(presentacionRepository.findById(presentacion.getId())).thenReturn(Optional.of(presentacion));
+
+        var item = new ItemFacturaRequest(productId, presentacion.getId(), BigDecimal.ONE, BigDecimal.TEN, BigDecimal.ZERO);
+        var request = new FacturaRequest(tenantId, proveedorId, LocalDate.of(2026, 6, 1),
+                "FACTURA", null, BigDecimal.ZERO, List.of(item));
+
+        assertThatThrownBy(() -> service.createFactura(request))
+                .isInstanceOf(IllegalArgumentException.class)
+                .hasMessageContaining("does not belong to product");
     }
 
     @Test

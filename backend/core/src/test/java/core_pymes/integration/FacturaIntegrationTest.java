@@ -64,6 +64,13 @@ class FacturaIntegrationTest extends AbstractIntegrationTest {
                 .andExpect(status().isOk()).andReturn();
         var productId = objectMapper.readTree(prodResult.getResponse().getContentAsString()).get("id").asText();
 
+        // Create presentation
+        var presBody = objectMapper.writeValueAsString(Map.of("name", "Bolsa de 1 Kg", "conversion", 1));
+        var presResult = mockMvc.perform(post("/api/v1/core/productos/{id}/presentaciones?tenantId={tid}", productId, tenantId)
+                        .contentType(MediaType.APPLICATION_JSON).content(presBody))
+                .andExpect(status().isOk()).andReturn();
+        var presentacionId = objectMapper.readTree(presResult.getResponse().getContentAsString()).get("id").asText();
+
         // Create provider
         var provBody = objectMapper.writeValueAsString(Map.of(
                 "tenantId", tenantId.toString(), "name", "Distribuidora XYZ"));
@@ -75,6 +82,7 @@ class FacturaIntegrationTest extends AbstractIntegrationTest {
         // Create invoice
         var item = Map.of(
                 "productoId", productId,
+                "presentacionId", presentacionId,
                 "cantidad", 10,
                 "precioUnitario", 5.50,
                 "descuento", 0);
@@ -103,7 +111,7 @@ class FacturaIntegrationTest extends AbstractIntegrationTest {
     void payInvoice() throws Exception {
         var tenantId = UUID.randomUUID();
 
-        // Create product + provider + invoice
+        // Create product
         mockMvc.perform(post("/api/v1/core/productos")
                         .contentType(MediaType.APPLICATION_JSON)
                         .content(objectMapper.writeValueAsString(Map.of(
@@ -112,6 +120,13 @@ class FacturaIntegrationTest extends AbstractIntegrationTest {
         var productId = objectMapper.readTree(mockMvc.perform(get(
                 "/api/v1/core/productos?tenantId={tid}", tenantId)).andReturn()
                 .getResponse().getContentAsString()).get(0).get("id").asText();
+
+        // Create presentation
+        var presBody = objectMapper.writeValueAsString(Map.of("name", "Paquete", "conversion", 1));
+        var presResult = mockMvc.perform(post("/api/v1/core/productos/{id}/presentaciones?tenantId={tid}", productId, tenantId)
+                        .contentType(MediaType.APPLICATION_JSON).content(presBody))
+                .andExpect(status().isOk()).andReturn();
+        var presentacionId = objectMapper.readTree(presResult.getResponse().getContentAsString()).get("id").asText();
 
         var provResult = mockMvc.perform(post("/api/v1/core/proveedores")
                         .contentType(MediaType.APPLICATION_JSON)
@@ -125,7 +140,12 @@ class FacturaIntegrationTest extends AbstractIntegrationTest {
                 "proveedorId", providerId,
                 "fecha", "2026-06-15",
                 "tipo", "FACTURA",
-                "items", List.of(Map.of("productoId", productId, "cantidad", 2, "precioUnitario", 10, "descuento", 0))));
+                "items", List.of(Map.of(
+                        "productoId", productId,
+                        "presentacionId", presentacionId,
+                        "cantidad", 2,
+                        "precioUnitario", 10,
+                        "descuento", 0))));
         var invResult = mockMvc.perform(post("/api/v1/core/facturas")
                         .contentType(MediaType.APPLICATION_JSON).content(invoiceBody))
                 .andExpect(status().isOk()).andReturn();
@@ -148,7 +168,7 @@ class FacturaIntegrationTest extends AbstractIntegrationTest {
         var tenantA = UUID.randomUUID();
         var tenantB = UUID.randomUUID();
 
-        // Create product + provider + invoice for tenant A
+        // Create product + presentation + provider + invoice for tenant A
         mockMvc.perform(post("/api/v1/core/productos")
                         .contentType(MediaType.APPLICATION_JSON)
                         .content(objectMapper.writeValueAsString(Map.of(
@@ -157,6 +177,12 @@ class FacturaIntegrationTest extends AbstractIntegrationTest {
         var productId = objectMapper.readTree(mockMvc.perform(get(
                 "/api/v1/core/productos?tenantId={tid}", tenantA)).andReturn()
                 .getResponse().getContentAsString()).get(0).get("id").asText();
+
+        var presBody = objectMapper.writeValueAsString(Map.of("name", "Bolsa", "conversion", 1));
+        var presResult = mockMvc.perform(post("/api/v1/core/productos/{id}/presentaciones?tenantId={tid}", productId, tenantA)
+                        .contentType(MediaType.APPLICATION_JSON).content(presBody))
+                .andExpect(status().isOk()).andReturn();
+        var presentacionId = objectMapper.readTree(presResult.getResponse().getContentAsString()).get("id").asText();
 
         var provResult = mockMvc.perform(post("/api/v1/core/proveedores")
                         .contentType(MediaType.APPLICATION_JSON)
@@ -173,7 +199,11 @@ class FacturaIntegrationTest extends AbstractIntegrationTest {
                                 "fecha", "2026-06-01",
                                 "tipo", "FACTURA",
                                 "items", List.of(Map.of(
-                                        "productoId", productId, "cantidad", 1, "precioUnitario", 10, "descuento", 0))))))
+                                        "productoId", productId,
+                                        "presentacionId", presentacionId,
+                                        "cantidad", 1,
+                                        "precioUnitario", 10,
+                                        "descuento", 0))))))
                 .andExpect(status().isOk());
 
         // Tenant B sees no invoices

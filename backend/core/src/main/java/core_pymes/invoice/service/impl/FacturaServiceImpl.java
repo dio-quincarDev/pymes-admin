@@ -10,6 +10,7 @@ import core_pymes.invoice.mapper.FacturaMapper;
 import core_pymes.invoice.repository.FacturaRepository;
 import core_pymes.invoice.repository.ProveedorRepository;
 import core_pymes.invoice.service.FacturaService;
+import core_pymes.product.repository.PresentacionRepository;
 import jakarta.persistence.EntityNotFoundException;
 import lombok.RequiredArgsConstructor;
 import lombok.extern.slf4j.Slf4j;
@@ -21,8 +22,8 @@ import org.springframework.transaction.annotation.Transactional;
 import java.math.BigDecimal;
 import java.time.LocalDate;
 import java.time.Year;
-import java.util.List;
-import java.util.UUID;
+import java.util.*;
+import java.util.stream.Collectors;
 
 @Service
 @RequiredArgsConstructor
@@ -34,6 +35,7 @@ public class FacturaServiceImpl implements FacturaService {
     private final FacturaMapper mapper;
     private final ApplicationEventPublisher eventPublisher;
     private final JdbcTemplate jdbc;
+    private final PresentacionRepository presentacionRepository;
 
     // -- Proveedores --
 
@@ -115,19 +117,34 @@ public class FacturaServiceImpl implements FacturaService {
                 .total(BigDecimal.ZERO)
                 .build();
 
+        var productIds = request.items().stream().map(ItemFacturaRequest::productoId).distinct().toList();
+        var inClause = productIds.stream().map(id -> "?").collect(Collectors.joining(","));
+        var productNameMap = new HashMap<UUID, String>();
+        jdbc.query(
+            "SELECT id, name FROM core.products WHERE id IN (" + inClause + ")",
+            (rs, row) -> productNameMap.put(UUID.fromString(rs.getString("id")), rs.getString("name")),
+            productIds.toArray());
+
         BigDecimal total = BigDecimal.ZERO;
         for (var itemReq : request.items()) {
             var discount = itemReq.descuento() != null ? itemReq.descuento() : BigDecimal.ZERO;
             var subtotal = itemReq.cantidad().multiply(itemReq.precioUnitario()).subtract(discount);
             total = total.add(subtotal);
 
-            var productoName = jdbc.queryForObject(
-                    "SELECT name FROM core.products WHERE id = ?", String.class, itemReq.productoId());
+            var productoName = productNameMap.get(itemReq.productoId());
+
+            var presentacion = presentacionRepository.findById(itemReq.presentacionId())
+                    .orElseThrow(() -> new EntityNotFoundException("Presentacion not found: " + itemReq.presentacionId()));
+            if (!presentacion.getProducto().getId().equals(itemReq.productoId())) {
+                throw new IllegalArgumentException("Presentacion does not belong to product " + itemReq.productoId());
+            }
 
             var item = ItemFactura.builder()
                     .factura(factura)
                     .productId(itemReq.productoId())
                     .productName(productoName)
+                    .presentacionId(itemReq.presentacionId())
+                    .conversionFactor(presentacion.getConversion())
                     .quantity(itemReq.cantidad())
                     .unitPrice(itemReq.precioUnitario())
                     .discount(discount)

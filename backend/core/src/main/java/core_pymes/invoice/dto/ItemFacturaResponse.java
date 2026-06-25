@@ -7,6 +7,8 @@ public record ItemFacturaResponse(
         UUID id,
         UUID productId,
         String productName,
+        UUID presentacionId,
+        int conversionFactor,
         BigDecimal quantity,
         BigDecimal unitPrice,
         BigDecimal discount,

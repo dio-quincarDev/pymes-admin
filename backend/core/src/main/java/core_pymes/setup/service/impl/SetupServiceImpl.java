@@ -49,11 +49,25 @@ public class SetupServiceImpl implements SetupService {
 
     @Override
     public SetupResponse previewIndustry(String industry) {
-        var count = jdbc.queryForObject(
-                "SELECT COUNT(*) FROM industries WHERE code = ?", Integer.class, industry);
-        if (count == null || count == 0) {
-            throw new IllegalArgumentException("Industry not found: " + industry);
+        validateIndustry(industry);
+        var data = loadIndustryData(industry);
+        return new SetupResponse(null, null, industry, false, data.categories(), data.units(), data.locations());
+    }
+
+    private SetupResponse buildResponse(TenantSetup config) {
+        var industry = config.getIndustry();
+        if (industry == null) {
+            return mapper.toResponse(config, List.of(), List.of(), List.of());
         }
+        var data = loadIndustryData(industry);
+        return mapper.toResponse(config, data.categories(), data.units(), data.locations());
+    }
+
+    private record IndustryData(List<SetupResponse.ItemDTO> categories,
+                                List<SetupResponse.ItemDTO> units,
+                                List<SetupResponse.ItemDTO> locations) {}
+
+    private IndustryData loadIndustryData(String industry) {
         var categories = buildCategoryTree(industry);
         var units = jdbc.query(
                 "SELECT id AS code, name FROM template_units WHERE industry_code = ? ORDER BY sort_order",
@@ -63,28 +77,15 @@ public class SetupServiceImpl implements SetupService {
                 "SELECT id AS code, name FROM template_locations WHERE industry_code = ? ORDER BY sort_order",
                 (rs, row) -> SetupResponse.ItemDTO.flat(rs.getString("code"), rs.getString("name")),
                 industry);
-        return new SetupResponse(null, null, industry, false, categories, units, locations);
+        return new IndustryData(categories, units, locations);
     }
 
-    private SetupResponse buildResponse(TenantSetup config) {
-        var industry = config.getIndustry();
-        List<SetupResponse.ItemDTO> categories = List.of();
-        List<SetupResponse.ItemDTO> units = List.of();
-        List<SetupResponse.ItemDTO> locations = List.of();
-
-        if (industry != null) {
-            categories = buildCategoryTree(industry);
-            units = jdbc.query(
-                "SELECT id AS code, name FROM template_units WHERE industry_code = ? ORDER BY sort_order",
-                (rs, row) -> SetupResponse.ItemDTO.flat(rs.getString("code"), rs.getString("name")),
-                industry);
-            locations = jdbc.query(
-                "SELECT id AS code, name FROM template_locations WHERE industry_code = ? ORDER BY sort_order",
-                (rs, row) -> SetupResponse.ItemDTO.flat(rs.getString("code"), rs.getString("name")),
-                industry);
+    private void validateIndustry(String industry) {
+        var count = jdbc.queryForObject(
+                "SELECT COUNT(*) FROM industries WHERE code = ?", Integer.class, industry);
+        if (count == null || count == 0) {
+            throw new IllegalArgumentException("Industry not found: " + industry);
         }
-
-        return mapper.toResponse(config, categories, units, locations);
     }
 
     // ponytail: flat list → tree via parent_id, O(n) with map. Good enough for ~60 categories per industry.

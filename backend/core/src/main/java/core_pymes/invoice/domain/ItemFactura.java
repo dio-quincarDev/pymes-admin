@@ -31,6 +31,12 @@ public class ItemFactura {
     @Column(name = "product_name", nullable = false)
     private String productName;
 
+    @Column(name = "presentacion_id", nullable = false)
+    private UUID presentacionId;
+
+    @Column(name = "conversion_factor", nullable = false)
+    private Integer conversionFactor;
+
     @Column(nullable = false)
     private BigDecimal quantity;
 
