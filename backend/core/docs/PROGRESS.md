@@ -96,21 +96,16 @@ Registro de lo implementado y lo pendiente
 
 ## Pendiente 🚧
 
-### Template loading (post-onboarding)
-- [x] **Template loading**: `POST /core/setup/{tenantId}/onboarding` y `GET /core/setup/{tenantId}` devuelven `SetupResponse` con `categories[]`, `units[]`, `locations[]` cargados de las tablas template filtradas por `industry_code`. Implementado via `SetupServiceImpl.buildResponse()` (private, reusado en ambos endpoints).
-
 ### Inmediato
-- [ ] **Onboarding preview de categorías** — Endpoint `GET /setup/preview/{industry}` + `ItemDTO` con `parentId` + `children` para jerarquía
-  - [ ] `SetupResponse.ItemDTO`: agregar `parentId` (String nullable) + `children` (List&lt;ItemDTO&gt;)
-  - [ ] `SetupServiceImpl.buildResponse()`: query con `parent_id`, método `buildCategoryTree()` que convierte lista plana en árbol
-  - [ ] `SetupApi` + `SetupController`: `GET /setup/preview/{industry}` (solo lectura, sin persistencia)
-  - [ ] Test unitario `buildCategoryTree()` + test integración endpoint preview
+- [x] **Template loading**: `POST /core/setup/{tenantId}/onboarding` y `GET /core/setup/{tenantId}` devuelven `SetupResponse` con `categories[]`, `units[]`, `locations[]` cargados de las tablas template filtradas por `industry_code`. Implementado via `SetupServiceImpl.buildResponse()` (private, reusado en ambos endpoints).
+- [x] **Onboarding preview de categorías** — Endpoint `GET /setup/preview/{industry}` + `ItemDTO` con `parentId` + `children` para jerarquía — ✅ **IMPLEMENTADO**
+  - `buildCategoryTree()` con mapa O(n), `SetupController.preview()` delegando a `SetupServiceImpl.previewIndustry()`
 - [ ] **Accounting** — `core_pymes/accounting/`: MetricaFinanciera entity + listener FacturaCreada → recalcula márgenes
   - [ ] GET `contabilidad/metricas?tenantId=&year=&month=`
   - [ ] EventListener on FacturaCreada / FacturaPagada / (futuro VentaRegistrada)
   - [ ] Cálculos: ingresos, egresos, COGS, gastos operativos, márgenes
 - [ ] Ejecutar integration tests (requiere Docker)
-- [ ] Decisión pendiente: Gastos Operativos → Opción A (tipo=GASTO en facturas) o B (módulo separado)
+- [x] Decisión Gastos Operativos → Opción A (tipo=GASTO en facturas) — ya en código
 - [ ] Decisión pendiente: Ventas → Opción A (módulo Ventas propio) o B (desde Movimientos futuro)
 
 ### Mediate

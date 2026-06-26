@@ -1,15 +1,20 @@
 # Analytics Module Implementation
 
+> **REALITY CHECK (2026-06):** El módulo analytics está **implementado en producción** (6 motores CTE, listener conectado a FacturaCreadaEvent, tabla expense_analysis).
+> 
+> **Pero NO tiene tests.** Los números de tests mencionados abajo son estimaciones/diseño, no realidad.
+> Las pruebas existentes en el proyecto cubren solo setup/product/invoice (11 archivos de test).
+
 ## Overview
 
-This document details the **Analytics Module** implementation — el módulo **Analytics Service** refactorizado usando el patrón interface+impl, optimizado con CTEs, y equipado con test suites completa (@DataJpaTest + Testcontainers).
+This document details the **Analytics Module** implementation — el módulo **Analytics Service** refactorizado usando el patrón interface+impl, optimizado con CTEs.
 
 Incluye:
 
 - Arquitectura técnica
 - Split de interfaces/implementación
 - SQL entities optimizadas (6 análisis)
-- Comprobación de test stacks (42 tests unitarios + 26 tests de integración)
+- ⬜ Tests: **NO IMPLEMENTADOS** — pendientes de escribir
 
 ## 1. Arquitectura Técnica
 
@@ -119,37 +124,19 @@ public class AnalyticsServiceImpl implements AnalyticsService {
 
 ### 3.1 Test Unitarios
 
-`AnalyticsServiceImplTest` (✓ 9/9 tests)
-- Funcionalidad de motores unitarios (abc, tendencia, margen, opex, proyección, alertas)
-- Persistencia del perfil `AnalisisGasto`
-- Comportamiento idempotente / Safe de `ejecutarCompleto`
-
-Uso del patrón established en `ProductoServiceImplTest`:
-- BDDMockito `given(willReturn())` sobre `JdbcTemplate` mocks
-- `BigDecimal` comparisons con `isEqualByComparingTo`
-- Eliminados stubbings innecesarios (`BDDMockito.thenReturn`)
+⬜ **`AnalyticsServiceImplTest` — NO IMPLEMENTADO**
+- Pendiente: mockear JdbcTemplate + AnalisisGastoRepository, testear 6 motores + upsert
 
 ### 3.2 Test JPA (@DataJpaTest + Testcontainers)
 
-**Base:** `AbstractJpaTest`
-- `Testcontainers PostgreSQL` con DB `core` (schema real, no H2)
-- Utiliza `TestEntityManager` + `flush()/clear()` antes de aserciones de lectura
-- `JdbcTemplate` de limpieza de estado limpio de tablas entre tests
+⬜ **`AnalyticsRepositoryTest` — NO IMPLEMENTADO**
+- Pendiente: testear `AnalisisGastoRepository` con JSONB queries, upsert, findByTenantIdAndPeriod
 
-**Suites:**
+**Nota:** `AnalisisGasto` usa `@Column(columnDefinition = "JSONB")` — H2 no soporta JSONB correctamente. Usar PostgreSQL real (Testcontainers), patrón ya establecido en `AbstractJpaTest` del proyecto.
 
-- `ProductoRepositoryTest` (12 tests)
-  - CRUD dentro del tenant
-  - Soft-delete validation
-  - Rentabilidad: integridad
-
-- `FacturaRepositoryTest` (14 tests)
-  - Factory: campos autocompletados, valores null, validación sola; snapshot
-  - Triage: límites de platform de rows; testing de largo alcance del domains; “preparado para factura”
-
-- `AnalyticsRepositoryTest` (pendiente – enfocado a JSONB query de `AnalisisGasto` +raw SQL native `findByTenantIdAndPeriod`)
-
-**Por qué PostgreSQL no H2:** Al atributo `AnalisisGasto` es `@Column(columnDefinition = "JSONB")` – H2 ignora attribute, undefined real behavior
+**Tests JPA existentes en el proyecto** (de otros módulos):
+- `ProductoRepositoryTest` — CRUD + soft-delete de productos
+- `FacturaRepositoryTest` — CRUD + validaciones de facturas
 
 ## 4. Optimizaciones SQL Implementadas
 
@@ -270,19 +257,19 @@ No hay nuevas dependencias transitivas; usa:
 
 ## 9. Comprobación de Errores y Calidad
 
-- **unitarios:** 100% pasaje (✓ 42/42)
-- **integración:** 100% pasaje (✓ 26/26)
-- **linter:** spotless + unit + me linter opciones
-- **typecheck:** mvn compile con -parameters
+- **unitarios:** ⬜ **0 tests escritos** — no hay cobertura
+- **integración:** ⬜ **0 tests escritos**
+- **compile:** `mvn compile` pasa con -parameters
+- **pendiente:** escribir tests antes de considerar el módulo completo
 
-## 10. Conclusión del Registro Técnico
+## 10. Estado Real
 
-El módulo Analytics de Core ahora cumple con el estándar anterior de gestión de tenants y el más reciente tren.event-driven de SPRING MVC con:
+| Aspecto | Estado |
+|---------|--------|
+| Código producción (6 motores, controller, listener) | ✅ Implementado |
+| Tests unitarios | ⬜ Pendiente |
+| Tests JPA/Integración | ⬜ Pendiente |
+| Conectado a FacturaCreadaEvent | ✅ Sí |
+| Frontend consumiendo analytics | ⬜ Pendiente |
 
-1. **Split limpio (interfaz+impl) listo para tests**
-2. **SQL de última generación listo para escalamiento**
-3. **Full-stack de comprobación de propiedad**
-4. **Conocedor del compartimento de esquemas `@columnDefinition = "JSONB"`
-5. **Listo para modelo IA/ML (datos derivados de real-time analítico)**
-
-Anticipación: inteligente cruzado con Auth Service para crédito multi-module, optimizaciones de indicador de precios emergentes para rastreabilidad de proveedor. Adicionalmente, preparación para AI / Att estandarizado por timestamp (timestamped) sobre `AnalisisGasto`.
+**Prioridad:** Escribir tests antes de tocar analytics otra vez.

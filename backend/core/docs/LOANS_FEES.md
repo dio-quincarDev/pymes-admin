@@ -1,4 +1,7 @@
-# Estrategia: Módulo Patrimonio e Inversión
+# ⬜ Estrategia: Módulo Patrimonio e Inversión — NO IMPLEMENTADO
+
+> **REALITY CHECK (2026-06):** Diseño futuro. Nada de esto existe en código.
+> Sin entidades Patrimonio/Préstamo/ROI, sin endpoints, sin listeners.
 
 ---
 

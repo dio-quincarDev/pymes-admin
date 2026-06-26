@@ -1,6 +1,17 @@
 # Estrategia Arquitectónica: Core Service Event-Driven
 
----
+> **REALITY CHECK (2026-06):** Este documento describe la visión completa. Lo implementado difiere en:
+> - **Paquete base**: `core_pymes.*`, no `com.pymes.core`
+> - **Módulos existentes**: `setup/`, `product/`, `invoice/`, `analytics/` (no `configuracion/inventario/facturas/contabilidad/reportes`)
+> - **Analytics**: Implementado con 6 motores CTE + listener conectado a `FacturaCreadaEvent`
+> - **Accounting (contabilidad)**: NO implementado — diseño pendiente
+> - **Ventas**: NO implementado
+> - **Reportes**: NO implementado
+> - **Estándares de código**: `@SQLDelete` + `@Where` para soft-delete, MapStruct, Java records para DTOs
+> - **Decisión gastos**: Ya implícita en código — `Factura.type` es libre (Opción A)
+> - **Refactor precios**: Ya aplicado — `ItemFactura` tiene `presentacionId` + `conversionFactor`
+>
+> ---
 
 ## 1. Visión General
 
@@ -12,11 +23,12 @@ Frontend (PWA)
 Gateway (8080)
     ↓
 Core Service (8082)
-├── Módulo: Configuración
-├── Módulo: Inventario
-├── Módulo: Facturas
-├── Módulo: Contabilidad
-└── Módulo: Reportes
+├── Módulo: Setup (configuración/inventario → setup/product)
+├── Módulo: Invoice (facturas + proveedores)
+├── Módulo: Analytics (6 motores de análisis de gastos)
+├── ⬜ Módulo: Accounting (contabilidad — NO IMPLEMENTADO)
+├── ⬜ Módulo: Reportes (NO IMPLEMENTADO)
+└── ⬜ Módulo: Ventas (NO IMPLEMENTADO)
 
 (todos comunican vía Spring Events - no bloqueantes)
 ```
@@ -25,112 +37,67 @@ Core Service (8082)
 
 ## 2. Módulos del Core Service
 
-### Módulo: Configuración
-**Responsabilidad:** Gestionar setup inicial del tenant
+### Módulo: Setup (`core_pymes/setup/`)
+**Responsabilidad:** Gestionar setup inicial del tenant ✅ IMPLEMENTADO
 
 Contiene:
-- Plantillas (precargadas)
-- Categorías (jerárquicas, 3 niveles)
-- Unidades (Kg, Litro, Unidad, etc)
-- Ubicaciones (Bodega, Cocina, etc)
-- Motivos de movimiento (Entrada, Salida, Ajuste)
+- Plantillas precargadas por industria (8 industrias)
+- Categorías jerárquicas (3 niveles, preview con árbol)
+- Unidades, Ubicaciones (template tables)
+- Onboarding lazy (primer GET) + POST para completar
 
 Eventos que genera:
-- ConfiguracionCargada (cuando tenant se registra)
-- CategoriaAgregada
-- UbicacionAgregada
-- MotivoAgregado
-
-Eventos que escucha:
-- TenantCreated (desde Auth) → Carga plantilla
+- (ninguno aún — no hay cross-service events)
 
 ---
 
-### Módulo: Inventario
-**Responsabilidad:** Gestionar productos, presentaciones, stock
+### Módulo: Product (`core_pymes/product/`)
+**Responsabilidad:** Catálogo de productos y presentaciones ✅ IMPLEMENTADO
 
 Contiene:
-- Producto (nombre, SKU, imagen, categoría, unidad base)
-- Presentación (Caja=24, Six Pack=6, etc)
-- Inventario (cantidad por producto+ubicación)
-- Movimiento (entrada, salida, ajuste)
+- Producto (nombre, SKU, categoría, unidad base, soft-delete)
+- Presentación (factor de conversión: Caja=24, etc)
 
 Eventos que genera:
-- ProductoCreado
-- PresentacionCreada
-- MovimientoRegistrado
-- StockCrítico (alerta)
-- AjusteInventario
-
-Eventos que escucha:
-- ConfiguracionCargada → Sabe qué categorías/ubicaciones/motivos existen
-- FacturaCreada → Reduce stock automáticamente (COGS)
-- MovimientoRegistrado → Actualiza inventario
+- ProductoCreadoEvent
+- PresentacionCreadaEvent
 
 ---
 
-### Módulo: Facturas
-**Responsabilidad:** Registrar compras a proveedores
+### Módulo: Invoice (`core_pymes/invoice/`)
+**Responsabilidad:** Facturas de compra y proveedores ✅ IMPLEMENTADO
 
 Contiene:
-- Factura (número, fecha, proveedor, total)
-- ItemFactura (producto, cantidad, precio unitario)
+- Factura (número auto-generado, items, tipo, estado)
+- ItemFactura (producto, presentación, factor conversión, precio)
 - Proveedor
 
 Eventos que genera:
-- FacturaCreada
-- FacturaPagada
-- FacturaAnulada
-
-Eventos que escucha:
-- ConfiguracionCargada → Sabe qué proveedores/métodos de pago existen
-- MovimientoRegistrado → Para vincular QR/imagen a factura
+- FacturaCreadaEvent → escuchado por AnalyticsListener
+- FacturaPagadaEvent → **huérfano (nadie escucha)**
 
 ---
 
-### Módulo: Contabilidad
-**Responsabilidad:** Calcular márgenes, ingresos, egresos, rentabilidad
+### Módulo: Analytics (`core_pymes/analytics/`)
+**Responsabilidad:** 6 motores de análisis de gastos ✅ IMPLEMENTADO
 
 Contiene:
-- MetricaFinanciera (diaria, semanal, mensual)
-- Margen (bruto %, neto %, operativo %)
-- CostoMercancia (suma de facturas)
-- GastosOperativos (del Auth Service o local?)
-- FlujoCaja
+- AnalisisGasto (JSONB por tenant/periodo — expense_analysis table)
+- 6 motores CTE: ABC, tendencias, márgenes, opex, proyección, alertas
+- Listener conectado a FacturaCreadaEvent → ejecuta análisis async
 
 Eventos que genera:
-- MetricasCalculadas
-- AlertaMargenBajo
-- AlertaFlujoCajaNegativo
-- ProyeccionGenerada
-
-Eventos que escucha:
-- FacturaCreada → Recalcula COGS
-- MovimientoRegistrado → Afecta costos
-- GastoOperativoRegistrado (desde Facturas) → Recalcula márgenes
+- (ninguno — es sink)
 
 ---
 
-### Módulo: Reportes
-**Responsabilidad:** Consumir datos, generar reportes, dashboards
+### ⬜ Módulo: Accounting (NO IMPLEMENTADO)
+Diseñado en ACCOUNTING_METRICS_IMPLEMENTATION.md pero sin código:
+- MetricasFinanciera, tenant_period_metrics, listeners, alertas
 
-Contiene:
-- ReportInventario (stock por categoría, ubicación)
-- ReportContable (márgenes, flujo caja, rentabilidad)
-- DashboardResumen (KPIs principales)
-- AlertasActivas
-
-Eventos que genera:
-- ReporteGenerado
-
-Eventos que escucha:
-- ConfiguracionCargada
-- ProductoCreado
-- MovimientoRegistrado
-- MetricasCalculadas
-- FacturaCreada
-
-No modifica datos, solo consume y presenta.
+### ⬜ Módulo: Reportes (NO IMPLEMENTADO)
+### ⬜ Módulo: Ventas (NO IMPLEMENTADO)
+### ⬜ Módulo: Patrimonio/Préstamos (NO IMPLEMENTADO)
 
 ---
 
@@ -158,81 +125,46 @@ No modifica datos, solo consume y presenta.
 
 ---
 
-### Escenario 2: Tenant Registra Factura (Compra)
+### Escenario 2: Tenant Registra Factura (Compra) — FLUJO REAL ACTUAL
 
 ```
-1. Módulo: Facturas recibe POST /facturas
+1. Invoice: POST /api/v1/core/facturas
    └── Valida datos
-   └── Persiste Factura + Items
-   └── Publica: FacturaCreada (factura_id, items[], total)
+   └── Persiste Factura + Items (incluye presentacionId, conversionFactor)
+   └── Publica: FacturaCreadaEvent
 
-2. Módulo: Inventario escucha FacturaCreada
-   └── Para cada item:
-       - Busca Producto
-       - Suma cantidad a Inventario
-   └── Publica: MovimientoRegistrado (tipo: ENTRADA, producto_id, cantidad, ubicacion)
+2. [Async] FacturaCreadaListener → AnalyticsService.ejecutarCompleto()
+   └── Ejecuta 6 motores CTE en PostgreSQL:
+       - ABC de Gastos (Pareto)
+       - Tendencia de Precios (media móvil 90d)
+       - Impacto en Márgenes
+       - Costo Operativo como % de Ventas
+       - Proyección de Gastos (30/60/90d)
+       - Alertas de Variación >15%
+   └── Persiste resultado en expense_analysis (JSONB)
 
-3. Módulo: Contabilidad escucha FacturaCreada
-   └── Suma total a CostoMercancia
-   └── Recalcula márgenes
-   └── Publica: MetricasCalculadas (nuevos márgenes)
-
-4. Módulo: Reportes escucha MetricasCalculadas
-   └── Actualiza dashboard con nuevos márgenes
-   └── Publica: ReporteGenerado
-
-5. Módulo: Inventario escucha MovimientoRegistrado
-   └── Valida stock no sea crítico
-   └── Si es crítico, publica: StockCrítico (producto_id, cantidad_actual, minimo)
-
-6. Módulo: Reportes escucha StockCrítico
-   └── Agrega alerta a dashboard
+3. ⬜ Contabilidad: NO IMPLEMENTADO — no recalcula márgenes
+4. ⬜ Reportes: NO IMPLEMENTADO — no actualiza dashboard
+5. ⬜ Inventario/Stock: NO IMPLEMENTADO — no hay control de existencias
 ```
 
-**Timeline:** Todo ocurre async. Módulos procesan en paralelo vía virtual threads.
+**Timeline:** Async vía Virtual Threads. Solo analytics se ejecuta.
 
 ---
 
-### Escenario 3: Registrar Gasto Operativo
+### Escenario 3: Registrar Gasto Operativo — YA DECIDIDO
 
-¿De dónde viene?
-
-**Opción A:** Facturas con tipo=GASTO_OPERATIVO
-```
-Módulo: Facturas recibe factura con tipo=GASTO
-  └── Publica: GastoOperativoRegistrado
-  └── Módulo: Contabilidad lo escucha y suma a GastosOperativos
-```
-
-**Opción B:** Módulo separado dentro de Configuración
-```
-Módulo: Configuración maneja gastos operativos
-  └── Publica: GastoOperativoRegistrado
-```
-
-¿Cuál?
+**Decisión implícita en código:** Opción A.
+- `Factura.type` es String: puede ser `"FACTURA"`, `"GASTO_OPERATIVO"`, etc.
+- No hay validación enum — el frontend decide el tipo.
+- ⬜ Pendiente: listener que diferencie tipos para accounting.
 
 ---
 
-### Escenario 4: Registrar Venta (Venta del Restaurante)
+### Escenario 4: Registrar Venta — PENDIENTE
 
-¿Cómo entra esto al sistema?
-
-**Opción A:** Módulo: Ventas (nuevo)
-```
-Core Service recibe POST /ventas (monto diario)
-  └── Módulo: Facturas o Ventas lo persiste
-  └── Publica: VentaRegistrada
-  └── Módulo: Contabilidad recalcula márgenes
-```
-
-**Opción B:** Se calcula desde Movimientos tipo SALIDA
-```
-Módulo: Inventario suma movimientos SALIDA del día
-  └── Contabilidad calcula ingresos teóricos
-```
-
-¿Cuál?
+⬜ No implementado. No hay endpoint `/ventas`, no hay entidad Venta.
+A esperar decisión: ¿Opción A (módulo Ventas) o B (movimientos)?
 
 ---
 
@@ -312,121 +244,60 @@ Virtual Threads (ejecutores)
 
 ---
 
-## 5. Estructura de Paquetes
+## 5. Estructura de Paquetes (Actual)
 
 ```
-backend/pymes-core/
-├── src/main/java/com/pymes/core/
-│   ├── common/
-│   │   ├── config/
-│   │   │   ├── EventConfig.java (virtual threads setup)
-│   │   │   ├── JwtConfig.java
-│   │   │   └── SecurityConfig.java
-│   │   ├── dto/
-│   │   ├── entity/
-│   │   ├── enums/
-│   │   └── exception/
-│   │
-│   ├── configuracion/
-│   │   ├── domain/
-│   │   │   ├── Plantilla.java
-│   │   │   ├── Categoria.java
-│   │   │   ├── Unidad.java
-│   │   │   ├── Ubicacion.java
-│   │   │   └── ConfiguracionTenant.java
-│   │   ├── event/
-│   │   │   ├── TenantCreatedEvent.java (evento de Auth)
-│   │   │   ├── ConfiguracionCargadaEvent.java
-│   │   │   └── CategoriaAgregadaEvent.java
-│   │   ├── listener/
-│   │   │   ├── ConfiguracionEventListener.java
-│   │   │   └── TenantCreatedListener.java
-│   │   ├── service/
-│   │   │   ├── PlantillaService.java
-│   │   │   ├── ConfiguracionService.java
-│   │   │   └── CategoriaService.java
-│   │   ├── repository/
-│   │   └── controller/
-│   │
-│   ├── inventario/
-│   │   ├── domain/
-│   │   │   ├── Producto.java
-│   │   │   ├── Presentacion.java
-│   │   │   ├── Inventario.java
-│   │   │   └── Movimiento.java
-│   │   ├── event/
-│   │   │   ├── ProductoCreatedEvent.java
-│   │   │   ├── MovimientoRegistradoEvent.java
-│   │   │   └── StockCríticoEvent.java
-│   │   ├── listener/
-│   │   │   ├── InventarioEventListener.java
-│   │   │   └── FacturaCreatedListener.java
-│   │   ├── service/
-│   │   │   ├── ProductoService.java
-│   │   │   ├── PresentacionService.java
-│   │   │   ├── MovimientoService.java
-│   │   │   └── InventarioService.java
-│   │   ├── repository/
-│   │   └── controller/
-│   │
-│   ├── facturas/
-│   │   ├── domain/
-│   │   │   ├── Factura.java
-│   │   │   ├── ItemFactura.java
-│   │   │   └── Proveedor.java
-│   │   ├── event/
-│   │   │   ├── FacturaCreatedEvent.java
-│   │   │   ├── FacturaPagadaEvent.java
-│   │   │   └── GastoOperativoRegistradoEvent.java
-│   │   ├── listener/
-│   │   │   └── FacturaEventListener.java
-│   │   ├── service/
-│   │   │   ├── FacturaService.java
-│   │   │   ├── ProveedorService.java
-│   │   │   └── PagoFacturaService.java
-│   │   ├── repository/
-│   │   └── controller/
-│   │
-│   ├── contabilidad/
-│   │   ├── domain/
-│   │   │   ├── MetricaFinanciera.java
-│   │   │   ├── Margen.java
-│   │   │   ├── FlujoCaja.java
-│   │   │   └── CostoMercancia.java
-│   │   ├── event/
-│   │   │   ├── FacturaCreatedEvent.java (escucha)
-│   │   │   ├── MetricasCalculadasEvent.java
-│   │   │   ├── AlertaMargenBajoEvent.java
-│   │   │   └── ProyeccionGeneradaEvent.java
-│   │   ├── listener/
-│   │   │   ├── ContabilidadEventListener.java
-│   │   │   └── MovimientoEventListener.java
-│   │   ├── service/
-│   │   │   ├── MetricasService.java
-│   │   │   ├── MargenService.java
-│   │   │   ├── CostoService.java
-│   │   │   └── ProyeccionService.java
-│   │   ├── repository/
-│   │   └── controller/
-│   │
-│   ├── reportes/
-│   │   ├── domain/
-│   │   │   ├── ReporteInventario.java
-│   │   │   ├── ReporteContable.java
-│   │   │   └── Dashboard.java
-│   │   ├── event/
-│   │   │   └── ReporteGeneradoEvent.java
-│   │   ├── listener/
-│   │   │   ├── ReportesEventListener.java
-│   │   │   └── ContabilidadEventListener.java
-│   │   ├── service/
-│   │   │   ├── ReporteService.java
-│   │   │   ├── DashboardService.java
-│   │   │   └── AlertasService.java
-│   │   ├── repository/
-│   │   └── controller/
-│   │
-│   └── CoreApplication.java
+backend/core/src/main/java/core_pymes/
+├── CoreApplication.java
+├── common/
+│   ├── config/
+│   │   └── EventConfig.java (virtual threads + @Async)
+│   ├── constant/
+│   │   └── CorePath.java (rutas API)
+│   ├── exception/
+│   │   └── GlobalExceptionHandler.java
+│   └── seed/
+│       └── SeedDataRunner.java (8 industrias, 6 tablas template)
+│
+├── setup/                          ✅ Implementado
+│   ├── controller/ → SetupApi.java + impl/SetupController.java
+│   ├── domain/ → TenantSetup.java
+│   ├── dto/ → SetupResponse.java (ItemDTO con jerarquía)
+│   ├── mapper/ → SetupMapper.java
+│   ├── repository/ → TenantSetupRepository.java
+│   └── service/ → SetupService.java + impl/SetupServiceImpl.java
+│
+├── product/                        ✅ Implementado
+│   ├── controller/ → ProductoApi.java + impl/ProductoController.java
+│   ├── domain/ → Producto.java, Presentacion.java
+│   ├── dto/ → ProductoRequest/Response, PresentacionRequest/Response
+│   ├── event/ → ProductoCreadoEvent, PresentacionCreadaEvent
+│   ├── mapper/ → ProductoMapper.java
+│   ├── repository/ → ProductoRepository, PresentacionRepository
+│   └── service/ → ProductoService + impl/ProductoServiceImpl
+│
+├── invoice/                        ✅ Implementado
+│   ├── controller/ → FacturaApi, ProveedorApi + impl
+│   ├── domain/ → Factura, ItemFactura, Proveedor
+│   ├── dto/ → FacturaRequest/Response, ProveedorRequest/Response
+│   ├── event/ → FacturaCreadaEvent, FacturaPagadaEvent
+│   ├── listener/ → FacturaCreadaListener (→ AnalyticsService)
+│   ├── mapper/ → FacturaMapper.java
+│   ├── repository/ → FacturaRepository, ProveedorRepository
+│   └── service/ → FacturaService + impl/FacturaServiceImpl
+│
+└── analytics/                      ✅ Implementado
+    ├── controller/ → AnalyticsApi + impl/AnalyticsController
+    ├── domain/ → AnalisisGasto.java (JSONB)
+    ├── dto/ → AnalyticsResponse.java
+    ├── mapper/ → AnalyticsMapper.java
+    ├── repository/ → AnalisisGastoRepository.java
+    └── service/ → AnalyticsService + impl/AnalyticsServiceImpl
+                    (6 motores CTE: ABC, tendencia, margen, opex, proyección, alertas)
+
+⬜ accounting/  — NO IMPLEMENTADO (ver ACCOUNTING_METRICS_IMPLEMENTATION.md)
+⬜ reportes/    — NO IMPLEMENTADO
+⬜ ventas/      — NO IMPLEMENTADO
 ```
 
 ---
@@ -532,13 +403,10 @@ Dashboard muestra alertas activas (lista, colores, acciones sugeridas)
 
 ---
 
-## 8. Checklist de Decisiones Pendientes
+## 8. Decisiones Pendientes (Reales)
 
-- [ ] Gastos Operativos: ¿Opción A (Facturas) o B (Configuración)?
-- [ ] Ventas: ¿Opción A (Módulo Ventas) o B (Cálculo desde Movimientos)?
-- [ ] ¿Hay otros eventos que falten?
-- [ ] ¿ConfiguracionTenant es una entidad más o parte de Configuración?
-
----
-
-**¿Esta arquitectura está clara?**
+- [x] Gastos Operativos → Opción A (type libre en Factura) — ya en código
+- [ ] Ventas: ¿Opción A (módulo Ventas) o B (movimientos)?
+- [ ] Accounting: ¿implementar MetricasFinanciera con upsert por período?
+- [ ] Reportes: ¿endpoint dashboard o frontend calcula desde data cruda?
+- [ ] `FacturaPagadaEvent`: está publicado pero huérfano — ¿quién debe escucharlo?

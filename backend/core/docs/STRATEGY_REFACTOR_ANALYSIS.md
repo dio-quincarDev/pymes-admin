@@ -1,5 +1,12 @@
 # Estrategia de Refactorización: Motor de Inteligencia de Compras (Agnóstico)
 
+> **REALITY CHECK (2026-06):** Este refactor ya está **parcialmente aplicado** en la base de código actual:
+> - ✅ `ItemFactura` tiene `presentacionId` + `conversionFactor` — la normalización de precios ya se captura
+> - ✅ No existe entidad `Inventario` ni control de stock físico (cero stock)
+> - ✅ `AnalyticsServiceImpl` normaliza precios a unidad base via `unit_price / conversion_factor` en los CTEs
+> - ✅ Catálogo basado en plantillas por industria (SeedDataRunner)
+> - ⬜ Pendiente: renombrar formalmente `Producto` → `InsumoTemplate` si se desea
+
 Este documento establece la ruta técnica oficial para transformar el módulo de inventario tradicional (Kárdex, existencias, stock físico) en un **Motor de Análisis de Gastos y Normalización de Precios** basado puramente en datos históricos y plantillas precargadas por industria.
 
 ---

@@ -1,16 +1,24 @@
-# Accounting Metrics Module Implementation
+# ⬜ Accounting Metrics Module Implementation — NO IMPLEMENTADO
+
+> **REALITY CHECK (2026-06):** Este documento es un **diseño/plan** completo. **Nada de esto está implementado en código.**
+> - No existe el módulo `accounting/`
+> - No existe `MetricaFinanciera` entity ni `tenant_period_metrics` table
+> - No hay listeners de contabilidad
+> - No hay endpoint `/contabilidad/metricas`
+>
+> Conservar como blueprint para cuando se implemente.
 
 ## Overview
 
-Este documento detalla el **Módulo de Métricas Contables** — el refactorizado del core para el sistema **Analytics/Accounting** usando la filosofía aplicada en el módulo de Analytics (interfaz+impl, SQL suave, test stacks). Este módulo funciona como el **Motor de Cálculo Matriz** que consume los datos de transacciones del Analytics y produce métricas de negocio listos para UI.
+Este documento detalla el **Módulo de Métricas Contables** — diseño propuesto para el sistema **Analytics/Accounting** usando la filosofía aplicada en el módulo de Analytics (interfaz+impl, SQL suave, test stacks). Este módulo funcionaría como el **Motor de Cálculo Matriz** que consume los datos de transacciones del Analytics y produce métricas de negocio listos para UI.
 
-Incluye:
+Incluye (plan):
 
 - Arquitectura técnica
 - Split de interfaces/implementación
 - SQL entities optimizadas
-- Comprobación de test stacks
-- Flujo de eventos integramiento con listeners de Analytics
+- ⬜ Tests (diseñados, no implementados)
+- Flujo de eventos integrado con listeners
 
 ## 1. Arquitectura Técnica
 
@@ -373,23 +381,20 @@ No hay nuevas dependencias transitivas; usa:
 | `spring.jpa.properties.hibernate.jdbc.lob.non_contextual_creation` | `true` | Compatibilidad H2 / PostgreSQL |
 | `app.metrics.margen_bajo_umbral` | `5.0` | Umbral de alerta (configurable) |
 
-## 9. Cronograma de Seguimiento (Próximos 90 días)
+## 9. ⬜ Cronograma (Plan — no ejecutado)
 
-| Semana | Actividad | Propietario |
-|--------|----------|----------|
-| 1-2 | Completar `MetricasRepositoryTest` (filtrado por tenant/periodo) | Engineer |
-| 3-4 | Finalizar pruebas de integración (FacturaCreadaEvent → métricas) | QA |
-| 5-6 | Emitir primero dashboard de métricas en frontend / UI | Frontend |
-| 7-8 | Agregar `GastoOperativoRegistradoEvent` y aliados | Backend |
-| 9-10 | Fijar umbral de alerta `margen_bajo_umbral = 5%`, refinamiento UX | DevOps |
+| Semana | Actividad | Estado |
+|--------|----------|--------|
+| 1-2 | Completar `MetricasRepositoryTest` | ⬜ Pendiente |
+| 3-4 | Pruebas de integración (FacturaCreadaEvent → métricas) | ⬜ Pendiente |
+| 5-6 | Dashboard de métricas en frontend | ⬜ Pendiente |
+| 7-8 | Agregar `GastoOperativoRegistradoEvent` | ⬜ Pendiente |
 
-## 10. Comprobación de Errores y Calidad
+## 10. ⬜ Comprobación de Errores y Calidad
 
-- **unitarios:** 100% pasaje (✓ 28/28)
-- **integración:** 100% pasaje (✓ 24/24)
-- **linter:** spotless / unit / me linter actualizado
-- **typecheck:** mvn compile -parameters
-- **SQLcoverage:** 100% de statements ejecutados en test suite
+- **unitarios:** ⬜ 0 tests — no implementado
+- **integración:** ⬜ 0 tests — no implementado
+- Todo pendiente de escribir cuando se implemente el módulo
 
 ## 11. Concurrencias y Segmentación de Estado
 
@@ -478,18 +483,17 @@ CREATE INDEX idx_metrics_tenant_periodo ON core.tenant_period_metrics (tenant_id
 CREATE INDEX idx_audit_tENANT_fecha ON core.daily_audit_log (tenant_id, created_at);
 ```
 
-## 14. Resumen del Registro Técnico
+## 14. ⬜ Resumen del Diseño
 
-El módulo **Accounting Metrics** ahora prepara al backend para un **ciclo de análisis de negocio cerrado**:
+El módulo **Accounting Metrics** está diseñado para:
 
-1. **Cálculo derivo** (a partir de Analytics event streams) → `MetricasFinanciera`
-2. **Migración de almacenamiento segura** (upserts, auditoría)
-3. **Full-stack de comprobación de propiedad** (42 unitarios + 20 integración)
-4. **Layout de controller/view claro** (Misma convención que Analytics)
-5. **Alerta inteligente integrada** (umbral de margen bajo)
+1. **Cálculo derivado** (a partir de facturas/ventas) → `MetricasFinanciera`
+2. **Upsert seguro** por tenant/periodo
+3. **Layout controller/service** consistente con Analytics
+4. **Alerta inteligente** (umbral margen bajo)
 
-**Próximos pasos:** Dashboard de UI listo en frontend, motor de recomendaciones (próximo quarter), ingresos vs egresos en tiempo real.
+**Estado:** ⬜ **NO IMPLEMENTADO** — diseño listo para codificar.
 
 ---
 
-*Versión 1.0 — 2025-07-10 — Core Service Accounting Module*
+*Versión 1.0 — 2025-07-10 — ⬜ NO IMPLEMENTADO*

@@ -1,5 +1,14 @@
 # Estrategia: Fase 1 - Parte 2 (Espacio de Trabajo - CRUD Manual)
 
+> **REALITY CHECK (2026-06):** Documento de planificación original. Lo implementado difiere:
+> - ✅ Productos + Presentaciones = implementado en `product/`
+> - ✅ Facturas + Proveedores = implementado en `invoice/`
+> - ⬜ Ventas = NO implementado
+> - ⬜ Contabilidad/métricas = NO implementado
+> - ⬜ Reportes/dashboard = NO implementado
+> - 🔄 Analytics implementado (no estaba en este plan original)
+> - Ver `PROGRESS.md` para estado actual preciso
+
 ---
 
 ## 1. Alcance Fase 1 - Parte 2
