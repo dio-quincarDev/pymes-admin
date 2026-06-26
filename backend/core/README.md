@@ -67,4 +67,4 @@ Todas las rutas pasan por el Gateway (puerto 8080) con autenticación JWT.
 | Archivo | Descripción |
 |---------|-------------|
 | [docs/CORE_STRATEGY.md](./docs/CORE_STRATEGY.md) | Arquitectura event-driven |
-| [docs/PROGRESS.md](./docs/PROGRESS.md) | Qué está hecho y qué falta |
+| [docs/PROGRESS.md](./docs/DAYLY_REPORTS_CORE_SOLUTIONS.md) | Qué está hecho y qué falta |

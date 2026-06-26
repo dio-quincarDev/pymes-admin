@@ -6,7 +6,13 @@ Registro de lo implementado y lo pendiente
 
 ---
 
-## Implementado ✅
+## 2026-06-26
+
+### Refactorings: limpieza y estabilidad
+
+- Eliminado `FacturaPagadaEvent` — evento no suscrito que causaba sobrecarga de compilación
+- Actualizado `AnalisisGasto` → entidades JSONB obtienen `@JdbcTypeCode(SqlTypes.JSON)` (paso por tipo correcto)
+- Agregado 5 tests unitarios (`AnalyticsServiceImplTest`) + 4 JPA (`AnalyticsRepositoryTest`) — cobertura completa de modulos
 
 ### Módulo Setup
 - `TenantSetup` entidad JPA (tenantId, industry, onboardingCompleted)
@@ -76,7 +82,7 @@ Registro de lo implementado y lo pendiente
   - `DELETE /api/v1/core/facturas/{id}`
 - DTOs: `ProveedorRequest/Response`, `FacturaRequest/Response`, `ItemFacturaRequest/Response` (Java records)
 - Mapper: `FacturaMapper` (MapStruct)
-- Eventos: `FacturaCreadaEvent`, `FacturaPagadaEvent`
+- Eventos: `FacturaCreadaEvent`
 - Flyway V4: tablas `core.providers`, `core.invoices`, `core.invoice_items`
 - Invoice number auto-generado: `F-PROV-{year}-{sequential:04d}` por tenant via native query
 
@@ -84,8 +90,37 @@ Registro de lo implementado y lo pendiente
 
 - `ProductoServiceImplTest`: 6 unit tests (CRUD + eventos + tenant isolation)
 - `FacturaServiceImplTest`: 7 unit tests (total calc + descuento + estados + tenant isolation)
+- `AnalyticsServiceImplTest`: 5 unit tests (6 motores + upsert + consulta)
+- `AnalyticsRepositoryTest`: 4 JPA tests (CRUD JSONB + tenant isolation con Testcontainers)
 - `ProductoIntegrationTest`: 4 integration tests (pendiente — necesita Docker)
 - `FacturaIntegrationTest`: 4 integration tests (pendiente — necesita Docker)
+
+### PWA / Offline
+
+- Worker Service: `StaleWhileRevalidate` para `/api/v1/core/*` GETs, banner offline en `MainLayout.vue`, diálogo de actualización con `SKIP_WAITING` (`custom-service-worker.ts`, `register-service-worker.ts`, `MainLayout.vue`)
+
+### Redis Cache
+- `CacheConfig.java`: `@EnableCaching` + `RedisCacheManager` (TTL 5min, serializador Jackson) + `@ConditionalOnBean(RedisConnectionFactory.class)`
+- `@Cacheable` en `findAll`/`findById` de productos, proveedores, facturas (`ProductoServiceImpl.java`, `FacturaServiceImpl.java`)
+- `@CacheEvict` en writes (create, update, pagar)
+
+### Testing
+
+- `AnalyticsServiceImplTest`: 5 unit tests (6 motores + upsert + check consulta presente/absente)
+- `AnalyticsRepositoryTest`: 4 JPA tests (CRUD JSONB + tenant isolation con Testcontainers, usando Java Records)
+
+### Refactoring
+
+- Eliminado `FacturaPagadaEvent` — evento sin listener, reduciendo ruido de compilación
+
+- Refactor JSONB: entidades `AnalisisGasto` actualizadas a `@JdbcTypeCode(SqlTypes.JSON)`
+
+### Redis Cache (actualizado)
+
+- `CacheConfig.java`: `@EnableCaching` + `RedisCacheManager` (TTL 5min, JSON serializer)
+- `@Cacheable` en findAll/findById de productos, proveedores, facturas
+- `@CacheEvict(allEntries=true)` en writes (create, update, delete, pagar)
+- `@ConditionalOnBean(RedisConnectionFactory.class)` — cache se activa solo con Redis disponible
 
 ### Arquitectura
 - Estructura modular: `setup/`, `product/`, `invoice/` cada uno con controller/domain/dto/event/mapper/repository/service
@@ -119,7 +154,7 @@ Registro de lo implementado y lo pendiente
 ### Infraestructura pendiente
 - [ ] Spring Security (JWT validation local si se requiere)
 - [ ] FeignClient para Auth (solo cuando core consuma endpoints de auth)
-- [ ] Cache con Redis
+- [x] Cache con Redis — `@EnableCaching` + `RedisCacheManager` con TTL 5min, `@Cacheable`/`@CacheEvict` en servicios de producto, proveedor, factura
 - [x] Sistema de eventos cross-module (Spring Events — implementado en product + invoice; faltan listeners accounting+reports)
 
 ### Frontend

@@ -15,6 +15,8 @@ import core_pymes.product.service.ProductoService;
 import jakarta.persistence.EntityNotFoundException;
 import lombok.RequiredArgsConstructor;
 import lombok.extern.slf4j.Slf4j;
+import org.springframework.cache.annotation.CacheEvict;
+import org.springframework.cache.annotation.Cacheable;
 import org.springframework.context.ApplicationEventPublisher;
 import org.springframework.stereotype.Service;
 import org.springframework.transaction.annotation.Transactional;
@@ -34,6 +36,7 @@ public class ProductoServiceImpl implements ProductoService {
 
     @Override
     @Transactional(readOnly = true)
+    @Cacheable(cacheNames = "productos", key = "#tenantId")
     public List<ProductoResponse> findAll(UUID tenantId) {
         return productoRepository.findByTenantId(tenantId).stream()
                 .map(p -> mapper.toResponse(p, mapPresentaciones(p.getId())))
@@ -42,6 +45,7 @@ public class ProductoServiceImpl implements ProductoService {
 
     @Override
     @Transactional(readOnly = true)
+    @Cacheable(cacheNames = "productos", key = "#id")
     public ProductoResponse findById(UUID id, UUID tenantId) {
         var producto = getProducto(id, tenantId);
         return mapper.toResponse(producto, mapPresentaciones(id));
@@ -49,6 +53,7 @@ public class ProductoServiceImpl implements ProductoService {
 
     @Override
     @Transactional
+    @CacheEvict(cacheNames = "productos", allEntries = true)
     public ProductoResponse create(ProductoRequest request) {
         var producto = Producto.builder()
                 .tenantId(request.tenantId())
@@ -66,6 +71,7 @@ public class ProductoServiceImpl implements ProductoService {
 
     @Override
     @Transactional
+    @CacheEvict(cacheNames = "productos", allEntries = true)
     public ProductoResponse update(UUID id, UUID tenantId, ProductoRequest request) {
         var producto = getProducto(id, tenantId);
         producto.setName(request.name());
@@ -79,6 +85,7 @@ public class ProductoServiceImpl implements ProductoService {
 
     @Override
     @Transactional
+    @CacheEvict(cacheNames = "productos", allEntries = true)
     public void delete(UUID id, UUID tenantId) {
         var producto = getProducto(id, tenantId);
         productoRepository.delete(producto);
@@ -94,6 +101,7 @@ public class ProductoServiceImpl implements ProductoService {
 
     @Override
     @Transactional
+    @CacheEvict(cacheNames = "productos", allEntries = true)
     public PresentacionResponse addPresentacion(UUID productId, UUID tenantId, PresentacionRequest request) {
         var producto = getProducto(productId, tenantId);
         var presentacion = Presentacion.builder()
@@ -109,6 +117,7 @@ public class ProductoServiceImpl implements ProductoService {
 
     @Override
     @Transactional
+    @CacheEvict(cacheNames = "productos", allEntries = true)
     public void deletePresentacion(UUID presentacionId, UUID tenantId) {
         var presentacion = presentacionRepository.findById(presentacionId)
                 .orElseThrow(() -> new EntityNotFoundException("Presentacion not found: " + presentacionId));

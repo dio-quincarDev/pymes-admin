@@ -74,7 +74,7 @@ Contiene:
 
 Eventos que genera:
 - FacturaCreadaEvent → escuchado por AnalyticsListener
-- FacturaPagadaEvent → **huérfano (nadie escucha)**
+- FacturaPagadaEvent → **eliminado (dead code)**
 
 ---
 
@@ -280,7 +280,7 @@ backend/core/src/main/java/core_pymes/
 │   ├── controller/ → FacturaApi, ProveedorApi + impl
 │   ├── domain/ → Factura, ItemFactura, Proveedor
 │   ├── dto/ → FacturaRequest/Response, ProveedorRequest/Response
-│   ├── event/ → FacturaCreadaEvent, FacturaPagadaEvent
+│   ├── event/ → FacturaCreadaEvent
 │   ├── listener/ → FacturaCreadaListener (→ AnalyticsService)
 │   ├── mapper/ → FacturaMapper.java
 │   ├── repository/ → FacturaRepository, ProveedorRepository
@@ -409,4 +409,4 @@ Dashboard muestra alertas activas (lista, colores, acciones sugeridas)
 - [ ] Ventas: ¿Opción A (módulo Ventas) o B (movimientos)?
 - [ ] Accounting: ¿implementar MetricasFinanciera con upsert por período?
 - [ ] Reportes: ¿endpoint dashboard o frontend calcula desde data cruda?
-- [ ] `FacturaPagadaEvent`: está publicado pero huérfano — ¿quién debe escucharlo?
+- [x] `FacturaPagadaEvent`: eliminado — dead code sin listeners

@@ -1,9 +1,8 @@
 # Analytics Module Implementation
 
 > **REALITY CHECK (2026-06):** El módulo analytics está **implementado en producción** (6 motores CTE, listener conectado a FacturaCreadaEvent, tabla expense_analysis).
-> 
-> **Pero NO tiene tests.** Los números de tests mencionados abajo son estimaciones/diseño, no realidad.
-> Las pruebas existentes en el proyecto cubren solo setup/product/invoice (11 archivos de test).
+>
+> **Tests:** ✅ 5 unitarios + 4 JPA (Testcontainers) escritos y pasando.
 
 ## Overview
 
@@ -122,15 +121,20 @@ public class AnalyticsServiceImpl implements AnalyticsService {
 
 ## 3. Flujos de Test Stacks
 
-### 3.1 Test Unitarios
+### 3.1 Test Unitarios (✅ 5 tests)
 
-⬜ **`AnalyticsServiceImplTest` — NO IMPLEMENTADO**
-- Pendiente: mockear JdbcTemplate + AnalisisGastoRepository, testear 6 motores + upsert
+**`AnalyticsServiceImplTest`** — mockea JdbcTemplate + AnalisisGastoRepository + ObjectMapper
+- `ejecutarCompleto` con/sin análisis existente (creación vs upsert)
+- `ejecutarCompleto` invoca los 6 motores
+- `consultar` con/ssin resultado
 
-### 3.2 Test JPA (@DataJpaTest + Testcontainers)
+### 3.2 Test JPA (@DataJpaTest + Testcontainers) (✅ 4 tests)
 
-⬜ **`AnalyticsRepositoryTest` — NO IMPLEMENTADO**
-- Pendiente: testear `AnalisisGastoRepository` con JSONB queries, upsert, findByTenantIdAndPeriod
+**`AnalyticsRepositoryTest`** — extiende `AbstractJpaTest` (PostgreSQL real)
+- `saveAndFind`: persistir + recuperar por tenant/period
+- `tenantScoped`: aislamiento entre tenants
+- `upsertOverwrites`: actualización de campos JSONB
+- `nonExistentPeriod`: Optional.empty() cuando no existe
 
 **Nota:** `AnalisisGasto` usa `@Column(columnDefinition = "JSONB")` — H2 no soporta JSONB correctamente. Usar PostgreSQL real (Testcontainers), patrón ya establecido en `AbstractJpaTest` del proyecto.
 
@@ -257,19 +261,17 @@ No hay nuevas dependencias transitivas; usa:
 
 ## 9. Comprobación de Errores y Calidad
 
-- **unitarios:** ⬜ **0 tests escritos** — no hay cobertura
-- **integración:** ⬜ **0 tests escritos**
+- **unitarios:** ✅ 5 tests (AnalyticsServiceImplTest)
+- **JPA:** ✅ 4 tests (AnalyticsRepositoryTest)
+- **integración:** ⬜ pendiente
 - **compile:** `mvn compile` pasa con -parameters
-- **pendiente:** escribir tests antes de considerar el módulo completo
 
 ## 10. Estado Real
 
 | Aspecto | Estado |
 |---------|--------|
 | Código producción (6 motores, controller, listener) | ✅ Implementado |
-| Tests unitarios | ⬜ Pendiente |
-| Tests JPA/Integración | ⬜ Pendiente |
+| Tests unitarios | ✅ 5 tests |
+| Tests JPA | ✅ 4 tests |
 | Conectado a FacturaCreadaEvent | ✅ Sí |
 | Frontend consumiendo analytics | ⬜ Pendiente |
-
-**Prioridad:** Escribir tests antes de tocar analytics otra vez.

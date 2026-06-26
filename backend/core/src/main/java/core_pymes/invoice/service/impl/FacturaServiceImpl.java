@@ -5,7 +5,6 @@ import core_pymes.invoice.domain.ItemFactura;
 import core_pymes.invoice.domain.Proveedor;
 import core_pymes.invoice.dto.*;
 import core_pymes.invoice.event.FacturaCreadaEvent;
-import core_pymes.invoice.event.FacturaPagadaEvent;
 import core_pymes.invoice.mapper.FacturaMapper;
 import core_pymes.invoice.repository.FacturaRepository;
 import core_pymes.invoice.repository.ProveedorRepository;
@@ -14,6 +13,8 @@ import core_pymes.product.repository.PresentacionRepository;
 import jakarta.persistence.EntityNotFoundException;
 import lombok.RequiredArgsConstructor;
 import lombok.extern.slf4j.Slf4j;
+import org.springframework.cache.annotation.CacheEvict;
+import org.springframework.cache.annotation.Cacheable;
 import org.springframework.context.ApplicationEventPublisher;
 import org.springframework.jdbc.core.JdbcTemplate;
 import org.springframework.stereotype.Service;
@@ -41,18 +42,21 @@ public class FacturaServiceImpl implements FacturaService {
 
     @Override
     @Transactional(readOnly = true)
+    @Cacheable(cacheNames = "proveedores", key = "#tenantId")
     public List<ProveedorResponse> findAllProveedores(UUID tenantId) {
         return mapper.toProveedorResponseList(proveedorRepository.findByTenantId(tenantId));
     }
 
     @Override
     @Transactional(readOnly = true)
+    @Cacheable(cacheNames = "proveedores", key = "#id")
     public ProveedorResponse findProveedor(UUID id, UUID tenantId) {
         return mapper.toProveedorResponse(getProveedor(id, tenantId));
     }
 
     @Override
     @Transactional
+    @CacheEvict(cacheNames = "proveedores", allEntries = true)
     public ProveedorResponse createProveedor(ProveedorRequest request) {
         var proveedor = Proveedor.builder()
                 .tenantId(request.tenantId())
@@ -65,6 +69,7 @@ public class FacturaServiceImpl implements FacturaService {
 
     @Override
     @Transactional
+    @CacheEvict(cacheNames = "proveedores", allEntries = true)
     public ProveedorResponse updateProveedor(UUID id, UUID tenantId, ProveedorRequest request) {
         var proveedor = getProveedor(id, tenantId);
         proveedor.setName(request.name());
@@ -75,6 +80,7 @@ public class FacturaServiceImpl implements FacturaService {
 
     @Override
     @Transactional
+    @CacheEvict(cacheNames = "proveedores", allEntries = true)
     public void deleteProveedor(UUID id, UUID tenantId) {
         getProveedor(id, tenantId);
         proveedorRepository.deleteById(id);
@@ -84,6 +90,7 @@ public class FacturaServiceImpl implements FacturaService {
 
     @Override
     @Transactional(readOnly = true)
+    @Cacheable(cacheNames = "facturas", key = "#tenantId")
     public List<FacturaResponse> findAllFacturas(UUID tenantId) {
         return facturaRepository.findByTenantIdOrderByCreatedAtDesc(tenantId).stream()
                 .map(f -> mapper.toResponse(f, mapper.toItemResponseList(f.getItems())))
@@ -92,6 +99,7 @@ public class FacturaServiceImpl implements FacturaService {
 
     @Override
     @Transactional(readOnly = true)
+    @Cacheable(cacheNames = "facturas", key = "#id")
     public FacturaResponse findFactura(UUID id, UUID tenantId) {
         var factura = getFactura(id, tenantId);
         return mapper.toResponse(factura, mapper.toItemResponseList(factura.getItems()));
@@ -99,6 +107,7 @@ public class FacturaServiceImpl implements FacturaService {
 
     @Override
     @Transactional
+    @CacheEvict(cacheNames = "facturas", allEntries = true)
     public FacturaResponse createFactura(FacturaRequest request) {
         var proveedor = proveedorRepository.findById(request.proveedorId())
                 .orElseThrow(() -> new EntityNotFoundException("Proveedor not found: " + request.proveedorId()));
@@ -164,6 +173,7 @@ public class FacturaServiceImpl implements FacturaService {
 
     @Override
     @Transactional
+    @CacheEvict(cacheNames = "facturas", allEntries = true)
     public FacturaResponse pagarFactura(UUID id, UUID tenantId) {
         var factura = getFactura(id, tenantId);
         if (!"REGISTRADA".equals(factura.getStatus())) {
@@ -171,12 +181,12 @@ public class FacturaServiceImpl implements FacturaService {
         }
         factura.setStatus("PAGADA");
         factura = facturaRepository.save(factura);
-        eventPublisher.publishEvent(new FacturaPagadaEvent(factura));
         return mapper.toResponse(factura, mapper.toItemResponseList(factura.getItems()));
     }
 
     @Override
     @Transactional
+    @CacheEvict(cacheNames = "facturas", allEntries = true)
     public void deleteFactura(UUID id, UUID tenantId) {
         var factura = getFactura(id, tenantId);
         if (!"REGISTRADA".equals(factura.getStatus())) {

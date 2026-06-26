@@ -1,5 +1,13 @@
 <template>
   <q-layout view="lHh Lpr lFf">
+    <!-- Offline banner -->
+    <q-banner v-if="!online" class="bg-warning text-dark text-center q-py-xs">
+      <template v-slot:avatar>
+        <q-icon name="wifi_off" />
+      </template>
+      Sin conexión — los datos mostrados pueden no estar actualizados
+    </q-banner>
+
     <!-- Header with Brand Glow -->
     <q-header class="bg-dark text-secondary brand-glow">
       <q-toolbar class="q-px-lg">
@@ -105,7 +113,7 @@
 </template>
 
 <script setup lang="ts">
-import { ref, onMounted, computed } from 'vue';
+import { ref, onMounted, onUnmounted, computed } from 'vue';
 import { useQuasar } from 'quasar';
 import { useRoute, useRouter } from 'vue-router';
 import { useLogout } from 'src/composables/useLogout';
@@ -119,9 +127,43 @@ const { logout: handleLogout } = useLogout();
 
 const leftDrawerOpen = ref(false);
 const activeRoute = computed(() => route.path);
+const online = ref(navigator.onLine);
+
+function onOnline() { online.value = true; }
+function onOffline() { online.value = false; }
+
+function onSwUpdate() {
+  $q.dialog({
+    title: 'Actualización disponible',
+    message: 'Hay una nueva versión. ¿Actualizar ahora?',
+    ok: 'Actualizar',
+    cancel: 'Después',
+    persistent: true,
+  }).onOk(() => {
+    // ponytail: SKIP_WAITING triggers controllerchange → reload
+    void navigator.serviceWorker?.getRegistration().then(r => {
+      r?.waiting?.postMessage({ type: 'SKIP_WAITING' });
+    });
+  });
+}
+
+function onSwControllerChange() {
+  window.location.reload();
+}
 
 onMounted(() => {
   $q.dark.set(true);
+  window.addEventListener('online', onOnline);
+  window.addEventListener('offline', onOffline);
+  window.addEventListener('sw-update-ready', onSwUpdate);
+  navigator.serviceWorker?.addEventListener('controllerchange', onSwControllerChange);
+});
+
+onUnmounted(() => {
+  window.removeEventListener('online', onOnline);
+  window.removeEventListener('offline', onOffline);
+  window.removeEventListener('sw-update-ready', onSwUpdate);
+  navigator.serviceWorker?.removeEventListener('controllerchange', onSwControllerChange);
 });
 
 const linksList = [

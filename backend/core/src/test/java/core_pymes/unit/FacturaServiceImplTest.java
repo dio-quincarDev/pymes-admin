@@ -5,7 +5,6 @@ import core_pymes.invoice.domain.ItemFactura;
 import core_pymes.invoice.domain.Proveedor;
 import core_pymes.invoice.dto.*;
 import core_pymes.invoice.event.FacturaCreadaEvent;
-import core_pymes.invoice.event.FacturaPagadaEvent;
 import core_pymes.invoice.mapper.FacturaMapper;
 import core_pymes.invoice.repository.FacturaRepository;
 import core_pymes.invoice.repository.ProveedorRepository;
@@ -164,7 +163,7 @@ class FacturaServiceImplTest {
     }
 
     @Test
-    void pagarFactura_whenRegistered_marksAsPaidAndPublishesEvent() {
+    void pagarFactura_whenRegistered_marksAsPaid() {
         var tenantId = UUID.randomUUID();
         var facturaId = UUID.randomUUID();
         var factura = Factura.builder().id(facturaId).tenantId(tenantId).status("REGISTRADA").items(List.of()).build();
@@ -180,9 +179,6 @@ class FacturaServiceImplTest {
         var result = service.pagarFactura(facturaId, tenantId);
 
         assertThat(result.status()).isEqualTo("PAGADA");
-        var captor = ArgumentCaptor.forClass(FacturaPagadaEvent.class);
-        verify(eventPublisher).publishEvent(captor.capture());
-        assertThat(captor.getValue().factura().getStatus()).isEqualTo("PAGADA");
     }
 
     @Test

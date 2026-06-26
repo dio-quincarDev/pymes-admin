@@ -4,7 +4,25 @@ Registro cronológico de decisiones, problemas resueltos y estado del frontend.
 
 ---
 
-## 2026-06-24 — Onboarding 2 pasos: preview de categorías/subcategorías
+## 2026-06-26 — PWA offline + Redis cache
+
+### Offline / PWA
+
+- Worker Service: `StaleWhileRevalidate` para GETs de API (`/api/v1/core/*`), off‑line banner en `MainLayout.vue`, diálogo de actualización disponible con `SKIP_WAITING` → recarga (`custom-service-worker.ts`, `register-service-worker.ts`, `MainLayout.vue`)
+- `MainLayout.vue`: estado `online` con listener de eventos, `q-banner` amarillo compacto con ícono `wifi-off`, captura `sw-update-ready` → `$q.dialog`
+- `register-service-worker.ts`: dispacha eventos DOM personalizados `sw-update‑ready`, `sw-update‑found`
+- Redis + caché en back‑end para perf de productos/proveedores/facturas
+
+### Backend (Core)
+
+- Refactoring:
+  - Eliminado `FacturaPagadaEvent` — evento sin listener
+  - Actualizado entidades JSONB `AnalisisGasto` → `@JdbcTypeCode(SqlTypes.JSON)`
+  - Agregado tests (`AnalyticsServiceImplTest`, `AnalyticsRepositoryTest`)
+- Redis: `CacheConfig.java` `@EnableCaching` + `RedisCacheManager` (TTL 5min), `@Cacheable` en `findAll`/`findById` → `ProductoServiceImpl.java`, `FacturaServiceImpl.java` + `@CacheEvict` en writes
+- Todas las entidades definidas usando Java Records (`ItemDTO`)
+
+### 2026-06-24 — Onboarding 2 pasos: preview de categorías/subcategorías
 
 ### Contexto
 
