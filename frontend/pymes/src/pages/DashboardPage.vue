@@ -4,34 +4,27 @@
       <h1 class="dashboard-title">
         {{ greeting }}, <span class="dashboard-title__name">{{ authStore.user?.nombre || 'Auditor' }}</span>
       </h1>
-      <p class="dashboard-subtitle">Panel de control de auditoria inteligente</p>
+      <p class="dashboard-subtitle">Panel de control de auditoría inteligente</p>
     </div>
 
-    <DashboardStats />
-
-    <div class="row q-col-gutter-lg q-mt-lg">
-      <div class="col-12 col-md-8 fade-in-up" style="animation-delay: 0.4s">
-        <DashboardActionCard />
-      </div>
-      <div class="col-12 col-md-4 fade-in-up" style="animation-delay: 0.5s">
-        <RecentActivity />
-      </div>
-    </div>
+    <AnalyticsDashboard v-if="hasTenant" />
+    <DashboardStats v-else />
   </q-page>
 </template>
 
 <script setup lang="ts">
-import { useMeta } from 'quasar'
-import { useAuthStore } from 'src/modules/auth/store'
-import { useGreeting } from 'src/composables/useGreeting'
-import DashboardStats from 'src/components/dashboard/DashboardStats.vue'
-import DashboardActionCard from 'src/components/dashboard/DashboardActionCard.vue'
-import RecentActivity from 'src/components/dashboard/RecentActivity.vue'
+import { computed } from 'vue';
+import { useMeta } from 'quasar';
+import { useAuthStore } from 'src/modules/auth/store';
+import { useGreeting } from 'src/composables/useGreeting';
+import AnalyticsDashboard from 'src/modules/core/components/dashboard/AnalyticsDashboard.vue';
+import DashboardStats from 'src/components/dashboard/DashboardStats.vue';
 
-useMeta({ title: 'Dashboard — PYMEQ' })
+useMeta({ title: 'Dashboard — PYMEQ' });
 
-const authStore = useAuthStore()
-const { greeting } = useGreeting()
+const authStore = useAuthStore();
+const { greeting } = useGreeting();
+const hasTenant = computed(() => !!authStore.user?.tenantId);
 </script>
 
 <style lang="scss" scoped>

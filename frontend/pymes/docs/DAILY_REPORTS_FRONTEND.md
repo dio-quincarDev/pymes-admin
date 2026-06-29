@@ -4,6 +4,49 @@ Registro cronológico de decisiones, problemas resueltos y estado del frontend.
 
 ---
 
+## 2026-06-29 — Plan: Template Products para Onboarding
+
+### Problema
+El onboarding carga categorías, unidades y ubicaciones, pero no productos. El usuario debe crear productos uno por uno después del onboarding. La idea es que al completar onboarding ya haya un catálogo genérico precargado con SKU y unidad, listo para facturar.
+
+### Plan (3 fases)
+
+**Fase 1: Backend — Tabla y Seed**
+- Flyway V7: `template_products` (industry_code, category_id, name, sku, base_unit, sort_order)
+- Flyway V8: `template_product_presentations` (template_product_id, name, conversion)
+- SeedDataRunner: `seedXxxProducts()` para cada industria (~30-50 productos genéricos, ~2 presentaciones c/u)
+
+**Fase 2: Backend — Onboarding copia productos**
+- `SetupServiceImpl.completeOnboarding()` → copia `template_products` → `core.products` + `core.product_presentations`
+- `SetupResponse` → nuevo campo `products: List<ProductTemplateDTO>`
+- `loadIndustryData()` → extender para query de productos
+
+**Fase 3: Frontend**
+- `OnboardingPage.vue` step 2 → sección "Productos" con tabla resumen
+- `SetupInfo` type → agregar `products: ProductTemplate[]`
+
+### Files a modificar
+```
+backend/core/src/main/resources/db/migration/V7__template_products.sql       # nuevo
+backend/core/src/main/resources/db/migration/V8__template_product_presentations.sql  # nuevo
+backend/core/src/main/java/core_pymes/common/seed/SeedDataRunner.java        # +seed products
+backend/core/src/main/java/core_pymes/setup/service/impl/SetupServiceImpl.java  # +copy on onboarding
+backend/core/src/main/java/core_pymes/setup/dto/SetupResponse.java           # +products field
+frontend/pymes/src/modules/core/pages/OnboardingPage.vue                     # +product preview
+frontend/pymes/src/modules/core/types/index.ts                               # +ProductTemplate type
+```
+
+### Escala
+- ~30-50 productos × 8 industrias = ~240-400 inserts
+- ~2 presentaciones × ~300 productos = ~600-1200 inserts
+- Total: ~1000-1600 inserts en SeedDataRunner
+
+### Referencia
+- `SEED_TEMPLATES.md` §Plantillas de Productos (schema + detalle)
+- `CORE.md` §Seed Data + §Pendientes
+
+---
+
 ## 2026-06-26 — PWA offline + Redis cache
 
 ### Offline / PWA
@@ -396,6 +439,7 @@ PWA manifest actualizado: nombre "PYMEQ - Auditoría Inteligente", `theme_color:
 - Migrar `refreshToken` de `localStorage` a cookie `HttpOnly` en producción
 - Input sanitization con DOMPurify cuando haya UGC
 - Sentry cuando haya usuarios reales
+- Onboarding con preview de productos precargados (ver entry 2026-06-29)
 
 ---
 

@@ -95,7 +95,7 @@ public class SetupServiceImpl implements SetupService {
             (rs, row) -> new SetupResponse.ItemDTO(
                 rs.getString("code"),
                 rs.getString("name"),
-                rs.getString("parentId"),
+                rs.getString("parent_id"),
                 null),
             industry);
 

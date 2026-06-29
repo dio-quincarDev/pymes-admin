@@ -1,188 +1,142 @@
 # PROGRESS — Core Service
 
-Registro de lo implementado y lo pendiente
+Registro de lo implementado y lo pendiente.
 
-> Ver también: [`docs/` raíz](/docs/) — estrategias globales (DB, infra, testcontainers) y bitácora diaria en `DAILY_REPORTS_PROJECT.md`.
+> Ver también: `CORE.md` (arquitectura + estado), `ANALYTICS.md`, `FUTURE_MODULES.md` (blueprints), `SEED_TEMPLATES.md`.
 
 ---
 
-## 2026-06-26
+## Estado Rápido
 
-### Refactorings: limpieza y estabilidad
+| Módulo | Estado | Tests |
+|--------|--------|-------|
+| Setup | ✅ Implementado | 5 unit + 6 integration |
+| Product | ✅ Implementado | 6 unit + 4 integration (pendiente Docker) |
+| Invoice | ✅ Implementado | 7 unit + 4 integration (pendiente Docker) |
+| Analytics | ✅ Implementado | 5 unit + 4 JPA |
+| Accounting | ⬜ Pendiente | Ver FUTURE_MODULES.md |
+| Ventas | ⬜ Pendiente | Ver FUTURE_MODULES.md |
+| Reportes | ⬜ Pendiente | Ver FUTURE_MODULES.md |
 
-- Eliminado `FacturaPagadaEvent` — evento no suscrito que causaba sobrecarga de compilación
-- Actualizado `AnalisisGasto` → entidades JSONB obtienen `@JdbcTypeCode(SqlTypes.JSON)` (paso por tipo correcto)
-- Agregado 5 tests unitarios (`AnalyticsServiceImplTest`) + 4 JPA (`AnalyticsRepositoryTest`) — cobertura completa de modulos
+---
 
-### Módulo Setup
-- `TenantSetup` entidad JPA (tenantId, industry, onboardingCompleted)
+## Implementado
+
+### Setup (`core_pymes/setup/`)
+- `TenantSetup` entity JPA (tenantId, industry, onboardingCompleted)
 - `TenantSetupRepository` (findByTenantId, existsByTenantId)
 - `SetupService` interface + `SetupServiceImpl` (getOrInitialize lazy, completeOnboarding)
-- `SetupApi` controller interface + `SetupController` impl
-  - `GET /api/v1/core/setup/{tenantId}` — lazy init si no existe, devuelve `SetupResponse` con template data
-  - `POST /api/v1/core/setup/{tenantId}/onboarding` — completa onboarding con industry, devuelve `SetupResponse` con template data
-- `SetupResponse` record DTO en `setup.dto` con `id`, `tenantId`, `industry`, `onboardingCompleted`, `categories[]`, `units[]`, `locations[]`
-- `SetupMapper` (MapStruct): `toResponse(entity, categories, units, locations)` transforma entity + lists → DTO
-- Flyway V1: tabla `core.tenant_setup`
+- `SetupApi` / `SetupController`
+  - `GET /api/v1/core/setup/{tenantId}` — lazy init + template data
+  - `POST /api/v1/core/setup/{tenantId}/onboarding` — completa onboarding
+  - `GET /api/v1/core/setup/preview/{industry}` — preview categorías jerárquicas
+- `SetupResponse` record DTO (id, tenantId, industry, onboardingCompleted, categories[], units[], locations[])
+- `SetupMapper` (MapStruct)
+- Flyway V1: `core.tenant_setup`
+- `buildCategoryTree()` con mapa O(n)
 
-### Infraestructura
-- Dockerfile multi-stage simplificado (sin `dependency:go-offline`)
-- docker-compose.yml: core-service con healthcheck, depende de postgres+redis+auth
-- Gateway route `/api/v1/core/**` → `pymes-core-service:8082` con AuthenticationFilter
-- Env var `CORE_SERVICE_HOST` añadida al gateway
-
-### Configuración
-- EventConfig con `@EnableAsync` + virtual threads (`spring.threads.virtual.enabled`)
-- CorePath.java con constantes de ruta
-- Perfiles dev/stg/prod con application.yaml base + perfiles
-- MapStruct + Lombok + annotation processor configurado en pom.xml
-- OpenFeign configurado (@EnableFeignClients) aunque sin clientes aún
-- Actuator habilitado (health endpoint)
-
-### Seed Data
-- Flyway V2: tablas `industries`, `template_categories` (3 niveles con padre auto-ref), `template_locations`
-- `SeedDataRunner`: `@Component` idempotente que inserta seed al startup vía JdbcTemplate
-  - Crea vía DDL: `template_units`, `template_movement_reasons`, `template_payment_methods` (CREATE TABLE IF NOT EXISTS + índices en industry_code)
-  - 8 industrias seedadas: restaurante, bares, salon_belleza, ferreteria, mini_super, taller_mecanico, farmacia, default
-  - 6 tablas template: industries, categories, locations, units, movement_reasons, payment_methods
-
-### Testing
-- `SetupServiceImplTest`: 5 tests unitarios con Mockito
-- `AbstractIntegrationTest`: base class con Testcontainers PostgreSQL
-- `SetupSeedIntegrationTest`: 6 tests de integración (8 industrias, 6 tablas template)
-- `CoreApplicationTests`: smoke test de contexto con Testcontainers
-
-### Módulo Product (`core_pymes/product/`)
-
-- `Producto` entidad JPA (UUID, tenantId, soft-delete con `@SQLDelete`+`@Where`, timestamps)
-- `Presentacion` entidad JPA (FK → producto, soft-delete, dual-field con `productId` UUID + `@ManyToOne` read-only)
-- `ProductoRepository` + `PresentacionRepository` (Spring Data JPA)
-- `ProductoService` interface + `ProductoServiceImpl` (CRUD completo + tenant isolation)
-- `ProductoApi` interface + `ProductoController`
+### Product (`core_pymes/product/`)
+- `Producto` entity JPA (UUID, tenantId, soft-delete `@SQLDelete`+`@Where`, timestamps)
+- `Presentacion` entity JPA (FK → producto, soft-delete, dual-field pattern)
+- `ProductoRepository` + `PresentacionRepository`
+- `ProductoService` / `ProductoServiceImpl` (CRUD + tenant isolation)
+- `ProductoApi` / `ProductoController`
   - `GET/POST/PUT/DELETE /api/v1/core/productos`
   - `GET/POST /api/v1/core/productos/{id}/presentaciones`
   - `DELETE /api/v1/core/productos/presentaciones/{id}`
 - DTOs: `ProductoRequest/Response`, `PresentacionRequest/Response` (Java records)
-- Mapper: `ProductoMapper` (MapStruct, primer mapper real del proyecto)
+- `ProductoMapper` (MapStruct)
 - Eventos: `ProductoCreadoEvent`, `PresentacionCreadaEvent`
-- Flyway V3: tablas `core.products`, `core.product_presentations`
+- Flyway V3: `core.products`, `core.product_presentations`
 
-### Módulo Invoice (`core_pymes/invoice/`)
-
-- `Proveedor` entidad JPA (UUID, tenantId, soft-delete)
-- `Factura` entidad JPA (UUID, items cascade ALL, FK → proveedor + productos, dual-field relations)
-- `ItemFactura` entidad JPA (productName snapshot, subtotal calculado)
+### Invoice (`core_pymes/invoice/`)
+- `Proveedor` entity JPA (UUID, tenantId, soft-delete)
+- `Factura` entity JPA (UUID, items cascade ALL, FK → proveedor + productos)
+- `ItemFactura` entity JPA (productName snapshot, subtotal, `presentacionId`+`conversionFactor`)
 - `ProveedorRepository` + `FacturaRepository`
-- `FacturaService` interface + `FacturaServiceImpl` (CRUD + total auto-calc + estado workflow)
-- `ProveedorApi` interface + `ProveedorController`
-- `FacturaApi` interface + `FacturaController`
+- `FacturaService` / `FacturaServiceImpl` (CRUD + total auto-calc + estado workflow)
+- `ProveedorApi` / `ProveedorController`
+- `FacturaApi` / `FacturaController`
   - `GET/POST/PUT/DELETE /api/v1/core/proveedores`
   - `GET/POST /api/v1/core/facturas`
   - `POST /api/v1/core/facturas/{id}/pagar`
   - `DELETE /api/v1/core/facturas/{id}`
-- DTOs: `ProveedorRequest/Response`, `FacturaRequest/Response`, `ItemFacturaRequest/Response` (Java records)
-- Mapper: `FacturaMapper` (MapStruct)
+- DTOs: `ProveedorRequest/Response`, `FacturaRequest/Response`, `ItemFacturaRequest/Response`
+- `FacturaMapper` (MapStruct)
 - Eventos: `FacturaCreadaEvent`
-- Flyway V4: tablas `core.providers`, `core.invoices`, `core.invoice_items`
-- Invoice number auto-generado: `F-PROV-{year}-{sequential:04d}` por tenant via native query
+- Flyway V4: `core.providers`, `core.invoices`, `core.invoice_items`
+- Invoice number: `F-PROV-{year}-{sequential:04d}` por tenant
+
+### Analytics (`core_pymes/analytics/`)
+- `AnalisisGasto` entity (JSONB por tenant/periodo)
+- 6 motores CTE: ABC, tendencias, márgenes, opex, proyección, alertas
+- Listener conectado a FacturaCreadaEvent
+- Ver `ANALYTICS.md` para detalles
+
+### Infraestructura
+- Dockerfile multi-stage (sin `dependency:go-offline`)
+- docker-compose.yml: core-service con healthcheck, depende de postgres+redis+auth
+- Gateway route `/api/v1/core/**` → `pymes-core-service:8082`
+- EventConfig: `@EnableAsync` + virtual threads
+- CorePath.java con constantes de ruta
+- Perfiles dev/stg/prod
+- MapStruct + Lombok + annotation processor
+- OpenFeign configurado (sin clientes aún)
+- Actuator habilitado (health)
+- `CacheConfig.java`: `@EnableCaching` + `RedisCacheManager` (TTL 5min, JSON serializer)
+- `@Cacheable` en findAll/findById de productos, proveedores, facturas
+- `@CacheEvict(allEntries=true)` en writes
+- `@ConditionalOnBean(RedisConnectionFactory.class)` — solo con Redis
+
+### PWA / Offline
+- `StaleWhileRevalidate` para `/api/v1/core/*` GETs
+- Banner offline en `MainLayout.vue`
+- Diálogo de actualización con `SKIP_WAITING`
+
+### Seed Data
+- Flyway V2: `industries`, `template_categories`, `template_locations`
+- `SeedDataRunner`: idempotente, 8 industrias, 6 tablas template
+- Crea via DDL: `template_units`, `template_movement_reasons`, `template_payment_methods`
 
 ### Testing
-
+- `SetupServiceImplTest`: 5 unit tests (Mockito)
+- `AbstractIntegrationTest`: base class Testcontainers PostgreSQL
+- `SetupSeedIntegrationTest`: 6 integration tests
+- `CoreApplicationTests`: smoke test contexto
 - `ProductoServiceImplTest`: 6 unit tests (CRUD + eventos + tenant isolation)
 - `FacturaServiceImplTest`: 7 unit tests (total calc + descuento + estados + tenant isolation)
 - `AnalyticsServiceImplTest`: 5 unit tests (6 motores + upsert + consulta)
-- `AnalyticsRepositoryTest`: 4 JPA tests (CRUD JSONB + tenant isolation con Testcontainers)
-- `ProductoIntegrationTest`: 4 integration tests (pendiente — necesita Docker)
-- `FacturaIntegrationTest`: 4 integration tests (pendiente — necesita Docker)
+- `AnalyticsRepositoryTest`: 4 JPA tests (CRUD JSONB + tenant isolation)
+- `ProductoIntegrationTest`: 4 integration tests (pendiente Docker)
+- `FacturaIntegrationTest`: 4 integration tests (pendiente Docker)
 
-### PWA / Offline
-
-- Worker Service: `StaleWhileRevalidate` para `/api/v1/core/*` GETs, banner offline en `MainLayout.vue`, diálogo de actualización con `SKIP_WAITING` (`custom-service-worker.ts`, `register-service-worker.ts`, `MainLayout.vue`)
-
-### Redis Cache
-- `CacheConfig.java`: `@EnableCaching` + `RedisCacheManager` (TTL 5min, serializador Jackson) + `@ConditionalOnBean(RedisConnectionFactory.class)`
-- `@Cacheable` en `findAll`/`findById` de productos, proveedores, facturas (`ProductoServiceImpl.java`, `FacturaServiceImpl.java`)
-- `@CacheEvict` en writes (create, update, pagar)
-
-### Testing
-
-- `AnalyticsServiceImplTest`: 5 unit tests (6 motores + upsert + check consulta presente/absente)
-- `AnalyticsRepositoryTest`: 4 JPA tests (CRUD JSONB + tenant isolation con Testcontainers, usando Java Records)
-
-### Refactoring
-
-- Eliminado `FacturaPagadaEvent` — evento sin listener, reduciendo ruido de compilación
-
-- Refactor JSONB: entidades `AnalisisGasto` actualizadas a `@JdbcTypeCode(SqlTypes.JSON)`
-
-### Redis Cache (actualizado)
-
-- `CacheConfig.java`: `@EnableCaching` + `RedisCacheManager` (TTL 5min, JSON serializer)
-- `@Cacheable` en findAll/findById de productos, proveedores, facturas
-- `@CacheEvict(allEntries=true)` en writes (create, update, delete, pagar)
-- `@ConditionalOnBean(RedisConnectionFactory.class)` — cache se activa solo con Redis disponible
-
-### Arquitectura
-- Estructura modular: `setup/`, `product/`, `invoice/` cada uno con controller/domain/dto/event/mapper/repository/service
-- Paquete base: `core_pymes`
-- Controller interface+impl dentro del módulo (no plano)
+### Refactoring (2026-06)
+- Eliminado `FacturaPagadaEvent` — evento sin listener
+- JSONB: `AnalisisGasto` actualizado a `@JdbcTypeCode(SqlTypes.JSON)`
 
 ---
 
-## Pendiente 🚧
+## Pendiente
 
 ### Inmediato
-- [x] **Template loading**: `POST /core/setup/{tenantId}/onboarding` y `GET /core/setup/{tenantId}` devuelven `SetupResponse` con `categories[]`, `units[]`, `locations[]` cargados de las tablas template filtradas por `industry_code`. Implementado via `SetupServiceImpl.buildResponse()` (private, reusado en ambos endpoints).
-- [x] **Onboarding preview de categorías** — Endpoint `GET /setup/preview/{industry}` + `ItemDTO` con `parentId` + `children` para jerarquía — ✅ **IMPLEMENTADO**
-  - `buildCategoryTree()` con mapa O(n), `SetupController.preview()` delegando a `SetupServiceImpl.previewIndustry()`
-- [ ] **Accounting** — `core_pymes/accounting/`: MetricaFinanciera entity + listener FacturaCreada → recalcula márgenes
-  - [ ] GET `contabilidad/metricas?tenantId=&year=&month=`
-  - [ ] EventListener on FacturaCreada / FacturaPagada / (futuro VentaRegistrada)
-  - [ ] Cálculos: ingresos, egresos, COGS, gastos operativos, márgenes
+- [ ] Accounting — `core_pymes/accounting/`: MetricaFinanciera + listener (ver FUTURE_MODULES.md)
 - [ ] Ejecutar integration tests (requiere Docker)
-- [x] Decisión Gastos Operativos → Opción A (tipo=GASTO en facturas) — ya en código
-- [ ] Decisión pendiente: Ventas → Opción A (módulo Ventas propio) o B (desde Movimientos futuro)
 
 ### Mediate
-- [ ] **Reports** — dashboard consolidado con KPIs, últimas facturas/ventas, alertas
-- [ ] CRUD de configuración (categorías, ubicaciones, unidades) para edición por tenant
-  - [x] Preview de solo lectura: `GET /setup/preview/{industry}` (jerarquía de categorías)
-  - [ ] Edición de configuración (CRUD completo por tenant)
-- [ ] Módulo Ventas (si se opta por Opción A)
-- [ ] Movimientos de stock (Parte 3 — asociados a facturas+ventas)
+- [ ] Reports — dashboard consolidado con KPIs, alertas
+- [ ] CRUD configuración (edición por tenant)
+- [ ] Módulo Ventas
+- [ ] Movimientos de stock
 
-### Infraestructura pendiente
-- [ ] Spring Security (JWT validation local si se requiere)
-- [ ] FeignClient para Auth (solo cuando core consuma endpoints de auth)
-- [x] Cache con Redis — `@EnableCaching` + `RedisCacheManager` con TTL 5min, `@Cacheable`/`@CacheEvict` en servicios de producto, proveedor, factura
-- [x] Sistema de eventos cross-module (Spring Events — implementado en product + invoice; faltan listeners accounting+reports)
+### Infraestructura
+- [ ] Spring Security (JWT validation local)
+- [ ] FeignClient para Auth
 
 ### Frontend
-- [x] Onboarding post-login — página `/onboarding` + router guard que llama `GET/POST /core/setup/{tenantId}`
-- [x] Módulo Core frontend — Productos, Proveedores, Facturas, Configuración (CRUD completo)
-- [ ] Onboarding 2 pasos — flujo select industria → preview categorías → confirmar
-  - [ ] `CategoryTree.vue` — componente visual de árbol de categorías (solo lectura)
-  - [ ] `OnboardingPage.vue` — flujo 2 pasos con preview antes de confirmar
-  - [ ] `setup.service.ts` — agregar `preview()` para `GET /setup/preview/{industry}`
-  - [ ] `SetupInfo` type — actualizar con categorías jerárquicas (`parentId` + `children`)
-
----
-
-## Decisiones clave
-
-| Decisión | Opción elegida | Alternativa descartada |
-|----------|---------------|----------------------|
-| Inicialización | Lazy (primer GET) | Webhook/evento TenantCreated |
-| Estructura | Modular por módulo (`setup/`) | Layer-based plana |
-| Docker | `COPY . .` + `mvn package` | `dependency:go-offline` separado |
-| Comunicación | Spring Events | RabbitMQ (post-MVP) |
-| Concurrencia | Virtual Threads + @Async | Thread pool tradicional |
-| Seed data | Java `ApplicationRunner` + JdbcTemplate | Flyway SQL, JPA entities |
-| Test infra | Testcontainers PostgreSQL, no Redis | Docker Compose externo |
-| Mapper | MapStruct con interface + @Mapping | Manual setters, Lombok Builder |
-| Relaciones FK | Dual-field pattern (UUID field + @ManyToOne read-only) | @ManyToOne con cascade completo |
-| Entidades nomenclatura | Español (Producto, Factura, Proveedor) | Inglés (Product, Invoice) |
-| Invoice numbering | Native query secuencial por tenant/año | UUID, secuencia global, lógica en app |
-| Soft-delete | @SQLDelete + @Where(clause = "is_active = true") | @ManyToMany, tabla aparte |
-| Response wrapper | Sin wrapper (response directo) | ApiResponse envelope genérico |
-| Categorías jerarquicas | En nested DTO (`children` list) en el mismo `ItemDTO` | DTO separado por nivel, adjancency list con query recursiva |
+- [x] Onboarding post-login
+- [x] Módulo Core frontend (Productos, Proveedores, Facturas)
+- [ ] Onboarding 2 pasos con preview de categorías
+  - [ ] `CategoryTree.vue`
+  - [ ] `OnboardingPage.vue`
+  - [ ] `setup.service.ts` — agregar `preview()`
+  - [ ] `SetupInfo` type — categorías jerárquicas

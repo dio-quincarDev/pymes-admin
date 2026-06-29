@@ -29,6 +29,12 @@ const routes: RouteRecordRaw[] = [
     ],
   },
 
+  // Error pages
+  {
+    path: '/500',
+    component: () => import('pages/ErrorServerError.vue'),
+  },
+
   // Always leave this as last one
   {
     path: '/:catchAll(.*)*',

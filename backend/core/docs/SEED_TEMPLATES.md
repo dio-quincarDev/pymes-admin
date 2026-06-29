@@ -660,6 +660,95 @@ HIGIENE DEL HOGAR
 
 ---
 
+## Plantillas de Productos (Plan)
+
+### Problema
+Las plantillas actuales solo tienen categorías, unidades y ubicaciones. Al completar onboarding, el usuario tiene una estructura vacía y debe crear productos uno por uno.
+
+### Objetivo
+Al completar onboarding → se copian productos genéricos por categoría → al facturar ya hay catálogo cargado con SKU y unidad.
+
+### Alcance
+- Productos genéricos (sin marca), ~30-50 por industria
+- 1-2 presentaciones por producto (ej: Cerveza → Unidad, Caja x12)
+- SKU auto-generado por industria (ej: `BEB-001`, `ABI-002`)
+
+### Fase 1: Backend — Tabla y Seed
+
+**Flyway V7** — tabla `template_products`:
+```sql
+template_products (
+    id UUID PRIMARY KEY,
+    industry_code VARCHAR(50) NOT NULL REFERENCES industries(code),
+    category_id UUID REFERENCES template_categories(id),
+    name VARCHAR(150) NOT NULL,
+    sku VARCHAR(50) NOT NULL,
+    base_unit VARCHAR(50) NOT NULL,
+    sort_order INTEGER DEFAULT 0
+);
+CREATE INDEX idx_template_products_industry ON template_products(industry_code);
+CREATE UNIQUE INDEX idx_template_products_industry_sku ON template_products(industry_code, sku);
+```
+
+**Flyway V8** — tabla `template_product_presentations`:
+```sql
+template_product_presentations (
+    id UUID PRIMARY KEY,
+    template_product_id UUID NOT NULL REFERENCES template_products(id),
+    name VARCHAR(100) NOT NULL,
+    conversion INTEGER NOT NULL DEFAULT 1,
+    sort_order INTEGER DEFAULT 0
+);
+CREATE INDEX idx_template_product_presentations_fk ON template_product_presentations(template_product_id);
+```
+
+**SeedDataRunner** — agregar `seedXxxProducts()` para cada industria. Ejemplo restaurante:
+```
+Bebidas > Cervezas:   BEB-001 Cerveza (Unidad), Caja x12
+Bebidas > Refrescos:  BEB-002 Refresco (Botella 2L)
+Bebidas > Jugos:      BEB-003 Jugo natural (Litro)
+Abarrotes > Arroz:    ABI-001 Arroz (Kg)
+Abarrotes > Fideos:   ABI-002 Fideos (Paquete 500g)
+Aceites:              ACE-001 Aceite vegetal (Litro)
+Condimentos:          CON-001 Sal (Kg), CON-002 Azúcar (Kg)
+Limpieza:             LIM-001 Detergente (Litro), LIM-002 Esponja (Unidad)
+```
+
+### Fase 2: Backend — Onboarding copia productos
+
+**SetupServiceImpl.completeOnboarding()** — después de marcar `onboardingCompleted=true`:
+1. Query `template_products` + `template_product_presentations` por `industry_code`
+2. Para cada template_product → crear `Producto` real con `tenantId`
+3. Para cada template_product_presentations → crear `Presentacion` real
+4. SKU se copia tal cual (es genérico, único por industria)
+5. Todo en una transacción
+
+**SetupResponse** — agregar campo `products`:
+```java
+record SetupResponse(
+    UUID id, UUID tenantId, String industry, boolean onboardingCompleted,
+    List<ItemDTO> categories, List<ItemDTO> units, List<ItemDTO> locations,
+    List<ProductTemplateDTO> products  // NUEVO
+) {
+    record ProductTemplateDTO(String sku, String name, String baseUnit, String categoryName) {}
+}
+```
+
+**loadIndustryData()** — extender para cargar también los productos del template.
+
+### Fase 3: Frontend
+
+**OnboardingPage.vue** — step 2: agregar sección "Productos" con tabla resumen (nombre, SKU, unidad).
+
+**SetupInfo type** — agregar campo `products: ProductTemplate[]`.
+
+### Escala estimada
+- ~30-50 productos × 8 industrias = ~240-400 inserts
+- ~2 presentaciones por producto = ~600-1200 inserts
+- Total: ~1000-1600 inserts en SeedDataRunner
+
+---
+
 ## Estructura de Datos en BD (Actual)
 
 Cada plantilla se almacena en tablas normalizadas con FK a `industries(code)`:
@@ -702,6 +791,22 @@ template_payment_methods            — Creada por SeedDataRunner (DDL)
 ├── industry_code: VARCHAR(50) FK → industries (INDEX)
 ├── name: VARCHAR(100)
 └── sort_order: INTEGER
+
+template_products                   — Creada por Flyway V7 (Plan)
+├── id: UUID PK
+├── industry_code: VARCHAR(50) FK → industries (INDEX)
+├── category_id: UUID FK → template_categories
+├── name: VARCHAR(150)
+├── sku: VARCHAR(50)                  — ÚNICO por industria
+├── base_unit: VARCHAR(50)
+└── sort_order: INTEGER
+
+template_product_presentations      — Creada por Flyway V8 (Plan)
+├── id: UUID PK
+├── template_product_id: UUID FK → template_products (INDEX)
+├── name: VARCHAR(100)
+├── conversion: INTEGER DEFAULT 1
+└── sort_order: INTEGER
 ```
 
 ### Seed Data
@@ -710,7 +815,8 @@ El seed se ejecuta vía `SeedDataRunner` (ApplicationRunner) al startup:
 1. `createTables()` — DDL con `CREATE TABLE IF NOT EXISTS` + índices
 2. `seedIndustries()` — inserta 8 industrias
 3. `seed{Nombre}()` — por industria inserta categorías, ubicaciones, unidades, motivos, pagos
-4. Es idempotente: verifica `SELECT COUNT(*) FROM industries` antes de insertar
+4. `seed{Nombre}Products()` — por industria inserta productos + presentaciones (Plan: Flyway V7+V8)
+5. Es idempotente: verifica `SELECT COUNT(*) FROM industries` antes de insertar
 
 ### Nota sobre migración futura
 
