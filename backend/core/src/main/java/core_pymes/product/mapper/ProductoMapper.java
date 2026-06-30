@@ -15,7 +15,9 @@ public interface ProductoMapper {
     default ProductoResponse toResponse(Producto p, List<PresentacionResponse> presentaciones) {
         return new ProductoResponse(p.getId(), p.getTenantId(), p.getName(), p.getSku(),
                 p.getCategory(), p.getBaseUnit(), p.getImageUrl(), p.getIsActive(),
-                p.getCreatedAt(), p.getUpdatedAt(), presentaciones);
+                p.getCreatedAt(), p.getUpdatedAt(), presentaciones,
+                p.getLastUnitPrice(), p.getTotalInvestment(), p.getLastPurchaseDate(),
+                p.getMinQuantity(), p.getMaxQuantity());
     }
 
     PresentacionResponse toResponse(Presentacion presentacion);

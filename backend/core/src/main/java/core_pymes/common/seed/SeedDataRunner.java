@@ -70,6 +70,27 @@ public class SeedDataRunner implements ApplicationRunner {
                 sort_order INTEGER NOT NULL DEFAULT 0
             )""");
         jdbc.execute("CREATE INDEX IF NOT EXISTS idx_template_payment_methods_industry ON template_payment_methods(industry_code)");
+        jdbc.execute("""
+            CREATE TABLE IF NOT EXISTS template_products (
+                id UUID PRIMARY KEY,
+                industry_code VARCHAR(50) NOT NULL REFERENCES industries(code),
+                category_id UUID,
+                name VARCHAR(150) NOT NULL,
+                base_unit VARCHAR(50),
+                min_quantity DECIMAL(12,2),
+                max_quantity DECIMAL(12,2),
+                sort_order INTEGER NOT NULL DEFAULT 0
+            )""");
+        jdbc.execute("CREATE INDEX IF NOT EXISTS idx_template_products_industry ON template_products(industry_code)");
+        jdbc.execute("""
+            CREATE TABLE IF NOT EXISTS template_product_presentations (
+                id UUID PRIMARY KEY,
+                template_product_id UUID NOT NULL,
+                name VARCHAR(100) NOT NULL,
+                conversion INTEGER NOT NULL DEFAULT 1,
+                sort_order INTEGER NOT NULL DEFAULT 0
+            )""");
+        jdbc.execute("CREATE INDEX IF NOT EXISTS idx_template_product_presentations_fk ON template_product_presentations(template_product_id)");
     }
 
     private void seedIndustries() {
@@ -186,6 +207,36 @@ public class SeedDataRunner implements ApplicationRunner {
                         "Ajuste (Conteo físico, Rotura, Robo)", "AJUSTE"));
         jdbc.batchUpdate("INSERT INTO template_payment_methods (id, industry_code, name, sort_order) VALUES (?, ?, ?, ?)",
                 paymentMethods("restaurante", "Yappy", "ACH", "Efectivo", "Crédito"));
+
+        var prods = new ArrayList<Object[]>();
+        var ppts = new ArrayList<Object[]>();
+        addProd(prods, ppts, "restaurante", gaseosas, "Refresco Cola", "Botella", 1, pres("Botella 2L", 1), pres("Lata 355ml", 1));
+        addProd(prods, ppts, "restaurante", gaseosas, "Refresco Naranja", "Botella", 2, pres("Botella 2L", 1), pres("Lata 355ml", 1));
+        addProd(prods, ppts, "restaurante", gaseosas, "Refresco Lima-Limón", "Botella", 3, pres("Botella 2L", 1), pres("Lata 355ml", 1));
+        addProd(prods, ppts, "restaurante", aguas, "Agua Natural", "Botella", 4, pres("Botella 500ml", 1), pres("Botella 1L", 1));
+        addProd(prods, ppts, "restaurante", aguas, "Agua Mineral", "Botella", 5, pres("Botella 500ml", 1));
+        addProd(prods, ppts, "restaurante", cervezas, "Cerveza Nacional", "Unidad", 6, pres("Unidad", 1), pres("Caja x12", 12));
+        addProd(prods, ppts, "restaurante", cervezas, "Cerveza Importada", "Unidad", 7, pres("Unidad", 1), pres("Caja x12", 12));
+        addProd(prods, ppts, "restaurante", cervezas, "Cerveza Artesanal", "Unidad", 8, pres("Unidad", 1), pres("Caja x6", 6));
+        addProd(prods, ppts, "restaurante", licores, "Whisky", "Botella", 9, pres("Botella 750ml", 1));
+        addProd(prods, ppts, "restaurante", licores, "Ron", "Botella", 10, pres("Botella 750ml", 1));
+        addProd(prods, ppts, "restaurante", licores, "Vodka", "Botella", 11, pres("Botella 750ml", 1));
+        addProd(prods, ppts, "restaurante", granos, "Arroz", "Kg", 12, pres("Bolsa 1kg", 1), pres("Bolsa 5kg", 5));
+        addProd(prods, ppts, "restaurante", granos, "Frijoles", "Kg", 13, pres("Bolsa 1kg", 1), pres("Bolsa 2kg", 2));
+        addProd(prods, ppts, "restaurante", granos, "Azúcar", "Kg", 14, pres("Bolsa 1kg", 1), pres("Bolsa 5kg", 5));
+        addProd(prods, ppts, "restaurante", granos, "Harina de Trigo", "Kg", 15, pres("Bolsa 1kg", 1));
+        addProd(prods, ppts, "restaurante", aceites, "Aceite Vegetal", "Litro", 16, pres("Botella 1L", 1), pres("Galón 3.78L", 3));
+        addProd(prods, ppts, "restaurante", aceites, "Aceite de Oliva", "Litro", 17, pres("Botella 500ml", 1));
+        addProd(prods, ppts, "restaurante", lacteos, "Leche Entera", "Litro", 18, pres("Bolsa 1L", 1));
+        addProd(prods, ppts, "restaurante", lacteos, "Huevos", "Unidad", 19, pres("Unidad", 1), pres("Caja x30", 30));
+        addProd(prods, ppts, "restaurante", congelados, "Verduras Mixtas Congeladas", "Kg", 20, pres("Bolsa 1kg", 1));
+        addProd(prods, ppts, "restaurante", congelados, "Papas Fritas Congeladas", "Kg", 21, pres("Bolsa 1kg", 1), pres("Bolsa 2.5kg", 2));
+        addProd(prods, ppts, "restaurante", condimentos, "Sal", "Kg", 22, pres("Bolsa 1kg", 1));
+        addProd(prods, ppts, "restaurante", condimentos, "Salsa de Tomate", "Litro", 23, pres("Botella 500ml", 1));
+        addProd(prods, ppts, "restaurante", condimentos, "Mostaza", "Litro", 24, pres("Botella 500ml", 1));
+        addProd(prods, ppts, "restaurante", condimentos, "Mayonesa", "Litro", 25, pres("Botella 500ml", 1));
+        jdbc.batchUpdate("INSERT INTO template_products (id, industry_code, category_id, name, base_unit, min_quantity, max_quantity, sort_order) VALUES (?, ?, ?, ?, ?, ?, ?, ?)", prods);
+        jdbc.batchUpdate("INSERT INTO template_product_presentations (id, template_product_id, name, conversion, sort_order) VALUES (?, ?, ?, ?, ?)", ppts);
     }
 
     private void seedBares() {
@@ -296,6 +347,31 @@ public class SeedDataRunner implements ApplicationRunner {
                         "Ajuste (Rotura, Conteo físico)", "AJUSTE"));
         jdbc.batchUpdate("INSERT INTO template_payment_methods (id, industry_code, name, sort_order) VALUES (?, ?, ?, ?)",
                 paymentMethods("bares", "Yappy", "ACH", "Efectivo", "Crédito", "Consignación"));
+
+        var prods = new ArrayList<Object[]>();
+        var ppts = new ArrayList<Object[]>();
+        addProd(prods, ppts, "bares", whisky, "Whisky Blended", "Botella", 1, pres("Botella 750ml", 1));
+        addProd(prods, ppts, "bares", whisky, "Whisky Single Malt", "Botella", 2, pres("Botella 750ml", 1));
+        addProd(prods, ppts, "bares", ron, "Ron Blanco", "Botella", 3, pres("Botella 750ml", 1));
+        addProd(prods, ppts, "bares", ron, "Ron Dorado", "Botella", 4, pres("Botella 750ml", 1));
+        addProd(prods, ppts, "bares", vodka, "Vodka Nacional", "Botella", 5, pres("Botella 750ml", 1));
+        addProd(prods, ppts, "bares", vodka, "Vodka Importado", "Botella", 6, pres("Botella 750ml", 1));
+        addProd(prods, ppts, "bares", tequila, "Tequila Blanco", "Botella", 7, pres("Botella 750ml", 1));
+        addProd(prods, ppts, "bares", tequila, "Tequila Reposado", "Botella", 8, pres("Botella 750ml", 1));
+        addProd(prods, ppts, "bares", gin, "Gin London Dry", "Botella", 9, pres("Botella 750ml", 1));
+        addProd(prods, ppts, "bares", nacionales, "Cerveza Nacional", "Unidad", 10, pres("Unidad", 1), pres("Caja x12", 12));
+        addProd(prods, ppts, "bares", importadas, "Cerveza Importada", "Unidad", 11, pres("Unidad", 1), pres("Caja x12", 12));
+        addProd(prods, ppts, "bares", artesanales, "Cerveza Artesanal IPA", "Unidad", 12, pres("Unidad", 1), pres("Caja x6", 6));
+        addProd(prods, ppts, "bares", gaseosas, "Refresco Cola", "Botella", 13, pres("Botella 2L", 1), pres("Lata 355ml", 1));
+        addProd(prods, ppts, "bares", gaseosas, "Agua Tónica", "Botella", 14, pres("Botella 1L", 1));
+        addProd(prods, ppts, "bares", aguas, "Agua Natural", "Botella", 15, pres("Botella 500ml", 1));
+        addProd(prods, ppts, "bares", jugos, "Jugo de Naranja Natural", "Litro", 16, pres("Litro", 1));
+        addProd(prods, ppts, "bares", snacks, "Papas Fritas", "Bolsa", 17, pres("Bolsa 150g", 1));
+        addProd(prods, ppts, "bares", snacks, "Frutos Secos", "Kg", 18, pres("Bolsa 200g", 1));
+        addProd(prods, ppts, "bares", snacks, "Aceitunas", "Unidad", 19, pres("Frasco 500g", 1));
+        addProd(prods, ppts, "bares", preparados, "Alitas de Pollo", "Unidad", 20, pres("Porción 6pz", 1));
+        jdbc.batchUpdate("INSERT INTO template_products (id, industry_code, category_id, name, base_unit, min_quantity, max_quantity, sort_order) VALUES (?, ?, ?, ?, ?, ?, ?, ?)", prods);
+        jdbc.batchUpdate("INSERT INTO template_product_presentations (id, template_product_id, name, conversion, sort_order) VALUES (?, ?, ?, ?, ?)", ppts);
     }
 
     private void seedSalonBelleza() {
@@ -414,6 +490,31 @@ public class SeedDataRunner implements ApplicationRunner {
                         "Ajuste (Expiración, Conteo físico)", "AJUSTE"));
         jdbc.batchUpdate("INSERT INTO template_payment_methods (id, industry_code, name, sort_order) VALUES (?, ?, ?, ?)",
                 paymentMethods("salon_belleza", "Yappy", "ACH", "Efectivo", "Tarjeta"));
+
+        var prods = new ArrayList<Object[]>();
+        var ppts = new ArrayList<Object[]>();
+        addProd(prods, ppts, "salon_belleza", shampoos, "Champú para Todo Tipo", "Litro", 1, pres("Botella 500ml", 1), pres("Botella 1L", 1));
+        addProd(prods, ppts, "salon_belleza", shampoos, "Champú para Cabello Seco", "Litro", 2, pres("Botella 500ml", 1));
+        addProd(prods, ppts, "salon_belleza", acondicionadores, "Acondicionador Clásico", "Litro", 3, pres("Botella 500ml", 1));
+        addProd(prods, ppts, "salon_belleza", acondicionadores, "Mascarilla Capilar", "Litro", 4, pres("Tubo 250ml", 1));
+        addProd(prods, ppts, "salon_belleza", tintes, "Tinte Permanente", "Unidad", 5, pres("Caja", 1));
+        addProd(prods, ppts, "salon_belleza", tintes, "Tinte Semi-permanente", "Unidad", 6, pres("Caja", 1));
+        addProd(prods, ppts, "salon_belleza", tratamientos, "Keratina", "Litro", 7, pres("Botella 500ml", 1));
+        addProd(prods, ppts, "salon_belleza", tratamientos, "Botox Capilar", "Litro", 8, pres("Botella 500ml", 1));
+        addProd(prods, ppts, "salon_belleza", secadores, "Secador Profesional", "Unidad", 9, pres("Unidad", 1));
+        addProd(prods, ppts, "salon_belleza", planchas, "Plancha Alisadora", "Unidad", 10, pres("Unidad", 1));
+        addProd(prods, ppts, "salon_belleza", tijeras, "Tijera para Cortar", "Unidad", 11, pres("Unidad", 1));
+        addProd(prods, ppts, "salon_belleza", cepillos, "Cepillo Redondo", "Unidad", 12, pres("Unidad", 1));
+        addProd(prods, ppts, "salon_belleza", decolorantes, "Decolorante en Polvo", "Kg", 13, pres("Bolsa 500g", 1));
+        addProd(prods, ppts, "salon_belleza", alisados, "Alisado Progresivo", "Litro", 14, pres("Botella 500ml", 1));
+        addProd(prods, ppts, "salon_belleza", cremas, "Crema Hidratante Facial", "Litro", 15, pres("Tubo 200ml", 1));
+        addProd(prods, ppts, "salon_belleza", maquillaje, "Base de Maquillaje", "Unidad", 16, pres("Tubo", 1));
+        addProd(prods, ppts, "salon_belleza", maquillaje, "Labial", "Unidad", 17, pres("Unidad", 1));
+        addProd(prods, ppts, "salon_belleza", limpiadores, "Jabón Líquido Facial", "Litro", 18, pres("Botella 250ml", 1));
+        addProd(prods, ppts, "salon_belleza", guantes, "Guantes de Latex", "Caja", 19, pres("Caja x100", 1));
+        addProd(prods, ppts, "salon_belleza", capas, "Capa para Corte", "Unidad", 20, pres("Unidad", 1));
+        jdbc.batchUpdate("INSERT INTO template_products (id, industry_code, category_id, name, base_unit, min_quantity, max_quantity, sort_order) VALUES (?, ?, ?, ?, ?, ?, ?, ?)", prods);
+        jdbc.batchUpdate("INSERT INTO template_product_presentations (id, template_product_id, name, conversion, sort_order) VALUES (?, ?, ?, ?, ?)", ppts);
     }
 
     private void seedFerreteria() {
@@ -503,6 +604,31 @@ public class SeedDataRunner implements ApplicationRunner {
                         "Ajuste (Conteo físico, Daño)", "AJUSTE"));
         jdbc.batchUpdate("INSERT INTO template_payment_methods (id, industry_code, name, sort_order) VALUES (?, ?, ?, ?)",
                 paymentMethods("ferreteria", "Efectivo", "Tarjeta", "Crédito", "Cheque"));
+
+        var prods = new ArrayList<Object[]>();
+        var ppts = new ArrayList<Object[]>();
+        addProd(prods, ppts, "ferreteria", manuales, "Martillo", "Unidad", 1, pres("Unidad", 1));
+        addProd(prods, ppts, "ferreteria", manuales, "Destornillador Plano", "Unidad", 2, pres("Unidad", 1), pres("Juego x6", 6));
+        addProd(prods, ppts, "ferreteria", manuales, "Llave Inglesa", "Unidad", 3, pres("Unidad", 1));
+        addProd(prods, ppts, "ferreteria", manuales, "Cinta Métrica", "Unidad", 4, pres("Unidad", 1));
+        addProd(prods, ppts, "ferreteria", electricas, "Taladro Eléctrico", "Unidad", 5, pres("Unidad", 1));
+        addProd(prods, ppts, "ferreteria", electricas, "Sierra Eléctrica", "Unidad", 6, pres("Unidad", 1));
+        addProd(prods, ppts, "ferreteria", tornilleria, "Tornillos Varios", "Caja", 7, pres("Caja 100pz", 1));
+        addProd(prods, ppts, "ferreteria", tornilleria, "Clavos 2\"", "Lb", 8, pres("Bolsa 1lb", 1));
+        addProd(prods, ppts, "ferreteria", tornilleria, "Tuercas y Arandelas", "Caja", 9, pres("Caja 50pz", 1));
+        addProd(prods, ppts, "ferreteria", construccion, "Cemento", "Kg", 10, pres("Bolsa 42.5kg", 1));
+        addProd(prods, ppts, "ferreteria", construccion, "Varilla de Acero", "Unidad", 11, pres("Unidad 6m", 1));
+        addProd(prods, ppts, "ferreteria", pinturas, "Pintura Blanca Interior", "Galón", 12, pres("Galón", 1), pres("Cuarto de Galón", 1));
+        addProd(prods, ppts, "ferreteria", pinturas, "Thinner", "Litro", 13, pres("Galón", 1));
+        addProd(prods, ppts, "ferreteria", pintura, "Brocha 2\"", "Unidad", 14, pres("Unidad", 1));
+        addProd(prods, ppts, "ferreteria", fontaneria, "Tubería PVC 1/2\"", "Metro", 15, pres("Metro", 1));
+        addProd(prods, ppts, "ferreteria", fontaneria, "Codo PVC 1/2\"", "Unidad", 16, pres("Unidad", 1));
+        addProd(prods, ppts, "ferreteria", fontaneria, "Sellador de Tuberías", "Unidad", 17, pres("Tubo", 1));
+        addProd(prods, ppts, "ferreteria", electricidad, "Cable Eléctrico #12", "Metro", 18, pres("Metro", 1));
+        addProd(prods, ppts, "ferreteria", electricidad, "Toma Corriente Doble", "Unidad", 19, pres("Unidad", 1));
+        addProd(prods, ppts, "ferreteria", electricidad, "Interruptor Sencillo", "Unidad", 20, pres("Unidad", 1));
+        jdbc.batchUpdate("INSERT INTO template_products (id, industry_code, category_id, name, base_unit, min_quantity, max_quantity, sort_order) VALUES (?, ?, ?, ?, ?, ?, ?, ?)", prods);
+        jdbc.batchUpdate("INSERT INTO template_product_presentations (id, template_product_id, name, conversion, sort_order) VALUES (?, ?, ?, ?, ?)", ppts);
     }
 
     private void seedMiniSuper() {
@@ -594,6 +720,32 @@ public class SeedDataRunner implements ApplicationRunner {
                         "Ajuste (Vencimiento, Rotura, Conteo)", "AJUSTE"));
         jdbc.batchUpdate("INSERT INTO template_payment_methods (id, industry_code, name, sort_order) VALUES (?, ?, ?, ?)",
                 paymentMethods("mini_super", "Efectivo", "Tarjeta", "Cheque"));
+
+        var prods = new ArrayList<Object[]>();
+        var ppts = new ArrayList<Object[]>();
+        addProd(prods, ppts, "mini_super", lacteos, "Leche Entera", "Litro", 1, pres("Bolsa 1L", 1));
+        addProd(prods, ppts, "mini_super", lacteos, "Queso Amarillo", "Kg", 2, pres("Kg", 1));
+        addProd(prods, ppts, "mini_super", lacteos, "Yogur Natural", "Litro", 3, pres("Botella 1L", 1));
+        addProd(prods, ppts, "mini_super", carnesFrias, "Jamón de Pollo", "Kg", 4, pres("Kg", 1));
+        addProd(prods, ppts, "mini_super", carnesFrias, "Salchicha", "Kg", 5, pres("Bolsa 500g", 1));
+        addProd(prods, ppts, "mini_super", frutas, "Frutas Mixtas", "Kg", 6, pres("Kg", 1));
+        addProd(prods, ppts, "mini_super", abarrotes, "Arroz", "Kg", 7, pres("Bolsa 1kg", 1), pres("Bolsa 5kg", 5));
+        addProd(prods, ppts, "mini_super", abarrotes, "Pasta Spaghetti", "Kg", 8, pres("Paquete 500g", 1));
+        addProd(prods, ppts, "mini_super", abarrotes, "Aceite Vegetal", "Litro", 9, pres("Botella 1L", 1));
+        addProd(prods, ppts, "mini_super", abarrotes, "Harina de Trigo", "Kg", 10, pres("Bolsa 1kg", 1));
+        addProd(prods, ppts, "mini_super", abarrotes, "Azúcar", "Kg", 11, pres("Bolsa 1kg", 1), pres("Bolsa 5kg", 5));
+        addProd(prods, ppts, "mini_super", bebidas, "Refresco Cola", "Botella", 12, pres("Botella 2L", 1));
+        addProd(prods, ppts, "mini_super", bebidas, "Agua Natural", "Botella", 13, pres("Botella 1L", 1));
+        addProd(prods, ppts, "mini_super", bebidas, "Cerveza Nacional", "Unidad", 14, pres("Unidad", 1), pres("Caja x12", 12));
+        addProd(prods, ppts, "mini_super", snacks, "Papitas", "Bolsa", 15, pres("Bolsa 150g", 1));
+        addProd(prods, ppts, "mini_super", snacks, "Galletas", "Paquete", 16, pres("Paquete", 1));
+        addProd(prods, ppts, "mini_super", snacks, "Dulces Varios", "Kg", 17, pres("Kg", 1));
+        addProd(prods, ppts, "mini_super", higiene, "Jabón de Baño", "Unidad", 18, pres("Unidad", 1));
+        addProd(prods, ppts, "mini_super", higiene, "Pasta Dental", "Unidad", 19, pres("Tubo", 1));
+        addProd(prods, ppts, "mini_super", limpieza, "Detergente en Polvo", "Kg", 20, pres("Bolsa 1kg", 1));
+        addProd(prods, ppts, "mini_super", limpieza, "Desinfectante", "Litro", 21, pres("Botella 1L", 1));
+        jdbc.batchUpdate("INSERT INTO template_products (id, industry_code, category_id, name, base_unit, min_quantity, max_quantity, sort_order) VALUES (?, ?, ?, ?, ?, ?, ?, ?)", prods);
+        jdbc.batchUpdate("INSERT INTO template_product_presentations (id, template_product_id, name, conversion, sort_order) VALUES (?, ?, ?, ?, ?)", ppts);
     }
 
     private void seedTallerMecanico() {
@@ -676,6 +828,31 @@ public class SeedDataRunner implements ApplicationRunner {
                         "Ajuste (Conteo físico, Daño)", "AJUSTE"));
         jdbc.batchUpdate("INSERT INTO template_payment_methods (id, industry_code, name, sort_order) VALUES (?, ?, ?, ?)",
                 paymentMethods("taller_mecanico", "Efectivo", "Tarjeta", "Crédito", "ACH"));
+
+        var prods = new ArrayList<Object[]>();
+        var ppts = new ArrayList<Object[]>();
+        addProd(prods, ppts, "taller_mecanico", filtros, "Filtro de Aceite", "Unidad", 1, pres("Unidad", 1));
+        addProd(prods, ppts, "taller_mecanico", filtros, "Filtro de Aire", "Unidad", 2, pres("Unidad", 1));
+        addProd(prods, ppts, "taller_mecanico", lubricantes, "Aceite de Motor 20W50", "Litro", 3, pres("Botella 1L", 1), pres("Galón 5L", 5));
+        addProd(prods, ppts, "taller_mecanico", lubricantes, "Grasa Multiusos", "Kg", 4, pres("Tarro 500g", 1));
+        addProd(prods, ppts, "taller_mecanico", liquidos, "Líquido de Frenos DOT4", "Litro", 5, pres("Botella 500ml", 1));
+        addProd(prods, ppts, "taller_mecanico", liquidos, "Refrigerante", "Litro", 6, pres("Galón 3.78L", 1));
+        addProd(prods, ppts, "taller_mecanico", frenos, "Pastillas de Freno", "Juego", 7, pres("Juego x4", 1));
+        addProd(prods, ppts, "taller_mecanico", frenos, "Disco de Freno", "Unidad", 8, pres("Unidad", 1));
+        addProd(prods, ppts, "taller_mecanico", suspension, "Amortiguador Delantero", "Unidad", 9, pres("Unidad", 1));
+        addProd(prods, ppts, "taller_mecanico", suspension, "Rótula de Suspensión", "Unidad", 10, pres("Unidad", 1));
+        addProd(prods, ppts, "taller_mecanico", electrico, "Batería de Auto", "Unidad", 11, pres("Unidad", 1));
+        addProd(prods, ppts, "taller_mecanico", electrico, "Cable de Batería", "Unidad", 12, pres("Juego", 1));
+        addProd(prods, ppts, "taller_mecanico", electrico, "Fusibles Varios", "Caja", 13, pres("Caja x20", 1));
+        addProd(prods, ppts, "taller_mecanico", herramientas, "Llave de Tubo", "Unidad", 14, pres("Unidad", 1), pres("Juego x12", 12));
+        addProd(prods, ppts, "taller_mecanico", herramientas, "Destornillador Torx", "Unidad", 15, pres("Unidad", 1));
+        addProd(prods, ppts, "taller_mecanico", consumibles, "Paños de Limpieza", "Caja", 16, pres("Caja", 1));
+        addProd(prods, ppts, "taller_mecanico", consumibles, "Guantes de Mecánico", "Caja", 17, pres("Caja x50", 1));
+        addProd(prods, ppts, "taller_mecanico", consumibles, "Sellador de Silicona", "Unidad", 18, pres("Tubo", 1));
+        addProd(prods, ppts, "taller_mecanico", variadas, "Correa de Distribución", "Unidad", 19, pres("Unidad", 1));
+        addProd(prods, ppts, "taller_mecanico", variadas, "Manguera de Radiador", "Unidad", 20, pres("Unidad", 1));
+        jdbc.batchUpdate("INSERT INTO template_products (id, industry_code, category_id, name, base_unit, min_quantity, max_quantity, sort_order) VALUES (?, ?, ?, ?, ?, ?, ?, ?)", prods);
+        jdbc.batchUpdate("INSERT INTO template_product_presentations (id, template_product_id, name, conversion, sort_order) VALUES (?, ?, ?, ?, ?)", ppts);
     }
 
     private void seedFarmacia() {
@@ -760,6 +937,31 @@ public class SeedDataRunner implements ApplicationRunner {
                         "Ajuste (Vencimiento, Conteo físico)", "AJUSTE"));
         jdbc.batchUpdate("INSERT INTO template_payment_methods (id, industry_code, name, sort_order) VALUES (?, ?, ?, ?)",
                 paymentMethods("farmacia", "Efectivo", "Tarjeta", "Crédito", "Seguro médico"));
+
+        var prods = new ArrayList<Object[]>();
+        var ppts = new ArrayList<Object[]>();
+        addProd(prods, ppts, "farmacia", medicamentos, "Ibuprofeno 400mg", "Caja", 1, pres("Caja x20", 1));
+        addProd(prods, ppts, "farmacia", medicamentos, "Paracetamol 500mg", "Caja", 2, pres("Caja x20", 1));
+        addProd(prods, ppts, "farmacia", medicamentos, "Aspirina 100mg", "Caja", 3, pres("Caja x20", 1));
+        addProd(prods, ppts, "farmacia", medicamentos, "Antigripal", "Caja", 4, pres("Caja x10", 1));
+        addProd(prods, ppts, "farmacia", medicamentos, "Loratadina 10mg", "Caja", 5, pres("Caja x10", 1));
+        addProd(prods, ppts, "farmacia", medicamentos, "Omeprazol 20mg", "Caja", 6, pres("Caja x14", 1));
+        addProd(prods, ppts, "farmacia", bucal, "Pasta Dental", "Tubo", 7, pres("Tubo 120ml", 1));
+        addProd(prods, ppts, "farmacia", bucal, "Enjuague Bucal", "Litro", 8, pres("Botella 500ml", 1));
+        addProd(prods, ppts, "farmacia", corporal, "Jabón de Baño", "Unidad", 9, pres("Unidad", 1));
+        addProd(prods, ppts, "farmacia", corporal, "Champú", "Litro", 10, pres("Botella 500ml", 1));
+        addProd(prods, ppts, "farmacia", corporal, "Desodorante", "Unidad", 11, pres("Unidad", 1));
+        addProd(prods, ppts, "farmacia", piel, "Protector Solar SPF50", "Litro", 12, pres("Botella 200ml", 1));
+        addProd(prods, ppts, "farmacia", bebes, "Pañales Talla M", "Caja", 13, pres("Caja x40", 1));
+        addProd(prods, ppts, "farmacia", bebes, "Toallitas Húmedas", "Caja", 14, pres("Caja x80", 1));
+        addProd(prods, ppts, "farmacia", auxilios, "Venda Elástica", "Unidad", 15, pres("Unidad", 1));
+        addProd(prods, ppts, "farmacia", auxilios, "Alcohol 70°", "Litro", 16, pres("Botella 500ml", 1));
+        addProd(prods, ppts, "farmacia", auxilios, "Gasas Estériles", "Caja", 17, pres("Caja x10", 1));
+        addProd(prods, ppts, "farmacia", suplementos, "Multivitamínico", "Caja", 18, pres("Caja x30", 1));
+        addProd(prods, ppts, "farmacia", suplementos, "Vitamina C 500mg", "Caja", 19, pres("Caja x30", 1));
+        addProd(prods, ppts, "farmacia", equipos, "Termómetro Digital", "Unidad", 20, pres("Unidad", 1));
+        jdbc.batchUpdate("INSERT INTO template_products (id, industry_code, category_id, name, base_unit, min_quantity, max_quantity, sort_order) VALUES (?, ?, ?, ?, ?, ?, ?, ?)", prods);
+        jdbc.batchUpdate("INSERT INTO template_product_presentations (id, template_product_id, name, conversion, sort_order) VALUES (?, ?, ?, ?, ?)", ppts);
     }
 
     private void seedDefault() {
@@ -779,6 +981,13 @@ public class SeedDataRunner implements ApplicationRunner {
                         "Ajuste", "AJUSTE"));
         jdbc.batchUpdate("INSERT INTO template_payment_methods (id, industry_code, name, sort_order) VALUES (?, ?, ?, ?)",
                 paymentMethods("default", "Efectivo", "Transferencia"));
+
+        var prods = new ArrayList<Object[]>();
+        var ppts = new ArrayList<Object[]>();
+        addProd(prods, ppts, "default", defaultCat, "Producto Genérico", "Unidad", 1, pres("Unidad", 1));
+        addProd(prods, ppts, "default", defaultCat, "Servicio General", "Unidad", 2, pres("Unidad", 1));
+        jdbc.batchUpdate("INSERT INTO template_products (id, industry_code, category_id, name, base_unit, min_quantity, max_quantity, sort_order) VALUES (?, ?, ?, ?, ?, ?, ?, ?)", prods);
+        jdbc.batchUpdate("INSERT INTO template_product_presentations (id, template_product_id, name, conversion, sort_order) VALUES (?, ?, ?, ?, ?)", ppts);
     }
 
     private static Object[] cat(String industry, UUID id, String name, UUID parentId, int sortOrder) {
@@ -815,5 +1024,17 @@ public class SeedDataRunner implements ApplicationRunner {
         for (int i = 0; i < names.length; i++)
             list.add(new Object[]{UUID.randomUUID(), industry, names[i], i + 1});
         return list;
+    }
+
+    // ponytail: single helper for both product + presentation batch data
+    private void addProd(ArrayList<Object[]> prods, ArrayList<Object[]> ppts, String industry, UUID category, String name, String baseUnit, int sort, Object[]... presentations) {
+        var id = UUID.randomUUID();
+        prods.add(new Object[]{id, industry, category, name, baseUnit, null, null, sort});
+        for (int i = 0; i < presentations.length; i++)
+            ppts.add(new Object[]{UUID.randomUUID(), id, presentations[i][0], presentations[i][1], i + 1});
+    }
+
+    private static Object[] pres(String name, int conversion) {
+        return new Object[]{name, conversion};
     }
 }

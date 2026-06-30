@@ -11,7 +11,8 @@ public class SetupMapper {
 
     public SetupResponse toResponse(TenantSetup entity, List<SetupResponse.ItemDTO> categories,
                                      List<SetupResponse.ItemDTO> units,
-                                     List<SetupResponse.ItemDTO> locations) {
+                                     List<SetupResponse.ItemDTO> locations,
+                                     List<SetupResponse.ProductTemplateDTO> products) {
         return new SetupResponse(
                 entity.getId(),
                 entity.getTenantId(),
@@ -19,7 +20,8 @@ public class SetupMapper {
                 entity.isOnboardingCompleted(),
                 categories,
                 units,
-                locations
+                locations,
+                products
         );
     }
 }

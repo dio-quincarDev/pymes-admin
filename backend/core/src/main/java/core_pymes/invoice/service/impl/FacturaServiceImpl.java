@@ -160,6 +160,16 @@ public class FacturaServiceImpl implements FacturaService {
                     .subtotal(subtotal)
                     .build();
             factura.getItems().add(item);
+
+            // ponytail: update product expense stats inline
+            jdbc.update("""
+                UPDATE core.products SET
+                    last_unit_price = ?,
+                    total_investment = total_investment + ?,
+                    last_purchase_date = ?
+                WHERE id = ? AND tenant_id = ?
+                """, itemReq.precioUnitario(), subtotal, request.fecha(),
+                    itemReq.productoId(), request.tenantId());
         }
 
         factura.setTotal(total.subtract(factura.getGlobalDiscount()));

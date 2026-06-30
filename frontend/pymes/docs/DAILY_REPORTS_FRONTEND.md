@@ -4,6 +4,31 @@ Registro cronológico de decisiones, problemas resueltos y estado del frontend.
 
 ---
 
+## 2026-06-30 — Template Products: Frontend preview en onboarding completado
+
+### Qué se hizo
+
+La sección "Productos precargados (N)" en el paso 2 del onboarding, planificada el 2026-06-29, se implementó:
+
+- **`types/index.ts`** — agregado `ProductTemplateDTO { id, name, baseUnit, categoryName }` + campo `products` en `SetupInfo`
+- **`OnboardingPage.vue`** — en step 2, después del árbol de categorías, se agrega sección "Productos precargados (25)" con tabla de nombre, unidad y categoría
+- Backend devuelve los productos en preview y post-onboarding
+
+### Flujo UX actualizado
+
+```
+Onboarding → Paso 1: industria → Paso 2: preview árbol + productos → "Comenzar" → POST → /dashboard
+```
+
+### Files modificados
+
+```
+frontend/pymes/src/modules/core/types/index.ts       # +ProductTemplateDTO
+frontend/pymes/src/modules/core/pages/OnboardingPage.vue  # +sección productos
+```
+
+---
+
 ## 2026-06-29 — Plan: Template Products para Onboarding
 
 ### Problema
@@ -418,6 +443,49 @@ PWA manifest actualizado: nombre "PYMEQ - Auditoría Inteligente", `theme_color:
 
 ---
 
+---
+
+## 2026-06-30 — Análisis de Gastos: Nueva página dashboard + tipos actualizados
+
+### Qué se hizo
+
+**Nueva página: `AnalisisGastosPage.vue`**
+- Ruta `/dashboard/analisis-gastos`
+- 4 cards resumen: Inversión Total, Productos, Categorías, Alertas
+- Inversión por Categoría — agrupación client-side con `q-linear-progress`
+- Alertas por producto: excedió presupuesto max, debajo de min, sin compras >60d
+- Tabla Últimos Precios Unitarios (QTable con filtro, sort, formato moneda)
+- Footer con targets Min/Max editables
+
+**Tipos actualizados:**
+- `Producto`: + `lastUnitPrice`, `totalInvestment`, `lastPurchaseDate`, `minQuantity`, `maxQuantity`
+- `ProductoRequest`: + `minQuantity`, `maxQuantity`
+
+**Navegación:**
+- Sidebar: nuevo link "Análisis de Gastos" con icono `analytics`
+
+### Arquitectura
+
+Sin endpoint nuevo — todo se computa client-side desde `GET /productos`:
+- Total inversión: `sum(totalInvestment)`
+- Por categoría: `groupBy('category')` con % del total
+- Alertas: filtros inline sobre `minQuantity`/`maxQuantity`/`lastPurchaseDate`
+- Menos de 200 productos por tenant, suficiente para MVP
+
+### Files tocados
+
+```
+src/modules/core/pages/AnalisisGastosPage.vue     # nuevo
+src/modules/core/types/index.ts                    # +campos Producto/ProductoRequest
+src/modules/core/router/routes.ts                  # +ruta
+src/layouts/MainLayout.vue                         # +nav link
+```
+
+### Build
+
+- `npm run lint`: ✅
+- `npm run build`: ✅
+
 ## Próximos Pasos
 
 ### Testing (Fase 1)
@@ -439,7 +507,6 @@ PWA manifest actualizado: nombre "PYMEQ - Auditoría Inteligente", `theme_color:
 - Migrar `refreshToken` de `localStorage` a cookie `HttpOnly` en producción
 - Input sanitization con DOMPurify cuando haya UGC
 - Sentry cuando haya usuarios reales
-- Onboarding con preview de productos precargados (ver entry 2026-06-29)
 
 ---
 

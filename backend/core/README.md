@@ -59,6 +59,7 @@ docker compose up -d core-service
 |----------|--------|-------------|
 | `/api/v1/core/setup/{tenantId}` | GET | Obtener o inicializar setup del tenant |
 | `/api/v1/core/setup/{tenantId}/onboarding` | POST | Completar onboarding |
+| `/api/v1/core/setup/preview/{industry}` | GET | Preview de plantilla (categorías, unidades, productos) |
 
 Todas las rutas pasan por el Gateway (puerto 8080) con autenticación JWT.
 

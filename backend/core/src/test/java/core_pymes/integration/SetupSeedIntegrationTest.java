@@ -55,6 +55,36 @@ class SetupSeedIntegrationTest extends AbstractIntegrationTest {
         var defaultReasons = jdbcTemplate.queryForObject(
                 "SELECT COUNT(*) FROM template_movement_reasons WHERE industry_code = ?", Integer.class, "default");
         assertThat(defaultReasons).isEqualTo(3);
+
+        var templateProducts = jdbcTemplate.queryForObject("SELECT COUNT(*) FROM template_products", Integer.class);
+        assertThat(templateProducts).isGreaterThan(0);
+
+        var restauranteProducts = jdbcTemplate.queryForObject(
+                "SELECT COUNT(*) FROM template_products WHERE industry_code = ?", Integer.class, "restaurante");
+        assertThat(restauranteProducts).isEqualTo(25);
+
+        var presentations = jdbcTemplate.queryForObject("SELECT COUNT(*) FROM template_product_presentations", Integer.class);
+        assertThat(presentations).isGreaterThan(0);
+    }
+
+    @Test
+    @DisplayName("GET setup/preview/{industry} returns products")
+    void previewIndustry_returnsProducts() throws Exception {
+        mockMvc.perform(get("/api/v1/core/setup/preview/{industry}", "restaurante"))
+                .andExpect(status().isOk())
+                .andExpect(jsonPath("$.products").isArray())
+                .andExpect(jsonPath("$.products.length()").isNumber())
+                .andExpect(jsonPath("$.products[0].name").isString())
+                .andExpect(jsonPath("$.products[0].baseUnit").isString());
+    }
+
+    @Test
+    @DisplayName("GET setup/preview/{industry} returns default with products")
+    void previewIndustry_defaultHasProducts() throws Exception {
+        mockMvc.perform(get("/api/v1/core/setup/preview/{industry}", "default"))
+                .andExpect(status().isOk())
+                .andExpect(jsonPath("$.products").isArray())
+                .andExpect(jsonPath("$.products.length()").value(2));
     }
 
     @Test
@@ -128,6 +158,71 @@ class SetupSeedIntegrationTest extends AbstractIntegrationTest {
         mockMvc.perform(get("/api/v1/core/setup/{tenantId}", tenantId))
                 .andExpect(status().isOk())
                 .andExpect(jsonPath("$.industry").value("bares"))
-                .andExpect(jsonPath("$.onboardingCompleted").value(true));
+                .andExpect(jsonPath("$.onboardingCompleted").value(true))
+                .andExpect(jsonPath("$.products").isArray())
+                .andExpect(jsonPath("$.products.length()").isNumber());
+    }
+
+    @Test
+    @DisplayName("Onboarding copies template products to tenant with auto-SKU")
+    void completeOnboarding_copiesProductsToTenant() throws Exception {
+        var tenantId = UUID.randomUUID();
+
+        mockMvc.perform(post("/api/v1/core/setup/{tenantId}/onboarding", tenantId)
+                        .contentType(MediaType.APPLICATION_JSON)
+                        .content(objectMapper.writeValueAsString(Map.of("industry", "restaurante"))))
+                .andExpect(status().isOk())
+                .andExpect(jsonPath("$.products").isArray())
+                .andExpect(jsonPath("$.products.length()").value(25));
+
+        // ponytail: direct JDBC reads to verify DB state
+        var productCount = jdbcTemplate.queryForObject(
+                "SELECT COUNT(*) FROM core.products WHERE tenant_id = ?", Integer.class, tenantId);
+        assertThat(productCount).isEqualTo(25);
+
+        var skus = jdbcTemplate.queryForList(
+                "SELECT sku FROM core.products WHERE tenant_id = ? ORDER BY sku", String.class, tenantId);
+        assertThat(skus).hasSize(25);
+        assertThat(skus.getFirst()).isEqualTo("P-0001");
+        assertThat(skus.getLast()).isEqualTo("P-0025");
+
+        var presentationCount = jdbcTemplate.queryForObject(
+                "SELECT COUNT(*) FROM core.product_presentations pp " +
+                "JOIN core.products p ON pp.product_id = p.id WHERE p.tenant_id = ?",
+                Integer.class, tenantId);
+        assertThat(presentationCount).isGreaterThan(productCount);
+    }
+
+    @Test
+    @DisplayName("Products are unique per tenant after onboarding")
+    void completeOnboarding_productsTenantIsolation() throws Exception {
+        var tenantA = UUID.randomUUID();
+        var tenantB = UUID.randomUUID();
+
+        mockMvc.perform(post("/api/v1/core/setup/{tenantId}/onboarding", tenantA)
+                        .contentType(MediaType.APPLICATION_JSON)
+                        .content(objectMapper.writeValueAsString(Map.of("industry", "ferreteria"))))
+                .andExpect(status().isOk());
+
+        mockMvc.perform(post("/api/v1/core/setup/{tenantId}/onboarding", tenantB)
+                        .contentType(MediaType.APPLICATION_JSON)
+                        .content(objectMapper.writeValueAsString(Map.of("industry", "ferreteria"))))
+                .andExpect(status().isOk());
+
+        var countA = jdbcTemplate.queryForObject(
+                "SELECT COUNT(*) FROM core.products WHERE tenant_id = ?", Integer.class, tenantA);
+        var countB = jdbcTemplate.queryForObject(
+                "SELECT COUNT(*) FROM core.products WHERE tenant_id = ?", Integer.class, tenantB);
+
+        assertThat(countA).isEqualTo(countB);
+        assertThat(countA).isGreaterThan(0);
+
+        // SKUs should be sequential per tenant, both starting at P-0001
+        var skuA = jdbcTemplate.queryForObject(
+                "SELECT sku FROM core.products WHERE tenant_id = ? ORDER BY sku LIMIT 1", String.class, tenantA);
+        var skuB = jdbcTemplate.queryForObject(
+                "SELECT sku FROM core.products WHERE tenant_id = ? ORDER BY sku LIMIT 1", String.class, tenantB);
+        assertThat(skuA).isEqualTo("P-0001");
+        assertThat(skuB).isEqualTo("P-0001");
     }
 }

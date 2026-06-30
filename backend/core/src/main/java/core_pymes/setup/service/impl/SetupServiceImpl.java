@@ -44,6 +44,56 @@ public class SetupServiceImpl implements SetupService {
                 .orElseGet(() -> repository.save(new TenantSetup(tenantId)));
         config.completeOnboarding(industry);
         repository.save(config);
+
+        // ponytail: direct JDBC batch copy from template → tenant, SKU auto P-0001
+        var templateProducts = jdbc.query(
+            "SELECT tp.id, tp.name, tp.base_unit, tp.min_quantity, tp.max_quantity, tc.name AS category_name " +
+            "FROM template_products tp " +
+            "LEFT JOIN template_categories tc ON tp.category_id = tc.id " +
+            "WHERE tp.industry_code = ? ORDER BY tp.sort_order",
+            (rs, row) -> new TemplateProductRow(
+                rs.getObject("id", java.util.UUID.class),
+                rs.getString("name"),
+                rs.getString("base_unit"),
+                rs.getBigDecimal("min_quantity"),
+                rs.getBigDecimal("max_quantity"),
+                rs.getString("category_name")),
+            industry);
+
+        var templatePres = jdbc.query(
+            "SELECT template_product_id, name, conversion FROM template_product_presentations WHERE template_product_id IN " +
+            "(SELECT id FROM template_products WHERE industry_code = ?) ORDER BY sort_order",
+            (rs, row) -> new TemplatePresentationRow(
+                rs.getObject("template_product_id", java.util.UUID.class),
+                rs.getString("name"),
+                rs.getInt("conversion")),
+            industry);
+
+        if (!templateProducts.isEmpty()) {
+            var prodBatch = new ArrayList<Object[]>();
+            var presBatch = new ArrayList<Object[]>();
+            int seq = 0;
+            for (var tp : templateProducts) {
+                seq++;
+                var newProdId = UUID.randomUUID();
+                var sku = String.format("P-%04d", seq);
+                prodBatch.add(new Object[]{newProdId, tenantId, tp.name, sku, tp.categoryName, tp.baseUnit, tp.minQuantity, tp.maxQuantity});
+
+                for (var pp : templatePres) {
+                    if (pp.templateProductId.equals(tp.id)) {
+                        presBatch.add(new Object[]{UUID.randomUUID(), newProdId, pp.name, pp.conversion});
+                    }
+                }
+            }
+
+            jdbc.batchUpdate(
+                "INSERT INTO core.products (id, tenant_id, name, sku, category, base_unit, min_quantity, max_quantity, is_active, created_at, updated_at) VALUES (?, ?, ?, ?, ?, ?, ?, ?, true, NOW(), NOW())",
+                prodBatch);
+            jdbc.batchUpdate(
+                "INSERT INTO core.product_presentations (id, product_id, name, conversion, is_active, created_at) VALUES (?, ?, ?, ?, true, NOW())",
+                presBatch);
+        }
+
         return buildResponse(config);
     }
 
@@ -51,21 +101,25 @@ public class SetupServiceImpl implements SetupService {
     public SetupResponse previewIndustry(String industry) {
         validateIndustry(industry);
         var data = loadIndustryData(industry);
-        return new SetupResponse(null, null, industry, false, data.categories(), data.units(), data.locations());
+        return SetupResponse.preview(industry, data.categories(), data.units(), data.locations(), data.products());
     }
 
     private SetupResponse buildResponse(TenantSetup config) {
         var industry = config.getIndustry();
         if (industry == null) {
-            return mapper.toResponse(config, List.of(), List.of(), List.of());
+            return mapper.toResponse(config, List.of(), List.of(), List.of(), List.of());
         }
         var data = loadIndustryData(industry);
-        return mapper.toResponse(config, data.categories(), data.units(), data.locations());
+        return mapper.toResponse(config, data.categories(), data.units(), data.locations(), data.products());
     }
 
     private record IndustryData(List<SetupResponse.ItemDTO> categories,
                                 List<SetupResponse.ItemDTO> units,
-                                List<SetupResponse.ItemDTO> locations) {}
+                                List<SetupResponse.ItemDTO> locations,
+                                List<SetupResponse.ProductTemplateDTO> products) {}
+
+    private record TemplateProductRow(java.util.UUID id, String name, String baseUnit, java.math.BigDecimal minQuantity, java.math.BigDecimal maxQuantity, String categoryName) {}
+    private record TemplatePresentationRow(java.util.UUID templateProductId, String name, int conversion) {}
 
     private IndustryData loadIndustryData(String industry) {
         var categories = buildCategoryTree(industry);
@@ -77,7 +131,18 @@ public class SetupServiceImpl implements SetupService {
                 "SELECT id AS code, name FROM template_locations WHERE industry_code = ? ORDER BY sort_order",
                 (rs, row) -> SetupResponse.ItemDTO.flat(rs.getString("code"), rs.getString("name")),
                 industry);
-        return new IndustryData(categories, units, locations);
+        var products = jdbc.query(
+            "SELECT tp.id, tp.name, tp.base_unit, tc.name AS category_name " +
+            "FROM template_products tp " +
+            "LEFT JOIN template_categories tc ON tp.category_id = tc.id " +
+            "WHERE tp.industry_code = ? ORDER BY tp.sort_order",
+            (rs, row) -> new SetupResponse.ProductTemplateDTO(
+                rs.getString("id"),
+                rs.getString("name"),
+                rs.getString("base_unit"),
+                rs.getString("category_name")),
+            industry);
+        return new IndustryData(categories, units, locations, products);
     }
 
     private void validateIndustry(String industry) {

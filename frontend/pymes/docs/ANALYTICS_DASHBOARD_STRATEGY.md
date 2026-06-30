@@ -10,14 +10,14 @@
 
 **Response (`AnalyticsResponse`):**
 
-| Motor | Campo | Estructura | Descripción |
-|-------|-------|------------|-------------|
-| **ABC Gastos** | `abc[]` | `{ productId, productName, spend, pctTotal, cumulativePct, category: 'A', 'B', 'C' }` | Pareto: 80/20 productos por gasto |
-| **Tendencias Precios** | `trend[]` | `{ productId, productName, currentAvgPrice, movingAvg90d, pctChange }` | % cambio vs media móvil 90d |
-| **Impacto Márgenes** | `margin[]` | `{ productId, productName, currentPrice, previousPrice, pctChange }` | Delta precio unitario % |
-| **Costo Operativo** | `opexPct[]` | `{ period, totalSpend, invoiceCount, productCount, providerCount, projectedMonthly, avgDailySpend }` | Gasto % ventas + proyección mensual |
-| **Proyección** | `projection[]` | `{ period, projectedSpend, confidence }` | Forecast 30/60/90d |
-| **Alertas** | `alerts[]` | `{ productId, productName, currentPrice, avgPrice, variationPct, severity: 'warning', 'critical' }` | Variación >15% (CV) |
+| Motor                  | Campo          | Estructura                                                                                           | Descripción                         |
+| ---------------------- | -------------- | ---------------------------------------------------------------------------------------------------- | ----------------------------------- |
+| **ABC Gastos**         | `abc[]`        | `{ productId, productName, spend, pctTotal, cumulativePct, category: 'A', 'B', 'C' }`                | Pareto: 80/20 productos por gasto   |
+| **Tendencias Precios** | `trend[]`      | `{ productId, productName, currentAvgPrice, movingAvg90d, pctChange }`                               | % cambio vs media móvil 90d         |
+| **Impacto Márgenes**   | `margin[]`     | `{ productId, productName, currentPrice, previousPrice, pctChange }`                                 | Delta precio unitario %             |
+| **Costo Operativo**    | `opexPct[]`    | `{ period, totalSpend, invoiceCount, productCount, providerCount, projectedMonthly, avgDailySpend }` | Gasto % ventas + proyección mensual |
+| **Proyección**         | `projection[]` | `{ period, projectedSpend, confidence }`                                                             | Forecast 30/60/90d                  |
+| **Alertas**            | `alerts[]`     | `{ productId, productName, currentPrice, avgPrice, variationPct, severity: 'warning', 'critical' }`  | Variación >15% (CV)                 |
 
 ---
 
@@ -59,6 +59,7 @@ src/modules/core/
 ### Fase 1 — Base (Tipos, Service, Composables) ⏱️ ~3h
 
 **`src/modules/core/types/analytics.ts`**
+
 ```typescript
 export interface AbcItem {
   productId: string;
@@ -124,6 +125,7 @@ export interface AnalyticsResponse {
 ```
 
 **`src/modules/core/services/analytics.service.ts`**
+
 ```typescript
 import { api } from 'src/boot/axios';
 import type { AnalyticsResponse } from '../types/analytics';
@@ -131,22 +133,31 @@ import type { AnalyticsResponse } from '../types/analytics';
 export const analyticsService = {
   consultar(tenantId: string, periodo?: string) {
     return api.get<AnalyticsResponse>('/core/analytics/consultar', {
-      params: { tenantId, ...(periodo && { periodo }) }
+      params: { tenantId, ...(periodo && { periodo }) },
     });
   },
   recalcular(tenantId: string, periodo: string) {
     return api.post<AnalyticsResponse>('/core/analytics/recalcular', null, {
-      params: { tenantId, periodo }
+      params: { tenantId, periodo },
     });
-  }
+  },
 };
 ```
 
 **`src/modules/core/composables/useAnalytics.ts`**
+
 ```typescript
 import { ref, computed, watch } from 'vue';
 import { analyticsService } from '../services/analytics.service';
-import type { AnalyticsResponse, AbcItem, TrendItem, MarginItem, OpexItem, ProjectionItem, AlertItem } from '../types/analytics';
+import type {
+  AnalyticsResponse,
+  AbcItem,
+  TrendItem,
+  MarginItem,
+  OpexItem,
+  ProjectionItem,
+  AlertItem,
+} from '../types/analytics';
 import { useAuthStore } from 'src/modules/auth/store';
 import { usePeriod } from './usePeriod';
 
@@ -195,11 +206,26 @@ export function useAnalytics() {
   // Auto-fetch cuando cambia período
   watch(period, fetch, { immediate: true });
 
-  return { data, loading, error, period, setPeriod, fetch, recalcular, abc, trend, margin, opexPct, projection, alerts };
+  return {
+    data,
+    loading,
+    error,
+    period,
+    setPeriod,
+    fetch,
+    recalcular,
+    abc,
+    trend,
+    margin,
+    opexPct,
+    projection,
+    alerts,
+  };
 }
 ```
 
 **`src/modules/core/composables/usePeriod.ts`**
+
 ```typescript
 import { ref, onMounted, watch } from 'vue';
 
@@ -220,7 +246,9 @@ export function usePeriod() {
 
   watch(period, (val) => localStorage.setItem(STORAGE_KEY, val));
 
-  function setPeriod(val: string) { period.value = val; }
+  function setPeriod(val: string) {
+    period.value = val;
+  }
 
   return { period, setPeriod };
 }
@@ -230,16 +258,16 @@ export function usePeriod() {
 
 ### Fase 2 — Componentes UI ⏱️ ~10h
 
-| Componente | Props | Librería | Notas |
-|------------|-------|----------|-------|
-| `KpiCard` | `label, value, delta?, trend?: 'up'\|'down', icon, accent` | BaseCard | Reutilizable en todo el dashboard |
-| `AbcGastosChart` | `data: AbcItem[], height?: number` | Chart.js (bar + line) | Eje Y: spend; eje Y2: cumulativePct; colores A/B/C |
-| `PriceTrendSparkline` | `items: TrendItem[], inline?: boolean` | Chart.js (line mini) | Tooltip con % cambio; color verde/rojo |
-| `MarginImpactTable` | `items: MarginItem[]` | QTable | Columnas: producto, precio actual, anterior, % cambio; sortable |
-| `OpexGauge` | `value: number, max: number, thresholds: { warning: number, critical: number }` | SVG gauge | Sin dep extra; animado |
-| `ProjectionTimeline` | `items: ProjectionItem[]` | Chart.js (line + area) | 3 puntos: 30/60/90d; banda confianza |
-| `AlertsPanel` | `items: AlertItem[], onDismiss?: (id) => void` | QList + QBadge | Severidad: warning (ámbar) / critical (rojo); acción sugerida |
-| `PeriodSelector` | `modelValue: string, @update:modelValue` | QSelect | Opciones: últimos 12 meses; botón "Recalcular" |
+| Componente            | Props                                                                           | Librería               | Notas                                                           |
+| --------------------- | ------------------------------------------------------------------------------- | ---------------------- | --------------------------------------------------------------- |
+| `KpiCard`             | `label, value, delta?, trend?: 'up'\|'down', icon, accent`                      | BaseCard               | Reutilizable en todo el dashboard                               |
+| `AbcGastosChart`      | `data: AbcItem[], height?: number`                                              | Chart.js (bar + line)  | Eje Y: spend; eje Y2: cumulativePct; colores A/B/C              |
+| `PriceTrendSparkline` | `items: TrendItem[], inline?: boolean`                                          | Chart.js (line mini)   | Tooltip con % cambio; color verde/rojo                          |
+| `MarginImpactTable`   | `items: MarginItem[]`                                                           | QTable                 | Columnas: producto, precio actual, anterior, % cambio; sortable |
+| `OpexGauge`           | `value: number, max: number, thresholds: { warning: number, critical: number }` | SVG gauge              | Sin dep extra; animado                                          |
+| `ProjectionTimeline`  | `items: ProjectionItem[]`                                                       | Chart.js (line + area) | 3 puntos: 30/60/90d; banda confianza                            |
+| `AlertsPanel`         | `items: AlertItem[], onDismiss?: (id) => void`                                  | QList + QBadge         | Severidad: warning (ámbar) / critical (rojo); acción sugerida   |
+| `PeriodSelector`      | `modelValue: string, @update:modelValue`                                        | QSelect                | Opciones: últimos 12 meses; botón "Recalcular"                  |
 
 **`src/modules/core/components/charts/BaseChart.vue`** — Wrapper Chart.js con `onMounted`/`onUnmounted` cleanup, responsive, theme dark.
 
@@ -248,6 +276,7 @@ export function usePeriod() {
 ### Fase 3 — Composición Dashboard ⏱️ ~3h
 
 **`src/modules/core/components/dashboard/AnalyticsDashboard.vue`**
+
 ```vue
 <template>
   <div class="analytics-dashboard">
@@ -259,7 +288,13 @@ export function usePeriod() {
       </div>
       <div class="row items-center q-gutter-sm">
         <PeriodSelector v-model="period" @update:modelValue="setPeriod" />
-        <q-btn color="primary" icon="refresh" label="Recalcular" @click="recalcular" :loading="loading" />
+        <q-btn
+          color="primary"
+          icon="refresh"
+          label="Recalcular"
+          @click="recalcular"
+          :loading="loading"
+        />
       </div>
     </div>
 
@@ -303,7 +338,9 @@ export function usePeriod() {
         <BaseCard variant="ghost" class="h-full">
           <template #title>Costo Operativo</template>
           <OpexGauge :value="opexValue" :max="100" :thresholds="{ warning: 70, critical: 85 }" />
-          <div class="q-mt-md text-caption text-accent">Proy. mensual: {{ formatCurrency(opexProjected) }}</div>
+          <div class="q-mt-md text-caption text-accent">
+            Proy. mensual: {{ formatCurrency(opexProjected) }}
+          </div>
         </BaseCard>
         <BaseCard variant="ghost" class="h-full q-mt-lg">
           <template #title>Proyección 30/60/90d</template>
@@ -329,18 +366,59 @@ import PeriodSelector from './PeriodSelector.vue';
 import BaseCard from 'src/components/base/BaseCard.vue';
 import SkeletonLoader from 'src/components/ui/SkeletonLoader.vue';
 
-const { data, loading, period, setPeriod, fetch, recalcular, abc, trend, margin, opexPct, projection, alerts } = useAnalytics();
+const {
+  data,
+  loading,
+  period,
+  setPeriod,
+  fetch,
+  recalcular,
+  abc,
+  trend,
+  margin,
+  opexPct,
+  projection,
+  alerts,
+} = useAnalytics();
 const { formatCurrency } = useNumberFormat();
 const trendTab = ref<'trend' | 'margin'>('trend');
 
 const kpis = computed(() => [
-  { label: 'Gasto Total', value: formatCurrency(opexPct.value[0]?.totalSpend ?? 0), accent: 'copper', icon: 'receipt_long' },
-  { label: 'Proy. Mensual', value: formatCurrency(opexPct.value[0]?.projectedMonthly ?? 0), delta: '+5%', trend: 'up', accent: 'sage', icon: 'trending_up' },
-  { label: 'Productos (ABC-A)', value: String(abc.value.filter(a => a.category === 'A').length), accent: 'gold', icon: 'inventory_2' },
-  { label: 'Alertas Críticas', value: String(alerts.value.filter(a => a.severity === 'critical').length), delta: alerts.value.length > 0 ? 'Revisar' : '', trend: alerts.value.length > 0 ? 'down' : 'up', accent: alerts.value.some(a => a.severity === 'critical') ? 'negative' : 'positive', icon: 'warning' }
+  {
+    label: 'Gasto Total',
+    value: formatCurrency(opexPct.value[0]?.totalSpend ?? 0),
+    accent: 'copper',
+    icon: 'receipt_long',
+  },
+  {
+    label: 'Proy. Mensual',
+    value: formatCurrency(opexPct.value[0]?.projectedMonthly ?? 0),
+    delta: '+5%',
+    trend: 'up',
+    accent: 'sage',
+    icon: 'trending_up',
+  },
+  {
+    label: 'Productos (ABC-A)',
+    value: String(abc.value.filter((a) => a.category === 'A').length),
+    accent: 'gold',
+    icon: 'inventory_2',
+  },
+  {
+    label: 'Alertas Críticas',
+    value: String(alerts.value.filter((a) => a.severity === 'critical').length),
+    delta: alerts.value.length > 0 ? 'Revisar' : '',
+    trend: alerts.value.length > 0 ? 'down' : 'up',
+    accent: alerts.value.some((a) => a.severity === 'critical') ? 'negative' : 'positive',
+    icon: 'warning',
+  },
 ]);
 
-const opexValue = computed(() => opexPct.value[0]?.totalSpend ? (opexPct.value[0].totalSpend / (opexPct.value[0].projectedMonthly || 1)) * 100 : 0);
+const opexValue = computed(() =>
+  opexPct.value[0]?.totalSpend
+    ? (opexPct.value[0].totalSpend / (opexPct.value[0].projectedMonthly || 1)) * 100
+    : 0,
+);
 const opexProjected = computed(() => opexPct.value[0]?.projectedMonthly ?? 0);
 </script>
 ```
@@ -355,7 +433,8 @@ const opexProjected = computed(() => opexPct.value[0]?.projectedMonthly ?? 0);
   <q-page class="dashboard-page">
     <div class="dashboard-header fade-in-up">
       <h1 class="dashboard-title">
-        {{ greeting }}, <span class="dashboard-title__name">{{ authStore.user?.nombre || 'Auditor' }}</span>
+        {{ greeting }},
+        <span class="dashboard-title__name">{{ authStore.user?.nombre || 'Auditor' }}</span>
       </h1>
       <p class="dashboard-subtitle">Panel de control de auditoría inteligente</p>
     </div>
@@ -385,40 +464,40 @@ const goToOnboarding = () => router.push('/onboarding');
 
 ## 4. Decisiones Técnicas (Tradeoffs)
 
-| Decisión | Opción Elegida | Justificación |
-|----------|----------------|---------------|
-| **Chart lib** | Chart.js | Ya en Quasar, ligero, tree-shakable, barras/lineas nativas |
-| **Gauge Opex** | SVG custom | Evita dep ECharts pesado; gauge simple es 50 líneas SVG |
-| **Cache/Estado** | Composable `ref` + watch | Simple, reactivo, no requiere Pinia global |
+| Decisión            | Opción Elegida            | Justificación                                                 |
+| ------------------- | ------------------------- | ------------------------------------------------------------- |
+| **Chart lib**       | Chart.js                  | Ya en Quasar, ligero, tree-shakable, barras/lineas nativas    |
+| **Gauge Opex**      | SVG custom                | Evita dep ECharts pesado; gauge simple es 50 líneas SVG       |
+| **Cache/Estado**    | Composable `ref` + watch  | Simple, reactivo, no requiere Pinia global                    |
 | **Período default** | Mes actual (localStorage) | UX: recuerda última selección; backend usa mes actual si null |
-| **Recálculo** | Botón manual + toast | Async (virtual threads), usuario controla cuándo |
-| **Empty state** | Componente dedicado | CTA claro → "Registra tu primera factura" |
+| **Recálculo**       | Botón manual + toast      | Async (virtual threads), usuario controla cuándo              |
+| **Empty state**     | Componente dedicado       | CTA claro → "Registra tu primera factura"                     |
 
 ---
 
 ## 5. Checklist de Implementación
 
-| # | Tarea | Archivos | Estado |
-|---|-------|----------|--------|
-| 1 | Tipos TypeScript | `types/analytics.ts` | ⬜ |
-| 2 | Service API | `services/analytics.service.ts` | ⬜ |
-| 3 | Composable `useAnalytics` | `composables/useAnalytics.ts` | ⬜ |
-| 4 | Composable `usePeriod` | `composables/usePeriod.ts` | ⬜ |
-| 5 | Composable `useNumberFormat` | `composables/useNumberFormat.ts` | ⬜ |
-| 6 | Wrapper Chart.js | `components/charts/BaseChart.vue` | ⬜ |
-| 7 | KpiCard | `components/dashboard/KpiCard.vue` | ⬜ |
-| 8 | AbcGastosChart | `components/dashboard/AbcGastosChart.vue` | ⬜ |
-| 9 | PriceTrendSparkline | `components/dashboard/PriceTrendSparkline.vue` | ⬜ |
-| 10 | MarginImpactTable | `components/dashboard/MarginImpactTable.vue` | ⬜ |
-| 11 | OpexGauge (SVG) | `components/dashboard/OpexGauge.vue` | ⬜ |
-| 12 | ProjectionTimeline | `components/dashboard/ProjectionTimeline.vue` | ⬜ |
-| 13 | AlertsPanel | `components/dashboard/AlertsPanel.vue` | ⬜ |
-| 14 | PeriodSelector | `components/dashboard/PeriodSelector.vue` | ⬜ |
-| 15 | AnalyticsDashboard (composición) | `components/dashboard/AnalyticsDashboard.vue` | ⬜ |
-| 16 | Refactor DashboardPage | `pages/DashboardPage.vue` | ⬜ |
-| 17 | EmptyDashboardState | `pages/components/EmptyDashboardState.vue` | ⬜ |
-| 18 | Tests unitarios (composables + charts) | `__tests__/` | ⬜ |
-| 19 | Lint + Build check | `npm run lint && npm run build` | ⬜ |
+| #   | Tarea                                  | Archivos                                       | Estado |
+| --- | -------------------------------------- | ---------------------------------------------- | ------ |
+| 1   | Tipos TypeScript                       | `types/analytics.ts`                           | ⬜     |
+| 2   | Service API                            | `services/analytics.service.ts`                | ⬜     |
+| 3   | Composable `useAnalytics`              | `composables/useAnalytics.ts`                  | ⬜     |
+| 4   | Composable `usePeriod`                 | `composables/usePeriod.ts`                     | ⬜     |
+| 5   | Composable `useNumberFormat`           | `composables/useNumberFormat.ts`               | ⬜     |
+| 6   | Wrapper Chart.js                       | `components/charts/BaseChart.vue`              | ⬜     |
+| 7   | KpiCard                                | `components/dashboard/KpiCard.vue`             | ⬜     |
+| 8   | AbcGastosChart                         | `components/dashboard/AbcGastosChart.vue`      | ⬜     |
+| 9   | PriceTrendSparkline                    | `components/dashboard/PriceTrendSparkline.vue` | ⬜     |
+| 10  | MarginImpactTable                      | `components/dashboard/MarginImpactTable.vue`   | ⬜     |
+| 11  | OpexGauge (SVG)                        | `components/dashboard/OpexGauge.vue`           | ⬜     |
+| 12  | ProjectionTimeline                     | `components/dashboard/ProjectionTimeline.vue`  | ⬜     |
+| 13  | AlertsPanel                            | `components/dashboard/AlertsPanel.vue`         | ⬜     |
+| 14  | PeriodSelector                         | `components/dashboard/PeriodSelector.vue`      | ⬜     |
+| 15  | AnalyticsDashboard (composición)       | `components/dashboard/AnalyticsDashboard.vue`  | ⬜     |
+| 16  | Refactor DashboardPage                 | `pages/DashboardPage.vue`                      | ⬜     |
+| 17  | EmptyDashboardState                    | `pages/components/EmptyDashboardState.vue`     | ⬜     |
+| 18  | Tests unitarios (composables + charts) | `__tests__/`                                   | ⬜     |
+| 19  | Lint + Build check                     | `npm run lint && npm run build`                | ⬜     |
 
 ---
 
@@ -435,6 +514,8 @@ POST /api/v1/core/analytics/recalcular?tenantId={uuid}&periodo=2026-06
 ---
 
 ## 7. Próximos Pasos Post-MVP
+
+~~
 
 - [ ] WebSocket / SSE para updates en tiempo real cuando listener termina
 - [ ] Exportar PDF/Excel del dashboard

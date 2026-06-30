@@ -31,11 +31,11 @@ Todos comunican vía Spring Events (no bloqueantes). Paquete base: `core_pymes.*
 ### Setup (`core_pymes/setup/`)
 - Plantillas precargadas por industria (8 industrias)
 - Categorías jerárquicas (3 niveles, preview con árbol)
-- Unidades, Ubicaciones (template tables)
+- Unidades, Ubicaciones, Productos (template tables)
 - Onboarding lazy (primer GET) + POST para completar
 - `TenantSetup` entity, `SetupService`, `SetupApi`/`SetupController`
 - Flyway V1: tabla `core.tenant_setup`
-- **Plan:** `template_products` + `template_product_presentations` — copia productos genéricos al completar onboarding (ver SEED_TEMPLATES.md §Plantillas de Productos)
+- **`template_products` + `template_product_presentations`** — creadas via SeedDataRunner DDL, copia productos genéricos al completar onboarding con SKU auto `P-0001` secuencial (ver SEED_TEMPLATES.md §Plantillas de Productos)
 
 ### Product (`core_pymes/product/`)
 - `Producto` (UUID, tenantId, soft-delete con `@SQLDelete`+`@Where`, timestamps)
@@ -201,12 +201,10 @@ POST /api/v1/core/analytics/recalcular?tenantId={uuid}&periodo=YYYY-MM
 ## 7. Seed Data
 
 - Flyway V2: tablas `industries`, `template_categories`, `template_locations`
-- Flyway V7: tabla `template_products` (productos genéricos por industria)
-- Flyway V8: tabla `template_product_presentations` (presentaciones de productos)
 - `SeedDataRunner`: `@Component` idempotente que inserta seed al startup vía JdbcTemplate
-- Crea via DDL: `template_units`, `template_movement_reasons`, `template_payment_methods`
+- Crea via DDL: `template_units`, `template_movement_reasons`, `template_payment_methods`, `template_products`, `template_product_presentations`
 - 8 industrias: restaurante, bares, salon_belleza, ferreteria, mini_super, taller_mecanico, farmacia, default
-- 8 tablas template: industries, categories, locations, units, movement_reasons, payment_methods, **products**, **product_presentations**
+- 8 tablas template: industries, categories, locations, units, movement_reasons, payment_methods, products, product_presentations
 
 Ver `SEED_TEMPLATES.md` para detalle completo de plantillas.
 
@@ -239,7 +237,7 @@ Ver `SEED_TEMPLATES.md` para detalle completo de plantillas.
 ## 9. Pendientes
 
 ### Inmediato
-- [ ] **Template Products** — Flyway V7+V8, SeedDataRunner products seed, SetupServiceImpl copy on completeOnboarding (ver SEED_TEMPLATES.md §Plantillas de Productos)
+- [x] **Template Products** — SeedDataRunner DDL + seed, SetupServiceImpl copy on completeOnboarding con SKU auto `P-0001`, preview en frontend (ver SEED_TEMPLATES.md §Plantillas de Productos)
 - [ ] **Accounting** — `core_pymes/accounting/`: MetricaFinanciera + listener → recalcula márgenes (ver FUTURE_MODULES.md)
 - [ ] Ejecutar integration tests (requiere Docker)
 
@@ -259,4 +257,4 @@ Ver `SEED_TEMPLATES.md` para detalle completo de plantillas.
 - [x] Onboarding post-login
 - [x] Módulo Core frontend — Productos, Proveedores, Facturas
 - [x] Onboarding 2 pasos con preview de categorías
-- [ ] Onboarding con preview de productos precargados
+- [x] Onboarding con preview de productos precargados

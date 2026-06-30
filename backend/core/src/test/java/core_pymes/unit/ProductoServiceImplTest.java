@@ -46,7 +46,7 @@ class ProductoServiceImplTest {
         when(productoRepository.findByTenantId(tenantId)).thenReturn(List.of(producto));
         when(presentacionRepository.findByProductoIdAndIsActiveTrue(producto.getId())).thenReturn(List.of());
         when(mapper.toResponseList(any())).thenReturn(List.of());
-        var expected = new ProductoResponse(producto.getId(), tenantId, "Arroz", null, null, null, null, true, null, null, List.of());
+        var expected = new ProductoResponse(producto.getId(), tenantId, "Arroz", null, null, null, null, true, null, null, List.of(), null, null, null, null, null);
         when(mapper.toResponse(producto, List.of())).thenReturn(expected);
 
         var result = service.findAll(tenantId);
@@ -80,10 +80,10 @@ class ProductoServiceImplTest {
     @Test
     void create_withValidRequest_savesAndPublishesEvent() {
         var tenantId = UUID.randomUUID();
-        var request = new ProductoRequest(tenantId, "Arroz", "ARR-001", "ABARROTES", "Kg", null);
+        var request = new ProductoRequest(tenantId, "Arroz", "ARR-001", "ABARROTES", "Kg", null, null, null);
         var saved = Producto.builder().id(UUID.randomUUID()).tenantId(tenantId).name("Arroz").sku("ARR-001").build();
         when(productoRepository.save(any())).thenAnswer(i -> i.getArgument(0));
-        var response = new ProductoResponse(saved.getId(), tenantId, "Arroz", "ARR-001", null, null, null, true, null, null, List.of());
+        var response = new ProductoResponse(saved.getId(), tenantId, "Arroz", "ARR-001", null, null, null, true, null, null, List.of(), null, null, null, null, null);
         when(mapper.toResponse(any(), eq(List.of()))).thenReturn(response);
 
         var result = service.create(request);

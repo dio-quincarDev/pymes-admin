@@ -172,6 +172,7 @@ const linksList = [
   { title: 'Productos', icon: 'inventory_2', path: '/dashboard/productos' },
   { title: 'Proveedores', icon: 'people', path: '/dashboard/proveedores' },
   { title: 'Facturas', icon: 'receipt_long', path: '/dashboard/facturas' },
+  { title: 'Análisis de Gastos', icon: 'analytics', path: '/dashboard/analisis-gastos' },
   { separator: true },
   { title: 'Configuración', icon: 'settings', path: '/dashboard/configuracion' },
 ];

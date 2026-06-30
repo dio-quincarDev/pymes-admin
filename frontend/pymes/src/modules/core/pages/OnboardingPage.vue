@@ -85,12 +85,12 @@ async function confirm() {
           />
         </div>
         <h1 class="onboarding-title">
-          {{ step === 1 ? 'Configura tu empresa' : 'Preview de categorias' }}
+          {{ step === 1 ? 'Configura tu empresa' : 'Preview de tu plantilla' }}
         </h1>
         <p class="onboarding-subtitle">
           {{ step === 1
             ? 'Selecciona tu tipo de negocio para cargar plantillas automaticas'
-            : 'Estas categorias se cargaran para tu industria'
+            : 'Estos datos se precargaran para tu industria'
           }}
         </p>
       </div>
@@ -149,6 +149,20 @@ async function confirm() {
                 <span v-for="l in previewData.locations" :key="l.code" class="preview-chip">
                   {{ l.name }}
                 </span>
+              </div>
+            </div>
+
+            <div class="preview-group" v-if="previewData.products?.length">
+              <div class="preview-group__title">
+                <q-icon name="inventory_2" size="1rem" color="primary" />
+                Productos precargados ({{ previewData.products.length }})
+              </div>
+              <div class="products-preview">
+                <div v-for="p in previewData.products" :key="p.id" class="product-row">
+                  <span class="product-row__name">{{ p.name }}</span>
+                  <span class="product-row__unit">{{ p.baseUnit }}</span>
+                  <span class="product-row__cat" v-if="p.categoryName">{{ p.categoryName }}</span>
+                </div>
               </div>
             </div>
           </div>
@@ -356,6 +370,50 @@ async function confirm() {
 
   &__label {
     font-size: 0.95rem;
+  }
+}
+
+.products-preview {
+  display: flex;
+  flex-direction: column;
+  gap: 0.15rem;
+}
+
+.product-row {
+  display: flex;
+  align-items: center;
+  gap: 0.75rem;
+  padding: 0.35rem 0.5rem;
+  border-radius: 6px;
+  font-size: 0.8rem;
+  transition: background 0.15s;
+
+  &:hover {
+    background: rgba(163, 120, 94, 0.06);
+  }
+
+  &__name {
+    color: #E2E8E4;
+    font-weight: 500;
+    flex: 1;
+    min-width: 0;
+    overflow: hidden;
+    text-overflow: ellipsis;
+    white-space: nowrap;
+  }
+
+  &__unit {
+    color: #8A9E99;
+    font-size: 0.75rem;
+    min-width: 50px;
+    text-align: right;
+  }
+
+  &__cat {
+    color: #6B8A7A;
+    font-size: 0.72rem;
+    min-width: 100px;
+    text-align: right;
   }
 }
 

@@ -10,13 +10,37 @@ Registro de lo implementado y lo pendiente.
 
 | Módulo | Estado | Tests |
 |--------|--------|-------|
-| Setup | ✅ Implementado | 5 unit + 6 integration |
+| Setup | ✅ Implementado | 5 unit + 10 integration |
 | Product | ✅ Implementado | 6 unit + 4 integration (pendiente Docker) |
 | Invoice | ✅ Implementado | 7 unit + 4 integration (pendiente Docker) |
 | Analytics | ✅ Implementado | 5 unit + 4 JPA |
 | Accounting | ⬜ Pendiente | Ver FUTURE_MODULES.md |
 | Ventas | ⬜ Pendiente | Ver FUTURE_MODULES.md |
 | Reportes | ⬜ Pendiente | Ver FUTURE_MODULES.md |
+
+---
+
+## 2026-06-30 — Template Products: seed, copia al onboarding, frontend
+
+### Implementado
+
+- DDL `template_products` + `template_product_presentations` en `SeedDataRunner.createTables()` (CREATE TABLE IF NOT EXISTS, sin FK)
+- ~20-25 productos por industria con 1-2 presentaciones c/u (~160 productos + ~280 presentaciones total)
+- `addProd()` helper para batch arrays de producto + presentaciones en una línea
+- `SetupResponse.ProductTemplateDTO(id, name, baseUnit, categoryName)` + campo `products` + factory `preview()`
+- `SetupMapper` firma actualizada con 5to parámetro `products`
+- `SetupServiceImpl.completeOnboarding()` — copia template_products → `core.products` con SKU auto `P-0001` secuencial + `core.product_presentations` batch insert
+- `SetupServiceImpl.loadIndustryData()` — query con JOIN a template_categories para categoryName
+- Frontend: `ProductTemplateDTO` type, sección "Productos precargados (N)" en OnboardingPage step 2
+- 5 tests nuevos en `SetupSeedIntegrationTest`: seed counts, preview products, onboarding copy con SKU, tenant isolation
+- Los tests verifican: 25 productos restaurante, SKU P-0001..P-0025, presentaciones > productos, 2 tenants aislados
+
+### Decisiones
+
+- **Opción A (SeedDataRunner DDL)** sobre Flyway V7/V8 — menos archivos, mismo patrón que template_units existente
+- **Sin SKU en template** — se genera `P-%04d` al copiar al tenant
+- **Sin FK** en template_product_presentations — datos readonly, orphan aceptable
+- **JdbcTemplate batch** en vez de JPA para la copia — más directo para copia plana sin lógica de negocio
 
 ---
 
@@ -27,11 +51,11 @@ Registro de lo implementado y lo pendiente.
 - `TenantSetupRepository` (findByTenantId, existsByTenantId)
 - `SetupService` interface + `SetupServiceImpl` (getOrInitialize lazy, completeOnboarding)
 - `SetupApi` / `SetupController`
-  - `GET /api/v1/core/setup/{tenantId}` — lazy init + template data
-  - `POST /api/v1/core/setup/{tenantId}/onboarding` — completa onboarding
-  - `GET /api/v1/core/setup/preview/{industry}` — preview categorías jerárquicas
-- `SetupResponse` record DTO (id, tenantId, industry, onboardingCompleted, categories[], units[], locations[])
-- `SetupMapper` (MapStruct)
+  - `GET /api/v1/core/setup/{tenantId}` — lazy init + template data (incl. products)
+  - `POST /api/v1/core/setup/{tenantId}/onboarding` — completa onboarding + copia productos con SKU auto
+  - `GET /api/v1/core/setup/preview/{industry}` — preview categorías + productos
+- `SetupResponse` record DTO (id, tenantId, industry, onboardingCompleted, categories[], units[], locations[], products[])
+- `SetupMapper` (MapStruct, 5 parámetros)
 - Flyway V1: `core.tenant_setup`
 - `buildCategoryTree()` con mapa O(n)
 
@@ -95,13 +119,14 @@ Registro de lo implementado y lo pendiente.
 
 ### Seed Data
 - Flyway V2: `industries`, `template_categories`, `template_locations`
-- `SeedDataRunner`: idempotente, 8 industrias, 6 tablas template
-- Crea via DDL: `template_units`, `template_movement_reasons`, `template_payment_methods`
+- `SeedDataRunner`: idempotente, 8 industrias, 8 tablas template
+- Crea via DDL: `template_units`, `template_movement_reasons`, `template_payment_methods`, `template_products`, `template_product_presentations`
+- ~160 productos + ~280 presentaciones en seed
 
 ### Testing
 - `SetupServiceImplTest`: 5 unit tests (Mockito)
 - `AbstractIntegrationTest`: base class Testcontainers PostgreSQL
-- `SetupSeedIntegrationTest`: 6 integration tests
+- `SetupSeedIntegrationTest`: 10 integration tests (6 original + 4 nuevos: preview products, onboarding copy SKU, tenant isolation)
 - `CoreApplicationTests`: smoke test contexto
 - `ProductoServiceImplTest`: 6 unit tests (CRUD + eventos + tenant isolation)
 - `FacturaServiceImplTest`: 7 unit tests (total calc + descuento + estados + tenant isolation)
@@ -135,8 +160,4 @@ Registro de lo implementado y lo pendiente.
 ### Frontend
 - [x] Onboarding post-login
 - [x] Módulo Core frontend (Productos, Proveedores, Facturas)
-- [ ] Onboarding 2 pasos con preview de categorías
-  - [ ] `CategoryTree.vue`
-  - [ ] `OnboardingPage.vue`
-  - [ ] `setup.service.ts` — agregar `preview()`
-  - [ ] `SetupInfo` type — categorías jerárquicas
+- [x] Onboarding 2 pasos con preview de categorías + productos precargados

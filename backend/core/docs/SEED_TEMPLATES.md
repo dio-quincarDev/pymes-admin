@@ -660,7 +660,7 @@ HIGIENE DEL HOGAR
 
 ---
 
-## Plantillas de Productos (Plan)
+## Plantillas de Productos (Implementado)
 
 ### Problema
 Las plantillas actuales solo tienen categorías, unidades y ubicaciones. Al completar onboarding, el usuario tiene una estructura vacía y debe crear productos uno por uno.
@@ -669,83 +669,95 @@ Las plantillas actuales solo tienen categorías, unidades y ubicaciones. Al comp
 Al completar onboarding → se copian productos genéricos por categoría → al facturar ya hay catálogo cargado con SKU y unidad.
 
 ### Alcance
-- Productos genéricos (sin marca), ~30-50 por industria
-- 1-2 presentaciones por producto (ej: Cerveza → Unidad, Caja x12)
-- SKU auto-generado por industria (ej: `BEB-001`, `ABI-002`)
+- Productos genéricos (sin marca), ~20-25 por industria (~160 total)
+- 1-2 presentaciones por producto (~280 presentaciones total)
+- SKU auto-generado al copiar al tenant: `P-0001`, `P-0002`... (secuencial por tenant)
 
-### Fase 1: Backend — Tabla y Seed
+### Implementación: Tablas + Seed (vía SeedDataRunner DDL)
 
-**Flyway V7** — tabla `template_products`:
+Las tablas se crean via DDL en `SeedDataRunner.createTables()` (mismo patrón que `template_units`), **no** con Flyway:
+
 ```sql
 template_products (
     id UUID PRIMARY KEY,
-    industry_code VARCHAR(50) NOT NULL REFERENCES industries(code),
-    category_id UUID REFERENCES template_categories(id),
+    industry_code VARCHAR(50) NOT NULL,
+    category_id UUID,
     name VARCHAR(150) NOT NULL,
-    sku VARCHAR(50) NOT NULL,
     base_unit VARCHAR(50) NOT NULL,
     sort_order INTEGER DEFAULT 0
 );
-CREATE INDEX idx_template_products_industry ON template_products(industry_code);
-CREATE UNIQUE INDEX idx_template_products_industry_sku ON template_products(industry_code, sku);
-```
 
-**Flyway V8** — tabla `template_product_presentations`:
-```sql
 template_product_presentations (
     id UUID PRIMARY KEY,
-    template_product_id UUID NOT NULL REFERENCES template_products(id),
+    template_product_id UUID NOT NULL,
     name VARCHAR(100) NOT NULL,
-    conversion INTEGER NOT NULL DEFAULT 1,
+    conversion INTEGER DEFAULT 1,
     sort_order INTEGER DEFAULT 0
 );
-CREATE INDEX idx_template_product_presentations_fk ON template_product_presentations(template_product_id);
 ```
 
-**SeedDataRunner** — agregar `seedXxxProducts()` para cada industria. Ejemplo restaurante:
-```
-Bebidas > Cervezas:   BEB-001 Cerveza (Unidad), Caja x12
-Bebidas > Refrescos:  BEB-002 Refresco (Botella 2L)
-Bebidas > Jugos:      BEB-003 Jugo natural (Litro)
-Abarrotes > Arroz:    ABI-001 Arroz (Kg)
-Abarrotes > Fideos:   ABI-002 Fideos (Paquete 500g)
-Aceites:              ACE-001 Aceite vegetal (Litro)
-Condimentos:          CON-001 Sal (Kg), CON-002 Azúcar (Kg)
-Limpieza:             LIM-001 Detergente (Litro), LIM-002 Esponja (Unidad)
-```
+- Sin FK a industries ni template_categories (datos readonly, orphan aceptable)
+- Sin columna `sku` — se genera al copiar al tenant
+- Sin FK entre presentaciones y products (misma razón)
+- Índices: `idx_tp_industry` en industry_code, `idx_tpp_product` en template_product_id
+- Creadas con `CREATE TABLE IF NOT EXISTS` en SeedDataRunner
 
-### Fase 2: Backend — Onboarding copia productos
+Cada industria tiene su método `seed<Industria>()` que inserta productos como batch de arrays con el helper `addProd()`:
 
-**SetupServiceImpl.completeOnboarding()** — después de marcar `onboardingCompleted=true`:
-1. Query `template_products` + `template_product_presentations` por `industry_code`
-2. Para cada template_product → crear `Producto` real con `tenantId`
-3. Para cada template_product_presentations → crear `Presentacion` real
-4. SKU se copia tal cual (es genérico, único por industria)
-5. Todo en una transacción
-
-**SetupResponse** — agregar campo `products`:
 ```java
-record SetupResponse(
-    UUID id, UUID tenantId, String industry, boolean onboardingCompleted,
-    List<ItemDTO> categories, List<ItemDTO> units, List<ItemDTO> locations,
-    List<ProductTemplateDTO> products  // NUEVO
-) {
-    record ProductTemplateDTO(String sku, String name, String baseUnit, String categoryName) {}
+private Object[] addProd(String name, UUID catId, String unit, Object[]... pres) {
+    return new Object[]{UUID.randomUUID(), industryCode, catId, name, unit, 0};
+}
+// pres se pasa como Object[][]{name, conversion, sort}
+```
+
+Ejemplo para restaurante:
+```
+Bebidas > Cervezas:           Cerveza (Unidad) → Caja x12
+Bebidas > Refrescos:          Refresco (Botella 2L) → Unidad
+Bebidas > Jugos:              Jugo natural (Litro) → Unidad
+Abarrotes > Arroz:            Arroz (Kg) → Bolsa 5lb
+Abarrotes > Fideos:           Fideos (Paquete 500g) → Unidad
+Aceites:                      Aceite vegetal (Litro) → Garrafa 5L
+Condimentos:                  Sal (Kg), Azúcar (Kg)
+Limpieza:                     Detergente (Litro) → Galón
+```
+
+**~20-25 productos por industria**, 1-2 presentaciones cada uno. Todas las industrias menos `default` (2 productos).
+
+### Implementación: Onboarding copia productos
+
+En `SetupServiceImpl.completeOnboarding()` (transaccional):
+
+1. Carga `template_products` + `template_product_presentations` por `industry_code` vía JdbcTemplate
+2. Para cada template_product → batch insert en `core.products` con SKU auto-generado `P-%04d` secuencial
+3. Mapa: `template_product_id → producto_id` para vincular presentaciones
+4. Para cada template_product_presentations → batch insert en `core.product_presentations`
+5. SKU arranca en `P-0001` cada vez (tenant nuevo = sin productos previos)
+
+**SetupResponse** — campo `products`:
+```json
+{
+  "products": [
+    { "name": "Cerveza", "baseUnit": "Unidad", "categoryName": "Cervezas" },
+    ...
+  ]
 }
 ```
+`ProductTemplateDTO` sin SKU (aún no se ha generado — solo visible tras onboarding completo).
 
-**loadIndustryData()** — extender para cargar también los productos del template.
+**loadIndustryData()** — query SQL con JOIN a template_categories para obtener `categoryName`.
 
 ### Fase 3: Frontend
 
-**OnboardingPage.vue** — step 2: agregar sección "Productos" con tabla resumen (nombre, SKU, unidad).
+**OnboardingPage.vue** — step 2: sección "Productos precargados (N)" con tabla de nombre, unidad y categoría.
 
-**SetupInfo type** — agregar campo `products: ProductTemplate[]`.
+**SetupInfo type** — campo `products: ProductTemplateDTO[]`.
 
-### Escala estimada
-- ~30-50 productos × 8 industrias = ~240-400 inserts
-- ~2 presentaciones por producto = ~600-1200 inserts
-- Total: ~1000-1600 inserts en SeedDataRunner
+### Escala real
+- ~160 productos × 8 industrias (= ~160 inserts en seed)
+- ~280 presentaciones (= ~280 inserts)
+- ~440 filas total en SeedDataRunner (menos que los ~1000-1600 estimados)
 
 ---
 
@@ -792,18 +804,17 @@ template_payment_methods            — Creada por SeedDataRunner (DDL)
 ├── name: VARCHAR(100)
 └── sort_order: INTEGER
 
-template_products                   — Creada por Flyway V7 (Plan)
+template_products                   — Creada por SeedDataRunner (DDL, sin FK)
 ├── id: UUID PK
-├── industry_code: VARCHAR(50) FK → industries (INDEX)
-├── category_id: UUID FK → template_categories
+├── industry_code: VARCHAR(50)       — INDEX, sin FK (datos readonly)
+├── category_id: UUID                — sin FK (datos readonly)
 ├── name: VARCHAR(150)
-├── sku: VARCHAR(50)                  — ÚNICO por industria
-├── base_unit: VARCHAR(50)
+├── base_unit: VARCHAR(50)           — sin SKU (se genera al copiar al tenant)
 └── sort_order: INTEGER
 
-template_product_presentations      — Creada por Flyway V8 (Plan)
+template_product_presentations      — Creada por SeedDataRunner (DDL, sin FK)
 ├── id: UUID PK
-├── template_product_id: UUID FK → template_products (INDEX)
+├── template_product_id: UUID NOT NULL  — INDEX, sin FK (datos readonly)
 ├── name: VARCHAR(100)
 ├── conversion: INTEGER DEFAULT 1
 └── sort_order: INTEGER
@@ -812,11 +823,10 @@ template_product_presentations      — Creada por Flyway V8 (Plan)
 ### Seed Data
 
 El seed se ejecuta vía `SeedDataRunner` (ApplicationRunner) al startup:
-1. `createTables()` — DDL con `CREATE TABLE IF NOT EXISTS` + índices
+1. `createTables()` — DDL con `CREATE TABLE IF NOT EXISTS` + índices (incluye `template_products` y `template_product_presentations`)
 2. `seedIndustries()` — inserta 8 industrias
-3. `seed{Nombre}()` — por industria inserta categorías, ubicaciones, unidades, motivos, pagos
-4. `seed{Nombre}Products()` — por industria inserta productos + presentaciones (Plan: Flyway V7+V8)
-5. Es idempotente: verifica `SELECT COUNT(*) FROM industries` antes de insertar
+3. `seed{Nombre}()` — por industria inserta categorías, ubicaciones, unidades, motivos, pagos, **productos** y **presentaciones** (todo en un mismo método)
+4. Es idempotente: verifica `SELECT COUNT(*) FROM industries` antes de insertar
 
 ### Nota sobre migración futura
 

@@ -10,6 +10,11 @@ export interface Producto {
   createdAt: string | null
   updatedAt: string | null
   presentaciones: Presentacion[]
+  lastUnitPrice: number | null
+  totalInvestment: number | null
+  lastPurchaseDate: string | null
+  minQuantity: number | null
+  maxQuantity: number | null
 }
 
 export interface Presentacion {
@@ -25,6 +30,8 @@ export interface ProductoRequest {
   sku: string
   category?: string
   baseUnit?: string
+  minQuantity?: number | null
+  maxQuantity?: number | null
 }
 
 export interface PresentacionRequest {
@@ -89,12 +96,20 @@ export interface FacturaRequest {
   items: ItemFacturaRequest[]
 }
 
+export interface ProductTemplateDTO {
+  id: string
+  name: string
+  baseUnit: string
+  categoryName: string
+}
+
 export interface SetupInfo {
   onboardingCompleted: boolean
   industry: string | null
   categories: SetupCategory[]
   units: { code: string; name: string }[]
   locations: { code: string; name: string }[]
+  products: ProductTemplateDTO[]
 }
 
 export interface SetupCategory {

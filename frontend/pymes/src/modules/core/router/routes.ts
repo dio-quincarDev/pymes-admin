@@ -20,6 +20,12 @@ export const coreRoutes: RouteRecordRaw[] = [
     meta: { title: 'Facturas' },
   },
   {
+    path: 'analisis-gastos',
+    name: 'analisis-gastos',
+    component: () => import('../pages/AnalisisGastosPage.vue'),
+    meta: { title: 'Análisis de Gastos' },
+  },
+  {
     path: 'configuracion',
     name: 'configuracion',
     component: () => import('../pages/ConfiguracionPage.vue'),

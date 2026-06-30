@@ -7,6 +7,8 @@ import org.hibernate.annotations.SQLDelete;
 import org.hibernate.annotations.UpdateTimestamp;
 import org.hibernate.annotations.Where;
 
+import java.math.BigDecimal;
+import java.time.LocalDate;
 import java.time.ZonedDateTime;
 import java.util.UUID;
 
@@ -40,6 +42,22 @@ public class Producto {
 
     @Column(name = "image_url")
     private String imageUrl;
+
+    @Column(name = "last_unit_price")
+    private BigDecimal lastUnitPrice;
+
+    @Column(name = "total_investment", nullable = false)
+    @Builder.Default
+    private BigDecimal totalInvestment = BigDecimal.ZERO;
+
+    @Column(name = "last_purchase_date")
+    private LocalDate lastPurchaseDate;
+
+    @Column(name = "min_quantity")
+    private BigDecimal minQuantity;
+
+    @Column(name = "max_quantity")
+    private BigDecimal maxQuantity;
 
     @Builder.Default
     @Column(name = "is_active", nullable = false)

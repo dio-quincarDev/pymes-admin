@@ -62,6 +62,8 @@ public class ProductoServiceImpl implements ProductoService {
                 .category(request.category())
                 .baseUnit(request.baseUnit())
                 .imageUrl(request.imageUrl())
+                .minQuantity(request.minQuantity())
+                .maxQuantity(request.maxQuantity())
                 .build();
         producto = productoRepository.save(producto);
         eventPublisher.publishEvent(new ProductoCreadoEvent(producto));
@@ -79,6 +81,8 @@ public class ProductoServiceImpl implements ProductoService {
         producto.setCategory(request.category());
         producto.setBaseUnit(request.baseUnit());
         producto.setImageUrl(request.imageUrl());
+        producto.setMinQuantity(request.minQuantity());
+        producto.setMaxQuantity(request.maxQuantity());
         producto = productoRepository.save(producto);
         return mapper.toResponse(producto, mapPresentaciones(id));
     }

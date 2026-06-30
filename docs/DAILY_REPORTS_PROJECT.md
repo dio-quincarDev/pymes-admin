@@ -488,6 +488,90 @@ frontend/pymes/src/layouts/MainLayout.vue # +sidebar links
 
 ---
 
+---
+
+## 2026-06-30 — Motor de Análisis de Gastos por Producto
+
+### Contexto
+
+El sistema tenía analytics a nivel de factura (ABC, tendencias, márgenes) pero no
+un análisis granular por producto. La visión es un motor de gastos donde cada
+producto acumula inversión total, precio unitario del último pedido y fecha de
+última compra, alimentado automáticamente desde las facturas.
+
+### Qué se hizo
+
+**Data model (V7):**
+- `core.products`: `last_unit_price`, `total_investment`, `last_purchase_date`,
+  `min_quantity`, `max_quantity`
+- `core.template_products`: `min_quantity`, `max_quantity`
+- `Producto.java` / `ProductoResponse` / `ProductoRequest` / `ProductoMapper`
+  actualizados con los 5 nuevos campos
+
+**Motor de gastos en facturas:**
+- `FacturaServiceImpl.createFactura()` — por cada item, ejecuta
+  ```sql
+  UPDATE core.products SET last_unit_price = ?,
+    total_investment = total_investment + ?,
+    last_purchase_date = ?
+  WHERE id = ? AND tenant_id = ?
+  ```
+- Inline en el loop existente, misma transacción, sin nuevo batch
+
+**Onboarding:**
+- `SetupServiceImpl.completeOnboarding()` copia `min_quantity`/`max_quantity`
+  desde template al completar onboarding
+- SeedDataRunner actualiza INSERT de template_products con los 2 nuevos campos
+
+**Frontend — Análisis de Gastos (nueva página):**
+- `AnalisisGastosPage.vue` en `/dashboard/analisis-gastos`
+- 4 cards resumen: Inversión Total, Productos, Categorías, Alertas
+- Inversión por Categoría con barras de progreso (client-side)
+- Alertas: excedió max, debajo de min, sin compras >60d
+- Tabla de Últimos Precios Unitarios con filtro y sort
+- Nav link en sidebar
+
+### Files creados/modificados
+
+```
+backend/core/src/main/resources/db/migration/V7__product_expense_fields.sql  # nuevo
+backend/core/src/main/java/core_pymes/product/domain/Producto.java           # +5 campos
+backend/core/src/main/java/core_pymes/product/dto/ProductoResponse.java      # +5 campos
+backend/core/src/main/java/core_pymes/product/dto/ProductoRequest.java       # +minQuantity, maxQuantity
+backend/core/src/main/java/core_pymes/product/mapper/ProductoMapper.java     # mapeo nuevos campos
+backend/core/src/main/java/core_pymes/product/service/impl/ProductoServiceImpl.java  # create/update maneja min/max
+backend/core/src/main/java/core_pymes/invoice/service/impl/FacturaServiceImpl.java   # product stats update
+backend/core/src/main/java/core_pymes/common/seed/SeedDataRunner.java        # columns en template_products
+backend/core/src/main/java/core_pymes/setup/service/impl/SetupServiceImpl.java  # copia min/max al onboarding
+backend/core/src/test/java/core_pymes/unit/ProductoServiceImplTest.java      # constructores actualizados
+
+frontend/pymes/src/modules/core/types/index.ts                               # +5 campos en Producto
+frontend/pymes/src/modules/core/pages/AnalisisGastosPage.vue                 # nuevo dashboard
+frontend/pymes/src/modules/core/router/routes.ts                             # +ruta analisis-gastos
+frontend/pymes/src/layouts/MainLayout.vue                                    # +nav link
+```
+
+### Tests
+
+| Suite | Tests | Resultado |
+|-------|-------|-----------|
+| Core unit | 60 | ✅ |
+| Frontend build | — | ✅ |
+| Frontend lint | — | ✅ |
+
+### Próximo
+
+- **PresentacionId en ItemFacturaRequest frontend** — bug crítico: backend requiere
+  `presentacionId` pero frontend no lo envía (BeanValidation 400)
+- **Cascada Categoría→Subcategoría→Producto en facturas** — selector jerárquico
+  tipo CatálogoMaestro para elegir producto en la factura
+- **Quick-add proveedor inline** — mini dialog dentro del formulario de factura
+- **Template defaults de min_quantity/max_quantity por industria** — opcional,
+  usuarios los configuran via edit form por ahora
+- **Gráficos interactivos** en Análisis de Gastos (post-MVP)
+
+---
+
 *Nota: El post-mortem del merge catastrofico (2026-06-12) esta consolidado en `REFACTOR-STRATEGY.md` (raiz). Este archivo mantiene el registro historico completo.*
 
 *Creado: 2026-06-19 | Consolidacion de REFACTOR-STRATEGY.md + .github/REFACTOR.md*
