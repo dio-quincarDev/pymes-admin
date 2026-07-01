@@ -1,5 +1,5 @@
 <script setup lang="ts">
-import { ref } from 'vue'
+import { ref, computed } from 'vue'
 import { useRouter } from 'vue-router'
 import { useQuasar } from 'quasar'
 import { useAuthStore } from 'src/modules/auth/store'
@@ -29,6 +29,17 @@ const selected = ref<string | null>(null)
 const previewData = ref<SetupInfo | null>(null)
 const loadingPreview = ref(false)
 const saving = ref(false)
+
+const groupedProducts = computed(() => {
+  if (!previewData.value?.products) return []
+  const map = new Map<string, typeof previewData.value.products>()
+  for (const p of previewData.value.products) {
+    const cat = p.categoryName || 'Sin categoría'
+    if (!map.has(cat)) map.set(cat, [])
+    map.get(cat)!.push(p)
+  }
+  return Array.from(map.entries())
+})
 
 function onSelect(code: string) {
   selected.value = code
@@ -157,11 +168,11 @@ async function confirm() {
                 <q-icon name="inventory_2" size="1rem" color="primary" />
                 Productos precargados ({{ previewData.products.length }})
               </div>
-              <div class="products-preview">
-                <div v-for="p in previewData.products" :key="p.id" class="product-row">
-                  <span class="product-row__name">{{ p.name }}</span>
-                  <span class="product-row__unit">{{ p.baseUnit }}</span>
-                  <span class="product-row__cat" v-if="p.categoryName">{{ p.categoryName }}</span>
+              <div class="category-grid">
+                <div v-for="[cat, items] in groupedProducts" :key="cat" class="category-card">
+                  <q-icon name="category" size="1.5rem" color="primary" class="category-card__icon" />
+                  <div class="category-card__name">{{ cat }}</div>
+                  <div class="category-card__count">{{ items.length }} {{ items.length === 1 ? 'producto' : 'productos' }}</div>
                 </div>
               </div>
             </div>
@@ -373,47 +384,43 @@ async function confirm() {
   }
 }
 
-.products-preview {
-  display: flex;
-  flex-direction: column;
-  gap: 0.15rem;
+.category-grid {
+  display: grid;
+  grid-template-columns: repeat(auto-fill, minmax(160px, 1fr));
+  gap: 0.6rem;
 }
 
-.product-row {
-  display: flex;
-  align-items: center;
-  gap: 0.75rem;
-  padding: 0.35rem 0.5rem;
-  border-radius: 6px;
-  font-size: 0.8rem;
-  transition: background 0.15s;
+.category-card {
+  background: rgba(163, 120, 94, 0.06);
+  border: 1px solid rgba(163, 120, 94, 0.12);
+  border-radius: 10px;
+  padding: 0.85rem 0.75rem;
+  text-align: center;
+  transition: all 0.2s ease;
 
   &:hover {
-    background: rgba(163, 120, 94, 0.06);
+    border-color: rgba(163, 120, 94, 0.25);
+    transform: translateY(-1px);
+  }
+
+  &__icon {
+    margin-bottom: 0.3rem;
   }
 
   &__name {
+    font-family: 'Outfit', sans-serif;
+    font-weight: 600;
+    font-size: 0.82rem;
     color: #E2E8E4;
-    font-weight: 500;
-    flex: 1;
-    min-width: 0;
+    margin-bottom: 0.15rem;
     overflow: hidden;
     text-overflow: ellipsis;
     white-space: nowrap;
   }
 
-  &__unit {
-    color: #8A9E99;
-    font-size: 0.75rem;
-    min-width: 50px;
-    text-align: right;
-  }
-
-  &__cat {
-    color: #6B8A7A;
+  &__count {
     font-size: 0.72rem;
-    min-width: 100px;
-    text-align: right;
+    color: #8A9E99;
   }
 }
 

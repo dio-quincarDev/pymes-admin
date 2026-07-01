@@ -20,6 +20,28 @@ Registro de lo implementado y lo pendiente.
 
 ---
 
+## 2026-07-01 — presentacionId opcional + SKU auto-generado + @Valid enforcement
+
+### Backend
+
+- `ItemFacturaRequest.presentacionId` → `@NotNull` removido, ahora es `UUID` nullable
+- `FacturaServiceImpl.createFactura()`: cuando `presentacionId` es null, usa `conversionFactor = 1` y no busca presentación
+- `FacturaController.create()` → `@Valid` agregado para validación 400 en vez de 500
+- `ProductoServiceImpl.create()`: genera SKU `P-XXXX` secuencial cuando `sku` es null/blank
+- `ProductoRepository` → +`countByTenantId(UUID)` para secuencia de SKU
+
+### Archivos modificados
+
+```
+core/invoice/dto/ItemFacturaRequest.java       # presentacionId @NotNull removido
+core/invoice/service/impl/FacturaServiceImpl.java  # handle null presentacionId
+core/invoice/controller/impl/FacturaController.java # +@Valid on create()
+core/product/service/impl/ProductoServiceImpl.java  # auto SKU generation
+core/product/repository/ProductoRepository.java     # +countByTenantId()
+```
+
+---
+
 ## 2026-06-30 — Template Products: seed, copia al onboarding, frontend
 
 ### Implementado

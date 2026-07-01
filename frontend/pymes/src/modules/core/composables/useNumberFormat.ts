@@ -1,6 +1,6 @@
-const currencyFormatter = new Intl.NumberFormat('es-PE', {
+const currencyFormatter = new Intl.NumberFormat('en-US', {
   style: 'currency',
-  currency: 'PEN',
+  currency: 'USD',
   minimumFractionDigits: 2,
 });
 

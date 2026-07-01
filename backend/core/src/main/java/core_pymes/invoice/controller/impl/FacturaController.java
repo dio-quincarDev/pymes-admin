@@ -4,6 +4,7 @@ import core_pymes.invoice.controller.FacturaApi;
 import core_pymes.invoice.dto.FacturaRequest;
 import core_pymes.invoice.dto.FacturaResponse;
 import core_pymes.invoice.service.FacturaService;
+import jakarta.validation.Valid;
 import lombok.RequiredArgsConstructor;
 import org.springframework.http.ResponseEntity;
 import org.springframework.web.bind.annotation.RestController;
@@ -28,7 +29,7 @@ public class FacturaController implements FacturaApi {
     }
 
     @Override
-    public ResponseEntity<FacturaResponse> create(FacturaRequest request) {
+    public ResponseEntity<FacturaResponse> create(@Valid FacturaRequest request) {
         return ResponseEntity.ok(facturaService.createFactura(request));
     }
 

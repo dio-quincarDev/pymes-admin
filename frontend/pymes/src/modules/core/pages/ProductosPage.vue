@@ -57,11 +57,11 @@ async function load() {
 const dialogOpen = ref(false)
 const editingId = ref<string | null>(null)
 const saving = ref(false)
-const form = ref<ProductoRequest>({ tenantId, name: '', sku: '', category: '', baseUnit: '' })
+const form = ref<ProductoRequest>({ tenantId, name: '', category: '', baseUnit: '' })
 
 function openCreate() {
   editingId.value = null
-  form.value = { tenantId, name: '', sku: '', category: '', baseUnit: '' }
+  form.value = { tenantId, name: '', category: '', baseUnit: '' }
   dialogOpen.value = true
 }
 
@@ -212,8 +212,7 @@ async function remove() {
         <q-card-section>
           <q-form @submit.prevent="save" class="q-gutter-y-md">
             <q-input dark filled v-model="form.name" label="Nombre" :rules="[v => !!v || 'Requerido']" />
-            <q-input dark filled v-model="form.sku" label="SKU" :rules="[v => !!v || 'Requerido']" />
-            <q-select dark filled v-model="form.category" label="Categoría" :options="catOptions" option-value="value" option-label="label" emit-value map-options use-input input-debounce="0" @filter="(val, update) => { update(() => catOptions.filter((o: { label: string; value: string }) => !val || o.label.toLowerCase().includes(val.toLowerCase()))) }" />
+            <q-select dark filled v-model="form.category" label="Categoría" :options="catOptions" option-value="value" option-label="label" emit-value map-options use-input input-debounce="0" @filter="(val, update) => { update(() => catOptions.filter((o: { label: string; value: string }) => !val || o.label.toLowerCase().includes(val.toLowerCase()))) }" :rules="[v => !!v || 'Requerido']" />
             <q-select dark filled v-model="form.baseUnit" label="Unidad base" :options="unitOptions" option-value="value" option-label="label" emit-value map-options use-input input-debounce="0" @filter="(val, update) => { update(() => unitOptions.filter((o: { label: string; value: string }) => !val || o.label.toLowerCase().includes(val.toLowerCase()))) }" />
             <div class="row justify-end q-gutter-x-sm">
               <q-btn flat label="Cancelar" color="accent" v-close-popup />

@@ -65,12 +65,22 @@
           <q-form @submit.prevent="save" class="q-gutter-y-md">
             <q-select
               dark filled v-model="form.proveedorId"
-              :options="providerOptions" label="Proveedor"
+              :options="providerFilteredOptions"
+              label="Proveedor"
               :rules="[v => !!v || 'Requerido']"
               map-options emit-value
+              use-input
+              @filter="providerFilter"
             >
               <template v-slot:option="{ itemProps, opt }">
-                <q-item v-bind="itemProps"><q-item-section>{{ opt.label }}</q-item-section></q-item>
+                <q-item v-bind="itemProps">
+                  <q-item-section>
+                    <span :class="opt.__isCreate ? 'text-primary' : ''">{{ opt.label }}</span>
+                  </q-item-section>
+                </q-item>
+              </template>
+              <template v-slot:no-option>
+                <q-item><q-item-section class="text-accent text-caption">Escribe el nombre para crearlo</q-item-section></q-item>
               </template>
             </q-select>
 
@@ -86,35 +96,76 @@
             <q-select dark filled v-model="form.metodoPago" :options="['EFECTIVO', 'TRANSFERENCIA', 'TARJETA', 'CHEQUE']" label="Método de pago" clearable />
 
             <q-separator dark />
-            <div class="text-subtitle2 text-primary">Items</div>
+            <div class="text-subtitle2 text-primary q-mb-sm">Items</div>
 
-            <div v-for="(item, i) in form.items" :key="item._key" class="row q-col-gutter-sm items-end">
-              <div class="col-4">
-                <q-select dark dense filled v-model="item.productoId" :options="productOptions" label="Producto"
-                  map-options emit-value use-input @filter="filterProducts">
-                  <template v-slot:option="{ itemProps, opt }">
-                    <q-item v-bind="itemProps"><q-item-section>{{ opt.label }}</q-item-section></q-item>
-                  </template>
-                </q-select>
+            <div v-if="productCategories.length > 1" class="product-cat-tabs q-mb-md">
+              <q-chip
+                :color="!activeCategory ? 'primary' : 'dark'" :text-color="!activeCategory ? 'dark' : 'accent'"
+                dense clickable @click="activeCategory = ''" class="product-cat-tab">
+                Todos
+              </q-chip>
+              <q-chip
+                v-for="cat in productCategories" :key="cat"
+                :color="activeCategory === cat ? 'primary' : 'dark'" :text-color="activeCategory === cat ? 'dark' : 'accent'"
+                dense clickable @click="activeCategory = cat" class="product-cat-tab">
+                {{ cat }}
+              </q-chip>
+            </div>
+
+            <!-- ponytail: card-per-item block, unit hint from productUnitMap -->
+            <div v-for="(item, i) in form.items" :key="item._key"
+              class="q-mb-md q-pa-md rounded-border"
+              style="background: rgba(255,255,255,0.02); border: 1px solid rgba(255,255,255,0.08);">
+              <div class="row q-col-gutter-sm items-center">
+                <div class="col-10">
+                  <q-select dark dense filled v-model="item.productoId" :options="productOptions" label="Producto"
+                    map-options emit-value use-input @filter="filterProducts"
+                    @update:model-value="onProductChange(item)">
+                    <template v-slot:option="{ itemProps, opt }">
+                      <q-item v-bind="itemProps">
+                        <q-item-section avatar>
+                          <q-icon name="inventory_2" size="1.1rem" color="accent" />
+                        </q-item-section>
+                        <q-item-section>
+                          <q-item-label>{{ opt.productName }}</q-item-label>
+                          <q-item-label caption class="text-accent">{{ opt.sku }}</q-item-label>
+                        </q-item-section>
+                        <q-item-section v-if="opt.category" side>
+                          <q-badge :label="opt.category" color="dark" text-color="accent" class="q-px-sm" />
+                        </q-item-section>
+                      </q-item>
+                    </template>
+                  </q-select>
+                </div>
+                <div class="col-2 text-right">
+                  <q-btn flat dense round icon="close" color="negative" size="sm" @click="removeItem(i)" />
+                </div>
               </div>
-              <div class="col-2">
-                <q-input dark dense filled v-model.number="item.cantidad" label="Cant." type="number" min="0.01" step="0.01" />
+                <div class="row q-col-gutter-sm items-start q-mt-sm">
+                <div class="col-3">
+                  <q-input dark dense filled v-model.number="item.cantidad" label="Cantidad" type="number" min="0.01" step="0.01" />
+                </div>
+                <div class="col-3">
+                  <q-select dark dense filled v-model="item.presentacionId" :options="unitOptions(item.productoId)"
+                    label="Unidad" map-options emit-value :disable="!item.productoId"
+                    @update:model-value="() => {}" />
+                </div>
+                <div class="col-3">
+                  <q-input dark dense filled v-model.number="item.precioUnitario" label="Precio Unit." type="number" min="0" step="0.01" prefix="$" />
+                </div>
+                <div class="col-3">
+                  <q-input dark dense filled v-model.number="item.descuento" label="Descuento" type="number" min="0" step="0.01" prefix="$" />
+                </div>
               </div>
-              <div class="col-2">
-                <q-input dark dense filled v-model.number="item.precioUnitario" label="P.Unit." type="number" min="0" step="0.01" />
-              </div>
-              <div class="col-2">
-                <q-input dark dense filled v-model.number="item.descuento" label="Desc." type="number" min="0" step="0.01" />
-              </div>
-              <div class="col-1 text-center text-caption text-accent">
-                {{ itemSubtotal(item) }}
-              </div>
-              <div class="col-1">
-                <q-btn flat dense round icon="close" color="negative" size="sm" @click="removeItem(i)" />
+              <div class="row q-col-gutter-sm items-center q-mt-xs">
+                <div class="col-3"></div>
+                <div class="col-9 text-right">
+                  <div class="text-caption text-accent">Subtotal: <span class="text-weight-bold text-secondary text-body2">{{ itemSubtotal(item) }}</span></div>
+                </div>
               </div>
             </div>
 
-            <q-btn flat dense color="primary" icon="add" label="Agregar item" @click="addItem" />
+            <q-btn outline color="primary" icon="add" label="Agregar item" @click="addItem" class="q-mt-sm" />
 
             <div class="row justify-end">
               <div class="text-body1 text-weight-bold text-secondary">
@@ -162,7 +213,7 @@
 </template>
 
 <script setup lang="ts">
-import { ref, computed, onMounted, nextTick } from 'vue'
+import { ref, computed, watch, onMounted, nextTick } from 'vue'
 import { useQuasar } from 'quasar'
 import { useAuthStore } from 'src/modules/auth/store'
 import { facturaService } from '../services/factura.service'
@@ -178,9 +229,20 @@ const rows = ref<Factura[]>([])
 const loading = ref(false)
 const filter = ref('')
 const pagination = ref({ sortBy: 'issueDate', descending: true, page: 1, rowsPerPage: 15 })
-const productOptions = ref<{ label: string; value: string }[]>([])
-const allProducts = ref<{ label: string; value: string }[]>([])
+interface ProductOption { label: string; value: string; productName: string; sku: string; category: string }
+
+const productOptions = ref<ProductOption[]>([])
+const allProducts = ref<ProductOption[]>([])
+const productUnitMap = ref<Map<string, string>>(new Map())
+const productPresentationsMap = ref<Map<string, { label: string; value: string }[]>>(new Map())
+const activeCategory = ref('')
 const providerOptions = ref<{ label: string; value: string }[]>([])
+const providerFilteredOptions = ref<OptionItem[]>([])
+
+const productCategories = computed(() => {
+  const cats = new Set(allProducts.value.map(p => p.category).filter(Boolean))
+  return Array.from(cats).sort()
+})
 
 const columns = [
   { name: 'invoiceNumber', label: 'N° Factura', field: 'invoiceNumber', align: 'left' as const, sortable: true },
@@ -195,12 +257,24 @@ const columns = [
 const statusColor = (s: string) =>
   s === 'PAGADA' ? 'positive' : s === 'REGISTRADA' ? 'warning' : 'grey'
 const formatCurrency = (n: number) =>
-  new Intl.NumberFormat('es-PY', { style: 'currency', currency: 'PYG', minimumFractionDigits: 0 }).format(n)
+  new Intl.NumberFormat('en-US', { style: 'currency', currency: 'USD', minimumFractionDigits: 2 }).format(n)
+
+function unitOptions(productId: string | null): { label: string; value: string }[] {
+  if (!productId) return []
+  return productPresentationsMap.value.get(productId) || []
+}
+
+function onProductChange(item: ItemForm) {
+  item.presentacionId = null
+}
 
 let keyCounter = 0
+interface OptionItem { label: string; value: string; __isCreate?: boolean }
+
 interface ItemForm {
   _key: number
   productoId: string | null
+  presentacionId: string | null
   cantidad: number | null
   precioUnitario: number | null
   descuento: number
@@ -228,6 +302,7 @@ function addItem() {
   form.value.items.push({
     _key: ++keyCounter,
     productoId: null,
+    presentacionId: null,
     cantidad: null,
     precioUnitario: null,
     descuento: 0,
@@ -260,9 +335,41 @@ const computedTotal = computed(() => {
 function filterProducts(val: string, update: (fn: () => void) => void) {
   update(() => {
     const needle = val.toLowerCase()
-    productOptions.value = allProducts.value.filter(
-      p => p.label.toLowerCase().includes(needle)
-    )
+    productOptions.value = allProducts.value.filter(p => {
+      const matchesText = !needle || p.label.toLowerCase().includes(needle) || p.sku.toLowerCase().includes(needle)
+      const matchesCat = !activeCategory.value || p.category === activeCategory.value
+      return matchesText && matchesCat
+    })
+  })
+}
+
+function providerFilter(val: string, update: (fn: () => void) => void) {
+  update(() => {
+    if (!val) {
+      providerFilteredOptions.value = [...providerOptions.value]
+      return
+    }
+    const needle = val.toLowerCase()
+    const filtered: OptionItem[] = providerOptions.value.filter(p => p.label.toLowerCase().includes(needle))
+    if (filtered.length === 0 && val.trim()) {
+      filtered.push({ label: `+ Crear "${val.trim()}"`, value: `__CREATE__${val.trim()}`, __isCreate: true })
+    }
+    providerFilteredOptions.value = filtered
+  })
+}
+
+function onProviderSelected(val: string | null) {
+  if (!val || !val.startsWith('__CREATE__')) return
+  const name = val.replace('__CREATE__', '')
+  proveedorService.create({ tenantId, name, ruc: null }).then(res => {
+    const newOpt = { label: res.data.name, value: res.data.id }
+    providerOptions.value.push(newOpt)
+    providerFilteredOptions.value = [...providerOptions.value]
+    form.value.proveedorId = res.data.id
+    $q.notify({ type: 'positive', message: `Proveedor "${name}" creado` })
+  }).catch(() => {
+    form.value.proveedorId = null
+    $q.notify({ type: 'negative', message: 'Error al crear proveedor' })
   })
 }
 
@@ -276,10 +383,13 @@ async function openCreate() {
     items: [],
   }
   keyCounter = 0
+  providerFilteredOptions.value = [...providerOptions.value]
   dialogOpen.value = true
   await nextTick()
   addItem()
 }
+
+watch(() => form.value.proveedorId, onProviderSelected)
 
 async function loadDependencies() {
   try {
@@ -287,10 +397,28 @@ async function loadDependencies() {
       productoService.getAll(tenantId),
       proveedorService.getAll(tenantId),
     ])
-    const opts = prods.data.map(p => ({ label: `${p.name} (${p.sku})`, value: p.id }))
-    allProducts.value = opts
-    productOptions.value = [...opts]
-    providerOptions.value = provs.data.map(p => ({ label: p.name, value: p.id }))
+    const prodOpts = prods.data.map(p => ({
+      label: `${p.name} (${p.sku})`,
+      value: p.id,
+      productName: p.name,
+      sku: p.sku,
+      category: p.category,
+    }))
+    allProducts.value = prodOpts
+    productOptions.value = [...prodOpts]
+    productUnitMap.value = new Map(prods.data.map(p => [p.id, p.baseUnit]))
+    const presMap = new Map<string, { label: string; value: string }[]>()
+    for (const p of prods.data) {
+      const opts: { label: string; value: string }[] = [{ label: p.baseUnit, value: '' }]
+      for (const pres of (p.presentaciones || [])) {
+        opts.push({ label: pres.name, value: pres.id })
+      }
+      presMap.set(p.id, opts)
+    }
+    productPresentationsMap.value = presMap
+    const provOpts = provs.data.map(p => ({ label: p.name, value: p.id }))
+    providerOptions.value = provOpts
+    providerFilteredOptions.value = [...provOpts]
   } catch {
     $q.notify({ type: 'negative', message: 'Error al cargar datos del formulario' })
   }
@@ -308,6 +436,7 @@ async function save() {
       descuentoGlobal: form.value.descuentoGlobal || 0,
       items: form.value.items.map(item => ({
         productoId: item.productoId!,
+        presentacionId: item.presentacionId || null,
         cantidad: item.cantidad || 0,
         precioUnitario: item.precioUnitario || 0,
         descuento: item.descuento || 0,
@@ -386,3 +515,15 @@ onMounted(async () => {
   await Promise.all([load(), loadDependencies()])
 })
 </script>
+
+<style scoped>
+.product-cat-tabs {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 0.3rem;
+}
+.product-cat-tab {
+  cursor: pointer;
+  font-size: 0.78rem;
+}
+</style>

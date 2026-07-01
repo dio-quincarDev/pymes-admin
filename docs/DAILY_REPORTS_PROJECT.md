@@ -559,16 +559,31 @@ frontend/pymes/src/layouts/MainLayout.vue                                    # +
 | Frontend build | — | ✅ |
 | Frontend lint | — | ✅ |
 
+### Issues detectados (post-deploy)
+
+**CRÍTICO — XHR POST /facturas → 500:**
+- Causa raíz: `presentacionId` no se envía desde frontend
+  (`ItemFacturaRequest` TS carece del campo, UI no tiene selector de presentación).
+  Backend recibe `null` → `findById(null)` → NPE no manejado.
+- Fix pendiente: agregar `presentacionId` al tipo TS + `<q-select>` de presentación
+  en `FacturasPage.vue` + `@Valid` cascade en `FacturaRequest.java`
+
 ### Próximo
 
-- **PresentacionId en ItemFacturaRequest frontend** — bug crítico: backend requiere
-  `presentacionId` pero frontend no lo envía (BeanValidation 400)
-- **Cascada Categoría→Subcategoría→Producto en facturas** — selector jerárquico
-  tipo CatálogoMaestro para elegir producto en la factura
-- **Quick-add proveedor inline** — mini dialog dentro del formulario de factura
-- **Template defaults de min_quantity/max_quantity por industria** — opcional,
-  usuarios los configuran via edit form por ahora
-- **Gráficos interactivos** en Análisis de Gastos (post-MVP)
+1. **Fix crítico**: `presentacionId` en frontend + cascade `@Valid`
+2. **Cascada Categoría→Subcategoría→Producto** en facturas — reemplazar select
+   plano de productos por 3 selects jerárquicos. El campo `category` en productos
+   tiene formato `"Categoría > Subcategoría > Ítem"` (del template), se parsea
+   para poblar los niveles.
+3. **Selector de presentación** — 4to `<q-select>` con presentaciones del producto
+   seleccionado. Auto-fill `precioUnitario` desde `lastUnitPrice` del producto.
+4. **Quick-add proveedor inline** — botón "+" junto al select de proveedor,
+   mini dialog con nombre + RUC, al guardar recarga y selecciona el nuevo.
+5. **Auto-cálculo precio unitario** — watcher en tiempo real:
+   `subtotal / cantidad = precioUnitario` o viceversa.
+6. **Template defaults de min_quantity/max_quantity por industria** — opcional,
+   usuarios configuran via edit form por ahora.
+7. **Gráficos interactivos** en Análisis de Gastos (post-MVP).
 
 ---
 

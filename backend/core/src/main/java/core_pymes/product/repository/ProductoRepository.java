@@ -16,4 +16,6 @@ public interface ProductoRepository extends JpaRepository<Producto, UUID> {
     Optional<Producto> findByIdAndTenantId(UUID id, UUID tenantId);
 
     boolean existsByTenantIdAndSku(UUID tenantId, String sku);
+
+    long countByTenantId(UUID tenantId);
 }

@@ -4,6 +4,91 @@ Registro cronológico de decisiones, problemas resueltos y estado del frontend.
 
 ---
 
+## 2026-07-01 — SKU automático + proveedor fix + unidades en items + preview cards
+
+### Qué se hizo
+
+**SKU automático en creación de productos**:
+- Input de SKU eliminado del formulario de ProductosPage
+- Backend genera `P-XXXX` secuencial cuando sku es null/blank
+- `ProductoRequest.sku` ahora es opcional
+
+**Categoría requerida en productos**:
+- `:rules="[v => !!v || 'Requerido']"` agregado al q-select de categoría
+
+**Fix proveedor UUID visible**:
+- Después de crear proveedor inline, `providerFilteredOptions` se actualiza con el nuevo option
+- El q-select ahora resuelve correctamente el label del UUID
+
+**Unidades de medida en items de factura**:
+- `ItemForm` ahora incluye `presentacionId: string | null`
+- `productPresentationsMap` construido desde `Producto.presentaciones` + base unit
+- `q-select` de unidad por item: muestra base unit + presentaciones del producto
+- `presentacionId` se resetea al cambiar de producto
+- `presentacionId` se envía en el payload (opcional en backend)
+
+**Preview de onboarding rediseñado**:
+- Antes: chips de productos agrupados por categoría
+- Después: grid de cards de categoría con icono, nombre y count de productos
+
+### Archivos modificados
+
+```
+src/modules/core/types/index.ts                      # ProductoRequest.sku → opcional, ItemFacturaRequest +presentacionId
+src/modules/core/pages/ProductosPage.vue              # -SKU input, +category rules
+src/modules/core/pages/FacturasPage.vue               # +unit selector, +providerFilteredOptions fix, +productPresentationsMap
+src/modules/core/pages/OnboardingPage.vue             # preview → category cards grid
+```
+
+---
+
+## 2026-07-01 — Dashboard reemplazado por Catálogo + proveedor inline + items UX + USD
+
+### Qué se hizo
+
+**Dashboard**: reemplazo de `AnalyticsDashboard` por `CatalogDashboard` en la ruta raíz.
+- Árbol de categorías colapsable con productos agrupados (jerarquía `SetupCategory`)
+- 4 KPIs: Productos, Categorías, Proveedores, Inversión Total
+- Search bar que filtra productos por nombre/SKU y los muestra planos
+- Estados: loading (skeleton shimmer), error con retry, empty con CTA
+- Los análisis quedaron en la ruta `/analisis-gastos`
+
+**Proveedor inline en facturas**: type-to-create desde el `q-select` de proveedor.
+- Al tipear un nombre sin coincidencia aparece `+ Crear "Nombre"`
+- Al seleccionarlo → `POST /proveedores` → asigna el ID al form
+- No requiere diálogo separado
+
+**Items del formulario de factura**: rediseño completo del layout.
+- Antes: 6 columnas en una fila (`Producto col-4`, `Cant. col-2`, `P.Unit. col-2`, `Desc. col-2`, subtotal `col-1`, ✕ `col-1`)
+- Después: cada item es un bloque card de 2 filas con fondo sutil y borde
+  - Fila 1: Producto (col-10) + ✕ (col-2)
+  - Fila 2: Cantidad (col-4) + Precio Unit. (col-3) + Descuento (col-3) + Subtotal (col-2)
+- Labels completos: `Cant.` → `Cantidad`, `P.Unit.` → `Precio Unit.`, `Desc.` → `Descuento`
+- `baseUnit` del producto se muestra bajo el input de cantidad al seleccionar producto
+- Subtotal con label propio y formato USD bold
+- Inputs de precio/descuento con prefijo `$`
+- Botón "Agregar item" pasa a `outline`
+
+**Moneda**: todo el frontend cambió de PEN/PYG a USD.
+- `useNumberFormat.ts`: locale `en-US`, currency `USD`
+- `FacturasPage.vue`: `formatCurrency` propio cambió de `es-PY`/`PYG` a `en-US`/`USD`
+
+### Archivos nuevos
+
+```
+src/modules/core/components/dashboard/CatalogDashboard.vue
+```
+
+### Archivos modificados
+
+```
+src/modules/core/pages/DashboardPage.vue               # AnalyticsDashboard → CatalogDashboard
+src/modules/core/pages/FacturasPage.vue                 # proveedor inline + items redesign + USD + unit hints
+src/modules/core/composables/useNumberFormat.ts          # PEN→USD
+```
+
+---
+
 ## 2026-06-30 — Template Products: Frontend preview en onboarding completado
 
 ### Qué se hizo
@@ -486,7 +571,34 @@ src/layouts/MainLayout.vue                         # +nav link
 - `npm run lint`: ✅
 - `npm run build`: ✅
 
-## Próximos Pasos
+## Issues detectados (post-deploy)
+
+**CRÍTICO — POST /facturas → 500:**
+- `ItemFacturaRequest` TS no tiene `presentacionId` → no se envía → backend falla
+  con NPE en `presentacionRepository.findById(null)`
+- Fix: agregar campo al tipo + `<q-select>` de presentación
+
+## Próximos Pasos en Frontend
+
+### Inmediatos (fix crítico)
+1. `types/index.ts` — agregar `presentacionId: string` a `ItemFacturaRequest`
+2. `FacturasPage.vue` — al seleccionar producto, cargar presentaciones en un
+   4to `<q-select>`
+3. Cascade `@Valid` en backend `FacturaRequest.items`
+
+### UX — Facturas
+4. **Cascada Categoría→Subcategoría→Producto**: reemplazar select plano por
+   3 selects jerárquicos. Parsear `category` (`"Bebidas > Gaseosas > Colas"`)
+   para poblar los niveles. Al seleccionar subcategoría, filtrar productos.
+5. **Auto-fill precio unitario**: al seleccionar producto, precargar
+   `lastUnitPrice` (si existe) como `precioUnitario` sugerido.
+6. **Watcher tiempo real**: `subtotal = cantidad * precioUnitario` y viceversa.
+7. **Quick-add proveedor inline**: botón "+" junto al select de proveedor,
+   mini dialog con nombre + RUC, recargar y seleccionar al guardar.
+
+### UX — Productos
+8. Formulario de producto: agregar campos `minQuantity` / `maxQuantity`
+   (ahora existen en backend pero UI no los expone).
 
 ### Testing (Fase 1)
 - ✅ Vitest configurado (`vitest`, `@vue/test-utils`, `happy-dom`)

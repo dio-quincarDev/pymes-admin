@@ -142,18 +142,24 @@ public class FacturaServiceImpl implements FacturaService {
 
             var productoName = productNameMap.get(itemReq.productoId());
 
-            var presentacion = presentacionRepository.findById(itemReq.presentacionId())
-                    .orElseThrow(() -> new EntityNotFoundException("Presentacion not found: " + itemReq.presentacionId()));
-            if (!presentacion.getProducto().getId().equals(itemReq.productoId())) {
-                throw new IllegalArgumentException("Presentacion does not belong to product " + itemReq.productoId());
+            int conversionFactor = 1;
+            UUID presentacionId = null;
+            if (itemReq.presentacionId() != null) {
+                var presentacion = presentacionRepository.findById(itemReq.presentacionId())
+                        .orElseThrow(() -> new EntityNotFoundException("Presentacion not found: " + itemReq.presentacionId()));
+                if (!presentacion.getProducto().getId().equals(itemReq.productoId())) {
+                    throw new IllegalArgumentException("Presentacion does not belong to product " + itemReq.productoId());
+                }
+                conversionFactor = presentacion.getConversion();
+                presentacionId = presentacion.getId();
             }
 
             var item = ItemFactura.builder()
                     .factura(factura)
                     .productId(itemReq.productoId())
                     .productName(productoName)
-                    .presentacionId(itemReq.presentacionId())
-                    .conversionFactor(presentacion.getConversion())
+                    .presentacionId(presentacionId)
+                    .conversionFactor(conversionFactor)
                     .quantity(itemReq.cantidad())
                     .unitPrice(itemReq.precioUnitario())
                     .discount(discount)

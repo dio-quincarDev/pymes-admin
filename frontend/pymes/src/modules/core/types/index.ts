@@ -27,7 +27,7 @@ export interface Presentacion {
 export interface ProductoRequest {
   tenantId: string
   name: string
-  sku: string
+  sku?: string
   category?: string
   baseUnit?: string
   minQuantity?: number | null
@@ -81,6 +81,7 @@ export interface ItemFactura {
 
 export interface ItemFacturaRequest {
   productoId: string
+  presentacionId?: string | null
   cantidad: number
   precioUnitario: number
   descuento?: number | null

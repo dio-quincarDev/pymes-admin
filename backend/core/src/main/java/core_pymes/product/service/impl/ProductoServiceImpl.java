@@ -55,10 +55,15 @@ public class ProductoServiceImpl implements ProductoService {
     @Transactional
     @CacheEvict(cacheNames = "productos", allEntries = true)
     public ProductoResponse create(ProductoRequest request) {
+        var sku = request.sku();
+        if (sku == null || sku.isBlank()) {
+            long count = productoRepository.countByTenantId(request.tenantId());
+            sku = String.format("P-%04d", count + 1);
+        }
         var producto = Producto.builder()
                 .tenantId(request.tenantId())
                 .name(request.name())
-                .sku(request.sku())
+                .sku(sku)
                 .category(request.category())
                 .baseUnit(request.baseUnit())
                 .imageUrl(request.imageUrl())

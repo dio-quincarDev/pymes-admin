@@ -50,6 +50,8 @@ Todos comunican vía Spring Events (no bloqueantes). Paquete base: `core_pymes.*
 - `FacturaCreadaEvent` → escuchado por AnalyticsListener
 - `FacturaPagadaEvent` → eliminado (dead code, sin listeners)
 - Invoice number auto-generado: `F-PROV-{year}-{sequential:04d}`
+- `presentacionId` opcional en `ItemFacturaRequest` — cuando null, `conversionFactor = 1` (base unit)
+- `@Valid` enforced en `FacturaController.create()` para 400 en vez de 500
 - Flyway V4: `core.providers`, `core.invoices`, `core.invoice_items`
 
 ### Analytics (`core_pymes/analytics/`)
