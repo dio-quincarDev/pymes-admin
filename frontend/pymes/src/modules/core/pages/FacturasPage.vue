@@ -42,6 +42,7 @@
               v-if="row.status === 'REGISTRADA'"
               flat dense round icon="paid" color="positive"
               @click="confirmPay(row)"
+              aria-label="Marcar como pagada"
             >
               <q-tooltip>Marcar como pagada</q-tooltip>
             </q-btn>
@@ -49,12 +50,14 @@
               v-if="row.status === 'REGISTRADA'"
               flat dense round icon="delete" color="negative"
               @click="confirmDelete(row)"
+              aria-label="Eliminar factura"
             />
           </td>
         </template>
       </q-table>
     </q-card>
 
+    <!-- Create Invoice Dialog -->
     <q-dialog v-model="dialogOpen" dark maximized>
       <q-card dark class="bg-surface-pine" style="max-width: 700px">
         <q-card-section>
@@ -98,72 +101,20 @@
             <q-separator dark />
             <div class="text-subtitle2 text-primary q-mb-sm">Items</div>
 
-            <div v-if="productCategories.length > 1" class="product-cat-tabs q-mb-md">
-              <q-chip
-                :color="!activeCategory ? 'primary' : 'dark'" :text-color="!activeCategory ? 'dark' : 'accent'"
-                dense clickable @click="activeCategory = ''" class="product-cat-tab">
-                Todos
-              </q-chip>
-              <q-chip
-                v-for="cat in productCategories" :key="cat"
-                :color="activeCategory === cat ? 'primary' : 'dark'" :text-color="activeCategory === cat ? 'dark' : 'accent'"
-                dense clickable @click="activeCategory = cat" class="product-cat-tab">
-                {{ cat }}
-              </q-chip>
-            </div>
+            <CategoryTabs v-model="activeCategory" :categories="productCategories" />
 
-            <!-- ponytail: card-per-item block, unit hint from productUnitMap -->
-            <div v-for="(item, i) in form.items" :key="item._key"
-              class="q-mb-md q-pa-md rounded-border"
-              style="background: rgba(255,255,255,0.02); border: 1px solid rgba(255,255,255,0.08);">
-              <div class="row q-col-gutter-sm items-center">
-                <div class="col-10">
-                  <q-select dark dense filled v-model="item.productoId" :options="productOptions" label="Producto"
-                    map-options emit-value use-input @filter="filterProducts"
-                    @update:model-value="onProductChange(item)">
-                    <template v-slot:option="{ itemProps, opt }">
-                      <q-item v-bind="itemProps">
-                        <q-item-section avatar>
-                          <q-icon name="inventory_2" size="1.1rem" color="accent" />
-                        </q-item-section>
-                        <q-item-section>
-                          <q-item-label>{{ opt.productName }}</q-item-label>
-                          <q-item-label caption class="text-accent">{{ opt.sku }}</q-item-label>
-                        </q-item-section>
-                        <q-item-section v-if="opt.category" side>
-                          <q-badge :label="opt.category" color="dark" text-color="accent" class="q-px-sm" />
-                        </q-item-section>
-                      </q-item>
-                    </template>
-                  </q-select>
-                </div>
-                <div class="col-2 text-right">
-                  <q-btn flat dense round icon="close" color="negative" size="sm" @click="removeItem(i)" />
-                </div>
-              </div>
-                <div class="row q-col-gutter-sm items-start q-mt-sm">
-                <div class="col-3">
-                  <q-input dark dense filled v-model.number="item.cantidad" label="Cantidad" type="number" min="0.01" step="0.01" />
-                </div>
-                <div class="col-3">
-                  <q-select dark dense filled v-model="item.presentacionId" :options="unitOptions(item.productoId)"
-                    label="Unidad" map-options emit-value :disable="!item.productoId"
-                    @update:model-value="() => {}" />
-                </div>
-                <div class="col-3">
-                  <q-input dark dense filled v-model.number="item.precioUnitario" label="Precio Unit." type="number" min="0" step="0.01" prefix="$" />
-                </div>
-                <div class="col-3">
-                  <q-input dark dense filled v-model.number="item.descuento" label="Descuento" type="number" min="0" step="0.01" prefix="$" />
-                </div>
-              </div>
-              <div class="row q-col-gutter-sm items-center q-mt-xs">
-                <div class="col-3"></div>
-                <div class="col-9 text-right">
-                  <div class="text-caption text-accent">Subtotal: <span class="text-weight-bold text-secondary text-body2">{{ itemSubtotal(item) }}</span></div>
-                </div>
-              </div>
-            </div>
+            <InvoiceItemCard
+              v-for="(item, i) in form.items" :key="item._key"
+              :item="item" :index="i"
+              :product-options="filteredByCategory"
+              :unit-options="unitOptions(item.productoId)"
+              @update:productoId="item.productoId = $event; item.presentacionId = null"
+              @update:presentacionId="item.presentacionId = $event"
+              @update:cantidad="item.cantidad = $event"
+              @update:precioUnitario="item.precioUnitario = $event"
+              @update:descuento="item.descuento = $event"
+              @remove="removeItem(i)"
+            />
 
             <q-btn outline color="primary" icon="add" label="Agregar item" @click="addItem" class="q-mt-sm" />
 
@@ -184,31 +135,21 @@
       </q-card>
     </q-dialog>
 
-    <q-dialog v-model="payDialog" dark>
-      <q-card dark class="bg-surface-pine">
-        <q-card-section class="row items-center q-gutter-x-md">
-          <q-icon name="paid" color="positive" size="md" />
-          <span>Marcar como pagada la factura <strong>{{ payingItem?.invoiceNumber }}</strong>?</span>
-        </q-card-section>
-        <q-card-actions align="right">
-          <q-btn flat label="Cancelar" color="accent" v-close-popup />
-          <q-btn label="Confirmar Pago" color="positive" :loading="paying" @click="pay" />
-        </q-card-actions>
-      </q-card>
-    </q-dialog>
+    <ConfirmDialog
+      v-model="payDialog"
+      icon="paid" icon-color="positive"
+      :message="`Marcar como pagada la factura <strong>${payingItem?.invoiceNumber}</strong>?`"
+      confirm-label="Confirmar Pago" confirm-color="positive"
+      :loading="paying" @confirm="pay"
+    />
 
-    <q-dialog v-model="deleteDialog" dark>
-      <q-card dark class="bg-surface-pine">
-        <q-card-section class="row items-center q-gutter-x-md">
-          <q-icon name="warning" color="negative" size="md" />
-          <span>¿Eliminar factura <strong>{{ deletingItem?.invoiceNumber }}</strong>?</span>
-        </q-card-section>
-        <q-card-actions align="right">
-          <q-btn flat label="Cancelar" color="accent" v-close-popup />
-          <q-btn label="Eliminar" color="negative" :loading="deleting" @click="remove" />
-        </q-card-actions>
-      </q-card>
-    </q-dialog>
+    <ConfirmDialog
+      v-model="deleteDialog"
+      icon="warning" icon-color="negative"
+      :message="`¿Eliminar factura <strong>${deletingItem?.invoiceNumber}</strong>?`"
+      confirm-label="Eliminar" confirm-color="negative"
+      :loading="deleting" @confirm="remove"
+    />
   </q-page>
 </template>
 
@@ -220,6 +161,9 @@ import { facturaService } from '../services/factura.service'
 import { productoService } from '../services/producto.service'
 import { proveedorService } from '../services/proveedor.service'
 import type { Factura, FacturaRequest } from '../types'
+import CategoryTabs from '../components/facturas/CategoryTabs.vue'
+import InvoiceItemCard from '../components/facturas/InvoiceItemCard.vue'
+import ConfirmDialog from '../components/facturas/ConfirmDialog.vue'
 
 const $q = useQuasar()
 const authStore = useAuthStore()
@@ -229,11 +173,8 @@ const rows = ref<Factura[]>([])
 const loading = ref(false)
 const filter = ref('')
 const pagination = ref({ sortBy: 'issueDate', descending: true, page: 1, rowsPerPage: 15 })
-interface ProductOption { label: string; value: string; productName: string; sku: string; category: string }
 
-const productOptions = ref<ProductOption[]>([])
-const allProducts = ref<ProductOption[]>([])
-const productUnitMap = ref<Map<string, string>>(new Map())
+const allProducts = ref<{ label: string; value: string; productName: string; sku: string; category: string }[]>([])
 const productPresentationsMap = ref<Map<string, { label: string; value: string }[]>>(new Map())
 const activeCategory = ref('')
 const providerOptions = ref<{ label: string; value: string }[]>([])
@@ -244,6 +185,12 @@ const productCategories = computed(() => {
   return Array.from(cats).sort()
 })
 
+const filteredByCategory = computed(() =>
+  !activeCategory.value
+    ? allProducts.value
+    : allProducts.value.filter(p => p.category === activeCategory.value)
+)
+
 const columns = [
   { name: 'invoiceNumber', label: 'N° Factura', field: 'invoiceNumber', align: 'left' as const, sortable: true },
   { name: 'providerName', label: 'Proveedor', field: 'providerName', align: 'left' as const, sortable: true },
@@ -253,7 +200,6 @@ const columns = [
   { name: 'actions', label: 'Acciones', field: 'id', align: 'right' as const, sortable: false },
 ]
 
-// ponytail: hardcoded status colors, use config if statuses become dynamic
 const statusColor = (s: string) =>
   s === 'PAGADA' ? 'positive' : s === 'REGISTRADA' ? 'warning' : 'grey'
 const formatCurrency = (n: number) =>
@@ -262,10 +208,6 @@ const formatCurrency = (n: number) =>
 function unitOptions(productId: string | null): { label: string; value: string }[] {
   if (!productId) return []
   return productPresentationsMap.value.get(productId) || []
-}
-
-function onProductChange(item: ItemForm) {
-  item.presentacionId = null
 }
 
 let keyCounter = 0
@@ -313,14 +255,6 @@ function removeItem(i: number) {
   form.value.items.splice(i, 1)
 }
 
-const itemSubtotal = (item: ItemForm) => {
-  const qty = item.cantidad || 0
-  const price = item.precioUnitario || 0
-  const disc = item.descuento || 0
-  const st = qty * price - disc
-  return formatCurrency(st)
-}
-
 const computedTotal = computed(() => {
   const itemsTotal = form.value.items.reduce((sum, item) => {
     const qty = item.cantidad || 0
@@ -331,17 +265,6 @@ const computedTotal = computed(() => {
   const gd = form.value.descuentoGlobal || 0
   return Math.max(0, itemsTotal - gd)
 })
-
-function filterProducts(val: string, update: (fn: () => void) => void) {
-  update(() => {
-    const needle = val.toLowerCase()
-    productOptions.value = allProducts.value.filter(p => {
-      const matchesText = !needle || p.label.toLowerCase().includes(needle) || p.sku.toLowerCase().includes(needle)
-      const matchesCat = !activeCategory.value || p.category === activeCategory.value
-      return matchesText && matchesCat
-    })
-  })
-}
 
 function providerFilter(val: string, update: (fn: () => void) => void) {
   update(() => {
@@ -397,16 +320,13 @@ async function loadDependencies() {
       productoService.getAll(tenantId),
       proveedorService.getAll(tenantId),
     ])
-    const prodOpts = prods.data.map(p => ({
+    allProducts.value = prods.data.map(p => ({
       label: `${p.name} (${p.sku})`,
       value: p.id,
       productName: p.name,
       sku: p.sku,
       category: p.category,
     }))
-    allProducts.value = prodOpts
-    productOptions.value = [...prodOpts]
-    productUnitMap.value = new Map(prods.data.map(p => [p.id, p.baseUnit]))
     const presMap = new Map<string, { label: string; value: string }[]>()
     for (const p of prods.data) {
       const opts: { label: string; value: string }[] = [{ label: p.baseUnit, value: '' }]
@@ -515,15 +435,3 @@ onMounted(async () => {
   await Promise.all([load(), loadDependencies()])
 })
 </script>
-
-<style scoped>
-.product-cat-tabs {
-  display: flex;
-  flex-wrap: wrap;
-  gap: 0.3rem;
-}
-.product-cat-tab {
-  cursor: pointer;
-  font-size: 0.78rem;
-}
-</style>

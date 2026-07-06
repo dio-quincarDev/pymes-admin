@@ -97,6 +97,14 @@ export interface FacturaRequest {
   items: ItemFacturaRequest[]
 }
 
+export interface ProductOption {
+  label: string
+  value: string
+  productName: string
+  sku: string
+  category: string
+}
+
 export interface ProductTemplateDTO {
   id: string
   name: string

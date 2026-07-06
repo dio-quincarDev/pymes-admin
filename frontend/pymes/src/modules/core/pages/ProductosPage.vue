@@ -192,11 +192,11 @@ async function remove() {
 
         <template v-slot:body-cell-actions="{ row }">
           <td class="text-right">
-            <q-btn flat dense round icon="layers" color="info" @click="openPresentations(row)">
+            <q-btn flat dense round icon="layers" color="info" @click="openPresentations(row)" aria-label="Presentaciones">
               <q-tooltip>Presentaciones</q-tooltip>
             </q-btn>
-            <q-btn flat dense round icon="edit" color="primary" @click="openEdit(row)" />
-            <q-btn flat dense round icon="delete" color="negative" @click="confirmDelete(row)" />
+            <q-btn flat dense round icon="edit" color="primary" @click="openEdit(row)" aria-label="Editar producto" />
+            <q-btn flat dense round icon="delete" color="negative" @click="confirmDelete(row)" aria-label="Eliminar producto" />
           </td>
         </template>
       </q-table>
@@ -234,7 +234,7 @@ async function remove() {
           <div v-if="!presItems.length" class="text-accent text-center q-py-md">Sin presentaciones</div>
           <div v-for="p in presItems" :key="p.id" class="pres-row row items-center justify-between bg-dark q-px-md q-py-sm">
             <span>{{ p.name }} <span class="text-accent text-caption">(x{{ p.conversion }})</span></span>
-            <q-btn flat dense round icon="delete" color="negative" size="sm" @click="removePresentation(p)" :disable="removingPres" />
+            <q-btn flat dense round icon="delete" color="negative" size="sm" @click="removePresentation(p)" :disable="removingPres" aria-label="Eliminar presentación" />
           </div>
         </q-card-section>
         <q-separator dark />

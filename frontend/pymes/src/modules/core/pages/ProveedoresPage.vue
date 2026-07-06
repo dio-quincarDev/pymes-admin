@@ -124,8 +124,8 @@ onMounted(load)
 
         <template v-slot:body-cell-actions="{ row }">
           <td class="text-right">
-            <q-btn flat dense round icon="edit" color="primary" @click="openEdit(row)" />
-            <q-btn flat dense round icon="delete" color="negative" @click="confirmDelete(row)" />
+            <q-btn flat dense round icon="edit" color="primary" @click="openEdit(row)" aria-label="Editar proveedor" />
+            <q-btn flat dense round icon="delete" color="negative" @click="confirmDelete(row)" aria-label="Eliminar proveedor" />
           </td>
         </template>
       </q-table>

@@ -4,7 +4,7 @@ import { useRouter } from 'vue-router'
 import { useQuasar } from 'quasar'
 import { useAuthStore } from 'src/modules/auth/store'
 import { setupService } from '../services/setup.service'
-import type { SetupInfo } from '../types'
+import type { SetupInfo, SetupCategory } from '../types'
 import IndustryCard from 'src/components/onboarding/IndustryCard.vue'
 import CategoryTree from 'src/components/onboarding/CategoryTree.vue'
 
@@ -30,16 +30,35 @@ const previewData = ref<SetupInfo | null>(null)
 const loadingPreview = ref(false)
 const saving = ref(false)
 
-const groupedProducts = computed(() => {
-  if (!previewData.value?.products) return []
-  const map = new Map<string, typeof previewData.value.products>()
-  for (const p of previewData.value.products) {
-    const cat = p.categoryName || 'Sin categoría'
-    if (!map.has(cat)) map.set(cat, [])
-    map.get(cat)!.push(p)
-  }
-  return Array.from(map.entries())
+// ponytail: UI state for template preview dashboard
+const activeTab = ref('summary')
+const searchQuery = ref('')
+
+function countCategories(cats: SetupCategory[]): number {
+  return cats.reduce((acc, c) => acc + 1 + (c.children?.length ? countCategories(c.children) : 0), 0)
+}
+
+const totalCategories = computed(() => previewData.value ? countCategories(previewData.value.categories) : 0)
+
+const filteredProducts = computed(() => {
+  const list = previewData.value?.products || []
+  const q = searchQuery.value.trim().toLowerCase()
+  if (!q) return list
+  return list.filter(p => p.name.toLowerCase().includes(q) || (p.categoryName || '').toLowerCase().includes(q))
 })
+
+const stats = computed(() => [
+  { label: 'Productos', value: previewData.value?.products?.length || 0, icon: 'inventory_2' },
+  { label: 'Categorías', value: totalCategories.value, icon: 'category' },
+  { label: 'Unidades', value: previewData.value?.units?.length || 0, icon: 'scale' },
+  { label: 'Ubicaciones', value: previewData.value?.locations?.length || 0, icon: 'place' },
+])
+
+const checklist = computed(() => [
+  { title: 'Base de datos base', desc: `Se precargarán los productos y su estructura para la plantilla de ${industries.find(i => i.code === selected.value)?.name || 'General'}.` },
+  { title: 'Taxonomía y Clasificación', desc: `Se configurarán ${totalCategories.value} categorías optimizadas.` },
+  { title: 'Logística e Inventario', desc: `Configuración inicial de ubicaciones físicas y unidades de medida.` },
+])
 
 function onSelect(code: string) {
   selected.value = code
@@ -82,7 +101,7 @@ async function confirm() {
 
 <template>
   <div class="onboarding-page">
-    <div class="onboarding-content">
+    <div class="onboarding-content" :class="{ 'onboarding-content--preview': step === 2 }">
       <div class="onboarding-header fade-in-up">
         <div class="step-indicator">
           <span
@@ -120,61 +139,153 @@ async function confirm() {
         />
       </div>
 
-      <!-- Step 2: Preview -->
-      <div v-if="step === 2 && previewData" class="preview-section fade-in-up">
-        <div class="preview-card">
-          <div class="preview-card__header">
-            <q-icon :name="industries.find(i => i.code === selected)?.icon || 'business'" size="1.5rem" color="primary" />
-            <span class="preview-card__industry">
-              {{ industries.find(i => i.code === selected)?.name }}
-            </span>
+      <!-- Step 2: Preview (ponytail: interactive Quasar tabbed dashboard preview) -->
+      <div v-if="step === 2 && previewData" class="preview-dashboard fade-in-up">
+        <!-- Header -->
+        <div class="dashboard-header">
+          <div>
+            <h2 class="dashboard-header__title">Plantilla de {{ industries.find(i => i.code === selected)?.name }}</h2>
+            <p class="dashboard-header__subtitle">Inicialización inteligente de base de datos e inventarios</p>
           </div>
+          <div class="dashboard-header__status">
+            <span class="pulse-indicator"></span>
+            Listo para cargar
+          </div>
+        </div>
 
-          <div class="preview-card__body">
-            <div class="preview-group" v-if="previewData.categories.length">
-              <div class="preview-group__title">
-                <q-icon name="category" size="1rem" color="primary" />
-                Categorias
-              </div>
-              <CategoryTree :categories="previewData.categories" />
+        <!-- Dashboard Layout -->
+        <div class="q-pa-md">
+          <div class="row q-col-gutter-md">
+            <div class="col-12 col-md-3">
+              <q-tabs
+                v-model="activeTab"
+                vertical
+                dense
+                align="left"
+                class="text-accent text-weight-medium bg-dark rounded-borders q-pa-sm"
+                active-color="primary"
+                active-bg-color="transparent"
+                indicator-color="primary"
+              >
+                <q-tab name="summary" icon="dashboard" label="Resumen" />
+                <q-tab name="products" icon="inventory_2" label="Productos" />
+                <q-tab name="categories" icon="category" label="Categorías" />
+                <q-tab name="settings" icon="settings" label="Configuración" />
+              </q-tabs>
             </div>
 
-            <div class="preview-group" v-if="previewData.units.length">
-              <div class="preview-group__title">
-                <q-icon name="scale" size="1rem" color="primary" />
-                Unidades
-              </div>
-              <div class="preview-list">
-                <span v-for="u in previewData.units" :key="u.code" class="preview-chip">
-                  {{ u.name }}
-                </span>
-              </div>
-            </div>
+            <div class="col-12 col-md-9">
+              <q-tab-panels
+                v-model="activeTab"
+                animated
+                swipeable
+                vertical
+                transition-prev="jump-up"
+                transition-next="jump-down"
+                class="bg-dark text-secondary rounded-borders shadow-2 q-pa-md"
+                style="min-height: 350px;"
+              >
+                <!-- Vista General -->
+                <q-tab-panel name="summary" class="q-pa-none">
+                  <div class="row q-col-gutter-sm q-mb-md">
+                    <div class="col-6 col-sm-3" v-for="stat in stats" :key="stat.label">
+                      <q-card flat bordered class="bg-surface-pine border-accent text-center q-pa-sm">
+                        <q-icon :name="stat.icon" size="sm" color="primary" class="q-mb-xs" />
+                        <div class="text-h6 text-weight-bold">{{ stat.value }}</div>
+                        <div class="text-caption text-accent">{{ stat.label }}</div>
+                      </q-card>
+                    </div>
+                  </div>
 
-            <div class="preview-group" v-if="previewData.locations.length">
-              <div class="preview-group__title">
-                <q-icon name="place" size="1rem" color="primary" />
-                Ubicaciones
-              </div>
-              <div class="preview-list">
-                <span v-for="l in previewData.locations" :key="l.code" class="preview-chip">
-                  {{ l.name }}
-                </span>
-              </div>
-            </div>
+                  <div class="text-subtitle2 text-weight-bold q-mb-sm text-primary">Procesos de inicialización</div>
+                  <q-list dense>
+                    <q-item v-for="item in checklist" :key="item.title" class="q-px-none">
+                      <q-item-section avatar min-width="24px">
+                        <q-icon name="check_circle" color="positive" size="xs" />
+                      </q-item-section>
+                      <q-item-section>
+                        <q-item-label class="text-weight-medium">{{ item.title }}</q-item-label>
+                        <q-item-label caption class="text-accent">{{ item.desc }}</q-item-label>
+                      </q-item-section>
+                    </q-item>
+                  </q-list>
+                </q-tab-panel>
 
-            <div class="preview-group" v-if="previewData.products?.length">
-              <div class="preview-group__title">
-                <q-icon name="inventory_2" size="1rem" color="primary" />
-                Productos precargados ({{ previewData.products.length }})
-              </div>
-              <div class="category-grid">
-                <div v-for="[cat, items] in groupedProducts" :key="cat" class="category-card">
-                  <q-icon name="category" size="1.5rem" color="primary" class="category-card__icon" />
-                  <div class="category-card__name">{{ cat }}</div>
-                  <div class="category-card__count">{{ items.length }} {{ items.length === 1 ? 'producto' : 'productos' }}</div>
-                </div>
-              </div>
+                <!-- Productos -->
+                <q-tab-panel name="products" class="q-pa-none">
+                  <div class="row q-col-gutter-sm items-center q-mb-md">
+                    <div class="col text-subtitle2 text-weight-bold text-primary">Productos Base</div>
+                    <div class="col-12 col-sm-6">
+                      <q-input v-model="searchQuery" filled dense placeholder="Buscar..." color="primary">
+                        <template v-slot:append>
+                          <q-icon v-if="searchQuery" name="clear" class="cursor-pointer" @click="searchQuery = ''" />
+                          <q-icon name="search" />
+                        </template>
+                      </q-input>
+                    </div>
+                  </div>
+
+                  <div class="scroll-container" style="max-height: 250px; overflow-y: auto;">
+                    <q-list bordered separator v-if="filteredProducts.length">
+                      <q-item v-for="p in filteredProducts" :key="p.name">
+                        <q-item-section>
+                          <q-item-label class="text-weight-medium">{{ p.name }}</q-item-label>
+                          <q-item-label caption class="text-accent">{{ p.categoryName || 'Sin categoría' }}</q-item-label>
+                        </q-item-section>
+                        <q-item-section side>
+                          <q-badge color="primary" outline>{{ p.baseUnit }}</q-badge>
+                        </q-item-section>
+                      </q-item>
+                    </q-list>
+                    <div v-else class="text-center q-pa-md text-accent">
+                      No se encontraron productos para "{{ searchQuery }}"
+                    </div>
+                  </div>
+                </q-tab-panel>
+
+                <!-- Categorías -->
+                <q-tab-panel name="categories" class="q-pa-none">
+                  <div class="text-subtitle2 text-weight-bold q-mb-md text-primary">Estructura de Categorías</div>
+                  <div class="scroll-container q-pa-xs" style="max-height: 280px; overflow-y: auto;">
+                    <CategoryTree :categories="previewData.categories" />
+                  </div>
+                </q-tab-panel>
+
+                <!-- Configuración -->
+                <q-tab-panel name="settings" class="q-pa-none">
+                  <div class="row q-col-gutter-md">
+                    <div class="col-12 col-sm-6">
+                      <div class="text-subtitle2 text-weight-bold text-primary q-mb-sm">Ubicaciones</div>
+                      <q-list bordered separator>
+                        <q-item v-for="l in previewData.locations" :key="l.code">
+                          <q-item-section avatar>
+                            <q-icon name="place" color="accent" />
+                          </q-item-section>
+                          <q-item-section>
+                            <q-item-label class="text-weight-medium">{{ l.name }}</q-item-label>
+                            <q-item-label caption class="text-accent">Código: {{ l.code }}</q-item-label>
+                          </q-item-section>
+                        </q-item>
+                      </q-list>
+                    </div>
+
+                    <div class="col-12 col-sm-6">
+                      <div class="text-subtitle2 text-weight-bold text-primary q-mb-sm">Unidades de Medida</div>
+                      <q-list bordered separator>
+                        <q-item v-for="u in previewData.units" :key="u.code">
+                          <q-item-section avatar>
+                            <q-icon name="scale" color="accent" />
+                          </q-item-section>
+                          <q-item-section>
+                            <q-item-label class="text-weight-medium">{{ u.name }}</q-item-label>
+                            <q-item-label caption class="text-accent">Código: {{ u.code }}</q-item-label>
+                          </q-item-section>
+                        </q-item>
+                      </q-list>
+                    </div>
+                  </div>
+                </q-tab-panel>
+              </q-tab-panels>
             </div>
           </div>
         </div>
@@ -222,6 +333,11 @@ async function confirm() {
 .onboarding-content {
   max-width: 900px;
   width: 100%;
+  transition: max-width 0.3s ease;
+
+  &--preview {
+    max-width: 1100px;
+  }
 }
 
 .onboarding-header {
@@ -285,142 +401,87 @@ async function confirm() {
   }
 }
 
-.preview-section {
-  max-height: 60vh;
-  overflow-y: auto;
-  padding-right: 0.5rem;
-}
-
-.preview-card {
+// ponytail: preview dashboard layout styles
+.preview-dashboard {
   background: rgba(27, 38, 36, 0.6);
   border: 1px solid rgba(163, 120, 94, 0.12);
   border-radius: 12px;
   overflow: hidden;
-
-  &__header {
-    display: flex;
-    align-items: center;
-    gap: 0.75rem;
-    padding: 1rem 1.25rem;
-    border-bottom: 1px solid rgba(163, 120, 94, 0.08);
-  }
-
-  &__industry {
-    font-family: 'Outfit', sans-serif;
-    font-weight: 600;
-    font-size: 1rem;
-    color: #E2E8E4;
-  }
-
-  &__body {
-    padding: 1rem 1.25rem;
-  }
 }
 
-.preview-group {
-  margin-bottom: 1.25rem;
-
-  &:last-child {
-    margin-bottom: 0;
-  }
+.dashboard-header {
+  display: flex;
+  justify-content: space-between;
+  align-items: center;
+  padding: 1.25rem 1.5rem;
+  border-bottom: 1px solid rgba(163, 120, 94, 0.08);
 
   &__title {
+    font-family: 'Outfit', sans-serif;
+    font-weight: 700;
+    font-size: 1.25rem;
+    color: #E2E8E4;
+    margin: 0;
+  }
+
+  &__subtitle {
+    font-size: 0.85rem;
+    color: #8A9E99;
+    margin: 0.1rem 0 0;
+  }
+
+  &__status {
     display: flex;
     align-items: center;
-    gap: 0.5rem;
-    font-family: 'Outfit', sans-serif;
-    font-weight: 600;
+    gap: 0.4rem;
     font-size: 0.8rem;
-    color: #8A9E99;
-    text-transform: uppercase;
-    letter-spacing: 0.05em;
-    margin-bottom: 0.5rem;
-  }
-}
-
-.preview-list {
-  display: flex;
-  flex-wrap: wrap;
-  gap: 0.4rem;
-}
-
-.preview-chip {
-  font-size: 0.78rem;
-  color: #E2E8E4;
-  background: rgba(163, 120, 94, 0.08);
-  border: 1px solid rgba(163, 120, 94, 0.1);
-  border-radius: 6px;
-  padding: 0.25rem 0.6rem;
-}
-
-.onboarding-actions {
-  display: flex;
-  justify-content: center;
-  gap: 1rem;
-  margin-top: 2.5rem;
-}
-
-.action-btn {
-  min-width: 120px;
-  border-radius: 8px;
-  font-family: 'Outfit', sans-serif;
-  font-weight: 600;
-}
-
-.confirm-btn {
-  min-width: 200px;
-  border-radius: 8px;
-  font-family: 'Outfit', sans-serif;
-  font-weight: 600;
-  letter-spacing: 0.02em;
-  transition: all 0.2s cubic-bezier(0.4, 0, 0.2, 1);
-
-  &:hover:not(:disabled) {
-    box-shadow: 0 0 20px rgba(163, 120, 94, 0.3);
-  }
-
-  &__label {
-    font-size: 0.95rem;
-  }
-}
-
-.category-grid {
-  display: grid;
-  grid-template-columns: repeat(auto-fill, minmax(160px, 1fr));
-  gap: 0.6rem;
-}
-
-.category-card {
-  background: rgba(163, 120, 94, 0.06);
-  border: 1px solid rgba(163, 120, 94, 0.12);
-  border-radius: 10px;
-  padding: 0.85rem 0.75rem;
-  text-align: center;
-  transition: all 0.2s ease;
-
-  &:hover {
-    border-color: rgba(163, 120, 94, 0.25);
-    transform: translateY(-1px);
-  }
-
-  &__icon {
-    margin-bottom: 0.3rem;
-  }
-
-  &__name {
-    font-family: 'Outfit', sans-serif;
     font-weight: 600;
-    font-size: 0.82rem;
     color: #E2E8E4;
-    margin-bottom: 0.15rem;
-    overflow: hidden;
-    text-overflow: ellipsis;
-    white-space: nowrap;
+    background: rgba(45, 90, 39, 0.2);
+    border: 1px solid rgba(45, 90, 39, 0.3);
+    padding: 0.25rem 0.6rem;
+    border-radius: 9999px;
   }
+}
 
-  &__count {
-    font-size: 0.72rem;
-    color: #8A9E99;
+.pulse-indicator {
+  width: 6px;
+  height: 6px;
+  background-color: #2D5A27;
+  border-radius: 50%;
+  box-shadow: 0 0 0 0 rgba(45, 90, 39, 0.7);
+  animation: pulse 1.6s infinite;
+}
+
+@keyframes pulse {
+  0% {
+    transform: scale(0.95);
+    box-shadow: 0 0 0 0 rgba(45, 90, 39, 0.7);
+  }
+  70% {
+    transform: scale(1);
+    box-shadow: 0 0 0 6px rgba(45, 90, 39, 0);
+  }
+  100% {
+    transform: scale(0.95);
+    box-shadow: 0 0 0 0 rgba(45, 90, 39, 0);
+  }
+}
+
+.border-accent {
+  border-color: rgba(163, 120, 94, 0.15) !important;
+}
+
+.scroll-container {
+  &::-webkit-scrollbar {
+    width: 6px;
+  }
+  &::-webkit-scrollbar-track {
+    background: rgba(0, 0, 0, 0.1);
+  }
+  &::-webkit-scrollbar-thumb {
+    background: rgba(163, 120, 94, 0.3);
+    border-radius: 3px;
   }
 }
 

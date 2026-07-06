@@ -4,6 +4,76 @@ Registro cronológico de decisiones, problemas resueltos y estado del frontend.
 
 ---
 
+## 2026-07-05 — Onboarding preview dashboard + invoice spin buttons hidden
+
+### Qué se hizo
+
+**Simulador de Panel de Control en Onboarding** (interactive preview):
+- Reemplazada la presentación estática de vista previa de plantilla en `OnboardingPage.vue` con un simulador interactivo de panel de control dividido (Split Layout) usando `q-tabs` y `q-tab-panels` nativos de Quasar.
+- Agregada búsqueda reactiva local para los productos base de la plantilla de industria.
+- Añadidos KPIs (Productos, Categorías, Unidades, Ubicaciones) y flujo de tareas automatizado.
+- Contenedor con transición de ancho dinámico (`max-width: 1100px`) durante el Paso 2.
+- Rediseñado `CategoryTree.vue` con líneas guía (`dashed`), iconos y desplazamiento lateral (`transform: translateX`) al pasar el ratón (`hover`).
+
+**Ocultación de Spin Buttons en Facturas**:
+- Añadido selector CSS `:deep(input[type="number"])` en `InvoiceItemCard.vue` para ocultar las flechas incrementales y decrementales en los campos de cantidad, precio unitario y descuento.
+
+### Archivos modificados
+
+```
+src/components/onboarding/CategoryTree.vue
+src/modules/core/pages/OnboardingPage.vue
+src/modules/core/components/facturas/InvoiceItemCard.vue
+```
+
+---
+
+## 2026-07-01 — Component split + accessibility + SEO + visual polish
+
+### Qué se hizo
+
+**Component split** (vue-best-practices):
+- `FacturasPage.vue` (568 líneas) → 3 componentes extraídos:
+  - `InvoiceItemCard.vue` — card por item (producto, cantidad, unidad, precio, descuento, subtotal)
+  - `CategoryTabs.vue` — tabs de categoría con `role="tablist"` + `aria-selected`
+  - `ConfirmDialog.vue` — diálogo reutilizable para pagar/eliminar
+- `ProductOption` type agregado a `types/index.ts`
+
+**Accessibility** (WCAG 2.2):
+- `aria-label` en 9+ botones de icono (close, edit, delete, paid, layers)
+- `role="group"` + `aria-label` en invoice item cards
+- `role="tablist"` + `aria-selected` en category tabs
+- `prefers-reduced-motion` ya existía en `app.scss`
+
+**SEO** (`index.html`):
+- `<html lang="es">` ✅
+- `<meta name="robots" content="noindex, nofollow">` (SaaS autenticado)
+- `<meta name="apple-mobile-web-app-capable">` para PWA
+- OG tags existentes
+
+**Visual polish** (frontend-design):
+- Category cards: gradient bg, copper accent line, hover glow, staggered cardReveal animation, pill count badges
+- Invoice item cards: gradient bg, focus-within glow, remove button opacity transition
+- Category tabs: border transition en hover
+
+### Archivos nuevos
+
+```
+src/modules/core/components/facturas/InvoiceItemCard.vue
+src/modules/core/components/facturas/CategoryTabs.vue
+src/modules/core/components/facturas/ConfirmDialog.vue
+```
+
+### Archivos modificados
+
+```
+src/modules/core/pages/FacturasPage.vue          # refactor: usa 3 componentes extraídos
+src/modules/core/types/index.ts                  # +ProductOption interface
+index.html                                       # +robots, apple-mobile-web-app meta
+```
+
+---
+
 ## 2026-07-01 — SKU automático + proveedor fix + unidades en items + preview cards
 
 ### Qué se hizo
