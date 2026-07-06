@@ -5,8 +5,9 @@
 </template>
 
 <script setup lang="ts">
-import { watch } from 'vue';
+import { watch, onMounted, onUnmounted } from 'vue';
 import { useRouter } from 'vue-router';
+import { useAuthStore } from 'src/modules/auth/store';
 
 const router = useRouter();
 
@@ -21,6 +22,27 @@ watch(
     }
   }
 );
+
+// Sync cross-tab: when email verification happens in another tab, navigate to dashboard
+const onStorage = (e: StorageEvent) => {
+  if (e.key === 'pymeq_email_verified' && e.newValue === 'true') {
+    localStorage.removeItem('pymeq_email_verified');
+
+    // Re-sync Pinia store from localStorage (the other tab wrote the tokens)
+    const authStore = useAuthStore();
+    const token = localStorage.getItem('pymeq_token');
+    if (token) {
+      authStore.accessToken = token;
+      const user = localStorage.getItem('pymeq_user');
+      if (user) authStore.user = JSON.parse(user);
+    }
+
+    void router.push('/dashboard');
+  }
+};
+
+onMounted(() => window.addEventListener('storage', onStorage));
+onUnmounted(() => window.removeEventListener('storage', onStorage));
 </script>
 
 <style lang="scss">

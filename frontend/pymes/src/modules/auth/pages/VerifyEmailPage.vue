@@ -112,16 +112,7 @@ const verifyEmail = async (verificationToken: string, userEmail: string) => {
     const response = await authStore.verifyEmail(verificationToken, userEmail);
 
     if (response?.accessToken) {
-      const tenantId = authStore.user?.tenantId;
-      if (tenantId) {
-        try {
-          const { data: setup } = await setupService.get(tenantId);
-          if (!setup.onboardingCompleted) {
-            await router.push('/onboarding');
-            return;
-          }
-        } catch { /* ponytail: ir al dashboard igual */ }
-      }
+      localStorage.setItem('pymeq_email_verified', 'true');
 
       $q.notify({
         type: 'positive',
@@ -129,6 +120,20 @@ const verifyEmail = async (verificationToken: string, userEmail: string) => {
         caption: 'Tu cuenta ha sido creada y verificada.',
         position: 'top-right'
       });
+
+      const tenantId = authStore.user?.tenantId;
+      if (tenantId) {
+        try {
+          const { data: setup } = await setupService.get(tenantId);
+          if (!setup.onboardingCompleted) {
+            void router.push('/onboarding');
+            return;
+          }
+        } catch { /* ponytail: ir al dashboard igual */ }
+      }
+
+      void router.push('/dashboard');
+      return;
     }
 
     success.value = true;
@@ -145,7 +150,6 @@ const verifyEmail = async (verificationToken: string, userEmail: string) => {
       errorMessage.value = errorData?.mensaje || 'No se pudo verificar la identidad. El token puede ser inválido.';
     }
   } finally {
-    // Retraso artificial para suavizar la transición del skeleton
     setTimeout(() => {
       loading.value = false;
     }, 600);

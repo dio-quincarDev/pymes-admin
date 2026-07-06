@@ -30,6 +30,13 @@ const emit = defineEmits<{
 
 const search = ref('')
 
+const subtotal = computed(() => {
+  const qty = props.item.cantidad || 0
+  const price = props.item.precioUnitario || 0
+  const disc = props.item.descuento || 0
+  return formatCurrency(qty * price - disc)
+})
+
 const filteredProducts = computed(() => {
   const needle = search.value.toLowerCase()
   return props.productOptions.filter(p =>
@@ -39,13 +46,6 @@ const filteredProducts = computed(() => {
 
 function formatCurrency(n: number) {
   return new Intl.NumberFormat('en-US', { style: 'currency', currency: 'USD', minimumFractionDigits: 2 }).format(n)
-}
-
-function subtotal() {
-  const qty = props.item.cantidad || 0
-  const price = props.item.precioUnitario || 0
-  const disc = props.item.descuento || 0
-  return formatCurrency(qty * price - disc)
 }
 
 function filterProducts(val: string, update: (fn: () => void) => void) {
@@ -109,7 +109,7 @@ function filterProducts(val: string, update: (fn: () => void) => void) {
     <div class="row q-col-gutter-sm items-center q-mt-xs">
       <div class="col-3"></div>
       <div class="col-9 text-right">
-        <div class="text-caption text-accent">Subtotal: <span class="text-weight-bold text-secondary text-body2">{{ subtotal() }}</span></div>
+        <div class="text-caption text-accent">Subtotal: <span class="text-weight-bold text-secondary text-body2">{{ subtotal }}</span></div>
       </div>
     </div>
   </div>

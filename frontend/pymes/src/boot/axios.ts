@@ -49,6 +49,9 @@ api.interceptors.response.use(
       localStorage.removeItem('pymeq_refresh_token');
       localStorage.removeItem('pymeq_user');
 
+      // Dispatch event so auth store can clear itself
+      window.dispatchEvent(new CustomEvent('auth:401'));
+
       if (backendData?.codigo === 'AUTH005') {
         window.location.href = '#/login?reason=session_revoked';
       }

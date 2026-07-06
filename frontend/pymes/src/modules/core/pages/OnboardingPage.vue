@@ -88,7 +88,6 @@ async function confirm() {
   saving.value = true
   try {
     await setupService.completeOnboarding(tenantId, selected.value)
-    await authStore.fetchCurrentUser()
     $q.notify({ type: 'positive', message: 'Configuracion completada' })
     void router.push('/dashboard')
   } catch {
@@ -148,7 +147,7 @@ async function confirm() {
             <p class="dashboard-header__subtitle">Inicialización inteligente de base de datos e inventarios</p>
           </div>
           <div class="dashboard-header__status">
-            <span class="pulse-indicator"></span>
+            <span class="pulse-indicator" role="status" aria-label="Estado: listo"></span>
             Listo para cargar
           </div>
         </div>
@@ -182,15 +181,14 @@ async function confirm() {
                 vertical
                 transition-prev="jump-up"
                 transition-next="jump-down"
-                class="bg-dark text-secondary rounded-borders shadow-2 q-pa-md"
-                style="min-height: 350px;"
+                class="bg-dark text-secondary rounded-borders shadow-2 q-pa-md preview-panels"
               >
                 <!-- Vista General -->
                 <q-tab-panel name="summary" class="q-pa-none">
                   <div class="row q-col-gutter-sm q-mb-md">
                     <div class="col-6 col-sm-3" v-for="stat in stats" :key="stat.label">
                       <q-card flat bordered class="bg-surface-pine border-accent text-center q-pa-sm">
-                        <q-icon :name="stat.icon" size="sm" color="primary" class="q-mb-xs" />
+                        <q-icon :name="stat.icon" size="sm" color="primary" class="q-mb-xs" aria-hidden="true" />
                         <div class="text-h6 text-weight-bold">{{ stat.value }}</div>
                         <div class="text-caption text-accent">{{ stat.label }}</div>
                       </q-card>
@@ -201,7 +199,7 @@ async function confirm() {
                   <q-list dense>
                     <q-item v-for="item in checklist" :key="item.title" class="q-px-none">
                       <q-item-section avatar min-width="24px">
-                        <q-icon name="check_circle" color="positive" size="xs" />
+                        <q-icon name="check_circle" color="positive" size="xs" aria-hidden="true" />
                       </q-item-section>
                       <q-item-section>
                         <q-item-label class="text-weight-medium">{{ item.title }}</q-item-label>
@@ -219,13 +217,13 @@ async function confirm() {
                       <q-input v-model="searchQuery" filled dense placeholder="Buscar..." color="primary">
                         <template v-slot:append>
                           <q-icon v-if="searchQuery" name="clear" class="cursor-pointer" @click="searchQuery = ''" />
-                          <q-icon name="search" />
+                          <q-icon name="search" aria-hidden="true" />
                         </template>
                       </q-input>
                     </div>
                   </div>
 
-                  <div class="scroll-container" style="max-height: 250px; overflow-y: auto;">
+                  <div class="scroll-container preview-scroll">
                     <q-list bordered separator v-if="filteredProducts.length">
                       <q-item v-for="p in filteredProducts" :key="p.name">
                         <q-item-section>
@@ -246,7 +244,7 @@ async function confirm() {
                 <!-- Categorías -->
                 <q-tab-panel name="categories" class="q-pa-none">
                   <div class="text-subtitle2 text-weight-bold q-mb-md text-primary">Estructura de Categorías</div>
-                  <div class="scroll-container q-pa-xs" style="max-height: 280px; overflow-y: auto;">
+                  <div class="scroll-container q-pa-xs preview-scroll--tall">
                     <CategoryTree :categories="previewData.categories" />
                   </div>
                 </q-tab-panel>
@@ -259,7 +257,7 @@ async function confirm() {
                       <q-list bordered separator>
                         <q-item v-for="l in previewData.locations" :key="l.code">
                           <q-item-section avatar>
-                            <q-icon name="place" color="accent" />
+                            <q-icon name="place" color="accent" aria-hidden="true" />
                           </q-item-section>
                           <q-item-section>
                             <q-item-label class="text-weight-medium">{{ l.name }}</q-item-label>
@@ -274,7 +272,7 @@ async function confirm() {
                       <q-list bordered separator>
                         <q-item v-for="u in previewData.units" :key="u.code">
                           <q-item-section avatar>
-                            <q-icon name="scale" color="accent" />
+                            <q-icon name="scale" color="accent" aria-hidden="true" />
                           </q-item-section>
                           <q-item-section>
                             <q-item-label class="text-weight-medium">{{ u.name }}</q-item-label>
@@ -489,5 +487,18 @@ async function confirm() {
   display: flex;
   justify-content: center;
   padding: 2rem;
+}
+
+.preview-panels {
+  min-height: 350px;
+}
+
+.preview-scroll {
+  max-height: 250px;
+  overflow-y: auto;
+
+  &--tall {
+    max-height: 280px;
+  }
 }
 </style>

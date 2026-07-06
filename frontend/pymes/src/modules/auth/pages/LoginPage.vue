@@ -99,7 +99,7 @@ import { ref, reactive } from 'vue';
 import { useMeta } from 'quasar';
 import { useAuthStore } from '../store';
 import { useQuasar } from 'quasar';
-import { useRouter } from 'vue-router';
+import { useRouter, useRoute } from 'vue-router';
 import { authService } from '../services/auth.service';
 import { useAuthForm } from 'src/composables/useAuthForm';
 import BaseCard from 'src/components/base/BaseCard.vue';
@@ -111,6 +111,7 @@ useMeta({ title: 'Iniciar Sesión — PYMEQ' });
 const authStore = useAuthStore();
 const $q = useQuasar();
 const router = useRouter();
+const route = useRoute();
 const { loading, initialLoading, showPassword } = useAuthForm();
 
 const rememberMe = ref(localStorage.getItem('pymeq_remember') === 'true');
@@ -141,14 +142,22 @@ const handleLoginClick = async () => {
       localStorage.removeItem('pymeq_email');
     }
 
-    await authStore.login(loginForm);
+    const authData = await authStore.login(loginForm);
     $q.notify({
       type: 'positive',
       message: 'Acceso autorizado',
       caption: 'Bienvenido al Centro de Control',
       position: 'top-right'
     });
-    void router.push('/');
+
+    const redirect = route.query.redirect as string;
+    if (redirect) {
+      void router.push(redirect);
+    } else if (authData.user?.tenantId || authData.activeTenant) {
+      void router.push('/dashboard');
+    } else {
+      void router.push('/onboarding');
+    }
   } catch (err: unknown) {
     const error = err as { response?: { status?: number; data?: { codigo?: string; mensaje?: string } } };
     const errorStatus = error.response?.status;

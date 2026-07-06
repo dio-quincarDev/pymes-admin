@@ -587,6 +587,93 @@ frontend/pymes/src/layouts/MainLayout.vue                                    # +
 
 ---
 
+## 2026-07-06 — Email Verification: flujo cross-tab + auto-navegación a onboarding
+
+### Contexto
+
+Después de registrar un usuario, el backend envía un email con link de verificación. Los clientes de correo **siempre** abren links en nueva pestaña (comportamiento del navegador, no del código). El problema: el usuario termina con 2 pestañas de la app, y la pestaña original (registro) no sabe que se verificó.
+
+### Cambios realizados
+
+#### Backend (sin cambios)
+
+El flujo existente funciona correctamente:
+- `POST /auth/register` → guarda en Redis (`temp-register:{token}`) con TTL 15min → envía email
+- Email contiene link `/#/verify?token=...&email=...` (plain `<a>`, sin `target="_blank"`)
+- `POST /auth/verify-email` → completa registro → retorna `AuthResponse` con tokens + `activeTenant`
+
+#### Frontend
+
+**`VerifyEmailPage.vue`** — auto-navegación post-verificación:
+- Removido `window.close()` y `setTimeout` que mataban la pestaña antes del redirect
+- Después de verificar: check `setupService.get(tenantId)` → si `onboardingCompleted === false` → navega a `/onboarding`, sino a `/dashboard`
+- `goToDashboard()` también checkea onboarding antes de navegar
+- Restaurado `pymeq_email_verified` flag en localStorage para storage event de App.vue
+
+**`App.vue`** — sincronización cross-tab:
+- Agregado `storage` event listener que detecta `pymeq_email_verified=true` en otra pestaña
+- Sincroniza Pinia store desde localStorage (la otra pestaña escribió los tokens)
+- Navega a `/dashboard` automáticamente
+- Removido `setupService` import (ya no se necesita aquí)
+
+**`auth store/index.ts`** — sincronización en 401:
+- Agregado listener de `auth:401` CustomEvent para limpiar `accessToken` y `user` del store cuando axios interceptor limpia localStorage
+
+**`axios.ts`** — evento de 401:
+- Interceptor de 401 dispatcha `auth:401` CustomEvent además de limpiar localStorage
+
+**`OnboardingPage.vue`** — fix cascade 401:
+- Removido `fetchCurrentUser()` después de `completeOnboarding()` — causaba 401 → `clearSession()` → redirect a login
+
+### Flujo resultante
+
+```
+Pestaña Original (registro)          Pestaña Nueva (email link)
+────────────────────────────         ──────────────────────────────
+1. POST /auth/register              1. GET /#/verify?token=...&email=...
+2. Muestra "Revisa tu correo"       2. POST /auth/verify-email
+3. ...esperando...                   3. setSession() → localStorage + Pinia
+4. storage event detecta            4. setupService.get() check
+   pymeq_email_verified             5. router.push('/onboarding') o
+5. Sincroniza store                    router.push('/dashboard')
+6. router.push('/dashboard')
+```
+
+### Problema pendiente
+
+Las 2 pestañas permanecen abiertas. `window.close()` no funciona en pestañas abiertas desde enlaces de correo (solo con `window.open()`). No hay solución frontend — es comportamiento estándar PWA para links externos. El usuario cierra manualmente la pestaña que no necesita.
+
+### Decisiones técnicas
+
+1. **No se puede prevenir 2 pestañas** — comportamiento del navegador/email client
+2. **La pestaña nueva es la "buena"** — hace verify → auto-login → onboarding → dashboard
+3. **La pestaña original se sincroniza** via storage event → navega a `/dashboard`
+4. **`auth:401` CustomEvent** evita dependencia circular entre axios interceptor y auth store
+
+### Archivos modificados
+
+```
+frontend/pymes/src/modules/auth/pages/VerifyEmailPage.vue    # auto-navegación post-verificación
+frontend/pymes/src/App.vue                                   # storage event listener
+frontend/pymes/src/modules/auth/store/index.ts               # auth:401 event listener
+frontend/pymes/src/boot/axios.ts                             # dispatch auth:401 en 401
+frontend/pymes/src/modules/core/pages/OnboardingPage.vue     # sin fetchCurrentUser()
+```
+
+### Tests
+
+| Suite | Resultado |
+|-------|-----------|
+| Lint | ✅ |
+| Backend verificación (curl) | ✅ |
+
+### Próximo
+
+1. **Aceptar 2 pestañas** como estándar PWA, o evaluar `window.open()` en registro para controlar la pestaña (cambia UX).
+2. **Fix crítico pendiente**: `presentacionId` en facturas (ver entry 2026-06-26).
+
+---
+
 *Nota: El post-mortem del merge catastrofico (2026-06-12) esta consolidado en `REFACTOR-STRATEGY.md` (raiz). Este archivo mantiene el registro historico completo.*
 
 *Creado: 2026-06-19 | Consolidacion de REFACTOR-STRATEGY.md + .github/REFACTOR.md*

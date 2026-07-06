@@ -1,12 +1,12 @@
 <template>
-  <div class="kpi-card" :class="`kpi-card--${accent}`">
+  <div class="kpi-card" :class="`kpi-card--${accent}`" :aria-label="`${label}: ${value}`">
     <div class="kpi-card__header">
       <span class="kpi-card__label">{{ label }}</span>
-      <q-icon :name="icon" size="1.1rem" class="kpi-card__icon" />
+      <q-icon :name="icon" size="1.1rem" class="kpi-card__icon" aria-hidden="true" />
     </div>
     <div class="kpi-card__value">{{ value }}</div>
     <div v-if="delta" class="kpi-card__delta" :class="deltaClass">
-      <q-icon :name="trend === 'up' ? 'trending_up' : 'trending_down'" size="0.85rem" />
+      <q-icon :name="trend === 'up' ? 'trending_up' : 'trending_down'" size="0.85rem" aria-hidden="true" />
       {{ delta }}
     </div>
   </div>

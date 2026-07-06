@@ -148,3 +148,11 @@ export const useAuthStore = defineStore('auth', {
     }
   },
 });
+
+// Sync: when axios interceptor clears localStorage on 401, clear store too
+window.addEventListener('auth:401', () => {
+  const store = useAuthStore();
+  store.accessToken = null;
+  store.user = null;
+  delete api.defaults.headers.common['Authorization'];
+});

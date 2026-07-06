@@ -21,7 +21,7 @@ const { formatCurrency } = useNumberFormat()
 useMeta({ title: 'Dashboard — PYMEQ' })
 
 const products = ref<Producto[]>([])
-const setup = ref<SetupInfo>(null as unknown as SetupInfo)
+const setup = ref<SetupInfo | null>(null)
 const supplierCount = ref(0)
 const loading = ref(true)
 const error = ref<string | null>(null)
@@ -188,7 +188,7 @@ onMounted(loadData)
     <div class="dashboard-header fade-in-up">
       <h1 class="dashboard-title">
         {{ greeting }},
-        <span class="dashboard-title__name">{{ authStore.user?.nombre || 'Usuario' }}</span>
+        <span class="dashboard-title__name">{{ authStore.user?.name || 'Usuario' }}</span>
       </h1>
       <p class="dashboard-subtitle">Panel de control — Catálogo de productos</p>
     </div>
@@ -218,7 +218,7 @@ onMounted(loadData)
     <!-- Error state -->
     <template v-else-if="error">
       <div class="catalog-card text-center q-py-xl">
-        <q-icon name="error_outline" size="3rem" color="negative" />
+        <q-icon name="error_outline" size="3rem" color="negative" aria-hidden="true" />
         <p class="text-accent q-mt-md">{{ error }}</p>
         <q-btn flat color="primary" label="Reintentar" @click="loadData" class="q-mt-sm" />
       </div>
@@ -236,7 +236,7 @@ onMounted(loadData)
               clearable
               class="search-input"
             >
-              <template v-slot:prepend><q-icon name="search" color="accent" /></template>
+              <template v-slot:prepend><q-icon name="search" color="accent" aria-hidden="true" /></template>
               <template v-slot:append>
                 <q-chip v-if="search" dense dark color="primary" text-color="dark" class="q-px-sm">
                   {{ filteredRows?.length || 0 }} resultados
@@ -257,8 +257,8 @@ onMounted(loadData)
       <!-- Search results (flat) -->
       <div v-if="filteredRows" class="catalog-card">
         <div class="catalog-card__title">Resultados de búsqueda</div>
-        <div v-if="filteredRows.length === 0" class="text-center q-py-lg text-accent">
-          <q-icon name="search_off" size="2rem" class="q-mb-sm" />
+        <div v-if="filteredRows.length === 0" class="text-center q-py-lg text-accent" role="status">
+          <q-icon name="search_off" size="2rem" class="q-mb-sm" aria-hidden="true" />
           <p>No se encontraron productos para "{{ search }}"</p>
         </div>
         <div v-else class="search-results">
@@ -282,8 +282,8 @@ onMounted(loadData)
 
       <!-- Category tree -->
       <div v-else class="catalog-tree">
-        <div v-if="treeRows.length === 0" class="catalog-card text-center q-py-xl">
-          <q-icon name="inventory_2" size="3rem" color="accent" class="q-mb-sm" />
+        <div v-if="treeRows.length === 0" class="catalog-card text-center q-py-xl" role="status">
+          <q-icon name="inventory_2" size="3rem" color="accent" class="q-mb-sm" aria-hidden="true" />
           <p class="text-accent">No hay productos en el catálogo</p>
           <q-btn flat color="primary" label="Ir a Productos" :to="'/dashboard/productos'" class="q-mt-sm" />
         </div>
@@ -307,6 +307,7 @@ onMounted(loadData)
             :aria-expanded="row.expanded"
             tabindex="0"
             @keydown.enter="toggleCategory(row.categoryCode!)"
+            @keydown.space.prevent="toggleCategory(row.categoryCode!)"
           >
             <q-icon
               :name="row.expanded ? 'expand_more' : 'chevron_right'"
@@ -318,7 +319,7 @@ onMounted(loadData)
               {{ row.productCount }}
             </q-chip>
             <q-space />
-            <q-icon name="folder" size="1rem" color="accent" class="tree-row__folder-icon" />
+            <q-icon name="folder" size="1rem" color="accent" class="tree-row__folder-icon" aria-hidden="true" />
           </div>
 
           <!-- Product row -->
