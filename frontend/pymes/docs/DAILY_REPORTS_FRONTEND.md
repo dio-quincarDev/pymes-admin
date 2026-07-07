@@ -4,6 +4,44 @@ Registro cronológico de decisiones, problemas resueltos y estado del frontend.
 
 ---
 
+## 2026-07-06 — Fix UUID display en catálogo/productos/gastos + Invoice detail dialog
+
+### Fix UUIDs visibles
+
+- `CatalogDashboard.vue`: `categoryNameMap` aplanado del árbol resuelve UUID → nombre en search results.
+- `ProductosPage.vue`: `categoryNameMap` + `unitNameMap` con template slots para columnas Categoría y Unidad.
+- `AnalisisGastosPage.vue`: carga setup, `categoryNameMap` agrupa por nombre en vez de UUID.
+- `FacturasPage.vue`: `unitNameMap` resuelve base unit UUID → nombre en selector de items; `setupUnits` ref almacena las unidades del setup.
+
+### Invoice detail dialog
+
+- `InvoiceDetailDialog.vue` (nuevo): muestra información completa de factura (proveedor, fecha, tipo friendly vía `tipoLabel`, estado, método de pago, items con Unidad resuelta vía `presentationNameMap`, descuento global, total).
+- `FacturasPage.vue`: botón 👁️ en acciones + `detailDialog`/`detailItem` state + `presentationNameMap` construido desde `Producto.presentaciones`.
+
+### Type fixes
+
+- `Factura.tipo` → `Factura.type` (coincide con JSON del backend `FacturaResponse.type`).
+- `ItemFactura` +`presentacionId: string | null` + `conversionFactor: number`.
+
+### Archivos nuevos
+
+```
+src/modules/core/components/facturas/InvoiceDetailDialog.vue
+```
+
+### Archivos modificados
+
+```
+src/modules/core/types/index.ts
+src/modules/core/components/dashboard/CatalogDashboard.vue
+src/modules/core/pages/ProductosPage.vue
+src/modules/core/pages/AnalisisGastosPage.vue
+src/modules/core/pages/FacturasPage.vue
+src/modules/core/components/facturas/InvoiceDetailDialog.vue
+```
+
+---
+
 ## 2026-07-05 — Onboarding preview dashboard + invoice spin buttons hidden
 
 ### Qué se hizo

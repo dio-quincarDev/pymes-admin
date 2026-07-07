@@ -1,5 +1,5 @@
 <script setup lang="ts">
-import { ref, onMounted } from 'vue'
+import { ref, computed, onMounted } from 'vue'
 import { useQuasar } from 'quasar'
 import { useAuthStore } from 'src/modules/auth/store'
 import { api } from 'src/boot/axios'
@@ -16,6 +16,7 @@ const filter = ref('')
 const pagination = ref({ sortBy: 'name', descending: false, page: 1, rowsPerPage: 15 })
 
 const catOptions = ref<{ label: string; value: string }[]>([])
+const setupCategories = ref<SetupCategory[]>([])
 const unitOptions = ref<{ label: string; value: string }[]>([])
 
 const columns = [
@@ -27,20 +28,40 @@ const columns = [
   { name: 'actions', label: 'Acciones', field: 'id', align: 'right' as const, sortable: false },
 ]
 
-function flattenCategories(cats: SetupCategory[]): { label: string; value: string }[] {
+function flattenCategories(cats: SetupCategory[], prefix = ''): { label: string; value: string }[] {
   const result: { label: string; value: string }[] = []
   for (const c of cats) {
-    result.push({ label: c.name, value: c.code })
-    if (c.children?.length) result.push(...flattenCategories(c.children))
+    const label = prefix ? `${prefix} › ${c.name}` : c.name
+    result.push({ label, value: c.code })
+    if (c.children?.length) result.push(...flattenCategories(c.children, label))
   }
   return result
 }
+
+const categoryNameMap = computed(() => {
+  const map = new Map<string, string>()
+  function walk(cats: SetupCategory[]) {
+    for (const c of cats) {
+      map.set(c.code, c.name)
+      if (c.children?.length) walk(c.children)
+    }
+  }
+  walk(setupCategories.value)
+  return map
+})
+
+const unitNameMap = computed(() => {
+  const map = new Map<string, string>()
+  for (const o of unitOptions.value) map.set(o.value, o.label)
+  return map
+})
 
 async function loadSetup() {
   if (!tenantId) return
   try {
     const res = await api.get<SetupInfo>(`/core/setup/${tenantId}`)
-    catOptions.value = flattenCategories(res.data.categories || [])
+    setupCategories.value = res.data.categories || []
+    catOptions.value = flattenCategories(setupCategories.value)
     unitOptions.value = (res.data.units || []).map(u => ({ label: u.name, value: u.code }))
   } catch { /* template data non-critical */ }
 }
@@ -179,6 +200,14 @@ async function remove() {
           </q-input>
           <q-space />
           <q-btn color="primary" icon="add" label="Nuevo" @click="openCreate" />
+        </template>
+
+        <template v-slot:body-cell-category="{ row }">
+          <td>{{ categoryNameMap.get(row.category) || row.category }}</td>
+        </template>
+
+        <template v-slot:body-cell-baseUnit="{ row }">
+          <td>{{ unitNameMap.get(row.baseUnit) || row.baseUnit }}</td>
         </template>
 
         <template v-slot:body-cell-presentaciones="{ row }">

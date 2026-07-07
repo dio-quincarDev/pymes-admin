@@ -38,6 +38,9 @@
 
         <template v-slot:body-cell-actions="{ row }">
           <td class="text-right">
+            <q-btn flat dense round icon="visibility" color="accent" @click="openDetail(row)" aria-label="Ver detalles">
+              <q-tooltip>Ver detalles</q-tooltip>
+            </q-btn>
             <q-btn
               v-if="row.status === 'REGISTRADA'"
               flat dense round icon="paid" color="positive"
@@ -101,7 +104,7 @@
             <q-separator dark />
             <div class="text-subtitle2 text-primary q-mb-sm">Items</div>
 
-            <CategoryTabs v-model="activeCategory" :categories="productCategories" />
+            <CategoryTabs v-model="activeCategory" :categories="setupCategories" />
 
             <InvoiceItemCard
               v-for="(item, i) in form.items" :key="item._key"
@@ -150,6 +153,8 @@
       confirm-label="Eliminar" confirm-color="negative"
       :loading="deleting" @confirm="remove"
     />
+
+    <InvoiceDetailDialog :factura="detailItem" v-model="detailDialog" :presentation-name-map="presentationNameMap" />
   </q-page>
 </template>
 
@@ -160,9 +165,11 @@ import { useAuthStore } from 'src/modules/auth/store'
 import { facturaService } from '../services/factura.service'
 import { productoService } from '../services/producto.service'
 import { proveedorService } from '../services/proveedor.service'
-import type { Factura, FacturaRequest } from '../types'
+import type { Factura, FacturaRequest, SetupInfo, SetupCategory } from '../types'
+import { api } from 'src/boot/axios'
 import CategoryTabs from '../components/facturas/CategoryTabs.vue'
 import InvoiceItemCard from '../components/facturas/InvoiceItemCard.vue'
+import InvoiceDetailDialog from '../components/facturas/InvoiceDetailDialog.vue'
 import ConfirmDialog from '../components/facturas/ConfirmDialog.vue'
 
 const $q = useQuasar()
@@ -179,17 +186,54 @@ const productPresentationsMap = ref<Map<string, { label: string; value: string }
 const activeCategory = ref('')
 const providerOptions = ref<{ label: string; value: string }[]>([])
 const providerFilteredOptions = ref<OptionItem[]>([])
+const setupCategories = ref<SetupCategory[]>([])
+const setupUnits = ref<{ code: string; name: string }[]>([])
+const detailDialog = ref(false)
+const detailItem = ref<Factura | null>(null)
+const presentationNameMap = ref<Map<string, string>>(new Map())
 
-const productCategories = computed(() => {
-  const cats = new Set(allProducts.value.map(p => p.category).filter(Boolean))
-  return Array.from(cats).sort()
+function openDetail(f: Factura) {
+  detailItem.value = f
+  detailDialog.value = true
+}
+
+function collectCategoryCodes(cats: SetupCategory[], codes: Set<string>) {
+  for (const c of cats) {
+    codes.add(c.code)
+    if (c.children) collectCategoryCodes(c.children, codes)
+  }
+}
+
+function findCategoryInTree(cats: SetupCategory[], code: string): Set<string> {
+  const codes = new Set<string>()
+  function walk(nodes: SetupCategory[]): boolean {
+    for (const c of nodes) {
+      if (c.code === code) {
+        codes.add(c.code)
+        if (c.children) collectCategoryCodes(c.children, codes)
+        return true
+      }
+      if (c.children && walk(c.children)) return true
+    }
+    return false
+  }
+  walk(cats)
+  return codes
+}
+
+const unitNameMap = computed(() => {
+  const map = new Map<string, string>()
+  for (const u of setupUnits.value) map.set(u.code, u.name)
+  return map
 })
 
-const filteredByCategory = computed(() =>
-  !activeCategory.value
-    ? allProducts.value
-    : allProducts.value.filter(p => p.category === activeCategory.value)
-)
+const filteredByCategory = computed(() => {
+  if (!activeCategory.value) return allProducts.value
+  const codes = findCategoryInTree(setupCategories.value, activeCategory.value)
+  return codes.size
+    ? allProducts.value.filter(p => codes.has(p.category))
+    : allProducts.value
+})
 
 const columns = [
   { name: 'invoiceNumber', label: 'N° Factura', field: 'invoiceNumber', align: 'left' as const, sortable: true },
@@ -316,10 +360,13 @@ watch(() => form.value.proveedorId, onProviderSelected)
 
 async function loadDependencies() {
   try {
-    const [prods, provs] = await Promise.all([
+    const [prods, provs, setupRes] = await Promise.all([
       productoService.getAll(tenantId),
       proveedorService.getAll(tenantId),
+      api.get<SetupInfo>(`/core/setup/${tenantId}`),
     ])
+    setupCategories.value = setupRes.data.categories || []
+    setupUnits.value = setupRes.data.units || []
     allProducts.value = prods.data.map(p => ({
       label: `${p.name} (${p.sku})`,
       value: p.id,
@@ -328,13 +375,17 @@ async function loadDependencies() {
       category: p.category,
     }))
     const presMap = new Map<string, { label: string; value: string }[]>()
+    const presNameMap = new Map<string, string>()
     for (const p of prods.data) {
-      const opts: { label: string; value: string }[] = [{ label: p.baseUnit, value: '' }]
+      const baseUnitName = unitNameMap.value.get(p.baseUnit) || p.baseUnit
+      const opts: { label: string; value: string }[] = [{ label: baseUnitName, value: '' }]
       for (const pres of (p.presentaciones || [])) {
         opts.push({ label: pres.name, value: pres.id })
+        presNameMap.set(pres.id, pres.name)
       }
       presMap.set(p.id, opts)
     }
+    presentationNameMap.value = presNameMap
     productPresentationsMap.value = presMap
     const provOpts = provs.data.map(p => ({ label: p.name, value: p.id }))
     providerOptions.value = provOpts

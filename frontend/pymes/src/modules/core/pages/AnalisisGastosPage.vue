@@ -2,15 +2,17 @@
 import { ref, computed, onMounted } from 'vue'
 import { useQuasar } from 'quasar'
 import { useAuthStore } from 'src/modules/auth/store'
+import { api } from 'src/boot/axios'
 import { productoService } from '../services/producto.service'
 import BaseCard from 'src/components/base/BaseCard.vue'
-import type { Producto } from '../types'
+import type { Producto, SetupInfo, SetupCategory } from '../types'
 
 const $q = useQuasar()
 const authStore = useAuthStore()
 const tenantId = authStore.user?.tenantId || ''
 
 const products = ref<Producto[]>([])
+const setupCategories = ref<SetupCategory[]>([])
 const loading = ref(false)
 
 const totalInvestment = computed(() =>
@@ -18,6 +20,18 @@ const totalInvestment = computed(() =>
 )
 
 const productCount = computed(() => products.value.length)
+
+const categoryNameMap = computed(() => {
+  const map = new Map<string, string>()
+  function walk(cats: SetupCategory[]) {
+    for (const c of cats) {
+      map.set(c.code, c.name)
+      if (c.children?.length) walk(c.children)
+    }
+  }
+  walk(setupCategories.value)
+  return map
+})
 
 interface CategoryGroup {
   name: string
@@ -30,7 +44,7 @@ const byCategory = computed<CategoryGroup[]>(() => {
   const map = new Map<string, { total: number; count: number }>()
   let grandTotal = 0
   for (const p of products.value) {
-    const cat = p.category || 'Sin categoría'
+    const cat = categoryNameMap.value.get(p.category) || p.category || 'Sin categoría'
     const inv = p.totalInvestment ?? 0
     const g = map.get(cat) ?? { total: 0, count: 0 }
     g.total += inv
@@ -84,9 +98,13 @@ const filter = ref('')
 async function load() {
   loading.value = true
   try {
-    const res = await productoService.getAll(tenantId)
-    products.value = res.data
-  } catch { $q.notify({ type: 'negative', message: 'Error al cargar productos' })
+    const [prodRes, setupRes] = await Promise.all([
+      productoService.getAll(tenantId),
+      api.get<SetupInfo>(`/core/setup/${tenantId}`),
+    ])
+    products.value = prodRes.data
+    setupCategories.value = setupRes.data.categories || []
+  } catch { $q.notify({ type: 'negative', message: 'Error al cargar datos' })
   } finally { loading.value = false }
 }
 

@@ -47,7 +47,8 @@ public class SetupServiceImpl implements SetupService {
 
         // ponytail: direct JDBC batch copy from template → tenant, SKU auto P-0001
         var templateProducts = jdbc.query(
-            "SELECT tp.id, tp.name, tp.base_unit, tp.min_quantity, tp.max_quantity, tc.name AS category_name " +
+            "SELECT tp.id, tp.name, tp.base_unit, tp.min_quantity, tp.max_quantity, " +
+            "COALESCE(tp.category_id::text, tc.id::text) AS category_code " +
             "FROM template_products tp " +
             "LEFT JOIN template_categories tc ON tp.category_id = tc.id " +
             "WHERE tp.industry_code = ? ORDER BY tp.sort_order",
@@ -57,7 +58,7 @@ public class SetupServiceImpl implements SetupService {
                 rs.getString("base_unit"),
                 rs.getBigDecimal("min_quantity"),
                 rs.getBigDecimal("max_quantity"),
-                rs.getString("category_name")),
+                rs.getString("category_code")),
             industry);
 
         var templatePres = jdbc.query(
@@ -77,7 +78,7 @@ public class SetupServiceImpl implements SetupService {
                 seq++;
                 var newProdId = UUID.randomUUID();
                 var sku = String.format("P-%04d", seq);
-                prodBatch.add(new Object[]{newProdId, tenantId, tp.name, sku, tp.categoryName, tp.baseUnit, tp.minQuantity, tp.maxQuantity});
+                prodBatch.add(new Object[]{newProdId, tenantId, tp.name, sku, tp.categoryCode, tp.baseUnit, tp.minQuantity, tp.maxQuantity});
 
                 for (var pp : templatePres) {
                     if (pp.templateProductId.equals(tp.id)) {
@@ -118,7 +119,7 @@ public class SetupServiceImpl implements SetupService {
                                 List<SetupResponse.ItemDTO> locations,
                                 List<SetupResponse.ProductTemplateDTO> products) {}
 
-    private record TemplateProductRow(java.util.UUID id, String name, String baseUnit, java.math.BigDecimal minQuantity, java.math.BigDecimal maxQuantity, String categoryName) {}
+    private record TemplateProductRow(java.util.UUID id, String name, String baseUnit, java.math.BigDecimal minQuantity, java.math.BigDecimal maxQuantity, String categoryCode) {}
     private record TemplatePresentationRow(java.util.UUID templateProductId, String name, int conversion) {}
 
     private IndustryData loadIndustryData(String industry) {

@@ -60,7 +60,7 @@ export interface Factura {
   providerId: string
   providerName: string
   issueDate: string
-  tipo: string
+  type: string
   metodoPago: string | null
   descuentoGlobal: number | null
   status: string
@@ -77,6 +77,8 @@ export interface ItemFactura {
   precioUnitario: number
   descuento: number | null
   subtotal: number
+  presentacionId: string | null
+  conversionFactor: number
 }
 
 export interface ItemFacturaRequest {

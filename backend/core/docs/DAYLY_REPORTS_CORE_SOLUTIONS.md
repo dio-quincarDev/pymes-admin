@@ -20,6 +20,23 @@ Registro de lo implementado y lo pendiente.
 
 ---
 
+## 2026-07-06 — Fix: productos guardan category_id (UUID) en vez de category_name
+
+### Backend
+
+- `SetupServiceImpl.completeOnboarding()`: Query cambió de `tc.name AS category_name` a `COALESCE(tp.category_id::text, tc.id::text) AS category_code`. `TemplateProductRow.categoryName` renombrado a `categoryCode`.
+- `V8__fix_product_category.sql`: Migration que actualiza productos existentes con nombre de categoría → UUID vía JOIN con `template_categories` + `core.tenant_setup`.
+- Tests: 60 unit tests core siguen pasando.
+
+### Archivos modificados
+
+```
+core/setup/service/impl/SetupServiceImpl.java
+resources/db/migration/V8__fix_product_category.sql
+```
+
+---
+
 ## 2026-07-01 — presentacionId opcional + SKU auto-generado + @Valid enforcement
 
 ### Backend

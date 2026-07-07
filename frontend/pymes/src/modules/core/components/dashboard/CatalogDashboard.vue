@@ -58,6 +58,18 @@ const unitMap = computed(() => {
   return map
 })
 
+const categoryNameMap = computed(() => {
+  const map = new Map<string, string>()
+  function walk(cats: SetupCategory[]) {
+    for (const c of cats) {
+      map.set(c.code, c.name)
+      if (c.children) walk(c.children)
+    }
+  }
+  walk(setup.value?.categories || [])
+  return map
+})
+
 const productsByCategory = computed(() => {
   const map = new Map<string, Producto[]>()
   for (const p of products.value) {
@@ -75,11 +87,15 @@ interface CategoryNode {
 }
 
 function buildTree(cats: SetupCategory[]): CategoryNode[] {
-  return cats.map(cat => ({
-    category: cat,
-    products: productsByCategory.value.get(cat.code) || [],
-    children: buildTree(cat.children || []),
-  }))
+  return cats.map(cat => {
+    const byCode = productsByCategory.value.get(cat.code)
+    const byName = byCode ? [] : productsByCategory.value.get(cat.name)
+    return {
+      category: cat,
+      products: byCode || byName || [],
+      children: buildTree(cat.children || []),
+    }
+  })
 }
 
 const tree = computed(() => buildTree(setup.value?.categories || []))
@@ -271,7 +287,7 @@ onMounted(loadData)
               <span class="text-secondary text-weight-medium">{{ p.name }}</span>
             </div>
             <div class="col-2 text-caption text-accent">{{ p.sku }}</div>
-            <div class="col-2 text-caption text-accent">{{ p.category }}</div>
+            <div class="col-2 text-caption text-accent">{{ categoryNameMap.get(p.category) || p.category }}</div>
             <div class="col-1 text-caption text-accent">{{ unitMap.get(p.baseUnit) || p.baseUnit }}</div>
             <div class="col-2 text-right text-caption text-secondary text-weight-medium">
               {{ p.lastUnitPrice ? formatCurrency(p.lastUnitPrice) : '—' }}
