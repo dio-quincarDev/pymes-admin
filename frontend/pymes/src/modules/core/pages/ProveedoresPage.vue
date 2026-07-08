@@ -1,5 +1,5 @@
 <script setup lang="ts">
-import { ref, onMounted } from 'vue'
+import { ref, shallowRef, onMounted } from 'vue'
 import { useQuasar } from 'quasar'
 import { useAuthStore } from 'src/modules/auth/store'
 import { proveedorService } from '../services/proveedor.service'
@@ -10,13 +10,15 @@ const authStore = useAuthStore()
 const tenantId = authStore.user?.tenantId || ''
 
 const rows = ref<Proveedor[]>([])
-const loading = ref(false)
-const filter = ref('')
-const pagination = ref({ sortBy: 'name', descending: false, page: 1, rowsPerPage: 15 })
+const loading = shallowRef(false)
+const filter = shallowRef('')
+const pagination = shallowRef({ sortBy: 'name', descending: false, page: 1, rowsPerPage: 15 })
 
 const columns = [
   { name: 'name', label: 'Nombre', field: 'name', align: 'left' as const, sortable: true },
-  { name: 'ruc', label: 'RUC', field: 'ruc', align: 'left' as const, sortable: false },
+  { name: 'contactName', label: 'Contacto', field: 'contactName', align: 'left' as const, sortable: false },
+  { name: 'contactPhone', label: 'Teléfono', field: 'contactPhone', align: 'left' as const, sortable: false },
+  { name: 'contactEmail', label: 'Email', field: 'contactEmail', align: 'left' as const, sortable: false },
   { name: 'actions', label: 'Acciones', field: 'id', align: 'right' as const, sortable: false },
 ]
 
@@ -29,24 +31,24 @@ async function load() {
   } finally { loading.value = false }
 }
 
-const dialogOpen = ref(false)
-const editingId = ref<string | null>(null)
-const saving = ref(false)
-const form = ref<ProveedorRequest>({ tenantId, name: '', ruc: '' })
+const dialogOpen = shallowRef(false)
+const editingId = shallowRef<string | null>(null)
+const saving = shallowRef(false)
+const form = ref<ProveedorRequest>({ tenantId, name: '', contactName: '', contactPhone: '', contactEmail: '' })
 
-const deleteDialog = ref(false)
-const deletingItem = ref<Proveedor | null>(null)
-const deleting = ref(false)
+const deleteDialog = shallowRef(false)
+const deletingItem = shallowRef<Proveedor | null>(null)
+const deleting = shallowRef(false)
 
 function openCreate() {
   editingId.value = null
-  form.value = { tenantId, name: '', ruc: '' }
+  form.value = { tenantId, name: '', contactName: '', contactPhone: '', contactEmail: '' }
   dialogOpen.value = true
 }
 
 function openEdit(p: Proveedor) {
   editingId.value = p.id
-  form.value = { tenantId: p.tenantId, name: p.name, ruc: p.ruc }
+  form.value = { tenantId: p.tenantId, name: p.name, contactName: p.contactName, contactPhone: p.contactPhone, contactEmail: p.contactEmail }
   dialogOpen.value = true
 }
 
@@ -118,8 +120,14 @@ onMounted(load)
           <q-btn color="primary" icon="add" label="Nuevo" @click="openCreate" />
         </template>
 
-        <template v-slot:body-cell-ruc="{ row }">
-          <td><span class="text-accent">{{ row.ruc || '—' }}</span></td>
+        <template v-slot:body-cell-contactName="{ row }">
+          <td><span class="text-accent">{{ row.contactName || '—' }}</span></td>
+        </template>
+        <template v-slot:body-cell-contactPhone="{ row }">
+          <td><span class="text-accent">{{ row.contactPhone || '—' }}</span></td>
+        </template>
+        <template v-slot:body-cell-contactEmail="{ row }">
+          <td><span class="text-accent">{{ row.contactEmail || '—' }}</span></td>
         </template>
 
         <template v-slot:body-cell-actions="{ row }">
@@ -141,7 +149,9 @@ onMounted(load)
         <q-card-section>
           <q-form @submit.prevent="save" class="q-gutter-y-md">
             <q-input dark filled v-model="form.name" label="Nombre" :rules="[v => !!v || 'Requerido']" />
-            <q-input dark filled v-model="form.ruc" label="RUC" />
+            <q-input dark filled v-model="form.contactName" label="Nombre de contacto" />
+            <q-input dark filled v-model="form.contactPhone" label="Teléfono" type="tel" />
+            <q-input dark filled v-model="form.contactEmail" label="Email" type="email" />
             <div class="row justify-end q-gutter-x-sm">
               <q-btn flat label="Cancelar" color="accent" v-close-popup />
               <q-btn type="submit" label="Guardar" color="primary" :loading="saving" />

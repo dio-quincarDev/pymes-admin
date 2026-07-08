@@ -4,6 +4,47 @@ Registro cronológico de decisiones, problemas resueltos y estado del frontend.
 
 ---
 
+## 2026-07-08 — Supplier analytics UI: 3 componentes + optimización + invoice fixes
+
+### Supplier analytics
+
+- `types/analytics.ts`: +`SupplierComparisonItem`, `SupplierRecommendation`, `PricePredictionItem`, +`supplierComparison`, `supplierRecommendations`, `pricePredictions` en `AnalyticsResponse`
+- `composables/useAnalytics.ts`: +3 computed slices (`supplierComparison`, `supplierRecommendations`, `pricePredictions`)
+- `SupplierComparisonTable.vue`: QTable — avg/min/max price por producto-proveedor con % diff
+- `SupplierRecommendationsCard.vue`: QCard — proveedor más barato por producto + savings_pct
+- `PricePredictionsTable.vue`: QTable — precio actual vs predicho + R²
+- `AnalisisGastosPage.vue`: 3 nuevas secciones (supplier analytics) + filtro all-time en período
+
+### Optimization
+
+- `shallowRef` aplicado en: `ProveedoresPage.vue`, `FacturasPage.vue`, `AnalisisGastosPage.vue`
+
+### InvoiceItemCard fix
+
+- `InvoiceItemCard.vue`: restaurados `search` ref, `filteredProducts` computed, `filterProducts` fn, `:options="filteredProducts"`; template simplificado — solo `productName` + badge `proveedorName`
+- `FacturasPage.vue`: label en `loadDependencies` sin SKU — `${p.name}${p.proveedorName ? ' · ' + p.proveedorName : ''}`
+
+### Build
+
+- `npm run lint`: ✅
+- `npm run build`: ✅
+
+### Files
+
+```
+types/analytics.ts
+composables/useAnalytics.ts
+components/analytics/SupplierComparisonTable.vue
+components/analytics/SupplierRecommendationsCard.vue
+components/analytics/PricePredictionsTable.vue
+pages/AnalisisGastosPage.vue
+pages/ProveedoresPage.vue
+pages/FacturasPage.vue
+components/facturas/InvoiceItemCard.vue
+```
+
+---
+
 ## 2026-07-06 — Fix UUID display en catálogo/productos/gastos + Invoice detail dialog
 
 ### Fix UUIDs visibles

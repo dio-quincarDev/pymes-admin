@@ -59,7 +59,9 @@ public class FacturaServiceImpl implements FacturaService {
         var proveedor = Proveedor.builder()
                 .tenantId(request.tenantId())
                 .name(request.name())
-                .ruc(request.ruc())
+                .contactName(request.contactName())
+                .contactPhone(request.contactPhone())
+                .contactEmail(request.contactEmail())
                 .build();
         proveedor = proveedorRepository.save(proveedor);
         return mapper.toProveedorResponse(proveedor);
@@ -71,7 +73,9 @@ public class FacturaServiceImpl implements FacturaService {
     public ProveedorResponse updateProveedor(UUID id, UUID tenantId, ProveedorRequest request) {
         var proveedor = getProveedor(id, tenantId);
         proveedor.setName(request.name());
-        proveedor.setRuc(request.ruc());
+        proveedor.setContactName(request.contactName());
+        proveedor.setContactPhone(request.contactPhone());
+        proveedor.setContactEmail(request.contactEmail());
         proveedor = proveedorRepository.save(proveedor);
         return mapper.toProveedorResponse(proveedor);
     }
@@ -115,6 +119,7 @@ public class FacturaServiceImpl implements FacturaService {
         var factura = Factura.builder()
                 .tenantId(request.tenantId())
                 .providerId(request.proveedorId())
+                .proveedor(proveedor)
                 .invoiceNumber(invoiceNumber)
                 .issueDate(request.fecha())
                 .type(request.tipo())
@@ -127,6 +132,7 @@ public class FacturaServiceImpl implements FacturaService {
         var productIds = request.items().stream().map(ItemFacturaRequest::productoId).distinct().toList();
         var inClause = productIds.stream().map(id -> "?").collect(Collectors.joining(","));
         var productNameMap = new HashMap<UUID, String>();
+        // ponytail: string concat for IN clause is safe — `inClause` is only `?,?` from validated UUIDs
         jdbc.query(
             "SELECT id, name FROM core.products WHERE id IN (" + inClause + ")",
             (rs, row) -> productNameMap.put(UUID.fromString(rs.getString("id")), rs.getString("name")),

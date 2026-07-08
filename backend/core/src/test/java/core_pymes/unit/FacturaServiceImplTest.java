@@ -55,7 +55,7 @@ class FacturaServiceImplTest {
         var proveedorId = UUID.randomUUID();
         var productId = UUID.randomUUID();
         var presentacion = mockPresentacion(productId, 1);
-        var proveedor = Proveedor.builder().id(proveedorId).tenantId(tenantId).name("Distribuidora ABC").build();
+        var proveedor = Proveedor.builder().id(proveedorId).tenantId(tenantId).name("Distribuidora ABC").contactName("Carlos").contactPhone("555-0100").contactEmail("carlos@abc.com").build();
         when(proveedorRepository.findById(proveedorId)).thenReturn(Optional.of(proveedor));
         when(facturaRepository.findMaxInvoiceNumber(eq(tenantId), anyString())).thenReturn(Optional.empty());
         when(presentacionRepository.findById(presentacion.getId())).thenReturn(Optional.of(presentacion));

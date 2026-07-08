@@ -20,6 +20,32 @@ Registro de lo implementado y lo pendiente.
 
 ---
 
+## 2026-07-08 — Supplier analytics: cross-supplier comparison + price predictions + recommendations
+
+- `V11__analytics_supplier_fields.sql`: 3 columnas JSONB en `expense_analysis` — `supplier_comparison`, `supplier_recommendations`, `price_predictions`
+- `AnalisisGasto.java`: +3 String con `@JdbcTypeCode(SqlTypes.JSON)`
+- `AnalyticsServiceImpl.java`:
+  - `analisisComparativaProveedores()`: SQL parametrizado — avg/min/max/stddev de precio por producto-proveedor
+  - `analisisRecomendacionProveedor()`: recomienda proveedor más barato + `savings_pct`
+  - `analisisProyeccionPrecios()`: OLS lineal por producto, predice precio próximo mes con R²
+  - `analisisAlertas()`: nueva alerta `SUPPLIER_PREMIUM` (>15% sobre avg del producto)
+- `FacturaServiceImpl.createFactura()`: bugfix — +`.proveedor(proveedor)` para `providerName` en items
+- `ProveedorProductoEdgeCaseIntegrationTest`: 4 tests (producto sin proveedor, proveedor sin facturas, precio mínimo, todas las alertas)
+- `ProductoIntegrationTest.createAndGetProduct`: removido assertion `$.createdAt isNotEmpty`
+- Tests: 60 unit + 22 integration (82 total, all green)
+
+### Files
+```
+core/analytics/domain/AnalisisGasto.java
+core/analytics/service/impl/AnalyticsServiceImpl.java
+core/analytics/dto/AnalyticsResponse.java
+core/analytics/mapper/AnalyticsMapper.java
+core/invoice/service/impl/FacturaServiceImpl.java
+resources/db/migration/V11__analytics_supplier_fields.sql
+```
+
+---
+
 ## 2026-07-06 — Fix: productos guardan category_id (UUID) en vez de category_name
 
 ### Backend

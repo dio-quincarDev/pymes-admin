@@ -159,13 +159,13 @@
 </template>
 
 <script setup lang="ts">
-import { ref, computed, watch, onMounted, nextTick } from 'vue'
+import { ref, shallowRef, computed, watch, onMounted, nextTick } from 'vue'
 import { useQuasar } from 'quasar'
 import { useAuthStore } from 'src/modules/auth/store'
 import { facturaService } from '../services/factura.service'
 import { productoService } from '../services/producto.service'
 import { proveedorService } from '../services/proveedor.service'
-import type { Factura, FacturaRequest, SetupInfo, SetupCategory } from '../types'
+import type { Factura, FacturaRequest, SetupInfo, SetupCategory, ProductOption } from '../types'
 import { api } from 'src/boot/axios'
 import CategoryTabs from '../components/facturas/CategoryTabs.vue'
 import InvoiceItemCard from '../components/facturas/InvoiceItemCard.vue'
@@ -176,20 +176,22 @@ const $q = useQuasar()
 const authStore = useAuthStore()
 const tenantId = authStore.user?.tenantId || ''
 
-const rows = ref<Factura[]>([])
-const loading = ref(false)
-const filter = ref('')
-const pagination = ref({ sortBy: 'issueDate', descending: true, page: 1, rowsPerPage: 15 })
+interface OptionItem { label: string; value: string; __isCreate?: boolean }
 
-const allProducts = ref<{ label: string; value: string; productName: string; sku: string; category: string }[]>([])
+const rows = ref<Factura[]>([])
+const loading = shallowRef(false)
+const filter = shallowRef('')
+const pagination = shallowRef({ sortBy: 'issueDate', descending: true, page: 1, rowsPerPage: 15 })
+
+const allProducts = ref<ProductOption[]>([])
 const productPresentationsMap = ref<Map<string, { label: string; value: string }[]>>(new Map())
-const activeCategory = ref('')
+const activeCategory = shallowRef('')
 const providerOptions = ref<{ label: string; value: string }[]>([])
 const providerFilteredOptions = ref<OptionItem[]>([])
 const setupCategories = ref<SetupCategory[]>([])
 const setupUnits = ref<{ code: string; name: string }[]>([])
-const detailDialog = ref(false)
-const detailItem = ref<Factura | null>(null)
+const detailDialog = shallowRef(false)
+const detailItem = shallowRef<Factura | null>(null)
 const presentationNameMap = ref<Map<string, string>>(new Map())
 
 function openDetail(f: Factura) {
@@ -227,12 +229,18 @@ const unitNameMap = computed(() => {
   return map
 })
 
+const filteredByProvider = computed(() => {
+  const providerId = form.value.proveedorId
+  if (!providerId) return allProducts.value
+  return allProducts.value.filter(p => !p.proveedorId || p.proveedorId === providerId)
+})
+
 const filteredByCategory = computed(() => {
-  if (!activeCategory.value) return allProducts.value
+  if (!activeCategory.value) return filteredByProvider.value
   const codes = findCategoryInTree(setupCategories.value, activeCategory.value)
   return codes.size
-    ? allProducts.value.filter(p => codes.has(p.category))
-    : allProducts.value
+    ? filteredByProvider.value.filter(p => codes.has(p.category))
+    : filteredByProvider.value
 })
 
 const columns = [
@@ -255,7 +263,6 @@ function unitOptions(productId: string | null): { label: string; value: string }
 }
 
 let keyCounter = 0
-interface OptionItem { label: string; value: string; __isCreate?: boolean }
 
 interface ItemForm {
   _key: number
@@ -266,8 +273,8 @@ interface ItemForm {
   descuento: number
 }
 
-const dialogOpen = ref(false)
-const saving = ref(false)
+const dialogOpen = shallowRef(false)
+const saving = shallowRef(false)
 const form = ref<{
   proveedorId: string | null
   fecha: string
@@ -328,7 +335,7 @@ function providerFilter(val: string, update: (fn: () => void) => void) {
 function onProviderSelected(val: string | null) {
   if (!val || !val.startsWith('__CREATE__')) return
   const name = val.replace('__CREATE__', '')
-  proveedorService.create({ tenantId, name, ruc: null }).then(res => {
+  proveedorService.create({ tenantId, name }).then(res => {
     const newOpt = { label: res.data.name, value: res.data.id }
     providerOptions.value.push(newOpt)
     providerFilteredOptions.value = [...providerOptions.value]
@@ -368,11 +375,13 @@ async function loadDependencies() {
     setupCategories.value = setupRes.data.categories || []
     setupUnits.value = setupRes.data.units || []
     allProducts.value = prods.data.map(p => ({
-      label: `${p.name} (${p.sku})`,
+      label: `${p.name}${p.proveedorName ? ` · ${p.proveedorName}` : ''}`,
       value: p.id,
       productName: p.name,
       sku: p.sku,
       category: p.category,
+      proveedorId: p.proveedorId,
+      proveedorName: p.proveedorName,
     }))
     const presMap = new Map<string, { label: string; value: string }[]>()
     const presNameMap = new Map<string, string>()
@@ -422,9 +431,9 @@ async function save() {
   } finally { saving.value = false }
 }
 
-const payDialog = ref(false)
-const payingItem = ref<Factura | null>(null)
-const paying = ref(false)
+const payDialog = shallowRef(false)
+const payingItem = shallowRef<Factura | null>(null)
+const paying = shallowRef(false)
 
 function confirmPay(f: Factura) {
   payingItem.value = f
@@ -448,9 +457,9 @@ async function pay() {
   }
 }
 
-const deleteDialog = ref(false)
-const deletingItem = ref<Factura | null>(null)
-const deleting = ref(false)
+const deleteDialog = shallowRef(false)
+const deletingItem = shallowRef<Factura | null>(null)
+const deleting = shallowRef(false)
 
 function confirmDelete(f: Factura) {
   deletingItem.value = f

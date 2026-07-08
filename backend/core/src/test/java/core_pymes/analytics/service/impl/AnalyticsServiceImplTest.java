@@ -10,10 +10,7 @@ import org.mockito.Mock;
 import org.mockito.junit.jupiter.MockitoExtension;
 import org.springframework.jdbc.core.JdbcTemplate;
 
-import java.util.List;
-import java.util.Map;
-import java.util.Optional;
-import java.util.UUID;
+import java.util.*;
 
 import static org.assertj.core.api.Assertions.assertThat;
 import static org.mockito.Mockito.*;
@@ -41,6 +38,9 @@ class AnalyticsServiceImplTest {
         doReturn(List.of()).when(service).analisisCostoOperativo(any(), any(), any());
         doReturn(List.of()).when(service).analisisProyeccion(any(), any(), any());
         doReturn(List.of()).when(service).analisisAlertas(any(), any(), any());
+        doReturn(List.of()).when(service).analisisComparativaProveedores(any(), any(), any());
+        doReturn(List.of()).when(service).analisisRecomendacionProveedor(any(), any(), any());
+        doReturn(List.of()).when(service).analisisProyeccionPrecios(any(), any(), any());
         when(objectMapper.writeValueAsString(any())).thenReturn("{}");
 
         var result = service.ejecutarCompleto(tenantId, "2026-06");
@@ -67,6 +67,9 @@ class AnalyticsServiceImplTest {
         doReturn(List.of()).when(service).analisisCostoOperativo(any(), any(), any());
         doReturn(List.of()).when(service).analisisProyeccion(any(), any(), any());
         doReturn(List.of()).when(service).analisisAlertas(any(), any(), any());
+        doReturn(List.of()).when(service).analisisComparativaProveedores(any(), any(), any());
+        doReturn(List.of()).when(service).analisisRecomendacionProveedor(any(), any(), any());
+        doReturn(List.of()).when(service).analisisProyeccionPrecios(any(), any(), any());
         when(objectMapper.writeValueAsString(any())).thenReturn("updated");
 
         service.ejecutarCompleto(tenantId, "2026-06");
@@ -85,6 +88,9 @@ class AnalyticsServiceImplTest {
         doReturn(List.of(Map.of("from", "opex"))).when(service).analisisCostoOperativo(any(), any(), any());
         doReturn(List.of(Map.of("from", "proj"))).when(service).analisisProyeccion(any(), any(), any());
         doReturn(List.of(Map.of("from", "alert"))).when(service).analisisAlertas(any(), any(), any());
+        doReturn(List.of(Map.of("from", "cmp"))).when(service).analisisComparativaProveedores(any(), any(), any());
+        doReturn(List.of(Map.of("from", "rec"))).when(service).analisisRecomendacionProveedor(any(), any(), any());
+        doReturn(List.of(Map.of("from", "pred"))).when(service).analisisProyeccionPrecios(any(), any(), any());
 
         service.ejecutarCompleto(tenantId, "2026-06");
 
@@ -94,6 +100,9 @@ class AnalyticsServiceImplTest {
         verify(service).analisisCostoOperativo(any(), any(), any());
         verify(service).analisisProyeccion(any(), any(), any());
         verify(service).analisisAlertas(any(), any(), any());
+        verify(service).analisisComparativaProveedores(any(), any(), any());
+        verify(service).analisisRecomendacionProveedor(any(), any(), any());
+        verify(service).analisisProyeccionPrecios(any(), any(), any());
     }
 
     @Test

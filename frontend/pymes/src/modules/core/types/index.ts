@@ -15,6 +15,8 @@ export interface Producto {
   lastPurchaseDate: string | null
   minQuantity: number | null
   maxQuantity: number | null
+  proveedorId: string | null
+  proveedorName: string | null
 }
 
 export interface Presentacion {
@@ -32,6 +34,7 @@ export interface ProductoRequest {
   baseUnit?: string
   minQuantity?: number | null
   maxQuantity?: number | null
+  proveedorId?: string | null
 }
 
 export interface PresentacionRequest {
@@ -43,14 +46,18 @@ export interface Proveedor {
   id: string
   tenantId: string
   name: string
-  ruc: string | null
+  contactName: string | null
+  contactPhone: string | null
+  contactEmail: string | null
   isActive: boolean
 }
 
 export interface ProveedorRequest {
   tenantId: string
   name: string
-  ruc?: string | null
+  contactName?: string | null
+  contactPhone?: string | null
+  contactEmail?: string | null
 }
 
 export interface Factura {
@@ -105,6 +112,8 @@ export interface ProductOption {
   productName: string
   sku: string
   category: string
+  proveedorId: string | null
+  proveedorName: string | null
 }
 
 export interface ProductTemplateDTO {

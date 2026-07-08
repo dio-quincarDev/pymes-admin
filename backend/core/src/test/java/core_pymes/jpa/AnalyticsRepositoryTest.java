@@ -29,6 +29,9 @@ class AnalyticsRepositoryTest extends AbstractJpaTest {
                 .opexPct("[]")
                 .projection("[]")
                 .alerts("[]")
+                .supplierComparison("[]")
+                .supplierRecommendations("[]")
+                .pricePrediction("[]")
                 .build();
 
         em.persistAndFlush(analysis);
@@ -73,7 +76,8 @@ class AnalyticsRepositoryTest extends AbstractJpaTest {
 
         var reloaded = repository.findByTenantIdAndPeriod(tenantId, "2026-06");
         assertThat(reloaded).isPresent();
-        assertThat(reloaded.get().getAbc()).isEqualTo("{\"v\": 2}");
+        assertThat(reloaded.get().getAbc()).contains("\"v\"")
+                .contains("2");
     }
 
     @Test

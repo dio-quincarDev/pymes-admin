@@ -4,6 +4,7 @@ import { useQuasar } from 'quasar'
 import { useAuthStore } from 'src/modules/auth/store'
 import { api } from 'src/boot/axios'
 import { productoService } from '../services/producto.service'
+import { proveedorService } from '../services/proveedor.service'
 import type { Producto, ProductoRequest, Presentacion, PresentacionRequest, SetupInfo, SetupCategory } from '../types'
 
 const $q = useQuasar()
@@ -18,10 +19,12 @@ const pagination = ref({ sortBy: 'name', descending: false, page: 1, rowsPerPage
 const catOptions = ref<{ label: string; value: string }[]>([])
 const setupCategories = ref<SetupCategory[]>([])
 const unitOptions = ref<{ label: string; value: string }[]>([])
+const providerOptions = ref<{ label: string; value: string }[]>([])
 
 const columns = [
   { name: 'name', label: 'Nombre', field: 'name', align: 'left' as const, sortable: true },
   { name: 'sku', label: 'SKU', field: 'sku', align: 'left' as const, sortable: true },
+  { name: 'proveedorName', label: 'Proveedor', field: 'proveedorName', align: 'left' as const, sortable: false },
   { name: 'category', label: 'Categoría', field: 'category', align: 'left' as const, sortable: false },
   { name: 'baseUnit', label: 'Unidad', field: 'baseUnit', align: 'left' as const, sortable: false },
   { name: 'presentaciones', label: 'Presentaciones', field: 'id', align: 'left' as const, sortable: false },
@@ -59,10 +62,14 @@ const unitNameMap = computed(() => {
 async function loadSetup() {
   if (!tenantId) return
   try {
-    const res = await api.get<SetupInfo>(`/core/setup/${tenantId}`)
-    setupCategories.value = res.data.categories || []
+    const [setupRes, provRes] = await Promise.all([
+      api.get<SetupInfo>(`/core/setup/${tenantId}`),
+      proveedorService.getAll(tenantId),
+    ])
+    setupCategories.value = setupRes.data.categories || []
     catOptions.value = flattenCategories(setupCategories.value)
-    unitOptions.value = (res.data.units || []).map(u => ({ label: u.name, value: u.code }))
+    unitOptions.value = (setupRes.data.units || []).map(u => ({ label: u.name, value: u.code }))
+    providerOptions.value = provRes.data.map(p => ({ label: p.name, value: p.id }))
   } catch { /* template data non-critical */ }
 }
 
@@ -78,17 +85,17 @@ async function load() {
 const dialogOpen = ref(false)
 const editingId = ref<string | null>(null)
 const saving = ref(false)
-const form = ref<ProductoRequest>({ tenantId, name: '', category: '', baseUnit: '' })
+const form = ref<ProductoRequest>({ tenantId, name: '', category: '', baseUnit: '', proveedorId: null })
 
 function openCreate() {
   editingId.value = null
-  form.value = { tenantId, name: '', category: '', baseUnit: '' }
+  form.value = { tenantId, name: '', category: '', baseUnit: '', proveedorId: null }
   dialogOpen.value = true
 }
 
 function openEdit(p: Producto) {
   editingId.value = p.id
-  form.value = { tenantId: p.tenantId, name: p.name, sku: p.sku, category: p.category, baseUnit: p.baseUnit }
+  form.value = { tenantId: p.tenantId, name: p.name, sku: p.sku, category: p.category, baseUnit: p.baseUnit, proveedorId: p.proveedorId }
   dialogOpen.value = true
 }
 
@@ -202,6 +209,9 @@ async function remove() {
           <q-btn color="primary" icon="add" label="Nuevo" @click="openCreate" />
         </template>
 
+        <template v-slot:body-cell-proveedorName="{ row }">
+          <td><span class="text-accent">{{ row.proveedorName || '—' }}</span></td>
+        </template>
         <template v-slot:body-cell-category="{ row }">
           <td>{{ categoryNameMap.get(row.category) || row.category }}</td>
         </template>
@@ -243,6 +253,7 @@ async function remove() {
             <q-input dark filled v-model="form.name" label="Nombre" :rules="[v => !!v || 'Requerido']" />
             <q-select dark filled v-model="form.category" label="Categoría" :options="catOptions" option-value="value" option-label="label" emit-value map-options use-input input-debounce="0" @filter="(val, update) => { update(() => catOptions.filter((o: { label: string; value: string }) => !val || o.label.toLowerCase().includes(val.toLowerCase()))) }" :rules="[v => !!v || 'Requerido']" />
             <q-select dark filled v-model="form.baseUnit" label="Unidad base" :options="unitOptions" option-value="value" option-label="label" emit-value map-options use-input input-debounce="0" @filter="(val, update) => { update(() => unitOptions.filter((o: { label: string; value: string }) => !val || o.label.toLowerCase().includes(val.toLowerCase()))) }" />
+            <q-select dark filled v-model="form.proveedorId" label="Proveedor" :options="providerOptions" option-value="value" option-label="label" emit-value map-options clearable />
             <div class="row justify-end q-gutter-x-sm">
               <q-btn flat label="Cancelar" color="accent" v-close-popup />
               <q-btn type="submit" label="Guardar" color="primary" :loading="saving" />

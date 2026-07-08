@@ -1,5 +1,7 @@
 package core_pymes.product.service.impl;
 
+import core_pymes.invoice.domain.Proveedor;
+import core_pymes.invoice.repository.ProveedorRepository;
 import core_pymes.product.domain.Presentacion;
 import core_pymes.product.domain.Producto;
 import core_pymes.product.dto.PresentacionRequest;
@@ -31,6 +33,7 @@ public class ProductoServiceImpl implements ProductoService {
 
     private final ProductoRepository productoRepository;
     private final PresentacionRepository presentacionRepository;
+    private final ProveedorRepository proveedorRepository;
     private final ProductoMapper mapper;
     private final ApplicationEventPublisher eventPublisher;
 
@@ -39,7 +42,7 @@ public class ProductoServiceImpl implements ProductoService {
     @Cacheable(cacheNames = "productos", key = "#tenantId")
     public List<ProductoResponse> findAll(UUID tenantId) {
         return productoRepository.findByTenantId(tenantId).stream()
-                .map(p -> mapper.toResponse(p, mapPresentaciones(p.getId())))
+                .map(p -> mapper.toResponse(p, mapPresentaciones(p.getId()), findProveedor(p.getProviderId())))
                 .toList();
     }
 
@@ -48,7 +51,7 @@ public class ProductoServiceImpl implements ProductoService {
     @Cacheable(cacheNames = "productos", key = "#id")
     public ProductoResponse findById(UUID id, UUID tenantId) {
         var producto = getProducto(id, tenantId);
-        return mapper.toResponse(producto, mapPresentaciones(id));
+        return mapper.toResponse(producto, mapPresentaciones(id), findProveedor(producto.getProviderId()));
     }
 
     @Override
@@ -69,11 +72,12 @@ public class ProductoServiceImpl implements ProductoService {
                 .imageUrl(request.imageUrl())
                 .minQuantity(request.minQuantity())
                 .maxQuantity(request.maxQuantity())
+                .providerId(request.proveedorId())
                 .build();
         producto = productoRepository.save(producto);
         eventPublisher.publishEvent(new ProductoCreadoEvent(producto));
         log.debug("Producto created: {} for tenant {}", producto.getId(), producto.getTenantId());
-        return mapper.toResponse(producto, List.of());
+        return mapper.toResponse(producto, List.of(), findProveedor(producto.getProviderId()));
     }
 
     @Override
@@ -88,8 +92,9 @@ public class ProductoServiceImpl implements ProductoService {
         producto.setImageUrl(request.imageUrl());
         producto.setMinQuantity(request.minQuantity());
         producto.setMaxQuantity(request.maxQuantity());
+        producto.setProviderId(request.proveedorId());
         producto = productoRepository.save(producto);
-        return mapper.toResponse(producto, mapPresentaciones(id));
+        return mapper.toResponse(producto, mapPresentaciones(id), findProveedor(producto.getProviderId()));
     }
 
     @Override
@@ -149,5 +154,10 @@ public class ProductoServiceImpl implements ProductoService {
 
     private List<PresentacionResponse> mapPresentaciones(UUID productId) {
         return mapper.toResponseList(presentacionRepository.findByProductoIdAndIsActiveTrue(productId));
+    }
+
+    private Proveedor findProveedor(UUID providerId) {
+        if (providerId == null) return null;
+        return proveedorRepository.findById(providerId).orElse(null);
     }
 }

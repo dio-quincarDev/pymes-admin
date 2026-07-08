@@ -34,14 +34,18 @@ class FacturaIntegrationTest extends AbstractIntegrationTest {
         var body = objectMapper.writeValueAsString(Map.of(
                 "tenantId", tenantId.toString(),
                 "name", "Distribuidora ABC",
-                "ruc", "123-456-789"));
+                "contactName", "Carlos Perez",
+                "contactPhone", "555-0100",
+                "contactEmail", "carlos@abc.com"));
 
         var result = mockMvc.perform(post("/api/v1/core/proveedores")
                         .contentType(MediaType.APPLICATION_JSON)
                         .content(body))
                 .andExpect(status().isOk())
                 .andExpect(jsonPath("$.name").value("Distribuidora ABC"))
-                .andExpect(jsonPath("$.ruc").value("123-456-789"))
+                .andExpect(jsonPath("$.contactName").value("Carlos Perez"))
+                .andExpect(jsonPath("$.contactPhone").value("555-0100"))
+                .andExpect(jsonPath("$.contactEmail").value("carlos@abc.com"))
                 .andReturn();
 
         var id = objectMapper.readTree(result.getResponse().getContentAsString()).get("id").asText();

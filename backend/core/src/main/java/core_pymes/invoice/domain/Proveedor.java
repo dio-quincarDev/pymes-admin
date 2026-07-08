@@ -31,7 +31,14 @@ public class Proveedor {
     @Column(nullable = false)
     private String name;
 
-    private String ruc;
+    @Column(name = "contact_name")
+    private String contactName;
+
+    @Column(name = "contact_phone")
+    private String contactPhone;
+
+    @Column(name = "contact_email")
+    private String contactEmail;
 
     @Builder.Default
     @Column(name = "is_active", nullable = false)

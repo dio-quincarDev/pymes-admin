@@ -8,5 +8,7 @@ import java.util.UUID;
 public record ProveedorRequest(
         @NotNull UUID tenantId,
         @NotBlank String name,
-        String ruc
+        String contactName,
+        String contactPhone,
+        String contactEmail
 ) {}

@@ -59,6 +59,9 @@ public class Producto {
     @Column(name = "max_quantity")
     private BigDecimal maxQuantity;
 
+    @Column(name = "provider_id")
+    private UUID providerId;
+
     @Builder.Default
     @Column(name = "is_active", nullable = false)
     private Boolean isActive = true;

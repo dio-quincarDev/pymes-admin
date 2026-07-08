@@ -15,10 +15,8 @@ import java.math.BigDecimal;
 import java.math.RoundingMode;
 import java.time.LocalDate;
 import java.time.YearMonth;
-import java.util.List;
-import java.util.Map;
-import java.util.Optional;
-import java.util.UUID;
+import java.util.*;
+import java.util.stream.Collectors;
 
 @Service
 @RequiredArgsConstructor
@@ -48,6 +46,9 @@ public class AnalyticsServiceImpl implements AnalyticsService {
         analisis.setOpexPct(toJson(analisisCostoOperativo(tenantId, start, end)));
         analisis.setProjection(toJson(analisisProyeccion(tenantId, start, end)));
         analisis.setAlerts(toJson(analisisAlertas(tenantId, start, end)));
+        analisis.setSupplierComparison(toJson(analisisComparativaProveedores(tenantId, start, end)));
+        analisis.setSupplierRecommendations(toJson(analisisRecomendacionProveedor(tenantId, start, end)));
+        analisis.setPricePrediction(toJson(analisisProyeccionPrecios(tenantId, start, end)));
 
         repository.save(analisis);
         log.debug("Analytics computed for tenant {} period {}", tenantId, periodo);
@@ -234,7 +235,10 @@ public class AnalyticsServiceImpl implements AnalyticsService {
     }
 
     List<Map<String, Object>> analisisAlertas(UUID tenantId, LocalDate start, LocalDate end) {
-        var sql = """
+        var alerts = new ArrayList<Map<String, Object>>();
+
+        // -- Price variation alerts (existing) --
+        var variationSql = """
                 WITH stats AS (
                     SELECT ii.product_id, p.name AS product_name,
                            AVG(ii.unit_price / ii.conversion_factor) AS avg_price,
@@ -254,18 +258,207 @@ public class AnalyticsServiceImpl implements AnalyticsService {
                   AND (stddev_price / NULLIF(avg_price, 0)) > 0.15
                 ORDER BY cv_pct DESC
                 """;
-        var variations = jdbc.query(sql, (rs, row) -> Map.<String, Object>of(
+        alerts.addAll(jdbc.query(variationSql, (rs, row) -> Map.<String, Object>of(
                 "productId", rs.getObject("product_id").toString(),
                 "productName", rs.getString("product_name"),
                 "avgPrice", rs.getBigDecimal("avg_price"),
                 "cvPct", rs.getBigDecimal("cv_pct"),
                 "type", "PRICE_VARIATION"
-        ), tenantId, start, end);
+        ), tenantId, start, end));
 
-        if (variations.isEmpty()) {
+        // -- Supplier premium alerts (>15% above product average across suppliers) --
+        var premiumSql = """
+                WITH product_avg AS (
+                    SELECT ii.product_id, p.name AS product_name,
+                           AVG(ii.unit_price / NULLIF(ii.conversion_factor, 0)) AS product_avg_price
+                    FROM core.invoice_items ii
+                    JOIN core.invoices i ON ii.invoice_id = i.id
+                    JOIN core.products p ON ii.product_id = p.id
+                    WHERE i.tenant_id = ? AND i.issue_date >= ? AND i.issue_date < ?
+                    GROUP BY ii.product_id, p.name
+                ),
+                supplier_prices AS (
+                    SELECT ii.product_id, p.name AS product_name,
+                           pr.id AS provider_id, pr.name AS provider_name,
+                           AVG(ii.unit_price / NULLIF(ii.conversion_factor, 0)) AS avg_price,
+                           COUNT(*) AS purchases
+                    FROM core.invoice_items ii
+                    JOIN core.invoices i ON ii.invoice_id = i.id
+                    JOIN core.products p ON ii.product_id = p.id
+                    JOIN core.providers pr ON i.provider_id = pr.id
+                    WHERE i.tenant_id = ? AND i.issue_date >= ? AND i.issue_date < ?
+                    GROUP BY ii.product_id, p.name, pr.id, pr.name
+                )
+                SELECT sp.product_id, sp.product_name,
+                       sp.provider_id, sp.provider_name,
+                       sp.avg_price, pa.product_avg_price,
+                       ROUND((sp.avg_price - pa.product_avg_price) / pa.product_avg_price * 100, 2) AS premium_pct
+                FROM supplier_prices sp
+                JOIN product_avg pa ON sp.product_id = pa.product_id
+                WHERE sp.avg_price > pa.product_avg_price * 1.15
+                ORDER BY premium_pct DESC
+                """;
+        alerts.addAll(jdbc.query(premiumSql, (rs, row) -> Map.<String, Object>of(
+                "productId", rs.getObject("product_id").toString(),
+                "productName", rs.getString("product_name"),
+                "providerId", rs.getObject("provider_id").toString(),
+                "providerName", rs.getString("provider_name"),
+                "currentPrice", rs.getBigDecimal("avg_price"),
+                "avgPrice", rs.getBigDecimal("product_avg_price"),
+                "premiumPct", rs.getBigDecimal("premium_pct"),
+                "type", "SUPPLIER_PREMIUM"
+        ), tenantId, start, end, tenantId, start, end));
+
+        if (alerts.isEmpty()) {
             return List.of(Map.<String, Object>of("message", "No significant anomalies detected"));
         }
-        return variations;
+        return alerts;
+    }
+
+    // -- 3 nuevos motores: proveedores, recomendación, predicción --
+
+    List<Map<String, Object>> analisisComparativaProveedores(UUID tenantId, LocalDate start, LocalDate end) {
+        var sql = """
+                SELECT p.id AS product_id, p.name AS product_name,
+                       pr.id AS provider_id, pr.name AS provider_name,
+                       COUNT(*) AS purchase_count,
+                       ROUND(AVG(ii.unit_price / NULLIF(ii.conversion_factor, 0)), 4) AS avg_price,
+                       ROUND(MIN(ii.unit_price / NULLIF(ii.conversion_factor, 0)), 4) AS min_price,
+                       ROUND(MAX(ii.unit_price / NULLIF(ii.conversion_factor, 0)), 4) AS max_price,
+                       COALESCE(ROUND(STDDEV(ii.unit_price / NULLIF(ii.conversion_factor, 0)), 4), 0) AS price_stddev
+                FROM core.invoice_items ii
+                JOIN core.invoices i ON ii.invoice_id = i.id
+                JOIN core.products p ON ii.product_id = p.id
+                JOIN core.providers pr ON i.provider_id = pr.id
+                WHERE i.tenant_id = ? AND i.issue_date >= ? AND i.issue_date < ?
+                GROUP BY p.id, p.name, pr.id, pr.name
+                ORDER BY p.name, avg_price
+                """;
+        return jdbc.query(sql, (rs, row) -> Map.<String, Object>of(
+                "productId", rs.getObject("product_id").toString(),
+                "productName", rs.getString("product_name"),
+                "providerId", rs.getObject("provider_id").toString(),
+                "providerName", rs.getString("provider_name"),
+                "purchaseCount", rs.getInt("purchase_count"),
+                "avgPrice", rs.getBigDecimal("avg_price"),
+                "minPrice", rs.getBigDecimal("min_price"),
+                "maxPrice", rs.getBigDecimal("max_price"),
+                "priceStddev", rs.getBigDecimal("price_stddev")
+        ), tenantId, start, end);
+    }
+
+    List<Map<String, Object>> analisisRecomendacionProveedor(UUID tenantId, LocalDate start, LocalDate end) {
+        var comparativa = analisisComparativaProveedores(tenantId, start, end);
+        var byProduct = new LinkedHashMap<String, List<Map<String, Object>>>();
+        for (var entry : comparativa) {
+            var key = (String) entry.get("productId");
+            byProduct.computeIfAbsent(key, k -> new ArrayList<>()).add(entry);
+        }
+
+        var recomendaciones = new ArrayList<Map<String, Object>>();
+        for (var entry : byProduct.entrySet()) {
+            var suppliers = entry.getValue();
+            if (suppliers.size() < 2) continue;
+
+            var cheapest = suppliers.stream().min(Comparator.comparing(s -> (BigDecimal) s.get("avgPrice"))).orElseThrow();
+            var mostExpensive = suppliers.stream().max(Comparator.comparing(s -> (BigDecimal) s.get("avgPrice"))).orElseThrow();
+            var cheapestPrice = (BigDecimal) cheapest.get("avgPrice");
+            var expensivePrice = (BigDecimal) mostExpensive.get("avgPrice");
+            var savings = expensivePrice.subtract(cheapestPrice);
+            var savingsPct = expensivePrice.compareTo(BigDecimal.ZERO) > 0
+                    ? savings.multiply(BigDecimal.valueOf(100)).divide(expensivePrice, 2, RoundingMode.HALF_UP)
+                    : BigDecimal.ZERO;
+
+            recomendaciones.add(Map.<String, Object>of(
+                    "productId", cheapest.get("productId"),
+                    "productName", cheapest.get("productName"),
+                    "recommendedProviderId", cheapest.get("providerId"),
+                    "recommendedProviderName", cheapest.get("providerName"),
+                    "recommendedPrice", cheapestPrice,
+                    "currentAvgPrice", expensivePrice,
+                    "savingsPerUnit", savings,
+                    "savingsPct", savingsPct,
+                    "supplierCount", suppliers.size()
+            ));
+        }
+        recomendaciones.sort((a, b) -> ((BigDecimal) b.get("savingsPct")).compareTo((BigDecimal) a.get("savingsPct")));
+        return recomendaciones;
+    }
+
+    List<Map<String, Object>> analisisProyeccionPrecios(UUID tenantId, LocalDate start, LocalDate end) {
+        var lookbackStart = start.minusMonths(6);
+        var sql = """
+                SELECT ii.product_id, p.name AS product_name, i.issue_date,
+                       AVG(ii.unit_price / NULLIF(ii.conversion_factor, 0)) AS unit_price
+                FROM core.invoice_items ii
+                JOIN core.invoices i ON ii.invoice_id = i.id
+                JOIN core.products p ON ii.product_id = p.id
+                WHERE i.tenant_id = ? AND i.issue_date >= ? AND i.issue_date < ?
+                GROUP BY ii.product_id, p.name, i.issue_date
+                ORDER BY ii.product_id, i.issue_date
+                """;
+        var rows = jdbc.query(sql, (rs, row) -> new Object[]{
+                rs.getObject("product_id").toString(),
+                rs.getString("product_name"),
+                rs.getObject("issue_date", LocalDate.class),
+                rs.getBigDecimal("unit_price")
+        }, tenantId, lookbackStart, end);
+
+        var byProduct = new LinkedHashMap<String, List<Object[]>>();
+        for (var r : rows) {
+            byProduct.computeIfAbsent((String) r[0], k -> new ArrayList<>()).add(r);
+        }
+
+        var resultados = new ArrayList<Map<String, Object>>();
+        for (var entry : byProduct.entrySet()) {
+            var points = entry.getValue();
+            if (points.size() < 3) continue;
+
+            var productName = (String) points.get(0)[1];
+            int n = points.size();
+            double sumX = 0, sumY = 0, sumXy = 0, sumXx = 0;
+            for (int i = 0; i < n; i++) {
+                double x = i;
+                double y = ((BigDecimal) points.get(i)[3]).doubleValue();
+                sumX += x;
+                sumY += y;
+                sumXy += x * y;
+                sumXx += x * x;
+            }
+            double slope = (n * sumXy - sumX * sumY) / (n * sumXx - sumX * sumX);
+            double intercept = (sumY - slope * sumX) / n;
+            double predictedPrice = slope * n + intercept;
+
+            // R² for confidence
+            double meanY = sumY / n;
+            double ssTot = 0, ssRes = 0;
+            for (int i = 0; i < n; i++) {
+                double y = ((BigDecimal) points.get(i)[3]).doubleValue();
+                double yHat = slope * i + intercept;
+                ssTot += (y - meanY) * (y - meanY);
+                ssRes += (y - yHat) * (y - yHat);
+            }
+            double rSquared = ssTot > 0 ? 1 - ssRes / ssTot : 0;
+            double confidence = Math.max(0, Math.min(100, rSquared * 100));
+
+            var lastPrice = (BigDecimal) points.get(n - 1)[3];
+            var predicted = BigDecimal.valueOf(predictedPrice).setScale(4, RoundingMode.HALF_UP);
+            var change = lastPrice.compareTo(BigDecimal.ZERO) > 0
+                    ? predicted.subtract(lastPrice).multiply(BigDecimal.valueOf(100)).divide(lastPrice, 2, RoundingMode.HALF_UP)
+                    : BigDecimal.ZERO;
+
+            resultados.add(Map.<String, Object>of(
+                    "productId", entry.getKey(),
+                    "productName", productName,
+                    "lastPrice", lastPrice,
+                    "predictedPrice", predicted,
+                    "pctChange", change,
+                    "confidence", BigDecimal.valueOf(confidence).setScale(1, RoundingMode.HALF_UP),
+                    "dataPoints", n
+            ));
+        }
+        resultados.sort((a, b) -> ((BigDecimal) b.get("pctChange")).compareTo((BigDecimal) a.get("pctChange")));
+        return resultados;
     }
 
     private String toJson(Object value) {

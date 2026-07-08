@@ -22,5 +22,7 @@ public record ProductoResponse(
         BigDecimal totalInvestment,
         LocalDate lastPurchaseDate,
         BigDecimal minQuantity,
-        BigDecimal maxQuantity
+        BigDecimal maxQuantity,
+        UUID proveedorId,
+        String proveedorName
 ) {}

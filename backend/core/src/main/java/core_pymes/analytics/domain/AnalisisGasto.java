@@ -53,6 +53,18 @@ public class AnalisisGasto {
     @Column(columnDefinition = "JSONB")
     private String alerts;
 
+    @JdbcTypeCode(SqlTypes.JSON)
+    @Column(name = "supplier_comparison", columnDefinition = "JSONB")
+    private String supplierComparison;
+
+    @JdbcTypeCode(SqlTypes.JSON)
+    @Column(name = "supplier_recommendations", columnDefinition = "JSONB")
+    private String supplierRecommendations;
+
+    @JdbcTypeCode(SqlTypes.JSON)
+    @Column(name = "price_prediction", columnDefinition = "JSONB")
+    private String pricePrediction;
+
     @CreationTimestamp
     @Column(name = "created_at", nullable = false, updatable = false)
     private ZonedDateTime createdAt;

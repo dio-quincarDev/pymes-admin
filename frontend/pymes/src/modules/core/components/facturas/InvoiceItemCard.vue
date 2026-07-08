@@ -1,7 +1,7 @@
 <script setup lang="ts">
 import { ref, computed } from 'vue'
 
-export interface ProductOption { label: string; value: string; productName: string; sku: string; category: string }
+export interface ProductOption { label: string; value: string; productName: string; sku: string; category: string; proveedorId: string | null; proveedorName: string | null }
 
 interface ItemForm {
   _key: number
@@ -30,18 +30,18 @@ const emit = defineEmits<{
 
 const search = ref('')
 
-const subtotal = computed(() => {
-  const qty = props.item.cantidad || 0
-  const price = props.item.precioUnitario || 0
-  const disc = props.item.descuento || 0
-  return formatCurrency(qty * price - disc)
-})
-
 const filteredProducts = computed(() => {
   const needle = search.value.toLowerCase()
   return props.productOptions.filter(p =>
     !needle || p.label.toLowerCase().includes(needle) || p.sku.toLowerCase().includes(needle)
   )
+})
+
+const subtotal = computed(() => {
+  const qty = props.item.cantidad || 0
+  const price = props.item.precioUnitario || 0
+  const disc = props.item.descuento || 0
+  return formatCurrency(qty * price - disc)
 })
 
 function formatCurrency(n: number) {
@@ -69,10 +69,9 @@ function filterProducts(val: string, update: (fn: () => void) => void) {
               </q-item-section>
               <q-item-section>
                 <q-item-label>{{ opt.productName }}</q-item-label>
-                <q-item-label caption class="text-accent">{{ opt.sku }}</q-item-label>
               </q-item-section>
-              <q-item-section v-if="opt.category" side>
-                <q-badge :label="opt.category" color="dark" text-color="accent" class="q-px-sm" />
+              <q-item-section side>
+                <q-badge v-if="opt.proveedorName" :label="opt.proveedorName" color="primary" text-color="dark" class="q-px-sm" />
               </q-item-section>
             </q-item>
           </template>

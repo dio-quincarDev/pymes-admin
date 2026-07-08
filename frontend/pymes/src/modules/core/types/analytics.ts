@@ -48,6 +48,40 @@ export interface AlertItem {
   severity: 'warning' | 'critical';
 }
 
+export interface SupplierComparisonItem {
+  productId: string;
+  productName: string;
+  providerId: string;
+  providerName: string;
+  purchaseCount: number;
+  avgPrice: number;
+  minPrice: number;
+  maxPrice: number;
+  priceStddev: number;
+}
+
+export interface SupplierRecommendationItem {
+  productId: string;
+  productName: string;
+  recommendedProviderId: string;
+  recommendedProviderName: string;
+  recommendedPrice: number;
+  currentAvgPrice: number;
+  savingsPerUnit: number;
+  savingsPct: number;
+  supplierCount: number;
+}
+
+export interface PricePredictionItem {
+  productId: string;
+  productName: string;
+  lastPrice: number;
+  predictedPrice: number;
+  pctChange: number;
+  confidence: number;
+  dataPoints: number;
+}
+
 export interface AnalyticsResponse {
   id: string;
   tenantId: string;
@@ -58,4 +92,7 @@ export interface AnalyticsResponse {
   opexPct: OpexItem[];
   projection: ProjectionItem[];
   alerts: AlertItem[];
+  supplierComparison: SupplierComparisonItem[];
+  supplierRecommendations: SupplierRecommendationItem[];
+  pricePrediction: PricePredictionItem[];
 }

@@ -14,5 +14,6 @@ public record ProductoRequest(
         String baseUnit,
         String imageUrl,
         BigDecimal minQuantity,
-        BigDecimal maxQuantity
+        BigDecimal maxQuantity,
+        UUID proveedorId
 ) {}

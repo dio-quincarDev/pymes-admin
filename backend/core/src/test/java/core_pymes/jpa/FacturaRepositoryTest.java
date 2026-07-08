@@ -40,9 +40,9 @@ class FacturaRepositoryTest extends AbstractJpaTest {
         tenantA = UUID.randomUUID();
         tenantB = UUID.randomUUID();
 
-        providerA = em.persistFlushFind(Proveedor.builder().tenantId(tenantA).name("Distribuidora A").ruc("123").build());
-        providerB = em.persistFlushFind(Proveedor.builder().tenantId(tenantA).name("Distribuidora B").ruc("456").build());
-        var providerOther = em.persistFlushFind(Proveedor.builder().tenantId(tenantB).name("Other Corp").ruc("999").build());
+        providerA = em.persistFlushFind(Proveedor.builder().tenantId(tenantA).name("Distribuidora A").contactName("Ana").contactPhone("555-0101").contactEmail("ana@a.com").build());
+        providerB = em.persistFlushFind(Proveedor.builder().tenantId(tenantA).name("Distribuidora B").contactName("Bob").build());
+        var providerOther = em.persistFlushFind(Proveedor.builder().tenantId(tenantB).name("Other Corp").build());
 
         invoice1 = em.persistFlushFind(Factura.builder()
                 .tenantId(tenantA).providerId(providerA.getId()).invoiceNumber("F-PROV-2026-0001")

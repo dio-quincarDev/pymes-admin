@@ -7,7 +7,9 @@ public record ProveedorResponse(
         UUID id,
         UUID tenantId,
         String name,
-        String ruc,
+        String contactName,
+        String contactPhone,
+        String contactEmail,
         boolean isActive,
         ZonedDateTime createdAt
 ) {}

@@ -13,5 +13,8 @@ public record AnalyticsResponse(
         List<Map<String, Object>> margin,
         List<Map<String, Object>> opexPct,
         List<Map<String, Object>> projection,
-        List<Map<String, Object>> alerts
+        List<Map<String, Object>> alerts,
+        List<Map<String, Object>> supplierComparison,
+        List<Map<String, Object>> supplierRecommendations,
+        List<Map<String, Object>> pricePrediction
 ) {}

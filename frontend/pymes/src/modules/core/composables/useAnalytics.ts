@@ -8,6 +8,9 @@ import type {
   OpexItem,
   ProjectionItem,
   AlertItem,
+  SupplierComparisonItem,
+  SupplierRecommendationItem,
+  PricePredictionItem,
 } from '../types/analytics';
 import { useAuthStore } from 'src/modules/auth/store';
 import { usePeriod } from './usePeriod';
@@ -60,6 +63,15 @@ export function useAnalytics() {
     () => data.value?.projection ?? [],
   );
   const alerts = computed<AlertItem[]>(() => data.value?.alerts ?? []);
+  const supplierComparison = computed<SupplierComparisonItem[]>(
+    () => data.value?.supplierComparison ?? [],
+  );
+  const supplierRecommendations = computed<SupplierRecommendationItem[]>(
+    () => data.value?.supplierRecommendations ?? [],
+  );
+  const pricePrediction = computed<PricePredictionItem[]>(
+    () => data.value?.pricePrediction ?? [],
+  );
 
   watch(period, fetch, { immediate: true });
 
@@ -77,5 +89,8 @@ export function useAnalytics() {
     opexPct,
     projection,
     alerts,
+    supplierComparison,
+    supplierRecommendations,
+    pricePrediction,
   };
 }

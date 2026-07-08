@@ -24,7 +24,10 @@ public class AnalyticsMapper {
                 parseJsonArray(a.getMargin()),
                 parseJsonArray(a.getOpexPct()),
                 parseJsonArray(a.getProjection()),
-                parseJsonArray(a.getAlerts()));
+                parseJsonArray(a.getAlerts()),
+                parseJsonArray(a.getSupplierComparison()),
+                parseJsonArray(a.getSupplierRecommendations()),
+                parseJsonArray(a.getPricePrediction()));
     }
 
     @SuppressWarnings("unchecked")
