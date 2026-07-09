@@ -8,7 +8,7 @@
         <BaseCard class="bento-item feature-main q-pa-xl" variant="elevated">
           <div class="column full-height justify-between">
             <div>
-              <q-icon name="history_edu" size="4rem" color="primary" class="q-mb-md" />
+              <q-icon name="history_edu" size="4rem" color="primary" class="q-mb-md" aria-hidden="true" />
               <h3 class="text-h4 font-bold q-mb-md">Orden Absoluto.</h3>
               <p class="text-body1 text-accent line-height-relaxed">
                 Tus facturas y recibos en un solo lugar. Ya sea escaneando un QR o anotando a mano,
@@ -16,9 +16,9 @@
               </p>
             </div>
             <div class="visual-placeholder q-mt-lg flex flex-center">
-               <q-icon name="receipt_long" size="8rem" color="primary" class="opacity-10" />
+               <q-icon name="receipt_long" size="8rem" color="primary" class="opacity-10" aria-hidden="true" />
                <div class="absolute-bottom-right q-ma-lg">
-                 <q-icon name="verified" size="3rem" color="primary" class="brand-glow" />
+                 <q-icon name="verified" size="3rem" color="primary" class="brand-glow" aria-hidden="true" />
                </div>
             </div>
           </div>
@@ -26,7 +26,7 @@
 
         <BaseCard class="bento-item feature-ai q-pa-lg" variant="ghost">
            <div class="row items-center q-mb-sm">
-              <q-icon name="tips_and_updates" color="primary" size="sm" class="q-mr-sm" />
+              <q-icon name="tips_and_updates" color="primary" size="sm" class="q-mr-sm" aria-hidden="true" />
               <span class="text-overline text-primary">Ahorro Promedio: 18%</span>
             </div>
             <h4 class="text-h5 font-bold q-mb-sm">Alertas que te cuidan</h4>
@@ -36,14 +36,14 @@
             </p>
             <div class="mockup-alert q-mt-md q-pa-md bg-dark border-light radius-sm">
               <div class="row items-center gap-xs">
-                <q-icon name="notifications_active" color="warning" />
+                <q-icon name="notifications_active" color="warning" aria-hidden="true" />
                 <span class="text-caption text-weight-bold">Gasto inusual detectado</span>
               </div>
             </div>
         </BaseCard>
 
         <BaseCard class="bento-item feature-pwa q-pa-lg" variant="elevated">
-            <q-icon name="smartphone" size="3rem" color="primary" class="q-mb-md" />
+            <q-icon name="smartphone" size="3rem" color="primary" class="q-mb-md" aria-hidden="true" />
             <h4 class="text-h5 font-bold q-mb-sm">Tu oficina móvil.</h4>
             <p class="text-body2 text-accent">
               Lleva el control de tu empresa en el bolsillo. Funciona rápido, incluso sin internet.
@@ -56,8 +56,8 @@
               Datos cifrados y seguros. Tú eres el único dueño de tu información financiera.
             </p>
             <div class="q-mt-sm row gap-xs">
-              <q-icon name="lock" color="primary" />
-              <q-icon name="shield" color="accent" />
+              <q-icon name="lock" color="primary" aria-hidden="true" />
+              <q-icon name="shield" color="accent" aria-hidden="true" />
             </div>
         </BaseCard>
       </div>

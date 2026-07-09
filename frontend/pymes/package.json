@@ -1,8 +1,8 @@
 {
   "name": "quasar-project",
   "version": "0.0.1",
-  "description": "Toolkit de Administracion",
-  "productName": "pymes",
+  "description": "PYMEQ — Gestión Financiera Inteligente para PYMES. Organiza facturas, productos y gastos.",
+  "productName": "PYMEQ — Gestión Financiera Inteligente",
   "author": "dio-quincar <dio-quincar@outlook.com>",
   "type": "module",
   "private": true,

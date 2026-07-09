@@ -1,7 +1,9 @@
 <template>
   <q-layout view="lHh Lpr lFf">
+    <a href="#main-content" class="skip-link">Saltar al contenido principal</a>
+
     <!-- Offline banner -->
-    <q-banner v-if="!online" class="bg-warning text-dark text-center q-py-xs">
+    <q-banner v-if="!online" class="bg-warning text-dark text-center q-py-xs" role="alert">
       <template v-slot:avatar>
         <q-icon name="wifi_off" />
       </template>
@@ -63,7 +65,7 @@
         <div class="q-pa-lg">
           <div class="text-overline text-accent q-mb-md">Menú Principal</div>
           <q-list class="q-gutter-y-xs" role="navigation" aria-label="Menú principal">
-            <template v-for="link in linksList" :key="link.title || 'sep-' + Math.random()">
+            <template v-for="(link, idx) in linksList" :key="link.title || 'sep-' + idx">
               <q-separator v-if="link.separator" dark class="q-mx-md q-my-sm" style="opacity: 0.3" />
               <q-item
                 v-else-if="link.path"
@@ -101,7 +103,7 @@
 
     <!-- Main Workspace -->
     <q-page-container class="bg-forest-deep">
-      <main class="q-pa-lg q-pa-md-xl" style="max-width: 1400px; margin: 0 auto">
+      <main id="main-content" class="q-pa-lg q-pa-md-xl" style="max-width: 1400px; margin: 0 auto" tabindex="-1">
         <router-view v-slot="{ Component }">
           <transition name="fade" mode="out-in">
             <component :is="Component" />

@@ -20,7 +20,7 @@
 
           <!-- Footer de Seguridad -->
           <footer class="text-center q-mt-xl text-accent text-caption opacity-70">
-            <q-icon name="security" size="xs" class="q-mr-xs" />
+            <q-icon name="security" size="xs" class="q-mr-xs" aria-hidden="true" />
             Plataforma Segura y Confiable para la Gestión de Auditorías
           </footer>
         </div>

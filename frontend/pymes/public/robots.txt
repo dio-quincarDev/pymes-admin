@@ -1,0 +1,19 @@
+User-agent: *
+Allow: /
+
+# Auth and private routes
+Disallow: /login
+Disallow: /register
+Disallow: /verify
+Disallow: /forgot-password
+Disallow: /reset-password
+Disallow: /accept-invitation
+Disallow: /auth/
+
+# Dashboard (requires authentication)
+Disallow: /dashboard
+
+# API endpoints
+Disallow: /api/
+
+Sitemap: https://pymeq.com/sitemap.xml

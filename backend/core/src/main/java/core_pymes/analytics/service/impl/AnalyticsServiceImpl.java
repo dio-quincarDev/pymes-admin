@@ -79,10 +79,12 @@ public class AnalyticsServiceImpl implements AnalyticsService {
                     FROM product_spend
                 )
                 SELECT product_id, product_name, total_spend,
-                       ROUND(total_spend * 100.0 / grand_total, 2) AS pct,
+                       CASE WHEN grand_total > 0
+                            THEN ROUND(total_spend * 100.0 / grand_total, 2)
+                            ELSE 0 END AS pct,
                        CASE
-                           WHEN SUM(total_spend) OVER (ORDER BY total_spend DESC) / grand_total <= 0.80 THEN 'A'
-                           WHEN SUM(total_spend) OVER (ORDER BY total_spend DESC) / grand_total <= 0.95 THEN 'B'
+                           WHEN grand_total > 0 AND SUM(total_spend) OVER (ORDER BY total_spend DESC) / grand_total <= 0.80 THEN 'A'
+                           WHEN grand_total > 0 AND SUM(total_spend) OVER (ORDER BY total_spend DESC) / grand_total <= 0.95 THEN 'B'
                            ELSE 'C'
                        END AS category
                 FROM ranked

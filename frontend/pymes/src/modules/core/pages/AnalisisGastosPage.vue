@@ -1,7 +1,9 @@
 <script setup lang="ts">
 import { ref, shallowRef, computed, onMounted } from 'vue'
-import { useQuasar } from 'quasar'
+import { useQuasar, useMeta } from 'quasar'
 import { useAuthStore } from 'src/modules/auth/store'
+
+useMeta({ title: 'Análisis de Gastos — PYMEQ' });
 import { api } from 'src/boot/axios'
 import { productoService } from '../services/producto.service'
 import { useAnalytics } from '../composables/useAnalytics'

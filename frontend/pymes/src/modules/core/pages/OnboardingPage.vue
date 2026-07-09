@@ -1,8 +1,10 @@
 <script setup lang="ts">
 import { ref, computed } from 'vue'
 import { useRouter } from 'vue-router'
-import { useQuasar } from 'quasar'
+import { useQuasar, useMeta } from 'quasar'
 import { useAuthStore } from 'src/modules/auth/store'
+
+useMeta({ title: 'Onboarding — PYMEQ' });
 import { setupService } from '../services/setup.service'
 import type { SetupInfo, SetupCategory } from '../types'
 import IndustryCard from 'src/components/onboarding/IndustryCard.vue'

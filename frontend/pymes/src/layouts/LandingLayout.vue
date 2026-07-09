@@ -1,5 +1,7 @@
 <template>
   <q-layout view="lHh Lpr lFf" class="bg-forest-deep">
+    <a href="#main-content" class="skip-link">Saltar al contenido principal</a>
+
     <!-- Header: Fixed and Integrated -->
     <q-header elevated class="bg-dark glass-light border-bottom q-py-xs">
       <q-toolbar class="container-narrow mx-auto q-px-md">
@@ -27,7 +29,7 @@
     </q-header>
 
     <q-page-container>
-      <main>
+      <main id="main-content" tabindex="-1">
       <router-view v-slot="{ Component }">
         <transition name="fade" mode="out-in">
           <component :is="Component" />

@@ -85,6 +85,7 @@ Los microservicios internos deben rechazar trafico que no provenga del Gateway o
 
 | Tipo | Prefijo | Seguridad | Destino |
 |------|---------|-----------|---------|
+| Core | /api/v1/core/** | JWT + Redis | core-service:8082 (41 endpoints) |
 | Publicas Auth | /api/v1/auth/register, /login, /refresh, /verify-email, /forgot-password, /reset-password | Ninguna | auth-service:8081 |
 | Publicas OAuth2 | /oauth2/**, /login/oauth2/**, /login/** | Ninguna | auth-service:8081 |
 | Protegidas | /api/v1/auth/logout, /me, /tenants/**, /invitations/** | JWT + Redis | auth-service:8081 |

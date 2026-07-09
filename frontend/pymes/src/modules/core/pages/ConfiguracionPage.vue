@@ -68,8 +68,10 @@
 
 <script setup lang="ts">
 import { ref, onMounted } from 'vue'
-import { useQuasar } from 'quasar'
+import { useQuasar, useMeta } from 'quasar'
 import { useAuthStore } from 'src/modules/auth/store'
+
+useMeta({ title: 'Configuración — PYMEQ' });
 import { api } from 'src/boot/axios'
 import SkeletonLoader from 'src/components/ui/SkeletonLoader.vue'
 import type { SetupInfo } from '../types'

@@ -36,17 +36,19 @@ Spring Boot 3.4.3 / Java 21 / PostgreSQL 15 / Redis / JJWT 0.12.6 / MapStruct 1.
 
 ```
 POST /register
-  -> User + Tenant FREE + Rol OWNER (transaccion atomica)
-  -> Token en Redis (email:verify:{token}, TTL 15min)
+  -> Valida datos (nombre, email, password)
+  -> Guarda en Redis: temp-register:{token} (TTL 15min)
   -> Email HTML con link de verificacion
+  -> No se crea usuario en DB aun (Pending Token)
 
-POST /verify-email
+POST /verify-email (requiere email + token)
   -> Validacion cruzada token-email
+  -> Crea atomiquement: User + Tenant FREE + Rol OWNER en DB
+  -> Elimina temp-register:{token} (one-time use)
   -> isEmailVerified = true
-  -> Eliminacion del token (one-time use)
 ```
 
-El usuario queda en estado "pending" hasta verificar su email. No puede autenticarse hasta completar la verificacion.
+El usuario no existe en DB hasta que verifica su email. Esto evita contaminar la base con cuentas fantasma.
 
 ### Autenticacion
 
@@ -68,7 +70,7 @@ POST /login
 
 ### Multi-tenancy
 
-- **Registro atomico**: User + Tenant + UserTenant en una transaccion.
+- **Registro**: Pending token en Redis, creacion atomica de User + Tenant + UserTenant al verificar email.
 - **selectTenant**: Verifica membresia -> genera nuevo JWT con tenantId/role/plan -> rota Refresh Token.
 - **FREE plan**: Limite de 1 tenant por usuario. Crear mas requiere upgrade.
 - **Roles**: OWNER > ADMIN > CONTABLE > VIEWER. Jerarquia enforced en cambios de rol.
@@ -81,14 +83,17 @@ POST /login
   2. Redirect `/oauth2/authorization/google?state={intentId}`
   3. SuccessHandler lee state -> consulta Redis -> crea Tenant + UserTenant
   4. JWT ya contiene tenantId
-- Facebook: pendiente de configuracion en Facebook Developer Console.
+- **Code Exchange**: Por seguridad, el JWT no se expone en URL. Flujo:
+  1. SuccessHandler guarda `{accessToken, refreshToken}` en Redis (clave `oauth:code:{uuid}`, TTL 2 min)
+  2. Redirige al frontend solo con `?code=<uuid>`
+  3. Frontend llama `POST /auth/exchange` con `{code}` para obtener los tokens de forma segura
+- Facebook: POSTERGADO (Meta no aprobo la verificacion de la empresa. Pendiente indefinidamente hasta obtener credenciales validas).
 
 ### Email System
 
-- Templates Thymeleaf (verification, password-reset, invitation).
+- Templates Thymeleaf autocontenidos (verification, password-reset, invitation).
 - JavaMailSender con MimeMessage HTML responsive.
-- Layout base con componentes reutilizables (_base, _button, _alert, _divider).
-- Color palette consistente con el frontend.
+- Paleta Fintech consistente con el frontend (Deep Forest + Copper).
 
 ### Password Reset
 
@@ -113,20 +118,23 @@ Ruta base: `/api/v1`
 
 | Metodo | Ruta | Auth | Descripcion |
 |--------|------|------|-------------|
-| POST | /auth/register | No | User + Tenant + Owner (pending verification) |
+| POST | /auth/register | No | Pending token (Redis), persiste en DB tras verificar email |
 | POST | /auth/login | No | Rate-limited, audit log |
 | POST | /auth/logout | Si | Invalida todos los refresh tokens del usuario |
 | POST | /auth/refresh | No | RTR + reuse detection |
-| POST | /auth/verify-email | No | Token-Email cross validation |
+| POST | /auth/verify-email | No | Token-Email cross validation, crea usuario en DB |
 | POST | /auth/resend-verification | No | Regenera token (TTL reset a 15min) |
 | POST | /auth/forgot-password | No | Token Redis TTL 15min |
 | POST | /auth/reset-password | No | BCrypt update + token cleanup |
+| POST | /auth/exchange | No | OAuth2 code -> JWT (code exchange) |
+| GET | /users/me | Si | Perfil actual (userId, email, tenantId, role, plan) |
 | GET | /tenants | Si | Lista tenants del usuario (paginado) |
 | POST | /tenants | Si | Crear nuevo tenant (solo FREE) |
 | POST | /tenants/select | Si | Switch contexto + JWT regeneration |
 | GET | /tenants/{id}/members | Si | Lista miembros del tenant |
 | PUT | /tenants/{id}/members/{userId}/role | Si | Cambio de rol (validacion jerarquica) |
 | DELETE | /tenants/{id}/members/{userId} | Si | Desvincular miembro (solo OWNER) |
+| GET | /oauth2/intent/{intentId} | No | Consultar intent pre-registro OAuth2 |
 | GET | /invitations | Si | Invitaciones pendientes del usuario |
 | POST | /invitations | Si | Crear invitacion |
 | POST | /invitations/accept | Si | Aceptar invitacion |
@@ -151,14 +159,16 @@ Maven Surefire ejecuta solo `**/integration/**` excluido. Failsafe ejecuta solo 
 |---------|------|-------------|-------------|
 | Auth (login/register/refresh/logout) | 11 | 10 | — |
 | JWT (tokens/blacklist/validacion) | 20 | — | — |
-| OAuth2 (intent/filter/handler) | 19 | 10 | — |
-| Email (verificacion/reset) | 16 | 4 | — |
-| Tenant (CRUD/select/shutdown) | 9 | — | — |
+| OAuth2 (intent/filter/handler/exchange) | 20 | 10 | — |
+| Email (verificacion/reset) | 12 | 4 | — |
+| Tenant (CRUD/select/shutdown) | 10 | — | — |
 | Member (roles/delete) | 3 | — | — |
-| Invitation (create/accept/cancel) | 16 | 2 | — |
+| Invitation (create/accept/cancel) | 23 | 2 | — |
 | Security (constraints/RBAC) | — | 16 | — |
-| API paths (constantes vs produccion) | — | — | 10 |
-| **Total** | **100** | **43** | **10** |
+| User (profile) | 5 | — | — |
+| Password Reset (forgot/reset) | 5 | 4 | — |
+| API paths (constantes vs produccion) | — | — | 12 |
+| **Total** | **114** | **47** | **12** |
 
 ### Infraestructura de Test
 
@@ -173,29 +183,29 @@ Maven Surefire ejecuta solo `**/integration/**` excluido. Failsafe ejecuta solo 
 src/test/java/auth/pymes/
 ├── AuthApplicationTests.java              # Context load
 ├── consistency/
-│   └── ApiPathConsistencyTest.java        # 10 tests: paths vs constants vs whitelist
+│   └── ApiPathConsistencyTest.java        # 12 tests: paths vs constants vs whitelist
 ├── integration/
 │   ├── AbstractIntegrationTest.java       # Base class (Testcontainers)
 │   └── api/
-│       ├── AuthApiIntegrationTest.java    # 10 tests: endpoints auth
+│       ├── AuthApiIntegrationTest.java    # 13 tests: endpoints auth
 │       ├── InvitationServiceIntegrationTest.java  # 2 tests
 │       ├── OAuth2IntentIntegrationTest.java       # 4 tests
-│       ├── OAuth2LoginIntegrationTest.java        # 6 tests
+│       ├── OAuth2LoginIntegrationTest.java        # 8 tests
 │       ├── PasswordResetIntegrationTest.java      # 4 tests
 │       └── SecurityConstraintIntegrationTest.java  # 16 tests: 401/403 + RBAC
 ├── testutil/
 │   └── TestApiPaths.java
 └── unit/
     ├── AuthServiceImplTest.java           # 11 tests
-    ├── EmailVerificationServiceImplTest.java  # 11 tests
-    ├── InvitationServiceImplTest.java     # 16 tests
-    ├── JwtServiceImplTest.java            # 20 tests
+    ├── EmailVerificationServiceImplTest.java  # 12 tests
+    ├── InvitationServiceImplTest.java     # 23 tests
+    ├── JwtServiceImplTest.java            # 25 tests
     ├── MemberServiceImplTest.java         # 3 tests
     ├── OAuth2AuthenticationSuccessHandlerTest.java  # 4 tests
     ├── OAuth2IntentCookieFilterTest.java  # 7 tests
-    ├── OAuth2IntentServiceImplTest.java   # 8 tests
+    ├── OAuth2IntentServiceImplTest.java   # 9 tests
     ├── PasswordResetServiceImplTest.java  # 5 tests
-    ├── TenantServiceImplTest.java         # 9 tests
+    ├── TenantServiceImplTest.java         # 10 tests
     └── UserServiceImplTest.java           # 5 tests
 ```
 

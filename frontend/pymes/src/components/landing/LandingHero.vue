@@ -28,7 +28,7 @@
           @keyup.enter="$emit('start', companyForm.name)"
         >
           <template v-slot:prepend>
-            <q-icon name="store" color="primary" />
+            <q-icon name="store" color="primary" aria-hidden="true" />
           </template>
         </q-input>
 

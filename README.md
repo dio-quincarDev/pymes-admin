@@ -9,10 +9,11 @@
 | Componente | Tecnologia |
 |------------|------------|
 | Frontend | Quasar 2 + Vue 3 + TypeScript (PWA, hash routing) |
-| Auth Service | Java 21 + Spring Boot 3.4.3 (OAuth2 + JWT + RBAC + Thymeleaf email) |
+| Auth Service | Spring Boot 3.4.3 — OAuth2 + JWT + RBAC + Thymeleaf email |
 | Gateway | Spring Cloud Gateway (WebFlux) — JWT validation + Swagger aggregation |
+| Core Service | Spring Boot 3.5+ — 5 modulos: setup, gastos, prestamos, ventas, accounting |
 | Database | PostgreSQL 15 (single instance, multi-schema: `auth`, `core`) |
-| Cache | Redis 7 (blacklist + permissions cache) |
+| Cache | Redis 7 (blacklist, permissions, debounce, analytics cache) |
 | CI/CD | GitHub Actions + Docker (multi-arch AMD64/ARM64) |
 | Infra | Oracle Cloud Free Tier (ARM64) |
 
@@ -26,7 +27,7 @@ Ver `AGENTS.md` para arquitectura detallada y comandos de desarrollo.
 # Frontend
 cd frontend/pymes && npm install && npm run dev  # port 9200
 
-# Backend Auth
+# Auth Service
 cd backend/auth
 cp .env.example .env  # editar con valores reales
 ./mvnw spring-boot:run -Pdev  # port 8081
@@ -35,7 +36,11 @@ cp .env.example .env  # editar con valores reales
 cd backend/gateway-pymes
 ./mvnw spring-boot:run -Pdev  # port 8080
 
-# Docker (full stack: frontend + gateway + auth + postgres + redis)
+# Core Service
+cd backend/core
+./mvnw spring-boot:run -Pdev  # port 8082
+
+# Docker (full stack)
 docker compose up -d  # requiere .env en raiz
 ```
 
@@ -45,9 +50,10 @@ docker compose up -d  # requiere .env en raiz
 
 | Servicio | Unit | Integration | Consistency | Total |
 |----------|------|-------------|-------------|-------|
-| Auth Service | 100 | 43 | 10 | 153 |
+| Auth Service | 114 | 47 | 12 | 173 |
+| Core Service | 104 | — | — | 104 |
 | Gateway | 33 | — | — | 33 |
-| **Total** | **133** | **43** | **10** | **186** |
+| **Total** | **251** | **47** | **12** | **310** |
 
 ### Ejecucion
 
@@ -58,15 +64,21 @@ cd backend/auth && ./mvnw test -B
 # Auth — integracion (requiere Docker)
 cd backend/auth && ./mvnw verify -B -Dspring.profiles.active=integration
 
+# Core — unitarios
+cd backend/core && ./mvnw test -B
+
+# Core — integracion (requiere Docker)
+cd backend/core && ./mvnw verify -B -Dspring.profiles.active=integration
+
 # Gateway — unitarios (sin Docker)
 cd backend/gateway-pymes && ./mvnw test -B
 ```
 
-### Infraestructura
+### Infraestructura de Test
 
 - **Unitarios**: Mockito, sin Docker
-- **Integracion**: Testcontainers (PostgreSQL 15-alpine + Redis 7-alpine), `@DynamicPropertySource`
-- **Base class**: `AbstractIntegrationTest` — lifecycle de containers, `@MockitoBean` en EmailService
+- **Integracion**: Testcontainers (PostgreSQL 15-alpine + Redis 7-alpine)
+- **Base class**: `AbstractIntegrationTest` — lifecycle de containers, perfiles de test
 - **Convencion**: `*Test.java` (unit), `*IntegrationTest.java` (integracion, en paquete `**/integration/**`)
 
 Ver READMEs individuales para detalle de cobertura por dominio.
@@ -115,7 +127,7 @@ Produccion: `PROD_HOST`, `PROD_USER`, `PROD_SSH_KEY`.
 
 ## Known Issues
 
-- **CORS en Gateway** (Spring Cloud Gateway 3.2.0+): OPTIONS (preflight) funciona pero POST retorna 403 "Invalid CORS request". El procesador interno de CORS intercepta antes de que `globalcors` procese. Ver `backend/gateway-pymes/docs/` para detalle.
+- **CORS en Gateway** (Spring Cloud Gateway 3.2.0+): OPTIONS (preflight) funciona pero POST retorna 403 "Invalid CORS request". Ver `backend/gateway-pymes/docs/GATEWAY-DOC.md`.
 
 ---
 
@@ -127,8 +139,8 @@ Produccion: `PROD_HOST`, `PROD_USER`, `PROD_SSH_KEY`.
 - [x] OAuth2 Google (intent cookie + code exchange)
 - [x] Email system (Thymeleaf templates)
 - [x] API Gateway (JWT validation, Swagger aggregation)
-- [x] Test suite (186 tests, Testcontainers)
-- [ ] Core Business Service (gastos, ingresos, facturacion)
+- [x] Test suite (310 tests, Testcontainers)
+- [x] Core Business Service (gastos, prestamos, inversiones, ventas, accounting)
 - [ ] Escaneo QR facturas (PWA)
 - [ ] IA basica (deteccion de anomalias)
 
@@ -161,7 +173,7 @@ pymes-admin/
 ├── backend/
 │   ├── auth/            # Spring Boot — OAuth2 + JWT + RBAC + Email
 │   ├── gateway-pymes/   # Spring Cloud Gateway (WebFlux)
-│   └── core/            # Business service ( scaffold )
+│   └── core/            # Spring Boot — gastos, prestamos, ventas, accounting
 ├── frontend/
 │   └── pymes/           # Quasar 2 PWA
 ├── docs/                # Estrategias, daily reports, testcontainers

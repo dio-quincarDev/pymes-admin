@@ -1,9 +1,11 @@
 # Analytics Module
 
-> **Estado (2026-06):** ✅ Implementado en producción — 6 motores CTE, listener conectado a FacturaCreadaEvent, tabla expense_analysis.
-> Tests: ✅ 5 unitarios + 4 JPA (Testcontainers).
+> **Estado (2026-07-09):** Implementado en produccion — 9 motores CTE, listener conectado a FacturaCreadaEvent via debounce Redis, tabla expense_analysis con 3 columnas JSONB de supplier analytics.
+> Tests: 5 unitarios + 4 JPA + 5 unitarios supplier (AnalyticsServiceImplTest).
 
-## 1. Arquitectura
+---
+
+## Arquitectura
 
 ```
 /core_pymes/analytics/
@@ -19,64 +21,69 @@
 └── repository/AnalisisGastoRepository
 ```
 
----
-
-## 2. SQL Entities — 6 Motores Analíticos
-
-### `analisisABC` (ABC de Gastos — Pareto)
-- CTE: `product_spend` + `ranked` + ventana `SUM() OVER`
-- Clasifica productos por % acumulado de gasto total
-- O(N) vs O(n²) con window functions
-
-### `analisisTendencia` (Tendencias de Precios)
-- CTEs paralelos: `current_prices` + `moving_avg_90d`
-- Calcula % cambio de `current_avg_price` vs `moving_avg_90d`
-
-### `analisisMargen` (Impacto en Márgenes)
-- CTEs paralelos: `current_prices` + `previous_prices`
-- Delta de precio unitario % cambio, BigDecimal seguro
-
-### `analisisCostoOperativo` (Costo Operativo % Ventas)
-- CTE `period_data` + serie `daily_total`
-- Proyección mensual: `avg_daily_spend * days_in_month`
-
-### `analisisProyeccion` (Proyección de Gastos)
-- Query nativa simple: `SUM(subtotal) / COUNT(DISTINCT issue_date)`
-
-### `analisisAlertas` (Alertas de Anomalías)
-- CTE `stats` + `COEFFICIENT_VARIATION`
-- Filtra variación > 15% → alerta
+| Endpoint | Metodo | Descripcion |
+|----------|--------|-------------|
+| `/analytics/consultar` | GET | Consulta analisis guardado por tenant/periodo |
+| `/analytics/recalcular` | POST | Fuerza recalculation de los 9 motores |
 
 ---
 
-## 3. Controller/Service Split
+## Motores Analiticos
 
-**AnalyticsApi.java**
-```java
-@RequestMapping(CorePath.V1_ROUTE + CorePath.CORE_ROUTE + CorePath.ANALYTICS_ROUTE)
-public interface AnalyticsApi {
-    ResponseEntity<AnalyticsResponse> consultar(UUID tenantId, String periodo);
-    ResponseEntity<AnalyticsResponse> recalcular(UUID tenantId, String periodo);
-}
+### Originales (6)
+
+| Motor | Metodo | Descripcion |
+|-------|--------|-------------|
+| ABC de Gastos | `analisisABC()` | Pareto: categorias A/B/C por % acumulado de gasto |
+| Tendencias Precios | `analisisTendencia()` | % cambio vs media movil 90 dias |
+| Impacto Margenes | `analisisMargen()` | Delta precio unitario periodo actual vs anterior |
+| Costo Operativo | `analisisCostoOperativo()` | Gasto operativo % ventas + proyeccion mensual |
+| Proyeccion | `analisisProyeccion()` | Forecast lineal 30/60/90 dias |
+| Alertas | `analisisAlertas()` | Variacion >15% (CV) + alerta SUPPLIER_PREMIUM |
+
+### Supplier Analytics (3 — V11)
+
+| Motor | Metodo | Descripcion |
+|-------|--------|-------------|
+| Comparativa Proveedores | `analisisComparativaProveedores()` | avg/min/max/stddev de precio por producto-proveedor |
+| Recomendaciones | `analisisRecomendacionProveedor()` | Proveedor mas barato por producto + savings_pct |
+| Predicciones Precios | `analisisProyeccionPrecios()` | OLS lineal por producto, predice precio proximo mes con R2 |
+
+### Flyway
+
+| Migration | Contenido |
+|-----------|-----------|
+| V6 | Tabla `expense_analysis` (JSONB por tenant/periodo) |
+| V11 | +3 columnas JSONB: `supplier_comparison`, `supplier_recommendations`, `price_predictions` |
+
+---
+
+## SQL Clave
+
+### ABC (division por cero protegida)
+
+```sql
+WITH product_spend AS (...),
+ranked AS (...),
+grand AS (SELECT SUM(total_spend) AS grand_total FROM ranked)
+SELECT product_id, product_name, total_spend,
+       CASE WHEN grand_total > 0
+            THEN ROUND(total_spend * 100.0 / grand_total, 2)
+            ELSE 0 END AS pct,
+       CASE
+           WHEN grand_total > 0 AND SUM(total_spend) OVER (...) / grand_total <= 0.80 THEN 'A'
+           WHEN grand_total > 0 AND SUM(total_spend) OVER (...) / grand_total <= 0.95 THEN 'B'
+           ELSE 'C'
+       END AS category
+FROM ranked, grand
+ORDER BY total_spend DESC
 ```
 
-**AnalyticsService.java**
-```java
-public interface AnalyticsService {
-    AnalisisGasto ejecutarCompleto(UUID tenantId, String periodo);
-    Optional<AnalisisGasto> consultar(UUID tenantId, String periodo);
-}
-```
+### Tendencia (CTEs paralelos)
 
----
-
-## 4. CTEs Clave
-
-### Tendencia (O(n²) → O(N))
 ```sql
 WITH current_prices AS (
-    SELECT ii.product_id, p.name AS product_name,
-           AVG(ii.unit_price / ii.conversion_factor) AS current_avg_price
+    SELECT ii.product_id, p.name, AVG(ii.unit_price / ii.conversion_factor) AS current_avg_price
     FROM core.invoice_items ii
     JOIN core.invoices i ON ii.invoice_id = i.id
     JOIN core.products p ON ii.product_id = p.id
@@ -84,8 +91,7 @@ WITH current_prices AS (
     GROUP BY ii.product_id, p.name
 ),
 moving_avg AS (
-    SELECT ii.product_id,
-           AVG(ii.unit_price / ii.conversion_factor) AS moving_avg_90d
+    SELECT ii.product_id, AVG(ii.unit_price / ii.conversion_factor) AS moving_avg_90d
     FROM core.invoice_items ii
     JOIN core.invoices i ON ii.invoice_id = i.id
     WHERE i.tenant_id = ? AND i.issue_date >= ? AND i.issue_date < ?
@@ -93,89 +99,72 @@ moving_avg AS (
 )
 SELECT cp.product_id, cp.product_name, cp.current_avg_price, ma.moving_avg_90d
 FROM current_prices cp
-LEFT JOIN moving_avg ma ON cp.product_id = ma.product_id;
-```
-
-### Margen (CTEs paralelos)
-```sql
-WITH current_prices AS ( ... ),
-previous_prices AS ( ... )
-SELECT cp.product_id, cp.product_name,
-       cp.avg_price AS current_price,
-       pp.avg_price AS previous_price,
-       CASE WHEN pp.avg_price > 0
-            THEN ROUND((cp.avg_price - pp.avg_price) / pp.avg_price * 100, 2)
-            ELSE 0 END AS pct_change
-FROM current_prices cp
-LEFT JOIN previous_prices pp ON cp.product_id = pp.product_id;
+LEFT JOIN moving_avg ma ON cp.product_id = ma.product_id
 ```
 
 ### Costo Operativo
+
 ```sql
 WITH period_data AS (
     SELECT i.id, i.issue_date, ii.product_id, i.provider_id, ii.subtotal
     FROM core.invoices i
     JOIN core.invoice_items ii ON ii.invoice_id = i.id
     WHERE i.tenant_id = ? AND i.issue_date >= ? AND i.issue_date < ?
-),
-summary AS (
-    SELECT COUNT(DISTINCT id) AS invoice_count,
-           COUNT(DISTINCT product_id) AS product_count,
-           COUNT(DISTINCT provider_id) AS provider_count,
-           COALESCE(SUM(subtotal), 0) AS total_spend
-    FROM period_data
 )
-SELECT *,
-       total_spend * 30 / NULLIF(invoice_count, 0) AS projected_monthly,
-       (SELECT AVG(daily_total) FROM (
+SELECT COUNT(DISTINCT id) AS invoice_count,
+       COUNT(DISTINCT product_id) AS product_count,
+       COUNT(DISTINCT provider_id) AS provider_count,
+       COALESCE(SUM(subtotal), 0) AS total_spend,
+       COALESCE((SELECT AVG(daily_total) FROM (
            SELECT SUM(subtotal) AS daily_total FROM period_data GROUP BY issue_date
-       ) d) AS avg_daily_spend
-FROM summary;
+       ) d), 0) AS avg_daily_spend
+FROM period_data
 ```
 
 ---
 
-## 5. Tests
+## Performance
 
-- **Unitarios (5):** `AnalyticsServiceImplTest` — mockea JdbcTemplate + AnalisisGastoRepository + ObjectMapper
-  - ejecutarCompleto con/sin análisis existente (creación vs upsert)
-  - ejecutarCompleto invoca los 6 motores
-  - consultar con/sin resultado
-- **JPA (4):** `AnalyticsRepositoryTest` — PostgreSQL real via Testcontainers
-  - saveAndFind, tenantScoped, upsertOverwrites, nonExistentPeriod
-
-**Nota:** `AnalisisGasto` usa `@Column(columnDefinition = "JSONB")` — H2 no soporta JSONB correctamente.
+| Aspecto | Estado |
+|---------|--------|
+| Indexes | `idx_invoices_tenant_date_type INCLUDE (total)` (V13) — covering index para ABC/opex |
+| Rango fechas | `>= ? AND < ?` (sargable) en vez de `DATE(ts) = ?` |
+| Division por cero | `CASE WHEN grand_total > 0` guard en analisisABC |
+| Redundant indexes | Removidos `idx_operating_expenses_tenant` y `idx_daily_sales_tenant` (composite los cubre) |
 
 ---
 
-## 6. Dependencias
+## Tests
 
-No hay nuevas dependencias transitivas:
+| Tipo | Clase | Tests | Descripcion |
+|------|-------|-------|-------------|
+| Unit | `AnalyticsServiceImplTest` | 5 | 6 motores + upsert + consulta |
+| JPA | `AnalyticsRepositoryTest` | 4 | saveAndFind, tenantScoped, upsertOverwrites, nonExistentPeriod |
+| Unit | `AnalyticsServiceImplTest` (supplier) | 5 | comparativa, recomendaciones, predicciones, alertas supplier |
+
+> AnalisisGasto usa `@Column(columnDefinition = "JSONB")` — H2 no soporta JSONB correctamente, por eso los tests unitarios mockean JdbcTemplate.
+
+---
+
+## Dependencias
+
+No hay dependencias adicionales:
 - Spring Boot Starter Data JPA
 - Spring Boot Starter Web
 - PostgreSQL JDBC Driver (Testcontainers)
 - Lombok + MapStruct
+- JdbcTemplate (para queries nativas)
 
 ---
 
-## 7. Registro de Implementación
+## Registro
 
 | Fecha | Evento |
 |-------|--------|
-| 2025-06-14 | Split interface/api, creación de AnalyticsController |
-| 2025-06-23 | Optimización SQL 6 motores (de O(n²) a O(N)), V6 migration |
+| 2025-06-14 | Split interface/api, creacion de AnalyticsController |
+| 2025-06-23 | Optimizacion SQL 6 motores (de O(n2) a O(N)), V6 migration |
 | 2025-07-02 | AnalyticsServiceImplTest, AbstractJpaTest base |
 | 2025-07-09 | ProductoRepositoryTest (12) + FacturaRepositoryTest (14) |
-| 2025-07-21 | FacturaCreadaListener usa AnalyticsService (abstracción) |
-
----
-
-## 8. Cronograma
-
-| Semana | Actividad |
-|--------|-----------|
-| 1-2 | Completar AnalyticsRepositoryTest (JSONB) |
-| 3-4 | Dashboard frontend |
-| 5-6 | Proyección en UI |
-| 7-8 | Refactoring a InsumoTemplate |
-| 9-10 | Normalización motor de precios |
+| 2025-07-21 | FacturaCreadaListener usa AnalyticsService (abstraccion) |
+| 2026-07-08 | V11: supplier analytics (comparativa, recomendaciones, predicciones OLS) |
+| 2026-07-09 | SQL review: fix division por cero, removal redundants, covering indexes V13 |

@@ -1,51 +1,33 @@
 # Core Service
 
-Microservicio de negocio del SaaS Pymes Admin. Gestiona operaciones core: inventario, facturas, contabilidad y reportes.
+> Microservicio de negocio del SaaS Pymes Admin. Gestiona operaciones core: setup, productos, facturas, gastos, prestamos, inversiones, ventas, contabilidad y analisis.
 
-## Arquitectura
-
-Modular y event-driven. Cada módulo vive en su propio paquete con controller/service/domain/repository.
-
-```
-core_pymes/
-├── common/         # Config compartida, constantes, clientes Feign
-├── setup/          # Setup y onboarding del tenant
-├── inventario/     # (futuro) Productos, stock, movimientos
-├── facturas/       # (futuro) Facturas, proveedores
-├── contabilidad/   # (futuro) Márgenes, COGS, flujo de caja
-└── reportes/       # (futuro) Dashboards, KPIs
-```
-
-Ver [docs/CORE_STRATEGY.md](./docs/CORE_STRATEGY.md) para la visión completa.
+---
 
 ## Tech Stack
 
-- **Java 21** (Virtual Threads)
-- **Spring Boot 3.5+** (MVC, Data JPA, Validation)
-- **PostgreSQL** (schema `core`) + Flyway migrations
-- **Redis** (caching)
-- **MapStruct** + Lombok
-- **OpenFeign** (comunicación con Auth Service)
-- **Spring Events** (comunicación entre módulos)
-- **Docker** (multi-stage, alpine, non-root)
+| Tecnologia | Version | Uso |
+|------------|---------|-----|
+| Java | 21 | Virtual Threads |
+| Spring Boot | 3.5+ | MVC, Data JPA, Validation |
+| PostgreSQL | 15 | Schema `core` + Flyway migrations |
+| Redis | 7 | Caching + debounce para recomputo |
+| MapStruct | 1.6.3 | DTO mapping |
+| Lombok | -- | Boilerplate reduction |
+| OpenFeign | -- | Comunicacion con Auth Service |
+| Spring Events | -- | Comunicacion entre modulos |
+| Docker | -- | Multi-stage, alpine, non-root |
 
-## Perfiles
+---
 
-| Profile | Uso | DB | Logging |
-|---------|-----|----|---------|
-| `dev` | Local | Valores por defecto | DEBUG |
-| `stg` | Staging | Variables de entorno | INFO |
-| `prod` | Producción | Variables de entorno | WARN |
-
-## Cómo ejecutar
-
-### Local (Maven)
+## Quick Start
 
 ```bash
+cd backend/core
 ./mvnw spring-boot:run -Pdev
 ```
 
-Requiere PostgreSQL y Redis en local. Ver `.env` en la raíz del proyecto.
+> Requiere PostgreSQL y Redis en local. Ver `.env` en la raiz del proyecto.
 
 ### Docker
 
@@ -53,19 +35,179 @@ Requiere PostgreSQL y Redis en local. Ver `.env` en la raíz del proyecto.
 docker compose up -d core-service
 ```
 
-## Rutas
+---
 
-| Endpoint | Método | Descripción |
-|----------|--------|-------------|
-| `/api/v1/core/setup/{tenantId}` | GET | Obtener o inicializar setup del tenant |
-| `/api/v1/core/setup/{tenantId}/onboarding` | POST | Completar onboarding |
-| `/api/v1/core/setup/preview/{industry}` | GET | Preview de plantilla (categorías, unidades, productos) |
+## Perfiles
 
-Todas las rutas pasan por el Gateway (puerto 8080) con autenticación JWT.
+| Profile | Uso | DB | Logging |
+|---------|-----|----|---------|
+| `dev`   | Local | Valores por defecto | DEBUG |
+| `stg`   | Staging | Variables de entorno | INFO |
+| `prod`  | Produccion | Variables de entorno | WARN |
+
+---
+
+## Arquitectura
+
+Modular y event-driven. Cada modulo vive en su propio paquete con controller/service/domain/repository.
+
+```
+core_pymes/
+├── common/
+│   ├── config/
+│   │   ├── EventConfig.java        # @EnableAsync + @EnableScheduling
+│   │   └── CacheConfig.java        # @EnableCaching + RedisCacheManager
+│   ├── constant/CorePath.java      # rutas API
+│   ├── exception/                  # GlobalExceptionHandler
+│   ├── seed/SeedDataRunner.java    # 8 industrias, 6 tablas template
+│   └── service/
+│       └── RecomputeDebounceService.java  # Redis debounce
+│
+├── setup/       configuracion/inventario inicial
+├── product/     catalogo productos y presentaciones
+├── invoice/     facturas de compra y proveedores
+├── analytics/   9 motores CTE de analisis de gastos
+├── gasto/       gastos operativos
+├── prestamo/    prestamos y pagos
+├── inversion/   patrimonio
+├── venta/       ventas diarias
+└── accounting/  metricas financieras consolidadas
+```
+
+Controller pattern: interface (`XxxApi`) + impl (`XxxController`) dentro del modulo.
+DTOs: Java records. Mapper: MapStruct.
+
+Ver [docs/CORE.md](./docs/CORE.md) para arquitectura completa.
+
+---
+
+## Modulos
+
+| Modulo | Endpoints | Descripcion |
+|--------|-----------|-------------|
+| setup | 3 | Onboarding lazy + plantillas por industria |
+| product | 8 | CRUD productos + presentaciones (soft-delete) |
+| invoice | 5 | CRUD facturas + pagar + proveedores |
+| analytics | 2 | 9 motores CTE (ABC, tendencias, margenes, opex, proyeccion, alertas, supplier analytics) |
+| gasto | 5 | Gastos operativos con categorias (soft-delete) |
+| prestamo | 7 | Prestamos + pagos + estados (soft-delete) |
+| inversion | 2 | Patrimonio por tenant (1 fila) |
+| venta | 5 | Ventas diarias (soft-delete) |
+| accounting | 2 | Metricas financieras consolidadas (CTE 1 round-trip) |
+
+> **Total: 41 endpoints**
+
+---
+
+## Eventos y Debounce
+
+```
+Factura/Gasto/Venta creado
+  └── Listener async (AFTER_COMMIT)
+      └── RecomputeDebounceService.markDirty()
+          └── Redis SETNX recompute:{tipo}:{tenantId}:{period} (1ms)
+
+@Scheduled(fixedDelay=30s)
+  └── processPending() barre keys
+  └── 1 recompute por (tipo, tenant, periodo) unico
+  └── MetricasService.recalcular() o AnalyticsService.ejecutarCompleto()
+```
+
+| Key pattern | Tipo | Service |
+|-------------|------|---------|
+| `recompute:metrics:{tenantId}:{period}` | gasto/venta | MetricasService |
+| `recompute:analytics:{tenantId}:{period}` | factura | AnalyticsService |
+
+---
+
+## Testing
+
+```bash
+./mvnw test -B                          # unit tests
+./mvnw verify -B -Dspring.profiles.active=integration  # integration (requiere Docker)
+```
+
+### Testcontainers
+
+| Container | Imagen | Puerto |
+|-----------|--------|--------|
+| PostgreSQL | `postgres:15-alpine` | dinamico |
+| Redis | `redis:7-alpine` | 6379 |
+
+> `AbstractIntegrationTest`: base class que arranca ambos containers via `@ServiceConnection`.
+
+---
+
+## Endpoints Principales
+
+### Configuracion
+
+```
+GET    /api/v1/core/setup/{tenantId}
+POST   /api/v1/core/setup/{tenantId}/onboarding
+GET    /api/v1/core/setup/preview/{industry}
+```
+
+### Productos
+
+```
+POST   /api/v1/core/productos
+GET    /api/v1/core/productos
+GET    /api/v1/core/productos/{id}
+PUT    /api/v1/core/productos/{id}
+DELETE /api/v1/core/productos/{id}
+POST   /api/v1/core/productos/{id}/presentaciones
+GET    /api/v1/core/presentaciones
+PUT    /api/v1/core/presentaciones/{id}
+DELETE /api/v1/core/presentaciones/{id}
+```
+
+### Facturas
+
+```
+POST   /api/v1/core/facturas
+GET    /api/v1/core/facturas
+GET    /api/v1/core/facturas/{id}
+DELETE /api/v1/core/facturas/{id}
+POST   /api/v1/core/facturas/{id}/pagar
+```
+
+### Gastos / Prestamos / Ventas / Patrimonio
+
+```
+POST/GET/PUT/DELETE /api/v1/core/gastos
+POST/GET/PUT/DELETE /api/v1/core/prestamos
+POST               /api/v1/core/prestamos/{id}/pagos
+GET                /api/v1/core/prestamos/{id}/pagos
+POST/GET/PUT/DELETE /api/v1/core/ventas
+GET/PUT            /api/v1/core/patrimonio/{tenantId}
+```
+
+### Accounting / Analytics
+
+```
+GET    /api/v1/core/accounting/consultar?tenantId={uuid}&periodo=YYYY-MM
+POST   /api/v1/core/accounting/recalcular?tenantId={uuid}&periodo=YYYY-MM
+GET    /api/v1/core/analytics/consultar?tenantId={uuid}&periodo=YYYY-MM
+POST   /api/v1/core/analytics/recalcular?tenantId={uuid}&periodo=YYYY-MM
+```
+
+> Todas las rutas pasan por el Gateway (puerto 8080) con autenticacion JWT.
+
+---
 
 ## Docs
 
-| Archivo | Descripción |
+| Archivo | Descripcion |
 |---------|-------------|
-| [docs/CORE_STRATEGY.md](./docs/CORE_STRATEGY.md) | Arquitectura event-driven |
-| [docs/PROGRESS.md](./docs/DAYLY_REPORTS_CORE_SOLUTIONS.md) | Qué está hecho y qué falta |
+| [docs/CORE.md](./docs/CORE.md) | Arquitectura completa + estado de modulos |
+| [docs/ANALYTICS.md](./docs/ANALYTICS.md) | 9 motores CTE + SQL + performance |
+| [docs/SEED_TEMPLATES.md](./docs/SEED_TEMPLATES.md) | Plantillas por industria |
+| [docs/FUTURE_MODULES.md](./docs/FUTURE_MODULES.md) | Blueprints originales (reportes pendiente) |
+| [docs/DAYLY_REPORTS_CORE_SOLUTIONS.md](./docs/DAYLY_REPORTS_CORE_SOLUTIONS.md) | Historial de desarrollo |
+
+---
+
+## License
+
+Proprietary. Todos los derechos reservados.

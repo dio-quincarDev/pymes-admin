@@ -44,6 +44,12 @@ public abstract class AbstractJpaTest {
 
     @BeforeEach
     void cleanDb() {
+        jdbc.execute("DELETE FROM core.loan_payments");
+        jdbc.execute("DELETE FROM core.loans");
+        jdbc.execute("DELETE FROM core.operating_expenses");
+        jdbc.execute("DELETE FROM core.daily_sales");
+        jdbc.execute("DELETE FROM core.tenant_financial_metrics");
+        jdbc.execute("DELETE FROM core.patrimony");
         jdbc.execute("DELETE FROM core.invoice_items");
         jdbc.execute("DELETE FROM core.invoices");
         jdbc.execute("DELETE FROM core.product_presentations");

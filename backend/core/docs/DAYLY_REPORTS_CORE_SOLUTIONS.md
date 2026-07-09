@@ -6,17 +6,67 @@ Registro de lo implementado y lo pendiente.
 
 ---
 
-## Estado Rápido
+## Estado Rapido
 
-| Módulo | Estado | Tests |
+| Modulo | Estado | Tests |
 |--------|--------|-------|
-| Setup | ✅ Implementado | 5 unit + 10 integration |
-| Product | ✅ Implementado | 6 unit + 4 integration (pendiente Docker) |
-| Invoice | ✅ Implementado | 7 unit + 4 integration (pendiente Docker) |
-| Analytics | ✅ Implementado | 5 unit + 4 JPA |
-| Accounting | ⬜ Pendiente | Ver FUTURE_MODULES.md |
-| Ventas | ⬜ Pendiente | Ver FUTURE_MODULES.md |
-| Reportes | ⬜ Pendiente | Ver FUTURE_MODULES.md |
+| Setup | Implementado | 5 unit + 10 integration |
+| Product | Implementado | 6 unit + 4 integration |
+| Invoice | Implementado | 7 unit + 4 integration |
+| Analytics | Implementado | 5 unit + 4 JPA |
+| Gasto | Implementado | 17 JPA edge cases |
+| Prestamo | Implementado | 13 JPA edge cases |
+| Inversion | Implementado | 9 JPA edge cases |
+| Venta | Implementado | 13 JPA edge cases |
+| Accounting | Implementado | MetricasFinanciera + CTE consolidado |
+| Reportes | Pendiente | Ver FUTURE_MODULES.md |
+
+---
+
+## 2026-07-09 — 5 modulos nuevos + SQL review + Redis debounce
+
+### Nuevos modulos
+
+- `gasto/`: GastoOperativo entity + CategoriaGasto enum (SALARIOS, AGUA, LUZ, INTERNET, ALQUILER, MANTENIMIENTO, PUBLICIDAD, OTROS) + CRUD endpoints
+- `prestamo/`: Prestamo entity + PagoPrestamo entity + EstadoPrestamo enum (ACTIVO, PAGADO, CANCELADO) + CRUD + pagos
+- `inversion/`: Patrimonio entity (PK=tenant_id, 1 por tenant) + get-or-create + update
+- `venta/`: VentaDiaria entity + CRUD endpoints
+- `accounting/`: MetricasFinanciera entity + consultar + recalcular endpoints
+
+### Migraciones
+
+- V12: 6 tablas (operating_expenses, loans, loan_payments, patrimony, daily_sales, tenant_financial_metrics)
+- V13: 2 covering indexes (idx_invoices_tenant_date_type INCLUDE total, idx_loan_payments_loan_date INCLUDE amount)
+
+### SQL review
+
+- Fix division por cero en analisisABC (grand_total > 0 guard)
+- Removidos indices redundantes: idx_operating_expenses_tenant, idx_daily_sales_tenant
+
+### Redis debounce
+
+- RecomputeDebounceService: SETNX con TTL 1h, @Scheduled(fixedDelay=30s)
+- Listeners (FacturaCreadaListener, GastoCreadaListener, VentaCreadaListener) ahora marcan dirty en Redis en vez de llamar services directamente
+- AbstractIntegrationTest: +Redis Testcontainer (redis:7-alpine + @ServiceConnection)
+
+### Tests
+
+- 104 tests total (60 existentes + 44 nuevos), 0 failures
+- JPA tests: GastoRepositoryTest (17), PrestamoRepositoryTest (13), VentaRepositoryTest (13), PatrimonioMetricasRepositoryTest (9)
+
+### Files
+
+```
+gasto/           controller/domain/dto/event/listener/mapper/repository/service
+prestamo/        controller/domain/dto/mapper/repository/service
+inversion/       controller/domain/dto/mapper/repository/service
+venta/           controller/domain/dto/event/listener/mapper/repository/service
+accounting/      controller/domain/dto/mapper/repository/service
+common/service/  RecomputeDebounceService.java
+V12__expense_sales_accounting.sql
+V13__performance_indexes.sql
+AbstractIntegrationTest.java (actualizado con Redis container)
+```
 
 ---
 

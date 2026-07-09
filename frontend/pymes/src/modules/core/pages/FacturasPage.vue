@@ -160,8 +160,10 @@
 
 <script setup lang="ts">
 import { ref, shallowRef, computed, watch, onMounted, nextTick } from 'vue'
-import { useQuasar } from 'quasar'
+import { useQuasar, useMeta } from 'quasar'
 import { useAuthStore } from 'src/modules/auth/store'
+
+useMeta({ title: 'Facturas — PYMEQ' });
 import { facturaService } from '../services/factura.service'
 import { productoService } from '../services/producto.service'
 import { proveedorService } from '../services/proveedor.service'

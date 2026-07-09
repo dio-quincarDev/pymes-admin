@@ -4,6 +4,59 @@ Registro cronológico de decisiones, problemas resueltos y estado del frontend.
 
 ---
 
+## 2026-07-09 — SEO + A11y audit + visual polish refinements
+
+### SEO refinements
+
+- `index.html`: `robots` cambiado de `noindex, nofollow` a `index, follow`
+- `lang` cambiado de `es` a `es-MX` (locale regional correcto)
+- Open Graph completado: `og:site_name`, `og:locale` agregados
+- Twitter Card: `twitter:card`, `twitter:title`, `twitter:description` agregados
+- `apple-mobile-web-app-status-bar-style: black-translucent` agregado
+- `viewport` sin bloqueo de zoom (`user-scalable=no` / `maximum-scale=1` eliminados)
+
+### Accessibility (WCAG 2.2)
+
+- **Skip links**: `<a href="#main-content" class="skip-link">` en `LandingLayout.vue` y `MainLayout.vue`
+- **`aria-label`**: nav items, menu buttons, password toggles, table actions, KPI cards, form inputs, skeleton loaders
+- **`role="alert"`**: offline banner en `MainLayout.vue`
+- **`role="navigation"`**: sidebar menu en `MainLayout.vue`
+- **`role="button"` + `tabindex="0"`**: `IndustryCard.vue`, `LoginPage.vue`, `RegisterPage.vue`, `ResetPasswordPage.vue`, password toggles
+- **`role="tablist"` / `role="tab"` / `aria-selected`**: `CategoryTabs.vue`
+- **`role="group"`**: `BaseCard.vue`, `InvoiceItemCard.vue`
+- **`role="status"`**: `SkeletonLoader.vue`, `CatalogDashboard.vue`, `OnboardingPage.vue`
+- **`aria-busy`**: `BaseButton.vue` loading state
+- **`aria-expanded`**: `CatalogDashboard.vue` tree rows
+- **`aria-hidden="true"`**: `FeatureGrid.vue` decorative icons
+- **`aria-haspopup="menu"`**: `MainLayout.vue` user menu
+- **`id="main-content"` + `tabindex="-1"`**: `LandingLayout.vue`, `MainLayout.vue`, `App.vue` — focus target para skip links
+- **`prefers-reduced-motion`**: override global en `app.scss` — desactiva animaciones y transiciones
+- **`.focus-ring`**: clase CSS con `focus-visible` outline para campos de formulario auth
+- **`.visually-hidden`**: utilidad screen-reader-only
+
+### Visual polish (app.scss)
+
+- **Glassmorphism**: `.glass` con `backdrop-blur` + pseudo-elemento SVG noise texture
+- **Brand glow**: mixin `brand-glow` con `box-shadow` + intensificación en hover
+- **Mesh gradient text**: `.mesh-text-gradient` para marca
+- **Fade-in-up**: keyframes `fadeInUp` + `.fade-in-up` + `.stagger-children` (stagger en 10 hijos)
+- **Shimmer**: skeleton loader con `shimmer` keyframes
+- **Press feedback**: `.press-feedback` con `scale(0.96)` en `:active`
+- **Shadow system**: `.tight-shadow`, `.shadow-subtle`, `.shadow-md`, `.shadow-lg`
+- **Hover effects**: `.hover-lift` (translateY + shadow), `.hover-scale` (scale 1.02)
+- **Interactive states**: `.interactive` con cursor, hover bg, active scale
+- **Auth form fields**: deep selectors para Quasar field hover/focus glow
+
+### Pendiente conocido
+
+- `og:image` / `twitter:image` — social previews sin imagen
+- `manifest.json` dice "Auditoria Inteligente" pero `index.html` dice "Gestion Financiera" — brand drift menor
+- Sin `<meta name="description">` estática (depende de template variable)
+- Sin structured data (JSON-LD)
+- Sin `<noscript>` fallback
+
+---
+
 ## 2026-07-08 — Supplier analytics UI: 3 componentes + optimización + invoice fixes
 
 ### Supplier analytics

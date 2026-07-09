@@ -1,9 +1,11 @@
 <script setup lang="ts">
 import { ref, shallowRef, onMounted } from 'vue'
-import { useQuasar } from 'quasar'
+import { useQuasar, useMeta } from 'quasar'
 import { useAuthStore } from 'src/modules/auth/store'
 import { proveedorService } from '../services/proveedor.service'
 import type { Proveedor, ProveedorRequest } from '../types'
+
+useMeta({ title: 'Proveedores — PYMEQ' });
 
 const $q = useQuasar()
 const authStore = useAuthStore()

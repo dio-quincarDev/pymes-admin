@@ -184,6 +184,12 @@
 			<artifactId>postgresql</artifactId>
 			<scope>test</scope>
 		</dependency>
+		<dependency>
+			<groupId>com.github.docker-java</groupId>
+			<artifactId>docker-java-transport-httpclient5</artifactId>
+			<version>3.4.1</version>
+			<scope>test</scope>
+		</dependency>
 
 		<!-- Actuator (Health checks) -->
 		<dependency>
