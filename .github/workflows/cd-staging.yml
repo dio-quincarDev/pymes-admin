@@ -1,6 +1,10 @@
 name: CD - Deploy to Staging
 run-name: Deploy staging de ${{ github.event.workflow_run.head_branch }} por @${{ github.event.workflow_run.actor.login }}
 
+concurrency:
+  group: ${{ github.workflow }}-${{ github.event.workflow_run.head_branch }}
+  cancel-in-progress: true
+
 on:
   workflow_run:
     workflows: ["CI - Build and Test"]
@@ -94,6 +98,14 @@ jobs:
         uses: actions/setup-node@v4
         with:
           node-version: '20'
+
+      - name: Cache node modules
+        uses: actions/cache@v4
+        with:
+          path: frontend/pymes/node_modules
+          key: ${{ runner.os }}-node-${{ hashFiles('frontend/pymes/package-lock.json') }}
+          restore-keys: |
+            ${{ runner.os }}-node-
 
       - name: Install dependencies
         working-directory: ./frontend/pymes

@@ -15,6 +15,12 @@ platforms: linux/amd64,linux/arm64
 
 Si los tiempos superan 10 min, usar jobs paralelos por arquitectura.
 
+### Optimizaciones de eficiencia
+
+- **`concurrency: cancel-in-progress`** activo en CI, CD staging y CD production — pushes rápidos a una misma rama cancelan la ejecución anterior.
+- **`paths-ignore: ['**/*.md']`** en push a `feature/**` — cambios de solo documentación no ejecutan CI.
+- **Cache de `node_modules`** añadido a CD staging y production — `npm ci` usa caché entre deploys.
+
 ---
 
 ## Deploy RAM-Safe (Anti-OOM)

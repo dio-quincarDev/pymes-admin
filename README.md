@@ -95,6 +95,8 @@ Ver READMEs individuales para detalle de cobertura por dominio.
 
 PRs van a `develop`, nunca directamente a `main`.
 
+**Optimizaciones activas:** cancelación automática de runs stale (`concurrency`), CI salta en pushes de solo docs (`**/*.md`) a `feature/**`, CD cachea `node_modules` entre deploys.
+
 ### Secrets (GitHub Settings)
 
 | Secret | Descripcion |
