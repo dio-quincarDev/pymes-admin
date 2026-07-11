@@ -112,15 +112,15 @@ class InvitationServiceIntegrationTest extends AbstractIntegrationTest {
     }
 
     private void cleanUp() {
-        jdbcTemplate.execute("DELETE FROM user_tenants WHERE tenant_id IN (SELECT id FROM tenants WHERE slug = '" + tenantSlug + "')");
-        jdbcTemplate.execute("DELETE FROM invitations WHERE tenant_id IN (SELECT id FROM tenants WHERE slug = '" + tenantSlug + "')");
-        jdbcTemplate.execute("DELETE FROM invitations WHERE email = '" + targetEmail + "'");
-        jdbcTemplate.execute("DELETE FROM invitations WHERE email = '" + ownerEmail + "'");
-        jdbcTemplate.execute("DELETE FROM user_tenants WHERE user_id IN (SELECT id FROM users WHERE email = '" + ownerEmail + "')");
-        jdbcTemplate.execute("DELETE FROM user_tenants WHERE user_id IN (SELECT id FROM users WHERE email = '" + targetEmail + "')");
-        jdbcTemplate.execute("DELETE FROM users WHERE email = '" + ownerEmail + "'");
-        jdbcTemplate.execute("DELETE FROM users WHERE email = '" + targetEmail + "'");
-        jdbcTemplate.execute("DELETE FROM tenants WHERE slug = '" + tenantSlug + "'");
+        jdbcTemplate.update("DELETE FROM user_tenants WHERE tenant_id IN (SELECT id FROM tenants WHERE slug = ?)", tenantSlug);
+        jdbcTemplate.update("DELETE FROM invitations WHERE tenant_id IN (SELECT id FROM tenants WHERE slug = ?)", tenantSlug);
+        jdbcTemplate.update("DELETE FROM invitations WHERE email = ?", targetEmail);
+        jdbcTemplate.update("DELETE FROM invitations WHERE email = ?", ownerEmail);
+        jdbcTemplate.update("DELETE FROM user_tenants WHERE user_id IN (SELECT id FROM users WHERE email = ?)", ownerEmail);
+        jdbcTemplate.update("DELETE FROM user_tenants WHERE user_id IN (SELECT id FROM users WHERE email = ?)", targetEmail);
+        jdbcTemplate.update("DELETE FROM users WHERE email = ?", ownerEmail);
+        jdbcTemplate.update("DELETE FROM users WHERE email = ?", targetEmail);
+        jdbcTemplate.update("DELETE FROM tenants WHERE slug = ?", tenantSlug);
     }
 
     @Test

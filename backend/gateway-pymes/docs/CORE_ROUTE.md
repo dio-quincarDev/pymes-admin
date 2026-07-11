@@ -58,7 +58,7 @@ Referencia: [Contrato de Identity Headers](./strategies/IDENTITY_HEADERS.md)
 
 ---
 
-## Endpoints Core (41)
+## Endpoints Core (44)
 
 ### Configuracion (3)
 
@@ -68,7 +68,7 @@ POST   /api/v1/core/setup/{tenantId}/onboarding
 GET    /api/v1/core/setup/preview/{industry}
 ```
 
-### Productos (9)
+### Productos (8)
 
 ```
 POST   /api/v1/core/productos
@@ -77,9 +77,8 @@ GET    /api/v1/core/productos/{id}
 PUT    /api/v1/core/productos/{id}
 DELETE /api/v1/core/productos/{id}
 POST   /api/v1/core/productos/{id}/presentaciones
-GET    /api/v1/core/presentaciones
-PUT    /api/v1/core/presentaciones/{id}
-DELETE /api/v1/core/presentaciones/{id}
+GET    /api/v1/core/productos/{id}/presentaciones
+DELETE /api/v1/core/presentaciones/{presentacionId}
 ```
 
 ### Proveedores (5)
@@ -151,7 +150,7 @@ POST   /api/v1/core/accounting/recalcular?tenantId={uuid}&periodo=YYYY-MM
 ### Analytics (2)
 
 ```
-GET    /api/v1/core/analytics/consultar?tenantId={uuid}&periodo=YYYY-MM
+GET    /api/v1/core/analytics?tenantId={uuid}&periodo=YYYY-MM
 POST   /api/v1/core/analytics/recalcular?tenantId={uuid}&periodo=YYYY-MM
 ```
 

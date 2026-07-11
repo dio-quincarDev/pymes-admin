@@ -23,4 +23,4 @@ Service Worker en modo `InjectManifest`. Archivos fuente en `src-pwa/`.
 
 ## Backend
 
-Redis cache (core service, TTL 5min, `@Cacheable`/`@CacheEvict`) reduce viajes a DB. Ver `backend/core/docs/PROGRESS.md`.
+Redis cache (core service, TTL 5min, `@Cacheable`/`@CacheEvict`) reduce viajes a DB. Ver `backend/core/docs/CORE.md`.

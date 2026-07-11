@@ -134,6 +134,7 @@ Ruta base: `/api/v1`
 | GET | /tenants/{id}/members | Si | Lista miembros del tenant |
 | PUT | /tenants/{id}/members/{userId}/role | Si | Cambio de rol (validacion jerarquica) |
 | DELETE | /tenants/{id}/members/{userId} | Si | Desvincular miembro (solo OWNER) |
+| POST | /auth/oauth2/intent | No | Crear intent pre-registro OAuth2 (guarda name+slug en Redis) |
 | GET | /oauth2/intent/{intentId} | No | Consultar intent pre-registro OAuth2 |
 | GET | /invitations | Si | Invitaciones pendientes del usuario |
 | POST | /invitations | Si | Crear invitacion |
@@ -181,7 +182,7 @@ Maven Surefire ejecuta solo `**/integration/**` excluido. Failsafe ejecuta solo 
 
 ```
 src/test/java/auth/pymes/
-├── AuthApplicationTests.java              # Context load
+├── AuthApplicationTests.java               # Context load
 ├── consistency/
 │   └── ApiPathConsistencyTest.java        # 12 tests: paths vs constants vs whitelist
 ├── integration/
@@ -239,7 +240,7 @@ Copiar `.env.example` a `.env` para desarrollo local. El servicio usa `spring-do
 | DB_HOST / DB_PORT / DB_NAME / DB_USERNAME / DB_PASSWORD | PostgreSQL |
 | REDIS_HOST / REDIS_PORT | Redis (blacklist + cache) |
 | SPRING_MAIL_USERNAME / SPRING_MAIL_PASSWORD | SMTP para emails |
-| APP_FRONTEND_URL | Base URL para links de verificacion |
+| APP_FRONTEND_URL | Base URL para links de verificacion. Default en base YAML: `http://localhost:9000`. Dev CORS usa `http://localhost:9200`. Verificar coherencia entre perfiles. |
 | GOOGLE_CLIENT_ID / GOOGLE_CLIENT_SECRET | OAuth2 Google |
 
 ---

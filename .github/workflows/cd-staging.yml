@@ -1,16 +1,16 @@
-name: 🏗️ CD - Deploy to Staging
+name: CD - Deploy to Staging
 run-name: Deploy staging de ${{ github.event.workflow_run.head_branch }} por @${{ github.event.workflow_run.actor.login }}
 
 on:
   workflow_run:
-    workflows: ["🧪 CI - Build and Test"]
+    workflows: ["CI - Build and Test"]
     types: [completed]
     branches: [develop]
 
 jobs:
   # ==================== BUILD & TEST ====================
   build-and-test:
-    name: 🔨 Build and Test
+    name: Build and Test
     if: ${{ github.event.workflow_run.conclusion == 'success' }}
     runs-on: ubuntu-latest
     outputs:
@@ -37,6 +37,14 @@ jobs:
         working-directory: ./backend/auth
         run: mvn test -B
 
+      - name: Build Core Backend
+        working-directory: ./backend/core
+        run: mvn clean package -DskipTests -B
+
+      - name: Run Core Tests
+        working-directory: ./backend/core
+        run: mvn test -B
+
       - name: Build Gateway Backend
         working-directory: ./backend/gateway-pymes
         run: mvn clean package -DskipTests -B
@@ -56,6 +64,13 @@ jobs:
           path: backend/auth/target/*.jar
           retention-days: 1
 
+      - name: Upload Core JAR artifact
+        uses: actions/upload-artifact@v4
+        with:
+          name: core-service-jar
+          path: backend/core/target/*.jar
+          retention-days: 1
+
       - name: Upload Gateway JAR artifact
         uses: actions/upload-artifact@v4
         with:
@@ -65,7 +80,7 @@ jobs:
 
   # ==================== FRONTEND BUILD ====================
   frontend-build:
-    name: 🎨 Build Frontend
+    name: Build Frontend
     if: ${{ github.event.workflow_run.conclusion == 'success' }}
     runs-on: ubuntu-latest
 
@@ -90,7 +105,7 @@ jobs:
 
   # ==================== DOCKER BUILD & PUSH ====================
   docker-build-push:
-    name: 🐳 Build and Push Docker Images
+    name: Build and Push Docker Images
     if: ${{ github.event.workflow_run.conclusion == 'success' }}
     runs-on: ubuntu-latest
     needs: [build-and-test, frontend-build]
@@ -122,6 +137,18 @@ jobs:
           cache-from: type=registry,ref=${{ secrets.DOCKER_USERNAME }}/pymes-auth:buildcache
           cache-to: type=registry,ref=${{ secrets.DOCKER_USERNAME }}/pymes-auth:buildcache,mode=max
 
+      - name: Build and push Core image (Staging)
+        uses: docker/build-push-action@v5
+        with:
+          context: ./backend/core
+          platforms: linux/amd64,linux/arm64
+          push: true
+          tags: |
+            ${{ secrets.DOCKER_USERNAME }}/pymes-core:staging
+            ${{ secrets.DOCKER_USERNAME }}/pymes-core:${{ needs.build-and-test.outputs.version }}
+          cache-from: type=registry,ref=${{ secrets.DOCKER_USERNAME }}/pymes-core:buildcache
+          cache-to: type=registry,ref=${{ secrets.DOCKER_USERNAME }}/pymes-core:buildcache,mode=max
+
       - name: Build and push Gateway image (Staging)
         uses: docker/build-push-action@v5
         with:
@@ -148,7 +175,7 @@ jobs:
 
   # ==================== DEPLOY TO STAGING ====================
   deploy-staging:
-    name: 🚀 Deploy to Staging Server
+    name: Deploy to Staging Server
     if: ${{ github.event.workflow_run.conclusion == 'success' }}
     runs-on: ubuntu-latest
     needs: [build-and-test, docker-build-push]
@@ -171,7 +198,7 @@ jobs:
           port: 22
           script: |
             set -e
-            echo "📍 Deploying version: ${{ needs.build-and-test.outputs.version }}"
+            echo "Deploying version: ${{ needs.build-and-test.outputs.version }}"
 
             cd ~/pymes-admin
             git pull origin develop
@@ -199,4 +226,4 @@ jobs:
 
       - name: Verify deployment
         run: |
-          echo "✅ Deployment to staging triggered successfully."
+          echo "Deployment to staging triggered successfully."

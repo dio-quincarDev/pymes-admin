@@ -1,7 +1,7 @@
 # Analytics Module
 
 > **Estado (2026-07-09):** Implementado en produccion — 9 motores CTE, listener conectado a FacturaCreadaEvent via debounce Redis, tabla expense_analysis con 3 columnas JSONB de supplier analytics.
-> Tests: 5 unitarios + 4 JPA + 5 unitarios supplier (AnalyticsServiceImplTest).
+> Tests: 5 unitarios + 4 JPA (AnalyticsServiceImplTest + AnalyticsRepositoryTest).
 
 ---
 
@@ -53,8 +53,9 @@
 
 | Migration | Contenido |
 |-----------|-----------|
-| V6 | Tabla `expense_analysis` (JSONB por tenant/periodo) |
-| V11 | +3 columnas JSONB: `supplier_comparison`, `supplier_recommendations`, `price_predictions` |
+| V5 | Tabla `expense_analysis` (JSONB por tenant/periodo) |
+| V6 | Indices en `invoices(tenant_id, issue_date)` e `invoice_items(product_id)` para performance |
+| V11 | +3 columnas JSONB: `supplier_comparison`, `supplier_recommendations`, `price_prediction` |
 
 ---
 
@@ -138,9 +139,8 @@ FROM period_data
 
 | Tipo | Clase | Tests | Descripcion |
 |------|-------|-------|-------------|
-| Unit | `AnalyticsServiceImplTest` | 5 | 6 motores + upsert + consulta |
+| Unit | `AnalyticsServiceImplTest` | 5 | 9 motores (6 originales + 3 supplier) + upsert + consulta |
 | JPA | `AnalyticsRepositoryTest` | 4 | saveAndFind, tenantScoped, upsertOverwrites, nonExistentPeriod |
-| Unit | `AnalyticsServiceImplTest` (supplier) | 5 | comparativa, recomendaciones, predicciones, alertas supplier |
 
 > AnalisisGasto usa `@Column(columnDefinition = "JSONB")` — H2 no soporta JSONB correctamente, por eso los tests unitarios mockean JdbcTemplate.
 

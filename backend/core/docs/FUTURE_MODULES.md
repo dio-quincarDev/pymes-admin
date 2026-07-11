@@ -1,6 +1,6 @@
 # Módulos Futuros — Blueprints
 
-> **Estado (2026-06):** Nada de esto está implementado. Conservar como referencia para cuando se codifique.
+> **Estado (2026-07):** 5 de 6 modulos implementados. Conservar como referencia. Ver `FUTURE.md` en `frontend/pymes/docs/` para el plan de pantallas.
 
 ---
 
@@ -32,7 +32,7 @@
 
 ## 1. Accounting (Contabilidad)
 
-> **Diseño completo.** Nada implementado.
+> **Diseño completo.** IMPLEMENTADO — `MetricasServiceImpl.java` con CTE consolidado. Falta frontend.
 
 ### Visión
 Motor de cálculo matriz que consume datos de transacciones del Analytics y produce métricas de negocio listos para UI.
@@ -157,7 +157,7 @@ public MetricasFinanciera ejecutarCompleto(UUID tenantId, String periodo) {
 
 ## 2. Ventas (Registro Manual)
 
-> **Sin diseño formal.** Pendiente decisión: Opción A (módulo propio) o B (desde Movimientos).
+> **Opción A (módulo propio) IMPLEMENTADA.** `VentaDiaria.java` + CRUD completo. Falta frontend.
 
 ### Diseño provisional (Opción A)
 
@@ -182,7 +182,7 @@ DELETE /api/core/v1/ventas/{id}
 
 ## 3. Reportes (Dashboard)
 
-> **Sin diseño formal.** Pendiente decisión: endpoint o frontend calcula desde data cruda.
+> **Sin diseño formal.** Pendiente. Ver `frontend/pymes/docs/FUTURE.md` para plan de pantallas.
 
 ### Diseño provisional
 
@@ -201,7 +201,7 @@ GET /api/core/v1/reportes/contabilidad
 
 ## 4. Patrimonio e Inversión
 
-> **Diseño completo.** Nada implementado.
+> **Diseño completo.** IMPLEMENTADO — `Patrimonio.java` (get-or-create) + `Prestamo.java` + `PagoPrestamo.java`. ROI pendiente.
 
 ### Entidades
 
@@ -310,7 +310,7 @@ n = Plazo en meses
 
 ## 5. Refactor: Motor de Inteligencia de Compras
 
-> **Parcialmente aplicado.** `ItemFactura` ya tiene `presentacionId` + `conversionFactor`. Pendiente renombrar formalmente Producto → InsumoTemplate.
+> **Parcialmente aplicado.** `ItemFactura` tiene `presentacionId` + `conversionFactor`. Pendiente renombrar Producto → InsumoTemplate.
 
 ### Cambio de Paradigma
 
@@ -362,7 +362,7 @@ Precio Unitario Base = Precio Unitario de Compra / Factor de Conversión
 
 ## 6. Decisiones Pendientes
 
-- [ ] Ventas: ¿Opción A (módulo propio) o B (desde Movimientos)?
-- [ ] Accounting: ¿implementar MetricasFinanciera con upsert por período?
+- [x] Ventas: Opción A (módulo propio) — implementada
+- [x] Accounting: upsert por período — implementado (UNIQUE constraint)
 - [ ] Reportes: ¿endpoint dashboard o frontend calcula desde data cruda?
 - [ ] Renombrar formalmente Producto → InsumoTemplate

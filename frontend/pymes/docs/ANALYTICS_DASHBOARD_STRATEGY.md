@@ -1,12 +1,12 @@
 # Analytics Dashboard Frontend Strategy
 
-> **Contexto:** Pivot en Core Backend — el módulo `analytics` (6 motores CTE) ahora impulsa el dashboard financiero. Frontend debe consumir `GET /api/v1/core/analytics/consultar` y visualizar los datos.
+> **Contexto:** Pivot en Core Backend — el módulo `analytics` (9 motores CTE) ahora impulsa el dashboard financiero. Frontend debe consumir `GET /api/v1/core/analytics` y visualizar los datos.
 
 ---
 
 ## 1. Contrato de Datos (Backend → Frontend)
 
-**Endpoint:** `GET /api/v1/core/analytics/consultar?tenantId={uuid}&periodo=YYYY-MM`
+**Endpoint:** `GET /api/v1/core/analytics?tenantId={uuid}&periodo=YYYY-MM`
 
 **Response (`AnalyticsResponse`):**
 
@@ -111,6 +111,40 @@ export interface AlertItem {
   severity: 'warning' | 'critical';
 }
 
+export interface SupplierComparisonItem {
+  productId: string;
+  productName: string;
+  providerId: string;
+  providerName: string;
+  purchaseCount: number;
+  avgPrice: number;
+  minPrice: number;
+  maxPrice: number;
+  priceStddev: number;
+}
+
+export interface SupplierRecommendationItem {
+  productId: string;
+  productName: string;
+  recommendedProviderId: string;
+  recommendedProviderName: string;
+  recommendedPrice: number;
+  currentAvgPrice: number;
+  savingsPerUnit: number;
+  savingsPct: number;
+  supplierCount: number;
+}
+
+export interface PricePredictionItem {
+  productId: string;
+  productName: string;
+  lastPrice: number;
+  predictedPrice: number;
+  pctChange: number;
+  confidence: number;
+  dataPoints: number;
+}
+
 export interface AnalyticsResponse {
   id: string;
   tenantId: string;
@@ -121,6 +155,9 @@ export interface AnalyticsResponse {
   opexPct: OpexItem[];
   projection: ProjectionItem[];
   alerts: AlertItem[];
+  supplierComparison: SupplierComparisonItem[];
+  supplierRecommendations: SupplierRecommendationItem[];
+  pricePrediction: PricePredictionItem[];
 }
 ```
 
@@ -132,7 +169,7 @@ import type { AnalyticsResponse } from '../types/analytics';
 
 export const analyticsService = {
   consultar(tenantId: string, periodo?: string) {
-    return api.get<AnalyticsResponse>('/core/analytics/consultar', {
+    return api.get<AnalyticsResponse>('/core/analytics', {
       params: { tenantId, ...(periodo && { periodo }) },
     });
   },
@@ -157,6 +194,9 @@ import type {
   OpexItem,
   ProjectionItem,
   AlertItem,
+  SupplierComparisonItem,
+  SupplierRecommendationItem,
+  PricePredictionItem,
 } from '../types/analytics';
 import { useAuthStore } from 'src/modules/auth/store';
 import { usePeriod } from './usePeriod';
@@ -202,6 +242,9 @@ export function useAnalytics() {
   const opexPct = computed<OpexItem[]>(() => data.value?.opexPct ?? []);
   const projection = computed<ProjectionItem[]>(() => data.value?.projection ?? []);
   const alerts = computed<AlertItem[]>(() => data.value?.alerts ?? []);
+  const supplierComparison = computed<SupplierComparisonItem[]>(() => data.value?.supplierComparison ?? []);
+  const supplierRecommendations = computed<SupplierRecommendationItem[]>(() => data.value?.supplierRecommendations ?? []);
+  const pricePrediction = computed<PricePredictionItem[]>(() => data.value?.pricePrediction ?? []);
 
   // Auto-fetch cuando cambia período
   watch(period, fetch, { immediate: true });
@@ -220,6 +263,9 @@ export function useAnalytics() {
     opexPct,
     projection,
     alerts,
+    supplierComparison,
+    supplierRecommendations,
+    pricePrediction,
   };
 }
 ```
@@ -264,10 +310,13 @@ export function usePeriod() {
 | `AbcGastosChart`      | `data: AbcItem[], height?: number`                                              | Chart.js (bar + line)  | Eje Y: spend; eje Y2: cumulativePct; colores A/B/C              |
 | `PriceTrendSparkline` | `items: TrendItem[], inline?: boolean`                                          | Chart.js (line mini)   | Tooltip con % cambio; color verde/rojo                          |
 | `MarginImpactTable`   | `items: MarginItem[]`                                                           | QTable                 | Columnas: producto, precio actual, anterior, % cambio; sortable |
-| `OpexGauge`           | `value: number, max: number, thresholds: { warning: number, critical: number }` | SVG gauge              | Sin dep extra; animado                                          |
+| `OpexGauge`           | `value: number, max: number, thresholds: { warning: number, critical: number }` | SVG gauge              | Sin dep extra; animado                                           |
 | `ProjectionTimeline`  | `items: ProjectionItem[]`                                                       | Chart.js (line + area) | 3 puntos: 30/60/90d; banda confianza                            |
 | `AlertsPanel`         | `items: AlertItem[], onDismiss?: (id) => void`                                  | QList + QBadge         | Severidad: warning (ámbar) / critical (rojo); acción sugerida   |
 | `PeriodSelector`      | `modelValue: string, @update:modelValue`                                        | QSelect                | Opciones: últimos 12 meses; botón "Recalcular"                  |
+| `SupplierComparisonTable` | `items: SupplierComparisonItem[]`                                           | QTable                 | Avg/min/max price por producto-proveedor con % diff             |
+| `SupplierRecommendationsCard` | `items: SupplierRecommendationItem[]`                                  | QCard                  | Proveedor más barato por producto + savings_pct                 |
+| `PricePredictionsTable` | `items: PricePredictionItem[]`                                               | QTable                 | Precio actual vs predicho + R²                                  |
 
 **`src/modules/core/components/charts/BaseChart.vue`** — Wrapper Chart.js con `onMounted`/`onUnmounted` cleanup, responsive, theme dark.
 
@@ -479,25 +528,28 @@ const goToOnboarding = () => router.push('/onboarding');
 
 | #   | Tarea                                  | Archivos                                       | Estado |
 | --- | -------------------------------------- | ---------------------------------------------- | ------ |
-| 1   | Tipos TypeScript                       | `types/analytics.ts`                           | ⬜     |
-| 2   | Service API                            | `services/analytics.service.ts`                | ⬜     |
-| 3   | Composable `useAnalytics`              | `composables/useAnalytics.ts`                  | ⬜     |
-| 4   | Composable `usePeriod`                 | `composables/usePeriod.ts`                     | ⬜     |
-| 5   | Composable `useNumberFormat`           | `composables/useNumberFormat.ts`               | ⬜     |
-| 6   | Wrapper Chart.js                       | `components/charts/BaseChart.vue`              | ⬜     |
-| 7   | KpiCard                                | `components/dashboard/KpiCard.vue`             | ⬜     |
-| 8   | AbcGastosChart                         | `components/dashboard/AbcGastosChart.vue`      | ⬜     |
-| 9   | PriceTrendSparkline                    | `components/dashboard/PriceTrendSparkline.vue` | ⬜     |
-| 10  | MarginImpactTable                      | `components/dashboard/MarginImpactTable.vue`   | ⬜     |
-| 11  | OpexGauge (SVG)                        | `components/dashboard/OpexGauge.vue`           | ⬜     |
-| 12  | ProjectionTimeline                     | `components/dashboard/ProjectionTimeline.vue`  | ⬜     |
-| 13  | AlertsPanel                            | `components/dashboard/AlertsPanel.vue`         | ⬜     |
-| 14  | PeriodSelector                         | `components/dashboard/PeriodSelector.vue`      | ⬜     |
-| 15  | AnalyticsDashboard (composición)       | `components/dashboard/AnalyticsDashboard.vue`  | ⬜     |
-| 16  | Refactor DashboardPage                 | `pages/DashboardPage.vue`                      | ⬜     |
-| 17  | EmptyDashboardState                    | `pages/components/EmptyDashboardState.vue`     | ⬜     |
-| 18  | Tests unitarios (composables + charts) | `__tests__/`                                   | ⬜     |
-| 19  | Lint + Build check                     | `npm run lint && npm run build`                | ⬜     |
+| 1   | Tipos TypeScript                       | `types/analytics.ts`                           | ✅     |
+| 2   | Service API                            | `services/analytics.service.ts`                | ✅     |
+| 3   | Composable `useAnalytics`              | `composables/useAnalytics.ts`                  | ✅     |
+| 4   | Composable `usePeriod`                 | `composables/usePeriod.ts`                     | ✅     |
+| 5   | Composable `useNumberFormat`           | `composables/useNumberFormat.ts`               | ✅     |
+| 6   | Wrapper Chart.js                       | `components/charts/BaseChart.vue`              | ✅     |
+| 7   | KpiCard                                | `components/dashboard/KpiCard.vue`             | ✅     |
+| 8   | AbcGastosChart                         | `components/dashboard/AbcGastosChart.vue`      | ✅     |
+| 9   | PriceTrendSparkline                    | `components/dashboard/PriceTrendSparkline.vue` | ✅     |
+| 10  | MarginImpactTable                      | `components/dashboard/MarginImpactTable.vue`   | ✅     |
+| 11  | OpexGauge (SVG)                        | `components/dashboard/OpexGauge.vue`           | ✅     |
+| 12  | ProjectionTimeline                     | `components/dashboard/ProjectionTimeline.vue`  | ✅     |
+| 13  | AlertsPanel                            | `components/dashboard/AlertsPanel.vue`         | ✅     |
+| 14  | PeriodSelector                         | `components/dashboard/PeriodSelector.vue`      | ✅     |
+| 15  | AnalyticsDashboard (composición)       | `components/dashboard/AnalyticsDashboard.vue`  | ✅     |
+| 16  | Refactor DashboardPage                 | `pages/DashboardPage.vue`                      | ✅     |
+| 17  | EmptyDashboardState                    | `pages/components/EmptyDashboardState.vue`     | ✅     |
+| 18  | SupplierComparisonTable                | `components/dashboard/SupplierComparisonTable.vue` | ✅ |
+| 19  | SupplierRecommendationsCard            | `components/dashboard/SupplierRecommendationsCard.vue` | ✅ |
+| 20  | PricePredictionsTable                  | `components/dashboard/PricePredictionsTable.vue` | ✅ |
+| 21  | Tests unitarios (composables + charts) | `__tests__/`                                   | ⬜     |
+| 22  | Lint + Build check                     | `npm run lint && npm run build`                | ✅     |
 
 ---
 
@@ -505,7 +557,7 @@ const goToOnboarding = () => router.push('/onboarding');
 
 ```bash
 # Consultar analytics (cache 5min Redis en backend)
-GET /api/v1/core/analytics/consultar?tenantId={uuid}&periodo=2026-06
+GET /api/v1/core/analytics?tenantId={uuid}&periodo=2026-06
 
 # Recalcular forzar (async, virtual threads)
 POST /api/v1/core/analytics/recalcular?tenantId={uuid}&periodo=2026-06

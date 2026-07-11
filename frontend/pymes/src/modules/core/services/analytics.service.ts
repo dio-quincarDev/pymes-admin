@@ -3,7 +3,7 @@ import type { AnalyticsResponse } from '../types/analytics';
 
 export const analyticsService = {
   consultar(tenantId: string, periodo?: string) {
-    return api.get<AnalyticsResponse>('/core/analytics/consultar', {
+    return api.get<AnalyticsResponse>('/core/analytics', {
       params: { tenantId, ...(periodo && { periodo }) },
     });
   },

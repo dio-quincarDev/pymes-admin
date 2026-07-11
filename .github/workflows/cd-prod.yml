@@ -1,9 +1,9 @@
-name: 🚀 CD - Deploy to Production
+name: CD - Deploy to Production
 run-name: Deploy prod de ${{ github.event_name == 'workflow_dispatch' && github.ref_name || github.event.workflow_run.head_branch }} por @${{ github.event_name == 'workflow_dispatch' && github.actor || github.event.workflow_run.actor.login }}
 
 on:
   workflow_run:
-    workflows: ["🧪 CI - Build and Test"]
+    workflows: ["CI - Build and Test"]
     types: [completed]
     branches: [main]
 
@@ -17,7 +17,7 @@ on:
 jobs:
   # ==================== BUILD & TEST ====================
   build-and-test:
-    name: 🔨 Build and Test
+    name: Build and Test
     if: |
       (github.event_name == 'workflow_run' && github.event.workflow_run.conclusion == 'success') ||
       github.event_name == 'workflow_dispatch'
@@ -46,6 +46,14 @@ jobs:
         working-directory: ./backend/auth
         run: mvn test -B
 
+      - name: Build Core Backend
+        working-directory: ./backend/core
+        run: mvn clean package -DskipTests -B
+
+      - name: Run Core Tests
+        working-directory: ./backend/core
+        run: mvn test -B
+
       - name: Build Gateway Backend
         working-directory: ./backend/gateway-pymes
         run: mvn clean package -DskipTests -B
@@ -65,6 +73,13 @@ jobs:
           path: backend/auth/target/*.jar
           retention-days: 7
 
+      - name: Upload Core JAR artifact
+        uses: actions/upload-artifact@v4
+        with:
+          name: core-service-jar
+          path: backend/core/target/*.jar
+          retention-days: 7
+
       - name: Upload Gateway JAR artifact
         uses: actions/upload-artifact@v4
         with:
@@ -74,7 +89,7 @@ jobs:
 
   # ==================== FRONTEND BUILD ====================
   frontend-build:
-    name: 🎨 Build Frontend
+    name: Build Frontend
     if: |
       (github.event_name == 'workflow_run' && github.event.workflow_run.conclusion == 'success') ||
       github.event_name == 'workflow_dispatch'
@@ -101,7 +116,7 @@ jobs:
 
   # ==================== DOCKER BUILD & PUSH ====================
   docker-build:
-    name: 🐳 Build and Push Docker Images
+    name: Build and Push Docker Images
     if: |
       (github.event_name == 'workflow_run' && github.event.workflow_run.conclusion == 'success') ||
       github.event_name == 'workflow_dispatch'
@@ -136,6 +151,19 @@ jobs:
           cache-from: type=registry,ref=${{ secrets.DOCKER_USERNAME }}/pymes-auth:buildcache
           cache-to: type=registry,ref=${{ secrets.DOCKER_USERNAME }}/pymes-auth:buildcache,mode=max
 
+      - name: Build and push Core image (Production)
+        uses: docker/build-push-action@v5
+        with:
+          context: ./backend/core
+          platforms: linux/amd64,linux/arm64
+          push: true
+          tags: |
+            ${{ secrets.DOCKER_USERNAME }}/pymes-core:latest
+            ${{ secrets.DOCKER_USERNAME }}/pymes-core:prod
+            ${{ secrets.DOCKER_USERNAME }}/pymes-core:${{ needs.build-and-test.outputs.version }}
+          cache-from: type=registry,ref=${{ secrets.DOCKER_USERNAME }}/pymes-core:buildcache
+          cache-to: type=registry,ref=${{ secrets.DOCKER_USERNAME }}/pymes-core:buildcache,mode=max
+
       - name: Build and push Gateway image (Production)
         uses: docker/build-push-action@v5
         with:
@@ -164,7 +192,7 @@ jobs:
 
   # ==================== DEPLOY TO PRODUCTION ====================
   deploy-production:
-    name: 🚀 Deploy to Production Server
+    name: Deploy to Production Server
     if: |
       (github.event_name == 'workflow_run' && github.event.workflow_run.conclusion == 'success') ||
       github.event_name == 'workflow_dispatch'
@@ -190,7 +218,7 @@ jobs:
           port: 22
           script: |
             set -e
-            echo "📍 Deploying version: ${{ needs.build-and-test.outputs.version }}"
+            echo "Deploying version: ${{ needs.build-and-test.outputs.version }}"
 
             cd ~/pymes-admin
             git pull origin main
@@ -216,17 +244,17 @@ jobs:
             docker compose up -d
             docker image prune -af
 
-            echo "✅ Deploy to Production completed successfully!"
+            echo "Deploy to Production completed successfully!"
 
       - name: Skip deployment (secrets not configured)
         if: secrets.PROD_HOST == '' || secrets.PROD_USER == '' || secrets.PROD_SSH_KEY == ''
         run: |
-          echo "⚠️ Production server secrets not configured. Skipping SSH deployment."
-          echo "📦 Docker images were built and pushed successfully."
-          echo "🔧 To enable full deploy, configure PROD_HOST, PROD_USER and PROD_SSH_KEY secrets."
+          echo "Production server secrets not configured. Skipping SSH deployment."
+          echo "Docker images were built and pushed successfully."
+          echo "To enable full deploy, configure PROD_HOST, PROD_USER and PROD_SSH_KEY secrets."
 
       - name: Notify success
         if: success()
         run: |
-          echo "✅ Production build and docker push successful!"
-          echo "📍 Version: ${{ needs.build-and-test.outputs.version }}"
+          echo "Production build and docker push successful."
+          echo "Version: ${{ needs.build-and-test.outputs.version }}"

@@ -9,7 +9,7 @@
 | Tecnologia | Version | Uso |
 |------------|---------|-----|
 | Java | 21 | Virtual Threads |
-| Spring Boot | 3.5+ | MVC, Data JPA, Validation |
+| Spring Boot | 3.5.14 | MVC, Data JPA, Validation |
 | PostgreSQL | 15 | Schema `core` + Flyway migrations |
 | Redis | 7 | Caching + debounce para recomputo |
 | MapStruct | 1.6.3 | DTO mapping |
@@ -87,15 +87,16 @@ Ver [docs/CORE.md](./docs/CORE.md) para arquitectura completa.
 |--------|-----------|-------------|
 | setup | 3 | Onboarding lazy + plantillas por industria |
 | product | 8 | CRUD productos + presentaciones (soft-delete) |
-| invoice | 5 | CRUD facturas + pagar + proveedores |
-| analytics | 2 | 9 motores CTE (ABC, tendencias, margenes, opex, proyeccion, alertas, supplier analytics) |
+| invoice (facturas) | 5 | CRUD facturas + pagar |
+| invoice (proveedores) | 5 | CRUD proveedores (soft-delete) |
 | gasto | 5 | Gastos operativos con categorias (soft-delete) |
 | prestamo | 7 | Prestamos + pagos + estados (soft-delete) |
 | inversion | 2 | Patrimonio por tenant (1 fila) |
 | venta | 5 | Ventas diarias (soft-delete) |
+| analytics | 2 | 9 motores CTE (ABC, tendencias, margenes, opex, proyeccion, alertas, supplier analytics) |
 | accounting | 2 | Metricas financieras consolidadas (CTE 1 round-trip) |
 
-> **Total: 41 endpoints**
+> **Total: 44 endpoints**
 
 ---
 
@@ -136,6 +137,17 @@ Factura/Gasto/Venta creado
 
 > `AbstractIntegrationTest`: base class que arranca ambos containers via `@ServiceConnection`.
 
+### Cobertura por Tipo
+
+| Tipo | Tests | Tecnologia |
+|------|-------|------------|
+| Unit | 24 | Mockito, JUnit 5 |
+| JPA | 74 | @DataJpaTest + Testcontainers PostgreSQL |
+| Integration | 22 | @SpringBootTest + Testcontainers PG + Redis |
+| Analytics | 5 | Mockito + JdbcTemplate mock |
+| Context | 1 | Application context load |
+| **Total** | **126** | |
+
 ---
 
 ## Endpoints Principales
@@ -157,9 +169,18 @@ GET    /api/v1/core/productos/{id}
 PUT    /api/v1/core/productos/{id}
 DELETE /api/v1/core/productos/{id}
 POST   /api/v1/core/productos/{id}/presentaciones
-GET    /api/v1/core/presentaciones
-PUT    /api/v1/core/presentaciones/{id}
-DELETE /api/v1/core/presentaciones/{id}
+GET    /api/v1/core/productos/{id}/presentaciones
+DELETE /api/v1/core/presentaciones/{presentacionId}
+```
+
+### Proveedores
+
+```
+POST   /api/v1/core/proveedores
+GET    /api/v1/core/proveedores
+GET    /api/v1/core/proveedores/{id}
+PUT    /api/v1/core/proveedores/{id}
+DELETE /api/v1/core/proveedores/{id}
 ```
 
 ### Facturas
@@ -188,7 +209,7 @@ GET/PUT            /api/v1/core/patrimonio/{tenantId}
 ```
 GET    /api/v1/core/accounting/consultar?tenantId={uuid}&periodo=YYYY-MM
 POST   /api/v1/core/accounting/recalcular?tenantId={uuid}&periodo=YYYY-MM
-GET    /api/v1/core/analytics/consultar?tenantId={uuid}&periodo=YYYY-MM
+GET    /api/v1/core/analytics?tenantId={uuid}&periodo=YYYY-MM
 POST   /api/v1/core/analytics/recalcular?tenantId={uuid}&periodo=YYYY-MM
 ```
 

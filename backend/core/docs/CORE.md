@@ -16,7 +16,7 @@ Core Service (8082)
 ├── setup/      configuracion/inventario inicial
 ├── product/    catalogo productos y presentaciones
 ├── invoice/    facturas de compra y proveedores
-├── analytics/  6 motores CTE de analisis de gastos
+├── analytics/  9 motores CTE de analisis de gastos
 ├── gasto/      gastos operativos
 ├── prestamo/   prestamos y pagos
 ├── inversion/  patrimonio
@@ -68,7 +68,7 @@ Todos comunican via Spring Events (no bloqueantes). Paquete base: `core_pymes.*`
 | Entidad | `AnalisisGasto` (JSONB por tenant/periodo) |
 | Endpoints | `GET /analytics/consultar`, `POST /analytics/recalcular` |
 | Motores | ABC, tendencias, margenes, opex, proyeccion, alertas, comparativa proveedores, recomendaciones, predicciones |
-| Flyway | V6 (analytics), V11 (supplier fields) |
+| Flyway | V5 (expense_analysis schema), V6 (indexes), V11 (supplier fields) |
 
 ### Gasto (`core_pymes/gasto/`)
 
@@ -152,9 +152,9 @@ DTOs: Java records. Mapper: MapStruct.
 
 ```
 Auth Service crea Tenant
-  └── Setup escucha TenantCreated
-      └── Copia plantilla por industria -> ConfiguracionTenant
-      └── Publica: ConfiguracionCargada
+  └── Core no recibe evento (lazy init)
+  └── Primer GET /setup/{tenantId}:
+      └── SetupService.getOrInitialize() -> crea TenantSetup si no existe
 ```
 
 ### Tenant Registra Factura
@@ -248,9 +248,8 @@ PUT    /api/v1/core/productos/{id}
 DELETE /api/v1/core/productos/{id}
 
 POST   /api/v1/core/productos/{id}/presentaciones
-GET    /api/v1/core/presentaciones
-PUT    /api/v1/core/presentaciones/{id}
-DELETE /api/v1/core/presentaciones/{id}
+GET    /api/v1/core/productos/{id}/presentaciones
+DELETE /api/v1/core/presentaciones/{presentacionId}
 ```
 
 ### Proveedores
@@ -322,7 +321,7 @@ POST   /api/v1/core/accounting/recalcular?tenantId={uuid}&periodo=YYYY-MM
 ### Analytics
 
 ```
-GET    /api/v1/core/analytics/consultar?tenantId={uuid}&periodo=YYYY-MM
+GET    /api/v1/core/analytics?tenantId={uuid}&periodo=YYYY-MM
 POST   /api/v1/core/analytics/recalcular?tenantId={uuid}&periodo=YYYY-MM
 ```
 

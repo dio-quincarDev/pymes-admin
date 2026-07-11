@@ -60,8 +60,10 @@ This document consolidates the technical specifications and non-obvious design d
 
 ### `RateLimitService`
 - **Scope**: Fixed-window rate limiting per IP + email key.
-- **Key Schema**: `login:{ip}:{email}`
-- **Behavior**: Atomically increments attempts in Redis. Enforces TTL at initial creation to prevent permanent lockout conditions.
+- **Key Schema**: `rate_limit:{key}` where key is `{ip}:{email}`
+- **Max Attempts**: 5 per 15-minute window.
+- **Client**: `StringRedisTemplate` with atomic Lua script (INCR + EXPIRE).
+- **Behavior**: Atomically increments attempts in Redis via Lua script. Enforces TTL at initial creation to prevent permanent lockout conditions.
 
 ### `EmailVerificationServiceImpl`
 - **Onboarding Flow**: Registration data is stored in Redis under `temp-register:{token}` with a **15-minute TTL** instead of committing to the DB. A confirmation mail is sent.

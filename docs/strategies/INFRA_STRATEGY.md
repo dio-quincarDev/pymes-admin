@@ -39,7 +39,7 @@ Las imagenes multi-arquitectura y builds de Quasar consumen mucho espacio.
 docker image prune -af
 ```
 
-Limite de logs en `docker-compose.yml`:
+Limite de logs (recomendado — pendiente de agregar a `docker-compose.yml`):
 ```yaml
 logging:
   driver: "json-file"
@@ -54,8 +54,10 @@ logging:
 
 Spring Boot sin limites explicitos consume RAM agresivamente.
 
+> **Estado actual:** `JAVA_OPTS` configurado en `docker-compose.yml` para gateway, auth-service y core-service. Límite heap 384m, metaspace 128m, G1GC.
+
 ```yaml
-# docker-compose.yml — environment de auth-service y gateway
+# docker-compose.yml — environment de auth-service, core-service y gateway
 JAVA_OPTS: -Xmx384m -Xms256m -XX:MaxMetaspaceSize=128m -XX:+UseG1GC
 ```
 
@@ -101,10 +103,19 @@ Para llamadas sincronas entre microservicios (Core → Auth):
 
 En CPUs compartidas de OCI, healthchecks muy frecuentes causan picos de CPU.
 
+Valores actuales en `docker-compose.yml`:
+
+| Servicio | Interval | Start period | Retries |
+|----------|----------|--------------|---------|
+| Gateway  | 10s      | —            | 3       |
+| Auth     | 15s      | 45s          | 8       |
+| Core     | 15s      | 45s          | 8       |
+
 ```yaml
+# Recomendado para OCI (menos frecuente)
 healthcheck:
-  interval: 30s      # cada 30 s (no cada 10 s)
-  start_period: 45s  # da tiempo a la JVM para calentar sin matar el contenedor
+  interval: 30s
+  start_period: 45s
 ```
 
 ---
@@ -126,7 +137,7 @@ No depender de `.env` editados manualmente en el servidor.
 2. Variables vienen de GitHub Secrets (nunca del repositorio)
 3. El servidor nunca tiene credenciales hardcodeadas
 
-Secrets requeridos: `DOCKER_USERNAME`, `DOCKER_PASSWORD`, `STAGING_HOST`, `STAGING_USER`, `STAGING_SSH_KEY`, `DB_USERNAME`, `DB_PASSWORD`, `JWT_SECRET`, `CORS_ALLOWED_ORIGINS`. Ver `README.md` para la lista completa.
+Secrets requeridos: `DOCKER_USERNAME`, `DOCKER_PASSWORD`, `STAGING_HOST`, `STAGING_USER`, `STAGING_SSH_KEY`, `DB_USERNAME`, `DB_PASSWORD`, `JWT_SECRET`, `CORS_ALLOWED_ORIGINS`. Ver `.github/SECRETS.md` para la lista completa.
 
 ---
 

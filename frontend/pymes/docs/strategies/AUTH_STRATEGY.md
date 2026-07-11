@@ -95,18 +95,25 @@ Requiere `Authorization: Bearer <accessToken>`. Backend añade el token a la bla
 - Inyecta `Authorization: Bearer <token>` en cada request desde el store Pinia.
 - Interceptor 401: intenta refresh automático; si falla, ejecuta logout y redirige a `/login`.
 
-### Auth Store (Pinia — `src/stores/auth.ts`)
+### Auth Store (Pinia — `src/modules/auth/store/index.ts`)
 
 ```typescript
 // Estado
 user: User | null
 accessToken: string | null   // en memoria
+pendingTenant: { name, slug } | null
 isAuthenticated: boolean
 
 // Acciones
 login(email, password)
-handleOAuthCallback(code)    // code exchange
-logout()                     // llama /logout + limpia store + localStorage
+register(data)
+verifyEmail(token, email)
+handleOAuthCallback(token, refreshToken)
+fetchCurrentUser()
+logout()
+setPendingTenant(name, slug)
+setSession(token, refreshToken, user)
+clearSession()
 ```
 
 ### Navigation Guards (`src/router/index.ts`)

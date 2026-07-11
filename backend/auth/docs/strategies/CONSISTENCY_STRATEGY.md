@@ -12,12 +12,12 @@ To prevent mismatches between controller mappings, security filter whitelists, a
 
 | Controller | Base Path | Endpoints | Authentication |
 |------------|-----------|-----------|----------------|
-| **AuthApi** | `/api/v1/auth` | `POST /register`<br>`POST /login`<br>`POST /refresh`<br>`POST /verify-email`<br>`POST /resend-verification` | ❌ Public |
-| **AuthApi** | `/api/v1/auth` | `POST /logout` | ✅ Required |
-| **UserApi** | `/api/v1/users` | `GET /me` | ✅ Required |
-| **TenantApi**| `/api/v1/tenants`| `GET /`<br>`POST /`<br>`POST /select` | ✅ Required |
-| **MemberApi**| `/api/v1/tenants/{tenantId}/members` | `GET /`<br>`PUT /{userId}/role`<br>`DELETE /{userId}` | ✅ Required |
-| **InvitationApi**| `/api/v1/invitations` | `GET /`<br>`POST /`<br>`POST /accept`<br>`DELETE /{invitationId}` | ✅ Required |
+| **AuthApi** | `/api/v1/auth` | `POST /register`<br>`POST /login`<br>`POST /refresh`<br>`POST /verify-email`<br>`POST /resend-verification`<br>`POST /forgot-password`<br>`POST /reset-password`<br>`POST /oauth2/intent`<br>`GET /oauth2/intent/{intentId}`<br>`POST /exchange` | Public |
+| **AuthApi** | `/api/v1/auth` | `POST /logout` | Required |
+| **UserApi** | `/api/v1/users` | `GET /me` | Required |
+| **TenantApi**| `/api/v1/tenants`| `GET /`<br>`POST /`<br>`POST /select` | Required |
+| **MemberApi**| `/api/v1/tenants/{tenantId}/members` | `GET /`<br>`PUT /{userId}/role`<br>`DELETE /{userId}` | Required |
+| **InvitationApi**| `/api/v1/invitations` | `GET /`<br>`POST /`<br>`POST /accept`<br>`DELETE /{invitationId}` | Required |
 
 ---
 
@@ -40,11 +40,29 @@ public class ApiPathConstants {
 The security filter chain reads the full path constants directly, preventing typos from breaking public access:
 ```java
 private static final String[] WHITE_LIST = {
+    // Swagger / OpenAPI
+    "/v3/api-docs/**",
+    "/swagger-ui/**",
+    // Actuator
+    "/actuator/**",
+    // OAuth2 login endpoint
+    "/oauth2/**",
+    "/login/**",
+    // Error page
+    "/error",
+    // Public auth endpoints
     ApiPathConstants.FULL_AUTH_REGISTER,
     ApiPathConstants.FULL_AUTH_LOGIN,
     ApiPathConstants.FULL_AUTH_REFRESH,
     ApiPathConstants.FULL_AUTH_VERIFY_EMAIL,
-    ApiPathConstants.FULL_AUTH_RESEND_VERIFICATION
+    ApiPathConstants.FULL_AUTH_RESEND_VERIFICATION,
+    // Password recovery
+    ApiPathConstants.FULL_AUTH_FORGOT_PASSWORD,
+    ApiPathConstants.FULL_AUTH_RESET_PASSWORD,
+    // OAuth2 intent and code exchange
+    ApiPathConstants.FULL_AUTH_OAUTH2_INTENT,
+    ApiPathConstants.V1_ROUTE + ApiPathConstants.AUTH_ROUTE + "/oauth2/intent/**",
+    ApiPathConstants.V1_ROUTE + ApiPathConstants.AUTH_ROUTE + "/exchange"
 };
 ```
 

@@ -70,10 +70,10 @@ class SecurityConstraintIntegrationTest extends AbstractIntegrationTest {
     // ==================== HELPERS ====================
 
     private void cleanUp() {
-        jdbcTemplate.execute("DELETE FROM user_tenants WHERE user_id IN (SELECT id FROM users WHERE email LIKE '%" + uniqueId + "@security.test')");
-        jdbcTemplate.execute("DELETE FROM invitations WHERE email LIKE '%" + uniqueId + "@security.test'");
-        jdbcTemplate.execute("DELETE FROM users WHERE email LIKE '%" + uniqueId + "@security.test'");
-        jdbcTemplate.execute("DELETE FROM tenants WHERE slug LIKE 'sec-corp-" + uniqueId + "%'");
+        jdbcTemplate.update("DELETE FROM user_tenants WHERE user_id IN (SELECT id FROM users WHERE email LIKE ?)", "%" + uniqueId + "@security.test");
+        jdbcTemplate.update("DELETE FROM invitations WHERE email LIKE ?", "%" + uniqueId + "@security.test");
+        jdbcTemplate.update("DELETE FROM users WHERE email LIKE ?", "%" + uniqueId + "@security.test");
+        jdbcTemplate.update("DELETE FROM tenants WHERE slug LIKE ?", "sec-corp-" + uniqueId + "%");
     }
 
     @SuppressWarnings("unchecked")

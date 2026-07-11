@@ -35,6 +35,7 @@ services:
       - SERVER_PORT=8080
       - CORE_SERVICE_HOST=pymes-core-service
       - JWT_SECRET=${JWT_SECRET:-change-this-secret-key-in-production-minimum-256-bits}
+      - JAVA_OPTS=-Xmx384m -Xms256m -XX:MaxMetaspaceSize=128m -XX:+UseG1GC
     depends_on:
       auth-service:
         condition: service_healthy
@@ -76,6 +77,7 @@ services:
       - SPRING_MAIL_PORT=${SPRING_MAIL_PORT}
       - SPRING_MAIL_USERNAME=${SPRING_MAIL_USERNAME}
       - SPRING_MAIL_PASSWORD=${SPRING_MAIL_PASSWORD}
+      - JAVA_OPTS=-Xmx384m -Xms256m -XX:MaxMetaspaceSize=128m -XX:+UseG1GC
     depends_on:
       postgres:
         condition: service_healthy
@@ -108,6 +110,7 @@ services:
       - REDIS_PORT=6379
       - SERVER_PORT=8082
       - AUTH_SERVICE_URL=http://pymes-auth-service:8081
+      - JAVA_OPTS=-Xmx384m -Xms256m -XX:MaxMetaspaceSize=128m -XX:+UseG1GC
     depends_on:
       postgres:
         condition: service_healthy
@@ -147,6 +150,7 @@ services:
     image: redis:7-alpine
     container_name: pymes-redis-auth
     restart: on-failure
+    command: redis-server --maxmemory 256mb --maxmemory-policy allkeys-lru
     networks:
       - pymes-internal-network
     volumes:

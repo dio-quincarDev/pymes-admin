@@ -3,7 +3,7 @@
 > Plataforma SaaS de gestion financiera para PyMEs en Latinoamerica. Modulo frontend construido con Quasar 2 (Vue 3) y Capacitor.
 
 ![Vue 3](https://img.shields.io/badge/Vue-3.5-42b883?logo=vue.js)
-![Quasar 2](https://img.shields.io/badge/Quasar-2.18-1976D2?logo=quasar)
+![Quasar 2](https://img.shields.io/badge/Quasar-2.16-1976D2?logo=quasar)
 ![TypeScript](https://img.shields.io/badge/TypeScript-5.9-3178C6?logo=typescript)
 ![License](https://img.shields.io/badge/License-Proprietary-red)
 
@@ -156,7 +156,7 @@ Flujo 2 pasos post-registro:
 
 ### Analytics
 
-6 motores CTE consumidos desde `GET /api/v1/core/analytics/consultar`:
+9 motores CTE consumidos desde `GET /api/v1/core/analytics`:
 
 | Motor             | Descripcion                                             |
 |-------------------|---------------------------------------------------------|
@@ -167,7 +167,7 @@ Flujo 2 pasos post-registro:
 | Proyeccion        | Forecast lineal 30/60/90 dias                           |
 | Alertas           | Variacion >15% (CV), primer registro proveedor          |
 
-Supplier analytics: comparativa precios por proveedor, recomendaciones con savings_pct, predicciones OLS con R2.
+Supplier analytics (3 motores adicionales): comparativa precios por proveedor, recomendaciones con savings_pct, predicciones OLS con R2.
 
 | Composable       | Funcion                                        |
 |------------------|------------------------------------------------|
@@ -215,7 +215,7 @@ Ver [DESIGN_SYSTEM.md](docs/strategies/DESIGN_SYSTEM.md) para detalle completo.
 |----------------|--------------------------------------------------------|
 | `onboarding/`  | CategoryTree (arbol jerarquico), IndustryCard          |
 | `facturas/`    | InvoiceItemCard, InvoiceDetailDialog, CategoryTabs     |
-| `analytics/`   | SupplierComparisonTable, RecommendationsCard, Predictions |
+| `analytics/`   | SupplierComparisonTable, SupplierRecommendationsCard, PricePredictionsTable |
 | `dashboard/`   | CatalogDashboard (arbol productos + KPIs + busqueda)   |
 
 ### SEO

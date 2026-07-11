@@ -1,6 +1,6 @@
 # Estrategia: PostgreSQL Compartido con Schemas Separados
 
-> Detalle de implementación del schema `core`: [`backend/core/docs/PROGRESS.md`](/backend/core/docs/PROGRESS.md)
+> Detalle de implementación del schema `core`: [`backend/core/docs/CORE.md`](/backend/core/docs/CORE.md)
 
 ## Resumen Ejecutivo
 
@@ -112,7 +112,7 @@ postgres-core:  # Segunda instancia (eliminada)
 
 Después:
 ```yaml
-postgres-auth:  # Renombramiento es cosmético
+postgres:  # Servicio único
   POSTGRES_DB: pymes_db  # Una DB para todo
   
 # postgres-core: ELIMINADO
@@ -121,24 +121,24 @@ postgres-auth:  # Renombramiento es cosmético
 Ambos servicios conectan a la misma instancia:
 ```yaml
 auth-service:
-  DB_HOST: pymes-postgres-auth
+  DB_HOST: pymes-postgres-db
   DB_NAME: pymes_db
   
 core-service:
-  DB_HOST: pymes-postgres-auth  # MISMO HOST
-  DB_NAME: pymes_db              # MISMA DB
-  DB_SCHEMA: core                # SCHEMA diferente
+  DB_HOST: pymes-postgres-db  # MISMO HOST
+  DB_NAME: pymes_db           # MISMA DB
+  DB_SCHEMA: core             # SCHEMA diferente
 ```
 
 ### E. Gateway Routes
 
-application-dev.yaml:
+application.yaml:
 ```yaml
 routes:
   - id: core-service
     uri: http://pymes-core-service:8082
     predicates:
-      - Path=/api/core/**
+      - Path=/api/v1/core/**
 ```
 
 Permite descubrimiento automático de Core Service vía Gateway.
@@ -187,8 +187,8 @@ SÍ. Completamente:
 Frontend (PWA)
     |
     Gateway (8080)
-    |-- /api/v1/** → Auth Service (8081) → pymes_db.auth
-    |-- /api/core/** → Core Service (8082) → pymes_db.core
+    |-- /api/v1/auth/** → Auth Service (8081) → pymes_db.auth
+    |-- /api/v1/core/** → Core Service (8082) → pymes_db.core
     
 pymes-postgres-auth (una sola instancia)
 ├── Schema: auth
@@ -204,7 +204,7 @@ pymes-postgres-auth (una sola instancia)
 1. Agregar Service 3: Solo crear schema service3 + aplicación
 2. Migración a Cloud: Cambiar DB_HOST a RDS/CloudSQL, schemas se mantienen
 3. Sharding (Escala masiva): Dividir schemas en múltiples DBs sin cambiar código
-4. Multi-tenant avanzado: Cada tenant puede tener su schema
+4. Multi-tenant avanzado: Migrar de columna discriminadora a schema por tenant si escala
 
 ---
 
