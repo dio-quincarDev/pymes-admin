@@ -82,6 +82,23 @@
                   </q-item-label>
                 </q-item-section>
               </q-item>
+              <q-item
+                v-else-if="link.disabled"
+                disable class="radius-sm q-mb-xs"
+                style="opacity: 0.4"
+              >
+                <q-item-section avatar>
+                  <q-icon :name="link.icon" color="accent" />
+                </q-item-section>
+                <q-item-section>
+                  <q-item-label class="text-accent">
+                    {{ link.title }}
+                    <q-badge flat color="transparent" text-color="sage-muted" size="xs" class="q-ml-xs">
+                      próximamente
+                    </q-badge>
+                  </q-item-label>
+                </q-item-section>
+              </q-item>
             </template>
           </q-list>
         </div>
@@ -168,13 +185,27 @@ onUnmounted(() => {
   navigator.serviceWorker?.removeEventListener('controllerchange', onSwControllerChange);
 });
 
-const linksList = [
+interface SidebarLink {
+  title?: string
+  icon?: string
+  path?: string
+  separator?: boolean
+  disabled?: boolean
+}
+
+const linksList: SidebarLink[] = [
   { title: 'Dashboard', icon: 'dashboard', path: '/dashboard' },
   { separator: true },
   { title: 'Productos', icon: 'inventory_2', path: '/dashboard/productos' },
   { title: 'Proveedores', icon: 'people', path: '/dashboard/proveedores' },
   { title: 'Facturas', icon: 'receipt_long', path: '/dashboard/facturas' },
   { title: 'Análisis de Gastos', icon: 'analytics', path: '/dashboard/analisis-gastos' },
+  { separator: true },
+  { title: 'Gastos', icon: 'money_off', disabled: true },
+  { title: 'Ventas', icon: 'point_of_sale', disabled: true },
+  { title: 'Préstamos', icon: 'account_balance', disabled: true },
+  { title: 'Patrimonio', icon: 'savings', disabled: true },
+  { title: 'Contabilidad', icon: 'balance', disabled: true },
   { separator: true },
   { title: 'Configuración', icon: 'settings', path: '/dashboard/configuracion' },
 ];

@@ -339,3 +339,38 @@ body {
   border-color: $primary;
   box-shadow: 0 0 10px rgba(163, 120, 94, 0.2);
 }
+
+// --------------------------------------------------
+// Custom Scrollbar — subtle copper on sage
+// --------------------------------------------------
+::-webkit-scrollbar {
+  width: 6px;
+  height: 6px;
+}
+
+::-webkit-scrollbar-track {
+  background: transparent;
+}
+
+::-webkit-scrollbar-thumb {
+  background: rgba(138, 158, 153, 0.25);
+  border-radius: 3px;
+  transition: background 0.2s ease;
+
+  &:hover {
+    background: rgba(163, 120, 94, 0.4);
+  }
+}
+
+// --------------------------------------------------
+// Selection Color — brand copper tint
+// --------------------------------------------------
+::selection {
+  background: rgba(163, 120, 94, 0.3);
+  color: inherit;
+}
+
+::-moz-selection {
+  background: rgba(163, 120, 94, 0.3);
+  color: inherit;
+}

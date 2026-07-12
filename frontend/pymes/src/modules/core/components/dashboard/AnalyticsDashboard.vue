@@ -1,72 +1,5 @@
-<template>
-  <div class="analytics-dashboard">
-    <div class="dashboard-header row items-center justify-between q-mb-lg">
-      <div>
-        <h2 class="text-h5 text-primary q-ma-none">Análisis de Gastos</h2>
-        <span class="text-caption text-accent">Período: {{ period }}</span>
-      </div>
-      <PeriodSelector
-        :model-value="period"
-        :loading="loading"
-        @update:model-value="setPeriod"
-        @recalcular="recalcular"
-      />
-    </div>
-
-    <div v-if="loading" class="row q-col-gutter-lg">
-      <div class="col-12"><SkeletonLoader :is-loading="true" :count="6" layout="stats" /></div>
-    </div>
-
-    <div v-else class="row q-col-gutter-lg">
-      <div class="col-12 col-sm-6 col-lg-3" v-for="kpi in kpis" :key="kpi.label">
-        <KpiCard v-bind="kpi" />
-      </div>
-
-      <div class="col-12 col-xl-8">
-        <div class="analytics-card">
-          <div class="analytics-card__title">Clasificación ABC de Gastos</div>
-          <AbcGastosChart :data="abc" :height="300" />
-        </div>
-      </div>
-
-      <div class="col-12 col-xl-4">
-        <AlertsPanel :items="alerts" />
-      </div>
-
-      <div class="col-12 col-lg-6">
-        <div class="analytics-card">
-          <q-tabs v-model="trendTab" class="q-mb-md">
-            <q-tab name="trend" label="Tendencias Precios" no-caps />
-            <q-tab name="margin" label="Impacto Márgenes" no-caps />
-          </q-tabs>
-          <PriceTrendSparkline v-if="trendTab === 'trend'" :items="trend" />
-          <MarginImpactTable v-else :items="margin" />
-        </div>
-      </div>
-
-      <div class="col-12 col-lg-6">
-        <div class="analytics-card">
-          <div class="analytics-card__title">Costo Operativo</div>
-          <OpexGauge
-            :value="opexValue"
-            :max="100"
-            :thresholds="{ warning: 70, critical: 85 }"
-          />
-          <div class="q-mt-md text-caption text-accent text-center">
-            Proy. mensual: {{ formatCurrency(opexProjected) }}
-          </div>
-        </div>
-        <div class="analytics-card q-mt-lg">
-          <div class="analytics-card__title">Proyección 30/60/90d</div>
-          <ProjectionTimeline :items="projection" />
-        </div>
-      </div>
-    </div>
-  </div>
-</template>
-
 <script setup lang="ts">
-import { ref, computed } from 'vue';
+import { shallowRef, computed } from 'vue';
 import { useAnalytics } from '../../composables/useAnalytics';
 import { useNumberFormat } from '../../composables/useNumberFormat';
 import KpiCard from './KpiCard.vue';
@@ -78,6 +11,7 @@ import ProjectionTimeline from './ProjectionTimeline.vue';
 import AlertsPanel from './AlertsPanel.vue';
 import PeriodSelector from './PeriodSelector.vue';
 import SkeletonLoader from 'src/components/ui/SkeletonLoader.vue';
+import BaseCard from 'src/components/base/BaseCard.vue';
 
 const {
   loading,
@@ -92,7 +26,7 @@ const {
   alerts,
 } = useAnalytics();
 const { formatCurrency } = useNumberFormat();
-const trendTab = ref<'trend' | 'margin'>('trend');
+const trendTab = shallowRef<'trend' | 'margin'>('trend');
 
 const kpis = computed(() => [
   {
@@ -136,25 +70,84 @@ const opexValue = computed(() => {
 const opexProjected = computed(() => opexPct.value[0]?.projectedMonthly ?? 0);
 </script>
 
+<template>
+  <div class="analytics-dashboard">
+    <div class="dashboard-header row items-center justify-between q-mb-lg">
+      <div>
+        <h2 class="text-h5 text-primary q-ma-none">Análisis de Gastos</h2>
+        <span class="text-caption text-accent">Período: {{ period }}</span>
+      </div>
+      <PeriodSelector
+        :model-value="period"
+        :loading="loading"
+        @update:model-value="setPeriod"
+        @recalcular="recalcular"
+      />
+    </div>
+
+    <div v-if="loading" class="row q-col-gutter-lg">
+      <div class="col-12"><SkeletonLoader :is-loading="true" :count="6" layout="stats" /></div>
+    </div>
+
+    <div v-else class="row q-col-gutter-lg">
+      <div class="col-12 col-sm-6 col-lg-3" v-for="kpi in kpis" :key="kpi.label">
+        <KpiCard v-bind="kpi" />
+      </div>
+
+      <div class="col-12 col-xl-8">
+        <BaseCard class="q-pa-md">
+          <div class="card-title">Clasificación ABC de Gastos</div>
+          <AbcGastosChart :data="abc" :height="300" />
+        </BaseCard>
+      </div>
+
+      <div class="col-12 col-xl-4">
+        <AlertsPanel :items="alerts" />
+      </div>
+
+      <div class="col-12 col-lg-6">
+        <BaseCard class="q-pa-md">
+          <q-tabs v-model="trendTab" class="q-mb-md">
+            <q-tab name="trend" label="Tendencias Precios" no-caps />
+            <q-tab name="margin" label="Impacto Márgenes" no-caps />
+          </q-tabs>
+          <PriceTrendSparkline v-if="trendTab === 'trend'" :items="trend" />
+          <MarginImpactTable v-else :items="margin" />
+        </BaseCard>
+      </div>
+
+      <div class="col-12 col-lg-6">
+        <BaseCard class="q-pa-md q-mb-lg">
+          <div class="card-title">Costo Operativo</div>
+          <OpexGauge
+            :value="opexValue"
+            :max="100"
+            :thresholds="{ warning: 70, critical: 85 }"
+          />
+          <div class="q-mt-md text-caption text-accent text-center">
+            Proy. mensual: {{ formatCurrency(opexProjected) }}
+          </div>
+        </BaseCard>
+        <BaseCard class="q-pa-md">
+          <div class="card-title">Proyección 30/60/90d</div>
+          <ProjectionTimeline :items="projection" />
+        </BaseCard>
+      </div>
+    </div>
+  </div>
+</template>
+
 <style scoped lang="scss">
 .analytics-dashboard {
   width: 100%;
 }
 
-.analytics-card {
-  background: rgba(11, 18, 16, 0.5);
-  backdrop-filter: blur(4px);
-  border: 1px solid rgba(163, 120, 94, 0.1);
-  border-radius: 8px;
-  padding: 1.25rem;
-
-  &__title {
-    font-size: 0.85rem;
-    font-weight: 600;
-    color: #E2E8E4;
-    text-transform: uppercase;
-    letter-spacing: 0.05em;
-    margin-bottom: 1rem;
-  }
+.card-title {
+  font-size: 0.75rem;
+  font-weight: 600;
+  color: $accent;
+  text-transform: uppercase;
+  letter-spacing: 0.05em;
+  margin-bottom: 1rem;
 }
 </style>
