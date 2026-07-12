@@ -7,6 +7,7 @@ import io.swagger.v3.oas.annotations.tags.Tag;
 import org.springframework.http.ResponseEntity;
 import org.springframework.web.bind.annotation.*;
 
+import java.util.List;
 import java.util.Map;
 import java.util.UUID;
 
@@ -27,4 +28,8 @@ public interface SetupApi {
     @Operation(summary = "Preview categories/units/locations for an industry (read-only)")
     @GetMapping("/preview/{industry}")
     ResponseEntity<SetupResponse> preview(@PathVariable String industry);
+
+    @Operation(summary = "Get category tree for a tenant (lightweight, no units/products)")
+    @GetMapping("/{tenantId}/categories")
+    ResponseEntity<List<SetupResponse.ItemDTO>> getCategories(@PathVariable UUID tenantId);
 }

@@ -1,5 +1,6 @@
 package core_pymes.unit;
 
+import core_pymes.invoice.domain.Proveedor;
 import core_pymes.invoice.repository.ProveedorRepository;
 import core_pymes.product.domain.Presentacion;
 import core_pymes.product.domain.Producto;
@@ -21,6 +22,10 @@ import org.mockito.InjectMocks;
 import org.mockito.Mock;
 import org.mockito.junit.jupiter.MockitoExtension;
 import org.springframework.context.ApplicationEventPublisher;
+import org.springframework.data.domain.Page;
+import org.springframework.data.domain.PageImpl;
+import org.springframework.data.domain.PageRequest;
+import org.springframework.data.domain.Pageable;
 
 import java.util.List;
 import java.util.Optional;
@@ -29,6 +34,7 @@ import java.util.UUID;
 import static org.assertj.core.api.Assertions.assertThat;
 import static org.assertj.core.api.Assertions.assertThatThrownBy;
 import static org.mockito.ArgumentMatchers.any;
+import static org.mockito.ArgumentMatchers.eq;
 import static org.mockito.Mockito.*;
 
 @ExtendWith(MockitoExtension.class)
@@ -77,6 +83,100 @@ class ProductoServiceImplTest {
         assertThatThrownBy(() -> service.findById(producto.getId(), tenantId))
                 .isInstanceOf(EntityNotFoundException.class)
                 .hasMessageContaining("Producto not found");
+    }
+
+    @Test
+    void search_withNoFilters_delegatesToFindByTenantId() {
+        var tenantId = UUID.randomUUID();
+        var pageable = PageRequest.of(0, 20);
+        var producto = Producto.builder().id(UUID.randomUUID()).tenantId(tenantId).name("Arroz").build();
+        var page = new PageImpl<>(List.of(producto), pageable, 1);
+        when(productoRepository.findByTenantId(tenantId, pageable)).thenReturn(page);
+        when(presentacionRepository.findByProductoIdInAndIsActiveTrue(List.of(producto.getId()))).thenReturn(List.of());
+        when(mapper.toResponse(eq(producto), any(), any())).thenReturn(
+                new ProductoResponse(producto.getId(), tenantId, "Arroz", null, null, null, null, true, null, null, List.of(), null, null, null, null, null, null, null));
+
+        var result = service.search(tenantId, null, null, pageable);
+
+        assertThat(result.getContent()).hasSize(1);
+        assertThat(result.getContent().getFirst().name()).isEqualTo("Arroz");
+        verify(productoRepository).findByTenantId(tenantId, pageable);
+    }
+
+    @Test
+    void search_withCategoryFilter_delegatesToFindByTenantIdAndCategory() {
+        var tenantId = UUID.randomUUID();
+        var pageable = PageRequest.of(0, 20);
+        var producto = Producto.builder().id(UUID.randomUUID()).tenantId(tenantId).name("Leche").category("LACTEOS").build();
+        var page = new PageImpl<>(List.of(producto), pageable, 1);
+        when(productoRepository.findByTenantIdAndCategory(tenantId, "LACTEOS", pageable)).thenReturn(page);
+        when(presentacionRepository.findByProductoIdInAndIsActiveTrue(List.of(producto.getId()))).thenReturn(List.of());
+        when(mapper.toResponse(eq(producto), any(), any())).thenReturn(
+                new ProductoResponse(producto.getId(), tenantId, "Leche", null, "LACTEOS", null, null, true, null, null, List.of(), null, null, null, null, null, null, null));
+
+        var result = service.search(tenantId, "LACTEOS", null, pageable);
+
+        assertThat(result.getContent()).hasSize(1);
+        assertThat(result.getContent().getFirst().category()).isEqualTo("LACTEOS");
+        verify(productoRepository).findByTenantIdAndCategory(tenantId, "LACTEOS", pageable);
+    }
+
+    @Test
+    void search_withNameSearch_delegatesToFindByTenantIdAndNameContainingIgnoreCase() {
+        var tenantId = UUID.randomUUID();
+        var pageable = PageRequest.of(0, 20);
+        var producto = Producto.builder().id(UUID.randomUUID()).tenantId(tenantId).name("Arroz").build();
+        var page = new PageImpl<>(List.of(producto), pageable, 1);
+        when(productoRepository.findByTenantIdAndNameContainingIgnoreCase(tenantId, "arroz", pageable)).thenReturn(page);
+        when(presentacionRepository.findByProductoIdInAndIsActiveTrue(List.of(producto.getId()))).thenReturn(List.of());
+        when(mapper.toResponse(eq(producto), any(), any())).thenReturn(
+                new ProductoResponse(producto.getId(), tenantId, "Arroz", null, null, null, null, true, null, null, List.of(), null, null, null, null, null, null, null));
+
+        var result = service.search(tenantId, null, "arroz", pageable);
+
+        assertThat(result.getContent()).hasSize(1);
+        assertThat(result.getContent().getFirst().name()).isEqualTo("Arroz");
+        verify(productoRepository).findByTenantIdAndNameContainingIgnoreCase(tenantId, "arroz", pageable);
+    }
+
+    @Test
+    void search_withCategoryAndSearch_delegatesToCombinedQuery() {
+        var tenantId = UUID.randomUUID();
+        var pageable = PageRequest.of(0, 20);
+        var producto = Producto.builder().id(UUID.randomUUID()).tenantId(tenantId).name("Arroz").category("ABARROTES").build();
+        var page = new PageImpl<>(List.of(producto), pageable, 1);
+        when(productoRepository.findByTenantIdAndCategoryAndNameContainingIgnoreCase(tenantId, "ABARROTES", "arroz", pageable)).thenReturn(page);
+        when(presentacionRepository.findByProductoIdInAndIsActiveTrue(List.of(producto.getId()))).thenReturn(List.of());
+        when(mapper.toResponse(eq(producto), any(), any())).thenReturn(
+                new ProductoResponse(producto.getId(), tenantId, "Arroz", null, "ABARROTES", null, null, true, null, null, List.of(), null, null, null, null, null, null, null));
+
+        var result = service.search(tenantId, "ABARROTES", "arroz", pageable);
+
+        assertThat(result.getContent()).hasSize(1);
+        assertThat(result.getContent().getFirst().name()).isEqualTo("Arroz");
+        verify(productoRepository).findByTenantIdAndCategoryAndNameContainingIgnoreCase(tenantId, "ABARROTES", "arroz", pageable);
+    }
+
+    @Test
+    void search_usesBatchFetchForPresentacionesAndProveedores() {
+        var tenantId = UUID.randomUUID();
+        var pageable = PageRequest.of(0, 20);
+        var producto = Producto.builder().id(UUID.randomUUID()).tenantId(tenantId).name("Arroz").providerId(UUID.randomUUID()).build();
+        var page = new PageImpl<>(List.of(producto), pageable, 1);
+        when(productoRepository.findByTenantId(tenantId, pageable)).thenReturn(page);
+        when(presentacionRepository.findByProductoIdInAndIsActiveTrue(List.of(producto.getId()))).thenReturn(List.of());
+        when(proveedorRepository.findByIdIn(List.of(producto.getProviderId()))).thenReturn(List.of(new Proveedor()));
+        when(mapper.toResponse(eq(producto), any(), any())).thenReturn(
+                new ProductoResponse(producto.getId(), tenantId, "Arroz", null, null, null, null, true, null, null, List.of(), null, null, null, null, null, producto.getProviderId(), "Proveedor X"));
+
+        var result = service.search(tenantId, null, null, pageable);
+
+        assertThat(result.getContent()).hasSize(1);
+        // Batch fetch called with product ids, not individual lookups
+        verify(presentacionRepository).findByProductoIdInAndIsActiveTrue(List.of(producto.getId()));
+        verify(proveedorRepository).findByIdIn(List.of(producto.getProviderId()));
+        verify(presentacionRepository, never()).findByProductoIdAndIsActiveTrue(any());
+        verify(proveedorRepository, never()).findById(any());
     }
 
     @Test

@@ -188,7 +188,7 @@ async function loadData() {
     products.value = prodRes.data
     supplierCount.value = provRes.data.length
     setup.value = setupRes.data
-    expandAll()
+
   } catch (e: unknown) {
     error.value = e instanceof Error ? e.message : 'Error al cargar datos del dashboard'
     $q.notify({ type: 'negative', message: 'Error al cargar datos del dashboard' })

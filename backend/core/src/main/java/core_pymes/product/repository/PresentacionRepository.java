@@ -14,5 +14,7 @@ public interface PresentacionRepository extends JpaRepository<Presentacion, UUID
 
     List<Presentacion> findByProductoIdAndIsActiveTrue(UUID productId);
 
+    List<Presentacion> findByProductoIdInAndIsActiveTrue(List<UUID> productIds);
+
     boolean existsByProductoIdAndNameIgnoreCase(UUID productId, String name);
 }

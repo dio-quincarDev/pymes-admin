@@ -105,6 +105,17 @@ public class SetupServiceImpl implements SetupService {
         return SetupResponse.preview(industry, data.categories(), data.units(), data.locations(), data.products());
     }
 
+    @Override
+    public List<SetupResponse.ItemDTO> getCategories(UUID tenantId) {
+        var config = repository.findByTenantId(tenantId)
+                .orElseThrow(() -> new IllegalArgumentException("Tenant not found: " + tenantId));
+        var industry = config.getIndustry();
+        if (industry == null) {
+            return List.of();
+        }
+        return buildCategoryTree(industry);
+    }
+
     private SetupResponse buildResponse(TenantSetup config) {
         var industry = config.getIndustry();
         if (industry == null) {

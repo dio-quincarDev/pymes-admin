@@ -341,6 +341,18 @@ body {
 }
 
 // --------------------------------------------------
+// Global q-btn Refinement — soft rounded + compact
+// --------------------------------------------------
+.q-btn:not(.q-btn--round) {
+  border-radius: $pq-radius-lg;
+
+  &.q-btn--flat,
+  &.q-btn--outline {
+    padding: 4px 12px;
+  }
+}
+
+// --------------------------------------------------
 // Custom Scrollbar — subtle copper on sage
 // --------------------------------------------------
 ::-webkit-scrollbar {

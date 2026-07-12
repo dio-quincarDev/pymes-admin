@@ -8,6 +8,8 @@ import core_pymes.product.dto.ProductoResponse;
 import io.swagger.v3.oas.annotations.Operation;
 import io.swagger.v3.oas.annotations.tags.Tag;
 import jakarta.validation.Valid;
+import org.springframework.data.domain.Page;
+import org.springframework.data.domain.Pageable;
 import org.springframework.http.ResponseEntity;
 import org.springframework.web.bind.annotation.*;
 
@@ -21,6 +23,14 @@ public interface ProductoApi {
     @Operation(summary = "List all products for a tenant")
     @GetMapping
     ResponseEntity<List<ProductoResponse>> findAll(@RequestParam UUID tenantId);
+
+    @Operation(summary = "Search products with optional category filter, name search, and pagination")
+    @GetMapping("/search")
+    ResponseEntity<Page<ProductoResponse>> search(
+            @RequestParam UUID tenantId,
+            @RequestParam(required = false) String category,
+            @RequestParam(required = false) String search,
+            Pageable pageable);
 
     @Operation(summary = "Get product by ID")
     @GetMapping("/{id}")

@@ -216,4 +216,47 @@ class SetupServiceImplTest {
         assertThat(result.get(0).children().get(0).children()).hasSize(1);
         assertThat(result.get(0).children().get(0).children().get(0).code()).isEqualTo("item1");
     }
+
+    @Test
+    void getCategories_withIndustry_returnsCategoryTree() {
+        var tenantId = UUID.randomUUID();
+        var config = new TenantSetup(tenantId);
+        config.completeOnboarding("restaurante");
+        when(repository.findByTenantId(tenantId)).thenReturn(Optional.of(config));
+        var flat = List.of(
+                new SetupResponse.ItemDTO("cat1", "Bebidas", null, null),
+                new SetupResponse.ItemDTO("sub1", "Gaseosas", "cat1", null)
+        );
+        when(jdbc.query(anyString(), any(org.springframework.jdbc.core.RowMapper.class), eq("restaurante")))
+                .thenReturn(flat);
+
+        var result = service.getCategories(tenantId);
+
+        assertThat(result).hasSize(1);
+        assertThat(result.get(0).code()).isEqualTo("cat1");
+        assertThat(result.get(0).children()).hasSize(1);
+        assertThat(result.get(0).children().get(0).code()).isEqualTo("sub1");
+    }
+
+    @Test
+    void getCategories_withoutIndustry_returnsEmptyList() {
+        var tenantId = UUID.randomUUID();
+        var config = new TenantSetup(tenantId); // no industry set
+        when(repository.findByTenantId(tenantId)).thenReturn(Optional.of(config));
+
+        var result = service.getCategories(tenantId);
+
+        assertThat(result).isEmpty();
+        verify(jdbc, never()).query(anyString(), any(org.springframework.jdbc.core.RowMapper.class), anyString());
+    }
+
+    @Test
+    void getCategories_unknownTenant_throws() {
+        var tenantId = UUID.randomUUID();
+        when(repository.findByTenantId(tenantId)).thenReturn(Optional.empty());
+
+        assertThatThrownBy(() -> service.getCategories(tenantId))
+                .isInstanceOf(IllegalArgumentException.class)
+                .hasMessageContaining("Tenant not found");
+    }
 }

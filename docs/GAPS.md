@@ -9,21 +9,26 @@
 
 ## Core Service
 
-| Gap | Documentación dice | Realidad es | Impacto |
-|-----|--------------------|-------------|---------|
-| — | *(sin gaps)* | — | — |
+| # | Gap | Documentación dice | Realidad es | Impacto |
+|---|-----|--------------------|-------------|---------|
+| — | *(sin gaps funcionales)* | — | — | — |
+| 1 | Endpoints no documentados | CORE.md/ARCHITECTURE.md listan solo CRUD clásico | `GET /search` (paginado) y `GET /{tenantId}/categories` existen | Bajo — endpoints internos, frontend los conoce | ✅ |
 
 ## Gateway
 
-| Gap | Documentación dice | Realidad es | Impacto |
-|-----|--------------------|-------------|---------|
-| — | *(sin gaps)* | — | — |
+| # | Gap | Documentación dice | Realidad es | Impacto |
+|---|-----|--------------------|-------------|---------|
+| — | *(sin cambios)* | — | — | — |
+| 1 | CORS bug | Spring Cloud Gateway 3.2.0+ maneja CORS vía `globalcors` | POST devuelve 403 (OPTIONS 200). 7 intentos de fix fallidos | **Alto** — bloquea frontend en auth | Pendiente |
 
 ## Frontend
 
-| Gap | Documentación dice | Realidad es | Impacto |
-|-----|--------------------|-------------|---------|
-| — | *(sin gaps tras correcciones de esta sesión)* | — | — |
+| # | Gap | Documentación dice | Realidad es | Impacto |
+|---|-----|--------------------|-------------|---------|
+| — | *(sin gaps tras correcciones de esta sesión)* | — | — | — |
+| 1 | `presentacionId` ausente en frontend | DTO `ItemFacturaRequest.java` tiene `presentacionId` nullable | `ItemFacturaRequest` TS no tiene el campo, UI no lo envía → backend recibe null → error | **Crítico** — bloquea facturación con presentaciones | Pendiente |
+| 2 | Frontend no usa búsqueda paginada | Backend tiene `GET /search` paginado desde 2026-07-12 | `ProductosPage.vue` y `CatalogDashboard.vue` siguen usando `getAll()` sin paginación | Alto — degradación en catálogos grandes (>100 productos) | Pendiente |
+| 3 | ConfiguracionPage read-only | UI muestra campos editables (categorías, unidades, ubicaciones) | No hay endpoints PUT ni diálogos de edición | Medio — usuario espera poder editar | Pendiente |
 
 ## PostgreSQL
 

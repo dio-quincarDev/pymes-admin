@@ -8,6 +8,7 @@ import lombok.extern.slf4j.Slf4j;
 import org.springframework.http.ResponseEntity;
 import org.springframework.web.bind.annotation.RestController;
 
+import java.util.List;
 import java.util.Map;
 import java.util.UUID;
 
@@ -35,5 +36,11 @@ public class SetupController implements SetupApi {
     public ResponseEntity<SetupResponse> preview(String industry) {
         log.debug("Previewing setup for industry {}", industry);
         return ResponseEntity.ok(setupService.previewIndustry(industry));
+    }
+
+    @Override
+    public ResponseEntity<List<SetupResponse.ItemDTO>> getCategories(UUID tenantId) {
+        log.debug("Getting category tree for tenant {}", tenantId);
+        return ResponseEntity.ok(setupService.getCategories(tenantId));
     }
 }

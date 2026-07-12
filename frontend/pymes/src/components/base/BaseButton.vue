@@ -70,7 +70,7 @@ const handleClick = (e: MouseEvent) => {
   font-weight: 600;
   cursor: pointer;
   border: none;
-  border-radius: 6px;
+  border-radius: 12px;
   transition: all 0.25s cubic-bezier(0.4, 0, 0.2, 1);
   position: relative;
   overflow: hidden;
@@ -109,22 +109,22 @@ const handleClick = (e: MouseEvent) => {
 
   // Sizes
   &.size-xs {
-    padding: 6px 12px;
+    padding: 4px 10px;
     font-size: 12px;
   }
 
   &.size-sm {
-    padding: 8px 16px;
+    padding: 6px 14px;
     font-size: 13px;
   }
 
   &.size-md {
-    padding: 10px 20px;
+    padding: 8px 18px;
     font-size: 14px;
   }
 
   &.size-lg {
-    padding: 14px 28px;
+    padding: 12px 24px;
     font-size: 16px;
   }
 

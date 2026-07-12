@@ -13,6 +13,8 @@ public interface ProveedorRepository extends JpaRepository<Proveedor, UUID> {
 
     List<Proveedor> findByTenantId(UUID tenantId);
 
+    List<Proveedor> findByIdIn(List<UUID> ids);
+
     Optional<Proveedor> findByIdAndTenantId(UUID id, UUID tenantId);
 
     boolean existsByTenantIdAndNameIgnoreCase(UUID tenantId, String name);

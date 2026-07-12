@@ -10,20 +10,68 @@ Registro de lo implementado y lo pendiente.
 
 | Modulo | Estado | Tests |
 |--------|--------|-------|
-| Setup | Implementado | 5 unit + 10 integration |
-| Product | Implementado | 6 unit + 4 integration |
+| Setup | Implementado | 13 unit + 10 integration |
+| Product | Implementado | 11 unit + 30 JPA edge cases |
 | Invoice | Implementado | 7 unit + 4 integration |
 | Analytics | Implementado | 5 unit + 4 JPA |
-| Gasto | Implementado | 17 JPA edge cases |
-| Prestamo | Implementado | 13 JPA edge cases |
-| Inversion | Implementado | 9 JPA edge cases |
-| Venta | Implementado | 13 JPA edge cases |
+| Gasto | Implementado | 17 JPA |
+| Prestamo | Implementado | 13 JPA |
+| Inversion | Implementado | 9 JPA |
+| Venta | Implementado | 13 JPA |
 | Accounting | Implementado | MetricasFinanciera + CTE consolidado |
 | Reportes | Pendiente | Ver FUTURE_MODULES.md |
 
 ---
 
-## 2026-07-09 — 5 modulos nuevos + SQL review + Redis debounce
+## 2026-07-12 — Paginated product search + lazy-load categories + batch fetch + edge cases
+
+### Feature — `GET /core/productos/search`
+
+- `ProductoService.search(tenantId, category, search, pageable)`: 4 paths → repositorio derivado con `ContainingIgnoreCase`
+- `ProductoApi.search()`: endpoint paginado con filtros opcionales (category, name)
+- Batch fetch en `search()`: 3 queries vs N+1 anterior. `mapPresentacionesBatch()` + `mapProveedoresBatch()` reemplazan llamada perezosa por `findByProductoIdIn`/`findByIdIn` con Map lookup
+- Fix: `HashMap` en vez de `Map.of()` para `proveedoresMap` — `Map.of()` lanza NPE con `providerId=null`
+
+### Feature — `GET /core/setup/{tenantId}/categories`
+
+- `SetupService.getCategories()`: lightweight tree builder (category + count), sin cargar productos
+
+### SQL
+
+- `V14__product_search_indexes.sql`: `idx_products_tenant_category` (composite tenant+category) + `idx_products_active_tenant` (partial WHERE is_active)
+
+### Tests — Edge cases con Testcontainers
+
+- `ProductoRepositoryTest`: +9 edge cases (134 total)
+- Paginación extrema: page beyond total (page=99), page size 1 (5 páginas)
+- SQL special chars: `%`, `_`, `'`, `O'Brien` — no rompen query
+- Empty search string → all results, no match → empty page
+- Tenant sin productos, producto con `providerId=null`
+- Batch: IDs inexistentes, cross-tenant isolation
+- Unit tests (`ProductoServiceImplTest`): 4 filter combinations + batch fetch verification
+
+### Files
+
+```
+product/controller/ProductoApi.java                + GET /search
+product/controller/impl/ProductoController.java    delegación
+product/service/ProductoService.java               + search()
+product/service/impl/ProductoServiceImpl.java      search + batch fetch helpers
+product/repository/ProductoRepository.java         +4 paginated query methods
+product/repository/PresentacionRepository.java     +findByProductoIdInAndIsActiveTrue
+invoice/repository/ProveedorRepository.java        +findByIdIn
+setup/controller/SetupApi.java                     + GET /{tenantId}/categories
+setup/controller/impl/SetupController.java         delegación
+setup/service/SetupService.java                    + getCategories()
+setup/service/impl/SetupServiceImpl.java           getCategories implementation
+common/constant/CorePath.java                      + CATEGORIES_ROUTE
+db/migration/V14__product_search_indexes.sql       +2 indexes
+test/.../jpa/ProductoRepositoryTest.java           +9 edge case tests
+test/.../unit/ProductoServiceImplTest.java         5 tests (search delegation + batch)
+test/.../unit/SetupServiceImplTest.java            +getCategories tests
+```
+
+---
 
 ### Nuevos modulos
 

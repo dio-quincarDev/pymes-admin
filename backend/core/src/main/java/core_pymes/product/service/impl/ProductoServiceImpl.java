@@ -20,11 +20,13 @@ import lombok.extern.slf4j.Slf4j;
 import org.springframework.cache.annotation.CacheEvict;
 import org.springframework.cache.annotation.Cacheable;
 import org.springframework.context.ApplicationEventPublisher;
+import org.springframework.data.domain.Page;
+import org.springframework.data.domain.Pageable;
 import org.springframework.stereotype.Service;
 import org.springframework.transaction.annotation.Transactional;
 
-import java.util.List;
-import java.util.UUID;
+import java.util.*;
+import java.util.stream.Collectors;
 
 @Service
 @RequiredArgsConstructor
@@ -44,6 +46,27 @@ public class ProductoServiceImpl implements ProductoService {
         return productoRepository.findByTenantId(tenantId).stream()
                 .map(p -> mapper.toResponse(p, mapPresentaciones(p.getId()), findProveedor(p.getProviderId())))
                 .toList();
+    }
+
+    @Override
+    @Transactional(readOnly = true)
+    public Page<ProductoResponse> search(UUID tenantId, String category, String search, Pageable pageable) {
+        Page<Producto> page;
+        if (category != null && search != null) {
+            page = productoRepository.findByTenantIdAndCategoryAndNameContainingIgnoreCase(tenantId, category, search, pageable);
+        } else if (category != null) {
+            page = productoRepository.findByTenantIdAndCategory(tenantId, category, pageable);
+        } else if (search != null) {
+            page = productoRepository.findByTenantIdAndNameContainingIgnoreCase(tenantId, search, pageable);
+        } else {
+            page = productoRepository.findByTenantId(tenantId, pageable);
+        }
+        var products = page.getContent();
+        var presentacionesMap = mapPresentacionesBatch(products);
+        var proveedoresMap = mapProveedoresBatch(products);
+        return page.map(p -> mapper.toResponse(p,
+                presentacionesMap.getOrDefault(p.getId(), List.of()),
+                proveedoresMap.get(p.getProviderId())));
     }
 
     @Override
@@ -159,5 +182,25 @@ public class ProductoServiceImpl implements ProductoService {
     private Proveedor findProveedor(UUID providerId) {
         if (providerId == null) return null;
         return proveedorRepository.findById(providerId).orElse(null);
+    }
+
+    private Map<UUID, List<PresentacionResponse>> mapPresentacionesBatch(List<Producto> products) {
+        var productIds = products.stream().map(Producto::getId).toList();
+        var presentaciones = presentacionRepository.findByProductoIdInAndIsActiveTrue(productIds);
+        return presentaciones.stream()
+                .collect(Collectors.groupingBy(
+                        Presentacion::getProductId,
+                        Collectors.mapping(mapper::toResponse, Collectors.toList())));
+    }
+
+    private Map<UUID, Proveedor> mapProveedoresBatch(List<Producto> products) {
+        var providerIds = products.stream()
+                .map(Producto::getProviderId)
+                .filter(Objects::nonNull)
+                .distinct()
+                .toList();
+        if (providerIds.isEmpty()) return new HashMap<>();
+        return proveedorRepository.findByIdIn(providerIds).stream()
+                .collect(Collectors.toMap(Proveedor::getId, p -> p));
     }
 }

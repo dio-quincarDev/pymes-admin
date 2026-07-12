@@ -15,6 +15,7 @@ import org.springframework.beans.factory.annotation.Autowired;
 
 import java.math.BigDecimal;
 import java.time.LocalDate;
+import java.util.List;
 import java.util.UUID;
 
 import static org.assertj.core.api.Assertions.assertThat;
@@ -171,6 +172,33 @@ class FacturaRepositoryTest extends AbstractJpaTest {
 
             assertThat(proveedorRepository.findByTenantId(tenantA)).hasSize(1);
             assertThat(proveedorRepository.findById(providerA.getId())).isEmpty();
+        }
+
+        @Test
+        @DisplayName("findByIdIn returns providers matching any of the given ids")
+        void findByIdIn_returnsMatching() {
+            var result = proveedorRepository.findByIdIn(List.of(providerA.getId(), providerB.getId()));
+
+            assertThat(result).hasSize(2);
+            assertThat(result).extracting(Proveedor::getName)
+                    .containsExactlyInAnyOrder("Distribuidora A", "Distribuidora B");
+        }
+
+        @Test
+        @DisplayName("findByIdIn returns only matching ids, ignores missing")
+        void findByIdIn_ignoresMissing() {
+            var result = proveedorRepository.findByIdIn(
+                    List.of(providerA.getId(), UUID.randomUUID()));
+
+            assertThat(result).hasSize(1);
+            assertThat(result.get(0).getName()).isEqualTo("Distribuidora A");
+        }
+
+        @Test
+        @DisplayName("findByIdIn returns empty for empty id list")
+        void findByIdIn_emptyList() {
+            var result = proveedorRepository.findByIdIn(List.of());
+            assertThat(result).isEmpty();
         }
     }
 
