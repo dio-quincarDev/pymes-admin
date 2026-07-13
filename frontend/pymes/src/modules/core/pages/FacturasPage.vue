@@ -62,22 +62,37 @@
 
     <!-- Create Invoice Dialog -->
     <q-dialog v-model="dialogOpen" dark maximized>
-      <q-card dark class="bg-surface-pine" style="max-width: 700px">
-        <q-card-section>
-          <div class="text-h6 text-primary">Nueva Factura</div>
-        </q-card-section>
-        <q-separator dark />
-        <q-card-section>
+      <q-card dark class="bg-surface-pine invoice-dialog">
+        <!-- Dialog header -->
+        <div class="invoice-dialog__header">
+          <div class="invoice-dialog__header-content">
+            <div class="invoice-dialog__title">
+              <q-icon name="receipt_long" size="1.4rem" class="text-primary" />
+              <span class="text-h6 text-primary q-ml-sm">Nueva Factura</span>
+            </div>
+            <div class="invoice-dialog__subtitle">Registro de compra a proveedor</div>
+          </div>
+          <q-btn flat round icon="close" color="accent" v-close-popup size="sm" class="invoice-dialog__close" />
+        </div>
+
+        <q-separator dark class="invoice-dialog__separator" />
+
+        <q-card-section class="invoice-dialog__body">
           <q-form @submit.prevent="save" class="q-gutter-y-md">
+            <!-- Provider -->
             <q-select
-              dark filled v-model="form.proveedorId"
+              dark filled standout v-model="form.proveedorId"
               :options="providerFilteredOptions"
               label="Proveedor"
               :rules="[v => !!v || 'Requerido']"
               map-options emit-value
               use-input
               @filter="providerFilter"
+              popup-content-class="product-dropdown"
             >
+              <template v-slot:prepend>
+                <q-icon name="business" size="1rem" class="text-primary" />
+              </template>
               <template v-slot:option="{ itemProps, opt }">
                 <q-item v-bind="itemProps">
                   <q-item-section>
@@ -90,19 +105,39 @@
               </template>
             </q-select>
 
+            <!-- Date + Type row -->
             <div class="row q-col-gutter-md">
               <div class="col-6">
-                <q-input dark filled v-model="form.fecha" label="Fecha" type="date" :rules="[v => !!v || 'Requerido']" />
+                <q-input dark filled standout v-model="form.fecha" label="Fecha" type="date" :rules="[v => !!v || 'Requerido']">
+                  <template v-slot:prepend><q-icon name="calendar_today" size="1rem" class="text-primary" /></template>
+                </q-input>
               </div>
               <div class="col-6">
-                <q-select dark filled v-model="form.tipo" :options="['FACTURA', 'GASTO_OPERATIVO']" label="Tipo" :rules="[v => !!v || 'Requerido']" />
+                <q-select dark filled standout v-model="form.tipo" :options="['FACTURA', 'GASTO_OPERATIVO']" label="Tipo" :rules="[v => !!v || 'Requerido']">
+                  <template v-slot:prepend><q-icon name="category" size="1rem" class="text-primary" /></template>
+                </q-select>
               </div>
             </div>
 
-            <q-select dark filled v-model="form.metodoPago" :options="['EFECTIVO', 'TRANSFERENCIA', 'TARJETA', 'CHEQUE']" label="Método de pago" clearable />
+            <!-- Payment method -->
+            <q-select dark filled standout v-model="form.metodoPago" :options="['EFECTIVO', 'TRANSFERENCIA', 'TARJETA', 'CHEQUE']" label="Método de pago" clearable>
+              <template v-slot:prepend><q-icon name="payment" size="1rem" class="text-primary" /></template>
+            </q-select>
 
-            <q-separator dark />
-            <div class="text-subtitle2 text-primary q-mb-sm">Items</div>
+            <q-separator dark class="invoice-dialog__section-sep" />
+
+            <!-- Items header -->
+            <div class="items-header">
+              <div class="items-header__title">
+                <q-icon name="list" size="1rem" class="text-primary" />
+                <span class="text-subtitle2 text-primary">Items</span>
+                <q-badge v-if="form.items.length" :label="form.items.length" color="accent" text-color="dark" class="q-ml-xs items-count-badge" />
+              </div>
+              <div class="items-header__total" v-if="form.items.length">
+                <span class="items-header__total-label">Total</span>
+                <span class="items-header__total-value">{{ formatCurrency(computedTotal) }}</span>
+              </div>
+            </div>
 
             <CategoryTabs v-model="activeCategory" :categories="setupCategories" />
 
@@ -111,27 +146,51 @@
               :item="item" :index="i"
               :product-options="filteredByCategory"
               :unit-options="unitOptions(item.productoId)"
+              :presentation-conversion-map="presentationConversionMap"
+              :base-unit-name="baseUnitNameFor(item)"
               @update:productoId="onProductoChange(item, $event)"
-              @update:presentacionId="item.presentacionId = $event"
+              @update:presentacionId="onPresentacionChange(item, $event)"
               @update:cantidad="item.cantidad = $event"
               @update:precioUnitario="item.precioUnitario = $event"
               @update:descuento="item.descuento = $event"
               @remove="removeItem(i)"
+              class="invoice-item-enter"
             />
 
-            <q-btn outline color="primary" icon="add" label="Agregar item" @click="addItem" class="q-mt-sm" />
+            <q-btn
+              outline color="primary" icon="add" label="Agregar item"
+              @click="addItem" class="add-item-btn"
+              no-caps
+            />
 
-            <div class="row justify-end">
-              <div class="text-body1 text-weight-bold text-secondary">
-                Total: {{ formatCurrency(computedTotal) }}
+            <!-- Total bar -->
+            <Transition name="total-slide">
+              <div v-if="form.items.length" class="total-bar">
+                <div class="total-bar__content">
+                  <div class="total-bar__detail">
+                    <span class="total-bar__label">Subtotal</span>
+                    <span class="total-bar__value">{{ formatCurrency(form.items.reduce((s, i) => s + (i.cantidad || 0) * (i.precioUnitario || 0) * (1 - (i.descuento || 0) / 100), 0)) }}</span>
+                  </div>
+                  <q-icon name="arrow_right" size="1rem" class="text-accent" />
+                  <div class="total-bar__detail total-bar__detail--total">
+                    <span class="total-bar__label">Total</span>
+                    <span class="total-bar__value total-bar__value--total">{{ formatCurrency(computedTotal) }}</span>
+                  </div>
+                </div>
               </div>
-            </div>
+            </Transition>
 
-            <q-separator dark />
+            <q-separator dark class="invoice-dialog__footer-sep" />
 
-            <div class="row justify-end q-gutter-x-sm">
-              <q-btn flat label="Cancelar" color="accent" v-close-popup />
-              <q-btn type="submit" label="Guardar Factura" color="primary" :loading="saving" />
+            <!-- Actions -->
+            <div class="dialog-actions">
+              <q-btn flat label="Cancelar" color="accent" v-close-popup no-caps class="dialog-actions__cancel" />
+              <q-btn
+                type="submit" label="Guardar Factura" color="primary"
+                :loading="saving" no-caps
+                icon="save"
+                class="dialog-actions__save"
+              />
             </div>
           </q-form>
         </q-card-section>
@@ -166,7 +225,7 @@ import { formatCurrency } from 'src/utils/format'
 import { facturaService } from '../services/factura.service'
 import { productoService } from '../services/producto.service'
 import { proveedorService } from '../services/proveedor.service'
-import type { Factura, FacturaRequest, SetupInfo, SetupCategory, ProductOption } from '../types'
+import type { Factura, FacturaRequest, SetupInfo, SetupCategory, ProductOption, Producto } from '../types'
 import { api } from 'src/boot/axios'
 import CategoryTabs from '../components/facturas/CategoryTabs.vue'
 import InvoiceItemCard from '../components/facturas/InvoiceItemCard.vue'
@@ -187,6 +246,7 @@ const filter = shallowRef('')
 const pagination = shallowRef({ sortBy: 'issueDate', descending: true, page: 1, rowsPerPage: 15 })
 
 const allProducts = ref<ProductOption[]>([])
+const prodsData = ref<Producto[]>([])
 const productPresentationsMap = ref<Map<string, { label: string; value: string }[]>>(new Map())
 const activeCategory = shallowRef('')
 const providerOptions = ref<{ label: string; value: string }[]>([])
@@ -196,6 +256,7 @@ const setupUnits = ref<{ code: string; name: string }[]>([])
 const detailDialog = shallowRef(false)
 const detailItem = shallowRef<Factura | null>(null)
 const presentationNameMap = ref<Map<string, string>>(new Map())
+const presentationConversionMap = ref<Map<string, number>>(new Map())
 
 function openDetail(f: Factura) {
   detailItem.value = f
@@ -310,6 +371,25 @@ function onProductoChange(item: ItemForm, productoId: string | null) {
   item.precioUnitario = prod?.lastUnitPrice ?? null
 }
 
+function onPresentacionChange(item: ItemForm, presId: string | null) {
+  item.presentacionId = presId
+  if (!item.productoId) return
+  const prod = allProducts.value.find(p => p.value === item.productoId)
+  if (!prod) return
+  if (presId) {
+    const conv = presentationConversionMap.value.get(presId) || 1
+    item.precioUnitario = conv > 1 && prod.lastUnitPrice != null ? prod.lastUnitPrice / conv : prod.lastUnitPrice ?? null
+  } else {
+    item.precioUnitario = prod.lastUnitPrice ?? null
+  }
+}
+
+function baseUnitNameFor(item: ItemForm): string {
+  if (!item.productoId) return ''
+  const prods = prodsData.value.find(p => p.id === item.productoId)
+  return prods ? (unitNameMap.value.get(prods.baseUnit) || prods.baseUnit) : ''
+}
+
 function removeItem(i: number) {
   form.value.items.splice(i, 1)
 }
@@ -319,7 +399,7 @@ const computedTotal = computed(() => {
     const qty = item.cantidad || 0
     const price = item.precioUnitario || 0
     const disc = item.descuento || 0
-    return sum + (qty * price - disc)
+    return sum + (qty * price * (1 - disc / 100))
   }, 0)
   const gd = form.value.descuentoGlobal || 0
   return Math.max(0, itemsTotal - gd)
@@ -373,41 +453,49 @@ async function openCreate() {
 
 watch(() => form.value.proveedorId, onProviderSelected)
 
+function mapProductsToOptions(prods: Producto[]): ProductOption[] {
+  return prods.map(p => ({
+    label: `${p.name}${p.proveedorName ? ` · ${p.proveedorName}` : ''}`,
+    value: p.id,
+    productName: p.name,
+    sku: p.sku,
+    category: p.category,
+    proveedorId: p.proveedorId,
+    proveedorName: p.proveedorName,
+    lastUnitPrice: p.lastUnitPrice,
+  }))
+}
+
 async function loadDependencies() {
   try {
-    const [prods, provs, setupRes] = await Promise.all([
-      productoService.getAll(tenantId),
+    const [provs, setupRes, prodsRes] = await Promise.all([
       proveedorService.getAll(tenantId),
       api.get<SetupInfo>(`/core/setup/${tenantId}`),
+      productoService.search(tenantId, { page: 0, size: 100 }),
     ])
     setupCategories.value = setupRes.data.categories || []
     setupUnits.value = setupRes.data.units || []
-    allProducts.value = prods.data.map(p => ({
-      label: `${p.name}${p.proveedorName ? ` · ${p.proveedorName}` : ''}`,
-      value: p.id,
-      productName: p.name,
-      sku: p.sku,
-      category: p.category,
-      proveedorId: p.proveedorId,
-      proveedorName: p.proveedorName,
-      lastUnitPrice: p.lastUnitPrice,
-    }))
-    const presMap = new Map<string, { label: string; value: string }[]>()
-    const presNameMap = new Map<string, string>()
-    for (const p of prods.data) {
-      const baseUnitName = unitNameMap.value.get(p.baseUnit) || p.baseUnit
-      const opts: { label: string; value: string }[] = [{ label: baseUnitName, value: '' }]
-      for (const pres of (p.presentaciones || [])) {
-        opts.push({ label: pres.name, value: pres.id })
-        presNameMap.set(pres.id, pres.name)
-      }
-      presMap.set(p.id, opts)
-    }
-    presentationNameMap.value = presNameMap
-    productPresentationsMap.value = presMap
     const provOpts = provs.data.map(p => ({ label: p.name, value: p.id }))
     providerOptions.value = provOpts
     providerFilteredOptions.value = [...provOpts]
+    prodsData.value = prodsRes.data.content
+    allProducts.value = mapProductsToOptions(prodsRes.data.content)
+    const presMap = new Map<string, { label: string; value: string }[]>()
+    const presNameMap = new Map<string, string>()
+    const convMap = new Map<string, number>()
+    for (const p of prodsRes.data.content) {
+      const baseUnitName = unitNameMap.value.get(p.baseUnit) || p.baseUnit
+      const unitOpts: { label: string; value: string }[] = [{ label: baseUnitName, value: '' }]
+      for (const pres of (p.presentaciones || [])) {
+        unitOpts.push({ label: pres.name, value: pres.id })
+        presNameMap.set(pres.id, pres.name)
+        convMap.set(pres.id, pres.conversion)
+      }
+      presMap.set(p.id, unitOpts)
+    }
+    presentationNameMap.value = presNameMap
+    presentationConversionMap.value = convMap
+    productPresentationsMap.value = presMap
   } catch {
     $q.notify({ type: 'negative', message: 'Error al cargar datos del formulario' })
   }
@@ -428,7 +516,7 @@ async function save() {
         presentacionId: item.presentacionId || null,
         cantidad: item.cantidad || 0,
         precioUnitario: item.precioUnitario || 0,
-        descuento: item.descuento || 0,
+        descuento: (item.cantidad || 0) * (item.precioUnitario || 0) * ((item.descuento || 0) / 100),
       })),
     }
     const res = await facturaService.create(payload)
@@ -504,3 +592,234 @@ onMounted(async () => {
   await Promise.all([load(), loadDependencies()])
 })
 </script>
+
+<style scoped>
+/* ─── Invoice Dialog ─── */
+.invoice-dialog {
+  max-width: 720px;
+  border-radius: 16px;
+  overflow: hidden;
+}
+
+.invoice-dialog__header {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  padding: 16px 20px 12px;
+}
+
+.invoice-dialog__header-content {
+  display: flex;
+  flex-direction: column;
+  gap: 2px;
+}
+
+.invoice-dialog__title {
+  display: flex;
+  align-items: center;
+}
+
+.invoice-dialog__subtitle {
+  font-size: 0.78rem;
+  color: rgba(163, 120, 94, 0.5);
+  padding-left: 2rem;
+}
+
+.invoice-dialog__close {
+  opacity: 0.5;
+  transition: opacity 0.15s ease;
+}
+
+.invoice-dialog__close:hover {
+  opacity: 1;
+}
+
+.invoice-dialog__separator {
+  opacity: 0.3;
+}
+
+.invoice-dialog__body {
+  padding: 16px 20px 20px;
+}
+
+.invoice-dialog__section-sep {
+  opacity: 0.15;
+  margin: 4px 0;
+}
+
+.invoice-dialog__footer-sep {
+  opacity: 0.15;
+  margin: 4px 0 0;
+}
+
+/* ─── Items header ─── */
+.items-header {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  padding: 4px 0;
+}
+
+.items-header__title {
+  display: flex;
+  align-items: center;
+  gap: 4px;
+}
+
+.items-count-badge {
+  font-size: 0.65rem;
+  font-weight: 700;
+  min-width: 18px;
+  height: 18px;
+}
+
+.items-header__total {
+  display: flex;
+  align-items: baseline;
+  gap: 6px;
+}
+
+.items-header__total-label {
+  font-size: 0.7rem;
+  font-weight: 500;
+  text-transform: uppercase;
+  letter-spacing: 0.04em;
+  color: rgba(163, 120, 94, 0.45);
+}
+
+.items-header__total-value {
+  font-family: 'JetBrains Mono', 'SF Mono', 'Fira Code', monospace;
+  font-size: 1rem;
+  font-weight: 700;
+  color: rgba(212, 175, 55, 0.9);
+  font-variant-numeric: tabular-nums;
+}
+
+/* ─── Add item button ─── */
+.add-item-btn {
+  width: 100%;
+  border-style: dashed;
+  border-width: 1.5px;
+  opacity: 0.6;
+  transition: opacity 0.2s ease, border-color 0.2s ease;
+}
+
+.add-item-btn:hover {
+  opacity: 1;
+  border-color: rgba(163, 120, 94, 0.4);
+}
+
+/* ─── Total bar ─── */
+.total-bar {
+  background:
+    linear-gradient(135deg, rgba(163, 120, 94, 0.06) 0%, rgba(212, 175, 55, 0.04) 100%);
+  border: 1px solid rgba(163, 120, 94, 0.12);
+  border-radius: 10px;
+  padding: 10px 14px;
+}
+
+.total-bar__content {
+  display: flex;
+  align-items: center;
+  justify-content: flex-end;
+  gap: 12px;
+}
+
+.total-bar__detail {
+  display: flex;
+  flex-direction: column;
+  align-items: flex-end;
+  gap: 1px;
+}
+
+.total-bar__label {
+  font-size: 0.68rem;
+  font-weight: 500;
+  text-transform: uppercase;
+  letter-spacing: 0.04em;
+  color: rgba(163, 120, 94, 0.45);
+}
+
+.total-bar__value {
+  font-family: 'JetBrains Mono', 'SF Mono', 'Fira Code', monospace;
+  font-size: 0.85rem;
+  font-weight: 600;
+  color: rgba(163, 120, 94, 0.7);
+  font-variant-numeric: tabular-nums;
+}
+
+.total-bar__detail--total {
+  align-items: flex-end;
+}
+
+.total-bar__value--total {
+  font-size: 1.05rem;
+  font-weight: 800;
+  color: rgba(212, 175, 55, 0.95);
+}
+
+/* ─── Total transition ─── */
+.total-slide-enter-active {
+  transition: all 0.3s cubic-bezier(0.4, 0, 0.2, 1);
+}
+
+.total-slide-leave-active {
+  transition: all 0.2s cubic-bezier(0.4, 0, 0.2, 1);
+}
+
+.total-slide-enter-from {
+  opacity: 0;
+  transform: translateY(-8px);
+}
+
+.total-slide-leave-to {
+  opacity: 0;
+  transform: translateY(-8px);
+}
+
+/* ─── Dialog actions ─── */
+.dialog-actions {
+  display: flex;
+  align-items: center;
+  justify-content: flex-end;
+  gap: 8px;
+  padding-top: 4px;
+}
+
+.dialog-actions__cancel {
+  opacity: 0.7;
+  transition: opacity 0.15s ease;
+}
+
+.dialog-actions__cancel:hover {
+  opacity: 1;
+}
+
+.dialog-actions__save {
+  font-weight: 600;
+  letter-spacing: 0.02em;
+  border-radius: 8px;
+  padding: 6px 20px;
+}
+
+/* ─── Invoice item enter animation ─── */
+.invoice-item-enter {
+  animation: itemAppear 0.3s cubic-bezier(0.4, 0, 0.2, 1);
+}
+
+@keyframes itemAppear {
+  from {
+    opacity: 0;
+    transform: translateY(-8px);
+  }
+  to {
+    opacity: 1;
+    transform: translateY(0);
+  }
+}
+
+/* ─── Dropdown styling ─── */
+.product-dropdown {
+  font-size: 0.85rem;
+}
+</style>
