@@ -1,7 +1,7 @@
 <script setup lang="ts">
 import { ref, computed } from 'vue'
 
-export interface ProductOption { label: string; value: string; productName: string; sku: string; category: string; proveedorId: string | null; proveedorName: string | null }
+export interface ProductOption { label: string; value: string; productName: string; sku: string; category: string; proveedorId: string | null; proveedorName: string | null; lastUnitPrice: number | null }
 
 interface ItemForm {
   _key: number

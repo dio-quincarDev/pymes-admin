@@ -1,232 +1,97 @@
 # FUTURE.md — Frontend: Modulos Core
 
-> **Fecha:** 2026-07-09
-> **Objetivo:** Documentar los modulos backend implementados y las pantallas frontend que faltan para conectar con ellos.
+> **Fecha:** 2026-07-12
+> **Objetivo:** Documentar el estado de los modulos backend y frontend.
 
 ---
 
 ## Estado Actual
 
-Backend tiene 5 modulos nuevos funcionando. Frontend no tiene pantallas para ninguno.
+Backend y frontend de los 5 modulos core estan completos.
 
-| Modulo backend | Ruta API | Pagina frontend | Service | Composable |
-|----------------|----------|-----------------|---------|------------|
-| Gastos | `/api/v1/core/gastos` | ❌ | ❌ | ❌ |
-| Ventas | `/api/v1/core/ventas` | ❌ | ❌ | ❌ |
-| Prestamos | `/api/v1/core/prestamos` | ❌ | ❌ | ❌ |
-| Patrimonio | `/api/v1/core/patrimonio/{tenantId}` | ❌ | ❌ | ❌ |
-| Accounting | `/api/v1/core/accounting` | ❌ | ❌ | ❌ |
-
----
-
-## Gastos Operativos
-
-### Backend
-
-- **Tabla:** `core.operating_expenses`
-- **Entidad:** `GastoOperativo.java`
-- **Enum categorias:** `SALARIOS`, `AGUA`, `LUZ`, `INTERNET`, `ALQUILER`, `MANTENIMIENTO`, `PUBLICIDAD`, `OTROS`
-- **Endpoints:**
-  ```
-  POST   /api/v1/core/gastos           # Crear
-  GET    /api/v1/core/gastos           # Listar (filtros: fecha, categoria)
-  GET    /api/v1/core/gastos/{id}      # Obtener
-  PUT    /api/v1/core/gastos/{id}      # Actualizar
-  DELETE /api/v1/core/gastos/{id}      # Soft delete
-  ```
-- **Campos:** id, tenantId, category, description, amount, expenseDate, paymentMethod, isActive
-- **Evento:** `GastoCreadoEvent` → debounce → recalcular metricas
-
-### Frontend a crear
-
-```
-pages/GastosPage.vue              # CRUD tabla + filtros
-services/gasto.service.ts         # API calls
-composables/useGastos.ts          # logica
-components/gastos/
-├── GastoFormDialog.vue           # Dialog crear/editar
-└── GastoFilters.vue              # Filtros fecha/categoria
-```
-
-### Ruta
-
-```
-/dashboard/gastos → GastosPage.vue
-```
+| Modulo backend | Ruta API | Pagina frontend | Service | Sidebar |
+|----------------|----------|-----------------|---------|---------|
+| Gastos | `/api/v1/core/gastos` | ✅ `GastosPage.vue` | ✅ `gasto.service.ts` | ✅ habilitado |
+| Ventas | `/api/v1/core/ventas` | ✅ `VentasPage.vue` | ✅ `venta.service.ts` | ✅ habilitado |
+| Prestamos | `/api/v1/core/prestamos` | ✅ `PrestamosPage.vue` | ✅ `prestamo.service.ts` | ✅ habilitado |
+| Patrimonio | `/api/v1/core/patrimonio/{tenantId}` | ✅ `PatrimonioPage.vue` | ✅ `patrimonio.service.ts` | ✅ habilitado |
+| Accounting | `/api/v1/core/accounting` | ✅ `AccountingPage.vue` | ✅ `accounting.service.ts` | ✅ habilitado |
 
 ---
 
-## Ventas Diarias
+## Modulos implementados
 
-### Backend
+### Gastos Operativos
 
-- **Tabla:** `core.daily_sales`
-- **Entidad:** `VentaDiaria.java`
-- **Endpoints:**
-  ```
-  POST   /api/v1/core/ventas           # Crear
-  GET    /api/v1/core/ventas           # Listar (filtros: fecha)
-  GET    /api/v1/core/ventas/{id}      # Obtener
-  PUT    /api/v1/core/ventas/{id}      # Actualizar
-  DELETE /api/v1/core/ventas/{id}      # Soft delete
-  ```
-- **Campos:** id, tenantId, saleDate, grossAmount, description, isActive
-- **Evento:** `VentaCreadaEvent` → debounce → recalcular metricas
+- **Pagina:** `GastosPage.vue` — CRUD tabla QTable + dialog crear/editar + dialog confirmar eliminar
+- **Service:** `gasto.service.ts` — getAll, getById, create, update, remove
+- **Tipos:** `GastoOperativo`, `GastoRequest` en `types/index.ts`
+- **Ruta:** `/dashboard/gastos`
+- **Sidebar:** `{ title: 'Gastos', icon: 'money_off', path: '/dashboard/gastos' }`
+- **Features:** filtros por categoría, selector de método de pago, validación QForm, glass morphism en dialogs, responsive `width: 90vw; max-width: 480px`
 
-### Frontend a crear
+### Ventas Diarias
 
-```
-pages/VentasPage.vue              # CRUD tabla + filtros
-services/venta.service.ts         # API calls
-composables/useVentas.ts          # logica
-components/ventas/
-├── VentaFormDialog.vue           # Dialog crear/editar
-└── VentaResumenCard.vue          # Card resumen ventas del dia
-```
+- **Pagina:** `VentasPage.vue` — CRUD tabla QTable + dialog crear/editar + dialog confirmar eliminar
+- **Service:** `venta.service.ts` — getAll, getById, create, update, remove
+- **Tipos:** `VentaDiaria`, `VentaRequest` en `types/index.ts`
+- **Ruta:** `/dashboard/ventas`
+- **Sidebar:** `{ title: 'Ventas', icon: 'point_of_sale', path: '/dashboard/ventas' }`
+- **Features:** fecha, monto bruto, descripción, validación QForm, glass morphism en dialogs
 
-### Ruta
+### Préstamos + Pagos
 
-```
-/dashboard/ventas → VentasPage.vue
-```
+- **Pagina:** `PrestamosPage.vue` — CRUD tabla QTable + dialog crear/editar + dialog pagos inline
+- **Service:** `prestamo.service.ts` — getAll, getById, create, update, remove, getPagos, createPago
+- **Tipos:** `Prestamo`, `PagoPrestamo`, `PrestamoRequest`, `PagoPrestamoRequest` en `types/index.ts`
+- **Ruta:** `/dashboard/prestamos`
+- **Sidebar:** `{ title: 'Préstamos', icon: 'account_balance', path: '/dashboard/prestamos' }`
+- **Features:** tabla de pagos con historial, formulario de pago inline, badge de estado (ACTIVO/PAGADO), validación QForm
 
----
+### Patrimonio
 
-## Prestamos + Pagos
+- **Pagina:** `PatrimonioPage.vue` — KPI cards estilo KpiCard + card de configuración editable
+- **Service:** `patrimonio.service.ts` — get (get-or-create), update
+- **Tipos:** `Patrimonio`, `PatrimonioRequest` en `types/index.ts`
+- **Ruta:** `/dashboard/patrimonio`
+- **Sidebar:** `{ title: 'Patrimonio', icon: 'savings', path: '/dashboard/patrimonio' }`
+- **Features:** 3 KPI cards con accent borders (capital, fecha, estado), toggle editar/guardar, empty state con glass, stagger animation
 
-### Backend
+### Accounting (Métricas Financieras)
 
-- **Tablas:** `core.loans`, `core.loan_payments`
-- **Entidades:** `Prestamo.java`, `PagoPrestamo.java`
-- **Enum estado:** `ACTIVO`, `PAGADO`, `CANCELADO`
-- **Endpoints:**
-  ```
-  POST   /api/v1/core/prestamos             # Crear prestamo
-  GET    /api/v1/core/prestamos             # Listar
-  GET    /api/v1/core/prestamos/{id}        # Obtener
-  PUT    /api/v1/core/prestamos/{id}        # Actualizar
-  DELETE /api/v1/core/prestamos/{id}        # Soft delete
-  POST   /api/v1/core/prestamos/{id}/pagos  # Registrar pago
-  GET    /api/v1/core/prestamos/{id}/pagos  # Historial pagos
-  ```
-- **Campos prestamo:** id, tenantId, name, lender, amount, interestRate, termMonths, startDate, remainingBalance, status, notes, isActive
-- **Campos pago:** id, loanId, amount, interestPaid, principalPaid, paymentDate, paymentMethod
-
-### Frontend a crear
-
-```
-pages/PrestamosPage.vue           # Tabla prestamos + pagos
-services/prestamo.service.ts      # API calls
-composables/usePrestamos.ts       # logica
-components/prestamos/
-├── PrestamoFormDialog.vue        # Dialog crear/editar prestamo
-├── PagoFormDialog.vue            # Dialog registrar pago
-├── AmortizationTable.vue         # Tabla amortizacion mes a mes
-└── PrestamoStatusBadge.vue       # Badge estado (activo/pagado/cancelado)
-```
-
-### Ruta
-
-```
-/dashboard/prestamos → PrestamosPage.vue
-```
+- **Pagina:** `AccountingPage.vue` — 6 metric cards estilo KpiCard + resumen de gastos
+- **Service:** `accounting.service.ts` — consultar, recalcular
+- **Tipos:** `MetricasFinancieras` en `types/index.ts`
+- **Ruta:** `/dashboard/accounting`
+- **Sidebar:** `{ title: 'Contabilidad', icon: 'balance', path: '/dashboard/accounting' }`
+- **Features:** selector de período YYYY-MM, botón recalcular, 6 cards con accent borders (ingresos, costos, gastos, margen bruto/operativo/neto), resumen de gastos en glass card, stagger animation
 
 ---
 
-## Patrimonio
+## Otros archivos nuevos
 
-### Backend
-
-- **Tabla:** `core.patrimony`
-- **Entidad:** `Patrimonio.java` (PK = tenant_id, una fila por tenant)
-- **Endpoints:**
-  ```
-  GET    /api/v1/core/patrimonio/{tenantId}   # Obtener (get-or-create)
-  PUT    /api/v1/core/patrimonio/{tenantId}   # Actualizar
-  ```
-- **Campos:** tenantId, initialCapital, startDate, notes
-- **NOTA:** No hay POST. Se crea automaticamente si no existe (get-or-create).
-
-### Frontend a crear
-
-```
-pages/PatrimonioPage.vue          # Capital actual + dashboard ROI
-services/patrimonio.service.ts    # API calls
-composables/usePatrimonio.ts      # logica
-components/patrimonio/
-├── PatrimonioForm.vue            # Form capital inicial (solo si no existe)
-├── RoiDashboard.vue              # Dashboard ROI (capital, deuda, proyeccion)
-└── DeudaGananciaChart.vue        # Grafico deuda vs ganancia
-```
-
-### Ruta
-
-```
-/dashboard/patrimonio → PatrimonioPage.vue
-```
+- **`src/utils/format.ts`** — `formatCurrency()` + `formatPct()` como singletones `Intl.NumberFormat`. Usado por todas las páginas CRUD y AccountingPage.
 
 ---
 
-## Accounting (Metricas Financieras)
+## Cambios en archivos existentes
 
-### Backend
-
-- **Tabla:** `core.tenant_financial_metrics`
-- **Entidad:** `MetricasFinanciera.java`
-- **Query:** CTE consolidado que consulta ventas + facturas + gastos + prestamos en 1 round-trip
-- **Endpoints:**
-  ```
-  GET    /api/v1/core/accounting/consultar?tenantId={uuid}&periodo=YYYY-MM
-  POST   /api/v1/core/accounting/recalcular?tenantId={uuid}&periodo=YYYY-MM
-  ```
-- **Campos:** totalIncome, costOfGoods, operatingExpenses, loanPayments, totalExpenses, grossMargin, grossMarginPct, operatingMargin, operatingMarginPct, netMargin, netMarginPct
-- **Debounce:** Las metricas se recalculan automaticamente cuando hay cambios en gastos, ventas o facturas (Redis debounce, 30s)
-
-### Frontend a crear
-
-```
-pages/AccountingPage.vue          # Dashboard financiero completo
-services/accounting.service.ts    # API calls
-composables/useAccounting.ts      # logica
-components/accounting/
-├── MetricasCard.vue              # Card margen bruto/operativo/neto
-├── PeriodoSelector.vue           # Selector periodo YYYY-MM
-└── RecalcularButton.vue          # Boton recalcular con feedback
-```
-
-### Ruta
-
-```
-/dashboard/accounting → AccountingPage.vue
-```
+| Archivo | Cambios |
+|---------|---------|
+| `types/index.ts` | +GastoOperativo, +GastoRequest, +VentaDiaria, +VentaRequest, +Prestamo, +PagoPrestamo, +PrestamoRequest, +PagoPrestamoRequest, +Patrimonio, +PatrimonioRequest, +MetricasFinancieras, +PageResponse\<T\>, +ProductOption.lastUnitPrice |
+| `producto.service.ts` | +search() paginado |
+| `FacturasPage.vue` | +auto-fill precioUnitario via onProductoChange(), import order fix, shared formatCurrency, filteredByProvider fix (quitar !p.proveedorId del filtro) |
+| `ProductosPage.vue` | -minQuantity/maxQuantity del form (removido del template + openCreate + openEdit), shared formatCurrency, import order fix |
+| `router/routes.ts` | +5 rutas: gastos, ventas, prestamos, patrimonio, accounting |
+| `MainLayout.vue` | sidebar: 5 items habilitados (antes `disabled: true`) |
 
 ---
 
-## Sidebar — Items nuevos
+## Pendiente conocido
 
-```typescript
-// Agregar a MainLayout.vue → links[]
-{ title: 'Gastos', icon: 'money_off', path: '/dashboard/gastos' },
-{ title: 'Ventas', icon: 'point_of_sale', path: '/dashboard/ventas' },
-{ title: 'Préstamos', icon: 'account_balance', path: '/dashboard/prestamos' },
-{ title: 'Patrimonio', icon: 'savings', path: '/dashboard/patrimonio' },
-{ title: 'Contabilidad', icon: 'balance', path: '/dashboard/accounting' },
-```
-
----
-
-## Resumen de archivos
-
-| Tipo | Cantidad | Archivos |
-|------|----------|----------|
-| Paginas | 5 | Gastos, Ventas, Prestamos, Patrimonio, Accounting |
-| Services | 5 | gasto, venta, prestamo, patrimonio, accounting |
-| Composables | 4 | useGastos, useVentas, usePrestamos, useAccounting |
-| Componentes | 12 | dialogs, cards, charts, tables |
-| **Total** | **26** | — |
-
-### Dependencias
-
-- **Chart.js** ya esta en `package.json` (para graficos de patrimonio/accounting)
-- **Quasar QTable, QDialog, QSelect, QDate** ya disponibles
-- **PeriodoSelector** puede reutilizar logica de `usePeriod.ts` existente
+- **Descuento porcentaje:** `InvoiceItemCard.vue` — input con `suffix="%"` en vez de `prefix="$"`. Subtotal usa `qty*price*(1-disc/100)`. Backend recibe monto calculado sin cambios.
+- **Precio unitario por conversión:** Al seleccionar presentación con `conversion>1`, `precioUnitario = lastUnitPrice/conversion`. Badge de conversión. Cantidad siempre en unidades base. Escala a gramos/kilos/unidades/cajas.
+- **Listas infinitas:** Quitar `productoService.getAll()` de `FacturasPage.vue`. Usar `search()` paginado por categoría en `loadDependencies()` + watch sobre `activeCategory`. `ProductosPage.vue`: tabla con `search()` paginado en vez de `getAll()`.
+- ConfiguracionPage: CRUD edición (pendiente backend PUT endpoint)
+- Tests frontend
+- SEO: og:image, meta description, JSON-LD

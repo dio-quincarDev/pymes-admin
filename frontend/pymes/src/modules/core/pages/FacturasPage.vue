@@ -111,7 +111,7 @@
               :item="item" :index="i"
               :product-options="filteredByCategory"
               :unit-options="unitOptions(item.productoId)"
-              @update:productoId="item.productoId = $event; item.presentacionId = null"
+              @update:productoId="onProductoChange(item, $event)"
               @update:presentacionId="item.presentacionId = $event"
               @update:cantidad="item.cantidad = $event"
               @update:precioUnitario="item.precioUnitario = $event"
@@ -162,8 +162,7 @@
 import { ref, shallowRef, computed, watch, onMounted, nextTick } from 'vue'
 import { useQuasar, useMeta } from 'quasar'
 import { useAuthStore } from 'src/modules/auth/store'
-
-useMeta({ title: 'Facturas — PYMEQ' });
+import { formatCurrency } from 'src/utils/format'
 import { facturaService } from '../services/factura.service'
 import { productoService } from '../services/producto.service'
 import { proveedorService } from '../services/proveedor.service'
@@ -173,6 +172,8 @@ import CategoryTabs from '../components/facturas/CategoryTabs.vue'
 import InvoiceItemCard from '../components/facturas/InvoiceItemCard.vue'
 import InvoiceDetailDialog from '../components/facturas/InvoiceDetailDialog.vue'
 import ConfirmDialog from '../components/facturas/ConfirmDialog.vue'
+
+useMeta({ title: 'Facturas — PYMEQ' })
 
 const $q = useQuasar()
 const authStore = useAuthStore()
@@ -234,7 +235,7 @@ const unitNameMap = computed(() => {
 const filteredByProvider = computed(() => {
   const providerId = form.value.proveedorId
   if (!providerId) return allProducts.value
-  return allProducts.value.filter(p => !p.proveedorId || p.proveedorId === providerId)
+  return allProducts.value.filter(p => p.proveedorId === providerId)
 })
 
 const filteredByCategory = computed(() => {
@@ -256,8 +257,6 @@ const columns = [
 
 const statusColor = (s: string) =>
   s === 'PAGADA' ? 'positive' : s === 'REGISTRADA' ? 'warning' : 'grey'
-const formatCurrency = (n: number) =>
-  new Intl.NumberFormat('en-US', { style: 'currency', currency: 'USD', minimumFractionDigits: 2 }).format(n)
 
 function unitOptions(productId: string | null): { label: string; value: string }[] {
   if (!productId) return []
@@ -302,6 +301,13 @@ function addItem() {
     precioUnitario: null,
     descuento: 0,
   })
+}
+
+function onProductoChange(item: ItemForm, productoId: string | null) {
+  item.productoId = productoId
+  item.presentacionId = null
+  const prod = allProducts.value.find(p => p.value === productoId)
+  item.precioUnitario = prod?.lastUnitPrice ?? null
 }
 
 function removeItem(i: number) {
@@ -384,6 +390,7 @@ async function loadDependencies() {
       category: p.category,
       proveedorId: p.proveedorId,
       proveedorName: p.proveedorName,
+      lastUnitPrice: p.lastUnitPrice,
     }))
     const presMap = new Map<string, { label: string; value: string }[]>()
     const presNameMap = new Map<string, string>()

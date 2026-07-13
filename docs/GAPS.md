@@ -25,10 +25,11 @@
 
 | # | Gap | Documentación dice | Realidad es | Impacto |
 |---|-----|--------------------|-------------|---------|
-| — | *(sin gaps tras correcciones de esta sesión)* | — | — | — |
-| 1 | `presentacionId` ausente en frontend | DTO `ItemFacturaRequest.java` tiene `presentacionId` nullable | `ItemFacturaRequest` TS no tiene el campo, UI no lo envía → backend recibe null → error | **Crítico** — bloquea facturación con presentaciones | Pendiente |
-| 2 | Frontend no usa búsqueda paginada | Backend tiene `GET /search` paginado desde 2026-07-12 | `ProductosPage.vue` y `CatalogDashboard.vue` siguen usando `getAll()` sin paginación | Alto — degradación en catálogos grandes (>100 productos) | Pendiente |
-| 3 | ConfiguracionPage read-only | UI muestra campos editables (categorías, unidades, ubicaciones) | No hay endpoints PUT ni diálogos de edición | Medio — usuario espera poder editar | Pendiente |
+| — | *(sin gaps funcionales)* | — | — | — |
+| 1 | ConfiguracionPage read-only | UI muestra campos editables (categorías, unidades, ubicaciones) | No hay endpoints PUT ni diálogos de edición | Medio — usuario espera poder editar. Pendiente backend. |
+| 2 | Frontend no usa búsqueda paginada | Backend tiene `GET /search` paginado desde 2026-07-12 | `ProductosPage.vue`, `FacturasPage.vue` y `CatalogDashboard.vue` siguen usando `getAll()` sin paginación | Alto — degradación en catálogos grandes (>100 productos) | Pendiente |
+| 3 | Descuento en Factura es monto fijo | UI muestra `prefix="$"` — usuario espera porcentaje (5%, 10%) | Input trata descuento como monto, no como porcentaje | Medio — UX confusa, usuario no puede poner descuentos promocionales | Pendiente |
+| 4 | precioUnitario no usa conversión | Presentaciones tienen `conversion` factor | `precioUnitario` se auto-llena con `lastUnitPrice` sin dividir por conversión | Alto — precio unitario no refleja costo real por unidad base | Pendiente |
 
 ## PostgreSQL
 

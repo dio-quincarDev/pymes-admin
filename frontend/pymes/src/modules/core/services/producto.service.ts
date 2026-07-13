@@ -1,9 +1,14 @@
 import { api } from 'src/boot/axios'
-import type { Producto, ProductoRequest, Presentacion, PresentacionRequest } from '../types'
+import type { Producto, ProductoRequest, Presentacion, PresentacionRequest, PageResponse } from '../types'
 
 export const productoService = {
   getAll(tenantId: string) {
     return api.get<Producto[]>('/core/productos', { params: { tenantId } })
+  },
+  search(tenantId: string, params?: { category?: string; name?: string; page?: number; size?: number }) {
+    return api.get<PageResponse<Producto>>('/core/productos/search', {
+      params: { tenantId, ...params },
+    })
   },
   getById(id: string, tenantId: string) {
     return api.get<Producto>(`/core/productos/${id}`, { params: { tenantId } })

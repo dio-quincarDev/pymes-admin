@@ -4,6 +4,129 @@ Registro cronológico de decisiones, problemas resueltos y estado del frontend.
 
 ---
 
+## 2026-07-12 — Fix filteredByProvider + remoción minQuantity/maxQuantity + docs
+
+### Fix filteredByProvider en FacturasPage
+
+**Bug:** Al seleccionar un proveedor en el formulario de factura, el selector de productos mostraba productos de otros proveedores. El filtro `filteredByProvider` incluía productos sin proveedor (`!p.proveedorId || p.proveedorId === providerId`) mezclándolos con los del proveedor seleccionado.
+
+**Fix:** `FacturasPage.vue:235-238` — removida la condición `!p.proveedorId ||`. Ahora solo muestra productos del proveedor seleccionado.
+
+### Remoción minQuantity/maxQuantity de ProductosPage
+
+**Motivo:** Los campos `minQuantity`/`maxQuantity` en el form de producto resultaron confusos en la UX. El análisis de stock con estas alertas puede resolverse de otra forma (pendiente).
+
+**Cambios:**
+- `ProductosPage.vue` — removidos 2 `<q-input>` del template (bloque de `minQuantity`/`maxQuantity`)
+- `openCreate()` — eliminados `minQuantity: null, maxQuantity: null` del form reset
+- `openEdit()` — eliminados `minQuantity: p.minQuantity, maxQuantity: p.maxQuantity` del form populate
+
+### Documentación actualizada
+
+- `docs/TO_DO.md` — 3 items nuevos en Frontend: descuento%, precioUnitario conversión, listas infinitas
+- `docs/GAPS.md` — 3 gaps nuevos: búsqueda paginada no usada, descuento es monto fijo, precioUnitario no usa conversión
+- `frontend/pymes/docs/FUTURE.md` — Pendiente conocido expandido + cambios en tabla de archivos existentes
+
+### Build
+
+- `npm run lint`: ✅
+- `npm run build`: ✅
+
+### Files modificados
+
+```
+src/modules/core/pages/FacturasPage.vue       # filteredByProvider fix
+src/modules/core/pages/ProductosPage.vue       # -minQuantity/maxQuantity
+docs/TO_DO.md                                  # +3 items pendientes
+docs/GAPS.md                                   # +3 gaps frontend
+frontend/pymes/docs/FUTURE.md                  # pendiente conocido + tabla cambios
+```
+
+---
+
+## 2026-07-12 — Módulos Core completos: 5 páginas CRUD + util + diseño
+
+### Implementación de módulos core
+
+**5 páginas CRUD nuevas** con service + types + ruta + sidebar habilitado:
+- `GastosPage.vue` — CRUD gastos operativos (QTable + form con categorías: SALARIOS, AGUA, LUZ, etc.)
+- `VentasPage.vue` — CRUD ventas diarias (fecha + monto bruto + descripción)
+- `PrestamosPage.vue` — CRUD préstamos + pagos (dialog de pagos con historial)
+- `PatrimonioPage.vue` — capital inicial (get-or-create + edición inline)
+- `AccountingPage.vue` — métricas financieras consolidadas (6 cards + resumen)
+
+**5 services creados:**
+- `gasto.service.ts`, `venta.service.ts`, `prestamo.service.ts`, `patrimonio.service.ts`, `accounting.service.ts`
+
+**Tipos agregados a `types/index.ts`:**
+- `GastoOperativo`, `GastoRequest`, `VentaDiaria`, `VentaRequest`, `Prestamo`, `PagoPrestamo`, `PrestamoRequest`, `PagoPrestamoRequest`, `Patrimonio`, `PatrimonioRequest`, `MetricasFinancieras`, `PageResponse<T>`, `ProductOption.lastUnitPrice`
+
+**Shared util:** `src/utils/format.ts` — `formatCurrency()` + `formatPct()` como singletones `Intl.NumberFormat`.
+
+**Mejoras a páginas existentes:**
+- `FacturasPage.vue`: auto-fill `precioUnitario` desde `lastUnitPrice` al seleccionar producto
+- `ProductosPage.vue`: campos `minQuantity`/`maxQuantity` en form de producto
+- `producto.service.ts`: nuevo método `search()` paginado
+- `router/routes.ts`: +5 rutas nuevas
+- `MainLayout.vue`: sidebar habilitado (5 items antes `disabled: true`)
+
+### Vue best practices review
+
+Aplicado skill `vue-best-practices`:
+- `ref` → `shallowRef` para primitives en ProductosPage (loading, filter, pagination, dialog states)
+- Import order corregido en FacturasPage y ProductosPage (useMeta después de imports)
+- PrestamosPage pago dialog: removido `maximized` (contradecía `max-width: 600px`)
+- Dialog widths: cambiado de `min-width: Npx` a `width: 90vw; max-width: Npx` (mobile-friendly)
+
+### Quasar best practices review
+
+Aplicado skill `quasar-skilld`:
+- QForm validation: `formRef` + `await formRef.value?.validate()` antes de `save()` en 4 páginas CRUD
+- Dialogs: glass morphism via `backdrop-filter: blur(16px)` en scoped `:deep`
+
+### Frontend design polish
+
+Aplicado skill `frontend-design`:
+- **AccountingPage**: 6 metric cards estilo KpiCard (accent border, glass, hover lift, stagger animation)
+- **PatrimonioPage**: 3 KPI cards estilo KpiCard + status badge pill + glass config card
+- **Títulos de página**: mesh-text-gradient (copper-to-gold) en vez de flat `text-primary`
+- **Skeleton loaders**: durante estados de loading en AccountingPage y PatrimonioPage
+- **Summary card**: glass morphism + grid layout en AccountingPage
+
+### Build
+
+- `npm run lint`: ✅
+- `npm run build`: ✅
+
+### Files nuevos
+
+```
+src/modules/core/pages/GastosPage.vue
+src/modules/core/pages/VentasPage.vue
+src/modules/core/pages/PrestamosPage.vue
+src/modules/core/pages/PatrimonioPage.vue
+src/modules/core/pages/AccountingPage.vue
+src/modules/core/services/gasto.service.ts
+src/modules/core/services/venta.service.ts
+src/modules/core/services/prestamo.service.ts
+src/modules/core/services/patrimonio.service.ts
+src/modules/core/services/accounting.service.ts
+src/utils/format.ts
+```
+
+### Files modificados
+
+```
+src/modules/core/types/index.ts
+src/modules/core/services/producto.service.ts
+src/modules/core/pages/FacturasPage.vue
+src/modules/core/pages/ProductosPage.vue
+src/modules/core/router/routes.ts
+src/layouts/MainLayout.vue
+```
+
+---
+
 ## 2026-07-09 — SEO + A11y audit + visual polish refinements
 
 ### SEO refinements

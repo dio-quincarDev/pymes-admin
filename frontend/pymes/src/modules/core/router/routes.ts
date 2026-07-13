@@ -31,6 +31,36 @@ export const coreRoutes: RouteRecordRaw[] = [
     component: () => import('../pages/ConfiguracionPage.vue'),
     meta: { title: 'Configuración' },
   },
+  {
+    path: 'gastos',
+    name: 'gastos',
+    component: () => import('../pages/GastosPage.vue'),
+    meta: { title: 'Gastos' },
+  },
+  {
+    path: 'ventas',
+    name: 'ventas',
+    component: () => import('../pages/VentasPage.vue'),
+    meta: { title: 'Ventas' },
+  },
+  {
+    path: 'prestamos',
+    name: 'prestamos',
+    component: () => import('../pages/PrestamosPage.vue'),
+    meta: { title: 'Préstamos' },
+  },
+  {
+    path: 'patrimonio',
+    name: 'patrimonio',
+    component: () => import('../pages/PatrimonioPage.vue'),
+    meta: { title: 'Patrimonio' },
+  },
+  {
+    path: 'accounting',
+    name: 'accounting',
+    component: () => import('../pages/AccountingPage.vue'),
+    meta: { title: 'Contabilidad' },
+  },
 ]
 
 export const onboardingRoute: RouteRecordRaw = {

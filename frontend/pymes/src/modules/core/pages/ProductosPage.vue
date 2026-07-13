@@ -1,22 +1,22 @@
 <script setup lang="ts">
-import { ref, computed, onMounted } from 'vue'
+import { ref, shallowRef, computed, onMounted } from 'vue'
 import { useQuasar, useMeta } from 'quasar'
 import { useAuthStore } from 'src/modules/auth/store'
-
-useMeta({ title: 'Productos — PYMEQ' });
 import { api } from 'src/boot/axios'
 import { productoService } from '../services/producto.service'
 import { proveedorService } from '../services/proveedor.service'
 import type { Producto, ProductoRequest, Presentacion, PresentacionRequest, SetupInfo, SetupCategory } from '../types'
+
+useMeta({ title: 'Productos — PYMEQ' })
 
 const $q = useQuasar()
 const authStore = useAuthStore()
 const tenantId = authStore.user?.tenantId || ''
 
 const rows = ref<Producto[]>([])
-const loading = ref(false)
-const filter = ref('')
-const pagination = ref({ sortBy: 'name', descending: false, page: 1, rowsPerPage: 15 })
+const loading = shallowRef(false)
+const filter = shallowRef('')
+const pagination = shallowRef({ sortBy: 'name', descending: false, page: 1, rowsPerPage: 15 })
 
 const catOptions = ref<{ label: string; value: string }[]>([])
 const setupCategories = ref<SetupCategory[]>([])
@@ -84,9 +84,10 @@ async function load() {
   } finally { loading.value = false }
 }
 
-const dialogOpen = ref(false)
-const editingId = ref<string | null>(null)
-const saving = ref(false)
+const dialogOpen = shallowRef(false)
+const editingId = shallowRef<string | null>(null)
+const saving = shallowRef(false)
+const formRef = ref<{ validate: () => Promise<boolean> } | null>(null)
 const form = ref<ProductoRequest>({ tenantId, name: '', category: '', baseUnit: '', proveedorId: null })
 
 function openCreate() {
@@ -104,6 +105,7 @@ function openEdit(p: Producto) {
 onMounted(async () => { await load(); await loadSetup() })
 
 async function save() {
+  if (!(await formRef.value?.validate())) return
   saving.value = true
   try {
     if (editingId.value) {
@@ -120,12 +122,12 @@ async function save() {
   } finally { saving.value = false }
 }
 
-const presDialog = ref(false)
+const presDialog = shallowRef(false)
 const presProduct = ref<Producto | null>(null)
 const presItems = ref<Presentacion[]>([])
 const presForm = ref<PresentacionRequest>({ name: '', conversion: 1 })
-const addingPres = ref(false)
-const removingPres = ref(false)
+const addingPres = shallowRef(false)
+const removingPres = shallowRef(false)
 
 function openPresentations(p: Producto) {
   presProduct.value = p
@@ -159,9 +161,9 @@ async function removePresentation(p: Presentacion) {
   } finally { removingPres.value = false }
 }
 
-const deleteDialog = ref(false)
+const deleteDialog = shallowRef(false)
 const deletingItem = ref<Producto | null>(null)
-const deleting = ref(false)
+const deleting = shallowRef(false)
 
 function confirmDelete(p: Producto) {
   deletingItem.value = p
@@ -245,13 +247,13 @@ async function remove() {
 
     <!-- Dialog: Create/Edit Product -->
     <q-dialog v-model="dialogOpen" dark>
-      <q-card dark class="bg-surface-pine" style="min-width: 480px">
+      <q-card dark class="bg-surface-pine" style="width: 90vw; max-width: 480px">
         <q-card-section>
           <div class="text-h6 text-primary">{{ editingId ? 'Editar' : 'Nuevo' }} Producto</div>
         </q-card-section>
         <q-separator dark />
         <q-card-section>
-          <q-form @submit.prevent="save" class="q-gutter-y-md">
+          <q-form ref="formRef" @submit.prevent="save" class="q-gutter-y-md">
             <q-input dark filled v-model="form.name" label="Nombre" :rules="[v => !!v || 'Requerido']" />
             <q-select dark filled v-model="form.category" label="Categoría" :options="catOptions" option-value="value" option-label="label" emit-value map-options use-input input-debounce="0" @filter="(val, update) => { update(() => catOptions.filter((o: { label: string; value: string }) => !val || o.label.toLowerCase().includes(val.toLowerCase()))) }" :rules="[v => !!v || 'Requerido']" />
             <q-select dark filled v-model="form.baseUnit" label="Unidad base" :options="unitOptions" option-value="value" option-label="label" emit-value map-options use-input input-debounce="0" @filter="(val, update) => { update(() => unitOptions.filter((o: { label: string; value: string }) => !val || o.label.toLowerCase().includes(val.toLowerCase()))) }" />
@@ -267,7 +269,7 @@ async function remove() {
 
     <!-- Dialog: Manage Presentations -->
     <q-dialog v-model="presDialog" dark>
-      <q-card dark class="bg-surface-pine" style="min-width: 450px">
+      <q-card dark class="bg-surface-pine" style="width: 90vw; max-width: 450px">
         <q-card-section>
           <div class="text-h6 text-primary">Presentaciones de <strong>{{ presProduct?.name }}</strong></div>
         </q-card-section>
