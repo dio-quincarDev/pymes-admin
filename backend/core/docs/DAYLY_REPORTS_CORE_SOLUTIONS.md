@@ -23,6 +23,49 @@ Registro de lo implementado y lo pendiente.
 
 ---
 
+## 2026-07-14 — Financial Health Engine: documentación Motor #10
+
+### Concepto
+
+Motor de inteligencia financiera compuesto que cruza datos de los 9 motores SQL + accounting para producir:
+- **Alertas críticas** (NEGATIVE_OPERATING_MARGIN, MARGIN_EROSION, SUPPLIER_CONCENTRATION, OVER_LEVERAGED, OPEX_CREEP, DEAD_INVENTORY)
+- **Señales de inversión** (HEALTHY_MARGIN_STACK, POSITIVE_CASH_FLOW, LOW_CONCENTRATION, DEBT_CAPACITY)
+- **Readiness de expansión** (SUSTAINED_PROFITABILITY, OPERATING_LEVERAGE, SUPPLIER_MATURITY, DEBT_CUSHION)
+- **Scoring compuesto** 0-100: profitability(35%) + efficiency(25%) + stability(25%) + growth(15%)
+
+### Arquitectura
+
+- No es un motor SQL independiente — es un motor compuesto que lee resultados pre-computados
+- Inputs: `MetricasRepository` (3 márgenes) + `AnalisisGasto` (ABC, supplier, trend, alerts) + `ProductoRepository` (lastPurchaseDate)
+- Salida: JSONB nullable en `expense_analysis.financial_health` (V15)
+- Trigger: hereda debounce del analytics (Redis SETNX + @Scheduled)
+
+### Documentación
+
+- `CORE.md` §Motor de Salud Financiera — sección completa con inputs, señales, scoring, JSON de salida
+- `ANALYTICS.md` — Motor #10 agregado a tabla de motores + Flyway V15
+- `KPIs.md` — pendiente de actualizar estado a "implementado" con referencias
+
+### Archivos tocados
+
+```
+backend/core/docs/CORE.md                    # +sección Financial Health Engine, diagrama actualizado
+backend/core/docs/ANALYTICS.md               # +Motor #10, V15, registro histórico
+```
+
+### Pendiente (implementación)
+
+- [ ] V15 migration: `ALTER TABLE core.expense_analysis ADD COLUMN financial_health JSONB;`
+- [ ] `AnalisisGasto.java`: +`financialHealth` campo JSONB
+- [ ] `AnalyticsResponse.java`: +`FinancialHealthResponse` DTO + campo
+- [ ] `AnalyticsMapper.java`: mapear nuevo campo
+- [ ] `AnalyticsServiceImpl.java`: +`analisisSaludFinanciera()` (método compuesto)
+- [ ] `types/analytics.ts` (frontend): +`FinancialHealth` interface
+- [ ] `useAnalytics.ts`: +`financialHealth` computed
+- [ ] `AnalisisGastosPage.vue`: nueva sección "Salud Financiera"
+
+---
+
 ## 2026-07-12 — Paginated product search + lazy-load categories + batch fetch + edge cases
 
 ### Feature — `GET /core/productos/search`

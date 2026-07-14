@@ -17,14 +17,39 @@
 - [x] Docker healthcheck fix — `localhost` → `127.0.0.1` (IPv6 Alpine)
 - [x] Conversion UX — helper text + preview dinámico en ProductosPage
 
-### Frontend — Pendiente (UX/UI Review)
+### Frontend — Completado (UX/UI Review 2026-07-14)
 
-- [ ] [Alta] **Fix UUID visible en formulario** — El `q-select` de producto muestra el UUID crudo cuando el valor seleccionado no está en la lista filtrada. Causa: `map-options` no encuentra la opción y muestra el raw value. Solución: asegurar que `filteredProducts` siempre contenga la opción seleccionada, o usar `option-label` explícito con fallback.
-- [ ] [Alta] **Responsive dialog factura** — Los `col-3` en el grid de inputs no responden en pantallas pequeñas. Necesita `col-xs-6 col-sm-3` para que los inputs se reorganicen en mobile.
-- [ ] [Alta] **Compactar dialog** — Padding excesivo (`14px 16px 12px` en card + `16px 20px` en body), `standout` en todos los inputs, elementos decorativos innecesarios. Reducir a un layout más denso y funcional.
-- [ ] [Media] **Simplificar CategoryTabs** — Volver a chips de Quasar (más compactos y accesibles) en vez de botones custom. Solo mejorar colores y transiciones sutiles.
-- [ ] [Media] **No exponer UUIDs en dropdown** — Template del dropdown muestra `opt.category` (código que puede parecer UUID). Mostrar solo `productName` y `sku`, ocultar datos internos.
-- [ ] [Baja] **ProductosPage pres-dialog** — Revisar que el layout de presentaciones sea responsive.
+- [x] [Alta] **Fix UUID visible en formulario** — `categoryNameMap` + `unitNameMap` en ProductosPage + template slots explícitos. `FacturasPage` resuelve base unit UUID vía `setupUnits`.
+- [x] [Alta] **Responsive dialog factura** — `col-3` → `col-xs-6 col-sm-3` en grid de inputs.
+- [x] [Alta] **Compactar dialog** — Padding reducido, `standout` removido de inputs, layout más denso y funcional.
+- [x] [Media] **Simplificar CategoryTabs** — Reemplazado por `q-chip` nativo con `selectable` + `active-class` y transiciones sutiles.
+- [x] [Media] **No exponer UUIDs en dropdown** — Template muestra solo `productName` + badge proveedor. `category` raw nunca visible.
+- [x] [Baja] **ProductosPage pres-dialog** — Responsive: `col-4` → `col-xs-6 col-sm-4`.
+
+### Frontend — Completado (Modernización PWA 2026-07-14)
+
+- [x] **Bottom nav mobile** — `MainLayout.vue`: `q-footer` con `q-tabs` 5 items + `q-route-tab` solo visible `<600px`. Glass effect. Rutas: Home, Productos, Facturas, Gastos, Más.
+- [x] **EmptyState en 6 páginas** — `ProductosPage`, `ProveedoresPage`, `GastosPage`, `VentasPage`, `PrestamosPage`, `FacturasPage`. Cada uno con icono, título, descripción y CTA contextual.
+- [x] **Unsaved changes guard** — `beforeRouteLeave` en `ProductosPage` y `FacturasPage`. `hasUnsavedChanges` computed. Dialog de confirmación si hay datos sin guardar.
+- [x] **Keyboard shortcuts** — `useKeyboardShortcuts` composable. `N` crear, `?` ayuda, `Esc` cerrar. `Ctrl+K` global search placeholder. Help dialog con shortcuts listados.
+- [x] **Error message clarity** — `loadSetup()` error: "No se pudo cargar la configuración del negocio" + "Verificar conexión con el servidor". `loadDependencies()` errors en 4 páginas: mensajes específicos por contexto.
+- [x] **KpiCard DRY** — `AccountingPage.vue`: reemplazado `summaryCards` array manual por `KpiCard` importado. Eliminado template duplicado de 120+ líneas.
+- [x] **Dialog animation** — `transition-show="slide-up"` + `transition-hide="slide-down"` en todos los dialogs CRUD (6 páginas). Efecto slide-up más nativo/app-like.
+- [x] **SkeletonLoader skip** — Decisión documentada: tablas con datos reales no necesitan skeleton. Se eliminaron del roadmap.
+- [x] **Stagger animation skip** — Ya existía `.stagger-children` en `app.scss` aplicado a KpiCard y AccountingPage. No duplicar.
+
+### Frontend — Pendiente (Rediseño Copper Luxe — plan en FUTURE.md)
+
+- [ ] [Alta] **ProductosPage: card grid visual** — Reemplazar q-table por grid de tarjetas tipo boutique. Accent bars por categoría, stagger animation, stats bar, category chips. Archivos nuevos: `ProductCardGrid.vue`, `ProductCard.vue`.
+- [ ] [Media] **FacturasPage: timeline financiero** — Reemplazar q-table por feed cronológico agrupado por mes. Sticky headers, status badges prominentes, search + filter en toolbar.
+- [ ] [Media] **GastosPage: cards por categoría** — Reemplazar q-table por tarjetas agrupadas por categoría con subtotales. Accent bars + glassmorphism.
+- [ ] [Media] **VentasPage: calendario** — Reemplazar q-table por timeline calendario + cards de resumen semanal.
+- [ ] [Media] **PrestamosPage: progress cards** — Cards con progress bar de saldo + timeline de pagos.
+- [ ] [Media] **ProveedoresPage: contact cards** — Cards estilo agenda con avatar inicial + datos de contacto.
+- [ ] [Baja] **PWA: pull to refresh** — En mobile, gesto nativo para refrescar datos.
+- [ ] [Baja] **PWA: custom install prompt** — Banner "Instalar PYMEQ" con dismiss persistente.
+- [ ] [Baja] **PWA: transiciones direccionales** — Slide left/right según dirección de navegación.
+- [ ] [Baja] **PWA: splash screen brandeado** — Custom splash con logo + copper gradient.
 
 ### Gateway
 

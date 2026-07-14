@@ -4,6 +4,96 @@ Registro cronológico de decisiones, problemas resueltos y estado del frontend.
 
 ---
 
+## 2026-07-14 — UX/UI review + Modernización PWA
+
+### Fase 1: Corrección de bugs UX/UI (6 items)
+
+**Fix UUID visible en formulario:**
+- `ProductosPage.vue`: `categoryNameMap` y `unitNameMap` construidos desde setup para resolver UUID → nombre en template slots de las columnas Categoría y Unidad.
+- `FacturasPage.vue`: `unitNameMap` resuelve base unit UUID → nombre en selector de items; `setupUnits` ref almacena las unidades del setup.
+
+**Responsive dialog factura:**
+- `FacturasPage.vue`: `col-3` → `col-xs-6 col-sm-3` en grid de inputs del form de factura.
+
+**Compactar dialog:**
+- Padding reducido en cards de dialogs (`14px 16px 12px` → más compacto).
+- `standout` removido de todos los `q-input`.
+- Layout más denso y funcional.
+
+**Simplificar CategoryTabs:**
+- `CategoryTabs.vue`: reescrito usando `q-chip` nativo con `selectable`, `active-class` y transiciones sutiles. Eliminados botones custom con HTML/CSS innecesario.
+
+**No exponer UUIDs en dropdown:**
+- Template del dropdown: solo muestra `productName` + badge proveedor. Campo `category` raw nunca visible para el usuario.
+
+**ProductosPage pres-dialog responsive:**
+- `col-4` → `col-xs-6 col-sm-4` en layout de presentaciones.
+
+### Fase 2: Modernización PWA (8 items)
+
+**Bottom nav mobile:**
+- `MainLayout.vue`: nuevo `q-footer` con `q-tabs` 5 items usando `q-route-tab`. Visible solo `<600px`. Glass effect con `background: rgba($dark-surface, 0.95)`.
+- Rutas: Home, Productos, Facturas, Gastos, Más (menú contextual).
+
+**EmptyState en 6 páginas:**
+- Nuevo componente `EmptyState.vue` reutilizable con props `icon`, `title`, `description`, `actionLabel`, `actionTo`.
+- Implementado en: `ProductosPage`, `ProveedoresPage`, `GastosPage`, `VentasPage`, `PrestamosPage`, `FacturasPage`. Cada uno con contexto específico.
+
+**Unsaved changes guard:**
+- `ProductosPage.vue` y `FacturasPage.vue`: `beforeRouteLeave` navigation guard.
+- `hasUnsavedChanges` computed que detecta campos modificados.
+- Dialog de confirmación antes de salir si hay datos sin guardar.
+
+**Keyboard shortcuts:**
+- Nuevo composable `useKeyboardShortcuts.ts`.
+- Atajos: `N` crear, `?` ayuda, `Esc` cerrar. `Ctrl+K` global search (placeholder).
+- Help dialog muestra todos los shortcuts disponibles.
+
+**Error message clarity:**
+- `loadSetup()` error: "No se pudo cargar la configuración del negocio" + "Verificar conexión con el servidor".
+- `loadDependencies()` errors en 4 páginas: mensajes específicos por contexto.
+
+**KpiCard DRY:**
+- `AccountingPage.vue`: reemplazado `summaryCards` array manual + template iterado por `KpiCard` importado.
+- Eliminado template duplicado de 120+ líneas.
+
+**Dialog animation:**
+- `transition-show="slide-up"` + `transition-hide="slide-down"` en todos los dialogs CRUD (6 páginas).
+- Efecto slide-up más nativo/app-like vs el fade anterior.
+
+### Decisiones documentadas
+
+- **SkeletonLoader skip:** Tablas con datos reales no necesitan skeleton. Se eliminaron del roadmap.
+- **Stagger animation skip:** Ya existía `.stagger-children` en `app.scss` aplicado a KpiCard y AccountingPage. No duplicar.
+
+### Build
+
+- `npm run lint`: ✅
+- `npm run build`: ✅
+
+### Files nuevos
+
+```
+src/composables/useKeyboardShortcuts.ts
+src/components/ui/EmptyState.vue
+```
+
+### Files modificados
+
+```
+src/layouts/MainLayout.vue                  # +q-footer mobile nav + glass effect
+src/modules/core/pages/ProductosPage.vue    # +categoryNameMap +unitNameMap +emptyState +unsavedGuard +shortcuts +dialog anim
+src/modules/core/pages/ProveedoresPage.vue  # +emptyState +shortcuts +dialog anim
+src/modules/core/pages/GastosPage.vue       # +emptyState +shortcuts +dialog anim
+src/modules/core/pages/VentasPage.vue       # +emptyState +shortcuts +dialog anim
+src/modules/core/pages/PrestamosPage.vue    # +emptyState +shortcuts +dialog anim
+src/modules/core/pages/FacturasPage.vue     # +responsive cols +compact dialog +emptyState +unsavedGuard +shortcuts +unitNameMap +dialog anim
+src/modules/core/pages/AccountingPage.vue   # -summaryCards template, +KpiCard import
+src/modules/core/components/facturas/CategoryTabs.vue  # reescrito con q-chip
+```
+
+---
+
 ## 2026-07-12 — Fix filteredByProvider + remoción minQuantity/maxQuantity + docs
 
 ### Fix filteredByProvider en FacturasPage

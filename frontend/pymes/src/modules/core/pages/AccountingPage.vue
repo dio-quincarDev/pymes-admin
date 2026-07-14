@@ -5,6 +5,7 @@ import { useAuthStore } from 'src/modules/auth/store'
 import { formatCurrency, formatPct } from 'src/utils/format'
 import { accountingService } from '../services/accounting.service'
 import type { MetricasFinancieras } from '../types'
+import KpiCard from 'src/modules/core/components/dashboard/KpiCard.vue'
 
 useMeta({ title: 'Contabilidad — PYMEQ' })
 
@@ -63,55 +64,43 @@ onMounted(load)
     <template v-else-if="data">
       <div class="row q-col-gutter-md q-mb-lg stagger-children">
         <div class="col-12 col-sm-6 col-md-4">
-          <div class="metric-card metric-card--positive">
-            <div class="metric-card__label">Ingresos Totales</div>
-            <div class="metric-card__value text-positive">{{ formatCurrency(data.totalIncome) }}</div>
-            <div class="metric-card__bar" />
-          </div>
+          <KpiCard label="Ingresos Totales" :value="formatCurrency(data.totalIncome)" icon="trending_up" accent="positive" />
         </div>
         <div class="col-12 col-sm-6 col-md-4">
-          <div class="metric-card metric-card--negative">
-            <div class="metric-card__label">Costo de Mercadería</div>
-            <div class="metric-card__value text-negative">{{ formatCurrency(data.costOfGoods) }}</div>
-            <div class="metric-card__bar" />
-          </div>
+          <KpiCard label="Costo de Mercadería" :value="formatCurrency(data.costOfGoods)" icon="shopping_cart" accent="negative" />
         </div>
         <div class="col-12 col-sm-6 col-md-4">
-          <div class="metric-card metric-card--warning">
-            <div class="metric-card__label">Gastos Operativos</div>
-            <div class="metric-card__value text-warning">{{ formatCurrency(data.operatingExpenses) }}</div>
-            <div class="metric-card__bar" />
-          </div>
+          <KpiCard label="Gastos Operativos" :value="formatCurrency(data.operatingExpenses)" icon="receipt" accent="gold" />
         </div>
         <div class="col-12 col-sm-6 col-md-4">
-          <div class="metric-card metric-card--copper">
-            <div class="metric-card__label">Margen Bruto</div>
-            <div class="metric-card__value">{{ formatCurrency(data.grossMargin) }}</div>
-            <div class="metric-card__delta" :class="data.grossMarginPct >= 0 ? 'metric-card__delta--up' : 'metric-card__delta--down'">
-              {{ formatPct(data.grossMarginPct) }}
-            </div>
-            <div class="metric-card__bar" />
-          </div>
+          <KpiCard
+            label="Margen Bruto"
+            :value="formatCurrency(data.grossMargin)"
+            :delta="formatPct(data.grossMarginPct)"
+            :trend="data.grossMarginPct >= 0 ? 'up' : 'down'"
+            icon="paid"
+            accent="copper"
+          />
         </div>
         <div class="col-12 col-sm-6 col-md-4">
-          <div class="metric-card metric-card--sage">
-            <div class="metric-card__label">Margen Operativo</div>
-            <div class="metric-card__value">{{ formatCurrency(data.operatingMargin) }}</div>
-            <div class="metric-card__delta" :class="data.operatingMarginPct >= 0 ? 'metric-card__delta--up' : 'metric-card__delta--down'">
-              {{ formatPct(data.operatingMarginPct) }}
-            </div>
-            <div class="metric-card__bar" />
-          </div>
+          <KpiCard
+            label="Margen Operativo"
+            :value="formatCurrency(data.operatingMargin)"
+            :delta="formatPct(data.operatingMarginPct)"
+            :trend="data.operatingMarginPct >= 0 ? 'up' : 'down'"
+            icon="account_balance"
+            accent="sage"
+          />
         </div>
         <div class="col-12 col-sm-6 col-md-4">
-          <div class="metric-card metric-card--gold">
-            <div class="metric-card__label">Margen Neto</div>
-            <div class="metric-card__value">{{ formatCurrency(data.netMargin) }}</div>
-            <div class="metric-card__delta" :class="data.netMarginPct >= 0 ? 'metric-card__delta--up' : 'metric-card__delta--down'">
-              {{ formatPct(data.netMarginPct) }}
-            </div>
-            <div class="metric-card__bar" />
-          </div>
+          <KpiCard
+            label="Margen Neto"
+            :value="formatCurrency(data.netMargin)"
+            :delta="formatPct(data.netMarginPct)"
+            :trend="data.netMarginPct >= 0 ? 'up' : 'down'"
+            icon="savings"
+            accent="gold"
+          />
         </div>
       </div>
 
@@ -167,75 +156,6 @@ onMounted(load)
 .metric-skeleton {
   height: 110px;
   border-radius: 8px;
-}
-
-.metric-card {
-  background: rgba(27, 38, 36, 0.85);
-  backdrop-filter: blur(8px);
-  border: 1px solid rgba(113, 131, 127, 0.05);
-  border-radius: 8px;
-  padding: 1.25rem 1.5rem;
-  position: relative;
-  overflow: hidden;
-  transition: all 0.2s cubic-bezier(0.4, 0, 0.2, 1);
-  cursor: default;
-
-  &::before {
-    content: '';
-    position: absolute;
-    left: 0;
-    top: 0;
-    bottom: 0;
-    width: 3px;
-    border-radius: 0 2px 2px 0;
-  }
-
-  &:hover {
-    transform: translateY(-2px);
-    box-shadow: 0 10px 30px rgba(0, 0, 0, 0.2);
-  }
-
-  &--positive::before { background: #2D5A27; }
-  &--negative::before { background: #8B4513; }
-  &--warning::before { background: #C5A059; }
-  &--copper::before { background: #A3785E; }
-  &--sage::before { background: #8A9E99; }
-  &--gold::before { background: #C5A059; }
-
-  &__label {
-    font-size: 0.72rem;
-    font-weight: 500;
-    color: #8A9E99;
-    text-transform: uppercase;
-    letter-spacing: 0.06em;
-    margin-bottom: 0.5rem;
-  }
-
-  &__value {
-    font-family: 'Outfit', sans-serif;
-    font-size: 1.6rem;
-    font-weight: 700;
-    color: #E2E8E4;
-    line-height: 1;
-  }
-
-  &__delta {
-    font-size: 0.75rem;
-    font-weight: 500;
-    margin-top: 0.35rem;
-
-    &--up { color: #2D5A27; }
-    &--down { color: #e94560; }
-  }
-
-  &__bar {
-    position: absolute;
-    bottom: 0;
-    left: 0;
-    right: 0;
-    height: 2px;
-    background: linear-gradient(90deg, transparent, rgba(163, 120, 94, 0.15), transparent);
-  }
 }
 
 .summary-card {

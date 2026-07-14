@@ -57,12 +57,23 @@
             />
           </td>
         </template>
+
+        <template v-slot:no-data>
+          <EmptyState
+            v-if="!loading"
+            icon="receipt_long"
+            title="Sin facturas"
+            message="Registra tu primera factura de proveedor para comenzar."
+          >
+            <q-btn color="primary" icon="add" label="Nueva Factura" @click="openCreate" class="q-mt-sm" />
+          </EmptyState>
+        </template>
       </q-table>
     </q-card>
 
     <!-- Create Invoice Dialog -->
-    <q-dialog v-model="dialogOpen" dark maximized>
-      <q-card dark class="bg-surface-pine invoice-dialog">
+    <q-dialog v-model="dialogOpen" dark maximized transition-show="scale" transition-hide="fade">
+      <q-card dark class="bg-surface-pine invoice-dialog" @before-hide="onDialogBeforeHide">
         <!-- Dialog header -->
         <div class="invoice-dialog__header">
           <div class="invoice-dialog__header-content">
@@ -107,12 +118,12 @@
 
             <!-- Date + Type row -->
             <div class="row q-col-gutter-md">
-              <div class="col-6">
+              <div class="col-xs-12 col-sm-6">
                 <q-input dark filled standout v-model="form.fecha" label="Fecha" type="date" :rules="[v => !!v || 'Requerido']">
                   <template v-slot:prepend><q-icon name="calendar_today" size="1rem" class="text-primary" /></template>
                 </q-input>
               </div>
-              <div class="col-6">
+              <div class="col-xs-12 col-sm-6">
                 <q-select dark filled standout v-model="form.tipo" :options="['FACTURA', 'GASTO_OPERATIVO']" label="Tipo" :rules="[v => !!v || 'Requerido']">
                   <template v-slot:prepend><q-icon name="category" size="1rem" class="text-primary" /></template>
                 </q-select>
@@ -218,7 +229,7 @@
 </template>
 
 <script setup lang="ts">
-import { ref, shallowRef, computed, watch, onMounted, nextTick } from 'vue'
+import { ref, shallowRef, computed, watch, onMounted, onUnmounted, nextTick } from 'vue'
 import { useQuasar, useMeta } from 'quasar'
 import { useAuthStore } from 'src/modules/auth/store'
 import { formatCurrency } from 'src/utils/format'
@@ -231,6 +242,7 @@ import CategoryTabs from '../components/facturas/CategoryTabs.vue'
 import InvoiceItemCard from '../components/facturas/InvoiceItemCard.vue'
 import InvoiceDetailDialog from '../components/facturas/InvoiceDetailDialog.vue'
 import ConfirmDialog from '../components/facturas/ConfirmDialog.vue'
+import EmptyState from 'src/components/ui/EmptyState.vue'
 
 useMeta({ title: 'Facturas — PYMEQ' })
 
@@ -454,12 +466,22 @@ async function openCreate() {
 watch(() => form.value.proveedorId, onProviderSelected)
 
 function mapProductsToOptions(prods: Producto[]): ProductOption[] {
+  const catMap = new Map<string, string>()
+  function walkCats(cats: SetupCategory[]) {
+    for (const c of cats) {
+      catMap.set(c.code, c.name)
+      if (c.children?.length) walkCats(c.children)
+    }
+  }
+  walkCats(setupCategories.value)
+
   return prods.map(p => ({
     label: `${p.name}${p.proveedorName ? ` · ${p.proveedorName}` : ''}`,
     value: p.id,
     productName: p.name,
     sku: p.sku,
     category: p.category,
+    categoryName: catMap.get(p.category) || p.category,
     proveedorId: p.proveedorId,
     proveedorName: p.proveedorName,
     lastUnitPrice: p.lastUnitPrice,
@@ -496,8 +518,9 @@ async function loadDependencies() {
     presentationNameMap.value = presNameMap
     presentationConversionMap.value = convMap
     productPresentationsMap.value = presMap
-  } catch {
-    $q.notify({ type: 'negative', message: 'Error al cargar datos del formulario' })
+  } catch (err: unknown) {
+    const msg = err instanceof Error ? err.message : 'Error al cargar datos del formulario'
+    $q.notify({ type: 'negative', message: msg })
   }
 }
 
@@ -523,8 +546,9 @@ async function save() {
     rows.value.unshift(res.data)
     dialogOpen.value = false
     $q.notify({ type: 'positive', message: 'Factura creada: ' + res.data.invoiceNumber })
-  } catch {
-    $q.notify({ type: 'negative', message: 'Error al crear factura' })
+  } catch (err: unknown) {
+    const msg = err instanceof Error ? err.message : 'Error al crear factura'
+    $q.notify({ type: 'negative', message: msg })
   } finally { saving.value = false }
 }
 
@@ -579,6 +603,18 @@ async function remove() {
   }
 }
 
+function onDialogBeforeHide(done?: () => void) {
+  const hasData = form.value.items.length > 0 || form.value.proveedorId
+  if (!hasData) { done?.(); return }
+  $q.dialog({
+    title: 'Cambios sin guardar',
+    message: 'Tienes datos sin guardar. ¿Cerrar de todas formas?',
+    cancel: { label: 'Cancelar', flat: true, color: 'accent' },
+    ok: { label: 'Cerrar', color: 'negative' },
+    persistent: true,
+  }).onOk(() => done?.())
+}
+
 async function load() {
   loading.value = true
   try {
@@ -590,7 +626,23 @@ async function load() {
 
 onMounted(async () => {
   await Promise.all([load(), loadDependencies()])
+  window.addEventListener('keydown', handleKeydown)
 })
+
+onUnmounted(() => {
+  window.removeEventListener('keydown', handleKeydown)
+})
+
+function handleKeydown(e: KeyboardEvent) {
+  if ((e.ctrlKey || e.metaKey) && e.key === 'n') {
+    e.preventDefault()
+    void openCreate()
+  }
+  if ((e.ctrlKey || e.metaKey) && e.key === 's' && dialogOpen.value) {
+    e.preventDefault()
+    void save()
+  }
+}
 </script>
 
 <style scoped>
@@ -605,7 +657,7 @@ onMounted(async () => {
   display: flex;
   align-items: center;
   justify-content: space-between;
-  padding: 16px 20px 12px;
+  padding: 12px 16px 10px;
 }
 
 .invoice-dialog__header-content {
@@ -639,7 +691,7 @@ onMounted(async () => {
 }
 
 .invoice-dialog__body {
-  padding: 16px 20px 20px;
+  padding: 12px 16px 16px;
 }
 
 .invoice-dialog__section-sep {

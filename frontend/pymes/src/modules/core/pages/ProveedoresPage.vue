@@ -1,9 +1,10 @@
 <script setup lang="ts">
-import { ref, shallowRef, onMounted } from 'vue'
+import { ref, shallowRef, onMounted, onUnmounted } from 'vue'
 import { useQuasar, useMeta } from 'quasar'
 import { useAuthStore } from 'src/modules/auth/store'
 import { proveedorService } from '../services/proveedor.service'
 import type { Proveedor, ProveedorRequest } from '../types'
+import EmptyState from 'src/components/ui/EmptyState.vue'
 
 useMeta({ title: 'Proveedores — PYMEQ' });
 
@@ -93,7 +94,23 @@ async function remove() {
   }
 }
 
-onMounted(load)
+onMounted(() => {
+  void load()
+  window.addEventListener('keydown', handleKeydown)
+})
+
+onUnmounted(() => window.removeEventListener('keydown', handleKeydown))
+
+function handleKeydown(e: KeyboardEvent) {
+  if ((e.ctrlKey || e.metaKey) && e.key === 'n') {
+    e.preventDefault()
+    openCreate()
+  }
+  if ((e.ctrlKey || e.metaKey) && e.key === 's' && dialogOpen.value) {
+    e.preventDefault()
+    void save()
+  }
+}
 </script>
 
 <template>
@@ -137,6 +154,16 @@ onMounted(load)
             <q-btn flat dense round icon="edit" color="primary" @click="openEdit(row)" aria-label="Editar proveedor" />
             <q-btn flat dense round icon="delete" color="negative" @click="confirmDelete(row)" aria-label="Eliminar proveedor" />
           </td>
+        </template>
+        <template v-slot:no-data>
+          <EmptyState
+            v-if="!loading"
+            icon="people"
+            title="Sin proveedores"
+            message="Agrega tu primer proveedor para asociarlo a productos y facturas."
+          >
+            <q-btn color="primary" icon="add" label="Nuevo Proveedor" @click="openCreate" class="q-mt-sm" />
+          </EmptyState>
         </template>
       </q-table>
     </q-card>

@@ -128,6 +128,25 @@
         </router-view>
       </main>
     </q-page-container>
+
+    <!-- Mobile Bottom Nav -->
+    <q-footer class="bg-surface-pine mobile-bottom-nav" reveal>
+      <q-tabs
+        :model-value="mobileTab"
+        dense
+        active-color="primary"
+        indicator-color="primary"
+        class="text-accent"
+        align="justify"
+        narrow-indicator
+      >
+        <q-route-tab to="/dashboard" icon="dashboard" aria-label="Dashboard" />
+        <q-route-tab to="/dashboard/productos" icon="inventory_2" aria-label="Productos" />
+        <q-route-tab to="/dashboard/facturas" icon="receipt_long" aria-label="Facturas" />
+        <q-route-tab to="/dashboard/gastos" icon="money_off" aria-label="Gastos" />
+        <q-route-tab icon="more_horiz" aria-label="Más" @click="toggleLeftDrawer" />
+      </q-tabs>
+    </q-footer>
   </q-layout>
 </template>
 
@@ -146,6 +165,14 @@ const { logout: handleLogout } = useLogout();
 
 const leftDrawerOpen = ref(false);
 const activeRoute = computed(() => route.path);
+const mobileTab = computed(() => {
+  const p = route.path
+  if (p === '/dashboard') return '/dashboard'
+  if (p.startsWith('/dashboard/productos')) return '/dashboard/productos'
+  if (p.startsWith('/dashboard/facturas')) return '/dashboard/facturas'
+  if (p.startsWith('/dashboard/gastos')) return '/dashboard/gastos'
+  return ''
+})
 const online = ref(navigator.onLine);
 
 function onOnline() { online.value = true; }
@@ -240,5 +267,16 @@ function navigateTo(path: string) {
 
 :deep(.q-drawer--bordered) {
   border-right-color: rgba(113, 131, 127, 0.1);
+}
+
+.mobile-bottom-nav {
+  display: none;
+  border-top: 1px solid rgba(113, 131, 127, 0.1);
+}
+
+@media (max-width: 767px) {
+  .mobile-bottom-nav {
+    display: block;
+  }
 }
 </style>

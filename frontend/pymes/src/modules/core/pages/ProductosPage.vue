@@ -1,11 +1,12 @@
 <script setup lang="ts">
-import { ref, shallowRef, computed, onMounted, watch } from 'vue'
+import { ref, shallowRef, computed, onMounted, onUnmounted, watch } from 'vue'
 import { useQuasar, useMeta } from 'quasar'
 import { useAuthStore } from 'src/modules/auth/store'
 import { api } from 'src/boot/axios'
 import { productoService } from '../services/producto.service'
 import { proveedorService } from '../services/proveedor.service'
 import type { Producto, ProductoRequest, Presentacion, PresentacionRequest, SetupInfo, SetupCategory } from '../types'
+import EmptyState from 'src/components/ui/EmptyState.vue'
 
 useMeta({ title: 'Productos — PYMEQ' })
 
@@ -114,7 +115,24 @@ function openEdit(p: Producto) {
   dialogOpen.value = true
 }
 
-onMounted(async () => { await loadSetup(); await load() })
+onMounted(async () => {
+  await loadSetup()
+  await load()
+  window.addEventListener('keydown', handleKeydown)
+})
+
+onUnmounted(() => window.removeEventListener('keydown', handleKeydown))
+
+function handleKeydown(e: KeyboardEvent) {
+  if ((e.ctrlKey || e.metaKey) && e.key === 'n') {
+    e.preventDefault()
+    openCreate()
+  }
+  if ((e.ctrlKey || e.metaKey) && e.key === 's' && dialogOpen.value) {
+    e.preventDefault()
+    void save()
+  }
+}
 
 async function save() {
   if (!(await formRef.value?.validate())) return
@@ -267,6 +285,16 @@ async function remove() {
             <q-btn flat dense round icon="delete" color="negative" @click="confirmDelete(row)" aria-label="Eliminar producto" />
           </td>
         </template>
+        <template v-slot:no-data>
+          <EmptyState
+            v-if="!loading"
+            icon="inventory_2"
+            title="Sin productos"
+            message="Agrega tu primer producto al catálogo para comenzar a facturar."
+          >
+            <q-btn color="primary" icon="add" label="Nuevo Producto" @click="openCreate" class="q-mt-sm" />
+          </EmptyState>
+        </template>
       </q-table>
     </q-card>
 
@@ -333,16 +361,16 @@ async function remove() {
         <q-card-section class="pres-dialog__form">
           <div class="pres-form-title">Agregar presentación</div>
           <div class="row q-col-gutter-sm items-start">
-            <div class="col-5">
+            <div class="col-xs-12 col-sm-5">
               <q-input dark dense outlined v-model="presForm.name" label="Nombre" placeholder="Ej: Caja x24" class="pres-input" />
             </div>
-            <div class="col-4">
+            <div class="col-xs-12 col-sm-4">
               <q-input dark dense outlined v-model.number="presForm.conversion" label="Conversión" type="text" inputmode="numeric" class="pres-input" />
               <div class="pres-hint">
                 ¿Cuántas unidades base caben aquí?
               </div>
             </div>
-            <div class="col-3">
+            <div class="col-xs-12 col-sm-3">
               <q-btn
                 label="Agregar" color="primary" no-caps
                 :loading="addingPres" @click="addPresentation"

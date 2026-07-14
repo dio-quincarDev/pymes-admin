@@ -1,10 +1,11 @@
 <script setup lang="ts">
-import { ref, shallowRef, computed, onMounted } from 'vue'
+import { ref, shallowRef, computed, onMounted, onUnmounted } from 'vue'
 import { useQuasar, useMeta } from 'quasar'
 import { useAuthStore } from 'src/modules/auth/store'
 import { formatCurrency } from 'src/utils/format'
 import { prestamoService } from '../services/prestamo.service'
 import type { Prestamo, PrestamoRequest, PagoPrestamo, PagoPrestamoRequest } from '../types'
+import EmptyState from 'src/components/ui/EmptyState.vue'
 
 useMeta({ title: 'Préstamos — PYMEQ' });
 
@@ -140,7 +141,23 @@ async function savePago() {
 
 const totalPagado = computed(() => pagos.value.reduce((sum, p) => sum + p.amount, 0))
 
-onMounted(load)
+onMounted(() => {
+  void load()
+  window.addEventListener('keydown', handleKeydown)
+})
+
+onUnmounted(() => window.removeEventListener('keydown', handleKeydown))
+
+function handleKeydown(e: KeyboardEvent) {
+  if ((e.ctrlKey || e.metaKey) && e.key === 'n') {
+    e.preventDefault()
+    openCreate()
+  }
+  if ((e.ctrlKey || e.metaKey) && e.key === 's' && dialogOpen.value) {
+    e.preventDefault()
+    void save()
+  }
+}
 </script>
 
 <template>
@@ -179,6 +196,16 @@ onMounted(load)
             <q-btn v-if="row.status === 'ACTIVO'" flat dense round icon="edit" color="primary" @click="openEdit(row)" aria-label="Editar préstamo" />
             <q-btn flat dense round icon="delete" color="negative" @click="confirmDelete(row)" aria-label="Eliminar préstamo" />
           </td>
+        </template>
+        <template v-slot:no-data>
+          <EmptyState
+            v-if="!loading"
+            icon="account_balance"
+            title="Sin préstamos"
+            message="Registra un préstamo para hacer seguimiento de tus deudas."
+          >
+            <q-btn color="primary" icon="add" label="Nuevo Préstamo" @click="openCreate" class="q-mt-sm" />
+          </EmptyState>
         </template>
       </q-table>
     </q-card>

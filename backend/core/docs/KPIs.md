@@ -1,5 +1,7 @@
 ## KPI + Analytics
 
+> **Estado (2026-07-14):** 6 KPIs implementados (3 cálculos únicos + 3 aliases). Outputs del Motor #10 (Financial Health Engine) en `ANALYTICS.md`.
+
 ---
 
 ### 1. Margen Bruto
@@ -94,19 +96,23 @@
 
 ## Resumen de Implementación
 
-| KPI | Fórmula (simplificada) | Estado | Observación |
-|-----|------------------------|--------|-------------|
-| Margen Bruto | (V - COGS) / V | Implementable | Cálculo directo |
-| Margen Operativo | (V - COGS - GastosOp) / V | Implementable | Sin impuestos |
-| Margen Neto | (V - COGS - GastosOp) / V | Implementable | Equivale al Operativo en nuestro contexto |
-| EBITDA Adaptado | (V - COGS - GastosOp) / V | Renombrar | Llamar "Margen Disponible" |
-| Contribución Adaptado | (V - COGS) / V | Implementable | Igual al Bruto (asumiendo COGS variable) |
-| Flujo Caja Adaptado | (V - COGS - GastosOp) / V | Renombrar | Llamar "Liquidez Bruta" |
+| KPI | Fórmula (simplificada) | Estado | Implementado en | Observación |
+|-----|------------------------|--------|-----------------|-------------|
+| Margen Bruto | (V - COGS) / V | ✅ Implementado | `MetricasServiceImpl` + `MetricasFinanciera.grossMarginPct` | CTE consolidado, 1 round-trip |
+| Margen Operativo | (V - COGS - GastosOp) / V | ✅ Implementado | `MetricasServiceImpl` + `MetricasFinanciera.operatingMarginPct` | Sin impuestos (PyMEs) |
+| Margen Neto | (V - COGS - GastosOp - Loans) / V | ✅ Implementado | `MetricasServiceImpl` + `MetricasFinanciera.netMarginPct` | Incluye pagos de préstamos |
+| EBITDA Adaptado | = Margen Operativo | ✅ Alias | `MetricasResponse.ebitdaAdaptado` | Renombrar a "Margen Disponible" en UI |
+| Contribución | = Margen Bruto | ✅ Alias | `MetricasResponse.margenContribucion` | COGS = variable, gastosOp = fijos |
+| Flujo Caja | = Margen Neto | ✅ Alias | `MetricasResponse.margenLiquidezBruta` | Sin considerar plazos cobro/pago |
+
+**Endpoints:** `GET /accounting/consultar`, `POST /accounting/recalcular`
+
+**Financial Health Engine (Motor #10):** Los 6 márgenes son inputs del scoring compuesto que produce alertas, señales de inversión y readiness de expansión. Ver `ANALYTICS.md` y `CORE.md` §Motor de Salud Financiera.
 
 ---
 
 ## Consideraciones Técnicas Adicionales
 
 - **Consistencia de Datos:** Todos los márgenes utilizan los mismos campos base, lo que garantiza coherencia en los cálculos y evita discrepancias por fuentes de datos diferentes.
-- **Frecuencia de Cálculo:** Se recomienda actualizar estos KPI en tiempo real o con refresco diario, ya que dependen de transacciones diarias (ventas y gastos).
-- **Métricas Complementarias:** Añadir Punto de Equilibrio (Gastos Fijos / Margen de Contribución) y Proyección a 30/60/90 días (Ganancia Acumulada / Días × N) para enriquecer el análisis financiero sin modificar los 6 márgenes base.
+- **Frecuencia de Cálculo:** Se actualizan con debounce Redis (30s) al registrar facturas, gastos o ventas. Recálculo manual vía `POST /accounting/recalcular`.
+- **Métricas Complementarias:** Punto de Equilibrio (Gastos Fijos / Margen de Contribución) y Proyección a 30/60/90 días están implementados en el Motor #10 del analytics (Financial Health Engine) como señales de expansión.

@@ -112,6 +112,7 @@ export interface ProductOption {
   productName: string
   sku: string
   category: string
+  categoryName: string
   proveedorId: string | null
   proveedorName: string | null
   lastUnitPrice: number | null

@@ -16,7 +16,7 @@ Core Service (8082)
 ├── setup/      configuracion/inventario inicial
 ├── product/    catalogo productos y presentaciones
 ├── invoice/    facturas de compra y proveedores
-├── analytics/  9 motores CTE de analisis de gastos
+├── analytics/  10 motores de analisis + motor de salud financiera
 ├── gasto/      gastos operativos
 ├── prestamo/   prestamos y pagos
 ├── inversion/  patrimonio
@@ -67,8 +67,114 @@ Todos comunican via Spring Events (no bloqueantes). Paquete base: `core_pymes.*`
 |---------|---------|
 | Entidad | `AnalisisGasto` (JSONB por tenant/periodo) |
 | Endpoints | `GET /analytics/consultar`, `POST /analytics/recalcular` |
-| Motores | ABC, tendencias, margenes, opex, proyeccion, alertas, comparativa proveedores, recomendaciones, predicciones |
-| Flyway | V5 (expense_analysis schema), V6 (indexes), V11 (supplier fields) |
+| Motores | ABC, tendencias, margenes, opex, proyeccion, alertas, comparativa proveedores, recomendaciones, predicciones, **salud financiera** |
+| Flyway | V5 (expense_analysis schema), V6 (indexes), V11 (supplier fields), V15 (financial_health JSONB) |
+
+#### Motor de Salud Financiera (Motor #10)
+
+**Propósito:** Capa de interpretación que cruza datos de los 9 motores + accounting para producir inteligencia accionable: alertas críticas, señales de inversión, readiness de expansión.
+
+**Arquitectura:**
+
+```
+Motores 1-9 (SQL CTE) ──┐
+Accounting (márgenes) ───┼──▶ analisisSaludFinanciera() ──▶ financial_health JSONB
+Productos (inventario) ──┘
+```
+
+No es un motor SQL independiente. Es un motor compuesto que **lee resultados pre-computados** de otros motores + `MetricasRepository` para cruzarlos y producir señales de negocio.
+
+**Inputs (motores existentes):**
+
+| Fuente | Campo leído | Para qué |
+|--------|------------|----------|
+| `MetricasRepository` | `grossMarginPct`, `operatingMarginPct`, `netMarginPct` | Scores de rentabilidad |
+| `MetricasRepository` | `loanPayments`, `operatingMargin` | Ratio deuda/margen |
+| `AnalisisGasto.abc` | Productos categoría A/B/C | Concentración de gasto |
+| `AnalisisGasto.supplierComparison` | Distribución por proveedor | Concentración de proveedor |
+| `AnalisisGasto.trend` | `pctChange` por producto | Estabilidad de precios |
+| `AnalisisGasto.alerts` | Alertas existentes | Severidad combinada |
+| `ProductoRepository` | `lastPurchaseDate`, `totalInvestment` | Productos muertos |
+
+**Señales que produce:**
+
+##### 🔴 Críticas (matan el negocio)
+
+| Señal | Criterio | Datos |
+|-------|----------|-------|
+| `NEGATIVE_OPERATING_MARGIN` | `operatingMarginPct < 0` | Accounting — cada venta genera pérdida neta |
+| `MARGIN_EROSION` | `grossMarginPct` bajando >15% vs período anterior (3+ meses) | Accounting — pouvoir de fijación de precio colapsando |
+| `SUPPLIER_CONCENTRATION` | 1 proveedor >50% del gasto total | supplierComparison — riesgo de interrupción |
+| `OVER_LEVERAGED` | `loanPayments / operatingMargin > 0.30` | Accounting — deuda insostenible |
+| `OPEX_CREEP` | gastos operativos creciendo más rápido que ingresos, 3+ meses | Accounting histórico — ineficiencia creciente |
+| `DEAD_INVENTORY` | productos con inversión alta + 0 compras >60d | Productos + ABC — capital estancado |
+
+##### 🟢 Inversión (es seguro invertir)
+
+| Señal | Threshold |
+|-------|-----------|
+| `HEALTHY_MARGIN_STACK` | Bruto >30% Y Operativo >10% Y Neto >5% |
+| `POSITIVE_CASH_FLOW` | Operating margin positivo 3+ meses consecutivos |
+| `LOW_CONCENTRATION` | Ningún proveedor >30%, ningún producto >20% del gasto |
+| `DEBT_CAPACITY` | Loan payments <15% del margen operativo |
+
+##### 🟣 Expansión (listo para crecer)
+
+| Señal | Threshold |
+|-------|-----------|
+| `SUSTAINED_PROFITABILITY` | Net margin positivo 6+ meses |
+| `OPERATING_LEVERAGE` | OpEx creciendo más lento que revenue |
+| `SUPPLIER_MATURITY` | 3+ proveedores en categorías top (ABC-A) |
+| `DEBT_CUSHION` | Debt service <10% de revenue |
+
+**Scoring compuesto (0-100):**
+
+```
+Health Score = profitability(35%) + efficiency(25%) + stability(25%) + growth(15%)
+```
+
+Cada sub-score tiene drivers que explican *por qué* está en ese nivel. No es un número mágico — es un diagnóstico con contexto.
+
+**Salida JSON (`financial_health`):**
+
+```json
+{
+  "overallHealth": 72,
+  "breakdown": {
+    "profitability": { "score": 65, "drivers": ["grossMarginPct: 32%", "operatingMarginPct: 8%", "netMarginPct: 5%"] },
+    "efficiency": { "score": 80, "drivers": ["opexRatio: 22%", "opexGrowth < revenueGrowth: true"] },
+    "stability": { "score": 70, "drivers": ["supplierConcentration: 35%", "priceStability: 0.92"] },
+    "growth": { "score": 55, "drivers": ["revenueTrend: +5%", "inventoryTurnover: 0.8"] }
+  },
+  "criticalAlerts": [
+    { "type": "NEGATIVE_OPERATING_MARGIN", "severity": "CRITICAL",
+      "title": "Margen Operativo Negativo",
+      "message": "Tu negocio está perdiendo $X por cada $100 vendidos. A este ritmo, tu capital se agotará en ~N meses.",
+      "metric": -3.5, "threshold": 0,
+      "action": "Revisa tu estructura de precios o reduce gastos operativos" }
+  ],
+  "investmentSignals": [
+    { "type": "HEALTHY_MARGIN_STACK", "status": "met",
+      "label": "Margen Bruto >30%", "current": "32%", "threshold": "30%" }
+  ],
+  "expansionReadiness": {
+    "score": 45,
+    "status": "EN_DESARROLLO",
+    "requirements": [
+      { "met": false, "label": "6 meses de rentabilidad sostenida", "current": "3 meses" },
+      { "met": true, "label": "Margen bruto >30%", "current": "32%" }
+    ]
+  },
+  "recommendations": [
+    "Reduce dependencia de Distribuidora XYZ (35% del gasto) — negocia con 2 alternativas.",
+    "Tus 3 productos A representan el 60% del gasto. Asegura su stock prioritario."
+  ]
+}
+```
+
+**Persistencia:** JSONB nullable en `expense_analysis.financial_health` (V15). Filas existentes → null, mapper retorna objeto vacío.
+
+**Trigger de recomputo:** Se ejecuta al final de `ejecutarCompleto()` después de los 9 motores. No tiene debounce propio — hereda el del analytics.
 
 ### Gasto (`core_pymes/gasto/`)
 
@@ -353,6 +459,8 @@ Ver `SEED_TEMPLATES.md` para detalle completo.
 | Seed data | Java `ApplicationRunner` + JdbcTemplate | Flyway SQL, JPA entities |
 | Test infra | Testcontainers PostgreSQL + Redis | Docker Compose externo |
 | Mapper | MapStruct con interface + @Mapping | Manual setters, Lombok Builder |
+| Financial Health | Motor compuesto que cruza datos existentes (no SQL nuevo) | Motor SQL independiente con tablas propias |
+| Intelligence layer | JSONB nullable en tabla existente | Nueva tabla + schema separado |
 | Relaciones FK | Dual-field pattern (UUID field + @ManyToOne read-only) | @ManyToOne con cascade completo |
 | Entidades | Espanol (Producto, Factura, Proveedor) | Ingles (Product, Invoice) |
 | Invoice numbering | Native query secuencial por tenant/año | UUID, secuencia global, logica en app |
@@ -378,6 +486,7 @@ Ver `SEED_TEMPLATES.md` para detalle completo.
 - [x] Redis debounce — RecomputeDebounceService + @Scheduled
 - [x] Testcontainers Redis en AbstractIntegrationTest
 - [x] SQL review — division por cero en analisisABC, indices redundantes removidos
+- [ ] **Financial Health Engine** — Motor #10: scoring compuesto + alertas críticas + señales inversión/expansión. Requiere V15 (columna `financial_health JSONB`), `analisisSaludFinanciera()` en AnalyticsServiceImpl, `FinancialHealthResponse` DTO, actualización de `useAnalytics` + `AnalisisGastosPage.vue`.
 
 ### Mediate
 

@@ -1,6 +1,6 @@
 # Analytics Module
 
-> **Estado (2026-07-09):** Implementado en produccion — 9 motores CTE, listener conectado a FacturaCreadaEvent via debounce Redis, tabla expense_analysis con 3 columnas JSONB de supplier analytics.
+> **Estado (2026-07-14):** Implementado en produccion — 9 motores CTE + 1 motor compuesto (Financial Health), listener conectado a FacturaCreadaEvent via debounce Redis, tabla expense_analysis con 4 columnas JSONB.
 > Tests: 5 unitarios + 4 JPA (AnalyticsServiceImplTest + AnalyticsRepositoryTest).
 
 ---
@@ -49,6 +49,31 @@
 | Recomendaciones | `analisisRecomendacionProveedor()` | Proveedor mas barato por producto + savings_pct |
 | Predicciones Precios | `analisisProyeccionPrecios()` | OLS lineal por producto, predice precio proximo mes con R2 |
 
+### Financial Health Engine (Motor #10 — V15)
+
+Motor compuesto, no SQL independiente. Cruza datos de los 9 motores + `MetricasRepository` para producir inteligencia accionable.
+
+| Señal | Tipo | Criterio |
+|-------|------|----------|
+| `NEGATIVE_OPERATING_MARGIN` | 🔴 Crítica | `operatingMarginPct < 0` |
+| `MARGIN_EROSION` | 🔴 Crítica | `grossMarginPct` bajando >15% vs período anterior, 3+ meses |
+| `SUPPLIER_CONCENTRATION` | 🔴 Crítica | 1 proveedor >50% del gasto total |
+| `OVER_LEVERAGED` | 🔴 Crítica | `loanPayments / operatingMargin > 0.30` |
+| `OPEX_CREEP` | 🔴 Crítica | Gastos operativos creciendo más rápido que ingresos, 3+ meses |
+| `DEAD_INVENTORY` | 🔴 Crítica | Productos con inversión alta + 0 compras >60d |
+| `HEALTHY_MARGIN_STACK` | 🟢 Inversión | Bruto >30% Y Operativo >10% Y Neto >5% |
+| `POSITIVE_CASH_FLOW` | 🟢 Inversión | Operating margin positivo 3+ meses |
+| `LOW_CONCENTRATION` | 🟢 Inversión | Ningún proveedor >30%, ningún producto >20% |
+| `DEBT_CAPACITY` | 🟢 Inversión | Loan payments <15% del margen operativo |
+| `SUSTAINED_PROFITABILITY` | 🟣 Expansión | Net margin positivo 6+ meses |
+| `OPERATING_LEVERAGE` | 🟣 Expansión | OpEx creciendo más lento que revenue |
+| `SUPPLIER_MATURITY` | 🟣 Expansión | 3+ proveedores en categorías top (ABC-A) |
+| `DEBT_CUSHION` | 🟣 Expansión | Debt service <10% de revenue |
+
+Scoring compuesto: `Health = profitability(35%) + efficiency(25%) + stability(25%) + growth(15%)`
+
+Ver `CORE.md` §Motor de Salud Financiera para JSON de salida, inputs y diseño completo.
+
 ### Flyway
 
 | Migration | Contenido |
@@ -56,6 +81,7 @@
 | V5 | Tabla `expense_analysis` (JSONB por tenant/periodo) |
 | V6 | Indices en `invoices(tenant_id, issue_date)` e `invoice_items(product_id)` para performance |
 | V11 | +3 columnas JSONB: `supplier_comparison`, `supplier_recommendations`, `price_prediction` |
+| V15 | +1 columna JSONB: `financial_health` (nullable, Motor #10) |
 
 ---
 
@@ -168,3 +194,4 @@ No hay dependencias adicionales:
 | 2025-07-21 | FacturaCreadaListener usa AnalyticsService (abstraccion) |
 | 2026-07-08 | V11: supplier analytics (comparativa, recomendaciones, predicciones OLS) |
 | 2026-07-09 | SQL review: fix division por cero, removal redundants, covering indexes V13 |
+| 2026-07-14 | Motor #10: Financial Health Engine — scoring compuesto, alertas críticas, señales inversión/expansión. V15 (financial_health JSONB). Documentado en CORE.md. |

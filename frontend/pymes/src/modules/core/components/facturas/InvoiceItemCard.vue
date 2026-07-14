@@ -7,6 +7,7 @@ export interface ProductOption {
   productName: string
   sku: string
   category: string
+  categoryName: string
   proveedorId: string | null
   proveedorName: string | null
   lastUnitPrice: number | null
@@ -43,9 +44,15 @@ const search = ref('')
 
 const filteredProducts = computed(() => {
   const needle = search.value.toLowerCase()
-  return props.productOptions.filter(p =>
+  const filtered = props.productOptions.filter(p =>
     !needle || p.label.toLowerCase().includes(needle) || p.sku.toLowerCase().includes(needle)
   )
+  // ponytail: always show selected product even if filtered out by search
+  if (props.item.productoId && !filtered.some(p => p.value === props.item.productoId)) {
+    const selected = props.productOptions.find(p => p.value === props.item.productoId)
+    if (selected) filtered.unshift(selected)
+  }
+  return filtered
 })
 
 const subtotal = computed(() => {
@@ -98,7 +105,7 @@ const conversionBadge = computed(() => {
                 <q-item-label class="product-option__name">{{ opt.productName }}</q-item-label>
                 <q-item-label caption class="product-option__meta">
                   <span v-if="opt.sku" class="product-option__sku">{{ opt.sku }}</span>
-                  <span v-if="opt.category" class="product-option__cat">{{ opt.category }}</span>
+                  <span v-if="opt.categoryName" class="product-option__cat">{{ opt.categoryName }}</span>
                 </q-item-label>
               </q-item-section>
               <q-item-section side v-if="opt.proveedorName">
@@ -195,8 +202,8 @@ const conversionBadge = computed(() => {
   background:
     linear-gradient(135deg, rgba(163, 120, 94, 0.03) 0%, rgba(27, 38, 36, 0.45) 100%);
   border: 1px solid rgba(113, 131, 127, 0.12);
-  border-radius: 12px;
-  padding: 14px 16px 12px;
+  border-radius: 10px;
+  padding: 10px 12px 8px;
   transition: border-color 0.25s ease, box-shadow 0.25s ease;
   position: relative;
   overflow: hidden;
@@ -231,8 +238,8 @@ const conversionBadge = computed(() => {
 .item-header {
   display: flex;
   align-items: center;
-  gap: 10px;
-  margin-bottom: 12px;
+  gap: 8px;
+  margin-bottom: 8px;
 }
 
 .item-number {
@@ -271,8 +278,8 @@ const conversionBadge = computed(() => {
 .item-inputs {
   display: grid;
   grid-template-columns: 1fr 1.1fr 1fr 0.8fr;
-  gap: 10px;
-  margin-bottom: 10px;
+  gap: 8px;
+  margin-bottom: 8px;
 }
 
 .item-input-group {
@@ -291,9 +298,9 @@ const conversionBadge = computed(() => {
 }
 
 .item-input :deep(.q-field__control) {
-  border-radius: 8px !important;
-  min-height: 34px !important;
-  font-size: 0.85rem;
+  border-radius: 6px !important;
+  min-height: 32px !important;
+  font-size: 0.82rem;
   font-variant-numeric: tabular-nums;
 }
 
