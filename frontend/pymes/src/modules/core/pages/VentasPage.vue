@@ -1,5 +1,5 @@
 <script setup lang="ts">
-import { ref, shallowRef, onMounted, onUnmounted } from 'vue'
+import { ref, shallowRef, computed, onMounted, onUnmounted } from 'vue'
 import { useQuasar, useMeta } from 'quasar'
 import { useAuthStore } from 'src/modules/auth/store'
 import { formatCurrency } from 'src/utils/format'
@@ -15,15 +15,50 @@ const tenantId = authStore.user?.tenantId || ''
 
 const rows = ref<VentaDiaria[]>([])
 const loading = shallowRef(false)
-const filter = shallowRef('')
-const pagination = shallowRef({ sortBy: 'saleDate', descending: true, page: 1, rowsPerPage: 15 })
 
-const columns = [
-  { name: 'saleDate', label: 'Fecha', field: 'saleDate', align: 'left' as const, sortable: true },
-  { name: 'description', label: 'Descripción', field: 'description', align: 'left' as const, sortable: false },
-  { name: 'grossAmount', label: 'Monto Bruto', field: 'grossAmount', align: 'right' as const, sortable: true },
-  { name: 'actions', label: 'Acciones', field: 'id', align: 'right' as const, sortable: false },
-]
+const totalSemana = computed(() => {
+  const now = new Date()
+  const weekAgo = new Date(now.getTime() - 7 * 24 * 60 * 60 * 1000)
+  return rows.value
+    .filter(r => new Date(r.saleDate) >= weekAgo)
+    .reduce((s, r) => s + r.grossAmount, 0)
+})
+
+const totalMes = computed(() => {
+  const now = new Date()
+  const monthStart = new Date(now.getFullYear(), now.getMonth(), 1)
+  return rows.value
+    .filter(r => new Date(r.saleDate) >= monthStart)
+    .reduce((s, r) => s + r.grossAmount, 0)
+})
+
+interface DayGroup {
+  date: string
+  label: string
+  items: VentaDiaria[]
+  total: number
+}
+
+const dayGroups = computed(() => {
+  const groups = new Map<string, VentaDiaria[]>()
+  for (const v of rows.value) {
+    if (!groups.has(v.saleDate)) groups.set(v.saleDate, [])
+    groups.get(v.saleDate)!.push(v)
+  }
+  const result: DayGroup[] = []
+  for (const [date, list] of groups) {
+    const d = new Date(date)
+    const label = d.toLocaleDateString('es-ES', { weekday: 'short', day: 'numeric', month: 'short' })
+    result.push({
+      date,
+      label,
+      items: list,
+      total: list.reduce((s, v) => s + v.grossAmount, 0),
+    })
+  }
+  result.sort((a, b) => b.date.localeCompare(a.date))
+  return result
+})
 
 async function load() {
   loading.value = true
@@ -87,7 +122,8 @@ async function remove() {
     rows.value = rows.value.filter(r => r.id !== deletingItem.value!.id)
     deleteDialog.value = false
     $q.notify({ type: 'positive', message: 'Venta eliminada' })
-  } catch { $q.notify({ type: 'negative', message: 'Error al eliminar venta' })
+  } catch {
+    $q.notify({ type: 'negative', message: 'Error al eliminar venta' })
   } finally {
     deleting.value = false
     deletingItem.value = null
@@ -115,44 +151,60 @@ function handleKeydown(e: KeyboardEvent) {
 
 <template>
   <q-page class="core-page">
-    <div class="q-mb-md fade-in-up">
+    <div class="q-mb-md">
       <h1 class="text-h4 text-primary font-bold q-ma-none">Ventas</h1>
       <p class="text-subtitle1 text-accent q-mt-xs">Registro diario de ventas</p>
     </div>
 
-    <q-card dark class="bg-surface-pine">
-      <q-table dark flat :rows="rows" :columns="columns" row-key="id" :loading="loading" :filter="filter" v-model:pagination="pagination" :rows-per-page-options="[10, 20, 50]">
-        <template v-slot:top>
-          <q-input dark dense filled v-model="filter" placeholder="Buscar..." class="q-mr-sm" style="max-width: 250px">
-            <template v-slot:prepend><q-icon name="search" /></template>
-          </q-input>
-          <q-space />
-          <q-btn color="primary" icon="add" label="Nueva" @click="openCreate" />
-        </template>
-        <template v-slot:body-cell-grossAmount="{ row }">
-          <td class="text-right text-weight-bold">{{ formatCurrency(row.grossAmount) }}</td>
-        </template>
-        <template v-slot:body-cell-description="{ row }">
-          <td><span class="text-accent">{{ row.description || '—' }}</span></td>
-        </template>
-        <template v-slot:body-cell-actions="{ row }">
-          <td class="text-right">
-            <q-btn flat dense round icon="edit" color="primary" @click="openEdit(row)" aria-label="Editar venta" />
-            <q-btn flat dense round icon="delete" color="negative" @click="confirmDelete(row)" aria-label="Eliminar venta" />
-          </td>
-        </template>
-        <template v-slot:no-data>
-          <EmptyState
-            v-if="!loading"
-            icon="point_of_sale"
-            title="Sin ventas registradas"
-            message="Registra tu primera venta del día para llevar el control."
-          >
-            <q-btn color="primary" icon="add" label="Nueva Venta" @click="openCreate" class="q-mt-sm" />
-          </EmptyState>
-        </template>
-      </q-table>
+    <q-card dark class="glass q-pa-sm q-mb-sm">
+      <div class="row q-gutter-x-lg q-pa-xs">
+        <div>
+          <div class="text-caption text-accent text-uppercase" style="font-size: 0.72rem; letter-spacing: 0.04em">Esta semana</div>
+          <div class="font-mono text-weight-bold text-h6">{{ formatCurrency(totalSemana) }}</div>
+        </div>
+        <div>
+          <div class="text-caption text-accent text-uppercase" style="font-size: 0.72rem; letter-spacing: 0.04em">Este mes</div>
+          <div class="font-mono text-weight-bold text-h6">{{ formatCurrency(totalMes) }}</div>
+        </div>
+      </div>
     </q-card>
+
+    <div class="toolbar">
+      <q-space />
+      <q-btn color="primary" icon="add" label="Nueva" @click="openCreate" />
+    </div>
+
+    <div v-if="!loading && !rows.length" class="q-mt-lg">
+      <EmptyState
+        icon="point_of_sale"
+        title="Sin ventas registradas"
+        message="Registra tu primera venta del d\u00EDa para llevar el control."
+      >
+        <q-btn color="primary" icon="add" label="Nueva Venta" @click="openCreate" class="q-mt-sm" />
+      </EmptyState>
+    </div>
+
+    <div v-if="loading" class="q-gutter-y-md q-mt-md">
+      <div v-for="n in 4" :key="n">
+        <q-skeleton type="rect" dark animation="pulse" height="48px" />
+      </div>
+    </div>
+
+    <div v-for="group in dayGroups" :key="group.date" class="day-group">
+      <div class="day-group__header">
+        <span class="day-group__label">{{ group.label }}</span>
+        <span class="day-group__total">{{ formatCurrency(group.total) }}</span>
+      </div>
+
+      <div v-for="v in group.items" :key="v.id" class="sale-row">
+        <div class="sale-row__desc">{{ v.description || 'Sin descripci\u00F3n' }}</div>
+        <div class="sale-row__amount">{{ formatCurrency(v.grossAmount) }}</div>
+        <div class="sale-row__actions">
+          <q-btn flat dense round icon="edit" color="primary" size="sm" @click="openEdit(v)" aria-label="Editar" />
+          <q-btn flat dense round icon="delete" color="negative" size="sm" @click="confirmDelete(v)" aria-label="Eliminar" />
+        </div>
+      </div>
+    </div>
 
     <q-dialog v-model="dialogOpen" dark>
       <q-card dark class="bg-surface-pine" style="width: 90vw; max-width: 460px">
@@ -162,7 +214,7 @@ function handleKeydown(e: KeyboardEvent) {
           <q-form ref="formRef" @submit.prevent="save" class="q-gutter-y-md">
             <q-input dark filled v-model="form.saleDate" label="Fecha" type="date" :rules="[v => !!v || 'Requerido']" />
             <q-input dark filled v-model.number="form.grossAmount" label="Monto Bruto" type="number" min="0" step="0.01" prefix="$" :rules="[v => !!v || 'Requerido']" />
-            <q-input dark filled v-model="form.description" label="Descripción" />
+            <q-input dark filled v-model="form.description" label="Descripci\u00F3n" />
             <div class="row justify-end q-gutter-x-sm">
               <q-btn flat label="Cancelar" color="accent" v-close-popup />
               <q-btn type="submit" label="Guardar" color="primary" :loading="saving" />
@@ -176,7 +228,7 @@ function handleKeydown(e: KeyboardEvent) {
       <q-card dark class="bg-surface-pine">
         <q-card-section class="row items-center q-gutter-x-md">
           <q-icon name="warning" color="negative" size="md" />
-          <span>¿Eliminar venta del <strong>{{ deletingItem?.saleDate }}</strong>?</span>
+          <span>Eliminar venta del <strong>{{ deletingItem?.saleDate }}</strong>?</span>
         </q-card-section>
         <q-card-actions align="right">
           <q-btn flat label="Cancelar" color="accent" v-close-popup />
@@ -187,10 +239,54 @@ function handleKeydown(e: KeyboardEvent) {
   </q-page>
 </template>
 
-<style scoped lang="scss">
-:deep(.q-dialog__inner > .q-card) {
-  backdrop-filter: blur(16px);
-  -webkit-backdrop-filter: blur(16px);
-  border: 1px solid rgba(113, 131, 127, 0.08);
+<style scoped>
+.toolbar {
+  display: flex;
+  align-items: center;
+  margin-bottom: 16px;
+}
+
+.day-group {
+  margin-bottom: 20px;
+}
+
+.day-group:last-child {
+  margin-bottom: 0;
+}
+
+.day-group__header {
+  display: flex;
+  align-items: baseline;
+  justify-content: space-between;
+  padding: 8px 12px;
+  background: rgba(27, 38, 36, 0.3);
+  border-radius: 6px;
+  margin-bottom: 4px;
+}
+
+.day-group__label {
+  font-size: 0.85rem;
+  font-weight: 600;
+  text-transform: capitalize;
+}
+
+.sale-row {
+  display: grid;
+  grid-template-columns: 1fr auto auto;
+  align-items: center;
+  gap: 12px;
+  padding: 8px 12px;
+  border-bottom: 1px solid rgba(113, 131, 127, 0.04);
+}
+
+.sale-row:hover {
+  background: rgba(27, 38, 36, 0.3);
+}
+
+.sale-row__desc {
+  font-size: 0.85rem;
+  white-space: nowrap;
+  overflow: hidden;
+  text-overflow: ellipsis;
 }
 </style>

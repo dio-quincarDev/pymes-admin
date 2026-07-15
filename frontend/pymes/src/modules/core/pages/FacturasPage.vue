@@ -5,206 +5,142 @@
       <p class="text-subtitle1 text-accent q-mt-xs">Registro de facturas de proveedores</p>
     </div>
 
-    <q-card dark class="bg-surface-pine">
-      <q-table
-        dark flat
-        :rows="rows"
-        :columns="columns"
-        row-key="id"
-        :loading="loading"
-        :filter="filter"
-        v-model:pagination="pagination"
-        :rows-per-page-options="[10, 20, 50]"
+    <div class="facturas-toolbar">
+      <q-input dark dense filled v-model="filter" placeholder="Buscar por número o proveedor..." class="facturas-toolbar__search">
+        <template v-slot:prepend><q-icon name="search" /></template>
+      </q-input>
+      <q-space />
+      <q-btn color="primary" icon="add" label="Nueva" @click="openCreate" />
+    </div>
+
+    <div v-if="!loading && !filteredRows.length" class="q-my-lg">
+      <EmptyState
+        icon="receipt_long"
+        title="Sin facturas"
+        message="Registra tu primera factura de proveedor para comenzar."
+      />
+    </div>
+
+    <div v-if="loading" class="q-gutter-y-md">
+      <div v-for="n in 3" :key="n">
+        <q-skeleton type="text" dark animation="pulse" class="q-mb-sm" width="30%" height="16px" />
+        <q-skeleton type="rect" dark animation="pulse" class="q-mb-xs" height="40px" />
+        <q-skeleton type="rect" dark animation="pulse" class="q-mb-xs" height="40px" />
+      </div>
+    </div>
+
+    <div v-for="group in monthGroups" :key="group.label" class="q-mb-lg">
+      <div class="month-group-header">
+        <span class="month-group-label">{{ group.label }}</span>
+        <span class="month-group-count">{{ group.items.length }} factura{{ group.items.length !== 1 ? 's' : '' }}</span>
+      </div>
+
+      <div
+        v-for="inv in group.items" :key="inv.id"
+        class="invoice-row"
+        @mouseenter="($event.currentTarget as HTMLElement).style.background = 'color-mix(in srgb, var(--pq-surface) 60%, transparent)'"
+        @mouseleave="($event.currentTarget as HTMLElement).style.background = ''"
       >
-        <template v-slot:top>
-          <q-input dark dense filled v-model="filter" placeholder="Buscar..." class="q-mr-sm" style="max-width: 250px">
-            <template v-slot:prepend><q-icon name="search" /></template>
-          </q-input>
-          <q-space />
-          <q-btn color="primary" icon="add" label="Nueva" @click="openCreate" />
-        </template>
-
-        <template v-slot:body-cell-status="{ row }">
-          <td>
-            <q-badge :color="statusColor(row.status)" class="q-px-sm q-py-xs">
-              {{ row.status }}
-            </q-badge>
-          </td>
-        </template>
-
-        <template v-slot:body-cell-total="{ row }">
-          <td class="text-right text-weight-bold">{{ formatCurrency(row.total) }}</td>
-        </template>
-
-        <template v-slot:body-cell-actions="{ row }">
-          <td class="text-right">
-            <q-btn flat dense round icon="visibility" color="accent" @click="openDetail(row)" aria-label="Ver detalles">
-              <q-tooltip>Ver detalles</q-tooltip>
-            </q-btn>
-            <q-btn
-              v-if="row.status === 'REGISTRADA'"
-              flat dense round icon="paid" color="positive"
-              @click="confirmPay(row)"
-              aria-label="Marcar como pagada"
-            >
-              <q-tooltip>Marcar como pagada</q-tooltip>
-            </q-btn>
-            <q-btn
-              v-if="row.status === 'REGISTRADA'"
-              flat dense round icon="delete" color="negative"
-              @click="confirmDelete(row)"
-              aria-label="Eliminar factura"
-            />
-          </td>
-        </template>
-
-        <template v-slot:no-data>
-          <EmptyState
-            v-if="!loading"
-            icon="receipt_long"
-            title="Sin facturas"
-            message="Registra tu primera factura de proveedor para comenzar."
-          >
-            <q-btn color="primary" icon="add" label="Nueva Factura" @click="openCreate" class="q-mt-sm" />
-          </EmptyState>
-        </template>
-      </q-table>
-    </q-card>
+        <div class="invoice-row__info">
+          <div class="invoice-row__number">{{ inv.invoiceNumber }}</div>
+          <div class="invoice-row__provider">{{ inv.providerName }}</div>
+        </div>
+        <div class="invoice-row__date">{{ inv.issueDate }}</div>
+        <div class="invoice-row__total">{{ formatCurrency(inv.total) }}</div>
+        <div class="invoice-row__status">
+          <q-badge :color="statusColor(inv.status)" class="q-px-sm q-py-xs">{{ inv.status }}</q-badge>
+        </div>
+        <div class="invoice-row__actions">
+          <q-btn flat dense round icon="visibility" color="accent" size="sm" @click="openDetail(inv)" aria-label="Ver detalles" />
+          <q-btn v-if="inv.status === 'REGISTRADA'" flat dense round icon="edit" color="primary" size="sm" @click="openEdit(inv)" aria-label="Editar" />
+          <q-btn v-if="inv.status === 'REGISTRADA'" flat dense round icon="paid" color="positive" size="sm" @click="confirmPay(inv)" aria-label="Marcar como pagada" />
+          <q-btn v-if="inv.status === 'REGISTRADA'" flat dense round icon="delete" color="negative" size="sm" @click="confirmDelete(inv)" aria-label="Eliminar" />
+        </div>
+      </div>
+    </div>
 
     <!-- Create Invoice Dialog -->
     <q-dialog v-model="dialogOpen" dark maximized transition-show="scale" transition-hide="fade">
-      <q-card dark class="bg-surface-pine invoice-dialog" @before-hide="onDialogBeforeHide">
-        <!-- Dialog header -->
-        <div class="invoice-dialog__header">
-          <div class="invoice-dialog__header-content">
+      <q-card dark class="bg-surface-pine invoice-dialog">
+        <q-form @submit.prevent="save" class="fit column no-wrap">
+          <!-- Header -->
+          <div class="invoice-dialog__header">
             <div class="invoice-dialog__title">
-              <q-icon name="receipt_long" size="1.4rem" class="text-primary" />
-              <span class="text-h6 text-primary q-ml-sm">Nueva Factura</span>
+              <q-icon name="receipt_long" size="1.2rem" class="text-primary" />
+              <span class="text-h6 text-primary q-ml-sm">{{ editingId ? 'Editar Factura' : 'Nueva Factura' }}</span>
             </div>
-            <div class="invoice-dialog__subtitle">Registro de compra a proveedor</div>
+            <q-btn flat round icon="close" color="accent" v-close-popup size="sm" />
           </div>
-          <q-btn flat round icon="close" color="accent" v-close-popup size="sm" class="invoice-dialog__close" />
-        </div>
 
-        <q-separator dark class="invoice-dialog__separator" />
+          <q-separator dark class="opacity-20" />
 
-        <q-card-section class="invoice-dialog__body">
-          <q-form @submit.prevent="save" class="q-gutter-y-md">
-            <!-- Provider -->
-            <q-select
-              dark filled standout v-model="form.proveedorId"
-              :options="providerFilteredOptions"
-              label="Proveedor"
-              :rules="[v => !!v || 'Requerido']"
-              map-options emit-value
-              use-input
-              @filter="providerFilter"
-              popup-content-class="product-dropdown"
-            >
-              <template v-slot:prepend>
-                <q-icon name="business" size="1rem" class="text-primary" />
-              </template>
-              <template v-slot:option="{ itemProps, opt }">
-                <q-item v-bind="itemProps">
-                  <q-item-section>
-                    <span :class="opt.__isCreate ? 'text-primary' : ''">{{ opt.label }}</span>
-                  </q-item-section>
-                </q-item>
-              </template>
-              <template v-slot:no-option>
-                <q-item><q-item-section class="text-accent text-caption">Escribe el nombre para crearlo</q-item-section></q-item>
-              </template>
-            </q-select>
-
-            <!-- Date + Type row -->
-            <div class="row q-col-gutter-md">
-              <div class="col-xs-12 col-sm-6">
-                <q-input dark filled standout v-model="form.fecha" label="Fecha" type="date" :rules="[v => !!v || 'Requerido']">
-                  <template v-slot:prepend><q-icon name="calendar_today" size="1rem" class="text-primary" /></template>
-                </q-input>
-              </div>
-              <div class="col-xs-12 col-sm-6">
-                <q-select dark filled standout v-model="form.tipo" :options="['FACTURA', 'GASTO_OPERATIVO']" label="Tipo" :rules="[v => !!v || 'Requerido']">
-                  <template v-slot:prepend><q-icon name="category" size="1rem" class="text-primary" /></template>
+          <!-- Scrollable body -->
+          <q-card-section class="invoice-dialog__body col">
+            <!-- Form header: 2x2 grid -->
+            <div class="row q-col-gutter-x-sm q-col-gutter-y-sm q-mb-md">
+              <div class="col-12 col-sm-6">
+                <q-select dark dense v-model="form.proveedorId" :options="providerFilteredOptions" label="Proveedor" :rules="[v=>!!v||'Requerido']" map-options emit-value use-input @filter="providerFilter" popup-content-class="product-dropdown">
+                  <template v-slot:no-option><q-item><q-item-section class="text-accent text-caption">Escribe el nombre para crearlo</q-item-section></q-item></template>
                 </q-select>
               </div>
+              <div class="col-12 col-sm-6">
+                <q-input dark dense v-model="form.fecha" label="Fecha" type="date" :rules="[v=>!!v||'Requerido']" />
+              </div>
+              <div class="col-12 col-sm-6">
+                <q-select dark dense v-model="form.tipo" :options="['FACTURA','GASTO_OPERATIVO']" label="Tipo" :rules="[v=>!!v||'Requerido']" />
+              </div>
+              <div class="col-12 col-sm-6">
+                <q-select dark dense v-model="form.metodoPago" :options="['EFECTIVO','TRANSFERENCIA','TARJETA','CHEQUE']" label="Método de pago" clearable />
+              </div>
             </div>
-
-            <!-- Payment method -->
-            <q-select dark filled standout v-model="form.metodoPago" :options="['EFECTIVO', 'TRANSFERENCIA', 'TARJETA', 'CHEQUE']" label="Método de pago" clearable>
-              <template v-slot:prepend><q-icon name="payment" size="1rem" class="text-primary" /></template>
-            </q-select>
-
-            <q-separator dark class="invoice-dialog__section-sep" />
 
             <!-- Items header -->
-            <div class="items-header">
-              <div class="items-header__title">
-                <q-icon name="list" size="1rem" class="text-primary" />
-                <span class="text-subtitle2 text-primary">Items</span>
-                <q-badge v-if="form.items.length" :label="form.items.length" color="accent" text-color="dark" class="q-ml-xs items-count-badge" />
+            <div class="invoice-dialog__items-header">
+              <div class="invoice-dialog__items-title">
+                <q-icon name="list" size="0.85rem" class="text-primary" />
+                <span>Items</span>
+                <q-badge v-if="form.items.length" :label="form.items.length" color="accent" text-color="dark" class="q-ml-xs" />
               </div>
-              <div class="items-header__total" v-if="form.items.length">
-                <span class="items-header__total-label">Total</span>
-                <span class="items-header__total-value">{{ formatCurrency(computedTotal) }}</span>
-              </div>
+              <span v-if="form.items.length" class="invoice-dialog__items-total">{{ formatCurrency(computedTotal) }}</span>
             </div>
 
-            <CategoryTabs v-model="activeCategory" :categories="setupCategories" />
+            <CategoryTabs v-if="allProducts.length" v-model="activeCategory" :categories="setupCategories" />
 
-            <InvoiceItemCard
-              v-for="(item, i) in form.items" :key="item._key"
-              :item="item" :index="i"
-              :product-options="filteredByCategory"
-              :unit-options="unitOptions(item.productoId)"
+            <div class="invoice-dialog__items q-gutter-y-sm">
+              <InvoiceItemCard
+                v-for="(item, i) in form.items" :key="item._key"
+                :item="item" :index="i"
+                :product-options="filteredByCategory"
+                :unit-options="unitOptions(item.productoId)"
               :presentation-conversion-map="presentationConversionMap"
-              :base-unit-name="baseUnitNameFor(item)"
               @update:productoId="onProductoChange(item, $event)"
-              @update:presentacionId="onPresentacionChange(item, $event)"
-              @update:cantidad="item.cantidad = $event"
-              @update:precioUnitario="item.precioUnitario = $event"
-              @update:descuento="item.descuento = $event"
-              @remove="removeItem(i)"
-              class="invoice-item-enter"
-            />
-
-            <q-btn
-              outline color="primary" icon="add" label="Agregar item"
-              @click="addItem" class="add-item-btn"
-              no-caps
-            />
-
-            <!-- Total bar -->
-            <Transition name="total-slide">
-              <div v-if="form.items.length" class="total-bar">
-                <div class="total-bar__content">
-                  <div class="total-bar__detail">
-                    <span class="total-bar__label">Subtotal</span>
-                    <span class="total-bar__value">{{ formatCurrency(form.items.reduce((s, i) => s + (i.cantidad || 0) * (i.precioUnitario || 0) * (1 - (i.descuento || 0) / 100), 0)) }}</span>
-                  </div>
-                  <q-icon name="arrow_right" size="1rem" class="text-accent" />
-                  <div class="total-bar__detail total-bar__detail--total">
-                    <span class="total-bar__label">Total</span>
-                    <span class="total-bar__value total-bar__value--total">{{ formatCurrency(computedTotal) }}</span>
-                  </div>
-                </div>
-              </div>
-            </Transition>
-
-            <q-separator dark class="invoice-dialog__footer-sep" />
-
-            <!-- Actions -->
-            <div class="dialog-actions">
-              <q-btn flat label="Cancelar" color="accent" v-close-popup no-caps class="dialog-actions__cancel" />
-              <q-btn
-                type="submit" label="Guardar Factura" color="primary"
-                :loading="saving" no-caps
-                icon="save"
-                class="dialog-actions__save"
+                @update:presentacionId="onPresentacionChange(item, $event)"
+                @update:cantidad="item.cantidad = $event"
+                @update:valor="item.valor = $event"
+                @update:descuento="item.descuento = $event"
+                @remove="removeItem(i)"
               />
             </div>
-          </q-form>
-        </q-card-section>
+
+            <div class="invoice-dialog__add">
+              <q-btn outline color="primary" icon="add" label="Agregar item" @click="addItem" no-caps size="sm" />
+            </div>
+
+            <q-separator dark class="opacity-10 q-mt-sm" />
+            <div v-if="form.items.length" class="invoice-dialog__total">
+              <span class="invoice-dialog__total-label">Total factura</span>
+              <span class="invoice-dialog__total-val">{{ formatCurrency(computedTotal) }}</span>
+            </div>
+          </q-card-section>
+
+          <q-separator dark class="opacity-20" />
+
+          <!-- Sticky footer -->
+          <div class="invoice-dialog__footer">
+            <q-btn flat label="Cancelar" color="accent" v-close-popup no-caps />
+            <q-btn type="submit" label="Guardar" color="primary" :loading="saving" no-caps icon="save" />
+          </div>
+        </q-form>
       </q-card>
     </q-dialog>
 
@@ -237,12 +173,12 @@ import { facturaService } from '../services/factura.service'
 import { productoService } from '../services/producto.service'
 import { proveedorService } from '../services/proveedor.service'
 import type { Factura, FacturaRequest, SetupInfo, SetupCategory, ProductOption, Producto } from '../types'
+import EmptyState from 'src/components/ui/EmptyState.vue'
 import { api } from 'src/boot/axios'
 import CategoryTabs from '../components/facturas/CategoryTabs.vue'
 import InvoiceItemCard from '../components/facturas/InvoiceItemCard.vue'
 import InvoiceDetailDialog from '../components/facturas/InvoiceDetailDialog.vue'
 import ConfirmDialog from '../components/facturas/ConfirmDialog.vue'
-import EmptyState from 'src/components/ui/EmptyState.vue'
 
 useMeta({ title: 'Facturas — PYMEQ' })
 
@@ -255,7 +191,42 @@ interface OptionItem { label: string; value: string; __isCreate?: boolean }
 const rows = ref<Factura[]>([])
 const loading = shallowRef(false)
 const filter = shallowRef('')
-const pagination = shallowRef({ sortBy: 'issueDate', descending: true, page: 1, rowsPerPage: 15 })
+const editingId = shallowRef<string | null>(null)
+
+const statusColor = (s: string) =>
+  s === 'PAGADA' ? 'positive' : s === 'REGISTRADA' ? 'warning' : 'grey'
+
+const filteredRows = computed(() => {
+  if (!filter.value) return rows.value
+  const q = filter.value.toLowerCase()
+  return rows.value.filter(r =>
+    r.invoiceNumber.toLowerCase().includes(q) ||
+    r.providerName.toLowerCase().includes(q)
+  )
+})
+
+interface MonthGroup {
+  label: string
+  items: Factura[]
+}
+
+const monthGroups = computed(() => {
+  const groups = new Map<string, Factura[]>()
+  for (const inv of filteredRows.value) {
+    const date = new Date(inv.issueDate)
+    const key = `${date.getFullYear()}-${String(date.getMonth() + 1).padStart(2, '0')}`
+    if (!groups.has(key)) groups.set(key, [])
+    groups.get(key)!.push(inv)
+  }
+  const result: MonthGroup[] = []
+  for (const list of groups.values()) {
+    const date = new Date(list[0]!.issueDate)
+    const label = date.toLocaleDateString('es-ES', { month: 'long', year: 'numeric' })
+    result.push({ label, items: list })
+  }
+  result.sort((a, b) => b.label.localeCompare(a.label))
+  return result
+})
 
 const allProducts = ref<ProductOption[]>([])
 const prodsData = ref<Producto[]>([])
@@ -319,17 +290,6 @@ const filteredByCategory = computed(() => {
     : filteredByProvider.value
 })
 
-const columns = [
-  { name: 'invoiceNumber', label: 'N° Factura', field: 'invoiceNumber', align: 'left' as const, sortable: true },
-  { name: 'providerName', label: 'Proveedor', field: 'providerName', align: 'left' as const, sortable: true },
-  { name: 'issueDate', label: 'Fecha', field: 'issueDate', align: 'center' as const, sortable: true },
-  { name: 'status', label: 'Estado', field: 'status', align: 'center' as const, sortable: false },
-  { name: 'total', label: 'Total', field: 'total', align: 'right' as const, sortable: true },
-  { name: 'actions', label: 'Acciones', field: 'id', align: 'right' as const, sortable: false },
-]
-
-const statusColor = (s: string) =>
-  s === 'PAGADA' ? 'positive' : s === 'REGISTRADA' ? 'warning' : 'grey'
 
 function unitOptions(productId: string | null): { label: string; value: string }[] {
   if (!productId) return []
@@ -343,7 +303,7 @@ interface ItemForm {
   productoId: string | null
   presentacionId: string | null
   cantidad: number | null
-  precioUnitario: number | null
+  valor: number | null
   descuento: number
 }
 
@@ -371,7 +331,7 @@ function addItem() {
     productoId: null,
     presentacionId: null,
     cantidad: null,
-    precioUnitario: null,
+    valor: null,
     descuento: 0,
   })
 }
@@ -380,26 +340,11 @@ function onProductoChange(item: ItemForm, productoId: string | null) {
   item.productoId = productoId
   item.presentacionId = null
   const prod = allProducts.value.find(p => p.value === productoId)
-  item.precioUnitario = prod?.lastUnitPrice ?? null
+  item.valor = prod?.lastUnitPrice ?? null
 }
 
 function onPresentacionChange(item: ItemForm, presId: string | null) {
   item.presentacionId = presId
-  if (!item.productoId) return
-  const prod = allProducts.value.find(p => p.value === item.productoId)
-  if (!prod) return
-  if (presId) {
-    const conv = presentationConversionMap.value.get(presId) || 1
-    item.precioUnitario = conv > 1 && prod.lastUnitPrice != null ? prod.lastUnitPrice / conv : prod.lastUnitPrice ?? null
-  } else {
-    item.precioUnitario = prod.lastUnitPrice ?? null
-  }
-}
-
-function baseUnitNameFor(item: ItemForm): string {
-  if (!item.productoId) return ''
-  const prods = prodsData.value.find(p => p.id === item.productoId)
-  return prods ? (unitNameMap.value.get(prods.baseUnit) || prods.baseUnit) : ''
 }
 
 function removeItem(i: number) {
@@ -407,14 +352,12 @@ function removeItem(i: number) {
 }
 
 const computedTotal = computed(() => {
-  const itemsTotal = form.value.items.reduce((sum, item) => {
+  return form.value.items.reduce((sum, item) => {
     const qty = item.cantidad || 0
-    const price = item.precioUnitario || 0
+    const val = item.valor || 0
     const disc = item.descuento || 0
-    return sum + (qty * price * (1 - disc / 100))
+    return sum + (qty * val * (1 - disc / 100))
   }, 0)
-  const gd = form.value.descuentoGlobal || 0
-  return Math.max(0, itemsTotal - gd)
 })
 
 function providerFilter(val: string, update: (fn: () => void) => void) {
@@ -456,11 +399,40 @@ async function openCreate() {
     descuentoGlobal: 0,
     items: [],
   }
+  editingId.value = null
   keyCounter = 0
   providerFilteredOptions.value = [...providerOptions.value]
   dialogOpen.value = true
   await nextTick()
   addItem()
+}
+
+async function openEdit(factura: Factura) {
+  editingId.value = factura.id
+  try {
+    const res = await facturaService.getById(factura.id, tenantId)
+    const f = res.data
+    form.value = {
+      proveedorId: f.providerId,
+      fecha: f.issueDate,
+      tipo: f.type,
+      metodoPago: f.paymentMethod || null,
+      descuentoGlobal: Number(f.globalDiscount || 0),
+      items: f.items.map(item => ({
+        _key: ++keyCounter,
+        productoId: item.productId,
+        presentacionId: item.presentacionId,
+        cantidad: item.cantidadPresentacion ? Number(item.cantidadPresentacion) : (item.conversionFactor && item.conversionFactor > 1 ? Number(item.quantity) / item.conversionFactor : Number(item.quantity)),
+        valor: item.valorPresentacion ? Number(item.valorPresentacion) : (item.conversionFactor && item.conversionFactor > 1 ? Number(item.unitPrice) * item.conversionFactor : Number(item.unitPrice)),
+        descuento: item.descuentoEsPorcentaje && item.descuentoInput ? Number(item.descuentoInput) : (item.discount && item.quantity ? Number(item.discount) / Number(item.quantity) * 100 : 0),
+      })),
+    }
+    providerFilteredOptions.value = [...providerOptions.value]
+    dialogOpen.value = true
+    await nextTick()
+  } catch {
+    $q.notify({ type: 'negative', message: 'Error al cargar factura para editar' })
+  }
 }
 
 watch(() => form.value.proveedorId, onProviderSelected)
@@ -534,20 +506,38 @@ async function save() {
       tipo: form.value.tipo,
       metodoPago: form.value.metodoPago,
       descuentoGlobal: form.value.descuentoGlobal || 0,
-      items: form.value.items.map(item => ({
-        productoId: item.productoId!,
-        presentacionId: item.presentacionId || null,
-        cantidad: item.cantidad || 0,
-        precioUnitario: item.precioUnitario || 0,
-        descuento: (item.cantidad || 0) * (item.precioUnitario || 0) * ((item.descuento || 0) / 100),
-      })),
+      items: form.value.items.map(item => {
+        const conv = item.presentacionId
+          ? (presentationConversionMap.value.get(item.presentacionId) || 1)
+          : 1
+        const val = item.valor || 0
+        return {
+          productoId: item.productoId!,
+          presentacionId: item.presentacionId || null,
+          cantidadPresentacion: item.cantidad || 0,
+          valorPresentacion: val,
+          precioUnitario: conv > 0 ? val / conv : val,
+          descuento: (item.cantidad || 0) * val * ((item.descuento || 0) / 100),
+          descuentoInput: item.descuento || 0,
+          descuentoEsPorcentaje: true,
+        }
+      }),
     }
-    const res = await facturaService.create(payload)
-    rows.value.unshift(res.data)
+    let res
+    if (editingId.value) {
+      res = await facturaService.update(editingId.value, payload)
+      const idx = rows.value.findIndex(r => r.id === editingId.value)
+      if (idx >= 0) rows.value[idx] = res.data
+      $q.notify({ type: 'positive', message: 'Factura actualizada: ' + res.data.invoiceNumber })
+    } else {
+      res = await facturaService.create(payload)
+      rows.value.unshift(res.data)
+      $q.notify({ type: 'positive', message: 'Factura creada: ' + res.data.invoiceNumber })
+    }
     dialogOpen.value = false
-    $q.notify({ type: 'positive', message: 'Factura creada: ' + res.data.invoiceNumber })
+    editingId.value = null
   } catch (err: unknown) {
-    const msg = err instanceof Error ? err.message : 'Error al crear factura'
+    const msg = err instanceof Error ? err.message : 'Error al guardar factura'
     $q.notify({ type: 'negative', message: msg })
   } finally { saving.value = false }
 }
@@ -603,18 +593,6 @@ async function remove() {
   }
 }
 
-function onDialogBeforeHide(done?: () => void) {
-  const hasData = form.value.items.length > 0 || form.value.proveedorId
-  if (!hasData) { done?.(); return }
-  $q.dialog({
-    title: 'Cambios sin guardar',
-    message: 'Tienes datos sin guardar. ¿Cerrar de todas formas?',
-    cancel: { label: 'Cancelar', flat: true, color: 'accent' },
-    ok: { label: 'Cerrar', color: 'negative' },
-    persistent: true,
-  }).onOk(() => done?.())
-}
-
 async function load() {
   loading.value = true
   try {
@@ -633,6 +611,10 @@ onUnmounted(() => {
   window.removeEventListener('keydown', handleKeydown)
 })
 
+watch(() => dialogOpen.value, (open) => {
+  if (!open) editingId.value = null
+})
+
 function handleKeydown(e: KeyboardEvent) {
   if ((e.ctrlKey || e.metaKey) && e.key === 'n') {
     e.preventDefault()
@@ -646,232 +628,194 @@ function handleKeydown(e: KeyboardEvent) {
 </script>
 
 <style scoped>
-/* ─── Invoice Dialog ─── */
 .invoice-dialog {
-  max-width: 720px;
-  border-radius: 16px;
-  overflow: hidden;
+  max-width: 640px;
+  display: flex;
+  flex-direction: column;
+  max-height: 90vh;
 }
 
 .invoice-dialog__header {
   display: flex;
   align-items: center;
   justify-content: space-between;
-  padding: 12px 16px 10px;
-}
-
-.invoice-dialog__header-content {
-  display: flex;
-  flex-direction: column;
-  gap: 2px;
+  padding: 10px 16px;
 }
 
 .invoice-dialog__title {
   display: flex;
   align-items: center;
-}
-
-.invoice-dialog__subtitle {
-  font-size: 0.78rem;
-  color: rgba(163, 120, 94, 0.5);
-  padding-left: 2rem;
-}
-
-.invoice-dialog__close {
-  opacity: 0.5;
-  transition: opacity 0.15s ease;
-}
-
-.invoice-dialog__close:hover {
-  opacity: 1;
-}
-
-.invoice-dialog__separator {
-  opacity: 0.3;
+  gap: 10px;
 }
 
 .invoice-dialog__body {
-  padding: 12px 16px 16px;
+  flex: 1;
+  overflow-y: auto;
+  min-height: 0;
+  padding: 10px 16px;
 }
 
-.invoice-dialog__section-sep {
-  opacity: 0.15;
-  margin: 4px 0;
-}
-
-.invoice-dialog__footer-sep {
-  opacity: 0.15;
-  margin: 4px 0 0;
-}
-
-/* ─── Items header ─── */
-.items-header {
+.invoice-dialog__items-header {
   display: flex;
   align-items: center;
   justify-content: space-between;
-  padding: 4px 0;
+  padding: 6px 0 4px;
 }
 
-.items-header__title {
+.invoice-dialog__items-title {
   display: flex;
   align-items: center;
   gap: 4px;
+  font-size: 0.82rem;
+  font-weight: 600;
+  color: var(--pq-text-muted);
 }
 
-.items-count-badge {
-  font-size: 0.65rem;
-  font-weight: 700;
-  min-width: 18px;
-  height: 18px;
-}
-
-.items-header__total {
-  display: flex;
-  align-items: baseline;
-  gap: 6px;
-}
-
-.items-header__total-label {
-  font-size: 0.7rem;
-  font-weight: 500;
-  text-transform: uppercase;
-  letter-spacing: 0.04em;
-  color: rgba(163, 120, 94, 0.45);
-}
-
-.items-header__total-value {
-  font-family: 'JetBrains Mono', 'SF Mono', 'Fira Code', monospace;
-  font-size: 1rem;
-  font-weight: 700;
-  color: rgba(212, 175, 55, 0.9);
-  font-variant-numeric: tabular-nums;
-}
-
-/* ─── Add item button ─── */
-.add-item-btn {
-  width: 100%;
-  border-style: dashed;
-  border-width: 1.5px;
-  opacity: 0.6;
-  transition: opacity 0.2s ease, border-color 0.2s ease;
-}
-
-.add-item-btn:hover {
-  opacity: 1;
-  border-color: rgba(163, 120, 94, 0.4);
-}
-
-/* ─── Total bar ─── */
-.total-bar {
-  background:
-    linear-gradient(135deg, rgba(163, 120, 94, 0.06) 0%, rgba(212, 175, 55, 0.04) 100%);
-  border: 1px solid rgba(163, 120, 94, 0.12);
-  border-radius: 10px;
-  padding: 10px 14px;
-}
-
-.total-bar__content {
-  display: flex;
-  align-items: center;
-  justify-content: flex-end;
-  gap: 12px;
-}
-
-.total-bar__detail {
-  display: flex;
-  flex-direction: column;
-  align-items: flex-end;
-  gap: 1px;
-}
-
-.total-bar__label {
-  font-size: 0.68rem;
-  font-weight: 500;
-  text-transform: uppercase;
-  letter-spacing: 0.04em;
-  color: rgba(163, 120, 94, 0.45);
-}
-
-.total-bar__value {
-  font-family: 'JetBrains Mono', 'SF Mono', 'Fira Code', monospace;
+.invoice-dialog__items-total {
   font-size: 0.85rem;
   font-weight: 600;
-  color: rgba(163, 120, 94, 0.7);
   font-variant-numeric: tabular-nums;
+  color: var(--pq-accent);
 }
 
-.total-bar__detail--total {
-  align-items: flex-end;
+.invoice-dialog__items {
+  min-height: 0;
 }
 
-.total-bar__value--total {
-  font-size: 1.05rem;
-  font-weight: 800;
-  color: rgba(212, 175, 55, 0.95);
+.invoice-dialog__add {
+  padding: 8px 0 4px;
 }
 
-/* ─── Total transition ─── */
-.total-slide-enter-active {
-  transition: all 0.3s cubic-bezier(0.4, 0, 0.2, 1);
+.invoice-dialog__add :deep(.q-btn) {
+  width: 100%;
+  border-style: dashed;
+  opacity: 0.5;
 }
 
-.total-slide-leave-active {
-  transition: all 0.2s cubic-bezier(0.4, 0, 0.2, 1);
+.invoice-dialog__add :deep(.q-btn:hover) {
+  opacity: 1;
 }
 
-.total-slide-enter-from {
-  opacity: 0;
-  transform: translateY(-8px);
+.invoice-dialog__total {
+  display: flex;
+  align-items: baseline;
+  justify-content: flex-end;
+  gap: 10px;
+  padding: 8px 0 0;
 }
 
-.total-slide-leave-to {
-  opacity: 0;
-  transform: translateY(-8px);
+.invoice-dialog__total-label {
+  font-size: 0.82rem;
+  font-weight: 600;
+  color: var(--pq-accent-muted);
 }
 
-/* ─── Dialog actions ─── */
-.dialog-actions {
+.invoice-dialog__total-val {
+  font-family: var(--pq-font-utility);
+  font-size: 1.1rem;
+  font-weight: 700;
+  font-variant-numeric: tabular-nums;
+  color: var(--pq-accent);
+}
+
+.invoice-dialog__footer {
   display: flex;
   align-items: center;
   justify-content: flex-end;
   gap: 8px;
-  padding-top: 4px;
+  padding: 8px 16px;
 }
 
-.dialog-actions__cancel {
-  opacity: 0.7;
-  transition: opacity 0.15s ease;
-}
-
-.dialog-actions__cancel:hover {
-  opacity: 1;
-}
-
-.dialog-actions__save {
-  font-weight: 600;
-  letter-spacing: 0.02em;
-  border-radius: 8px;
-  padding: 6px 20px;
-}
-
-/* ─── Invoice item enter animation ─── */
-.invoice-item-enter {
-  animation: itemAppear 0.3s cubic-bezier(0.4, 0, 0.2, 1);
-}
-
-@keyframes itemAppear {
-  from {
-    opacity: 0;
-    transform: translateY(-8px);
-  }
-  to {
-    opacity: 1;
-    transform: translateY(0);
-  }
-}
-
-/* ─── Dropdown styling ─── */
 .product-dropdown {
-  font-size: 0.85rem;
+  font-size: 0.82rem;
+}
+
+.facturas-toolbar {
+  display: flex;
+  align-items: center;
+  gap: 12px;
+  margin-bottom: 16px;
+}
+
+.facturas-toolbar__search {
+  max-width: 320px;
+}
+
+.month-group-header {
+  display: flex;
+  align-items: baseline;
+  gap: 8px;
+  padding-bottom: 6px;
+  border-bottom: 1px solid color-mix(in srgb, var(--pq-border) 15%, transparent);
+  margin-bottom: 8px;
+}
+
+.month-group-label {
+  font-weight: 700;
+  text-transform: capitalize;
+  color: var(--pq-text);
+  font-size: 0.95rem;
+}
+
+.month-group-count {
+  color: var(--pq-text-muted);
+  font-size: 0.8rem;
+}
+
+.invoice-row {
+  display: flex;
+  align-items: center;
+  padding: 8px 12px;
+  cursor: pointer;
+  transition: background var(--pq-motion-fast);
+  border-bottom: 1px solid color-mix(in srgb, var(--pq-border) 6%, transparent);
+}
+
+.invoice-row:hover {
+  background: color-mix(in srgb, var(--pq-surface) 30%, transparent);
+}
+
+.invoice-row__info {
+  flex: 1;
+  min-width: 0;
+}
+
+.invoice-row__number {
+  font-weight: 700;
+  overflow: hidden;
+  text-overflow: ellipsis;
+  white-space: nowrap;
+}
+
+.invoice-row__provider {
+  font-size: 0.8rem;
+  color: var(--pq-text-muted);
+  overflow: hidden;
+  text-overflow: ellipsis;
+  white-space: nowrap;
+}
+
+.invoice-row__date {
+  font-size: 0.8rem;
+  color: var(--pq-text-muted);
+  margin-right: 16px;
+  white-space: nowrap;
+}
+
+.invoice-row__total {
+  font-weight: 700;
+  margin-right: 16px;
+  font-family: var(--pq-font-utility);
+  white-space: nowrap;
+  color: var(--pq-accent);
+}
+
+.invoice-row__status {
+  margin-right: 16px;
+}
+
+.invoice-row__actions {
+  display: flex;
+  gap: 2px;
 }
 </style>

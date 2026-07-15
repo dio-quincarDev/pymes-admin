@@ -26,7 +26,7 @@ const statusColor: Record<string, string> = { PAGADA: 'positive', REGISTRADA: 'w
 
 <template>
   <q-dialog :model-value="modelValue" @update:model-value="emit('update:modelValue', $event)" dark maximized>
-    <q-card v-if="factura" dark class="bg-surface-pine" style="max-width: 700px">
+    <q-card v-if="factura" dark class="bg-surface-pine detail-dialog">
       <q-card-section class="row items-center justify-between">
         <div>
           <div class="text-h6 text-primary">{{ factura.invoiceNumber }}</div>
@@ -50,10 +50,10 @@ const statusColor: Record<string, string> = { PAGADA: 'positive', REGISTRADA: 'w
             <q-badge :color="statusColor[factura.status] || 'grey'" class="q-px-sm q-py-xs">{{ factura.status }}</q-badge>
           </div>
         </div>
-        <div v-if="factura.metodoPago" class="row">
+        <div v-if="factura.paymentMethod" class="row">
           <div class="col-6">
             <div class="text-caption text-accent">Método de pago</div>
-            <div class="text-secondary">{{ factura.metodoPago }}</div>
+            <div class="text-secondary">{{ factura.paymentMethod }}</div>
           </div>
         </div>
       </q-card-section>
@@ -66,9 +66,9 @@ const statusColor: Record<string, string> = { PAGADA: 'positive', REGISTRADA: 'w
           :columns="[
             { name: 'product', label: 'Producto', field: 'productName', align: 'left' },
             { name: 'unidad', label: 'Unidad', field: (row: ItemFactura) => row.presentacionId ? presentationNameMap.get(row.presentacionId) || '—' : 'Base', align: 'left' },
-            { name: 'cantidad', label: 'Cant.', field: 'quantity', align: 'right' },
-            { name: 'precio', label: 'Precio', field: 'unitPrice', align: 'right', format: (v: number) => formatCurrency(v) },
-            { name: 'descuento', label: 'Desc.', field: 'discount', align: 'right', format: (v: number | null) => v ? formatCurrency(v) : '—' },
+            { name: 'cantidad', label: 'Cant.', field: 'cantidad', align: 'right' },
+            { name: 'precio', label: 'Precio', field: 'precioUnitario', align: 'right', format: (v: number) => formatCurrency(v) },
+            { name: 'descuento', label: 'Desc.', field: 'descuento', align: 'right', format: (v: number | null) => v ? formatCurrency(v) : '—' },
             { name: 'subtotal', label: 'Subtotal', field: 'subtotal', align: 'right', format: (v: number) => formatCurrency(v) },
           ]"
           row-key="id"
@@ -78,9 +78,25 @@ const statusColor: Record<string, string> = { PAGADA: 'positive', REGISTRADA: 'w
       </q-card-section>
       <q-separator dark />
       <q-card-section class="text-right">
-        <div v-if="factura.descuentoGlobal" class="text-caption text-accent">Desc. global: -{{ formatCurrency(factura.descuentoGlobal) }}</div>
+        <div v-if="factura.globalDiscount" class="text-caption text-accent">Desc. global: -{{ formatCurrency(factura.globalDiscount) }}</div>
         <div class="text-h6 text-primary">{{ formatCurrency(factura.total) }}</div>
       </q-card-section>
     </q-card>
   </q-dialog>
 </template>
+
+<style scoped>
+.detail-dialog {
+  max-width: 700px;
+}
+
+.detail-dialog :deep(.q-table) {
+  font-family: var(--pq-font-body);
+  font-size: 0.82rem;
+}
+
+.detail-dialog :deep(.q-table tbody td) {
+  font-family: var(--pq-font-utility);
+  font-variant-numeric: tabular-nums;
+}
+</style>

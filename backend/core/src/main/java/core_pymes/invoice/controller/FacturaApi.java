@@ -28,6 +28,10 @@ public interface FacturaApi {
     @PostMapping
     ResponseEntity<FacturaResponse> create(@Valid @RequestBody FacturaRequest request);
 
+    @Operation(summary = "Update an invoice (only REGISTRADA status)")
+    @PutMapping("/{id}")
+    ResponseEntity<FacturaResponse> update(@PathVariable UUID id, @RequestParam UUID tenantId, @Valid @RequestBody FacturaRequest request);
+
     @Operation(summary = "Mark invoice as paid")
     @PostMapping("/{id}/pagar")
     ResponseEntity<FacturaResponse> pagar(@PathVariable UUID id, @RequestParam UUID tenantId);

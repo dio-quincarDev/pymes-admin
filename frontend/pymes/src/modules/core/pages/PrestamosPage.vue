@@ -7,7 +7,7 @@ import { prestamoService } from '../services/prestamo.service'
 import type { Prestamo, PrestamoRequest, PagoPrestamo, PagoPrestamoRequest } from '../types'
 import EmptyState from 'src/components/ui/EmptyState.vue'
 
-useMeta({ title: 'Préstamos — PYMEQ' });
+useMeta({ title: 'Pr\u00E9stamos — PYMEQ' });
 
 const $q = useQuasar()
 const authStore = useAuthStore()
@@ -15,18 +15,6 @@ const tenantId = authStore.user?.tenantId || ''
 
 const rows = ref<Prestamo[]>([])
 const loading = shallowRef(false)
-const filter = shallowRef('')
-const pagination = shallowRef({ sortBy: 'startDate', descending: true, page: 1, rowsPerPage: 15 })
-
-const columns = [
-  { name: 'name', label: 'Nombre', field: 'name', align: 'left' as const, sortable: true },
-  { name: 'lender', label: 'Prestamista', field: 'lender', align: 'left' as const, sortable: false },
-  { name: 'amount', label: 'Monto', field: 'amount', align: 'right' as const, sortable: true },
-  { name: 'remainingBalance', label: 'Saldo', field: 'remainingBalance', align: 'right' as const, sortable: true },
-  { name: 'interestRate', label: 'Tasa %', field: 'interestRate', align: 'center' as const, sortable: false },
-  { name: 'status', label: 'Estado', field: 'status', align: 'center' as const, sortable: true },
-  { name: 'actions', label: 'Acciones', field: 'id', align: 'right' as const, sortable: false },
-]
 
 const statusColor = (s: string) => s === 'ACTIVO' ? 'positive' : s === 'PAGADO' ? 'info' : 'grey'
 
@@ -35,11 +23,10 @@ async function load() {
   try {
     const res = await prestamoService.getAll(tenantId)
     rows.value = res.data
-  } catch { $q.notify({ type: 'negative', message: 'Error al cargar préstamos' })
+  } catch { $q.notify({ type: 'negative', message: 'Error al cargar pr\u00E9stamos' })
   } finally { loading.value = false }
 }
 
-// Create/Edit dialog
 const dialogOpen = shallowRef(false)
 const editingId = shallowRef<string | null>(null)
 const saving = shallowRef(false)
@@ -71,12 +58,11 @@ async function save() {
       rows.value.unshift(res.data)
     }
     dialogOpen.value = false
-    $q.notify({ type: 'positive', message: `Préstamo ${editingId.value ? 'actualizado' : 'creado'}` })
-  } catch { $q.notify({ type: 'negative', message: 'Error al guardar préstamo' })
+    $q.notify({ type: 'positive', message: `Pr\u00E9stamo ${editingId.value ? 'actualizado' : 'creado'}` })
+  } catch { $q.notify({ type: 'negative', message: 'Error al guardar pr\u00E9stamo' })
   } finally { saving.value = false }
 }
 
-// Delete dialog
 const deleteDialog = shallowRef(false)
 const deletingItem = shallowRef<Prestamo | null>(null)
 const deleting = shallowRef(false)
@@ -93,15 +79,15 @@ async function remove() {
     await prestamoService.remove(deletingItem.value.id, tenantId)
     rows.value = rows.value.filter(r => r.id !== deletingItem.value!.id)
     deleteDialog.value = false
-    $q.notify({ type: 'positive', message: 'Préstamo eliminado' })
-  } catch { $q.notify({ type: 'negative', message: 'Error al eliminar préstamo' })
+    $q.notify({ type: 'positive', message: 'Pr\u00E9stamo eliminado' })
+  } catch {
+    $q.notify({ type: 'negative', message: 'Error al eliminar pr\u00E9stamo' })
   } finally {
     deleting.value = false
     deletingItem.value = null
   }
 }
 
-// Pago dialog
 const pagoDialog = shallowRef(false)
 const pagoPrestamo = shallowRef<Prestamo | null>(null)
 const pagos = ref<PagoPrestamo[]>([])
@@ -141,6 +127,9 @@ async function savePago() {
 
 const totalPagado = computed(() => pagos.value.reduce((sum, p) => sum + p.amount, 0))
 
+const totalPrestado = computed(() => rows.value.reduce((s, p) => s + p.amount, 0))
+const totalSaldo = computed(() => rows.value.reduce((s, p) => s + p.remainingBalance, 0))
+
 onMounted(() => {
   void load()
   window.addEventListener('keydown', handleKeydown)
@@ -162,57 +151,93 @@ function handleKeydown(e: KeyboardEvent) {
 
 <template>
   <q-page class="core-page">
-    <div class="q-mb-md fade-in-up">
-      <h1 class="text-h4 text-primary font-bold q-ma-none">Préstamos</h1>
-      <p class="text-subtitle1 text-accent q-mt-xs">Gestión de préstamos y pagos</p>
+    <div class="q-mb-md">
+      <h1 class="text-h4 text-primary font-bold q-ma-none">Pr\u00E9stamos</h1>
+      <p class="text-subtitle1 text-accent q-mt-xs">Gesti\u00F3n de pr\u00E9stamos y pagos</p>
     </div>
 
-    <q-card dark class="bg-surface-pine">
-      <q-table dark flat :rows="rows" :columns="columns" row-key="id" :loading="loading" :filter="filter" v-model:pagination="pagination" :rows-per-page-options="[10, 20, 50]">
-        <template v-slot:top>
-          <q-input dark dense filled v-model="filter" placeholder="Buscar..." class="q-mr-sm" style="max-width: 250px">
-            <template v-slot:prepend><q-icon name="search" /></template>
-          </q-input>
-          <q-space />
-          <q-btn color="primary" icon="add" label="Nuevo" @click="openCreate" />
-        </template>
-        <template v-slot:body-cell-amount="{ row }">
-          <td class="text-right text-weight-bold">{{ formatCurrency(row.amount) }}</td>
-        </template>
-        <template v-slot:body-cell-remainingBalance="{ row }">
-          <td class="text-right">{{ formatCurrency(row.remainingBalance) }}</td>
-        </template>
-        <template v-slot:body-cell-interestRate="{ row }">
-          <td class="text-center">{{ row.interestRate }}%</td>
-        </template>
-        <template v-slot:body-cell-status="{ row }">
-          <td class="text-center"><q-badge :color="statusColor(row.status)" class="q-px-sm q-py-xs">{{ row.status }}</q-badge></td>
-        </template>
-        <template v-slot:body-cell-actions="{ row }">
-          <td class="text-right">
-            <q-btn flat dense round icon="payments" color="positive" @click="openPagos(row)" aria-label="Pagos">
-              <q-tooltip>Ver pagos</q-tooltip>
-            </q-btn>
-            <q-btn v-if="row.status === 'ACTIVO'" flat dense round icon="edit" color="primary" @click="openEdit(row)" aria-label="Editar préstamo" />
-            <q-btn flat dense round icon="delete" color="negative" @click="confirmDelete(row)" aria-label="Eliminar préstamo" />
-          </td>
-        </template>
-        <template v-slot:no-data>
-          <EmptyState
-            v-if="!loading"
-            icon="account_balance"
-            title="Sin préstamos"
-            message="Registra un préstamo para hacer seguimiento de tus deudas."
-          >
-            <q-btn color="primary" icon="add" label="Nuevo Préstamo" @click="openCreate" class="q-mt-sm" />
-          </EmptyState>
-        </template>
-      </q-table>
+    <q-card dark class="glass q-pa-sm q-mb-sm">
+      <div class="row q-gutter-x-lg q-pa-xs">
+        <div>
+          <div class="text-caption text-accent text-uppercase" style="font-size: 0.72rem; letter-spacing: 0.04em">Total prestado</div>
+          <div class="font-mono text-weight-bold text-h6">{{ formatCurrency(totalPrestado) }}</div>
+        </div>
+        <div>
+          <div class="text-caption text-accent text-uppercase" style="font-size: 0.72rem; letter-spacing: 0.04em">Saldo pendiente</div>
+          <div class="font-mono text-weight-bold text-h6">{{ formatCurrency(totalSaldo) }}</div>
+        </div>
+      </div>
     </q-card>
+
+    <div class="toolbar">
+      <q-space />
+      <q-btn color="primary" icon="add" label="Nuevo" @click="openCreate" />
+    </div>
+
+    <div v-if="!loading && !rows.length" class="q-mt-lg">
+      <EmptyState
+        icon="account_balance"
+        title="Sin pr\u00E9stamos"
+        message="Registra un pr\u00E9stamo para hacer seguimiento de tus deudas."
+      >
+        <q-btn color="primary" icon="add" label="Nuevo Pr\u00E9stamo" @click="openCreate" class="q-mt-sm" />
+      </EmptyState>
+    </div>
+
+    <div v-if="loading" class="row q-col-gutter-x-sm q-col-gutter-y-sm q-mt-md">
+      <div v-for="n in 3" :key="n" class="col-12 col-sm-6 col-md-4">
+        <q-skeleton type="rect" dark animation="pulse" height="160px" />
+      </div>
+    </div>
+
+    <div v-if="!loading && rows.length" class="loan-grid">
+      <div v-for="p in rows" :key="p.id" class="loan-card">
+        <div class="loan-card__top">
+          <div class="loan-card__name">{{ p.name }}</div>
+          <q-badge :color="statusColor(p.status)" class="q-px-sm q-py-xs">{{ p.status }}</q-badge>
+        </div>
+
+        <div class="loan-card__amounts">
+          <div class="loan-card__amount">
+            <span class="loan-card__amount-label">Monto</span>
+            <span class="loan-card__amount-value">{{ formatCurrency(p.amount) }}</span>
+          </div>
+          <div class="loan-card__amount">
+            <span class="loan-card__amount-label">Saldo</span>
+            <span class="loan-card__amount-value loan-card__amount-value--balance">{{ formatCurrency(p.remainingBalance) }}</span>
+          </div>
+          <div class="loan-card__amount">
+            <span class="loan-card__amount-label">Tasa</span>
+            <span class="loan-card__amount-value">{{ p.interestRate }}%</span>
+          </div>
+        </div>
+
+        <q-linear-progress
+          :value="p.amount > 0 ? (p.amount - p.remainingBalance) / p.amount : 0"
+          :color="p.remainingBalance === 0 ? 'positive' : 'accent'"
+          class="q-mt-sm q-mb-sm"
+          size="4px"
+          rounded
+        />
+
+        <div v-if="p.lender" class="loan-card__lender">
+          <q-icon name="person" size="0.8rem" class="text-accent" />
+          {{ p.lender }}
+        </div>
+
+        <div v-if="p.termMonths" class="loan-card__term">{{ p.termMonths }} meses</div>
+
+        <div class="loan-card__actions">
+          <q-btn flat dense round icon="payments" color="positive" size="sm" @click="openPagos(p)" aria-label="Pagos" />
+          <q-btn v-if="p.status === 'ACTIVO'" flat dense round icon="edit" color="primary" size="sm" @click="openEdit(p)" aria-label="Editar" />
+          <q-btn flat dense round icon="delete" color="negative" size="sm" @click="confirmDelete(p)" aria-label="Eliminar" />
+        </div>
+      </div>
+    </div>
 
     <q-dialog v-model="dialogOpen" dark>
       <q-card dark class="bg-surface-pine" style="width: 90vw; max-width: 520px">
-        <q-card-section><div class="text-h6 text-primary">{{ editingId ? 'Editar' : 'Nuevo' }} Préstamo</div></q-card-section>
+        <q-card-section><div class="text-h6 text-primary">{{ editingId ? 'Editar' : 'Nuevo' }} Pr\u00E9stamo</div></q-card-section>
         <q-separator dark />
         <q-card-section>
           <q-form ref="formRef" @submit.prevent="save" class="q-gutter-y-md">
@@ -287,7 +312,7 @@ function handleKeydown(e: KeyboardEvent) {
       <q-card dark class="bg-surface-pine">
         <q-card-section class="row items-center q-gutter-x-md">
           <q-icon name="warning" color="negative" size="md" />
-          <span>¿Eliminar préstamo <strong>{{ deletingItem?.name }}</strong>?</span>
+          <span>Eliminar pr\u00E9stamo <strong>{{ deletingItem?.name }}</strong>?</span>
         </q-card-section>
         <q-card-actions align="right">
           <q-btn flat label="Cancelar" color="accent" v-close-popup />
@@ -298,10 +323,81 @@ function handleKeydown(e: KeyboardEvent) {
   </q-page>
 </template>
 
-<style scoped lang="scss">
-:deep(.q-dialog__inner > .q-card) {
-  backdrop-filter: blur(16px);
-  -webkit-backdrop-filter: blur(16px);
+<style scoped>
+.toolbar {
+  display: flex;
+  align-items: center;
+  margin-bottom: 16px;
+}
+
+.loan-grid {
+  display: grid;
+  grid-template-columns: repeat(auto-fill, minmax(300px, 1fr));
+  gap: 12px;
+}
+
+.loan-card {
+  background: rgba(27, 38, 36, 0.6);
   border: 1px solid rgba(113, 131, 127, 0.08);
+  border-radius: 8px;
+  padding: 16px;
+  transition: border-color 0.15s ease;
+}
+
+.loan-card:hover {
+  border-color: rgba(163, 120, 94, 0.2);
+}
+
+.loan-card__top {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  margin-bottom: 12px;
+}
+
+.loan-card__name {
+  font-size: 0.95rem;
+  font-weight: 600;
+}
+
+.loan-card__amounts {
+  display: grid;
+  grid-template-columns: 1fr 1fr 1fr;
+  gap: 8px;
+}
+
+.loan-card__amount-value {
+  font-family: 'JetBrains Mono', 'SF Mono', 'Fira Code', monospace;
+  font-size: 0.85rem;
+  font-weight: 600;
+  font-variant-numeric: tabular-nums;
+}
+
+.loan-card__amount-value--balance {
+  color: rgba(163, 120, 94, 0.8);
+}
+
+.loan-card__lender {
+  display: flex;
+  align-items: center;
+  gap: 4px;
+  font-size: 0.8rem;
+  color: rgba(163, 120, 94, 0.5);
+  margin-top: 8px;
+}
+
+.loan-card__term {
+  font-size: 0.78rem;
+  color: rgba(163, 120, 94, 0.4);
+  margin-top: 2px;
+}
+
+.loan-card__actions {
+  display: flex;
+  justify-content: flex-end;
+  gap: 2px;
+  margin-top: 10px;
+  padding-top: 8px;
+  border-top: 1px solid rgba(113, 131, 127, 0.06);
 }
 </style>

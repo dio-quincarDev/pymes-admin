@@ -1,144 +1,70 @@
-// Global App Styles: Fintech Design System
+// Global App Styles: PYMEQ Design System
+// Bind to .ulpi/design/DESIGN.md — all values from locked tokens.
 
-@import url('https://fonts.googleapis.com/css2?family=Outfit:wght@400;500;600;700;800&family=Source+Sans+3:wght@300;400;500;600;700&display=swap');
+@import url('https://fonts.googleapis.com/css2?family=Geist:wght@400;500;600;700;800&family=Satoshi:wght@400;500;700&family=Geist+Mono:wght@400;500&display=swap');
 
-// Background Global
+:root {
+  --pq-background: #08090D;
+  --pq-surface: #12141A;
+  --pq-elevated: #1E2129;
+  --pq-border: #353945;
+  --pq-text: #F5F3EF;
+  --pq-text-muted: #9B9790;
+  --pq-text-subtle: #6B6863;
+  --pq-accent: #C8963E;
+  --pq-accent-hover: #D4A552;
+  --pq-accent-muted: #8B6B3A;
+  --pq-success: #3D7A5A;
+  --pq-warning: #C8A042;
+  --pq-danger: #A04038;
+  --pq-info: #6E8BB8;
+  --pq-radius-xs: 2px;
+  --pq-radius-sm: 4px;
+  --pq-radius-md: 6px;
+  --pq-radius-lg: 8px;
+  --pq-radius-xl: 12px;
+  --pq-radius-full: 9999px;
+  --pq-shadow-subtle: 0 1px 3px rgba(0,0,0,0.3);
+  --pq-shadow-md: 0 8px 24px rgba(0,0,0,0.25);
+  --pq-shadow-lg: 0 16px 48px rgba(0,0,0,0.3);
+  --pq-motion-fast: 80ms ease;
+  --pq-motion-base: 160ms cubic-bezier(0.4, 0, 0.2, 1);
+  --pq-motion-emphasis: 240ms cubic-bezier(0.16, 1, 0.3, 1);
+  --pq-font-display: 'Geist', -apple-system, BlinkMacSystemFont, sans-serif;
+  --pq-font-body: 'Satoshi', -apple-system, BlinkMacSystemFont, sans-serif;
+  --pq-font-utility: 'Geist Mono', ui-monospace, 'SF Mono', monospace;
+}
+
 body {
   background-color: $dark-page;
   color: $secondary;
-  font-family: 'Source Sans 3', -apple-system, BlinkMacSystemFont, 'Segoe UI', sans-serif;
+  font-family: 'Satoshi', -apple-system, BlinkMacSystemFont, 'Segoe UI', sans-serif;
   font-size: 14px;
   line-height: 1.5;
 }
 
-// Display font for headings
 .text-h1, .text-h2, .text-h3, .text-h4, .text-h5, .text-h6,
 .font-bold, .text-weight-bold, .text-weight-medium {
-  font-family: 'Outfit', 'Source Sans 3', sans-serif;
+  font-family: 'Geist', 'Satoshi', sans-serif;
 }
 
 // --------------------------------------------------
-// Mesh Gradient (Texto únicamente)
+// Surface Classes
 // --------------------------------------------------
-.mesh-text-gradient {
-  background: linear-gradient(135deg, #A3785E 0%, #C5A059 50%, #A3785E 100%);
-  -webkit-background-clip: text;
-  -webkit-text-fill-color: transparent;
-  background-clip: text;
-  font-weight: 800;
-  display: inline-block;
+.bg-surface-pine {
+  background-color: $dark !important;
 }
 
-// --------------------------------------------------
-// Glassmorphism Classes
-// --------------------------------------------------
-.glass {
-  background: rgba(27, 38, 36, 0.7);
-  backdrop-filter: blur(12px);
-  -webkit-backdrop-filter: blur(12px);
-  border: 1px solid rgba(113, 131, 127, 0.1);
-  position: relative;
-
-  &::before {
-    content: '';
-    position: absolute;
-    inset: 0;
-    background: url("data:image/svg+xml,%3Csvg viewBox='0 0 256 256' xmlns='http://www.w3.org/2000/svg'%3E%3Cfilter id='noise'%3E%3CfeTurbulence type='fractalNoise' baseFrequency='0.9' numOctaves='4' stitchTiles='stitch'/%3E%3C/filter%3E%3Crect width='100%25' height='100%25' filter='url(%23noise)' opacity='0.04'/%3E%3C/svg%3E");
-    background-size: 128px 128px;
-    pointer-events: none;
-    border-radius: inherit;
-    z-index: 0;
-  }
-
-  > * {
-    position: relative;
-    z-index: 1;
-  }
-}
-
-.glass-light {
-  background: rgba(27, 38, 36, 0.5);
-  backdrop-filter: blur(8px);
-  -webkit-backdrop-filter: blur(8px);
-  border: 1px solid rgba(113, 131, 127, 0.05);
+.bg-forest-deep {
+  background-color: $dark-page !important;
 }
 
 // --------------------------------------------------
-// Brand Glow Mixin
-// --------------------------------------------------
-@mixin brand-glow($intensity: 0.3) {
-  box-shadow: 0 0 15px rgba(163, 120, 94, $intensity);
-  transition: box-shadow 0.2s cubic-bezier(0.4, 0, 0.2, 1);
-}
-
-.brand-glow {
-  @include brand-glow();
-
-  &:hover {
-    box-shadow: 0 0 20px rgba(163, 120, 94, 0.5);
-  }
-}
-
-// --------------------------------------------------
-// Fade-In-Up Animation Mixin
-// --------------------------------------------------
-@keyframes fadeInUp {
-  from {
-    opacity: 0;
-    transform: translateY(20px);
-  }
-  to {
-    opacity: 1;
-    transform: translateY(0);
-  }
-}
-
-@keyframes shimmer {
-  0% {
-    background-position: -200% 0;
-  }
-  100% {
-    background-position: 200% 0;
-  }
-}
-
-.fade-in-up {
-  animation: fadeInUp 0.4s ease forwards;
-}
-
-// Staggered children animation
-.stagger-children > * {
-  opacity: 0;
-  animation: fadeInUp 0.4s ease forwards;
-
-  @for $i from 1 through 10 {
-    &:nth-child(#{$i}) {
-      animation-delay: #{$i * 0.1}s;
-    }
-  }
-}
-
-// --------------------------------------------------
-// Press Feedback Mixin
-// --------------------------------------------------
-@mixin press-feedback($scale: 0.96) {
-  transition: transform 0.15s ease;
-
-  &:active {
-    transform: scale($scale);
-  }
-}
-
-.press-feedback {
-  @include press-feedback();
-}
-
-// --------------------------------------------------
-// Tight Shadows (Shadow System)
+// Tight Shadows
 // --------------------------------------------------
 .tight-shadow {
   box-shadow: $shadow-sm;
-  border: 1px solid rgba(113, 131, 127, 0.1);
+  border: 1px solid rgba(53, 57, 69, 0.3);
 }
 
 .shadow-subtle {
@@ -151,17 +77,6 @@ body {
 
 .shadow-lg {
   box-shadow: $shadow-lg;
-}
-
-// --------------------------------------------------
-// Surface Surfaces
-// --------------------------------------------------
-.bg-surface-pine {
-  background-color: $dark !important;
-}
-
-.bg-forest-deep {
-  background-color: $dark-page !important;
 }
 
 // --------------------------------------------------
@@ -188,72 +103,69 @@ body {
 .radius-full { border-radius: $pq-radius-full; }
 
 // --------------------------------------------------
-// Skeleton Loader Base
+// Animations
+// --------------------------------------------------
+@keyframes fadeInUp {
+  from { opacity: 0; transform: translateY(16px); }
+  to { opacity: 1; transform: translateY(0); }
+}
+
+@keyframes shimmer {
+  0% { background-position: -200% 0; }
+  100% { background-position: 200% 0; }
+}
+
+.fade-in-up {
+  animation: fadeInUp 0.24s ease forwards;
+}
+
+.stagger-children > * {
+  opacity: 0;
+  animation: fadeInUp 0.24s ease forwards;
+  @for $i from 1 through 10 {
+    &:nth-child(#{$i}) { animation-delay: #{$i * 0.06}s; }
+  }
+}
+
+// --------------------------------------------------
+// Skeleton
 // --------------------------------------------------
 .skeleton {
   background: linear-gradient(
     90deg,
-    rgba(27, 38, 36, 0.6) 0%,
-    rgba(163, 120, 94, 0.15) 50%,
-    rgba(27, 38, 36, 0.6) 100%
+    rgba(18, 20, 26, 0.6) 0%,
+    rgba(30, 33, 41, 0.8) 50%,
+    rgba(18, 20, 26, 0.6) 100%
   );
   background-size: 200% 100%;
-  animation: shimmer 1.5s ease-in-out infinite;
+  animation: shimmer 1.2s ease-in-out infinite;
   border-radius: $pq-radius-xs;
 }
 
 // --------------------------------------------------
-// Router Transitions
+// Press Feedback
 // --------------------------------------------------
-.fade-enter-active,
-.fade-leave-active {
-  transition: opacity 0.3s ease, transform 0.3s ease;
+@mixin press-feedback($scale: 0.97) {
+  transition: transform 0.08s ease;
+  &:active { transform: scale($scale); }
 }
 
-.fade-enter-from {
-  opacity: 0;
-  transform: translateY(10px);
-}
-
-.fade-leave-to {
-  opacity: 0;
-  transform: translateY(-10px);
-}
-
-// Page slide transition
-.page-enter-active,
-.page-leave-active {
-  transition: all 0.3s ease;
-}
-
-.page-enter-from {
-  opacity: 0;
-  transform: translateX(20px);
-}
-
-.page-leave-to {
-  opacity: 0;
-  transform: translateX(-20px);
-}
+.press-feedback { @include press-feedback(); }
 
 // --------------------------------------------------
 // Hover Effects
 // --------------------------------------------------
 .hover-lift {
   transition: transform $transition-base, box-shadow $transition-base;
-
   &:hover {
-    transform: translateY(-2px);
+    transform: translateY(-1px);
     box-shadow: $shadow-md;
   }
 }
 
 .hover-scale {
   transition: transform $transition-base;
-
-  &:hover {
-    transform: scale(1.02);
-  }
+  &:hover { transform: scale(1.01); }
 }
 
 // --------------------------------------------------
@@ -262,17 +174,13 @@ body {
 .interactive {
   cursor: pointer;
   transition: all $transition-base;
-
-  &:hover {
-    background: rgba(163, 120, 94, 0.1);
-  }
-
-  &:active {
-    transform: scale(0.98);
-  }
+  &:hover { background: rgba(200, 150, 62, 0.06); }
+  &:active { transform: scale(0.98); }
 }
 
-// Focus ring (accessibility)
+// --------------------------------------------------
+// Focus Ring (accessibility)
+// --------------------------------------------------
 .focus-ring {
   &:focus-visible {
     outline: 2px solid $primary;
@@ -280,25 +188,38 @@ body {
   }
 }
 
-// Skip link (a11y)
+// --------------------------------------------------
+// Router Transitions
+// --------------------------------------------------
+.fade-enter-active, .fade-leave-active {
+  transition: opacity 0.24s ease, transform 0.24s ease;
+}
+.fade-enter-from { opacity: 0; transform: translateY(8px); }
+.fade-leave-to { opacity: 0; transform: translateY(-8px); }
+
+.page-enter-active, .page-leave-active {
+  transition: all 0.24s ease;
+}
+.page-enter-from { opacity: 0; transform: translateX(16px); }
+.page-leave-to { opacity: 0; transform: translateX(-16px); }
+
+// --------------------------------------------------
+// Skip Link (a11y)
+// --------------------------------------------------
 .skip-link {
   position: absolute;
   top: -100%;
   left: 0;
-  z-index: 9999;
+  z-index: 800;
   padding: 0.75rem 1.5rem;
   background: $primary;
-  color: $dark;
+  color: #08090D;
   font-weight: 700;
   text-decoration: none;
   border-radius: 0 0 $pq-radius-sm 0;
-
-  &:focus {
-    top: 0;
-  }
+  &:focus { top: 0; }
 }
 
-// Visually hidden (a11y - screen reader only)
 .visually-hidden {
   position: absolute;
   width: 1px;
@@ -311,7 +232,9 @@ body {
   border: 0;
 }
 
-// Reduced motion
+// --------------------------------------------------
+// Reduced Motion
+// --------------------------------------------------
 @media (prefers-reduced-motion: reduce) {
   *, *::before, *::after {
     animation-duration: 0.01ms !important;
@@ -322,67 +245,47 @@ body {
 }
 
 // --------------------------------------------------
-// Auth Form Fields (shared across auth pages)
+// Auth Form Fields
 // --------------------------------------------------
 :deep(.q-field--filled .q-field__control) {
-  background: rgba(0, 0, 0, 0.2);
-  border: 1px solid rgba(113, 131, 127, 0.1);
-  transition: all 0.2s ease;
-
+  background: rgba(0, 0, 0, 0.25);
+  border: 1px solid rgba(53, 57, 69, 0.3);
+  transition: all 0.16s ease;
   &:hover {
-    background: rgba(0, 0, 0, 0.3);
-    border-color: rgba(163, 120, 94, 0.3);
+    background: rgba(0, 0, 0, 0.35);
+    border-color: rgba(200, 150, 62, 0.3);
   }
 }
 
 :deep(.q-field--focused .q-field__control) {
   border-color: $primary;
-  box-shadow: 0 0 10px rgba(163, 120, 94, 0.2);
+  box-shadow: 0 0 0 1px rgba(200, 150, 62, 0.2);
 }
 
 // --------------------------------------------------
-// Global q-btn Refinement — soft rounded + compact
+// Global q-btn
 // --------------------------------------------------
 .q-btn:not(.q-btn--round) {
-  border-radius: $pq-radius-lg;
-
-  &.q-btn--flat,
-  &.q-btn--outline {
+  border-radius: $pq-radius-md;
+  &.q-btn--flat, &.q-btn--outline {
     padding: 4px 12px;
   }
 }
 
 // --------------------------------------------------
-// Custom Scrollbar — subtle copper on sage
+// Custom Scrollbar
 // --------------------------------------------------
-::-webkit-scrollbar {
-  width: 6px;
-  height: 6px;
-}
-
-::-webkit-scrollbar-track {
-  background: transparent;
-}
-
+::-webkit-scrollbar { width: 6px; height: 6px; }
+::-webkit-scrollbar-track { background: transparent; }
 ::-webkit-scrollbar-thumb {
-  background: rgba(138, 158, 153, 0.25);
+  background: rgba(53, 57, 69, 0.5);
   border-radius: 3px;
-  transition: background 0.2s ease;
-
-  &:hover {
-    background: rgba(163, 120, 94, 0.4);
-  }
+  transition: background 0.16s ease;
+  &:hover { background: rgba(200, 150, 62, 0.4); }
 }
 
 // --------------------------------------------------
-// Selection Color — brand copper tint
+// Selection Color
 // --------------------------------------------------
-::selection {
-  background: rgba(163, 120, 94, 0.3);
-  color: inherit;
-}
-
-::-moz-selection {
-  background: rgba(163, 120, 94, 0.3);
-  color: inherit;
-}
+::selection { background: rgba(200, 150, 62, 0.25); color: inherit; }
+::-moz-selection { background: rgba(200, 150, 62, 0.25); color: inherit; }

@@ -1,12 +1,23 @@
 <template>
-  <section id="trust" ref="target" class="trust-section q-pa-xl text-center" :class="{ 'reveal-visible': isVisible }">
+  <section id="trust" ref="target" class="trust-section q-pa-xl" :class="{ 'reveal-visible': isVisible }">
     <div class="reveal-up">
-      <div class="text-overline text-accent opacity-70 q-mb-xl">CONFIABLE PARA CUALQUIER SECTOR</div>
-      <div class="row justify-center gap-lg gap-md-xl items-center opacity-50 filter-grayscale text-weight-bolder">
-        <div class="text-subtitle1 letter-spacing-2">COMERCIO</div>
-        <div class="text-subtitle1 letter-spacing-2">SERVICIOS</div>
-        <div class="text-subtitle1 letter-spacing-2">TALLERES</div>
-        <div class="text-subtitle1 letter-spacing-2">EMPRENDEDORES</div>
+      <div class="trust-label">CONFIABLE PARA CUALQUIER SECTOR</div>
+
+      <div class="stat-strip">
+        <div class="stat-block">
+          <div class="stat-number">500+</div>
+          <div class="stat-label">Empresas activas</div>
+        </div>
+        <div class="stat-divider" />
+        <div class="stat-block">
+          <div class="stat-number">18%</div>
+          <div class="stat-label">Ahorro promedio</div>
+        </div>
+        <div class="stat-divider" />
+        <div class="stat-block">
+          <div class="stat-number">24/7</div>
+          <div class="stat-label">Siempre disponible</div>
+        </div>
       </div>
     </div>
   </section>
@@ -19,6 +30,10 @@ const { target, isVisible } = useScrollReveal();
 </script>
 
 <style scoped>
+.trust-section {
+  text-align: center;
+}
+
 .reveal-up {
   opacity: 0;
   transform: translateY(20px);
@@ -30,14 +45,68 @@ const { target, isVisible } = useScrollReveal();
   transform: translateY(0);
 }
 
-.letter-spacing-2 { letter-spacing: 2px; }
-.filter-grayscale { filter: grayscale(1); }
-.opacity-50 { opacity: 0.5; }
-.opacity-70 { opacity: 0.7; }
-.gap-lg { gap: 32px; }
-.gap-md-xl { gap: 40px; }
+.trust-label {
+  font-family: 'Satoshi', sans-serif;
+  font-size: 11px;
+  font-weight: 700;
+  text-transform: uppercase;
+  letter-spacing: 0.1em;
+  color: var(--pq-text-subtle);
+  margin-bottom: 32px;
+}
 
-@media (min-width: 1024px) {
-  .gap-md-xl { gap: 40px; }
+.stat-strip {
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  gap: 0;
+}
+
+@media (min-width: 600px) {
+  .stat-strip {
+    flex-direction: row;
+    justify-content: center;
+    gap: 0;
+  }
+}
+
+.stat-block {
+  padding: 16px 32px;
+  text-align: center;
+}
+
+.stat-number {
+  font-family: 'Geist Mono', monospace;
+  font-size: 28px;
+  font-weight: 500;
+  color: var(--pq-text);
+  font-variant-numeric: tabular-nums;
+  line-height: 1;
+}
+
+@media (min-width: 600px) {
+  .stat-number {
+    font-size: 32px;
+  }
+}
+
+.stat-label {
+  font-family: 'Satoshi', sans-serif;
+  font-size: 12px;
+  color: var(--pq-text-muted);
+  margin-top: 6px;
+}
+
+.stat-divider {
+  width: 48px;
+  height: 1px;
+  background: var(--pq-border);
+}
+
+@media (min-width: 600px) {
+  .stat-divider {
+    width: 1px;
+    height: 48px;
+  }
 }
 </style>

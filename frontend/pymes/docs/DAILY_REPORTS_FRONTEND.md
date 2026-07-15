@@ -4,7 +4,66 @@ Registro cronológico de decisiones, problemas resueltos y estado del frontend.
 
 ---
 
-## 2026-07-14 — UX/UI review + Modernización PWA
+## 2026-07-15 — Rediseño Swiss/Grid + fix tenantId
+
+### Design system overhaul
+
+- **IDENTITY.md** → `DESIGN.md`: Swapped "Copper Luxe" for "Swiss / Grid + Institutional Warmth". Near-black `#08090D` + bronze `#C8963E`. Geist (display) + Satoshi (body) + Geist Mono (numbers). Eliminated glassmorphism, brand-glow, mesh-text-gradient.
+- **`app.scss`**: Stripped legacy classes (`brand-glow`, `glass-light`, `glass`, `mesh-text-gradient`). New `:root` block with full `--pq-*` tokens: shadow, z-index, motion, border-radius.
+- **`quasar.variables.scss`**: Updated `$pq-*` Sass vars to match `DESIGN.md` palette.
+- **`tokens.ts`**: Updated TS tokens — same palette, Geist/Satoshi/Geist Mono stack.
+
+### Components rewritten
+
+- **`BaseButton.vue`**: Flat solid bg, no gradients. 5 variants (primary, secondary, outline, danger, ghost). 4 sizes with line-height/letter-spacing/height tokens.
+- **`BaseCard.vue`**: Solid `var(--pq-surface)` fill, no backdrop-blur, no glow. 4 variants (default, elevated, accent, interactive).
+- **`BaseBadge.vue`**: Solid 20% alpha bg, no border, radius `full`. 5 semantic variants (default, success, warning, danger, info).
+
+### Layouts rewritten
+
+- **`MainLayout.vue`**: Minimal header (hamburger + logo + avatar, no title, no theme toggle). Sidebar grouped into 3 sections (Operaciones/Análisis/Sistema). Active state = left border accent + bold text, no bg fill. No disabled items, no plan card, no upgrade CTA.
+- **`LandingLayout.vue`**: Removed glassmorphism, mesh gradients, brand-glow. Uses `--pq-surface` for footer bg.
+- **`LandingHero.vue`**: Split-asymmetric hero (text left, KPI strip right). KPI cards use `--pq-surface` fill. No centered-over-mesh layout.
+- **`FeatureGrid.vue`**: Bento grid, no brand-glow on hover, plain surface cards.
+- **`TrustSection.vue`**: Stat strip with Geist Mono large numbers, bronze accent.
+
+### Bug fix
+
+- **`proveedor.service.ts`, `producto.service.ts`, `factura.service.ts`**: Backend update endpoints require `@RequestParam UUID tenantId`. Added `{ params: { tenantId: data.tenantId } }` to all `update()` methods. Frontend was sending tenantId in body, backend expects query param.
+
+### Documentation
+
+- `.ulpi/` added to `.gitignore` — local-only design specs
+- `.ulpi/design/DESIGN.md`: Locked design language (Swiss/grid)
+- `.ulpi/design/main-layout.md`: MainLayout feature spec
+- `.ulpi/design/landing-page.md`: Landing page feature spec
+- `.ulpi/design/facturas.md`: Facturas feature spec
+- `docs/TO_DO.md`: "Copper Luxe" section → "Swiss/Grid", updated token refs
+- `frontend/pymes/docs/FUTURE.md`: Old plan section replaced with reference to DESIGN.md
+- `frontend/pymes/docs/strategies/DESIGN_SYSTEM.md`: Full rewrite — Swiss/grid identity
+
+### Files changed
+
+| Archivo | Acción |
+|---------|--------|
+| `.gitignore` | `.ulpi/` added |
+| `src/css/app.scss` | Legacy classes stripped, new `:root` tokens |
+| `src/css/quasar.variables.scss` | Palette update |
+| `src/design/tokens.ts` | Palette update |
+| `src/components/base/BaseButton.vue` | Rewrite: flat solid colors |
+| `src/components/base/BaseCard.vue` | Rewrite: solid surface, no glass |
+| `src/components/base/BaseBadge.vue` | Rewrite: semantic colors |
+| `src/layouts/MainLayout.vue` | Rewrite: Swiss sidebar, minimal header |
+| `src/layouts/LandingLayout.vue` | Rewrite: no glassmorphism |
+| `src/components/landing/LandingHero.vue` | Rewrite: split hero |
+| `src/components/landing/FeatureGrid.vue` | Rewrite: no brand-glow |
+| `src/components/landing/TrustSection.vue` | Rewrite: stat strip |
+| `src/pages/IndexPage.vue` | `bg-forest-deep` removed |
+| `src/modules/core/services/proveedor.service.ts` | tenantId query param |
+| `src/modules/core/services/producto.service.ts` | tenantId query param |
+| `src/modules/core/services/factura.service.ts` | tenantId query param |
+
+---
 
 ### Fase 1: Corrección de bugs UX/UI (6 items)
 

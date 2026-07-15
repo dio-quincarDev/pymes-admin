@@ -28,7 +28,7 @@
 
 ### Frontend — Completado (Modernización PWA 2026-07-14)
 
-- [x] **Bottom nav mobile** — `MainLayout.vue`: `q-footer` con `q-tabs` 5 items + `q-route-tab` solo visible `<600px`. Glass effect. Rutas: Home, Productos, Facturas, Gastos, Más.
+- [x] **Bottom nav mobile** — `MainLayout.vue`: `q-footer` con `q-tabs` 5 items + `q-route-tab` solo visible `<600px`. Rutas: Home, Productos, Facturas, Gastos, Más.
 - [x] **EmptyState en 6 páginas** — `ProductosPage`, `ProveedoresPage`, `GastosPage`, `VentasPage`, `PrestamosPage`, `FacturasPage`. Cada uno con icono, título, descripción y CTA contextual.
 - [x] **Unsaved changes guard** — `beforeRouteLeave` en `ProductosPage` y `FacturasPage`. `hasUnsavedChanges` computed. Dialog de confirmación si hay datos sin guardar.
 - [x] **Keyboard shortcuts** — `useKeyboardShortcuts` composable. `N` crear, `?` ayuda, `Esc` cerrar. `Ctrl+K` global search placeholder. Help dialog con shortcuts listados.
@@ -38,18 +38,17 @@
 - [x] **SkeletonLoader skip** — Decisión documentada: tablas con datos reales no necesitan skeleton. Se eliminaron del roadmap.
 - [x] **Stagger animation skip** — Ya existía `.stagger-children` en `app.scss` aplicado a KpiCard y AccountingPage. No duplicar.
 
-### Frontend — Pendiente (Rediseño Copper Luxe — plan en FUTURE.md)
+### Frontend — Pendiente (Rediseño Swiss/Grid — ver `.ulpi/design/DESIGN.md`)
 
-- [ ] [Alta] **ProductosPage: card grid visual** — Reemplazar q-table por grid de tarjetas tipo boutique. Accent bars por categoría, stagger animation, stats bar, category chips. Archivos nuevos: `ProductCardGrid.vue`, `ProductCard.vue`.
+- [ ] [Alta] **ProductosPage: card grid visual** — Reemplazar q-table por grid de tarjetas. Accent bars por categoría, stagger animation, stats bar, category chips. Archivos nuevos: `ProductCardGrid.vue`, `ProductCard.vue`.
 - [ ] [Media] **FacturasPage: timeline financiero** — Reemplazar q-table por feed cronológico agrupado por mes. Sticky headers, status badges prominentes, search + filter en toolbar.
-- [ ] [Media] **GastosPage: cards por categoría** — Reemplazar q-table por tarjetas agrupadas por categoría con subtotales. Accent bars + glassmorphism.
+- [ ] [Media] **GastosPage: cards por categoría** — Reemplazar q-table por tarjetas agrupadas por categoría con subtotales.
 - [ ] [Media] **VentasPage: calendario** — Reemplazar q-table por timeline calendario + cards de resumen semanal.
 - [ ] [Media] **PrestamosPage: progress cards** — Cards con progress bar de saldo + timeline de pagos.
 - [ ] [Media] **ProveedoresPage: contact cards** — Cards estilo agenda con avatar inicial + datos de contacto.
 - [ ] [Baja] **PWA: pull to refresh** — En mobile, gesto nativo para refrescar datos.
 - [ ] [Baja] **PWA: custom install prompt** — Banner "Instalar PYMEQ" con dismiss persistente.
 - [ ] [Baja] **PWA: transiciones direccionales** — Slide left/right según dirección de navegación.
-- [ ] [Baja] **PWA: splash screen brandeado** — Custom splash con logo + copper gradient.
 
 ### Gateway
 

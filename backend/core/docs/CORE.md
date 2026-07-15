@@ -55,11 +55,13 @@ Todos comunican via Spring Events (no bloqueantes). Paquete base: `core_pymes.*`
 
 | Aspecto | Detalle |
 |---------|---------|
-| Entidades | `Factura` (UUID, items cascade ALL), `ItemFactura` (snapshot, subtotal), `Proveedor` (soft-delete) |
-| Endpoints | CRUD `/facturas`, `POST /facturas/{id}/pagar`, CRUD `/proveedores` |
+| Entidades | `Factura` (UUID, items cascade ALL), `ItemFactura` (snapshot, subtotal, audit fields), `Proveedor` (soft-delete) |
+| Endpoints | CRUD `/facturas`, `PUT /facturas/{id}?tenantId=`, `POST /facturas/{id}/pagar`, CRUD `/proveedores` |
 | Eventos | `FacturaCreadaEvent` (escuchado por Analytics + debounce) |
 | Invoice number | `F-PROV-{year}-{sequential:04d}` por tenant |
-| Flyway | V4: `core.providers`, `core.invoices`, `core.invoice_items` |
+| Update logic | Solo `REGISTRADA`. `reverseProductStats()` → `clear items` → `buildItem()` con `InvoiceCalculator` → recalc total |
+| Audit fields | `cantidad_presentacion`, `valor_presentacion`, `precio_unitario_input`, `descuento_input`, `descuento_es_porcentaje` (raw user input) |
+| Flyway | V4: schema, V15: audit fields, V16: performance indexes |
 
 ### Analytics (`core_pymes/analytics/`)
 
@@ -374,6 +376,7 @@ DELETE /api/v1/core/proveedores/{id}
 POST   /api/v1/core/facturas
 GET    /api/v1/core/facturas
 GET    /api/v1/core/facturas/{id}
+PUT    /api/v1/core/facturas/{id}?tenantId=
 DELETE /api/v1/core/facturas/{id}
 POST   /api/v1/core/facturas/{id}/pagar
 ```

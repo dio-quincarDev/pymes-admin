@@ -9,6 +9,8 @@ import core_pymes.invoice.mapper.FacturaMapper;
 import core_pymes.invoice.repository.FacturaRepository;
 import core_pymes.invoice.repository.ProveedorRepository;
 import core_pymes.invoice.service.FacturaService;
+import core_pymes.invoice.service.InvoiceCalculator;
+import core_pymes.product.domain.Presentacion;
 import core_pymes.product.repository.PresentacionRepository;
 import jakarta.persistence.EntityNotFoundException;
 import lombok.RequiredArgsConstructor;
@@ -21,6 +23,7 @@ import org.springframework.stereotype.Service;
 import org.springframework.transaction.annotation.Transactional;
 
 import java.math.BigDecimal;
+import java.math.RoundingMode;
 import java.util.*;
 import java.util.stream.Collectors;
 
@@ -138,48 +141,22 @@ public class FacturaServiceImpl implements FacturaService {
             (rs, row) -> productNameMap.put(UUID.fromString(rs.getString("id")), rs.getString("name")),
             productIds.toArray());
 
+        // Batch load presentaciones
+        var presentacionIds = request.items().stream()
+                .map(ItemFacturaRequest::presentacionId)
+                .filter(Objects::nonNull)
+                .distinct()
+                .toList();
+        Map<UUID, Presentacion> presentacionMap = Collections.emptyMap();
+        if (!presentacionIds.isEmpty()) {
+            presentacionMap = presentacionRepository.findAllById(presentacionIds).stream()
+                    .collect(Collectors.toMap(Presentacion::getId, p -> p));
+        }
+
         BigDecimal total = BigDecimal.ZERO;
         for (var itemReq : request.items()) {
-            var discount = itemReq.descuento() != null ? itemReq.descuento() : BigDecimal.ZERO;
-            var subtotal = itemReq.cantidad().multiply(itemReq.precioUnitario()).subtract(discount);
-            total = total.add(subtotal);
-
-            var productoName = productNameMap.get(itemReq.productoId());
-
-            int conversionFactor = 1;
-            UUID presentacionId = null;
-            if (itemReq.presentacionId() != null) {
-                var presentacion = presentacionRepository.findById(itemReq.presentacionId())
-                        .orElseThrow(() -> new EntityNotFoundException("Presentacion not found: " + itemReq.presentacionId()));
-                if (!presentacion.getProducto().getId().equals(itemReq.productoId())) {
-                    throw new IllegalArgumentException("Presentacion does not belong to product " + itemReq.productoId());
-                }
-                conversionFactor = presentacion.getConversion();
-                presentacionId = presentacion.getId();
-            }
-
-            var item = ItemFactura.builder()
-                    .factura(factura)
-                    .productId(itemReq.productoId())
-                    .productName(productoName)
-                    .presentacionId(presentacionId)
-                    .conversionFactor(conversionFactor)
-                    .quantity(itemReq.cantidad())
-                    .unitPrice(itemReq.precioUnitario())
-                    .discount(discount)
-                    .subtotal(subtotal)
-                    .build();
-            factura.getItems().add(item);
-
-            // ponytail: update product expense stats inline
-            jdbc.update("""
-                UPDATE core.products SET
-                    last_unit_price = ?,
-                    total_investment = total_investment + ?,
-                    last_purchase_date = ?
-                WHERE id = ? AND tenant_id = ?
-                """, itemReq.precioUnitario(), subtotal, request.fecha(),
-                    itemReq.productoId(), request.tenantId());
+            var calc = buildItem(itemReq, productNameMap, presentacionMap, factura, request.tenantId(), request.fecha());
+            total = total.add(calc.subtotal());
         }
 
         factura.setTotal(total.subtract(factura.getGlobalDiscount()));
@@ -189,6 +166,156 @@ public class FacturaServiceImpl implements FacturaService {
         log.debug("Factura created: {} for tenant {}", factura.getId(), factura.getTenantId());
 
         return mapper.toResponse(factura, mapper.toItemResponseList(factura.getItems()));
+    }
+
+    @Override
+    @Transactional
+    @CacheEvict(cacheNames = "facturas", allEntries = true)
+    public FacturaResponse updateFactura(UUID id, UUID tenantId, FacturaRequest request) {
+        var factura = getFactura(id, tenantId);
+        if (!"REGISTRADA".equals(factura.getStatus())) {
+            throw new IllegalStateException("Solo facturas en estado REGISTRADA pueden editarse");
+        }
+
+        // 1. Reverse product stats from OLD items
+        reverseProductStats(factura.getItems(), tenantId, factura.getId());
+
+        // 2. Clear old items (orphanRemoval=true deletes from DB)
+        factura.getItems().clear();
+
+        // 3. Build product name map AND presentacion map for new items
+        var productIds = request.items().stream().map(ItemFacturaRequest::productoId).distinct().toList();
+        var inClause = productIds.stream().map(p -> "?").collect(Collectors.joining(","));
+        var productNameMap = new HashMap<UUID, String>();
+        jdbc.query(
+            "SELECT id, name FROM core.products WHERE id IN (" + inClause + ")",
+            (rs, row) -> productNameMap.put(UUID.fromString(rs.getString("id")), rs.getString("name")),
+            productIds.toArray());
+
+        // Batch load presentaciones
+        var presentacionIds = request.items().stream()
+                .map(ItemFacturaRequest::presentacionId)
+                .filter(Objects::nonNull)
+                .distinct()
+                .toList();
+        Map<UUID, Presentacion> presentacionMap = Collections.emptyMap();
+        if (!presentacionIds.isEmpty()) {
+            presentacionMap = presentacionRepository.findAllById(presentacionIds).stream()
+                    .collect(Collectors.toMap(Presentacion::getId, p -> p));
+        }
+
+        // 4. Create new items using InvoiceCalculator
+        BigDecimal total = BigDecimal.ZERO;
+        for (var itemReq : request.items()) {
+            var calc = buildItem(itemReq, productNameMap, presentacionMap, factura, tenantId, request.fecha());
+            total = total.add(calc.subtotal());
+        }
+
+        // 5. Update header
+        factura.setProviderId(request.proveedorId());
+        factura.setIssueDate(request.fecha());
+        factura.setType(request.tipo());
+        factura.setGlobalDiscount(request.descuentoGlobal() != null ? request.descuentoGlobal() : BigDecimal.ZERO);
+        factura.setPaymentMethod(request.metodoPago());
+        factura.setTotal(total.subtract(factura.getGlobalDiscount()));
+
+        factura = facturaRepository.save(factura);
+        log.debug("Factura updated: {} for tenant {}", factura.getId(), factura.getTenantId());
+
+        return mapper.toResponse(factura, mapper.toItemResponseList(factura.getItems()));
+    }
+
+private InvoiceCalculator.CalculatedItem buildItem(ItemFacturaRequest itemReq,
+                                                         Map<UUID, String> productNameMap,
+                                                         Map<UUID, Presentacion> presentacionMap,
+                                                         Factura factura,
+                                                         UUID tenantId,
+                                                         java.time.LocalDate fecha) {
+        String productoName = productNameMap.get(itemReq.productoId());
+
+        int conversionFactor = 1;
+        UUID presentacionId = null;
+        if (itemReq.presentacionId() != null) {
+            var presentacion = presentacionMap.get(itemReq.presentacionId());
+            if (presentacion == null) {
+                throw new EntityNotFoundException("Presentacion not found: " + itemReq.presentacionId());
+            }
+            if (!presentacion.getProducto().getId().equals(itemReq.productoId())) {
+                throw new IllegalArgumentException("Presentacion does not belong to product " + itemReq.productoId());
+            }
+            conversionFactor = presentacion.getConversion();
+            presentacionId = presentacion.getId();
+        }
+
+        var resolveReq = new InvoiceCalculator.ResolveRequest(
+                itemReq.cantidad(),
+                itemReq.precioUnitario(),
+                itemReq.descuento(),
+                itemReq.cantidadPresentacion(),
+                itemReq.valorPresentacion(),
+                itemReq.precioUnitarioInput(),
+                itemReq.descuentoInput(),
+                itemReq.descuentoEsPorcentaje(),
+                conversionFactor
+        );
+
+        var calc = InvoiceCalculator.resolve(resolveReq);
+
+        var item = ItemFactura.builder()
+                .factura(factura)
+                .productId(itemReq.productoId())
+                .productName(productoName)
+                .presentacionId(presentacionId)
+                .conversionFactor(conversionFactor)
+                .quantity(calc.quantity())
+                .unitPrice(calc.unitPrice())
+                .discount(calc.discount())
+                .subtotal(calc.subtotal())
+                .cantidadPresentacion(calc.cantidadPresentacionOriginal())
+                .valorPresentacion(calc.valorPresentacionOriginal())
+                .precioUnitarioInput(calc.precioUnitarioInputOriginal())
+                .descuentoInput(calc.descuentoInputOriginal())
+                .descuentoEsPorcentaje(calc.descuentoEsPorcentajeOriginal())
+                .build();
+        factura.getItems().add(item);
+
+        // Update product expense stats
+        jdbc.update("""
+            UPDATE core.products SET
+                last_unit_price = ?,
+                total_investment = total_investment + ?,
+                last_purchase_date = ?
+            WHERE id = ? AND tenant_id = ?
+            """, calc.unitPrice(), calc.subtotal(), fecha,
+                itemReq.productoId(), tenantId);
+
+        return calc;
+    }
+
+    private void reverseProductStats(List<ItemFactura> oldItems, UUID tenantId, UUID facturaId) {
+        for (ItemFactura item : oldItems) {
+            jdbc.update("""
+                UPDATE core.products SET
+                    total_investment = total_investment - ?,
+                    last_unit_price = (
+                        SELECT ii.unit_price FROM core.invoice_items ii
+                        JOIN core.invoices i ON i.id = ii.invoice_id
+                        WHERE ii.product_id = ? AND i.tenant_id = ? AND i.status != 'ELIMINADA' AND i.id != ?
+                        ORDER BY i.issue_date DESC, i.created_at DESC
+                        LIMIT 1
+                    ),
+                    last_purchase_date = (
+                        SELECT i.issue_date FROM core.invoices i
+                        JOIN core.invoice_items ii ON ii.invoice_id = i.id
+                        WHERE ii.product_id = ? AND i.tenant_id = ? AND i.status != 'ELIMINADA' AND i.id != ?
+                        ORDER BY i.issue_date DESC, i.created_at DESC
+                        LIMIT 1
+                    )
+                WHERE id = ? AND tenant_id = ?
+                """, item.getSubtotal(), item.getProductId(), tenantId, facturaId,
+                    item.getProductId(), tenantId, facturaId,
+                    item.getProductId(), tenantId);
+        }
     }
 
     @Override
@@ -212,6 +339,7 @@ public class FacturaServiceImpl implements FacturaService {
         if (!"REGISTRADA".equals(factura.getStatus())) {
             throw new IllegalStateException("Cannot delete factura in status " + factura.getStatus());
         }
+        reverseProductStats(factura.getItems(), tenantId, factura.getId());
         facturaRepository.delete(factura);
     }
 

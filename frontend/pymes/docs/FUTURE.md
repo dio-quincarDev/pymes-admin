@@ -1,7 +1,7 @@
 # FUTURE.md — Frontend: Modulos Core
 
-> **Fecha:** 2026-07-14
-> **Objetivo:** Documentar el estado de los modulos backend y frontend + plan de rediseño visual.
+> **Fecha:** 2026-07-15
+> **Objetivo:** Documentar el estado de los modulos backend y frontend + design system actual.
 
 ---
 
@@ -40,7 +40,7 @@ Backend y frontend de los 5 modulos core estan completos + modernización PWA ap
 - **Tipos:** `GastoOperativo`, `GastoRequest` en `types/index.ts`
 - **Ruta:** `/dashboard/gastos`
 - **Sidebar:** `{ title: 'Gastos', icon: 'money_off', path: '/dashboard/gastos' }`
-- **Features:** filtros por categoría, selector de método de pago, validación QForm, glass morphism en dialogs, responsive `width: 90vw; max-width: 480px`
+- **Features:** filtros por categoría, selector de método de pago, validación QForm, responsive `width: 90vw; max-width: 480px`
 
 ### Ventas Diarias
 
@@ -49,7 +49,7 @@ Backend y frontend de los 5 modulos core estan completos + modernización PWA ap
 - **Tipos:** `VentaDiaria`, `VentaRequest` en `types/index.ts`
 - **Ruta:** `/dashboard/ventas`
 - **Sidebar:** `{ title: 'Ventas', icon: 'point_of_sale', path: '/dashboard/ventas' }`
-- **Features:** fecha, monto bruto, descripción, validación QForm, glass morphism en dialogs
+- **Features:** fecha, monto bruto, descripción, validación QForm, responsive
 
 ### Préstamos + Pagos
 
@@ -67,7 +67,7 @@ Backend y frontend de los 5 modulos core estan completos + modernización PWA ap
 - **Tipos:** `Patrimonio`, `PatrimonioRequest` en `types/index.ts`
 - **Ruta:** `/dashboard/patrimonio`
 - **Sidebar:** `{ title: 'Patrimonio', icon: 'savings', path: '/dashboard/patrimonio' }`
-- **Features:** 3 KPI cards con accent borders (capital, fecha, estado), toggle editar/guardar, empty state con glass, stagger animation
+- **Features:** 3 KPI cards con accent borders (capital, fecha, estado), toggle editar/guardar, empty state, stagger animation
 
 ### Accounting (Métricas Financieras)
 
@@ -76,7 +76,7 @@ Backend y frontend de los 5 modulos core estan completos + modernización PWA ap
 - **Tipos:** `MetricasFinancieras` en `types/index.ts`
 - **Ruta:** `/dashboard/accounting`
 - **Sidebar:** `{ title: 'Contabilidad', icon: 'balance', path: '/dashboard/accounting' }`
-- **Features:** selector de período YYYY-MM, botón recalcular, 6 cards con accent borders (ingresos, costos, gastos, margen bruto/operativo/neto), resumen de gastos en glass card, stagger animation
+- **Features:** selector de período YYYY-MM, botón recalcular, 6 cards con accent borders (ingresos, costos, gastos, margen bruto/operativo/neto), resumen de gastos, stagger animation
 
 ---
 
@@ -102,7 +102,7 @@ Backend y frontend de los 5 modulos core estan completos + modernización PWA ap
 | `PrestamosPage.vue` | +emptyState, +shortcuts, dialog anim |
 | `AccountingPage.vue` | -summaryCards template manual, +KpiCard import |
 | `CategoryTabs.vue` | Reescrito con q-chip nativo |
-| `MainLayout.vue` | +q-footer mobile nav (glass effect), sidebar items habilitados |
+| `MainLayout.vue` | +q-footer mobile nav, sidebar items habilitados |
 | `router/routes.ts` | +5 rutas: gastos, ventas, prestamos, patrimonio, accounting |
 
 ---
@@ -126,122 +126,39 @@ Backend y frontend de los 5 modulos core estan completos + modernización PWA ap
 
 ---
 
-## Plan: Rediseño Visual "Copper Luxe / Dark Jungle"
+## Plan: Rediseño Visual → Completado (Swiss/Grid)
 
-> **Fecha:** 2026-07-14
-> **Estado:** Propuesta — pendiente de aprobación
+> **Fecha:** 2026-07-15
+> **Estado:** Completado
 
-### Diagnóstico
+### Design system locked
 
-El frontend actual tiene **identidad visual existente** pero subutilizada:
-- Brand: Deep Forest & Copper (`$primary: #A3785E`, `$dark-page: #0B1210`)
-- Glassmorphism, mesh gradients, brand glow, copper accents ya están en `app.scss`
-- Outfit + Source Sans 3 tipografía implementada
+- `DESIGN.md`: paleta, tipografía, escalas, component vocabulary, accessibility baseline
+- `main-layout.md`: header minimal + sidebar Swiss grouped + page workspace
+- `landing-page.md`: split hero + bento grid + stat strip
+- `facturas.md`: flows, estados, component specs
 
-**Problema:** Todas las páginas CRUD usan el mismo patrón — `q-table` dentro de `q-card`. Sin variedad visual, sin tesitura, sin identidad diferenciada. El resultado se ve genérico porque **es** genérico: mismo layout, mismos componentes, misma densidad de información en todas partes.
+### Paleta
 
-### Dirección estética: "Copper Luxe / Dark Jungle"
+| Token | Hex | Uso |
+|-------|-----|-----|
+| `--pq-background` | `#08090D` | Page base |
+| `--pq-surface` | `#12141A` | Cards, sidebar, dialogs |
+| `--pq-elevated` | `#1E2129` | Dropdowns, modals |
+| `--pq-border` | `#353945` | Dividers, input borders |
+| `--pq-text` | `#F5F3EF` | Primary copy |
+| `--pq-text-muted` | `#9B9790` | Labels, placeholders |
+| `--pq-accent` | `#C8963E` | Primary buttons, focus, key numbers |
+| `--pq-success` | `#3D7A5A` | Paid, confirmed |
+| `--pq-warning` | `#C8A042` | Pending, draft |
+| `--pq-danger` | `#A04038` | Delete, destructive |
 
-No más cambios tímidos. La identidad existe, hay que llevarla al extremo:
+### Tipografía
 
-| Elemento | Actual | Propuesto |
-|----------|--------|-----------|
-| Fondos | Sólido oscuro oscuro | Mesh gradients sutiles + noise texture |
-| Cards | Borde sutil | Glassmorphism con tintes cobrizos + glow en hover |
-| Tipografía | Outfit solo en títulos | Outfit bold + letter-spacing agresivo en headings |
-| Acentos de categoría | Solo texto | Color-coding: cada categoría = un accent distinto (copper, sage, gold, teal, rose) |
-| Animaciones | Fade básico | Stagger grid, spring physics, press scale |
-| Tablas | Q-table estándar | Layouts específicos por tipo de dato |
+- Display/heading: **Geist** (400-800)
+- Body: **Satoshi** (400-700)
+- Utility/numbers: **Geist Mono** (400-500), `tabular-nums`
 
-### Phase A: ProductosPage — "Boutique Display"
+### Tokens legacy eliminados
 
-**Nada de tabla.** Una **grid visual de tarjetas** tipo showroom/catálogo:
-
-```
-[🔍 Buscar...]  [Chips de categoría: Todos │ 🟤 Abarrotes │ 🟢 Bebidas │ 🟡 Limpieza]
-[📊 12 productos · 3 categorías · 2 proveedores]
-
-┌────────────────────┐ ┌────────────────────┐ ┌────────────────────┐
-│ ▓▓▓▓ (accent bar)  │ │ ▓▓▓▓ (accent bar)  │ │ ▓▓▓▓ (accent bar)  │
-│                    │ │                    │ │                    │
-│ Arroz Superior     │ │ Frijol Negro       │ │ Aceite Vegetal     │
-│ `ARZ-001`          │ │ `FRJ-002`          │ │ `ACE-003`          │
-│                    │ │                    │ │                    │
-│ 🏪 Proveedor A     │ │ 🏪 Proveedor B     │ │ 🏪 Proveedor A     │
-│ 📦 3 presentaciones│ │ 📦 1 presentación  │ │ 📦 —               │
-│ $12.50             │ │ $8.00              │ │ $45.00             │
-│                    │ │                    │ │                    │
-│ [✏️] [📋] [🗑️]     │ │ [✏️] [📋] [🗑️]     │ │ [✏️] [📋] [🗑️]     │
-└────────────────────┘ └────────────────────┘ └────────────────────┘
-```
-
-- **Desktop**: 3 columnas | **Tablet**: 2 | **Mobile**: 1
-- **Entrance**: Stagger fade+slide (50ms delay/card)
-- **Hover**: Lift + glow + sombra profunda
-- **Accent bar**: Color por categoría (mapeado del brand: copper, sage, gold, teal, rose)
-- **SKU pill**: Monospace small, estilo badge cobrizo
-- **Stats bar**: Resumen rápido arriba
-- **Category chips**: `q-chip` con `selected` color + transition suave
-
-**Archivos a crear:** 2
-- `ProductCardGrid.vue` — Grid container con stagger + filtros
-- `ProductCard.vue` — Tarjeta individual con accent bar
-
-### Phase B: FacturasPage — Timeline financiero
-
-No tabla, un **feed cronológico** agrupado por mes:
-
-```
-Diciembre 2024
-┌─────────────────────────────────────────┐
-│ 📄 FAC-001 │ Proveedor A │ $1,200.00   │
-│ 🟡 Pendiente │ 2024-12-15               │
-│ [👁️] [💳] [🗑️]                          │
-├─────────────────────────────────────────┤
-│ 📄 FAC-002 │ Proveedor B │ $3,450.00   │
-│ 🟢 Pagada   │ 2024-12-10               │
-│ [👁️] [🗑️]                              │
-└─────────────────────────────────────────┘
-
-Enero 2025
-...
-```
-
-- Meses como sticky headers con gradient
-- Cards más compactas pero con más tesitura visual
-- Status badges más prominentes
-- Search + filter en toolbar
-
-### Phase C: Otras páginas — Layouts específicos
-
-No todas las páginas necesitan el mismo layout. Cada tipo de dato tiene su presentación natural:
-
-| Página | Layout propuesto |
-|--------|------------------|
-| **Productos** | Card grid visual tipo boutique (Phase A) |
-| **Facturas** | Timeline cronológico agrupado por mes (Phase B) |
-| **Gastos** | Tarjetas agrupadas por categoría con subtotales |
-| **Ventas** | Timeline calendario + cards de resumen semanal |
-| **Préstamos** | Cards con progress bar de saldo + timeline de pagos |
-| **Proveedores** | Contact cards estilo agenda con avatar inicial |
-| **Dashboard** | (Ya está bien con KPI cards — ajustar glassmorphism) |
-
-### Phase D: PWA Feel — polish nativo
-
-| Mejora | Detalle |
-|--------|---------|
-| Instalación | Banner custom "Instalar PYMEQ" con dismiss persistente |
-| Pull to refresh | En mobile, refrescar datos con gesto nativo |
-| Status bar | `theme-color` + meta tags para Android/iOS |
-| Offline | Página offline con diseño brandeado (no genérico) |
-| Splash | Custom splash screen con logo + copper gradient |
-| Transiciones | Direccionales (slide left/right según dirección de nav) |
-| Haptic feedback | Visual press feedback en cards y botones |
-
-### Scope y dependencias
-
-- **No depende de backend** — todo es presentación sobre datos existentes
-- **No agrega dependencias** — todo con CSS + Quasar nativo + existing brand tokens
-- **Archivos nuevos:** ~4 (ProductCardGrid, ProductCard, y posiblemente 2 más para otros layouts)
-- **Archivos a modificar:** ~8-10 (cada página CRUD + MainLayout + app.scss para nuevos estilos)
-- **Riesgo:** Bajo — cambios puramente visuales, no afecta lógica de negocio
+`brand-glow`, `mesh-text-gradient`, `glass-light`, `bg-forest-deep`, `bg-surface-pine`, `border-light` — ya no existen en `app.scss`. Clases referenciadas en otros archivos son deuda técnica.

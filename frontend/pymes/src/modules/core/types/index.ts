@@ -68,8 +68,8 @@ export interface Factura {
   providerName: string
   issueDate: string
   type: string
-  metodoPago: string | null
-  descuentoGlobal: number | null
+  paymentMethod: string | null
+  globalDiscount: number | null
   status: string
   total: number
   items: ItemFactura[]
@@ -78,22 +78,32 @@ export interface Factura {
 
 export interface ItemFactura {
   id: string
-  productoId: string
+  productId: string
   productName: string
-  cantidad: number
-  precioUnitario: number
-  descuento: number | null
+  quantity: number
+  unitPrice: number
+  discount: number | null
   subtotal: number
   presentacionId: string | null
   conversionFactor: number
+  cantidadPresentacion?: number
+  valorPresentacion?: number
+  precioUnitarioInput?: number
+  descuentoInput?: number
+  descuentoEsPorcentaje?: boolean
 }
 
 export interface ItemFacturaRequest {
   productoId: string
   presentacionId?: string | null
-  cantidad: number
-  precioUnitario: number
+  cantidad?: number
+  precioUnitario?: number
   descuento?: number | null
+  cantidadPresentacion?: number
+  valorPresentacion?: number
+  precioUnitarioInput?: number
+  descuentoInput?: number
+  descuentoEsPorcentaje?: boolean
 }
 
 export interface FacturaRequest {

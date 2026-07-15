@@ -17,7 +17,7 @@ export const productoService = {
     return api.post<Producto>('/core/productos', data)
   },
   update(id: string, data: ProductoRequest) {
-    return api.put<Producto>(`/core/productos/${id}`, data)
+    return api.put<Producto>(`/core/productos/${id}`, data, { params: { tenantId: data.tenantId } })
   },
   remove(id: string, tenantId: string) {
     return api.delete(`/core/productos/${id}`, { params: { tenantId } })

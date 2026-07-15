@@ -1,5 +1,5 @@
 <script setup lang="ts">
-import { ref, shallowRef, onMounted, onUnmounted } from 'vue'
+import { ref, shallowRef, computed, onMounted, onUnmounted } from 'vue'
 import { useQuasar, useMeta } from 'quasar'
 import { useAuthStore } from 'src/modules/auth/store'
 import { formatCurrency } from 'src/utils/format'
@@ -18,17 +18,33 @@ const metodoPagoOptions = ['EFECTIVO', 'TRANSFERENCIA', 'TARJETA', 'CHEQUE']
 
 const rows = ref<GastoOperativo[]>([])
 const loading = shallowRef(false)
-const filter = shallowRef('')
-const pagination = shallowRef({ sortBy: 'expenseDate', descending: true, page: 1, rowsPerPage: 15 })
 
-const columns = [
-  { name: 'expenseDate', label: 'Fecha', field: 'expenseDate', align: 'left' as const, sortable: true },
-  { name: 'category', label: 'Categoría', field: 'category', align: 'left' as const, sortable: true },
-  { name: 'description', label: 'Descripción', field: 'description', align: 'left' as const, sortable: false },
-  { name: 'amount', label: 'Monto', field: 'amount', align: 'right' as const, sortable: true },
-  { name: 'paymentMethod', label: 'Pago', field: 'paymentMethod', align: 'center' as const, sortable: false },
-  { name: 'actions', label: 'Acciones', field: 'id', align: 'right' as const, sortable: false },
-]
+interface CatGroup {
+  category: string
+  items: GastoOperativo[]
+  total: number
+}
+
+const catGroups = computed(() => {
+  const groups = new Map<string, GastoOperativo[]>()
+  for (const g of rows.value) {
+    const cat = g.category || 'OTROS'
+    if (!groups.has(cat)) groups.set(cat, [])
+    groups.get(cat)!.push(g)
+  }
+  const result: CatGroup[] = []
+  for (const [category, list] of groups) {
+    result.push({
+      category,
+      items: list,
+      total: list.reduce((s, g) => s + g.amount, 0),
+    })
+  }
+  result.sort((a, b) => b.total - a.total)
+  return result
+})
+
+const totalGeneral = computed(() => rows.value.reduce((s, g) => s + g.amount, 0))
 
 async function load() {
   loading.value = true
@@ -92,7 +108,8 @@ async function remove() {
     rows.value = rows.value.filter(r => r.id !== deletingItem.value!.id)
     deleteDialog.value = false
     $q.notify({ type: 'positive', message: 'Gasto eliminado' })
-  } catch { $q.notify({ type: 'negative', message: 'Error al eliminar gasto' })
+  } catch {
+    $q.notify({ type: 'negative', message: 'Error al eliminar gasto' })
   } finally {
     deleting.value = false
     deletingItem.value = null
@@ -120,44 +137,63 @@ function handleKeydown(e: KeyboardEvent) {
 
 <template>
   <q-page class="core-page">
-    <div class="q-mb-md fade-in-up">
+    <div class="q-mb-md">
       <h1 class="text-h4 text-primary font-bold q-ma-none">Gastos Operativos</h1>
       <p class="text-subtitle1 text-accent q-mt-xs">Registro de gastos operativos del negocio</p>
     </div>
 
-    <q-card dark class="bg-surface-pine">
-      <q-table dark flat :rows="rows" :columns="columns" row-key="id" :loading="loading" :filter="filter" v-model:pagination="pagination" :rows-per-page-options="[10, 20, 50]">
-        <template v-slot:top>
-          <q-input dark dense filled v-model="filter" placeholder="Buscar..." class="q-mr-sm" style="max-width: 250px">
-            <template v-slot:prepend><q-icon name="search" /></template>
-          </q-input>
-          <q-space />
-          <q-btn color="primary" icon="add" label="Nuevo" @click="openCreate" />
-        </template>
-        <template v-slot:body-cell-amount="{ row }">
-          <td class="text-right text-weight-bold">{{ formatCurrency(row.amount) }}</td>
-        </template>
-        <template v-slot:body-cell-paymentMethod="{ row }">
-          <td class="text-center"><span class="text-accent">{{ row.paymentMethod || '—' }}</span></td>
-        </template>
-        <template v-slot:body-cell-actions="{ row }">
-          <td class="text-right">
-            <q-btn flat dense round icon="edit" color="primary" @click="openEdit(row)" aria-label="Editar gasto" />
-            <q-btn flat dense round icon="delete" color="negative" @click="confirmDelete(row)" aria-label="Eliminar gasto" />
-          </td>
-        </template>
-        <template v-slot:no-data>
-          <EmptyState
-            v-if="!loading"
-            icon="money_off"
-            title="Sin gastos registrados"
-            message="Registra tu primer gasto operativo del negocio."
-          >
-            <q-btn color="primary" icon="add" label="Nuevo Gasto" @click="openCreate" class="q-mt-sm" />
-          </EmptyState>
-        </template>
-      </q-table>
+    <q-card dark class="glass q-pa-sm q-mb-sm">
+      <div class="row items-baseline q-gutter-x-sm q-pa-xs">
+        <span class="text-caption text-accent text-uppercase" style="font-size: 0.72rem; letter-spacing: 0.04em">Total general</span>
+        <span class="font-mono text-weight-bold text-h6">{{ formatCurrency(totalGeneral) }}</span>
+      </div>
     </q-card>
+
+    <div class="toolbar">
+      <q-space />
+      <q-btn color="primary" icon="add" label="Nuevo" @click="openCreate" />
+    </div>
+
+    <div v-if="!loading && !rows.length" class="q-mt-lg">
+      <EmptyState
+        icon="money_off"
+        title="Sin gastos registrados"
+        message="Registra tu primer gasto operativo del negocio."
+      >
+        <q-btn color="primary" icon="add" label="Nuevo Gasto" @click="openCreate" class="q-mt-sm" />
+      </EmptyState>
+    </div>
+
+    <div v-if="loading" class="q-gutter-y-md q-mt-md">
+      <div v-for="n in 4" :key="n">
+        <q-skeleton type="rect" dark animation="pulse" height="80px" />
+      </div>
+    </div>
+
+    <div v-for="group in catGroups" :key="group.category" class="cat-group">
+      <div class="cat-group__header">
+        <span class="cat-group__title">{{ group.category }}</span>
+        <span class="cat-group__count">{{ group.items.length }} gasto{{ group.items.length !== 1 ? 's' : '' }}</span>
+        <q-space />
+        <span class="cat-group__total">{{ formatCurrency(group.total) }}</span>
+      </div>
+
+      <div v-for="g in group.items" :key="g.id" class="expense-row">
+        <div class="expense-row__main">
+          <div class="expense-row__desc">{{ g.description }}</div>
+          <div class="expense-row__meta">
+            <span>{{ g.expenseDate }}</span>
+            <span v-if="g.paymentMethod" class="expense-row__sep">·</span>
+            <span v-if="g.paymentMethod">{{ g.paymentMethod }}</span>
+          </div>
+        </div>
+        <div class="expense-row__amount">{{ formatCurrency(g.amount) }}</div>
+        <div class="expense-row__actions">
+          <q-btn flat dense round icon="edit" color="primary" size="sm" @click="openEdit(g)" aria-label="Editar" />
+          <q-btn flat dense round icon="delete" color="negative" size="sm" @click="confirmDelete(g)" aria-label="Eliminar" />
+        </div>
+      </div>
+    </div>
 
     <q-dialog v-model="dialogOpen" dark>
       <q-card dark class="bg-surface-pine" style="width: 90vw; max-width: 480px">
@@ -170,12 +206,12 @@ function handleKeydown(e: KeyboardEvent) {
                 <q-input dark filled v-model="form.expenseDate" label="Fecha" type="date" :rules="[v => !!v || 'Requerido']" />
               </div>
               <div class="col-6">
-                <q-select dark filled v-model="form.category" :options="categoriaOptions" label="Categoría" :rules="[v => !!v || 'Requerido']" />
+                <q-select dark filled v-model="form.category" :options="categoriaOptions" label="Categor\u00EDa" :rules="[v => !!v || 'Requerido']" />
               </div>
             </div>
-            <q-input dark filled v-model="form.description" label="Descripción" :rules="[v => !!v || 'Requerido']" />
+            <q-input dark filled v-model="form.description" label="Descripci\u00F3n" :rules="[v => !!v || 'Requerido']" />
             <q-input dark filled v-model.number="form.amount" label="Monto" type="number" min="0" step="0.01" prefix="$" :rules="[v => !!v || 'Requerido']" />
-            <q-select dark filled v-model="form.paymentMethod" :options="metodoPagoOptions" label="Método de pago" clearable />
+            <q-select dark filled v-model="form.paymentMethod" :options="metodoPagoOptions" label="M\u00E9todo de pago" clearable />
             <div class="row justify-end q-gutter-x-sm">
               <q-btn flat label="Cancelar" color="accent" v-close-popup />
               <q-btn type="submit" label="Guardar" color="primary" :loading="saving" />
@@ -189,7 +225,7 @@ function handleKeydown(e: KeyboardEvent) {
       <q-card dark class="bg-surface-pine">
         <q-card-section class="row items-center q-gutter-x-md">
           <q-icon name="warning" color="negative" size="md" />
-          <span>¿Eliminar gasto <strong>{{ deletingItem?.description }}</strong>?</span>
+          <span>Eliminar gasto <strong>{{ deletingItem?.description }}</strong>?</span>
         </q-card-section>
         <q-card-actions align="right">
           <q-btn flat label="Cancelar" color="accent" v-close-popup />
@@ -200,10 +236,73 @@ function handleKeydown(e: KeyboardEvent) {
   </q-page>
 </template>
 
-<style scoped lang="scss">
-:deep(.q-dialog__inner > .q-card) {
-  backdrop-filter: blur(16px);
-  -webkit-backdrop-filter: blur(16px);
-  border: 1px solid rgba(113, 131, 127, 0.08);
+<style scoped>
+.toolbar {
+  display: flex;
+  align-items: center;
+  margin-bottom: 16px;
+}
+
+.cat-group {
+  margin-bottom: 20px;
+}
+
+.cat-group:last-child {
+  margin-bottom: 0;
+}
+
+.cat-group__header {
+  display: flex;
+  align-items: baseline;
+  gap: 10px;
+  padding: 8px 12px;
+  background: rgba(27, 38, 36, 0.3);
+  border-radius: 6px;
+  margin-bottom: 4px;
+}
+
+.cat-group__title {
+  font-size: 0.85rem;
+  font-weight: 600;
+}
+
+.cat-group__count {
+  font-size: 0.72rem;
+  color: rgba(163, 120, 94, 0.45);
+}
+
+.cat-group__total {
+  font-family: 'JetBrains Mono', 'SF Mono', 'Fira Code', monospace;
+  font-size: 0.9rem;
+  font-weight: 600;
+  font-variant-numeric: tabular-nums;
+  color: rgba(163, 120, 94, 0.7);
+}
+
+.expense-row {
+  display: grid;
+  grid-template-columns: 1fr auto auto;
+  align-items: center;
+  gap: 12px;
+  padding: 8px 12px;
+  border-bottom: 1px solid rgba(113, 131, 127, 0.04);
+}
+
+.expense-row:hover {
+  background: rgba(27, 38, 36, 0.3);
+}
+
+.expense-row__desc {
+  font-size: 0.85rem;
+}
+
+.expense-row__meta {
+  font-size: 0.75rem;
+  color: rgba(163, 120, 94, 0.5);
+  margin-top: 2px;
+}
+
+.expense-row__sep {
+  margin: 0 4px;
 }
 </style>

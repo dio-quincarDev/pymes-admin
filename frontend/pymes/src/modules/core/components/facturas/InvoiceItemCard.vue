@@ -1,5 +1,5 @@
 <script setup lang="ts">
-import { ref, computed } from 'vue'
+import { computed } from 'vue'
 
 export interface ProductOption {
   label: string
@@ -18,7 +18,7 @@ interface ItemForm {
   productoId: string | null
   presentacionId: string | null
   cantidad: number | null
-  precioUnitario: number | null
+  valor: number | null
   descuento: number
 }
 
@@ -28,119 +28,99 @@ const props = defineProps<{
   productOptions: ProductOption[]
   unitOptions: { label: string; value: string }[]
   presentationConversionMap: Map<string, number>
-  baseUnitName: string
 }>()
 
 const emit = defineEmits<{
   'update:productoId': [value: string | null]
   'update:presentacionId': [value: string | null]
   'update:cantidad': [value: number | null]
-  'update:precioUnitario': [value: number | null]
+  'update:valor': [value: number | null]
   'update:descuento': [value: number]
   remove: []
 }>()
 
-const search = ref('')
+const conversion = computed(() => {
+  if (!props.item.presentacionId) return 1
+  return props.presentationConversionMap.get(props.item.presentacionId) || 1
+})
 
-const filteredProducts = computed(() => {
-  const needle = search.value.toLowerCase()
-  const filtered = props.productOptions.filter(p =>
-    !needle || p.label.toLowerCase().includes(needle) || p.sku.toLowerCase().includes(needle)
-  )
-  // ponytail: always show selected product even if filtered out by search
-  if (props.item.productoId && !filtered.some(p => p.value === props.item.productoId)) {
-    const selected = props.productOptions.find(p => p.value === props.item.productoId)
-    if (selected) filtered.unshift(selected)
-  }
-  return filtered
+const precioUnitario = computed(() => {
+  const val = props.item.valor
+  if (val == null) return null
+  const conv = conversion.value
+  return conv > 0 ? val / conv : val
 })
 
 const subtotal = computed(() => {
   const qty = props.item.cantidad || 0
-  const price = props.item.precioUnitario || 0
+  const val = props.item.valor || 0
   const disc = props.item.descuento || 0
-  return formatCurrency(qty * price * (1 - disc / 100))
+  return val && qty ? qty * val * (1 - disc / 100) : 0
 })
 
-function formatCurrency(n: number) {
+function fmt(n: number | null) {
+  if (n == null) return '—'
   return new Intl.NumberFormat('en-US', { style: 'currency', currency: 'USD', minimumFractionDigits: 2 }).format(n)
 }
-
-function filterProducts(val: string, update: (fn: () => void) => void) {
-  search.value = val
-  update(() => { /* filteredProducts computed re-evaluates automatically */ })
-}
-
-const conversionBadge = computed(() => {
-  if (!props.item.presentacionId) return null
-  const conv = props.presentationConversionMap.get(props.item.presentacionId) || 1
-  if (conv <= 1) return null
-  const presOpt = props.unitOptions.find(o => o.value === props.item.presentacionId)
-  const presName = presOpt?.label || ''
-  return `${presName} = ${conv} ${props.baseUnitName}`
-})
 </script>
 
 <template>
-  <div class="invoice-item-card" role="group" :aria-label="`Item ${index + 1}`">
-    <!-- Header row: item number + product + remove -->
-    <div class="item-header">
-      <div class="item-number">{{ String(index + 1).padStart(2, '0') }}</div>
-      <div class="item-product">
-        <q-select
-          dark dense filled standout
-          :model-value="item.productoId"
-          @update:model-value="emit('update:productoId', $event)"
-          :options="filteredProducts"
-          label="Producto"
-          map-options emit-value use-input @filter="filterProducts"
-          popup-content-class="product-dropdown"
-        >
-          <template v-slot:prepend>
-            <q-icon name="inventory_2" size="1rem" class="text-primary" />
-          </template>
-          <template v-slot:option="{ itemProps, opt }">
-            <q-item v-bind="itemProps" class="product-option">
-              <q-item-section>
-                <q-item-label class="product-option__name">{{ opt.productName }}</q-item-label>
-                <q-item-label caption class="product-option__meta">
-                  <span v-if="opt.sku" class="product-option__sku">{{ opt.sku }}</span>
-                  <span v-if="opt.categoryName" class="product-option__cat">{{ opt.categoryName }}</span>
-                </q-item-label>
-              </q-item-section>
-              <q-item-section side v-if="opt.proveedorName">
-                <q-chip dense size="xs" color="primary" text-color="dark" class="q-mr-none">
-                  {{ opt.proveedorName }}
-                </q-chip>
-              </q-item-section>
-            </q-item>
-          </template>
-        </q-select>
-      </div>
+  <div class="item-card" role="group" :aria-label="`Item ${index + 1}`">
+    <!-- Top: number + product + remove -->
+    <div class="item-card__top">
+      <span class="item-card__num">{{ String(index + 1).padStart(2, '0') }}</span>
+      <q-select
+        dark dense
+        :model-value="item.productoId"
+        @update:model-value="emit('update:productoId', $event)"
+        :options="productOptions"
+        placeholder="Buscar producto..."
+        map-options emit-value use-input input-debounce="0"
+        class="item-card__product"
+        popup-content-class="item-dropdown"
+      >
+        <template v-slot:option="{ itemProps, opt }">
+          <q-item v-bind="itemProps" class="item-dropdown__opt">
+            <q-item-section>
+              <q-item-label class="item-dropdown__name">{{ opt.productName }}</q-item-label>
+              <q-item-label caption class="item-dropdown__meta">
+                <span v-if="opt.sku" class="item-dropdown__sku">{{ opt.sku }}</span>
+                <span v-if="opt.categoryName" class="item-dropdown__cat">{{ opt.categoryName }}</span>
+              </q-item-label>
+            </q-item-section>
+            <q-item-section side v-if="opt.proveedorName">
+              <span class="item-dropdown__prov">{{ opt.proveedorName }}</span>
+            </q-item-section>
+          </q-item>
+        </template>
+      </q-select>
       <q-btn
-        flat dense round icon="close" size="sm"
-        color="negative"
+        flat dense round icon="close" size="xs"
+        color="accent"
         @click="emit('remove')"
         aria-label="Eliminar item"
-        class="remove-btn"
+        class="item-card__remove"
       />
     </div>
 
-    <!-- Input grid -->
-    <div class="item-inputs">
-      <div class="item-input-group">
-        <label class="item-input-label">Cant.</label>
+    <!-- Divider -->
+    <div class="item-card__divider"></div>
+
+    <!-- Bottom: numeric fields grid -->
+    <div class="item-card__fields">
+      <div class="item-card__field item-card__field--qty">
+        <span class="item-card__label">Cant</span>
         <q-input
           dark dense outlined
           :model-value="item.cantidad"
-          @update:model-value="emit('update:cantidad', Number($event))"
+          @update:model-value="emit('update:cantidad', Number($event) || null)"
           type="text" inputmode="decimal"
-          class="item-input"
+          placeholder="0"
         />
       </div>
 
-      <div class="item-input-group">
-        <label class="item-input-label">Unidad</label>
+      <div class="item-card__field item-card__field--unit">
+        <span class="item-card__label">Unidad</span>
         <q-select
           dark dense outlined
           :model-value="item.presentacionId"
@@ -148,274 +128,252 @@ const conversionBadge = computed(() => {
           :options="unitOptions"
           map-options emit-value
           :disable="!item.productoId"
-          class="item-input"
+          placeholder="—"
         />
       </div>
 
-      <div class="item-input-group">
-        <label class="item-input-label">P. Unit.</label>
+      <div class="item-card__field item-card__field--valor">
+        <span class="item-card__label">Valor $</span>
         <q-input
           dark dense outlined
-          :model-value="item.precioUnitario"
-          @update:model-value="emit('update:precioUnitario', Number($event))"
+          :model-value="item.valor"
+          @update:model-value="emit('update:valor', Number($event) || null)"
           type="text" inputmode="decimal"
-          class="item-input price-input"
-        >
-          <template v-slot:prepend><span class="currency-symbol">$</span></template>
-        </q-input>
+          placeholder="0.00"
+        />
       </div>
 
-      <div class="item-input-group">
-        <label class="item-input-label">Dto. %</label>
+      <div class="item-card__field item-card__field--calc">
+        <span class="item-card__label">P.Unit</span>
+        <div class="item-card__calc-val">
+          <template v-if="precioUnitario != null">{{ fmt(precioUnitario) }}</template>
+          <span v-else class="item-card__calc-empty">—</span>
+        </div>
+      </div>
+
+      <div class="item-card__field item-card__field--disc">
+        <span class="item-card__label">Dto%</span>
         <q-input
           dark dense outlined
           :model-value="item.descuento"
-          @update:model-value="emit('update:descuento', Number($event))"
+          @update:model-value="emit('update:descuento', Number($event) || 0)"
           type="text" inputmode="decimal"
-          class="item-input discount-input"
-        >
-          <template v-slot:append><span class="pct-symbol">%</span></template>
-        </q-input>
+          placeholder="0"
+        />
       </div>
-    </div>
 
-    <!-- Footer: conversion + subtotal -->
-    <div class="item-footer">
-      <div class="item-footer__left">
-        <Transition name="badge-slide">
-          <div v-if="conversionBadge" class="conversion-badge">
-            <q-icon name="swap_vert" size="0.85rem" />
-            <span>{{ conversionBadge }}</span>
-          </div>
-        </Transition>
-      </div>
-      <div class="item-footer__right">
-        <span class="subtotal-label">Subtotal</span>
-        <span class="subtotal-value" :class="{ 'has-discount': item.descuento > 0 }">{{ subtotal }}</span>
+      <div class="item-card__field item-card__field--subtotal">
+        <span class="item-card__label">Subtotal</span>
+        <span class="item-card__subtotal" :class="{ 'item-card__subtotal--disc': item.descuento > 0 }">
+          {{ fmt(subtotal) }}
+        </span>
       </div>
     </div>
   </div>
 </template>
 
 <style scoped>
-.invoice-item-card {
-  background:
-    linear-gradient(135deg, rgba(163, 120, 94, 0.03) 0%, rgba(27, 38, 36, 0.45) 100%);
-  border: 1px solid rgba(113, 131, 127, 0.12);
-  border-radius: 10px;
-  padding: 10px 12px 8px;
-  transition: border-color 0.25s ease, box-shadow 0.25s ease;
-  position: relative;
-  overflow: hidden;
+.item-card {
+  background: color-mix(in srgb, var(--pq-surface) 85%, transparent);
+  border: 1px solid color-mix(in srgb, var(--pq-border) 15%, transparent);
+  border-radius: var(--pq-radius-md);
+  padding: 8px 10px 10px;
+  transition: border-color var(--pq-motion-fast);
 }
 
-.invoice-item-card::before {
-  content: '';
-  position: absolute;
-  top: 0;
-  left: 0;
-  right: 0;
-  height: 2px;
-  background: linear-gradient(90deg, transparent 0%, rgba(163, 120, 94, 0.15) 50%, transparent 100%);
-  opacity: 0;
-  transition: opacity 0.3s ease;
+.item-card:focus-within {
+  border-color: color-mix(in srgb, var(--pq-accent) 50%, transparent);
 }
 
-.invoice-item-card:hover {
-  border-color: rgba(163, 120, 94, 0.25);
-}
-
-.invoice-item-card:hover::before {
-  opacity: 1;
-}
-
-.invoice-item-card:focus-within {
-  border-color: rgba(163, 120, 94, 0.4);
-  box-shadow: 0 0 0 1px rgba(163, 120, 94, 0.08), 0 4px 16px rgba(0, 0, 0, 0.15);
-}
-
-/* ─── Header ─── */
-.item-header {
+.item-card__top {
   display: flex;
   align-items: center;
-  gap: 8px;
-  margin-bottom: 8px;
+  gap: 6px;
+  min-height: 28px;
 }
 
-.item-number {
-  font-family: 'JetBrains Mono', 'SF Mono', 'Fira Code', monospace;
-  font-size: 0.7rem;
+.item-card__num {
+  font-family: var(--pq-font-utility);
+  font-size: 0.65rem;
   font-weight: 700;
-  color: rgba(163, 120, 94, 0.55);
-  background: rgba(163, 120, 94, 0.08);
-  border: 1px solid rgba(163, 120, 94, 0.12);
-  border-radius: 6px;
-  padding: 4px 7px;
-  letter-spacing: 0.04em;
-  min-width: 30px;
+  color: color-mix(in srgb, var(--pq-accent) 40%, transparent);
+  background: color-mix(in srgb, var(--pq-accent) 8%, transparent);
+  border: 1px solid color-mix(in srgb, var(--pq-accent) 12%, transparent);
+  border-radius: var(--pq-radius-xs);
+  padding: 2px 5px;
+  min-width: 24px;
   text-align: center;
   flex-shrink: 0;
 }
 
-.item-product {
+.item-card__product {
   flex: 1;
   min-width: 0;
 }
 
-.remove-btn {
-  opacity: 0.3;
-  transition: opacity 0.15s ease, transform 0.15s ease, background-color 0.15s ease;
+.item-card__product :deep(.q-field__control) {
+  min-height: 30px !important;
+  border-radius: 5px !important;
+  font-size: 0.85rem;
+  padding: 0 8px !important;
+}
+
+.item-card__product :deep(.q-field__marginal) {
+  height: 30px;
+  min-width: 20px;
+}
+
+.item-card__product :deep(.q-field__native) {
+  padding: 0 4px !important;
+}
+
+.item-card__remove {
+  opacity: 0;
+  transition: opacity var(--pq-motion-fast);
   flex-shrink: 0;
 }
 
-.remove-btn:hover {
-  opacity: 1;
-  transform: scale(1.15);
-  background: rgba(239, 68, 68, 0.12);
+.item-card:hover .item-card__remove {
+  opacity: 0.35;
 }
 
-/* ─── Input grid ─── */
-.item-inputs {
-  display: grid;
-  grid-template-columns: 1fr 1.1fr 1fr 0.8fr;
-  gap: 8px;
-  margin-bottom: 8px;
+.item-card__remove:hover {
+  opacity: 1 !important;
+  background: color-mix(in srgb, var(--pq-danger) 15%, transparent);
 }
 
-.item-input-group {
+.item-card__divider {
+  height: 1px;
+  background: color-mix(in srgb, var(--pq-border) 10%, transparent);
+  margin: 6px 0 5px;
+}
+
+.item-card__fields {
+  display: flex;
+  gap: 6px;
+  flex-wrap: wrap;
+}
+
+.item-card__field {
   display: flex;
   flex-direction: column;
-  gap: 3px;
+  gap: 2px;
 }
 
-.item-input-label {
-  font-size: 0.68rem;
+.item-card__label {
+  font-size: 0.6rem;
   font-weight: 600;
   text-transform: uppercase;
-  letter-spacing: 0.06em;
-  color: rgba(163, 120, 94, 0.5);
+  letter-spacing: 0.08em;
+  color: color-mix(in srgb, var(--pq-accent) 50%, transparent);
   padding-left: 2px;
 }
 
-.item-input :deep(.q-field__control) {
-  border-radius: 6px !important;
-  min-height: 32px !important;
+.item-card__field--qty { width: 56px; }
+.item-card__field--unit { width: 110px; }
+.item-card__field--valor { width: 96px; }
+.item-card__field--calc { width: 88px; }
+.item-card__field--disc { width: 54px; }
+.item-card__field--subtotal { width: 105px; }
+
+.item-card__field :deep(.q-field__control) {
+  min-height: 30px !important;
+  border-radius: var(--pq-radius-xs) !important;
   font-size: 0.82rem;
+  font-family: var(--pq-font-utility);
   font-variant-numeric: tabular-nums;
 }
 
-.currency-symbol {
-  font-size: 0.85rem;
-  font-weight: 600;
-  color: rgba(163, 120, 94, 0.5);
+.item-card__field :deep(.q-field__marginal) {
+  height: 30px;
+  min-width: 18px;
 }
 
-.pct-symbol {
-  font-size: 0.8rem;
-  font-weight: 600;
-  color: rgba(163, 120, 94, 0.4);
-}
-
-/* ─── Footer ─── */
-.item-footer {
+.item-card__calc-val {
+  height: 30px;
   display: flex;
   align-items: center;
-  justify-content: space-between;
-  min-height: 24px;
-}
-
-.item-footer__left {
-  flex: 1;
-}
-
-.conversion-badge {
-  display: inline-flex;
-  align-items: center;
-  gap: 4px;
-  font-size: 0.72rem;
+  padding: 0 6px;
+  font-family: var(--pq-font-utility);
+  font-size: 0.82rem;
   font-weight: 500;
-  color: rgba(34, 211, 238, 0.8);
-  background: rgba(34, 211, 238, 0.08);
-  border: 1px solid rgba(34, 211, 238, 0.15);
-  border-radius: 6px;
-  padding: 3px 8px;
-  letter-spacing: 0.02em;
+  font-variant-numeric: tabular-nums;
+  color: color-mix(in srgb, var(--pq-accent) 60%, transparent);
+  background: color-mix(in srgb, var(--pq-surface) 50%, transparent);
+  border-radius: var(--pq-radius-xs);
+  border: 1px solid transparent;
 }
 
-.item-footer__right {
+.item-card__calc-empty {
+  color: color-mix(in srgb, var(--pq-accent) 25%, transparent);
+}
+
+.item-card__subtotal {
+  height: 30px;
   display: flex;
-  align-items: baseline;
-  gap: 6px;
-}
-
-.subtotal-label {
-  font-size: 0.7rem;
-  font-weight: 500;
-  text-transform: uppercase;
-  letter-spacing: 0.04em;
-  color: rgba(163, 120, 94, 0.45);
-}
-
-.subtotal-value {
-  font-family: 'JetBrains Mono', 'SF Mono', 'Fira Code', monospace;
+  align-items: center;
+  justify-content: flex-end;
+  padding: 0 2px;
+  font-family: var(--pq-font-utility);
   font-size: 0.9rem;
   font-weight: 700;
-  color: rgba(163, 120, 94, 0.85);
   font-variant-numeric: tabular-nums;
+  color: var(--pq-accent);
 }
 
-.subtotal-value.has-discount {
-  color: rgba(34, 197, 94, 0.85);
+.item-card__subtotal--disc {
+  color: var(--pq-success);
 }
 
-/* ─── Badge transition ─── */
-.badge-slide-enter-active {
-  transition: all 0.25s cubic-bezier(0.4, 0, 0.2, 1);
+@media (max-width: 599px) {
+  .item-card {
+    padding: 6px 8px 8px;
+  }
+
+  .item-card__fields {
+    gap: 4px;
+  }
+
+  .item-card__field--qty { width: 48px; }
+  .item-card__field--unit { width: 90px; }
+  .item-card__field--valor { width: 80px; }
+  .item-card__field--calc { width: 76px; }
+  .item-card__field--disc { width: 46px; }
+  .item-card__field--subtotal { width: 88px; }
 }
 
-.badge-slide-leave-active {
-  transition: all 0.15s cubic-bezier(0.4, 0, 0.2, 1);
+.item-dropdown {
+  font-size: 0.82rem;
 }
 
-.badge-slide-enter-from {
-  opacity: 0;
-  transform: translateX(-8px);
+.item-dropdown__opt {
+  padding: 4px 10px;
 }
 
-.badge-slide-leave-to {
-  opacity: 0;
-  transform: translateX(-8px);
-}
-
-/* ─── Dropdown styling ─── */
-.product-dropdown {
-  font-size: 0.85rem;
-}
-
-.product-option {
-  padding: 6px 12px;
-}
-
-.product-option__name {
+.item-dropdown__name {
   font-weight: 500;
+  font-size: 0.82rem;
 }
 
-.product-option__meta {
+.item-dropdown__meta {
   display: flex;
-  gap: 6px;
-  font-size: 0.75rem;
-  color: rgba(163, 120, 94, 0.5);
+  gap: 4px;
+  font-size: 0.72rem;
 }
 
-.product-option__sku {
-  font-family: 'JetBrains Mono', 'SF Mono', monospace;
-  font-size: 0.72rem;
-  background: rgba(163, 120, 94, 0.08);
-  padding: 1px 5px;
-  border-radius: 3px;
+.item-dropdown__sku {
+  font-family: var(--pq-font-utility);
+  background: color-mix(in srgb, var(--pq-accent) 8%, transparent);
+  padding: 1px 4px;
+  border-radius: var(--pq-radius-2xs, 2px);
 }
 
-.product-option__cat {
+.item-dropdown__cat {
+  color: color-mix(in srgb, var(--pq-accent) 50%, transparent);
+}
+
+.item-dropdown__prov {
   font-size: 0.72rem;
+  color: color-mix(in srgb, var(--pq-accent) 60%, transparent);
 }
 </style>

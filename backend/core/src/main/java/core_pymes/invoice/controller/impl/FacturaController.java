@@ -34,6 +34,11 @@ public class FacturaController implements FacturaApi {
     }
 
     @Override
+    public ResponseEntity<FacturaResponse> update(UUID id, UUID tenantId, @Valid FacturaRequest request) {
+        return ResponseEntity.ok(facturaService.updateFactura(id, tenantId, request));
+    }
+
+    @Override
     public ResponseEntity<FacturaResponse> pagar(UUID id, UUID tenantId) {
         return ResponseEntity.ok(facturaService.pagarFactura(id, tenantId));
     }

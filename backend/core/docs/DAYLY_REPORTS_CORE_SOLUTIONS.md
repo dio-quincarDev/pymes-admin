@@ -23,7 +23,75 @@ Registro de lo implementado y lo pendiente.
 
 ---
 
-## 2026-07-14 — Financial Health Engine: documentación Motor #10
+## 2026-07-15 — Invoice Update + Audit Fields
+
+### Feature: `PUT /api/v1/core/invoices/{id}?tenantId=...`
+
+Nuevo endpoint para editar facturas en estado `REGISTRADA`. La facturas pagadas o eliminadas no se pueden editar.
+
+**Flujo:**
+1. Verifica status = `REGISTRADA` (si no, `IllegalStateException`)
+2. `reverseProductStats()` — revierte `total_investment` de los items viejos, subquery para recuperar `last_unit_price`/`last_purchase_date` anterior
+3. `factura.getItems().clear()` — orphanRemoval deletes from DB
+4. Reconstruye items con `InvoiceCalculator.resolve()` — batch-loads presentaciones
+5. Actualiza header (proveedor, fecha, tipo, descuento, método de pago)
+6. Recalcula total
+
+**Archivos:**
+
+| Archivo | Cambio |
+|---------|--------|
+| `FacturaApi.java` | `update(@PathVariable UUID id, @RequestParam UUID tenantId, @Valid @RequestBody FacturaRequest)` |
+| `FacturaController.java` | Implementa `update()` |
+| `FacturaService.java` | `updateFactura(UUID id, UUID tenantId, FacturaRequest)` |
+| `FacturaServiceImpl.java` | `updateFactura()` + `buildItem()` extraído + `reverseProductStats()` |
+
+### Audit fields en `ItemFactura`
+
+5 columnas nuevas para preservar input crudo del usuario:
+
+| Columna | Tipo | Uso |
+|---------|------|-----|
+| `cantidad_presentacion` | NUMERIC(19,6) | Cantidad en presentación (no convertida) |
+| `valor_presentacion` | NUMERIC(19,6) | Valor de la presentación |
+| `precio_unitario_input` | NUMERIC(19,6) | Precio unitario crudo del input |
+| `descuento_input` | NUMERIC(19,6) | Descuento crudo del input |
+| `descuento_es_porcentaje` | BOOLEAN | Si el descuento es % o monto fijo |
+
+`presentacion_id` ahora nullable (antes `NOT NULL`). Legacy fields (`cantidad`, `precioUnitario`, `descuento`) ahora opcionales — mínimo 2 requeridos en service.
+
+**Archivos:**
+
+| Archivo | Cambio |
+|---------|--------|
+| `ItemFactura.java` | 5 columnas nuevas, `presentacion_id` nullable |
+| `ItemFacturaRequest.java` | 5 campos nuevos, `@Positive` eliminado |
+| `ItemFacturaResponse.java` | 5 campos nuevos en response |
+
+### `InvoiceCalculator` — lógica de cálculo extraída
+
+Nuevo archivo `InvoiceCalculator.java` centraliza resolución de cantidades y descuentos. Usado tanto por `createFactura` como por `updateFactura`. `buildItem()` extraído como método privado reutilizable.
+
+### `reverseProductStats()` en `deleteFactura`
+
+`deleteFactura()` ahora llama `reverseProductStats()` antes de borrar — antes solo hacía `repository.delete()` y los stats del producto quedaban inconsistentes.
+
+### Migraciones
+
+- `V15__invoice_item_audit_fields.sql` — 5 columnas audit en `core.invoice_items`
+- `V16__invoice_performance_indexes.sql` — índices para queries de `reverseProductStats`
+
+### Tests
+
+- `mockPresentaciones()` helper: mockea `findAllById` + `findById` con `lenient()`
+- `ItemFacturaRequest` constructor actualizado con 5 campos nuevos (nullable)
+
+### Refactoring
+
+- `createFactura()` y `updateFactura()` comparten `buildItem()` — antes la lógica estaba duplicada
+- `presentacionRepository.findById()` → batch `findAllById()` + Map lookup (1 query en vez de N)
+
+---
 
 ### Concepto
 

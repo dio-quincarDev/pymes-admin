@@ -40,3 +40,6 @@ AGENTS.md
 .agents/
 opencode.json
 .ponytail
+
+# Design specs (local-only)
+.ulpi/

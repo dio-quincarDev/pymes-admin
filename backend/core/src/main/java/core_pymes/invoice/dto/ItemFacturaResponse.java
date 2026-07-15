@@ -12,5 +12,10 @@ public record ItemFacturaResponse(
         BigDecimal quantity,
         BigDecimal unitPrice,
         BigDecimal discount,
-        BigDecimal subtotal
+        BigDecimal subtotal,
+        BigDecimal cantidadPresentacion,
+        BigDecimal valorPresentacion,
+        BigDecimal precioUnitarioInput,
+        BigDecimal descuentoInput,
+        Boolean descuentoEsPorcentaje
 ) {}

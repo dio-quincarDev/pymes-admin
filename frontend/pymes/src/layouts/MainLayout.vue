@@ -3,15 +3,15 @@
     <a href="#main-content" class="skip-link">Saltar al contenido principal</a>
 
     <!-- Offline banner -->
-    <q-banner v-if="!online" class="bg-warning text-dark text-center q-py-xs" role="alert">
+    <q-banner v-if="!online" class="offline-banner text-center q-py-xs" role="alert">
       <template v-slot:avatar>
         <q-icon name="wifi_off" />
       </template>
       Sin conexión — los datos mostrados pueden no estar actualizados
     </q-banner>
 
-    <!-- Header with Brand Glow -->
-    <q-header class="bg-dark text-secondary brand-glow">
+    <!-- Header — minimal, institutional -->
+    <q-header class="main-header">
       <q-toolbar class="q-px-lg">
         <BaseButton
           variant="ghost"
@@ -22,105 +22,83 @@
         />
 
         <q-toolbar-title>
-          <span class="mesh-text-gradient text-h6 font-bold">PYMEQ</span>
-          <span class="q-ml-xs text-weight-thin text-accent">Audit Toolkit</span>
+          <span class="logo-text">PYMEQ</span>
         </q-toolbar-title>
 
-        <div class="row items-center gap-sm">
-          <div class="text-caption text-accent hide-mobile">v0.1.0</div>
-          <q-btn round flat aria-label="Menú de usuario" aria-haspopup="menu">
-            <q-avatar size="32px">
-              <img src="https://cdn.quasar.dev/img/avatar.png" alt="" aria-hidden="true">
-            </q-avatar>
-            <q-menu dark class="bg-surface-pine border-light">
-              <q-list style="min-width: 200px">
-                <q-item clickable v-close-popup class="q-py-md">
-                  <q-item-section avatar>
-                    <q-icon name="person" color="primary" />
-                  </q-item-section>
-                  <q-item-section>Perfil</q-item-section>
-                </q-item>
-                <q-separator dark />
-                <q-item clickable v-close-popup class="text-negative q-py-md" @click="handleLogout">
-                  <q-item-section avatar>
-                    <q-icon name="logout" color="negative" />
-                  </q-item-section>
-                  <q-item-section>Cerrar Sesión</q-item-section>
-                </q-item>
-              </q-list>
-            </q-menu>
-          </q-btn>
-        </div>
+        <q-btn round flat aria-label="Menú de usuario" aria-haspopup="menu">
+          <q-avatar size="32px">
+            <img src="https://cdn.quasar.dev/img/avatar.png" alt="" aria-hidden="true">
+          </q-avatar>
+          <q-menu dark class="user-menu">
+            <q-list style="min-width: 200px">
+              <q-item clickable v-close-popup class="q-py-md">
+                <q-item-section avatar>
+                  <q-icon name="person" style="color: var(--pq-accent)" />
+                </q-item-section>
+                <q-item-section>Perfil</q-item-section>
+              </q-item>
+              <q-separator dark style="border-color: var(--pq-border)" />
+              <q-item clickable v-close-popup class="q-py-md" @click="handleLogout">
+                <q-item-section avatar>
+                  <q-icon name="logout" style="color: var(--pq-danger)" />
+                </q-item-section>
+                <q-item-section>Cerrar Sesión</q-item-section>
+              </q-item>
+            </q-list>
+          </q-menu>
+        </q-btn>
       </q-toolbar>
     </q-header>
 
-    <!-- Sidebar (Surface Pine) -->
+    <!-- Sidebar — Swiss grouped navigation -->
     <q-drawer
       v-model="leftDrawerOpen"
       show-if-above
-      :width="280"
-      class="bg-surface-pine text-secondary border-right"
+      :width="260"
+      class="sidebar-drawer"
     >
       <div class="column full-height">
-        <div class="q-pa-lg">
-          <div class="text-overline text-accent q-mb-md">Menú Principal</div>
-          <q-list class="q-gutter-y-xs" role="navigation" aria-label="Menú principal">
-            <template v-for="(link, idx) in linksList" :key="link.title || 'sep-' + idx">
-              <q-separator v-if="link.separator" dark class="q-mx-md q-my-sm" style="opacity: 0.3" />
-              <q-item
-                v-else-if="link.path"
-                clickable v-ripple class="radius-sm interactive"
-                :active="activeRoute === link.path"
-                @click="navigateTo(link.path)"
-              >
-                <q-item-section avatar>
-                  <q-icon :name="link.icon" :color="activeRoute === link.path ? 'primary' : 'accent'" />
-                </q-item-section>
-                <q-item-section>
-                  <q-item-label :class="{ 'text-primary text-weight-bold': activeRoute === link.path }">
-                    {{ link.title }}
-                  </q-item-label>
-                </q-item-section>
-              </q-item>
-              <q-item
-                v-else-if="link.disabled"
-                disable class="radius-sm q-mb-xs"
-                style="opacity: 0.4"
-              >
-                <q-item-section avatar>
-                  <q-icon :name="link.icon" color="accent" />
-                </q-item-section>
-                <q-item-section>
-                  <q-item-label class="text-accent">
-                    {{ link.title }}
-                    <q-badge flat color="transparent" text-color="sage-muted" size="xs" class="q-ml-xs">
-                      próximamente
-                    </q-badge>
-                  </q-item-label>
-                </q-item-section>
-              </q-item>
+        <div class="q-pa-md">
+          <nav role="navigation" aria-label="Menú principal">
+            <template v-for="(group, gIdx) in navGroups" :key="group.label">
+              <div v-if="gIdx > 0" class="nav-separator" />
+              <div class="nav-section-label">{{ group.label }}</div>
+              <q-list class="q-gutter-y-xs">
+                <q-item
+                  v-for="link in group.items"
+                  :key="link.path"
+                  clickable v-ripple
+                  class="nav-item"
+                  :class="{ 'nav-item--active': activeRoute === link.path }"
+                  @click="navigateTo(link.path)"
+                >
+                  <q-item-section avatar>
+                    <q-icon
+                      :name="link.icon"
+                      :style="{ color: activeRoute === link.path ? 'var(--pq-accent)' : 'var(--pq-text-subtle)' }"
+                    />
+                  </q-item-section>
+                  <q-item-section>
+                    <q-item-label>{{ link.title }}</q-item-label>
+                  </q-item-section>
+                </q-item>
+              </q-list>
             </template>
-          </q-list>
+          </nav>
         </div>
 
         <q-space />
 
-        <div class="q-pa-lg">
-          <BaseCard variant="ghost" class="q-pa-md">
-            <div class="row items-center gap-sm">
-              <q-icon name="info" color="primary" />
-              <div class="text-caption text-accent">
-                Tu plan actual: <strong>Premium Trial</strong>
-              </div>
-            </div>
-          </BaseCard>
+        <!-- Version — subtle, bottom -->
+        <div class="q-pa-md text-center">
+          <span class="version-label">v0.1.0</span>
         </div>
       </div>
     </q-drawer>
 
     <!-- Main Workspace -->
-    <q-page-container class="bg-forest-deep">
-      <main id="main-content" class="q-pa-lg q-pa-md-xl" style="max-width: 1400px; margin: 0 auto" tabindex="-1">
+    <q-page-container class="page-container">
+      <main id="main-content" class="page-workspace q-pa-lg q-pa-md-xl" tabindex="-1">
         <router-view v-slot="{ Component }">
           <transition name="fade" mode="out-in">
             <component :is="Component" />
@@ -130,13 +108,11 @@
     </q-page-container>
 
     <!-- Mobile Bottom Nav -->
-    <q-footer class="bg-surface-pine mobile-bottom-nav" reveal>
+    <q-footer class="mobile-bottom-nav" reveal>
       <q-tabs
         :model-value="mobileTab"
         dense
-        active-color="primary"
-        indicator-color="primary"
-        class="text-accent"
+        class="mobile-tabs"
         align="justify"
         narrow-indicator
       >
@@ -156,7 +132,6 @@ import { useQuasar } from 'quasar';
 import { useRoute, useRouter } from 'vue-router';
 import { useLogout } from 'src/composables/useLogout';
 import BaseButton from 'src/components/base/BaseButton.vue';
-import BaseCard from 'src/components/base/BaseCard.vue';
 
 const $q = useQuasar();
 const route = useRoute();
@@ -166,13 +141,13 @@ const { logout: handleLogout } = useLogout();
 const leftDrawerOpen = ref(false);
 const activeRoute = computed(() => route.path);
 const mobileTab = computed(() => {
-  const p = route.path
-  if (p === '/dashboard') return '/dashboard'
-  if (p.startsWith('/dashboard/productos')) return '/dashboard/productos'
-  if (p.startsWith('/dashboard/facturas')) return '/dashboard/facturas'
-  if (p.startsWith('/dashboard/gastos')) return '/dashboard/gastos'
-  return ''
-})
+  const p = route.path;
+  if (p === '/dashboard') return '/dashboard';
+  if (p.startsWith('/dashboard/productos')) return '/dashboard/productos';
+  if (p.startsWith('/dashboard/facturas')) return '/dashboard/facturas';
+  if (p.startsWith('/dashboard/gastos')) return '/dashboard/gastos';
+  return '';
+});
 const online = ref(navigator.onLine);
 
 function onOnline() { online.value = true; }
@@ -186,7 +161,6 @@ function onSwUpdate() {
     cancel: 'Después',
     persistent: true,
   }).onOk(() => {
-    // ponytail: SKIP_WAITING triggers controllerchange → reload
     void navigator.serviceWorker?.getRegistration().then(r => {
       r?.waiting?.postMessage({ type: 'SKIP_WAITING' });
     });
@@ -212,29 +186,43 @@ onUnmounted(() => {
   navigator.serviceWorker?.removeEventListener('controllerchange', onSwControllerChange);
 });
 
-interface SidebarLink {
-  title?: string
-  icon?: string
-  path?: string
-  separator?: boolean
-  disabled?: boolean
+interface NavItem {
+  title: string
+  icon: string
+  path: string
 }
 
-const linksList: SidebarLink[] = [
-  { title: 'Dashboard', icon: 'dashboard', path: '/dashboard' },
-  { separator: true },
-  { title: 'Productos', icon: 'inventory_2', path: '/dashboard/productos' },
-  { title: 'Proveedores', icon: 'people', path: '/dashboard/proveedores' },
-  { title: 'Facturas', icon: 'receipt_long', path: '/dashboard/facturas' },
-  { title: 'Análisis de Gastos', icon: 'analytics', path: '/dashboard/analisis-gastos' },
-  { separator: true },
-  { title: 'Gastos', icon: 'money_off', path: '/dashboard/gastos' },
-  { title: 'Ventas', icon: 'point_of_sale', path: '/dashboard/ventas' },
-  { title: 'Préstamos', icon: 'account_balance', path: '/dashboard/prestamos' },
-  { title: 'Patrimonio', icon: 'savings', path: '/dashboard/patrimonio' },
-  { title: 'Contabilidad', icon: 'balance', path: '/dashboard/accounting' },
-  { separator: true },
-  { title: 'Configuración', icon: 'settings', path: '/dashboard/configuracion' },
+interface NavGroup {
+  label: string
+  items: NavItem[]
+}
+
+const navGroups: NavGroup[] = [
+  {
+    label: 'Operaciones',
+    items: [
+      { title: 'Dashboard', icon: 'dashboard', path: '/dashboard' },
+      { title: 'Productos', icon: 'inventory_2', path: '/dashboard/productos' },
+      { title: 'Proveedores', icon: 'people', path: '/dashboard/proveedores' },
+      { title: 'Facturas', icon: 'receipt_long', path: '/dashboard/facturas' },
+    ],
+  },
+  {
+    label: 'Análisis',
+    items: [
+      { title: 'Gastos', icon: 'money_off', path: '/dashboard/gastos' },
+      { title: 'Análisis', icon: 'analytics', path: '/dashboard/analisis-gastos' },
+      { title: 'Ventas', icon: 'point_of_sale', path: '/dashboard/ventas' },
+      { title: 'Patrimonio', icon: 'savings', path: '/dashboard/patrimonio' },
+    ],
+  },
+  {
+    label: 'Sistema',
+    items: [
+      { title: 'Contabilidad', icon: 'balance', path: '/dashboard/accounting' },
+      { title: 'Configuración', icon: 'settings', path: '/dashboard/configuracion' },
+    ],
+  },
 ];
 
 function toggleLeftDrawer() {
@@ -247,36 +235,150 @@ function navigateTo(path: string) {
 </script>
 
 <style lang="scss" scoped>
-.border-right {
-  border-right: 1px solid rgba(113, 131, 127, 0.1);
+/* --------------------------------------------------
+   Header
+-------------------------------------------------- */
+.main-header {
+  background: var(--pq-surface) !important;
+  border-bottom: 1px solid var(--pq-border);
 }
 
-.border-light {
-  border: 1px solid rgba(113, 131, 127, 0.1);
+.logo-text {
+  font-family: 'Geist', sans-serif;
+  font-weight: 800;
+  font-size: 16px;
+  color: var(--pq-accent);
 }
 
-.hide-mobile {
-  @media (max-width: 599px) {
-    display: none;
+.user-menu {
+  background: var(--pq-surface);
+  border: 1px solid var(--pq-border);
+}
+
+/* --------------------------------------------------
+   Sidebar
+-------------------------------------------------- */
+.sidebar-drawer {
+  background: var(--pq-surface);
+  border-right: 1px solid var(--pq-border);
+}
+
+.nav-section-label {
+  font-family: 'Satoshi', sans-serif;
+  font-size: 11px;
+  font-weight: 500;
+  text-transform: uppercase;
+  letter-spacing: 0.08em;
+  color: var(--pq-text-subtle);
+  padding: 16px 16px 6px;
+}
+
+.nav-separator {
+  height: 1px;
+  background: var(--pq-border);
+  margin: 8px 16px;
+  opacity: 0.4;
+}
+
+.nav-item {
+  border-radius: var(--pq-radius-sm);
+  min-height: 40px;
+  transition: background var(--pq-motion-fast), color var(--pq-motion-fast);
+  color: var(--pq-text-muted);
+  border-left: 3px solid transparent;
+
+  &:hover {
+    background: rgba(200, 150, 62, 0.04);
+  }
+
+  &--active {
+    background: rgba(200, 150, 62, 0.06);
+    color: var(--pq-text);
+    border-left-color: var(--pq-accent);
+    font-weight: 600;
+
+    :deep(.q-item__label) {
+      color: var(--pq-text);
+    }
+  }
+
+  :deep(.q-item__label) {
+    color: inherit;
+    font-size: 14px;
   }
 }
 
-.gap-sm {
-  gap: 8px;
+.version-label {
+  font-family: 'Geist Mono', monospace;
+  font-size: 11px;
+  color: var(--pq-text-subtle);
+  opacity: 0.5;
 }
 
-:deep(.q-drawer--bordered) {
-  border-right-color: rgba(113, 131, 127, 0.1);
+/* --------------------------------------------------
+   Page Workspace
+-------------------------------------------------- */
+.page-container {
+  background: var(--pq-background);
 }
 
+.page-workspace {
+  max-width: 1280px;
+  margin: 0 auto;
+}
+
+/* --------------------------------------------------
+   Offline Banner
+-------------------------------------------------- */
+.offline-banner {
+  background: var(--pq-warning);
+  color: var(--pq-background);
+}
+
+/* --------------------------------------------------
+   Mobile Bottom Nav
+-------------------------------------------------- */
 .mobile-bottom-nav {
   display: none;
-  border-top: 1px solid rgba(113, 131, 127, 0.1);
+  border-top: 1px solid var(--pq-border);
+  background: var(--pq-surface);
+}
+
+.mobile-tabs {
+  color: var(--pq-text-subtle);
+
+  :deep(.q-tab--active) {
+    color: var(--pq-accent);
+  }
+
+  :deep(.q-tabs__content .q-tab__indicator) {
+    background: var(--pq-accent);
+  }
 }
 
 @media (max-width: 767px) {
   .mobile-bottom-nav {
     display: block;
+  }
+}
+
+/* --------------------------------------------------
+   Skip Link (a11y)
+-------------------------------------------------- */
+.skip-link {
+  position: absolute;
+  top: -100%;
+  left: 0;
+  z-index: 800;
+  padding: 0.75rem 1.5rem;
+  background: var(--pq-accent);
+  color: var(--pq-background);
+  font-weight: 700;
+  text-decoration: none;
+  border-radius: 0 0 var(--pq-radius-sm) 0;
+
+  &:focus {
+    top: 0;
   }
 }
 </style>

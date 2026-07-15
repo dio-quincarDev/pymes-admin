@@ -31,7 +31,7 @@ public class ItemFactura {
     @Column(name = "product_name", nullable = false)
     private String productName;
 
-    @Column(name = "presentacion_id", nullable = false)
+    @Column(name = "presentacion_id")
     private UUID presentacionId;
 
     @Column(name = "conversion_factor", nullable = false)
@@ -48,6 +48,21 @@ public class ItemFactura {
 
     @Column(nullable = false)
     private BigDecimal subtotal;
+
+    @Column(name = "cantidad_presentacion")
+    private BigDecimal cantidadPresentacion;
+
+    @Column(name = "valor_presentacion")
+    private BigDecimal valorPresentacion;
+
+    @Column(name = "precio_unitario_input")
+    private BigDecimal precioUnitarioInput;
+
+    @Column(name = "descuento_input")
+    private BigDecimal descuentoInput;
+
+    @Column(name = "descuento_es_porcentaje")
+    private Boolean descuentoEsPorcentaje;
 
     @CreationTimestamp
     @Column(name = "created_at", nullable = false, updatable = false)

@@ -7,6 +7,12 @@
       "skillPath": "plugins/luxor-devops-suite/skills/docker-compose-orchestration/SKILL.md",
       "computedHash": "f61af99ed5390638b98d40124bcb47837a6a2d8adcb17343a5be525989494eef"
     },
+    "frontend-design-ui-ux": {
+      "source": "ulpi-io/skills",
+      "sourceType": "github",
+      "skillPath": "frontend-design-ui-ux/SKILL.md",
+      "computedHash": "8eae75d294447eac5fab6c8a31141d8ff74777ea1b7bc25aef93c93ed6e10e71"
+    },
     "ui-ux-pro-max": {
       "source": "nextlevelbuilder/ui-ux-pro-max-skill",
       "sourceType": "github",

@@ -23,6 +23,8 @@ public interface FacturaService {
 
     FacturaResponse createFactura(FacturaRequest request);
 
+    FacturaResponse updateFactura(UUID id, UUID tenantId, FacturaRequest request);
+
     FacturaResponse pagarFactura(UUID id, UUID tenantId);
 
     void deleteFactura(UUID id, UUID tenantId);

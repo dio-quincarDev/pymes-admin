@@ -1,5 +1,5 @@
 <template>
-  <q-page class="index-page bg-forest-deep text-secondary">
+  <q-page class="index-page">
     <LandingHero @start="startOnboarding" />
     <FeatureGrid />
     <TrustSection />
@@ -70,3 +70,10 @@ const startOnboarding = (name: string) => {
   void router.push('/register');
 };
 </script>
+
+<style scoped>
+.index-page {
+  background: var(--pq-background);
+  color: var(--pq-text);
+}
+</style>

@@ -17,15 +17,15 @@ const scrollTo = (id: string) => {
     <a href="#main-content" class="skip-link">Saltar al contenido principal</a>
 
     <!-- Header -->
-    <q-header class="glass-light border-bottom q-py-xs">
+    <q-header class="landing-header">
       <q-toolbar class="container-narrow mx-auto q-px-md">
-        <q-toolbar-title class="text-h5 font-bold mesh-text-gradient cursor-pointer" @click="router.push('/')">
+        <q-toolbar-title class="logo-text cursor-pointer" @click="router.push('/')">
           PYMEQ
         </q-toolbar-title>
 
         <q-space />
 
-        <nav class="gt-xs row items-center gap-md q-mr-md" aria-label="Navegación principal">
+        <nav class="gt-xs row items-center q-mr-md" aria-label="Navegación principal">
           <BaseButton variant="ghost" size="sm" @click="scrollTo('features')">Funciones</BaseButton>
           <BaseButton variant="ghost" size="sm" @click="scrollTo('trust')">Sectores</BaseButton>
         </nav>
@@ -33,7 +33,6 @@ const scrollTo = (id: string) => {
         <BaseButton
           variant="primary"
           size="md"
-          class="brand-glow"
           @click="router.push('/login')"
         >
           LOGIN
@@ -52,17 +51,17 @@ const scrollTo = (id: string) => {
     </q-page-container>
 
     <!-- Footer -->
-    <q-footer class="bg-forest-deep text-accent q-pa-lg border-top">
-      <div class="container-narrow mx-auto">
+    <q-footer class="landing-footer">
+      <div class="container-narrow mx-auto q-pa-lg">
         <div class="row q-col-gutter-md justify-between items-center">
           <div class="col-12 col-md-4 text-center text-md-left">
-            <div class="text-h6 font-bold mesh-text-gradient q-mb-xs">PYMEQ</div>
-            <div class="text-caption">
+            <div class="logo-text q-mb-xs">PYMEQ</div>
+            <div class="text-caption" style="color: var(--pq-text-muted)">
               Tu Capital, Bajo Control.
             </div>
           </div>
           <div class="col-12 col-md-4 text-center">
-            <div class="text-caption text-accent opacity-50">
+            <div class="text-caption" style="color: var(--pq-text-subtle)">
               &copy; 2026 Pymeq. Hecho para crecer.
             </div>
           </div>
@@ -80,38 +79,50 @@ const scrollTo = (id: string) => {
 
 <style lang="scss" scoped>
 .landing-layout {
-  background: $dark-page;
-  position: relative;
+  background: var(--pq-background);
+}
 
-  &::before {
-    content: '';
-    position: absolute;
-    inset: 0;
-    background:
-      radial-gradient(ellipse 70% 50% at 50% -10%, rgba(163, 120, 94, 0.08) 0%, transparent 65%),
-      radial-gradient(ellipse 30% 25% at 20% 90%, rgba(197, 160, 89, 0.04) 0%, transparent 50%);
-    pointer-events: none;
-  }
+.landing-header {
+  background: var(--pq-surface);
+  border-bottom: 1px solid var(--pq-border);
+}
+
+.landing-footer {
+  background: var(--pq-background);
+  border-top: 1px solid var(--pq-border);
+}
+
+.logo-text {
+  font-family: 'Geist', sans-serif;
+  font-weight: 800;
+  font-size: 16px;
+  color: var(--pq-accent);
 }
 
 .container-narrow {
   max-width: 1000px;
 }
 
-.border-bottom {
-  border-bottom: 1px solid rgba(113, 131, 127, 0.1);
-}
-
-.border-top {
-  border-top: 1px solid rgba(113, 131, 127, 0.1);
-}
-
-.gap-md {
-  gap: 12px;
-}
-
 .mx-auto {
   margin-left: auto;
   margin-right: auto;
+}
+
+.gap-sm {
+  gap: 8px;
+}
+
+.skip-link {
+  position: absolute;
+  top: -100%;
+  left: 0;
+  z-index: 800;
+  padding: 0.75rem 1.5rem;
+  background: var(--pq-accent);
+  color: var(--pq-background);
+  font-weight: 700;
+  text-decoration: none;
+  border-radius: 0 0 var(--pq-radius-sm) 0;
+  &:focus { top: 0; }
 }
 </style>
