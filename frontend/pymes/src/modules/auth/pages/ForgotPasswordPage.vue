@@ -4,7 +4,7 @@
       <BaseCard variant="elevated" class="q-pa-lg">
         <div class="text-center q-mb-lg">
           <div class="text-h6 text-weight-medium q-mb-xs">Recuperar Contraseña</div>
-          <div class="text-caption text-accent">Te enviaremos un enlace de restauración</div>
+          <div class="text-caption" style="color: var(--pq-text-muted);">Te enviaremos un enlace de restauración</div>
         </div>
 
         <div v-if="!submitted">
@@ -12,10 +12,7 @@
             <q-input
               v-model="email"
               label="Correo Electrónico"
-              dark
-              filled
-              color="primary"
-              label-color="accent"
+              dark filled color="primary" label-color="accent"
               class="focus-ring radius-xs"
               :rules="[val => !!val || 'El email es requerido', val => /.+@.+\..+/.test(val) || 'Email inválido']"
             >
@@ -45,9 +42,9 @@
         </div>
 
         <div v-else class="text-center fade-in-up">
-          <q-icon name="mark_email_read" color="primary" size="5em" class="q-mb-md brand-glow" />
+          <q-icon name="mark_email_read" color="primary" size="5em" class="q-mb-md" />
           <div class="text-h6 text-primary">Email Enviado</div>
-          <p class="text-body2 text-accent q-mt-sm">
+          <p class="text-body2 q-mt-sm" style="color: var(--pq-text-muted);">
             Si la cuenta <strong>{{ email }}</strong> existe, recibirás un enlace para cambiar tu contraseña en breve.
           </p>
           <div class="q-mt-xl">

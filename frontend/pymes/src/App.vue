@@ -24,25 +24,35 @@ watch(
 );
 
 // Sync cross-tab: when email verification happens in another tab, navigate to dashboard
+const onVerified = () => {
+  const authStore = useAuthStore();
+  const token = localStorage.getItem('pymeq_token');
+  if (!token) return;
+  authStore.accessToken = token;
+  const user = localStorage.getItem('pymeq_user');
+  if (user) authStore.user = JSON.parse(user);
+  void router.push('/dashboard');
+};
+
+// Primary: BroadcastChannel (directo, funciona incluso entre PWA instalada y navegador)
+const channel = new BroadcastChannel('pymeq-auth');
+channel.onmessage = (e) => {
+  if (e.data?.type === 'email-verified') onVerified();
+};
+
+// Fallback: StorageEvent para navegadores sin BroadcastChannel
 const onStorage = (e: StorageEvent) => {
   if (e.key === 'pymeq_email_verified' && e.newValue === 'true') {
     localStorage.removeItem('pymeq_email_verified');
-
-    // Re-sync Pinia store from localStorage (the other tab wrote the tokens)
-    const authStore = useAuthStore();
-    const token = localStorage.getItem('pymeq_token');
-    if (token) {
-      authStore.accessToken = token;
-      const user = localStorage.getItem('pymeq_user');
-      if (user) authStore.user = JSON.parse(user);
-    }
-
-    void router.push('/dashboard');
+    onVerified();
   }
 };
 
 onMounted(() => window.addEventListener('storage', onStorage));
-onUnmounted(() => window.removeEventListener('storage', onStorage));
+onUnmounted(() => {
+  window.removeEventListener('storage', onStorage);
+  channel.close();
+});
 </script>
 
 <style lang="scss">

@@ -2,6 +2,7 @@
 
 ### Core
 
+- [ ] [Alta] **Exception system (estrategia definida)** — Implementar `ErrorResponse`, `ApiResponse`, `CodigoError`, excepciones custom, `GlobalExceptionHandler`. Migrar 17 throws legacy en services. → [`docs/EXCEPTION_STRATEGY.md`](./backend/core/docs/EXCEPTION_STRATEGY.md)
 - [ ] [Alta] Reportes — dashboard consolidado KPIs + alertas (2026-07)
 - [ ] [Alta] CRUD configuración tenant (edición) (2026-07)
 - [ ] [Media] Integration tests ejecutables en CI (2026-07)
@@ -38,14 +39,19 @@
 - [x] **SkeletonLoader skip** — Decisión documentada: tablas con datos reales no necesitan skeleton. Se eliminaron del roadmap.
 - [x] **Stagger animation skip** — Ya existía `.stagger-children` en `app.scss` aplicado a KpiCard y AccountingPage. No duplicar.
 
-### Frontend — Pendiente (Rediseño Swiss/Grid — ver `.ulpi/design/DESIGN.md`)
+### Frontend — Completado (Swiss/Grid redesign — 2026-07-15)
 
-- [ ] [Alta] **ProductosPage: card grid visual** — Reemplazar q-table por grid de tarjetas. Accent bars por categoría, stagger animation, stats bar, category chips. Archivos nuevos: `ProductCardGrid.vue`, `ProductCard.vue`.
-- [ ] [Media] **FacturasPage: timeline financiero** — Reemplazar q-table por feed cronológico agrupado por mes. Sticky headers, status badges prominentes, search + filter en toolbar.
-- [ ] [Media] **GastosPage: cards por categoría** — Reemplazar q-table por tarjetas agrupadas por categoría con subtotales.
-- [ ] [Media] **VentasPage: calendario** — Reemplazar q-table por timeline calendario + cards de resumen semanal.
-- [ ] [Media] **PrestamosPage: progress cards** — Cards con progress bar de saldo + timeline de pagos.
-- [ ] [Media] **ProveedoresPage: contact cards** — Cards estilo agenda con avatar inicial + datos de contacto.
+Todos implementados inline en cada page (sin componentes separados).
+
+- [x] [Alta] **ProductosPage: card grid visual** — Grid de tarjetas responsivo (col-12 col-sm-6 col-md-4) con nombre, SKU, category chip, unit chip, proveedor y presentaciones.
+- [x] [Media] **FacturasPage: timeline financiero** — Feed cronológico agrupado por mes con sticky headers, status badges, search + filter. Usa `InvoiceItemCard`, `CategoryTabs`, `InvoiceDetailDialog`.
+- [x] [Media] **GastosPage: cards por categoría** — Tarjetas agrupadas por categoría con subtotales por grupo.
+- [x] [Media] **VentasPage: calendario** — Timeline agrupado por día con totales semanales/mensuales.
+- [x] [Media] **PrestamosPage: progress cards** — CSS grid con cards de progreso (`q-linear-progress`), saldo, timeline de pagos.
+- [x] [Media] **ProveedoresPage: contact cards** — Grid de cards con nombre, contacto, teléfono, email y acciones.
+
+### Frontend — Pendiente (PWA)
+
 - [ ] [Baja] **PWA: pull to refresh** — En mobile, gesto nativo para refrescar datos.
 - [ ] [Baja] **PWA: custom install prompt** — Banner "Instalar PYMEQ" con dismiss persistente.
 - [ ] [Baja] **PWA: transiciones direccionales** — Slide left/right según dirección de navegación.

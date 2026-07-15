@@ -46,6 +46,36 @@ Este documento registra de manera cronológica el historial de decisiones técni
 
 ---
 
+## 2026-07-15 — Email templates refactor + OCI SMTP for staging
+
+### Problemas
+
+1. Plantillas de email con colores hardcodeados que no seguian la paleta DESIGN.md (bronce #C8963E sobre near-black #08090D).
+2. Cada template (verification, invitation, password-reset) tenia su propio layout repetido.
+3. Staging necesita SMTP de OCI Email Delivery que requiere `starttls.required=true`.
+
+### Soluciones
+
+1. **fragments/layout.html**: nuevo fragment Thymeleaf compartido con `head` y `page(content)` fragments. Outer table 600px, Inter via Google Fonts, zona de contenido reutilizable.
+2. **email.css**: todas las hex actualizadas a DESIGN.md, radius 8px a 6px, logo PYMEQ uppercase.
+3. **verification.html, invitation.html, password-reset.html**: refactorizadas para usar el layout fragment comun + DESIGN.md colors en vez de valores hardcodeados.
+4. **application.yaml**: agregado `starttls.required: true` bajo `spring.mail.properties.mail.smtp.starttls`. Host/port/credentials para OCI van en GitHub Secrets.
+
+### Files tocados
+
+- `templates/email/fragments/layout.html` (nuevo)
+- `static/css/email.css`
+- `templates/email/verification.html`
+- `templates/email/invitation.html`
+- `templates/email/password-reset.html`
+- `application.yaml`
+
+### Tests
+
+126 unitarios, 0 fallos.
+
+---
+
 ## 2026-06-24 — Fix UserServiceImplTest (4 errores)
 
 ### Problemas

@@ -5,7 +5,7 @@
         <div v-if="pending" class="verify-pending fade-in-up">
           <q-icon name="mark_email_unread" color="primary" size="5em" class="q-mb-md" />
           <div class="text-h6 text-primary text-weight-bold">Revisa tu correo electrónico</div>
-          <p class="text-body2 text-accent q-mt-sm q-mb-lg">
+          <p class="text-body2 q-mt-sm q-mb-lg" style="color: var(--pq-text-muted);">
             Te enviamos un enlace para verificar tu cuenta.
             <br>Si no lo encuentras, revisa tu bandeja de spam.
           </p>
@@ -20,9 +20,9 @@
         </div>
 
         <div v-else-if="success" class="verify-success fade-in-up">
-          <q-icon name="check_circle" color="positive" size="5em" class="q-mb-md brand-glow" />
+          <q-icon name="check_circle" color="positive" size="5em" class="q-mb-md" />
           <div class="text-h6 text-primary text-weight-bold">¡Acceso Verificado!</div>
-          <p class="text-body2 text-accent q-mt-sm">
+          <p class="text-body2 q-mt-sm" style="color: var(--pq-text-muted);">
             Tu cuenta ha sido activada correctamente en el sistema de auditoría.
           </p>
           <div class="q-mt-xl">
@@ -40,7 +40,7 @@
         <div v-else-if="error" class="verify-error fade-in-up">
           <q-icon name="error" color="negative" size="5em" class="q-mb-md" />
           <div class="text-h6 text-negative text-weight-bold">Error de Verificación</div>
-          <p class="text-body2 text-accent q-mt-sm">{{ errorMessage }}</p>
+          <p class="text-body2 q-mt-sm" style="color: var(--pq-text-muted);">{{ errorMessage }}</p>
 
           <div class="q-mt-xl">
             <div v-if="errorType === 'expired'" class="full-width">
@@ -113,6 +113,7 @@ const verifyEmail = async (verificationToken: string, userEmail: string) => {
 
     if (response?.accessToken) {
       localStorage.setItem('pymeq_email_verified', 'true');
+      new BroadcastChannel('pymeq-auth').postMessage({ type: 'email-verified' });
 
       $q.notify({
         type: 'positive',

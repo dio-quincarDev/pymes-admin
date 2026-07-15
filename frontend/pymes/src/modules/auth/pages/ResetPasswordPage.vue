@@ -4,7 +4,7 @@
       <BaseCard variant="elevated" class="q-pa-lg">
         <div class="text-center q-mb-lg">
           <div class="text-h6 text-weight-medium q-mb-xs">Nueva Contraseña</div>
-          <div class="text-caption text-accent">Establece tus nuevas credenciales</div>
+          <div class="text-caption" style="color: var(--pq-text-muted);">Establece tus nuevas credenciales</div>
         </div>
 
         <q-form @submit.prevent="handleResetPassword" class="q-gutter-y-md">
@@ -21,10 +21,7 @@
             <template v-slot:append>
               <q-icon
                 :name="showPassword ? 'visibility' : 'visibility_off'"
-                class="cursor-pointer"
-                color="primary"
-                role="button"
-                tabindex="0"
+                class="cursor-pointer" color="primary" role="button" tabindex="0"
                 :aria-label="showPassword ? 'Ocultar contraseña' : 'Mostrar contraseña'"
                 @click="showPassword = !showPassword"
                 @keydown.enter="showPassword = !showPassword"
@@ -48,10 +45,7 @@
             <template v-slot:append>
               <q-icon
                 :name="showConfirmPassword ? 'visibility' : 'visibility_off'"
-                class="cursor-pointer"
-                color="primary"
-                role="button"
-                tabindex="0"
+                class="cursor-pointer" color="primary" role="button" tabindex="0"
                 :aria-label="showConfirmPassword ? 'Ocultar confirmación' : 'Mostrar confirmación'"
                 @click="showConfirmPassword = !showConfirmPassword"
                 @keydown.enter="showConfirmPassword = !showConfirmPassword"

@@ -1,40 +1,54 @@
 <template>
-  <q-card class="bg-surface-pine text-secondary tight-shadow q-pa-lg no-border-radius-custom">
-    <q-card-section class="text-center q-pb-none">
-      <div class="text-h6 text-weight-medium q-mb-sm">Invitación al Equipo</div>
-      <p class="text-body2 text-accent">
-        Has sido invitado a colaborar en un espacio de trabajo. Confirma tu acceso para unirte.
-      </p>
-    </q-card-section>
+  <div class="accept-invitation-page-wrapper">
+    <SkeletonLoader :is-loading="loading && !success && !error" layout="card">
+      <BaseCard variant="elevated" class="q-pa-lg">
+        <div class="text-center q-mb-lg">
+          <div class="text-h6 text-weight-medium q-mb-sm">Invitación al Equipo</div>
+          <p class="text-body2" style="color: var(--pq-text-muted);">
+            Has sido invitado a colaborar en un espacio de trabajo. Confirma tu acceso para unirte.
+          </p>
+        </div>
 
-    <q-card-section>
-      <div v-if="success" class="text-center q-py-lg">
-        <q-icon name="group_add" color="positive" size="4rem" class="q-mb-md" />
-        <div class="text-h6 text-primary">¡Bienvenido al Equipo!</div>
-        <p class="text-accent q-mt-sm">Ahora eres parte de <strong>{{ tenantName }}</strong>.</p>
-        <q-btn label="IR AL PANEL DE CONTROL" color="primary" class="full-width brand-glow text-weight-bold q-mt-md" size="lg" to="/dashboard" no-caps />
-      </div>
+        <div v-if="success" class="text-center q-py-lg fade-in-up">
+          <q-icon name="group_add" color="positive" size="4rem" class="q-mb-md" />
+          <div class="text-h6" style="color: var(--pq-text);">¡Bienvenido al Equipo!</div>
+          <p style="color: var(--pq-text-muted);" class="q-mt-sm">Ahora eres parte de <strong>{{ tenantName }}</strong>.</p>
+          <BaseButton
+            label="IR AL PANEL DE CONTROL"
+            class="full-width q-mt-md"
+            size="lg"
+            to="/dashboard"
+          >
+            IR AL PANEL DE CONTROL
+          </BaseButton>
+        </div>
 
-      <div v-else-if="error" class="text-center q-py-lg">
-        <q-icon name="error" color="negative" size="4rem" class="q-mb-md" />
-        <div class="text-h6 text-negative">Error de Invitación</div>
-        <p class="text-accent q-mt-sm">{{ errorMessage }}</p>
-        <q-btn flat label="Volver al Login" color="primary" to="/login" no-caps class="q-mt-md" />
-      </div>
+        <div v-else-if="error" class="text-center q-py-lg">
+          <q-icon name="error" color="negative" size="4rem" class="q-mb-md" />
+          <div class="text-h6" style="color: var(--pq-danger);">Error de Invitación</div>
+          <p style="color: var(--pq-text-muted);" class="q-mt-sm">{{ errorMessage }}</p>
+          <BaseButton variant="ghost" class="q-mt-md" to="/login">
+            Volver al Login
+          </BaseButton>
+        </div>
 
-      <div v-else class="text-center q-py-md">
-        <q-btn
-          label="ACEPTAR Y UNIRME AL EQUIPO"
-          color="primary"
-          class="full-width brand-glow text-weight-bold"
-          size="lg"
-          :loading="loading"
-          @click="onAccept"
-        />
-        <q-btn flat label="Cancelar" color="accent" to="/" no-caps class="q-mt-md" />
-      </div>
-    </q-card-section>
-  </q-card>
+        <div v-else class="text-center q-py-md">
+          <BaseButton
+            label="ACEPTAR Y UNIRME AL EQUIPO"
+            class="full-width"
+            size="lg"
+            :loading="loading"
+            @click="onAccept"
+          >
+            ACEPTAR Y UNIRME AL EQUIPO
+          </BaseButton>
+          <BaseButton variant="ghost" class="q-mt-md" to="/">
+            Cancelar
+          </BaseButton>
+        </div>
+      </BaseCard>
+    </SkeletonLoader>
+  </div>
 </template>
 
 <script setup lang="ts">
@@ -46,6 +60,9 @@ import { useRoute, useRouter } from 'vue-router';
 import { authService } from '../services/auth.service';
 import { useAuthStore } from '../store';
 import { useQuasar } from 'quasar';
+import BaseCard from 'src/components/base/BaseCard.vue';
+import BaseButton from 'src/components/base/BaseButton.vue';
+import SkeletonLoader from 'src/components/ui/SkeletonLoader.vue';
 import type { ApiResponse, InvitationResponse } from '../types';
 
 const route = useRoute();
@@ -99,8 +116,7 @@ const onAccept = async () => {
 </script>
 
 <style lang="scss" scoped>
-:deep(.q-field--filled .q-field__control) {
-  background: rgba(0, 0, 0, 0.2);
-  border-radius: 4px;
+.accept-invitation-page-wrapper {
+  width: 100%;
 }
 </style>

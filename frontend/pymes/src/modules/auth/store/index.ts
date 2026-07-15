@@ -45,7 +45,10 @@ export const useAuthStore = defineStore('auth', {
       try {
         const response = await authService.login(credentials);
         const { data } = response.data as ApiResponse<AuthResponse>;
-        this.setSession(data.accessToken, data.refreshToken, data.user);
+        const user = data.activeTenant
+          ? { ...data.user, tenantId: data.activeTenant.id }
+          : data.user;
+        this.setSession(data.accessToken, data.refreshToken, user);
         return data;
       } catch (err: unknown) {
         const errorMessage = err instanceof Error ? err.message : 'Error en la autenticación';
@@ -63,9 +66,11 @@ export const useAuthStore = defineStore('auth', {
         const response = await authService.register(data);
         const { data: authData } = response.data as ApiResponse<AuthResponse>;
         
-        // Con Pending Registration, authData vendrá vacío (null)
         if (authData && authData.accessToken) {
-          this.setSession(authData.accessToken, authData.refreshToken, authData.user);
+          const user = authData.activeTenant
+            ? { ...authData.user, tenantId: authData.activeTenant.id }
+            : authData.user;
+          this.setSession(authData.accessToken, authData.refreshToken, user);
         }
         return authData;
       } catch (err: unknown) {

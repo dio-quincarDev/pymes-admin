@@ -1,9 +1,9 @@
 <template>
-  <div class="auth-callback flex flex-center bg-forest-deep text-secondary" style="min-height: 100vh;">
+  <div class="auth-callback flex flex-center" style="min-height: 100vh; background: var(--pq-background);">
     <div class="text-center">
-      <q-spinner-grid color="primary" size="4em" class="brand-glow" />
-      <div class="text-h6 q-mt-md text-primary">Sincronizando Identidad Pymeq...</div>
-      <div class="text-caption text-accent">{{ statusMessage }}</div>
+      <q-spinner color="accent" size="2.5em" />
+      <div class="text-h6 q-mt-md" style="color: var(--pq-text);">Sincronizando Identidad Pymeq...</div>
+      <div class="text-caption q-mt-xs" style="color: var(--pq-text-muted);" role="status" aria-live="polite">{{ statusMessage }}</div>
     </div>
   </div>
 </template>
@@ -24,7 +24,18 @@ const router = useRouter();
 const authStore = useAuthStore();
 const $q = useQuasar();
 
-const statusMessage = ref('Preparando tu Toolkit de Auditoría');
+const statusMessages = [
+  'Sincronizando identidad...',
+  'Configurando tu espacio de trabajo...',
+  'Preparando el panel de control...',
+];
+const statusMessage = ref(statusMessages[0]);
+let msgIndex = 0;
+
+const rotateMessage = setInterval(() => {
+  msgIndex = (msgIndex + 1) % statusMessages.length;
+  statusMessage.value = statusMessages[msgIndex];
+}, 2000);
 
 onMounted(async () => {
   const code = (route.query.code as string) || (new URLSearchParams(window.location.search).get('code') as string);
@@ -47,6 +58,7 @@ onMounted(async () => {
         try {
           const { data: setup } = await setupService.get(tenantId);
           if (!setup.onboardingCompleted) {
+            clearInterval(rotateMessage);
             void router.push('/onboarding');
             return;
           }
@@ -62,6 +74,7 @@ onMounted(async () => {
         position: 'top-right'
       });
 
+      clearInterval(rotateMessage);
       void router.push('/dashboard');
     } catch (error) {
       console.error('Error en el callback de auth:', error);
@@ -69,9 +82,11 @@ onMounted(async () => {
         type: 'negative',
         message: 'No se pudo completar el acceso. Intenta de nuevo.',
       });
+      clearInterval(rotateMessage);
       void router.push('/login');
     }
   } else {
+    clearInterval(rotateMessage);
     void router.push('/login');
   }
 });

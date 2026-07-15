@@ -153,6 +153,54 @@ src/modules/core/components/facturas/CategoryTabs.vue  # reescrito con q-chip
 
 ---
 
+## 2026-07-15 — Auth pages redesign + tenantId bugfix
+
+### Rediseno visual de paginas de auth
+
+Posterior al redesign del Design System (Swiss/Grid), se aplicaron los mismos tokens a todas las paginas de autenticacion:
+
+- **AuthLayout.vue**: logo solido con `var(--pq-accent)`, tagline con `var(--pq-text-muted)`, fondo `var(--pq-background)`. Accesibilidad por teclado (`role="button"`, `tabindex`, `keydown.enter/space`).
+- **LoginPage.vue**: dos modos toggle. `oauth-primary` por defecto (boton Google hero + link a email). Al hacer clic en "Iniciar sesion con email y contrasena" cambia al formulario clasico con back link. Boton Google con estado de carga.
+- **RegisterPage.vue**: mismo patron que LoginPage.
+- **AuthCallback.vue**: eliminadas clases `bg-forest-deep`, `brand-glow`, `text-secondary`. Mensajes de estado rotativos cada 2s con `role="status"` y `aria-live="polite"`.
+- **VerifyEmailPage.vue**: eliminado `brand-glow`. Agregado `BroadcastChannel` postMessage para sincronizar verificacion entre pestanas.
+- **ForgotPasswordPage.vue, ResetPasswordPage.vue, AcceptInvitationPage.vue**: clases legacy (`brand-glow`, `bg-surface-pine`, `text-accent`) reemplazadas por CSS variables `var(--pq-text-muted)`, `var(--pq-text-subtle)`, `BaseCard` en vez de `q-card`.
+
+### Bugfix: tenantId no persistia post-login
+
+**Causa raiz:** El backend devuelve `user.tenantId=null` y `activeTenant.id` como campos separados (por diseno, `UserMapper` ignora `tenantId`). `authStore.login()` llamaba `setSession(data.accessToken, data.refreshToken, data.user)` sin mergear `activeTenant.id`. Al llegar al dashboard, los componentes leian `authStore.user.tenantId` = `undefined` y hacian peticiones como `/api/v1/core/proveedores?tenantId=` (vacio) → 500.
+
+**Fix:** merge de `activeTenant.id` en user antes de `setSession()`, exactamente como ya lo hacia `verifyEmail()`:
+
+```ts
+const user = data.activeTenant
+  ? { ...data.user, tenantId: data.activeTenant.id }
+  : data.user;
+this.setSession(data.accessToken, data.refreshToken, user);
+```
+
+Mismo fix aplicado a `register()`.
+
+### Files modificados
+
+- `layouts/AuthLayout.vue`
+- `modules/auth/pages/LoginPage.vue`
+- `modules/auth/pages/RegisterPage.vue`
+- `modules/auth/pages/AuthCallback.vue`
+- `modules/auth/pages/VerifyEmailPage.vue`
+- `modules/auth/pages/ForgotPasswordPage.vue`
+- `modules/auth/pages/ResetPasswordPage.vue`
+- `modules/auth/pages/AcceptInvitationPage.vue`
+- `modules/auth/store/index.ts` (tenantId merge en login/register)
+- `App.vue` (BroadcastChannel refactor)
+
+### Build
+
+- lint: OK
+- build: OK
+
+---
+
 ## 2026-07-12 — Fix filteredByProvider + remoción minQuantity/maxQuantity + docs
 
 ### Fix filteredByProvider en FacturasPage

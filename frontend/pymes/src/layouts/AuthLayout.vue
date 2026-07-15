@@ -3,23 +3,24 @@
     <q-page-container>
       <main class="auth-layout-wrapper flex flex-center q-pa-md">
         <div class="auth-container fade-in-up">
-          <!-- Logo & Branding -->
-          <div class="text-center q-mb-xl cursor-pointer" @click="$router.push('/')">
-            <div class="text-h3 font-bold mesh-text-gradient q-mb-xs">PYMEQ</div>
-            <div class="text-subtitle1 text-accent text-weight-light letter-spacing-2">
-              Sistema de Auditoría Inteligente para Pymes
-            </div>
+          <div
+            class="text-center q-mb-xl auth-brand"
+            role="button" tabindex="0" aria-label="Ir al inicio"
+            @click="$router.push('/')"
+            @keydown.enter="$router.push('/')"
+            @keydown.space.prevent="$router.push('/')"
+          >
+            <div class="auth-logo">PYMEQ</div>
+            <div class="auth-tagline">Sistema de Auditoría Inteligente para Pymes</div>
           </div>
 
-          <!-- Router pages (Login, Register, etc.) -->
           <router-view v-slot="{ Component }">
             <transition name="fade" mode="out-in">
               <component :is="Component" />
             </transition>
           </router-view>
 
-          <!-- Footer -->
-          <footer class="text-center q-mt-xl text-accent text-caption opacity-70">
+          <footer class="text-center q-mt-xl text-caption" style="color: var(--pq-text-subtle); opacity: 0.7;">
             <q-icon name="security" size="xs" class="q-mr-xs" aria-hidden="true" />
             Plataforma Segura y Confiable para la Gestión de Auditorías
           </footer>
@@ -31,7 +32,7 @@
 
 <style lang="scss" scoped>
 .auth-layout {
-  background: $dark-page;
+  background: var(--pq-background);
   position: relative;
 
   &::before {
@@ -39,8 +40,8 @@
     position: absolute;
     inset: 0;
     background:
-      radial-gradient(ellipse 80% 60% at 50% -20%, rgba(163, 120, 94, 0.10) 0%, transparent 70%),
-      radial-gradient(ellipse 40% 30% at 80% 80%, rgba(197, 160, 89, 0.06) 0%, transparent 60%);
+      radial-gradient(ellipse 80% 60% at 50% -20%, rgba(#C8963E, 0.10) 0%, transparent 70%),
+      radial-gradient(ellipse 40% 30% at 80% 80%, rgba(#C8A042, 0.06) 0%, transparent 60%);
     pointer-events: none;
   }
 }
@@ -56,7 +57,21 @@
   max-width: 450px;
 }
 
-.letter-spacing-2 {
+.auth-logo {
+  font-family: 'Geist', -apple-system, BlinkMacSystemFont, 'Segoe UI', sans-serif;
+  font-weight: 800;
+  font-size: 28px;
+  color: var(--pq-accent);
+  letter-spacing: -0.01em;
+  line-height: 1.2;
+}
+
+.auth-tagline {
+  font-family: 'Satoshi', -apple-system, BlinkMacSystemFont, 'Segoe UI', sans-serif;
+  font-size: 14px;
+  color: var(--pq-text-muted);
+  font-weight: 300;
   letter-spacing: 2px;
+  margin-top: 4px;
 }
 </style>
