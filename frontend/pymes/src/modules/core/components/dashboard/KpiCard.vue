@@ -38,14 +38,13 @@ const deltaClass = computed(() => {
 
 <style scoped lang="scss">
 .kpi-card {
-  background: rgba(27, 38, 36, 0.85);
-  backdrop-filter: blur(8px);
-  border: 1px solid rgba(113, 131, 127, 0.05);
-  border-radius: 8px;
+  background: var(--pq-surface);
+  border: 1px solid var(--pq-border);
+  border-radius: 6px;
   padding: 1.25rem 1.5rem;
   position: relative;
   overflow: hidden;
-  transition: all 0.2s cubic-bezier(0.4, 0, 0.2, 1);
+  transition: transform 160ms cubic-bezier(0.4, 0, 0.2, 1), box-shadow 160ms cubic-bezier(0.4, 0, 0.2, 1);
 
   &::before {
     content: '';
@@ -59,14 +58,14 @@ const deltaClass = computed(() => {
 
   &:hover {
     transform: translateY(-2px);
-    box-shadow: 0 10px 30px rgba(0, 0, 0, 0.2);
+    box-shadow: var(--pq-shadow-md);
   }
 
-  &--copper::before { background: #A3785E; }
-  &--sage::before { background: #2D5A27; }
-  &--gold::before { background: #C5A059; }
-  &--negative::before { background: #e94560; }
-  &--positive::before { background: #2D5A27; }
+  &--copper::before { background: var(--pq-accent); }
+  &--sage::before { background: var(--pq-success); }
+  &--gold::before { background: var(--pq-warning); }
+  &--negative::before { background: var(--pq-danger); }
+  &--positive::before { background: var(--pq-success); }
 
   &__header {
     display: flex;
@@ -76,34 +75,36 @@ const deltaClass = computed(() => {
   }
 
   &__label {
+    font-family: 'Satoshi', sans-serif;
     font-size: 0.75rem;
     font-weight: 500;
-    color: #8A9E99;
+    color: var(--pq-text-muted);
     text-transform: uppercase;
     letter-spacing: 0.05em;
   }
 
   &__icon {
-    color: rgba(163, 120, 94, 0.4);
+    color: var(--pq-accent-muted);
   }
 
   &__value {
-    font-family: 'Outfit', sans-serif;
+    font-family: 'Geist', sans-serif;
     font-size: 2rem;
     font-weight: 700;
-    color: #E2E8E4;
+    color: var(--pq-text);
     line-height: 1;
   }
 
   &__delta {
+    font-family: 'Satoshi', sans-serif;
     font-size: 0.75rem;
     margin-top: 0.5rem;
     display: flex;
     align-items: center;
     gap: 0.25rem;
 
-    &--up { color: #2D5A27; }
-    &--down { color: #e94560; }
+    &--up { color: var(--pq-success); }
+    &--down { color: var(--pq-danger); }
   }
 }
 </style>

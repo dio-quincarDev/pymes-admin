@@ -50,15 +50,25 @@ Todos implementados inline en cada page (sin componentes separados).
 - [x] [Media] **PrestamosPage: progress cards** — CSS grid con cards de progreso (`q-linear-progress`), saldo, timeline de pagos.
 - [x] [Media] **ProveedoresPage: contact cards** — Grid de cards con nombre, contacto, teléfono, email y acciones.
 
+### Frontend — Pendiente (Dashboard financiero)
+
+- [ ] [Alta] **Dashboard UI polish** — El dashboard base funciona pero tiene espacio de mejora: animaciones de entrada más pulidas, hover states en stat strip, empty states más expresivos, responsive tuning, posible sparkline en métricas de tendencia.
+- [ ] [Media] **Dashboard: sparklines** — Agregar mini-gráficos de tendencia en el stat strip (Geist Mono number + sparkline inline por métrica).
+- [ ] [Media] **Dashboard: expense doughnut** — Opción de vista doughnut chart para desglose de gastos (reutilizar `BaseChart` existente).
+
 ### Frontend — Pendiente (PWA)
 
 - [ ] [Baja] **PWA: pull to refresh** — En mobile, gesto nativo para refrescar datos.
 - [ ] [Baja] **PWA: custom install prompt** — Banner "Instalar PYMEQ" con dismiss persistente.
 - [ ] [Baja] **PWA: transiciones direccionales** — Slide left/right según dirección de navegación.
 
+### Core
+
+- [ ] [Media] **Dashboard聚合 endpoint** — Endpoint que una `MetricasFinancieras` + gastos + ventas + facturas en una sola llamada (actualmente el frontend hace 4 requests paralelos). Optimización para latency.
+
 ### Gateway
 
-- [ ] [Alta] CORS bug fix (2026-07)
+- [x] [Alta] CORS bug fix (2026-07) — Resuelto: globalcors + DedupeResponseHeader dual layer
 - [ ] [Media] Integration tests WebTestClient + Testcontainers (2026-07)
 
 ### Auth

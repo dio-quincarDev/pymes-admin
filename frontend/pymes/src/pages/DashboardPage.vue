@@ -1,52 +1,78 @@
 <script setup lang="ts">
-import { computed, shallowRef, onMounted } from 'vue';
+import { computed } from 'vue';
 import { useMeta } from 'quasar';
 import { useAuthStore } from 'src/modules/auth/store';
-import CatalogDashboard from 'src/modules/core/components/dashboard/CatalogDashboard.vue';
-import BaseCard from 'src/components/base/BaseCard.vue';
+import { useFinancialDashboard } from 'src/modules/core/composables/useFinancialDashboard';
+import PeriodSelector from 'src/modules/core/components/dashboard/PeriodSelector.vue';
+import StatStrip from 'src/modules/core/components/dashboard/StatStrip.vue';
+import ExpenseBreakdown from 'src/modules/core/components/dashboard/ExpenseBreakdown.vue';
+import RecentActivity from 'src/modules/core/components/dashboard/RecentActivity.vue';
+import PendingInvoices from 'src/modules/core/components/dashboard/PendingInvoices.vue';
+import QuickActions from 'src/modules/core/components/dashboard/QuickActions.vue';
 import BaseButton from 'src/components/base/BaseButton.vue';
 
 useMeta({ title: 'Dashboard — PYMEQ' });
 
 const authStore = useAuthStore();
 const hasTenant = computed(() => !!authStore.user?.tenantId);
-const loading = shallowRef(true);
 
-onMounted(() => {
-  // ponytail: 200ms settle window for child components
-  setTimeout(() => { loading.value = false; }, 200);
-});
+const {
+  metricas,
+  gastosPorCategoria,
+  actividadReciente,
+  facturasPendientes,
+  loading,
+  periodo,
+  setPeriod,
+  recalcular,
+} = useFinancialDashboard();
 </script>
 
 <template>
   <q-page class="dashboard-page">
-    <template v-if="loading">
-      <div class="row q-col-gutter-lg">
-        <div v-for="i in 3" :key="i" class="col-12 col-sm-6 col-md-4">
-          <BaseCard class="q-pa-lg">
-            <div class="row items-center justify-between q-mb-md">
-              <div class="skeleton skeleton-text w-40" />
-              <div class="skeleton skeleton-circle" />
-            </div>
-            <div class="skeleton skeleton-value q-mb-sm" />
-            <div class="skeleton skeleton-text w-30" />
-          </BaseCard>
-        </div>
+    <!-- No tenant empty state -->
+    <template v-if="!hasTenant">
+      <div class="no-tenant-state">
+        <q-icon name="domain_disabled" size="64px" style="color: var(--pq-text-subtle)" aria-hidden="true" />
+        <h1 class="no-tenant-headline">Tu negocio aún no está configurado</h1>
+        <p class="no-tenant-copy">Completá el onboarding para empezar a usar PymeQ.</p>
+        <BaseButton variant="primary" size="lg" @click="$router.push('/onboarding')">
+          COMPLETAR ONBOARDING
+        </BaseButton>
+        <p class="no-tenant-hint">¿Ya empezaste? Revisá tu correo para el enlace de verificación.</p>
       </div>
     </template>
 
-    <CatalogDashboard v-else-if="hasTenant" />
+    <!-- Financial dashboard -->
+    <template v-else>
+      <!-- Header -->
+      <div class="dashboard-header">
+        <div class="dashboard-header__row">
+          <h1 class="dashboard-title">Dashboard</h1>
+          <PeriodSelector
+            :model-value="periodo"
+            :loading="loading"
+            @update:model-value="setPeriod"
+            @recalcular="recalcular"
+          />
+        </div>
+      </div>
 
-    <!-- Honest empty state — no fabricated demo data -->
-    <div v-else class="no-tenant-state">
-      <q-icon name="domain_disabled" size="64px" style="color: var(--pq-text-subtle)" aria-hidden="true" />
-      <h1 class="no-tenant-headline">Tu negocio aún no está configurado</h1>
-      <p class="no-tenant-copy">Completá el onboarding para empezar a usar PymeQ.</p>
-      <BaseButton variant="primary" size="lg" @click="$router.push('/onboarding')">
-        COMPLETAR ONBOARDING
-      </BaseButton>
-      <p class="no-tenant-hint">¿Ya empezaste? Revisá tu correo para el enlace de verificación.</p>
-    </div>
+      <!-- Stat Strip -->
+      <StatStrip :metricas="metricas" :loading="loading" />
+
+      <!-- Two-column grid -->
+      <div class="dashboard-grid">
+        <ExpenseBreakdown :gastos="gastosPorCategoria" :loading="loading" />
+        <RecentActivity :actividades="actividadReciente" :loading="loading" />
+      </div>
+
+      <!-- Two-column grid -->
+      <div class="dashboard-grid">
+        <PendingInvoices :facturas="facturasPendientes" :loading="loading" />
+        <QuickActions />
+      </div>
+    </template>
   </q-page>
 </template>
 
@@ -55,28 +81,35 @@ onMounted(() => {
   width: 100%;
 }
 
-.skeleton {
-  background: linear-gradient(
-    90deg,
-    rgba(27, 38, 36, 0.6) 0%,
-    rgba(163, 120, 94, 0.15) 50%,
-    rgba(27, 38, 36, 0.6) 100%
-  );
-  background-size: 200% 100%;
-  animation: shimmer 1.5s ease-in-out infinite;
-  border-radius: 4px;
+.dashboard-header {
+  margin-bottom: 8px;
 
-  &-text { height: 12px; }
-  &-value { height: 28px; width: 60%; }
-  &-circle { width: 24px; height: 24px; border-radius: 50%; }
+  &__row {
+    display: flex;
+    align-items: center;
+    justify-content: space-between;
+    flex-wrap: wrap;
+    gap: 12px;
+  }
 }
 
-.w-40 { width: 40%; }
-.w-30 { width: 30%; }
+.dashboard-title {
+  font-family: 'Geist', sans-serif;
+  font-size: 24px;
+  font-weight: 700;
+  color: var(--pq-text);
+  margin: 0;
+}
 
-@keyframes shimmer {
-  0% { background-position: 200% 0; }
-  100% { background-position: -200% 0; }
+.dashboard-grid {
+  display: grid;
+  grid-template-columns: 1fr 1fr;
+  gap: 24px;
+  margin-top: 24px;
+
+  @media (max-width: 768px) {
+    grid-template-columns: 1fr;
+  }
 }
 
 /* --------------------------------------------------

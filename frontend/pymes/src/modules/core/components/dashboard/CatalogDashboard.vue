@@ -379,35 +379,35 @@ onMounted(loadData)
 }
 
 .dashboard-title {
-  font-family: 'Outfit', sans-serif;
+  font-family: 'Geist', sans-serif;
   font-weight: 700;
   font-size: 1.75rem;
-  color: #E2E8E4;
+  color: var(--pq-text);
   margin: 0;
-  text-shadow: 0 0 20px rgba(163, 120, 94, 0.15);
 
   &__name {
-    color: #A3785E;
+    color: var(--pq-accent);
   }
 }
 
 .dashboard-subtitle {
+  font-family: 'Satoshi', sans-serif;
   font-size: 0.95rem;
-  color: #8A9E99;
+  color: var(--pq-text-muted);
   margin: 0.25rem 0 0;
 }
 
 .catalog-card {
-  background: rgba(27, 38, 36, 0.85);
-  backdrop-filter: blur(8px);
-  border: 1px solid rgba(113, 131, 127, 0.08);
-  border-radius: 8px;
+  background: var(--pq-surface);
+  border: 1px solid var(--pq-border);
+  border-radius: 6px;
   padding: 1.25rem;
 
   &__title {
+    font-family: 'Satoshi', sans-serif;
     font-size: 0.8rem;
     font-weight: 600;
-    color: #8A9E99;
+    color: var(--pq-text-muted);
     text-transform: uppercase;
     letter-spacing: 0.05em;
     margin-bottom: 1rem;
@@ -416,17 +416,17 @@ onMounted(loadData)
 
 .search-input {
   :deep(.q-field__control) {
-    border-radius: 8px;
+    border-radius: 6px;
   }
 }
 
 .search-results {
   .search-row {
-    border-bottom: 1px solid rgba(113, 131, 127, 0.06);
-    transition: background 0.15s;
+    border-bottom: 1px solid var(--pq-border);
+    transition: background 80ms ease;
 
     &:hover {
-      background: rgba(163, 120, 94, 0.04);
+      background: var(--pq-elevated);
     }
 
     &:last-child { border-bottom: none; }
@@ -434,18 +434,18 @@ onMounted(loadData)
 }
 
 .tree-row {
-  transition: background 0.15s;
+  transition: background 80ms ease;
 
   &--category {
     .tree-row__content {
       cursor: pointer;
       padding: 0.625rem 0;
-      border-radius: 6px;
-      transition: background 0.15s;
+      border-radius: 4px;
+      transition: background 80ms ease;
       user-select: none;
 
       &:hover {
-        background: rgba(163, 120, 94, 0.06);
+        background: var(--pq-elevated);
       }
     }
   }
@@ -453,27 +453,28 @@ onMounted(loadData)
   &--product {
     .tree-row__content {
       padding: 0.45rem 0;
-      border-bottom: 1px solid rgba(113, 131, 127, 0.04);
-      transition: background 0.15s;
+      border-bottom: 1px solid var(--pq-border);
+      transition: background 80ms ease;
     }
 
     &:hover .tree-row__content {
-      background: rgba(163, 120, 94, 0.03);
+      background: var(--pq-elevated);
     }
   }
 
   &--expanded > .tree-row__content {
-    .tree-row__chevron { color: #A3785E !important; }
+    .tree-row__chevron { color: var(--pq-accent) !important; }
   }
 
   &__cat-name {
+    font-family: 'Satoshi', sans-serif;
     font-size: 0.9rem;
     font-weight: 600;
-    color: #E2E8E4;
+    color: var(--pq-text);
   }
 
   &__chevron {
-    transition: transform 0.2s ease;
+    transition: transform 80ms ease;
     flex-shrink: 0;
   }
 
@@ -492,14 +493,14 @@ onMounted(loadData)
   display: flex;
   gap: 1rem;
   padding: 0.75rem 0;
-  border-bottom: 1px solid rgba(113, 131, 127, 0.06);
+  border-bottom: 1px solid var(--pq-border);
   animation: shimmer 1.5s infinite;
   animation-delay: inherit;
 
   .skeleton-line {
     height: 12px;
     border-radius: 4px;
-    background: linear-gradient(90deg, rgba(138, 158, 153, 0.08) 25%, rgba(163, 120, 94, 0.12) 50%, rgba(138, 158, 153, 0.08) 75%);
+    background: linear-gradient(90deg, var(--pq-surface) 25%, var(--pq-elevated) 50%, var(--pq-surface) 75%);
     background-size: 200% 100%;
     animation: shimmer 1.5s infinite;
 
