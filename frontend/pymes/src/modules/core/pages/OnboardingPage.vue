@@ -8,6 +8,7 @@ useMeta({ title: 'Onboarding — PYMEQ' });
 import { setupService } from '../services/setup.service'
 import type { SetupInfo, SetupCategory } from '../types'
 import IndustryCard from 'src/components/onboarding/IndustryCard.vue'
+import BaseButton from 'src/components/base/BaseButton.vue'
 
 
 const router = useRouter()
@@ -37,6 +38,8 @@ function countCategories(cats: SetupCategory[]): number {
 }
 
 const totalCategories = computed(() => previewData.value ? countCategories(previewData.value.categories) : 0)
+const fallbackIndustry = { code: '', name: '', icon: 'business', desc: '' }
+const selectedIndustry = computed(() => industries.find(i => i.code === selected.value) || fallbackIndustry)
 
 function onSelect(code: string) {
   selected.value = code
@@ -103,7 +106,7 @@ async function confirm() {
       </div>
 
       <!-- Step 1: Industry selection -->
-      <div v-if="step === 1" class="industry-grid stagger-children">
+      <div v-if="step === 1" class="industry-grid stagger-children" role="region" aria-label="Paso 1 de 2: Selección de industria">
         <IndustryCard
           v-for="ind in industries"
           :key="ind.code"
@@ -116,78 +119,75 @@ async function confirm() {
         />
       </div>
 
-      <!-- Step 2: Preview (compact confirmation card) -->
+      <!-- Step 2: Preview -->
       <div v-if="step === 2 && previewData" class="preview-card fade-in-up">
+        <div class="preview-card__bar"></div>
         <div class="preview-card__body">
-          <div class="preview-card__title">
-            <h2>Plantilla de {{ industries.find(i => i.code === selected)?.name }}</h2>
-            <p>Se precargarán los siguientes datos:</p>
-          </div>
-
-          <div class="preview-card__stats">
-            <div class="stat-chip">
-              <q-icon name="inventory_2" size="sm" color="primary" />
-              <span class="stat-chip__value">{{ previewData.products.length }}</span>
-              <span class="stat-chip__label">productos</span>
-            </div>
-            <div class="stat-chip">
-              <q-icon name="category" size="sm" color="primary" />
-              <span class="stat-chip__value">{{ totalCategories }}</span>
-              <span class="stat-chip__label">categorías</span>
-            </div>
-            <div class="stat-chip">
-              <q-icon name="scale" size="sm" color="primary" />
-              <span class="stat-chip__value">{{ previewData.units.length }}</span>
-              <span class="stat-chip__label">unidades</span>
-            </div>
-            <div class="stat-chip">
-              <q-icon name="place" size="sm" color="primary" />
-              <span class="stat-chip__value">{{ previewData.locations.length }}</span>
-              <span class="stat-chip__label">ubicaciones</span>
+          <div class="preview-card__header">
+            <q-icon :name="selectedIndustry.icon" size="1.5rem" style="color: var(--pq-accent)" aria-hidden="true" />
+            <div>
+              <div class="preview-card__title">Panel de {{ selectedIndustry.name }}</div>
+              <p class="preview-card__subtitle">Datos precargados para empezar a operar</p>
             </div>
           </div>
 
-          <div class="preview-card__checklist">
-            <div class="check-item">
-              <q-icon name="check_circle" color="positive" size="xs" />
-              <span>Base de datos con productos y estructura de {{ industries.find(i => i.code === selected)?.name || 'General' }}</span>
+          <div class="preview-metrics">
+            <div class="preview-metric">
+              <span class="preview-metric__value">{{ previewData.products.length }}</span>
+              <span class="preview-metric__label">Productos</span>
             </div>
-            <div class="check-item">
-              <q-icon name="check_circle" color="positive" size="xs" />
-              <span>{{ totalCategories }} categorías optimizadas para tu industria</span>
+            <div class="preview-metric">
+              <span class="preview-metric__value">{{ totalCategories }}</span>
+              <span class="preview-metric__label">Categorías</span>
             </div>
-            <div class="check-item">
-              <q-icon name="check_circle" color="positive" size="xs" />
-              <span>Ubicaciones físicas y unidades de medida preconfiguradas</span>
+            <div class="preview-metric">
+              <span class="preview-metric__value">{{ previewData.units.length }}</span>
+              <span class="preview-metric__label">Unidades</span>
+            </div>
+            <div class="preview-metric">
+              <span class="preview-metric__value">{{ previewData.locations.length }}</span>
+              <span class="preview-metric__label">Ubicaciones</span>
+            </div>
+          </div>
+
+          <div v-if="previewData.products.length > 0" class="preview-products-section">
+            <div class="preview-products-section__title">Productos precargados</div>
+            <div class="preview-products">
+              <div v-for="p in previewData.products.slice(0, 6)" :key="p.id" class="preview-product">
+                <div class="preview-product__name">{{ p.name }}</div>
+                <div class="preview-product__meta">
+                  <span class="preview-product__unit">{{ p.baseUnit }}</span>
+                  <span class="preview-product__category">{{ p.categoryName }}</span>
+                </div>
+              </div>
+            </div>
+            <div v-if="previewData.products.length > 6" class="preview-products__more">
+              +{{ previewData.products.length - 6 }} productos más
             </div>
           </div>
         </div>
       </div>
 
-      <div class="onboarding-actions fade-in-up" style="animation-delay: 0.6s">
-        <q-btn
+      <div class="onboarding-actions fade-in-up">
+        <BaseButton
           v-if="step === 2"
-          flat
-          color="accent"
-          label="Volver"
-          icon="arrow_back"
+          variant="ghost"
           @click="goBack"
-          class="action-btn"
-        />
-        <q-btn
+        >
+          Volver
+        </BaseButton>
+        <BaseButton
           v-if="step === 2"
-          color="primary"
-          size="lg"
+          variant="primary"
           :loading="saving"
           @click="confirm"
         >
           Comenzar
-          <q-icon v-if="!saving" name="arrow_forward" size="1.2rem" class="q-ml-sm" />
-        </q-btn>
+        </BaseButton>
       </div>
 
-      <div v-if="loadingPreview" class="loading-overlay">
-        <q-spinner-dots size="2rem" color="primary" />
+      <div v-if="loadingPreview" class="loading-overlay" role="status" aria-live="polite">
+        <q-spinner-dots size="2rem" />
       </div>
     </div>
   </div>
@@ -199,35 +199,37 @@ async function confirm() {
   display: flex;
   align-items: center;
   justify-content: center;
-  padding: 2rem 1rem;
+  padding: 32px 16px;
+  background: var(--pq-background);
 }
 
 .onboarding-content {
   max-width: 900px;
   width: 100%;
-  transition: max-width 0.3s ease;
+  transition: max-width var(--pq-motion-base);
 
   &--preview {
-    max-width: 600px;
+    max-width: 640px;
   }
 }
 
 .onboarding-header {
   text-align: center;
-  margin-bottom: 2.5rem;
+  margin-bottom: 40px;
 }
 
 .onboarding-title {
-  font-family: 'Outfit', sans-serif;
+  font-family: 'Geist', sans-serif;
   font-weight: 700;
-  font-size: 2rem;
-  color: #E2E8E4;
-  margin: 0 0 0.5rem;
+  font-size: 32px;
+  color: var(--pq-text);
+  margin: 0 0 8px;
 }
 
 .onboarding-subtitle {
-  font-size: 1rem;
-  color: #8A9E99;
+  font-family: 'Satoshi', sans-serif;
+  font-size: 16px;
+  color: var(--pq-text-muted);
   margin: 0;
 }
 
@@ -235,30 +237,28 @@ async function confirm() {
   display: flex;
   align-items: center;
   justify-content: center;
-  gap: 0;
-  margin-bottom: 1.5rem;
+  margin-bottom: 24px;
 
   &__dot {
     width: 8px;
     height: 8px;
-    border-radius: 50%;
-    background: rgba(163, 120, 94, 0.2);
-    transition: background 0.3s ease;
+    border-radius: var(--pq-radius-full);
+    background: rgba(200, 150, 62, 0.2);
+    transition: background var(--pq-motion-base);
 
     &--active {
-      background: #A3785E;
-      box-shadow: 0 0 8px rgba(163, 120, 94, 0.4);
+      background: var(--pq-accent);
     }
   }
 
   &__line {
     width: 48px;
     height: 2px;
-    background: rgba(163, 120, 94, 0.15);
-    transition: background 0.3s ease;
+    background: rgba(200, 150, 62, 0.15);
+    transition: background var(--pq-motion-base);
 
     &--active {
-      background: #A3785E;
+      background: var(--pq-accent);
     }
   }
 }
@@ -266,87 +266,202 @@ async function confirm() {
 .industry-grid {
   display: grid;
   grid-template-columns: repeat(2, 1fr);
-  gap: 0.75rem;
+  gap: 12px;
 
   @media (min-width: 600px) {
     grid-template-columns: repeat(4, 1fr);
   }
 }
 
-// Preview card (compact confirmation)
+// Preview card
 .preview-card {
-  background: rgba(27, 38, 36, 0.6);
-  border: 1px solid rgba(163, 120, 94, 0.12);
-  border-radius: 12px;
+  background: var(--pq-surface);
+  border: 1px solid var(--pq-border);
+  border-radius: var(--pq-radius-xl);
+  overflow: clip;
+
+  &__bar {
+    height: 4px;
+    background: var(--pq-accent);
+  }
 
   &__body {
-    padding: 2rem;
+    padding: 24px;
+  }
+
+  &__header {
+    display: flex;
+    align-items: center;
+    gap: 12px;
+    margin-bottom: 16px;
   }
 
   &__title {
-    margin-bottom: 1.5rem;
-
-    h2 {
-      font-family: 'Outfit', sans-serif;
-      font-weight: 700;
-      font-size: 1.25rem;
-      color: #E2E8E4;
-      margin: 0 0 0.25rem;
-    }
-
-    p {
-      color: #8A9E99;
-      font-size: 0.9rem;
-      margin: 0;
-    }
+    font-family: 'Geist', sans-serif;
+    font-weight: 700;
+    font-size: 20px;
+    color: var(--pq-text);
+    line-height: 1.2;
   }
 
-  &__stats {
-    display: flex;
-    flex-wrap: wrap;
-    gap: 0.5rem;
-    margin-bottom: 1.5rem;
-  }
-
-  &__checklist {
-    display: flex;
-    flex-direction: column;
-    gap: 0.75rem;
+  &__subtitle {
+    font-family: 'Satoshi', sans-serif;
+    font-size: 14px;
+    color: var(--pq-text-muted);
+    margin: 2px 0 0;
   }
 }
 
-.stat-chip {
-  display: inline-flex;
-  align-items: center;
-  gap: 0.35rem;
-  background: rgba(163, 120, 94, 0.08);
-  border: 1px solid rgba(163, 120, 94, 0.15);
-  border-radius: 9999px;
-  padding: 0.35rem 0.75rem;
-  font-size: 0.85rem;
+// Metric cards
+.preview-metrics {
+  display: grid;
+  grid-template-columns: repeat(4, 1fr);
+  gap: 6px;
+  margin-bottom: 20px;
+
+  @media (max-width: 500px) {
+    grid-template-columns: repeat(2, 1fr);
+  }
+}
+
+.preview-metric {
+  background: var(--pq-surface);
+  border: 1px solid var(--pq-border);
+  border-radius: var(--pq-radius-lg);
+  padding: 12px 8px;
+  text-align: center;
 
   &__value {
-    font-weight: 700;
-    color: #E2E8E4;
+    display: block;
+    font-family: 'Geist Mono', monospace;
+    font-size: 20px;
+    font-weight: 600;
+    font-variant-numeric: tabular-nums;
+    color: var(--pq-text);
+    line-height: 1;
+    margin-bottom: 2px;
   }
 
   &__label {
-    color: #8A9E99;
+    display: block;
+    font-family: 'Satoshi', sans-serif;
+    font-size: 11px;
+    color: var(--pq-text-muted);
+    text-transform: uppercase;
+    letter-spacing: 0.04em;
   }
 }
 
-.check-item {
+// Products section
+.preview-products-section {
+  border-top: 1px solid var(--pq-border);
+  padding-top: 16px;
+
+  &__title {
+    font-family: 'Satoshi', sans-serif;
+    font-size: 11px;
+    font-weight: 500;
+    text-transform: uppercase;
+    letter-spacing: 0.08em;
+    color: var(--pq-text-subtle);
+    margin-bottom: 12px;
+  }
+}
+
+.preview-products {
+  display: grid;
+  grid-template-columns: repeat(3, 1fr);
+  gap: 6px;
+
+  @media (max-width: 640px) {
+    grid-template-columns: repeat(2, 1fr);
+  }
+
+  @media (max-width: 435px) {
+    grid-template-columns: 1fr;
+  }
+
+  &__more {
+    font-family: 'Satoshi', sans-serif;
+    font-size: 12px;
+    color: var(--pq-text-subtle);
+    margin-top: 10px;
+  }
+}
+
+.preview-product {
+  background: var(--pq-surface);
+  border: 1px solid var(--pq-border);
+  border-radius: var(--pq-radius-md);
+  padding: 8px;
+
+  &__name {
+    font-family: 'Satoshi', sans-serif;
+    font-weight: 500;
+    font-size: 13px;
+    color: var(--pq-text);
+    margin-bottom: 4px;
+    line-height: 1.2;
+  }
+
+  &__meta {
+    display: flex;
+    flex-direction: column;
+    gap: 1px;
+  }
+
+  &__unit {
+    font-family: 'Geist Mono', monospace;
+    font-size: 11px;
+    color: var(--pq-text-muted);
+  }
+
+  &__category {
+    font-family: 'Satoshi', sans-serif;
+    font-size: 10px;
+    font-weight: 500;
+    color: var(--pq-text-subtle);
+    text-transform: uppercase;
+    letter-spacing: 0.04em;
+  }
+}
+
+.onboarding-actions {
   display: flex;
-  align-items: flex-start;
-  gap: 0.5rem;
-  font-size: 0.9rem;
-  color: #E2E8E4;
-  line-height: 1.4;
+  justify-content: center;
+  gap: 12px;
+  margin-top: 20px;
 }
 
 .loading-overlay {
   display: flex;
   justify-content: center;
-  padding: 2rem;
+  padding: 32px;
+
+  :deep(.q-spinner) {
+    color: var(--pq-accent);
+  }
+}
+
+// prefers-reduced-motion
+@media (prefers-reduced-motion: reduce) {
+  .onboarding-content {
+    transition: none;
+  }
+
+  .step-indicator__dot,
+  .step-indicator__line {
+    transition: none;
+  }
+
+  .stagger-children > * {
+    animation: none;
+    opacity: 1;
+  }
+
+  .fade-in-up {
+    animation: none;
+    opacity: 1;
+  }
 }
 </style>

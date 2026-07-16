@@ -674,6 +674,47 @@ frontend/pymes/src/modules/core/pages/OnboardingPage.vue     # sin fetchCurrentU
 
 ---
 
-*Nota: El post-mortem del merge catastrofico (2026-06-12) esta consolidado en `REFACTOR-STRATEGY.md` (raiz). Este archivo mantiene el registro historico completo.*
+## 2026-07-16 — Auth criticals + CORS root cause
+
+### Qué se hizo
+
+**Auth: 4 críticos corregidos (130 tests, 0 fallos):**
+1. **JWT secret sin validación** — `@PostConstruct init()` en `JwtServiceImpl.java` valida key ≥ 32 bytes
+2. **Logout traga excepción** — `extractUserId()` movido antes del try-block en `AuthServiceImpl.java`
+3. **Cookie OAuth2 sin Secure** — `cookie.setSecure(request.isSecure())` en `OAuth2IntentCookieFilter.java`
+4. **Token reset en URL** — aceptado como está (hash fragment + one-time + TTL + referrer-policy)
+
+**CORS: diagnóstico completo**
+- Posta 1 (equivocada): `globalcors` con `allowed-origin-patterns` rompía POST → se quitó
+- Posta 2 (descubierta): sin `globalcors`, SCG intercepta OPTIONS internamente y retorna 403 incluso antes de enrutar
+- **Doble capa CORS necesaria:**
+  - Gateway: `globalcors` con `allowed-origins` (exacto, no pattern) → OPTIONS preflight retorna 200
+  - Auth service: `setAllowedOrigins` + `allowCredentials(true)` → ACAO en POST
+
+### Archivos modificados
+
+```
+backend/auth/src/main/java/auth/pymes/service/impl/JwtServiceImpl.java              # @PostConstruct init()
+backend/auth/src/main/java/auth/pymes/service/impl/AuthServiceImpl.java              # extractUserId fuera del try
+backend/auth/src/main/java/auth/pymes/common/config/OAuth2IntentCookieFilter.java    # cookie.setSecure
+backend/auth/src/main/java/auth/pymes/common/config/WebCorsConfig.java               # setAllowedOriginPatterns → setAllowedOrigins
+backend/gateway-pymes/src/main/resources/application.yaml                            # globalcors con allowed-origins
+docs/GAPS.md                                                                         # marks resolved
+docs/DAILY_REPORTS_PROJECT.md                                                        # this entry
+```
+
+### Tests
+
+| Suite | Resultado |
+|-------|-----------|
+| Auth unit (130) | ✅ |
+
+### Próximo
+
+1. Frontend CORS test real desde navegador
+2. Retomar gaps 🟡 (N+1, rate limit, etc.)
+3. Si aplica, mergar a `develop`
+
+---
 
 *Creado: 2026-06-19 | Consolidacion de REFACTOR-STRATEGY.md + .github/REFACTOR.md*

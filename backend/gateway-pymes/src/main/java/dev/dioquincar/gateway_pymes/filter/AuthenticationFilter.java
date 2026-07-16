@@ -5,13 +5,18 @@ import io.jsonwebtoken.Claims;
 import lombok.extern.slf4j.Slf4j;
 import org.springframework.cloud.gateway.filter.GatewayFilter;
 import org.springframework.cloud.gateway.filter.factory.AbstractGatewayFilterFactory;
+import org.springframework.core.io.buffer.DataBuffer;
 import org.springframework.data.redis.core.ReactiveRedisTemplate;
 import org.springframework.http.HttpHeaders;
 import org.springframework.http.HttpStatus;
+import org.springframework.http.MediaType;
 import org.springframework.http.server.reactive.ServerHttpRequest;
+import org.springframework.http.server.reactive.ServerHttpResponse;
 import org.springframework.stereotype.Component;
 import org.springframework.web.server.ServerWebExchange;
 import reactor.core.publisher.Mono;
+
+import java.nio.charset.StandardCharsets;
 
 @Component
 @Slf4j
@@ -35,12 +40,10 @@ public class AuthenticationFilter extends AbstractGatewayFilterFactory<Authentic
         return (exchange, chain) -> {
             ServerHttpRequest request = exchange.getRequest();
 
-            // 0. Si la ruta es pública (whitelist), no aplicar seguridad
             if (!routerValidator.isSecured.test(request)) {
                 return chain.filter(exchange);
             }
 
-            // 1. Obtener el token del header Authorization
             if (!request.getHeaders().containsKey(HttpHeaders.AUTHORIZATION)) {
                 return onError(exchange, "No authorization header", HttpStatus.UNAUTHORIZED);
             }
@@ -52,7 +55,6 @@ public class AuthenticationFilter extends AbstractGatewayFilterFactory<Authentic
 
             String token = authHeader.substring(7);
 
-            // 2. Validar firma y expiración del JWT (una sola vez)
             Claims claims;
             try {
                 claims = jwtUtils.getClaims(token);
@@ -60,7 +62,11 @@ public class AuthenticationFilter extends AbstractGatewayFilterFactory<Authentic
                 return onError(exchange, "Invalid JWT token", HttpStatus.UNAUTHORIZED);
             }
 
-            // 3. Verificar en Redis si está en la blacklist (Logout)
+            // Reject refresh tokens — they lack role/tenantId/plan claims
+            if (claims.get("role") == null) {
+                return onError(exchange, "Access tokens only", HttpStatus.UNAUTHORIZED);
+            }
+
             return redisTemplate.hasKey(BLACKLIST_PREFIX + token)
                     .flatMap(isRevoked -> {
                         if (isRevoked) {
@@ -68,22 +74,31 @@ public class AuthenticationFilter extends AbstractGatewayFilterFactory<Authentic
                             return onError(exchange, "Token is revoked", HttpStatus.UNAUTHORIZED);
                         }
 
-                        // 4. Inyectar claims en los headers para los microservicios internos
-                        ServerHttpRequest mutatedRequest = exchange.getRequest().mutate()
-                                .header("X-User-Id", claims.get("userId") != null ? String.valueOf(claims.get("userId")) : null)
-                                .header("X-User-Email", claims.getSubject())
-                                .header("X-Tenant-Id", claims.get("tenantId") != null ? String.valueOf(claims.get("tenantId")) : null)
-                                .header("X-User-Role", claims.get("role") != null ? String.valueOf(claims.get("role")) : null)
-                                .build();
+                        ServerHttpRequest.Builder builder = exchange.getRequest().mutate();
+                        addIfNotNull(builder, "X-User-Id", claims.get("userId", String.class));
+                        addIfNotNull(builder, "X-User-Email", claims.getSubject());
+                        addIfNotNull(builder, "X-Tenant-Id", claims.get("tenantId", String.class));
+                        addIfNotNull(builder, "X-User-Role", claims.get("role", String.class));
+                        addIfNotNull(builder, "X-User-Plan", claims.get("plan", String.class));
 
-                        return chain.filter(exchange.mutate().request(mutatedRequest).build());
+                        return chain.filter(exchange.mutate().request(builder.build()).build());
                     });
         };
     }
 
+    private static void addIfNotNull(ServerHttpRequest.Builder builder, String name, String value) {
+        if (value != null) {
+            builder.header(name, value);
+        }
+    }
+
     private Mono<Void> onError(ServerWebExchange exchange, String err, HttpStatus httpStatus) {
-        exchange.getResponse().setStatusCode(httpStatus);
-        return exchange.getResponse().setComplete();
+        ServerHttpResponse response = exchange.getResponse();
+        response.setStatusCode(httpStatus);
+        response.getHeaders().setContentType(MediaType.APPLICATION_JSON);
+        String body = "{\"error\":\"" + err + "\",\"status\":" + httpStatus.value() + "}";
+        DataBuffer buffer = response.bufferFactory().wrap(body.getBytes(StandardCharsets.UTF_8));
+        return response.writeWith(Mono.just(buffer));
     }
 
     public static class Config {

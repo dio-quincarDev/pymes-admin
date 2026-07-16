@@ -59,6 +59,7 @@ class JwtServiceImplTest {
         ReflectionTestUtils.setField(jwtService, "secretKey", TEST_SECRET);
         ReflectionTestUtils.setField(jwtService, "accessTokenExpiration", ACCESS_EXPIRATION);
         ReflectionTestUtils.setField(jwtService, "refreshTokenExpiration", REFRESH_EXPIRATION);
+        jwtService.init();
 
         // Datos base
         defaultUser = UserEntity.builder()
@@ -361,6 +362,15 @@ class JwtServiceImplTest {
 
         verify(refreshTokenRepository).deleteByUserId(defaultUser.getId());
         verify(refreshTokenRepository, never()).save(any());
+    }
+
+    @Test
+    void shortSecretThrowsException() throws Exception {
+        var utils = new JwtServiceImpl(tokenBlacklistService, refreshTokenRepository);
+        ReflectionTestUtils.setField(utils, "secretKey", "short");
+        ReflectionTestUtils.setField(utils, "accessTokenExpiration", ACCESS_EXPIRATION);
+        ReflectionTestUtils.setField(utils, "refreshTokenExpiration", REFRESH_EXPIRATION);
+        assertThatThrownBy(utils::init).isInstanceOf(IllegalArgumentException.class);
     }
 
     @Test

@@ -1,7 +1,7 @@
 <template>
   <section id="features" ref="target" class="features-section q-pa-lg q-pa-md-xl" :class="{ 'reveal-visible': isVisible }">
     <div class="max-width-1200 mx-auto reveal-up">
-      <div class="section-label">HERRAMIENTAS PARA CRECER</div>
+      <div class="section-label">INTELIGENCIA FINANCIERA</div>
       <h2 class="section-title">Control total de forma sencilla.</h2>
 
       <div class="bento-grid">
@@ -11,8 +11,8 @@
               <q-icon name="history_edu" size="4rem" style="color: var(--pq-accent)" class="q-mb-md" aria-hidden="true" />
               <h3 class="feature-main-title q-mb-md">Orden Absoluto.</h3>
               <p class="feature-main-copy">
-                Tus facturas y recibos en un solo lugar. Ya sea escaneando un QR o anotando a mano,
-                nada se escapa. El primer paso para ahorrar es saber en qué gastas.
+                Tus facturas de compra con conversión automática entre presentaciones.
+                Comprás en caja x12, analizás costo por unidad.
               </p>
             </div>
             <div class="visual-placeholder q-mt-lg flex flex-center">
@@ -25,40 +25,30 @@
         </BaseCard>
 
         <BaseCard class="bento-item feature-ai q-pa-lg" variant="ghost">
-           <div class="row items-center q-mb-sm">
-              <q-icon name="tips_and_updates" style="color: var(--pq-accent)" size="sm" class="q-mr-sm" aria-hidden="true" />
-              <span class="feature-ai-tag">Ahorro Promedio: 18%</span>
+            <div class="row items-center q-mb-sm">
+              <q-icon name="category" style="color: var(--pq-accent)" size="sm" class="q-mr-sm" aria-hidden="true" />
+              <span class="feature-ai-tag">ABC DE GASTOS</span>
             </div>
-            <h4 class="feature-card-title q-mb-sm">Alertas que te cuidan</h4>
+            <h4 class="feature-card-title q-mb-sm">Analiza tus gastos</h4>
             <p class="feature-card-copy">
-              Te avisamos si un gasto sube demasiado o si hay una factura duplicada.
-              Cuidamos tu bolsillo como si fuera el nuestro.
+              Clasificación automática A/B/C de tus productos. Sabé qué insumos
+              consumen el 80% de tu presupuesto.
             </p>
-            <div class="mockup-alert q-mt-md q-pa-md">
-              <div class="row items-center" style="gap: 6px">
-                <q-icon name="notifications_active" style="color: var(--pq-warning)" aria-hidden="true" />
-                <span class="mockup-alert-text">Gasto inusual detectado</span>
-              </div>
-            </div>
         </BaseCard>
 
         <BaseCard class="bento-item feature-pwa q-pa-lg" variant="elevated">
             <q-icon name="smartphone" size="3rem" style="color: var(--pq-accent)" class="q-mb-md" aria-hidden="true" />
             <h4 class="feature-card-title q-mb-sm">Tu oficina móvil.</h4>
             <p class="feature-card-copy">
-              Lleva el control de tu empresa en el bolsillo. Funciona rápido, incluso sin internet.
+              Registrá operaciones desde cualquier lugar. Sin conexión incluido.
             </p>
         </BaseCard>
 
         <BaseCard class="bento-item feature-security q-pa-lg" variant="outlined">
-            <h4 class="feature-card-title q-mb-sm">Transparencia Total</h4>
-            <p class="feature-card-copy-sm">
-              Datos cifrados y seguros. Tú eres el único dueño de tu información financiera.
+            <h4 class="feature-card-title q-mb-sm">Comparativa de proveedores</h4>
+            <p class="feature-card-copy">
+              Sabé si tu proveedor te está vendiendo más caro que el promedio del mercado.
             </p>
-            <div class="q-mt-sm row" style="gap: 8px">
-              <q-icon name="lock" style="color: var(--pq-accent)" aria-hidden="true" />
-              <q-icon name="shield" style="color: var(--pq-text-muted)" aria-hidden="true" />
-            </div>
         </BaseCard>
       </div>
     </div>
@@ -190,14 +180,6 @@ const { target, isVisible } = useScrollReveal();
   margin: 0;
 }
 
-.feature-card-copy-sm {
-  font-family: 'Satoshi', sans-serif;
-  font-size: 12px;
-  line-height: 1.5;
-  color: var(--pq-text-muted);
-  margin: 0;
-}
-
 .feature-ai-tag {
   font-family: 'Satoshi', sans-serif;
   font-size: 11px;
@@ -218,19 +200,4 @@ const { target, isVisible } = useScrollReveal();
   position: relative;
 }
 
-/* --------------------------------------------------
-   Mockup alert
--------------------------------------------------- */
-.mockup-alert {
-  background: var(--pq-elevated);
-  border: 1px solid var(--pq-border);
-  border-radius: var(--pq-radius-sm);
-}
-
-.mockup-alert-text {
-  font-family: 'Satoshi', sans-serif;
-  font-size: 12px;
-  font-weight: 700;
-  color: var(--pq-text);
-}
 </style>

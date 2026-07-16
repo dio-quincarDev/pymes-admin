@@ -49,6 +49,15 @@ class JwtUtilsTest {
         assertThrows(Exception.class, () -> jwtUtils.getClaims("not-a-jwt"));
     }
 
+    @Test
+    void shortSecretThrowsException() throws Exception {
+        var utils = new JwtUtils();
+        var field = JwtUtils.class.getDeclaredField("secret");
+        field.setAccessible(true);
+        field.set(utils, "short");
+        assertThrows(IllegalArgumentException.class, utils::init);
+    }
+
     private static String createToken(String secret, String subject, long ttlMs) {
         SecretKey key = Keys.hmacShaKeyFor(secret.getBytes(StandardCharsets.UTF_8));
         return Jwts.builder()

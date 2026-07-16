@@ -55,14 +55,14 @@ const scrollTo = (id: string) => {
       <div class="container-narrow mx-auto q-pa-lg">
         <div class="row q-col-gutter-md justify-between items-center">
           <div class="col-12 col-md-4 text-center text-md-left">
-            <div class="logo-text q-mb-xs">PYMEQ</div>
+            <div class="logo-text q-mb-xs">PymeQ</div>
             <div class="text-caption" style="color: var(--pq-text-muted)">
-              Tu Capital, Bajo Control.
+              by QCore System
             </div>
           </div>
           <div class="col-12 col-md-4 text-center">
             <div class="text-caption" style="color: var(--pq-text-subtle)">
-              &copy; 2026 Pymeq. Hecho para crecer.
+              &copy; 2026 PymeQ by QCore System. Hecho para crecer.
             </div>
           </div>
           <div class="col-12 col-md-4 text-center text-md-right">

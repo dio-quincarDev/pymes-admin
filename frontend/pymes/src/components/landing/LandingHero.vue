@@ -1,21 +1,22 @@
 <template>
   <section class="hero-section q-px-md">
+    <div class="q-monogram" aria-hidden="true">Q</div>
     <div class="hero-grid container-narrow mx-auto">
       <!-- Left: copy + onboarding -->
       <div class="hero-left">
         <div class="stagger-children">
           <div class="hero-badge">
-            <span class="badge-label">GESTIÓN FINANCIERA INTELIGENTE</span>
+            <span class="badge-label">FINANCIAL OS FOR PYMES</span>
           </div>
 
           <h1 class="hero-headline">
-            Organiza tu empresa y<br>
-            <span class="hero-accent">toma el control.</span>
+            El sistema operativo<br>
+            financiero para tu PyME
           </h1>
 
           <p class="hero-copy">
-            Pymeq es tu aliado estratégico para entender tus flujos de caja
-            y optimizar cada centavo de tu negocio.
+            Registrá tus compras. El sistema calcula márgenes, encuentra fugas
+            de dinero y te dice si tu negocio está saludable.
           </p>
 
           <div class="onboarding-row">
@@ -49,17 +50,17 @@
         </div>
       </div>
 
-      <!-- Right: KPI strip -->
+      <!-- Right: KPI strip — real numbers, no fabrication -->
       <div class="hero-right">
         <div class="kpi-strip stagger-children">
           <div class="kpi-block">
-            <div class="kpi-number">500+</div>
-            <div class="kpi-label">Empresas activas</div>
+            <div class="kpi-number" aria-label="Ocho industrias precargadas">8</div>
+            <div class="kpi-label">Industrias precargadas</div>
           </div>
           <div class="kpi-divider" />
           <div class="kpi-block">
-            <div class="kpi-number">18%</div>
-            <div class="kpi-label">Ahorro promedio</div>
+            <div class="kpi-number" aria-label="Diez motores de análisis">10</div>
+            <div class="kpi-label">Motores de análisis</div>
           </div>
           <div class="kpi-divider" />
           <div class="kpi-block">
@@ -112,6 +113,28 @@ const companyForm = reactive({ name: '' });
 }
 
 /* --------------------------------------------------
+   Q monogram — brand stamp (Signature)
+-------------------------------------------------- */
+.q-monogram {
+  position: absolute;
+  font-family: 'Geist', sans-serif;
+  font-weight: 800;
+  font-size: 240px;
+  color: var(--pq-accent);
+  opacity: 0.035;
+  pointer-events: none;
+  right: 2%;
+  top: 8%;
+  z-index: 0;
+  line-height: 1;
+  user-select: none;
+
+  @media (max-width: 767px) {
+    display: none;
+  }
+}
+
+/* --------------------------------------------------
    Left — copy
 -------------------------------------------------- */
 .hero-badge {
@@ -142,10 +165,6 @@ const companyForm = reactive({ name: '' });
   @media (min-width: 768px) {
     font-size: 40px;
   }
-}
-
-.hero-accent {
-  color: var(--pq-accent);
 }
 
 .hero-copy {

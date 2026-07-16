@@ -209,6 +209,19 @@ public class AuthServiceImplTest {
     }
 
     @Test
+    void logout_whenExtractUserIdFails_PropagatesException() {
+        String accessToken = "malformed-token";
+        when(httpRequest.getHeader("Authorization")).thenReturn("Bearer " + accessToken);
+        when(jwtService.extractUserId(accessToken)).thenThrow(new RuntimeException("token parse error"));
+
+        assertThatThrownBy(() -> authService.logout(httpRequest))
+                .isInstanceOf(RuntimeException.class);
+
+        verify(jwtService, never()).revokeToken(any());
+        verify(refreshTokenRepository, never()).deleteByUserId(any());
+    }
+
+    @Test
     void refreshToken_WithValidRefreshToken_ReturnsNewAuthResponse() {
         String refreshToken = "valid-refresh-token";
         TokenRefreshRequest request = new TokenRefreshRequest(refreshToken);

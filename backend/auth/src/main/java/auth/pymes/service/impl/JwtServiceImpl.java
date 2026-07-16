@@ -14,6 +14,7 @@ import io.jsonwebtoken.Jwts;
 import io.jsonwebtoken.MalformedJwtException;
 import io.jsonwebtoken.security.Keys;
 import io.jsonwebtoken.security.SignatureException;
+import jakarta.annotation.PostConstruct;
 import lombok.RequiredArgsConstructor;
 import lombok.extern.slf4j.Slf4j;
 import org.springframework.beans.factory.annotation.Value;
@@ -46,6 +47,18 @@ public class JwtServiceImpl implements JwtService {
 
     @Value("${jwt.refresh-expiration}")
     private long refreshTokenExpiration;
+
+    private SecretKey key;
+
+    @PostConstruct
+    public void init() {
+        byte[] keyBytes = secretKey.getBytes(StandardCharsets.UTF_8);
+        if (keyBytes.length < 32) {
+            log.error("JWT secret must be at least 256 bits (32 bytes), got {} bits", keyBytes.length * 8);
+            throw new IllegalArgumentException("JWT secret must be at least 256 bits (32 bytes)");
+        }
+        this.key = Keys.hmacShaKeyFor(keyBytes);
+    }
 
     private final TokenBlacklistService tokenBlacklistService;
     private final RefreshTokenRepository refreshTokenRepository;
@@ -83,8 +96,7 @@ public class JwtServiceImpl implements JwtService {
     }
 
     private SecretKey getSigningKey() {
-        byte[] keyBytes = secretKey.getBytes(StandardCharsets.UTF_8);
-        return Keys.hmacShaKeyFor(keyBytes);
+        return key;
     }
 
     @Override

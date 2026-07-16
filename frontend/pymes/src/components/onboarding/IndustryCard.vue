@@ -19,6 +19,8 @@ const cardClasses = computed(() => ({
   'industry-card': true,
   'industry-card--selected': props.selected,
 }))
+
+const pressedState = computed(() => props.selected ? 'true' : 'false')
 </script>
 
 <template>
@@ -26,6 +28,7 @@ const cardClasses = computed(() => ({
     :class="cardClasses"
     role="button"
     tabindex="0"
+    :aria-pressed="pressedState"
     @click="emit('select', code)"
     @keydown.enter="emit('select', code)"
     @keydown.space.prevent="emit('select', code)"
@@ -34,7 +37,7 @@ const cardClasses = computed(() => ({
       <q-icon
         :name="icon"
         size="1.8rem"
-        :color="selected ? 'primary' : 'accent'"
+        style="color: var(--pq-accent)"
         class="industry-card__icon"
       />
       <Transition name="check">
@@ -42,8 +45,9 @@ const cardClasses = computed(() => ({
           v-if="selected"
           name="check_circle"
           size="1.2rem"
-          color="primary"
+          style="color: var(--pq-success)"
           class="industry-card__check"
+          aria-hidden="true"
         />
       </Transition>
     </div>
@@ -54,41 +58,46 @@ const cardClasses = computed(() => ({
 
 <style lang="scss" scoped>
 .industry-card {
-  background: rgba(27, 38, 36, 0.7);
-  border: 1px solid rgba(163, 120, 94, 0.08);
-  border-radius: 12px;
-  padding: 1.25rem 1rem;
+  background: rgba(18, 20, 26, 0.7);
+  border: 1px solid rgba(53, 57, 69, 0.5);
+  border-radius: var(--pq-radius-lg);
+  padding: 20px 16px;
   text-align: center;
   cursor: pointer;
-  transition: all 0.25s cubic-bezier(0.4, 0, 0.2, 1);
+  transition: all var(--pq-motion-base);
   position: relative;
 
   &:hover {
-    border-color: rgba(163, 120, 94, 0.25);
+    border-color: rgba(200, 150, 62, 0.25);
     transform: translateY(-2px);
-    box-shadow: 0 8px 24px rgba(0, 0, 0, 0.2);
+    box-shadow: var(--pq-shadow-md);
+  }
+
+  &:focus-visible {
+    outline: 2px solid var(--pq-accent);
+    outline-offset: 2px;
   }
 
   &--selected {
-    border-color: #A3785E;
-    background: rgba(163, 120, 94, 0.08);
-    box-shadow: 0 0 20px rgba(163, 120, 94, 0.15), 0 8px 24px rgba(0, 0, 0, 0.2);
+    border-color: var(--pq-accent);
+    background: rgba(200, 150, 62, 0.08);
+    box-shadow: var(--pq-shadow-md);
 
     .industry-card__icon-wrap {
-      background: rgba(163, 120, 94, 0.15);
+      background: rgba(200, 150, 62, 0.15);
     }
   }
 
   &__icon-wrap {
     width: 48px;
     height: 48px;
-    border-radius: 50%;
+    border-radius: var(--pq-radius-full);
     display: flex;
     align-items: center;
     justify-content: center;
-    margin: 0 auto 0.75rem;
-    background: rgba(163, 120, 94, 0.06);
-    transition: background 0.25s ease;
+    margin: 0 auto 12px;
+    background: rgba(200, 150, 62, 0.06);
+    transition: background var(--pq-motion-fast);
     position: relative;
   }
 
@@ -99,16 +108,17 @@ const cardClasses = computed(() => ({
   }
 
   &__name {
-    font-family: 'Outfit', sans-serif;
+    font-family: 'Geist', sans-serif;
     font-weight: 600;
-    font-size: 0.875rem;
-    color: #E2E8E4;
-    margin-bottom: 0.25rem;
+    font-size: 14px;
+    color: var(--pq-text);
+    margin-bottom: 4px;
   }
 
   &__desc {
-    font-size: 0.75rem;
-    color: #8A9E99;
+    font-family: 'Satoshi', sans-serif;
+    font-size: 12px;
+    color: var(--pq-text-muted);
     line-height: 1.4;
   }
 }

@@ -9,14 +9,18 @@ import org.mockito.Mock;
 import org.mockito.junit.jupiter.MockitoExtension;
 import org.springframework.cloud.gateway.filter.GatewayFilter;
 import org.springframework.cloud.gateway.filter.GatewayFilterChain;
+import org.springframework.core.io.buffer.DataBuffer;
+import org.springframework.core.io.buffer.DataBufferFactory;
 import org.springframework.data.redis.core.ReactiveRedisTemplate;
 import org.springframework.http.HttpHeaders;
 import org.springframework.http.HttpStatus;
+import org.springframework.http.MediaType;
 import org.springframework.http.server.reactive.ServerHttpRequest;
 import org.springframework.http.server.reactive.ServerHttpResponse;
 import org.springframework.web.server.ServerWebExchange;
 import reactor.core.publisher.Mono;
 
+import static org.junit.jupiter.api.Assertions.assertEquals;
 import static org.mockito.ArgumentMatchers.any;
 import static org.mockito.Mockito.*;
 
@@ -30,7 +34,10 @@ class AuthenticationFilterTest {
     @Mock ServerHttpResponse response;
     @Mock GatewayFilterChain chain;
     @Mock Claims claims;
+    @Mock DataBufferFactory bufferFactory;
+    @Mock DataBuffer dataBuffer;
 
+    private final HttpHeaders httpHeaders = new HttpHeaders();
     private final RouterValidator routerValidator = new RouterValidator();
     private AuthenticationFilter filter;
     private GatewayFilter gatewayFilter;
@@ -42,7 +49,10 @@ class AuthenticationFilterTest {
         lenient().when(exchange.getRequest()).thenReturn(request);
         lenient().when(exchange.getResponse()).thenReturn(response);
         lenient().when(chain.filter(any())).thenReturn(Mono.empty());
-        lenient().when(response.setComplete()).thenReturn(Mono.empty());
+        lenient().when(response.getHeaders()).thenReturn(httpHeaders);
+        lenient().when(response.bufferFactory()).thenReturn(bufferFactory);
+        lenient().when(bufferFactory.wrap(any(byte[].class))).thenReturn(dataBuffer);
+        lenient().when(response.writeWith(any())).thenReturn(Mono.empty());
     }
 
     @Test
@@ -63,8 +73,7 @@ class AuthenticationFilterTest {
         gatewayFilter.filter(exchange, chain).block();
 
         verify(response).setStatusCode(HttpStatus.UNAUTHORIZED);
-        verify(response).setComplete();
-        verifyNoMoreInteractions(jwtUtils, redisTemplate);
+        verify(response).writeWith(any());
     }
 
     @Test
@@ -76,6 +85,7 @@ class AuthenticationFilterTest {
         gatewayFilter.filter(exchange, chain).block();
 
         verify(response).setStatusCode(HttpStatus.UNAUTHORIZED);
+        verify(response).writeWith(any());
     }
 
     @Test
@@ -87,6 +97,7 @@ class AuthenticationFilterTest {
         gatewayFilter.filter(exchange, chain).block();
 
         verify(response).setStatusCode(HttpStatus.UNAUTHORIZED);
+        verify(response).writeWith(any());
     }
 
     @Test
@@ -94,19 +105,42 @@ class AuthenticationFilterTest {
         secured();
         when(request.getHeaders()).thenReturn(headers("Bearer t"));
         when(jwtUtils.getClaims("t")).thenReturn(claims);
+        when(claims.get("role")).thenReturn("ADMIN");
         when(redisTemplate.hasKey("auth:token_blacklist:t")).thenReturn(Mono.just(true));
 
         gatewayFilter.filter(exchange, chain).block();
 
         verify(response).setStatusCode(HttpStatus.UNAUTHORIZED);
+        verify(response).writeWith(any());
     }
 
     @Test
-    void validTokenWithNullClaimsSetsNullHeaders() {
+    void refreshTokenRejectedBeforeRedisCheck() {
+        secured();
+        when(request.getHeaders()).thenReturn(headers("Bearer t"));
+        when(jwtUtils.getClaims("t")).thenReturn(claims);
+        // claims.get("role") returns null by default — refresh token
+
+        gatewayFilter.filter(exchange, chain).block();
+
+        verify(response).setStatusCode(HttpStatus.UNAUTHORIZED);
+        verify(response).writeWith(any());
+        verifyNoInteractions(redisTemplate);
+    }
+
+    @Test
+    void validTokenWithPartialClaimsOnlyInjectsPresentHeaders() {
         secured();
         when(request.getHeaders()).thenReturn(headers("Bearer t"));
         when(jwtUtils.getClaims("t")).thenReturn(claims);
         when(redisTemplate.hasKey("auth:token_blacklist:t")).thenReturn(Mono.just(false));
+        when(claims.get("role")).thenReturn("OWNER");
+        when(claims.get("role", String.class)).thenReturn("OWNER");
+        when(claims.get("userId", String.class)).thenReturn("u1");
+        // subject, tenantId, plan explicitly return null
+        when(claims.getSubject()).thenReturn(null);
+        when(claims.get("tenantId", String.class)).thenReturn(null);
+        when(claims.get("plan", String.class)).thenReturn(null);
 
         var requestBuilder = mock(ServerHttpRequest.Builder.class, RETURNS_SELF);
         when(request.mutate()).thenReturn(requestBuilder);
@@ -121,22 +155,25 @@ class AuthenticationFilterTest {
         gatewayFilter.filter(exchange, chain).block();
 
         verify(chain).filter(mutatedExchange);
-        verify(requestBuilder).header("X-User-Id", (String) null);
-        verify(requestBuilder).header("X-User-Email", (String) null);
-        verify(requestBuilder).header("X-Tenant-Id", (String) null);
-        verify(requestBuilder).header("X-User-Role", (String) null);
+        verify(requestBuilder).header("X-User-Id", "u1");
+        verify(requestBuilder).header("X-User-Role", "OWNER");
+        verify(requestBuilder, never()).header(eq("X-User-Email"), any());
+        verify(requestBuilder, never()).header(eq("X-Tenant-Id"), any());
+        verify(requestBuilder, never()).header(eq("X-User-Plan"), any());
     }
 
     @Test
-    void validTokenInjectsClaimHeaders() {
+    void validTokenInjectsAllClaimHeaders() {
         secured();
         when(request.getHeaders()).thenReturn(headers("Bearer t"));
         when(jwtUtils.getClaims("t")).thenReturn(claims);
         when(redisTemplate.hasKey("auth:token_blacklist:t")).thenReturn(Mono.just(false));
-        when(claims.get("userId")).thenReturn(42L);
-        when(claims.getSubject()).thenReturn("user@test.com");
-        when(claims.get("tenantId")).thenReturn(1L);
         when(claims.get("role")).thenReturn("ADMIN");
+        when(claims.get("role", String.class)).thenReturn("ADMIN");
+        when(claims.get("userId", String.class)).thenReturn("u1");
+        when(claims.getSubject()).thenReturn("admin@test.com");
+        when(claims.get("tenantId", String.class)).thenReturn("t1");
+        when(claims.get("plan", String.class)).thenReturn("PRO");
 
         var requestBuilder = mock(ServerHttpRequest.Builder.class, RETURNS_SELF);
         when(request.mutate()).thenReturn(requestBuilder);
@@ -151,10 +188,21 @@ class AuthenticationFilterTest {
         gatewayFilter.filter(exchange, chain).block();
 
         verify(chain).filter(mutatedExchange);
-        verify(requestBuilder).header("X-User-Id", "42");
-        verify(requestBuilder).header("X-User-Email", "user@test.com");
-        verify(requestBuilder).header("X-Tenant-Id", "1");
+        verify(requestBuilder).header("X-User-Id", "u1");
+        verify(requestBuilder).header("X-User-Email", "admin@test.com");
+        verify(requestBuilder).header("X-Tenant-Id", "t1");
         verify(requestBuilder).header("X-User-Role", "ADMIN");
+        verify(requestBuilder).header("X-User-Plan", "PRO");
+    }
+
+    @Test
+    void errorResponseIsJson() {
+        secured();
+        when(request.getHeaders()).thenReturn(new HttpHeaders());
+
+        gatewayFilter.filter(exchange, chain).block();
+
+        assertEquals(MediaType.APPLICATION_JSON, httpHeaders.getContentType());
     }
 
     private void secured() {

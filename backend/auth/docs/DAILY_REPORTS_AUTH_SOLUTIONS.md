@@ -6,6 +6,17 @@ Este documento registra de manera cronológica el historial de decisiones técni
 
 ## 📋 ÍNDICE DE ROADMAP Y ESTADO
 
+### 📌 Estrategia CORS
+
+A partir de 2026-07-16, CORS opera en **doble capa**:
+
+| Capa | Rol |
+|------|-----|
+| **Gateway** | `globalcors` con `allowed-origins` (exacto, no pattern) → maneja OPTIONS preflight. SCG lo requiere internamente. |
+| **Auth service** | `WebCorsConfig.java` + `.cors(Customizer.withDefaults())` → agrega ACAO a requests reales (POST, GET, etc.). |
+
+**Ver también**: `backend/gateway-pymes/docs/DAILY_REPORTS_GATEWAY_SOLUTIONS.md` — 2026-07-16
+
 ### 🔲 Bugs Pendientes
 - **[P2] Facebook OAuth2** — *POSTERGADO* (Meta no aprobó la verificación de la empresa. Queda pendiente indefinidamente hasta obtener credenciales válidas en la consola de Meta Developer).
 
@@ -13,7 +24,8 @@ Este documento registra de manera cronológica el historial de decisiones técni
 - **Defensa en profundidad + Code Exchange OAuth2** — En proceso de validación y robustecimiento continuo.
 
 ### ✅ Historial de Soluciones (Orden Cronológico Inverso)
-1. [2026-06-24 — Fix UserServiceImplTest (4 errores)](#-2026-06-24--fix-userserviceimpltest-4-errores)
+1. [2026-07-16 — Auth criticals (JWT, logout, cookie) + CORS dual layer](#-2026-07-16--auth-criticals-jwt-logout-cookie--cors-dual-layer)
+2. [2026-06-24 — Fix UserServiceImplTest (4 errores)](#-2026-06-24--fix-userserviceimpltest-4-errores)
 2. [2026-06-23 — Fix OAuth2 redirect + Redis serialization + APP_FRONTEND_URL](#-2026-06-23--fix-oauth2-redirect--redis-serialization--app_frontend_url)
 3. [2026-06-21 — Cleanup AuthApiController: Business Logic Extraction](#-2026-06-21--cleanup-authapicontroller-business-logic-extraction)
 2. [2026-06-19 — Defensa en profundidad + Code Exchange OAuth2](#-2026-06-19--defensa-en-profundidad--code-exchange-oauth2)
@@ -43,6 +55,88 @@ Este documento registra de manera cronológica el historial de decisiones técni
 26. [2026-04-11 — Email Verification Logic](#-2026-04-11--email-verification-logic)
 27. [2026-04-11 — Password Reset Logic](#-2026-04-11--password-reset-logic)
 28. [2026-04-09 — Testcontainers Setup](#-2026-04-09--testcontainers-setup)
+
+---
+
+## 2026-07-16 — Cierre de 4 gaps críticos de seguridad
+
+### Gap 1 — JWT secret sin validación de tamaño
+
+**Antes:** `JwtServiceImpl.getSigningKey()` llamaba `Keys.hmacShaKeyFor()` directamente, aceptando cualquier tamaño de secret. Un secret de 5 bytes producía HMAC HS40.
+
+**Fix:** `@PostConstruct init()` valida `secretKey.getBytes(UTF_8).length >= 32` (256 bits). Si no, lanza `IllegalArgumentException` e impide el arranque del service. La key se cachea en `this.key` para eficiencia (mismo patrón que el gateway `JwtUtils.java`).
+
+**Test:** `shortSecretThrowsException` — setea secret `"short"`, verifica `IllegalArgumentException`.
+
+**Archivo:** `JwtServiceImpl.java:24-31`
+
+---
+
+### Gap 2 — Logout traga excepciones
+
+**Antes:** `AuthServiceImpl.logout()` tenía `jwtService.extractUserId(accessToken)` dentro de un `try { ... } catch (Exception e) { log.warn(...) }`. Si `extractUserId()` lanzaba (token malformed, claims inválidos), el catch lo tragaba y devolvía `LogoutResponse(true, ...)` — falso éxito.
+
+**Fix:** `extractUserId(accessToken)` movido **antes** del try-block. Si falla, la excepción se propaga al controlador → `GlobalExceptionHandler` → 401/500. El try solo cubre `revokeToken` y `deleteByUserId`.
+
+**Test:** `logout_whenExtractUserIdFails_PropagatesException` — verifica que la excepción se propaga y `revokeToken` nunca se llama.
+
+**Archivo:** `AuthServiceImpl.java:208-219`
+
+---
+
+### Gap 3 — Cookie OAuth2 intent sin Secure
+
+**Antes:** `OAuth2IntentCookieFilter` creaba cookie con `HttpOnly`, `SameSite=Lax`, pero sin flag `Secure`. En producción HTTPS, la cookie viajaba también por HTTP.
+
+**Fix:** `cookie.setSecure(request.isSecure())` — HTTPS → `Secure=true`, HTTP → `Secure=false`. Funciona correctamente en ambos entornos.
+
+**Test:** `cookieSecure_TrueCuandoRequestEsHttps` + `cookieSecure_FalseCuandoRequestEsHttp` — verifican la cookie según el esquema.
+
+**Archivo:** `OAuth2IntentCookieFilter.java:41`
+
+---
+
+### Gap 4 — Token de reseteo en URL
+
+**Análisis:** El token de reseteo se envía en la URL del email: `http://localhost:9200/#/reset-password?token=X`. El `?token=X` está **dentro del hash fragment** (después de `#`), por lo que:
+- No se envía al servidor en requests normales
+- El gateway ya tiene `Referrer-Policy: strict-origin-when-cross-origin`
+- El token es one-time + TTL 15 min
+
+**Decisión:** Sin cambio de código. La mitigación actual (hash fragment + one-time + TTL + referrer-policy) es suficiente para el perfil de riesgo de un SaaS PYME.
+
+---
+
+### Tests
+
+130 tests unitarios, 0 fallos. `JwtServiceImplTest` pasó de 26 a 27 tests (+1), `AuthServiceImplTest` pasó de 12 a 13 tests (+1), `OAuth2IntentCookieFilterTest` pasó de 8 a 10 tests (+2).
+
+**Estado:** ✅ 3 críticos resueltos con código, 1 aceptado con mitigación documentada.
+
+---
+
+## 2026-07-16 — CORS asumido como responsabilidad del auth service
+
+### Contexto
+
+El gateway eliminó su capa `globalcors` debido a un bug en SCG 2023.0.1 que impedía que CORS funcionara en requests POST (OPTIONS funcionaba, POST daba 403). El auth service ya tenía `WebCorsConfig.java` con `CorsConfigurationSource` bean configurado como defensa en profundidad, que ahora pasa a ser la capa CORS primaria.
+
+### Impacto en auth service
+
+Ningún cambio de código en auth. La configuración existente (`CorsConfigurationSource` + `.cors(Customizer.withDefaults())`) ya cubre todos los endpoints de auth con los orígenes configurados vía `app.cors.allowed-origins`.
+
+### Verificaciones
+
+- Los endpoints públicos (register, login, refresh, exchange, OAuth2) ahora reciben CORS headers directamente desde auth.
+- Los endpoints protegidos (logout, change-password, users/me) también heredan CORS del auth service.
+
+### Riesgo
+
+Si algún servicio detrás del gateway (ej. core) no tiene su propio `CorsConfigurationSource`, las requests desde el frontend a esos endpoints fallarán por CORS. Actualmente core no tiene CORS configurado, pero el frontend no consume core directamente — solo gateway redirige. Se agregará cuando sea necesario.
+
+**Archivos:** Ninguno modificado en auth service (solo documentación).
+
+**Estado:** ✅ ESTRATEGIA DOCUMENTADA
 
 ---
 
@@ -456,4 +550,41 @@ Configuración de la clase base `AbstractIntegrationTest` para levantar PostgreS
 - Las variables de entorno en docker-compose no tienen defaults "inteligentes" — hay que pasarlas explicitamente incluso si parecen obvias.
 
 **Archivos modificados:** `OAuth2AuthenticationSuccessHandler.java`, `.env`, `docker-compose.yml`, `UserServiceImpl.java`, `UserEntityResponse.java`, `UserMapper.java`
+**Estado:** ✅ RESUELTO
+
+---
+
+## 2026-07-16 — Auth criticals (JWT, logout, cookie) + CORS dual layer
+
+### 🔴 Criticals resueltos
+
+| # | Gap | Fix |
+|---|-----|-----|
+| 1 | **JWT secret sin validación** — `Keys.hmacShaKeyFor()` acepta cualquier tamaño | `@PostConstruct init()` en `JwtServiceImpl.java` valida `keyBytes.length >= 32`, lanza `IllegalArgumentException`. Key cacheada en `this.key`. |
+| 2 | **Logout traga excepciones** — Si `extractUserId()` falla, el catch lo traga | `extractUserId()` movido antes del try-block en `AuthServiceImpl.java`. Excepción se propaga. Try solo cubre `revokeToken` + `deleteByUserId`. |
+| 3 | **Cookie OAuth2 sin Secure** — Siempre false | `cookie.setSecure(request.isSecure())` en `OAuth2IntentCookieFilter.java` — HTTPS→Secure, HTTP→false. |
+| 4 | **Token reseteo en URL** — En hash fragment | Aceptado sin cambios: hash fragment + one-time + TTL 15min + referrer-policy.riesgo mitigado. |
+
+### Tests: 130 auth tests, 0 fallos.
+
+### 🔍 CORS — Causa raíz (doble capa)
+
+| Intento | Resultado | Lección |
+|---------|-----------|---------|
+| `globalcors` con `allowed-origin-patterns` | POST devuelve 403 sin ACAO. SCG bug conocido. | `allowed-origin-patterns` no matchea literales con `allowCredentials(true)` |
+| Sin `globalcors` | OPTIONS devuelve 403. SCG intercepta preflight internamente. | SCG requiere `globalcors` para responder OPTIONS. Sin él, 403 siempre. |
+| **Solución final: doble capa** | ✅ OPTIONS 200 + POST 201 | Gateway: `globalcors` con `allowed-origins` (exacto). Auth: `setAllowedOrigins` + `allowCredentials(true)`. |
+
+### Archivos modificados
+
+```
+backend/auth/src/main/java/auth/pymes/service/impl/JwtServiceImpl.java
+backend/auth/src/main/java/auth/pymes/service/impl/AuthServiceImpl.java
+backend/auth/src/main/java/auth/pymes/common/config/OAuth2IntentCookieFilter.java
+backend/auth/src/main/java/auth/pymes/common/config/WebCorsConfig.java          # setAllowedOriginPatterns → setAllowedOrigins
+backend/gateway-pymes/src/main/resources/application.yaml                       # globalcors con allowed-origins
+docs/GAPS.md                                                                     # marks resolved
+docs/DAILY_REPORTS_AUTH_SOLUTIONS.md                                             # this entry
+```
+
 **Estado:** ✅ RESUELTO

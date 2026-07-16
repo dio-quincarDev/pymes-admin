@@ -4,6 +4,52 @@ Registro cronológico de problemas resueltos y decisiones de implementación en 
 
 ---
 
+## 2026-07-16 — CORS Bug: `globalcors` reinstalado con `allowed-origins` (doble capa)
+
+### Problema
+
+SCG tiene dos caras con CORS:
+1. `globalcors` con `allowed-origin-patterns` → POST real devuelve 403 sin ACAO (bug SCG conocido). 7 intentos de fix fallaron.
+2. Sin `globalcors` → OPTIONS preflight devuelve 403. SCG intercepta preflight internamente y no enruta.
+
+### Solución
+
+Se restauró `globalcors` con `allowed-origins` (exacto, no pattern) para OPTIONS preflight. El auth service agrega ACAO a requests reales (POST/GET). Doble capa necesaria:
+
+| Capa | Rol | Config |
+|------|-----|--------|
+| **Gateway** | OPTIONS preflight → 200 + ACAO | `globalcors` con `allowed-origins` + `allow-credentials: true` |
+| **Auth service** | ACAO en requests reales | `WebCorsConfig` con `setAllowedOrigins` + `allowCredentials(true)` |
+
+### Flujo resultante
+
+```
+OPTIONS: Gateway globalcors → 200 + ACAO (no llega al auth)
+POST:    Gateway enruta → Auth service → 201 + ACAO
+```
+
+### Lecciones
+
+1. **SCG no puede delegar OPTIONS al downstream.** El handler de preflight corre antes del routing. Sin `globalcors`, OPTIONS siempre 403.
+2. **`allowed-origin-patterns` vs `allowed-origins`:** Con `allowCredentials(true)`, los patterns no matchean literales. Usar `allowed-origins` con valores exactos.
+3. **Frontend en puerto 9200**, no 9000 (AGENTS.md incorrecto). Origin mismatch inicial.
+
+### Archivos modificados
+
+| Archivo | Cambio |
+|---------|--------|
+| `application.yaml` | Re-agregado `globalcors` con `allowed-origins` (exacto) + `DedupeResponseHeader` |
+| `WebCorsConfig.java` (auth) | `setAllowedOriginPatterns` → `setAllowedOrigins` |
+| `.env.example` | Restaurada variable `CORS_ALLOWED_ORIGINS` |
+
+### Tests
+
+38 gateway tests, 0 fallos. CORS verificado con curl: OPTIONS 200 + POST 201, sin ACAO duplicado.
+
+**Estado:** ✅ RESUELTO
+
+---
+
 ## 2026-06-23 — Open endpoints: `/api/v1/auth/exchange` + `/api/v1/auth/oauth2/intent`
 
 ### Problema

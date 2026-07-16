@@ -11,7 +11,7 @@
             @keydown.space.prevent="$router.push('/')"
           >
             <div class="auth-logo">PYMEQ</div>
-            <div class="auth-tagline">Sistema de Auditoría Inteligente para Pymes</div>
+            <div class="auth-tagline">Finanzas inteligentes para tu PyME — by QCore System</div>
           </div>
 
           <router-view v-slot="{ Component }">
@@ -21,8 +21,7 @@
           </router-view>
 
           <footer class="text-center q-mt-xl text-caption" style="color: var(--pq-text-subtle); opacity: 0.7;">
-            <q-icon name="security" size="xs" class="q-mr-xs" aria-hidden="true" />
-            Plataforma Segura y Confiable para la Gestión de Auditorías
+            Tus números claros, tu negocio bajo control.
           </footer>
         </div>
       </main>

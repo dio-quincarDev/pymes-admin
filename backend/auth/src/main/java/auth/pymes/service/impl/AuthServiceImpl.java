@@ -205,13 +205,10 @@ public class AuthServiceImpl implements AuthService {
         }
         boolean sessionsRevoked = false;
         if (accessToken != null && !accessToken.isBlank()) {
+            UUID userId = jwtService.extractUserId(accessToken);
             try {
-                // 1. Invalidar access token (blacklist)
                 jwtService.revokeToken(accessToken);
                 log.info("Access token revocado");
-
-                // 2. Eliminar TODOS los refresh tokens del usuario (Logout Global)
-                UUID userId = jwtService.extractUserId(accessToken);
                 if (userId != null) {
                     refreshTokenRepository.deleteByUserId(userId);
                     sessionsRevoked = true;

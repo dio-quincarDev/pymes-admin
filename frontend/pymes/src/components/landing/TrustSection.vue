@@ -1,22 +1,22 @@
 <template>
   <section id="trust" ref="target" class="trust-section q-pa-xl" :class="{ 'reveal-visible': isVisible }">
     <div class="reveal-up">
-      <div class="trust-label">CONFIABLE PARA CUALQUIER SECTOR</div>
+      <div class="trust-label">HECHO PARA LA REALIDAD LATAM</div>
 
       <div class="stat-strip">
-        <div class="stat-block">
-          <div class="stat-number">500+</div>
-          <div class="stat-label">Empresas activas</div>
+        <div class="trust-block">
+          <div class="trust-primary">8 industrias</div>
+          <div class="trust-secondary">Restaurantes, ferreterías, farmacias y más.</div>
         </div>
         <div class="stat-divider" />
-        <div class="stat-block">
-          <div class="stat-number">18%</div>
-          <div class="stat-label">Ahorro promedio</div>
+        <div class="trust-block">
+          <div class="trust-primary">Sin inventario</div>
+          <div class="trust-secondary">Solo inteligencia financiera.</div>
         </div>
         <div class="stat-divider" />
-        <div class="stat-block">
-          <div class="stat-number">24/7</div>
-          <div class="stat-label">Siempre disponible</div>
+        <div class="trust-block">
+          <div class="trust-primary">PWA offline</div>
+          <div class="trust-secondary">Funciona sin internet.</div>
         </div>
       </div>
     </div>
@@ -70,31 +70,26 @@ const { target, isVisible } = useScrollReveal();
   }
 }
 
-.stat-block {
+.trust-block {
   padding: 16px 32px;
   text-align: center;
 }
 
-.stat-number {
-  font-family: 'Geist Mono', monospace;
-  font-size: 28px;
-  font-weight: 500;
-  color: var(--pq-text);
-  font-variant-numeric: tabular-nums;
-  line-height: 1;
-}
-
-@media (min-width: 600px) {
-  .stat-number {
-    font-size: 32px;
-  }
-}
-
-.stat-label {
+.trust-primary {
   font-family: 'Satoshi', sans-serif;
-  font-size: 12px;
+  font-size: 18px;
+  font-weight: 700;
+  color: var(--pq-text);
+  line-height: 1.3;
+}
+
+.trust-secondary {
+  font-family: 'Satoshi', sans-serif;
+  font-size: 14px;
+  font-weight: 400;
   color: var(--pq-text-muted);
-  margin-top: 6px;
+  margin-top: 4px;
+  line-height: 1.4;
 }
 
 .stat-divider {

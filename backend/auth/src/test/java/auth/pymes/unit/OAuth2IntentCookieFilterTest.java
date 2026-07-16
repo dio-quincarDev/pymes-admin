@@ -116,4 +116,30 @@ class OAuth2IntentCookieFilterTest {
 
         verify(filterChain).doFilter(request, response);
     }
+
+    @Test
+    void cookieSecure_TrueCuandoRequestEsHttps() throws Exception {
+        when(request.getRequestURI()).thenReturn("/oauth2/authorization/google");
+        when(request.getParameter("intentId")).thenReturn("test-intent-123");
+        when(request.isSecure()).thenReturn(true);
+
+        invokeDoFilter(request, response, filterChain);
+
+        ArgumentCaptor<Cookie> cookieCaptor = ArgumentCaptor.forClass(Cookie.class);
+        verify(response).addCookie(cookieCaptor.capture());
+        assertThat(cookieCaptor.getValue().getSecure()).isTrue();
+    }
+
+    @Test
+    void cookieSecure_FalseCuandoRequestEsHttp() throws Exception {
+        when(request.getRequestURI()).thenReturn("/oauth2/authorization/google");
+        when(request.getParameter("intentId")).thenReturn("test-intent-123");
+        when(request.isSecure()).thenReturn(false);
+
+        invokeDoFilter(request, response, filterChain);
+
+        ArgumentCaptor<Cookie> cookieCaptor = ArgumentCaptor.forClass(Cookie.class);
+        verify(response).addCookie(cookieCaptor.capture());
+        assertThat(cookieCaptor.getValue().getSecure()).isFalse();
+    }
 }
