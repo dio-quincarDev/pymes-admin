@@ -23,7 +23,7 @@ export const productoService = {
     return api.delete(`/core/productos/${id}`, { params: { tenantId } })
   },
   addPresentation(productId: string, data: PresentacionRequest, tenantId: string) {
-    return api.post<Presentacion>(`/core/productos/${productId}/presentaciones?tenantId=${tenantId}`, data)
+    return api.post<Presentacion>(`/core/productos/${productId}/presentaciones`, data, { params: { tenantId } })
   },
   removePresentation(id: string, tenantId: string) {
     return api.delete(`/core/productos/presentaciones/${id}`, { params: { tenantId } })

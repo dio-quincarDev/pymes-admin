@@ -18,6 +18,6 @@ export const facturaService = {
     return api.delete(`/core/facturas/${id}`, { params: { tenantId } })
   },
   pay(id: string, tenantId: string) {
-    return api.post<Factura>(`/core/facturas/${id}/pagar?tenantId=${tenantId}`)
+    return api.post<Factura>(`/core/facturas/${id}/pagar`, {}, { params: { tenantId } })
   },
 }

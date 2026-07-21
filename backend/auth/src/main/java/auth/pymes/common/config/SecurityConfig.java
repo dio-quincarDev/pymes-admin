@@ -48,7 +48,7 @@ public class SecurityConfig {
     private final UserEntityRepository userRepository;
     private final ObjectMapper objectMapper;
 
-    private static final String[] WHITE_LIST = {
+    public static final String[] WHITE_LIST = {
             // Swagger / OpenAPI
             "/v3/api-docs/**",
             "/swagger-ui/**",

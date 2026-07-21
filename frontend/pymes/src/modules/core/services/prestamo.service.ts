@@ -21,6 +21,6 @@ export const prestamoService = {
     return api.get<PagoPrestamo[]>(`/core/prestamos/${loanId}/pagos`, { params: { tenantId } })
   },
   createPago(loanId: string, data: PagoPrestamoRequest, tenantId: string) {
-    return api.post<PagoPrestamo>(`/core/prestamos/${loanId}/pagos?tenantId=${tenantId}`, data)
+    return api.post<PagoPrestamo>(`/core/prestamos/${loanId}/pagos`, data, { params: { tenantId } })
   },
 }

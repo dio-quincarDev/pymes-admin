@@ -4,6 +4,38 @@ Registro cronológico de decisiones, problemas resueltos y estado del frontend.
 
 ---
 
+## 2026-07-21 — Brainstorm: Tutorial onboarding para nuevos usuarios
+
+### Contexto
+
+Usuarios nuevos pasan por: Landing → Register → Verify email → Onboarding (industria) → Dashboard. Tras el onboarding no hay guía, el usuario llega al dashboard sin saber por dónde empezar.
+
+### Enfoques evaluados
+
+| Enfoque | Descripción | Esfuerzo |
+|---------|-------------|----------|
+| **A — Tour guiado con Driver.js** | Pasos con overlay resaltando sidebar, período, métricas, quick actions. 7KB gzipped, framework-agnostic. Se dispara 1 vez post-onboarding. | Bajo |
+| **B — Descubrimiento progresivo** | Mensajes contextuales en empty states de cada página. Sin overlay ni tour formal. | Muy bajo |
+| **C — Checklist primeros pasos** | Panel colapsable en dashboard con tareas (agregar producto, crear factura, etc.) que se marcan al completarse. | Medio |
+| **D — Híbrido** | Tour bienvenida rápido (4-5 pasos) + empty states contextuales + botón "Ayuda" para repasar. | Bajo |
+
+### Recomendación
+
+**Enfoque A (Driver.js)** como punto de partida:
+- Driver.js no necesita wrapper Vue, se usa directo en un composable `useTour()`
+- Se almacena `tourCompletado` en localStorage
+- Botón "Ayuda" en header del MainLayout para reiniciar
+- 4-5 pasos: sidebar, selector período, quick actions, menú perfil
+
+### Referencias
+
+- Driver.js: https://driverjs.com
+- TO_DO.md: sección `Frontend — Pendiente (Tutorial)`
+
+**Estado:** 📝 BRAINSTORM — pendiente de implementación
+
+---
+
 ## 2026-07-21 — Core error messages propagados a páginas core
 
 ### Problema

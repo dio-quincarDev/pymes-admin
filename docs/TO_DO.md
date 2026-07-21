@@ -13,6 +13,7 @@
 
 ### Frontend — Completado
 
+- [x] [🔴] **tenantId sin encode en URL** — `prestamo.service.ts`, `producto.service.ts`, `factura.service.ts` usaban `?tenantId=${tenantId}` en vez de `params` object de axios. Migrados a `{ params: { tenantId } }`. (2026-07-21)
 - [x] [Alta] Factura descuento porcentaje — input `%` en vez de `$`, subtotal formula, save() convierte % a monto
 - [x] [Alta] Factura precio unitario por conversión — auto-calcular `precioUnitario / conv`, badge conversión
 - [x] [Alta] Quitar listas infinitas — FacturasPage: `search()` por categoría; ProductosPage: tabla paginada
@@ -63,6 +64,11 @@ Todos implementados inline en cada page (sin componentes separados).
 - [ ] [🔴] **Refresh token rotation** — el interceptor debe capturar 401, intentar renovar con refresh token, y solo si falla, borrar sesión (2026-07)
 - [ ] [🔴] **Cobertura de tests** — 1 test para 106 archivos. Prioridad: services, stores, composables (2026-07)
 
+### Frontend — Pendiente (Tutorial onboarding)
+
+- [ ] [Alta] **Tour guiado con Driver.js** — guía de bienvenida al dashboard post-onboarding (4-5 pasos: sidebar, período, métricas, quick actions, perfil). Disparo único vía localStorage. Botón "Ayuda" en header para reiniciar. (2026-07)
+- [ ] [Media] **Empty states contextuales** — cada página vacía debe tener un mensaje + CTA que guíe al usuario (ej. "Agrega tu primer producto"). (2026-07)
+
 ### Frontend — Pendiente (PWA)
 
 - [ ] [Baja] **PWA: pull to refresh** — En mobile, gesto nativo para refrescar datos.
@@ -80,5 +86,5 @@ Todos implementados inline en cada page (sin componentes separados).
 
 ### Auth
 
-- [ ] [🔴] **Unificar whitelists de rutas públicas** — `SecurityConfig.WHITE_LIST` y `JwtAuthenticationFilter.publicPaths` separadas. Crear fuente única o hacer que `shouldNotFilter` lea de `WHITE_LIST`. (2026-07)
+- [x] [🔴] **Unificar whitelists de rutas públicas** — `SecurityConfig.WHITE_LIST` y `JwtAuthenticationFilter.publicPaths` separadas. Solución: `shouldNotFilter()` ahora lee de `SecurityConfig.WHITE_LIST` vía `AntPathMatcher`. Se eliminó `publicPaths`. (2026-07-21)
 - [ ] [Baja] Facebook OAuth2 — postergado (Meta no aprobó verificación) (post-MVP)

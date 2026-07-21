@@ -11,9 +11,9 @@
 
 #### 🔴 Critical
 
-| # | Gap | Fix | Severidad |
-|---|-----|-----|-----------|
-| 1 | **Dos whitelists divergentes** — `SecurityConfig.WHITE_LIST` (Spring Security) y `JwtAuthenticationFilter.publicPaths` (filtro JWT) definen rutas públicas por separado. Si se agrega un endpoint público y se olvida actualizar una, el resultado es 401 del filter o 403 de security. | Unificar en una sola fuente. Extraer `publicPaths` a un bean compartido o hacer que `shouldNotFilter` lea de `SecurityConfig.WHITE_LIST`. | 🔴 Critical |
+| # | Gap | Fix | Severidad | Estado |
+|---|-----|-----|-----------|--------|
+| 1 | **Dos whitelists divergentes** — `SecurityConfig.WHITE_LIST` (Spring Security) y `JwtAuthenticationFilter.publicPaths` (filtro JWT) definen rutas públicas por separado. Si se agrega un endpoint público y se olvida actualizar una, el resultado es 401 del filter o 403 de security. | Unificar en una sola fuente. `JwtAuthenticationFilter.shouldNotFilter()` ahora lee de `SecurityConfig.WHITE_LIST` vía `AntPathMatcher`. Se eliminó `publicPaths` duplicada. | 🔴 Critical | ✅ 2026-07-21 |
 
 #### 🟡 Suggestions
 
@@ -114,7 +114,7 @@
 
 | # | File | Line | Issue | Severity |
 |---|------|------|-------|----------|
-| 1 | `prestamo.service.ts`, `producto.service.ts`, `factura.service.ts` | 24, 26, 21 | **`tenantId` interpolado directo en URL string** — `?tenantId=${tenantId}` en vez de `params` object de axios. Si `tenantId` contiene caracteres especiales, causa encoding incorrecto. Inconsistente con el resto de servicios que usan `params`. | 🔴 Critical |
+| 1 | `prestamo.service.ts`, `producto.service.ts`, `factura.service.ts` | 24, 26, 21 | **`tenantId` interpolado directo en URL string** — `?tenantId=${tenantId}` en vez de `params` object de axios. Si `tenantId` contiene caracteres especiales, causa encoding incorrecto. Inconsistente con el resto de servicios que usan `params`. | 🔴 Critical | ✅ 2026-07-21 |
 | 2 | Todas las páginas CRUD | ~14 | **`tenantId` fallback a `''` vacío** — `authStore.user?.tenantId \|\| ''` pasa string vacío al backend si no hay sesión. Backend responde 400/403, pero el error no se maneja como "no autenticado". Mejor guard en router o early-return. | 🔴 Critical |
 | 3 | — | — | **Cero tests** para 6 páginas nuevas + 5 servicios nuevos. `npm run test` es placeholder según proyecto. | 🔴 Critical |
 

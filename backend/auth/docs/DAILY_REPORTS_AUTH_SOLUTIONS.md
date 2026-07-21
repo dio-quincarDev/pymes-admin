@@ -6,6 +6,10 @@ Este documento registra de manera cronológica el historial de decisiones técni
 
 ## 📋 ÍNDICE DE ROADMAP Y ESTADO
 
+### 📌 Whitelist unificada
+
+A partir de 2026-07-21, `JwtAuthenticationFilter` ya no mantiene su propia lista `publicPaths`. Lee directamente de `SecurityConfig.WHITE_LIST` vía `AntPathMatcher`. Fuente única.
+
 ### 📌 Estrategia CORS
 
 A partir de 2026-07-16, CORS opera en **doble capa**:
@@ -24,7 +28,8 @@ A partir de 2026-07-16, CORS opera en **doble capa**:
 - **Defensa en profundidad + Code Exchange OAuth2** — En proceso de validación y robustecimiento continuo.
 
 ### ✅ Historial de Soluciones (Orden Cronológico Inverso)
-1. [2026-07-16 — Auth criticals (JWT, logout, cookie) + CORS dual layer](#-2026-07-16--auth-criticals-jwt-logout-cookie--cors-dual-layer)
+1. [2026-07-21 — Whitelist unificada (C1 critical)](#-2026-07-21--whitelist-unificada-c1-critical)
+2. [2026-07-16 — Auth criticals (JWT, logout, cookie) + CORS dual layer](#-2026-07-16--auth-criticals-jwt-logout-cookie--cors-dual-layer)
 2. [2026-06-24 — Fix UserServiceImplTest (4 errores)](#-2026-06-24--fix-userserviceimpltest-4-errores)
 2. [2026-06-23 — Fix OAuth2 redirect + Redis serialization + APP_FRONTEND_URL](#-2026-06-23--fix-oauth2-redirect--redis-serialization--app_frontend_url)
 3. [2026-06-21 — Cleanup AuthApiController: Business Logic Extraction](#-2026-06-21--cleanup-authapicontroller-business-logic-extraction)
@@ -55,6 +60,43 @@ A partir de 2026-07-16, CORS opera en **doble capa**:
 26. [2026-04-11 — Email Verification Logic](#-2026-04-11--email-verification-logic)
 27. [2026-04-11 — Password Reset Logic](#-2026-04-11--password-reset-logic)
 28. [2026-04-09 — Testcontainers Setup](#-2026-04-09--testcontainers-setup)
+
+---
+
+## 2026-07-21 — Whitelist unificada (C1 critical)
+
+### Problema
+
+`SecurityConfig.WHITE_LIST` (Spring Security) y `JwtAuthenticationFilter.publicPaths` (JWT filter) definían las rutas públicas en dos listas separadas. Al agregar endpoints públicos (exchange, oauth2/intent, swagger, actuator), solo se actualizaba `WHITE_LIST`. El filter JWT intentaba validar token en esas rutas, causando errores o DB lookups innecesarios.
+
+**7 rutas faltaban en `publicPaths`**: `/v3/api-docs/**`, `/swagger-ui/**`, `/actuator/**`, `/error`, `/api/v1/auth/oauth2/intent`, `/api/v1/auth/oauth2/intent/**`, `/api/v1/auth/exchange`.
+
+### Fix
+
+- `SecurityConfig.java`: `WHITE_LIST` pasó de `private` a `public static final`
+- `JwtAuthenticationFilter.java`: se eliminó la lista `publicPaths` con sus 9 `AntPathRequestMatcher`. `shouldNotFilter()` ahora usa `AntPathMatcher` para matchear contra `SecurityConfig.WHITE_LIST`
+
+Fuente única de verdad — cualquier ruta agregada a `WHITE_LIST` queda automáticamente excluida del JWT filter.
+
+### Gateway
+
+Sin cambios. `RouterValidator.openEndPoints` ya cubre todas las rutas públicas correctamente.
+
+### Archivos modificados
+
+```
+backend/auth/src/main/java/auth/pymes/common/config/SecurityConfig.java         # WHITE_LIST: private → public static final
+backend/auth/src/main/java/auth/pymes/common/config/JwtAuthenticationFilter.java # publicPaths eliminado, usa WHITE_LIST vía AntPathMatcher
+docs/GAPS.md                                                                     # C1 marcado ✅
+docs/TO_DO.md                                                                    # marcado [x]
+backend/auth/docs/DAILY_REPORTS_AUTH_SOLUTIONS.md                                # this entry
+```
+
+### Tests
+
+130 tests, 0 fallos, BUILD SUCCESS.
+
+**Estado:** ✅ RESUELTO
 
 ---
 
