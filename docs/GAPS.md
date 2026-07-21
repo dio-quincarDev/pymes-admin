@@ -7,44 +7,33 @@
 | — | *(sin gaps tras correcciones de esta sesión)* | — | — | ✅ |
 | — | V1 sin composite/partial indexes para consultas frecuentes | V2 agregó índices en user_tenants, refresh_tokens, invitations, audit_log | Medio | ✅ |
 
-### Code Review Findings (2026-07-15)
+### Code Review Findings (2026-07-21)
 
-#### 🔴 Critical — Todos resueltos
+#### 🔴 Critical
 
-| # | Gap | Fix | Archivos afectados | Estado |
-|---|-----|-----|--------------------|--------|
-| 1 | **JWT secret sin validación** (`JwtServiceImpl.java:85-88`) — `Keys.hmacShaKeyFor()` acepta cualquier tamaño | `@PostConstruct init()` valida `keyBytes.length >= 32`, lanza `IllegalArgumentException` si no. Key cacheada en campo `this.key` | `JwtServiceImpl.java` | ✅ |
-| 2 | **Logout traga excepciones** (`AuthServiceImpl.java:210-223`) — Si `extractUserId()` lanza, el catch traga todo | `extractUserId()` movido antes del try. Si falla, la excepción se propaga al caller. El try solo cubre `revokeToken` + `deleteByUserId` | `AuthServiceImpl.java` | ✅ |
-| 3 | **Cookie OAuth2 intent sin Secure** (`OAuth2IntentCookieFilter.java:39-43`) | `cookie.setSecure(request.isSecure())` — HTTPS → Secure=true, HTTP → false | `OAuth2IntentCookieFilter.java` | ✅ |
-| 4 | **Token de reseteo en URL** (`PasswordResetServiceImpl.java:64`) — En hash fragment + one-time + TTL 15min + gateway ya tiene `Referrer-Policy: strict-origin-when-cross-origin` | Sin cambio de código. El token ya está en hash fragment (`#/reset-password?token=X`). Riesgo mitigado: no se envía al server, one-time, TTL corto, referrer-policy estricto | Ninguno | ✅ Aceptado — mitigación suficiente |
+| # | Gap | Fix | Severidad |
+|---|-----|-----|-----------|
+| 1 | **Dos whitelists divergentes** — `SecurityConfig.WHITE_LIST` (Spring Security) y `JwtAuthenticationFilter.publicPaths` (filtro JWT) definen rutas públicas por separado. Si se agrega un endpoint público y se olvida actualizar una, el resultado es 401 del filter o 403 de security. | Unificar en una sola fuente. Extraer `publicPaths` a un bean compartido o hacer que `shouldNotFilter` lea de `SecurityConfig.WHITE_LIST`. | 🔴 Critical |
 
 #### 🟡 Suggestions
 
-1. **N+1 en invitaciones pendientes** (`InvitationServiceImpl.java:56-59`) — Por cada invitación hace `findById` individual de tenant + user. Fix: JOIN fetch o `@EntityGraph`.
-
-2. **`@Lazy` circular** (`EmailVerificationServiceImpl.java:41`) — `EmailVerificationServiceImpl` ↔ `AuthServiceImpl`. Fix: extraer lógica de registro a tercer service.
-
-3. **`extractEmail()` duplicado** (`InvitationServiceImpl.java:184`, `MemberServiceImpl.java:143`) — Misma lógica en 3 servicios. Fix: utility class o leer directo de `SecurityContextHolder`.
-
-4. **Puerto hardcodeado** (`PasswordResetServiceImpl.java:63`) — `frontendUrl.replace(":9000", ":9200")`. Fix: propiedad dedicada en config.
-
-5. **`/exchange` sin rate limit** (`AuthApiController.java:81-83`) — Cualquiera puede brute-forcear códigos de OAuth. Fix: aplicar rate limit por IP.
-
-6. **Rutas públicas duplicadas** (`SecurityConfig.java:51-75` vs `JwtAuthenticationFilter.java:49-59`) — Dos listas separadas pueden desincronizarse. Fix: usar `WHITE_LIST` como fuente única.
-
-7. **CORS permisivo con credenciales** (`WebCorsConfig.java:21,24`) — `allowedOriginPatterns` permite `*` como patrón si se configura así. Fix: separar orígenes productivos y dev.
-
-8. **JWT completo como key Redis** (`TokenBlacklistService.java:31`) — Tokens largos = keys largas. Fix: hashear el token como key.
-
-9. **`Thread.sleep(200)` anti-enumeration** (`PasswordResetServiceImpl.java:96-100`) — Primitivo. Fix: delay constante async + respuesta genérica idéntica.
-
-10. **Método logueado doble** (`GlobalExceptionHandler.java:200-201`) — `request.getMethod()` impreso 2 veces. Fix: corregir formato.
-
-11. **Falta índice en refresh_tokens** (`V2__index_optimizations.sql:16-18`) — Query de reuso busca por `token_hash + revoked`. Fix: índice compuesto `(token_hash, revoked)`.
-
-12. **companySlug sin validación de formato** (`RegisterRequest.java:28`) — Solo valida size, acepta espacios/caracteres inválidos. Fix: `@Pattern(regexp = "^[a-z0-9-]+$")`.
-
-13. **`CODE_TTL` constante no usada** (`OAuth2AuthenticationSuccessHandler.java:63,169`) — Línea 169 hardcodea `Duration.ofMinutes(2)` en vez de usar `CODE_TTL`.
+| # | Gap | Fix | Categoría |
+|---|-----|-----|-----------|
+| 1 | **`app.cors.allowed-origins` sin default** (`OAuth2AuthenticationSuccessHandler.java:60-61`) — `@Value("${app.cors.allowed-origins}")` no aparece en `application.yaml` ni tiene default. Si no está en `.env`, la app no arranca. | Agregar default: `@Value("${app.cors.allowed-origins:http://localhost:9200}")` | Correctitud |
+| 2 | **`AUTH001` retorna 400 en vez de 401** (`CodigoError.java:14`) — `INVALID_CREDENTIALS` usa `HttpStatus.BAD_REQUEST`. Un 401 es semánticamente correcto para credenciales inválidas. | Cambiar `HttpStatus.BAD_REQUEST` → `HttpStatus.UNAUTHORIZED` | Correctitud |
+| 3 | **DB lookup en cada request autenticado** (`JwtAuthenticationFilter.java:84`) — `userRepository.findById(validated.userId)` en cada request. Si la DB tiene latencia, afecta a todos los endpoints protegidos. | Cache de usuarios activos (Caffeine) con TTL corto o solo validar si el usuario existe en Redis. | Performance |
+| 4 | **JWT access-expiration default 1h, refresh 24h** (`application.yaml:85-86`) — Refresh token con TAN larga. | Reducir refresh a 12h o 6h según política de seguridad. | Security |
+| 5 | **Cookie OAuth2 intent sin `Secure` flag detrás del gateway** (`OAuth2IntentCookieFilter.java:42`) — `request.isSecure()` es `false` si el gateway reenvía en HTTP interno. | Forzar `cookie.setSecure(true)` siempre, o configurable. | Security |
+| 6 | **`@Lazy` circular** (`EmailVerificationServiceImpl.java:41`) — `EmailVerificationServiceImpl` ↔ `AuthServiceImpl` | Extraer lógica de registro a tercer service | Mantenibilidad |
+| 7 | **`extractEmail()` duplicado** (`InvitationServiceImpl.java:184`, `MemberServiceImpl.java:143`) — misma lógica en 3 servicios | Utility class o leer directo de `SecurityContextHolder` | Mantenibilidad |
+| 8 | **`/exchange` sin rate limit** (`AuthApiController.java:81-83`) — cualquiera puede brute-forcear códigos OAuth | Rate limit por IP | Security |
+| 9 | **CORS permisivo con credenciales** (`WebCorsConfig.java:21,24`) — `allowedOriginPatterns` permite `*` | Separar orígenes productivos y dev | Security |
+| 10 | **JWT completo como key Redis** (`TokenBlacklistService.java:31`) — tokens largos = keys largas | Hashear el token como key | Performance |
+| 11 | **`Thread.sleep(200)` anti-enumeration** (`PasswordResetServiceImpl.java:96-100`) — primitivo | Delay constante async + respuesta genérica | Security |
+| 12 | **Método logueado doble** (`GlobalExceptionHandler.java:200-201`) — `request.getMethod()` impreso 2 veces | Corregir formato | Mantenibilidad |
+| 13 | **Falta índice en refresh_tokens** (`V2__index_optimizations.sql:16-18`) — query de reuso busca por `token_hash + revoked` | Índice compuesto `(token_hash, revoked)` | Performance |
+| 14 | **companySlug sin validación de formato** (`RegisterRequest.java:28`) — solo valida size | `@Pattern(regexp = "^[a-z0-9-]+$")` | Correctitud |
+| 15 | **`CODE_TTL` constante no usada** (`OAuth2AuthenticationSuccessHandler.java:63,169`) — hardcodea `Duration.ofMinutes(2)` | Usar `CODE_TTL` | Mantenibilidad |
 
 ## Core Service
 
@@ -54,29 +43,24 @@
 | 1 | Endpoints no documentados | CORE.md/ARCHITECTURE.md listan solo CRUD clásico | `GET /search` (paginado) y `GET /{tenantId}/categories` existen | Bajo — endpoints internos, frontend los conoce | ✅ |
 | 2 | Todos los gaps de code review cerrados en 2026-07-21 | — | — | — | ✅ |
 
-### Code Review Findings (2026-07-21 — Todos cerrados)
+### Code Review Findings (2026-07-21)
 
 #### 🔴 Critical
 
-| # | Gap | Fix | Estado |
-|---|-----|-----|--------|
-| 1 | **IN clause vacía** (`FacturaServiceImpl.java:188`) — `updateFactura()` sin items → SQL error | Validar `request.items()` no vacío al inicio del método | ✅ |
-| 2 | **reverseProductStats N+1** (`FacturaServiceImpl.java:295-317`) — loop por item con 2 subqueries | `batchUpdate()` en lote único | ✅ |
-| 3 | **Sin tests** — `updateFactura` ni `InvoiceCalculator` tenían cobertura | `FacturaServiceImplTest` + nuevo `InvoiceCalculatorTest` (16 tests) | ✅ |
+| # | Gap | Fix | Severidad |
+|---|-----|-----|-----------|
+| 1 | **`tenantId` no validado contra JWT** — Todos los controllers reciben `@RequestParam UUID tenantId` del frontend. **No se valida que el tenantId del JWT (inyectado por el gateway como `X-Tenant-Id`) coincida con el tenantId de la request**. Un usuario autenticado en tenant A podría enviar `?tenantId=B` y acceder a datos de otro tenant. Solo algunos services verifican manualmente (FacturaService, GastoService). | Implementar filtro o interceptor que valide `X-Tenant-Id` header === `tenantId` param. O migrar a `@AuthenticationPrincipal` + extraer tenantId del JWT directamente. | 🔴 Critical |
+| 2 | **Sin `@PreAuthorize`, `@Secured` ni `@EnableMethodSecurity`** — El gateway inyecta `X-User-Role` (OWNER, ADMIN, CONTABLE, VIEWER) pero el core nunca lo lee. Cualquier usuario autenticado puede ejecutar cualquier endpoint (crear, actualizar, eliminar) sin importar su rol. | Agregar `@EnableMethodSecurity` + `@PreAuthorize` en endpoints sensibles (crear/actualizar/eliminar). | 🔴 Critical |
 
-#### 🟡 Suggestions
+#### 🟡 Sugerencias
 
-| # | Gap | Resolución | Estado |
-|---|-----|------------|--------|
-| 1 | **Indentación `buildItem()`** — declaración sin indentación | Indentado 4 espacios | ✅ |
-| 2 | **`productoName` null** — `productNameMap.get()` sin null check | `EntityNotFoundException` si es null | ✅ |
-| 3 | **Subtotal duplicado en `InvoiceCalculator`** — step 3 descartado | Eliminado step 3, derivación inline en step 5 | ✅ |
-| 4 | **reverseProductStats batchable** — mismo que critical #2 | Consolidado con critical #2 | ✅ |
-| 5 | **Sin `@PreAuthorize` en PUT** — gap transversal (ningún controller core tiene autorización) | ✅ Aceptado — `ponytail: agregar cuando se implemente seguridad a nivel endpoint` | ✅ |
-| 6 | **`tenantId` inconsistente** — `@RequestParam` en PUT vs body en POST | ✅ Aceptado — `ponytail: @RequestParam es patrón dominante, no cambiar POST para no romper frontend` | ✅ |
-| 7 | **`reverseProductStats` antes de save** — riesgo si save falla | ✅ Aceptado — `protegido por @Transactional, rollback undo ambas operaciones` | ✅ |
-| 8 | **EXCEPTION_STRATEGY.md sin implementación** — documentación completa sin código | Implementado: ApiResponse, ErrorResponse (con `status` int), CodigoError, CoreApiException + 3 custom (ResourceNotFound, InvalidInput, DuplicateResource). GlobalExceptionHandler con 12 handlers. Migrados 18 throws en 7 servicios. 13 tests nuevos. | ✅ |
-| 9 | **Índices duplicados** (`V16__invoice_performance_indexes.sql`) — `idx_invoice_items_product_id` duplica `idx_invoice_items_product` (V6) | Eliminado el índice redundante de V16 + comentario | ✅ |
+| # | Gap | Fix | Categoría |
+|---|-----|-----|-----------|
+| 1 | **OpenFeign declarado sin uso** — `spring-cloud-starter-openfeign` en pom.xml con `services.auth.base-url` en config, pero no hay ningún `@FeignClient` en el código. | Remover dependencia muerta o implementar el FeignClient si se necesita. | Mantenibilidad |
+| 2 | **SeedDataRunner ~1040 líneas** — Ejecuta en cada startup. En PROD intenta insertar seeds aunque falla silenciosamente por conflictos. | Ejecutar solo en dev o con flag `app.seed.enabled=false`. | Performance |
+| 3 | **UPDATE por item en loop** (`FacturaServiceImpl.java:287-294`) — `buildItem()` ejecuta un `jdbc.update()` individual por cada item de la factura para actualizar `last_unit_price`, `total_investment`. Si una factura tiene 50 items, son 50 UPDATEs. | Batchificar en lote único, similar a `reverseProductStats`. | Performance |
+| 4 | **Cache stampede sin protección** — 7 caches con TTL fijo de 5 min. Si el TTL expira y 10 requests llegan simultáneamente, todas ejecutan la consulta DB. | Agregar `sync = true` en `@Cacheable` o usar locking. | Performance |
+| 5 | **Analytics CTEs sin índices covering verificados** — 9 engines hacen `AVG()`, `STDDEV()`, `GROUP BY` sobre `invoice_items` JOIN `invoices`. Verificar que los índices covering (V16) cubren estas consultas. | Revisar plan de ejecución de las 9 CTEs y ajustar índices si es necesario. | Performance |
 
 ## Gateway
 
@@ -149,6 +133,24 @@
 | 9 | `types/index.ts` | — | **Breaking rename de campos** — `productoId`→`productId`, `cantidad`→`quantity`, `precioUnitario`→`unitPrice`, `descuento`→`discount`, `metodoPago`→`paymentMethod`, `descuentoGlobal`→`globalDiscount`. Correcto para alinear con backend, pero rompe compatibilidad con código previo. | Maintainability |
 | 10 | `ProductosPage.vue` | — | **Search filtra en frontend sobre `getAll()`** — para catálogos grandes debería usar `GET /search` paginado del backend (gap #2 existente en tabla superior). | Performance |
 | 11 | `PrestamosPage.vue` | 298-301 | **`pagoForm` sin validación** — amount=0 pasa sin error. | Correctness |
+
+### Code Review Findings (2026-07-21)
+
+#### 🔴 Critical
+
+| # | File | Line | Issue | Severidad |
+|---|------|------|-------|-----------|
+| 1 | `services/auth.service.ts` | — | **Sin refresh token rotation** — el interceptor captura 401 y borra sesión, nunca intenta renovar con refresh token. Token expira en 1h, usuario force login cada hora. | 🔴 Critical |
+| 2 | — | — | **1 test para 106 archivos** — solo existe `errors.spec.ts`. Cero tests para composables, stores, pages, services. | 🔴 Critical |
+
+#### 🟡 Suggestions
+
+| # | File | Line | Suggestion | Categoría |
+|---|------|------|------------|-----------|
+| 1 | `store/index.ts` | 158-163 | **Listener `auth:401` duplica lógica** — replica `clearSession()` parcialmente. `clearSession()` ya hace `window.location.href = '#/login'`, lo que recarga la store. | Mantenibilidad |
+| 2 | Todas las pages | ~14 | **`tenantId` fallback a `''`** — `authStore.user?.tenantId \|\| ''` en todas las pages. Si store vacío, se envía `?tenantId=` → 400. | Correctitud |
+| 3 | `services/error.ts` | — | **`isAuthError()` lee del raw axios** en vez del error normalizado — el interceptor normaliza a `Error` con `code/status/details/isBackendError`, pero `isAuthError` analiza `error.response?.data?.codigo` directamente. | Mantenibilidad |
+| 4 | `LoginPage.vue` | — | **Redirect query ignorado** — `Router.beforeEach` redirige a `/login?redirect=/dashboard/...` pero LoginPage nunca lo lee. | Correctitud |
 
 ## PostgreSQL
 

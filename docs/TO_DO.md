@@ -3,6 +3,8 @@
 ### Core
 
 - [x] [Alta] **Exception system (estrategia definida)** — `ErrorResponse`, `ApiResponse`, `CodigoError`, 3 custom exceptions, `GlobalExceptionHandler` (12 handlers). Migrados 18 throws en 7 services (150/150 tests). → [`docs/EXCEPTION_STRATEGY.md`](./backend/core/docs/EXCEPTION_STRATEGY.md)
+- [ ] [🔴] **Validar tenantId contra JWT** — interceptor/filtro que compare `X-Tenant-Id` header (del gateway) vs `@RequestParam tenantId`. O migrar a extraer tenantId directo del `Authentication` (2026-07)
+- [ ] [🔴] **`@PreAuthorize` en endpoints sensibles** — agregar `@EnableMethodSecurity` + `@PreAuthorize` en controllers (crear/actualizar/eliminar según rol) (2026-07)
 - [ ] [Alta] Reportes — dashboard consolidado KPIs + alertas (2026-07)
 - [ ] [Alta] CRUD configuración tenant (edición) (2026-07)
 - [ ] [Media] Integration tests ejecutables en CI (2026-07)
@@ -56,6 +58,11 @@ Todos implementados inline en cada page (sin componentes separados).
 - [ ] [Media] **Dashboard: sparklines** — Agregar mini-gráficos de tendencia en el stat strip (Geist Mono number + sparkline inline por métrica).
 - [ ] [Media] **Dashboard: expense doughnut** — Opción de vista doughnut chart para desglose de gastos (reutilizar `BaseChart` existente).
 
+### Frontend — Pendiente (Critical)
+
+- [ ] [🔴] **Refresh token rotation** — el interceptor debe capturar 401, intentar renovar con refresh token, y solo si falla, borrar sesión (2026-07)
+- [ ] [🔴] **Cobertura de tests** — 1 test para 106 archivos. Prioridad: services, stores, composables (2026-07)
+
 ### Frontend — Pendiente (PWA)
 
 - [ ] [Baja] **PWA: pull to refresh** — En mobile, gesto nativo para refrescar datos.
@@ -73,4 +80,5 @@ Todos implementados inline en cada page (sin componentes separados).
 
 ### Auth
 
+- [ ] [🔴] **Unificar whitelists de rutas públicas** — `SecurityConfig.WHITE_LIST` y `JwtAuthenticationFilter.publicPaths` separadas. Crear fuente única o hacer que `shouldNotFilter` lea de `WHITE_LIST`. (2026-07)
 - [ ] [Baja] Facebook OAuth2 — postergado (Meta no aprobó verificación) (post-MVP)
