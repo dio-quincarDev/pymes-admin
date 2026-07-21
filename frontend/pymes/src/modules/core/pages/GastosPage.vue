@@ -51,7 +51,7 @@ async function load() {
   try {
     const res = await gastoService.getAll(tenantId)
     rows.value = res.data
-  } catch { $q.notify({ type: 'negative', message: 'Error al cargar gastos' })
+  } catch (err) { $q.notify({ type: 'negative', message: err instanceof Error ? err.message : 'Error al cargar gastos' })
   } finally { loading.value = false }
 }
 
@@ -87,7 +87,7 @@ async function save() {
     }
     dialogOpen.value = false
     $q.notify({ type: 'positive', message: `Gasto ${editingId.value ? 'actualizado' : 'creado'}` })
-  } catch { $q.notify({ type: 'negative', message: 'Error al guardar gasto' })
+  } catch (err) { $q.notify({ type: 'negative', message: err instanceof Error ? err.message : 'Error al guardar gasto' })
   } finally { saving.value = false }
 }
 
@@ -108,8 +108,8 @@ async function remove() {
     rows.value = rows.value.filter(r => r.id !== deletingItem.value!.id)
     deleteDialog.value = false
     $q.notify({ type: 'positive', message: 'Gasto eliminado' })
-  } catch {
-    $q.notify({ type: 'negative', message: 'Error al eliminar gasto' })
+  } catch (err) {
+    $q.notify({ type: 'negative', message: err instanceof Error ? err.message : 'Error al eliminar gasto' })
   } finally {
     deleting.value = false
     deletingItem.value = null

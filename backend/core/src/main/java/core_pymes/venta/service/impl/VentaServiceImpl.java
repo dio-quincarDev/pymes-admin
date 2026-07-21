@@ -6,7 +6,7 @@ import core_pymes.venta.dto.VentaResponse;
 import core_pymes.venta.event.VentaCreadaEvent;
 import core_pymes.venta.repository.VentaRepository;
 import core_pymes.venta.service.VentaService;
-import jakarta.persistence.EntityNotFoundException;
+import core_pymes.common.exception.custom.ResourceNotFoundException;
 import lombok.RequiredArgsConstructor;
 import lombok.extern.slf4j.Slf4j;
 import org.springframework.cache.annotation.CacheEvict;
@@ -80,9 +80,9 @@ public class VentaServiceImpl implements VentaService {
 
     private VentaDiaria getVenta(UUID id, UUID tenantId) {
         var venta = repository.findById(id)
-                .orElseThrow(() -> new EntityNotFoundException("VentaDiaria not found: " + id));
+                .orElseThrow(() -> new ResourceNotFoundException("VentaDiaria not found: " + id));
         if (!venta.getTenantId().equals(tenantId)) {
-            throw new EntityNotFoundException("VentaDiaria not found: " + id);
+            throw new ResourceNotFoundException("VentaDiaria not found: " + id);
         }
         return venta;
     }

@@ -23,6 +23,103 @@ Registro de lo implementado y lo pendiente.
 
 ---
 
+## 2026-07-21 — Exception Strategy + Frontend error consumption + SQL review
+
+### Exception Strategy (EXCEPTION_STRATEGY.md → implementado)
+
+Infraestructura de errores replicando el patrón de auth, 4 capas:
+
+- **`ApiResponse<T>`**: envelope genérico `{ data, mensaje, success }` — disponible pero no forzado como wrapper global (rompe frontend existente)
+- **`ErrorResponse`**: `{ codigo, mensaje, status, details }` con campo `status` int para parseo frontend
+- **`CodigoError`**: enum con 10 códigos categorizados (`RES001`, `INV001`, `DUP001`, `CON001`, `VAL001-003`, `SEC001-003`)
+- **`CoreApiException`**: base class con `codigo + HttpStatus` dinámico; 3 subclases:
+  - `ResourceNotFoundException` (RES001 → 404)
+  - `InvalidInputException` (INV001 → 400)
+  - `DuplicateResourceException` (DUP001 → 409)
+
+### GlobalExceptionHandler — reescrito
+
+Versión anterior: Map-based con 4 handlers. Nuevo: 12 handlers con `@ExceptionHandler`:
+
+| Handler | Input | Output |
+|---------|-------|--------|
+| `CoreApiException` | Cualquier subclase | `codigo` + `httpStatus` del enum |
+| `MethodArgumentNotValidException` | `@Valid` falla | `details` map campo→error |
+| `HttpMessageNotReadableException` | JSON malformado | 400 genérico |
+| `MissingServletRequestParameterException` | Parámetro faltante | mensaje con nombre del parámetro |
+| `ConstraintViolationException` | Validación Jakarta | mensaje pass-through |
+| `DataIntegrityViolationException` | FK/unique violation | Mensaje user-friendly parseando `dbMsg` |
+| `EntityNotFoundException` | JPA `getReferenceById` | 404 |
+| `IllegalArgumentException` | Argumento inválido | 400 |
+| `Exception` (catch-all) | No cubiertos | 500 + log |
+
+**Diseño**: Los handlers de subclases de CoreApiException (`ResourceNotFound`, `InvalidInput`, `DuplicateResource`) se removieron por redundancia — el handler de `CoreApiException` las cubre a todas vía polimorfismo.
+
+### Migración de servicios — 18 throws actualizados
+
+| Servicio | Cambio | Archivos |
+|----------|--------|----------|
+| `FacturaServiceImpl` | `EntityNotFound`→`ResourceNotFound`, `IllegalState`→`InvalidInput` (8 throws) | `FacturaServiceImpl.java` |
+| `InvoiceCalculator` | `IllegalArgument`→`InvalidInput` (3 throws) | `InvoiceCalculator.java` |
+| `ProductoServiceImpl` | `EntityNotFound`→`ResourceNotFound`, `IllegalArgument`→`InvalidInput` (3 throws) | `ProductoServiceImpl.java` |
+| `GastoServiceImpl` | `EntityNotFound`→`ResourceNotFound` (1 throw) | `GastoServiceImpl.java` |
+| `VentaServiceImpl` | `EntityNotFound`→`ResourceNotFound` (1 throw) | `VentaServiceImpl.java` |
+| `PrestamoServiceImpl` | `EntityNotFound`→`ResourceNotFound` (1 throw) | `PrestamoServiceImpl.java` |
+| `SetupServiceImpl` | `IllegalState`→`InvalidInput` (1 throw) | `SetupServiceImpl.java` |
+
+### Tests
+
+- **GlobalExceptionHandlerTest**: 13 tests cubriendo todos los handlers + lógica de `DataIntegrityViolationException` message parsing
+- **FacturaServiceImplTest**: 7 tests actualizados a `InvalidInputException`/`ResourceNotFoundException`
+- **ProductoServiceImplTest**: 3 tests actualizados a `ResourceNotFoundException`
+- **SetupServiceImplTest**: 3 tests actualizados a `InvalidInputException`
+- **Total**: 150/150 tests pasando (137 originales + 13 nuevos handler)
+
+### Skip — Fase 4 (ApiResponse wrapper en controllers)
+
+Decidido no implementar. Razón: el frontend consume los ~20 endpoints core directo (recibe `{ id, nombre, ... }`). Envolver en `ApiResponse { data: {...} }` requiere reescribir cada controller y cada llamado frontend para extraer `.data`. Error handling ya está cubierto por `GlobalExceptionHandler` + `ErrorResponse`. `ponytail: agregar por endpoint cuando frontend lo pida explícitamente.`
+
+### Frontend — 32 catches migrados de genérico a backend message
+
+Las páginas core usaban `catch { }` sin parámetro y mostraban mensajes fijos. Migrados a `catch (err) { $q.notify({ message: err instanceof Error ? err.message : 'fallback' }) }`.
+
+El interceptor axios (`boot/axios.ts`) ya normaliza errores a `new Error(mensaje_del_backend)` con propiedades `code/status/details/isBackendError`. Las páginas auth ya consumían esto; ahora las 12 páginas core también.
+
+**Archivos**: `PatrimonioPage`, `PrestamosPage`, `AnalisisGastosPage`, `ProductosPage`, `ProveedoresPage`, `ConfiguracionPage`, `AccountingPage`, `FacturasPage`, `VentasPage`, `GastosPage`, `OnboardingPage`, `PresentacionesDialog`
+
+### SQL Review — Hallazgos (ver SKILL.md output completo)
+
+| Severidad | Hallazgo | Acción |
+|-----------|----------|--------|
+| ✅ (ninguno) | SQL injection | 0 — todo parametrizado |
+| ✅ (ninguno) | Índices duplicados V16 | Corregido en sesión anterior |
+| 🔹 LOW | `conversion INTEGER` no soporta factores fraccionarios | Pendiente: cambiar a `NUMERIC(10,4)` |
+| 🔹 LOW | `loans(tenant_id)` single-column | Aceptado: PYME, <500 loans |
+
+### Archivos creados
+
+```
+common/dto/ApiResponse.java              # Envelope genérico
+common/dto/ErrorResponse.java            # { codigo, mensaje, status, details }
+common/exception/CodigoError.java        # 10 códigos categorizados
+common/exception/CoreApiException.java   # Base class con HttpStatus dinámico
+common/exception/custom/ResourceNotFoundException.java
+common/exception/custom/InvalidInputException.java
+common/exception/custom/DuplicateResourceException.java
+common/exception/GlobalExceptionHandler.java  # 12 handlers
+unit/GlobalExceptionHandlerTest.java     # 13 tests
+```
+
+### Archivos modificados
+
+```
+7 servicios migrados a nuevas excepciones
+12 páginas/vue + 1 componente core actualizados a catch con err.message
+GAPS.md actualizado (gap EXCEPTION_STRATEGY.md marcado ✅)
+```
+
+---
+
 ## 2026-07-15 — Invoice Update + Audit Fields
 
 ### Feature: `PUT /api/v1/core/invoices/{id}?tenantId=...`

@@ -81,8 +81,8 @@ async function load(p = 0) {
     const res = await productoService.search(tenantId, params)
     rows.value = res.data.content
     page.value = p
-  } catch {
-    $q.notify({ type: 'negative', message: 'Error al cargar productos' })
+  } catch (err) {
+    $q.notify({ type: 'negative', message: err instanceof Error ? err.message : 'Error al cargar productos' })
   } finally {
     loading.value = false
   }
@@ -146,8 +146,8 @@ async function save() {
     }
     dialogOpen.value = false
     $q.notify({ type: 'positive', message: `Producto ${editingId.value ? 'actualizado' : 'creado'}` })
-  } catch {
-    $q.notify({ type: 'negative', message: 'Error al guardar producto' })
+  } catch (err) {
+    $q.notify({ type: 'negative', message: err instanceof Error ? err.message : 'Error al guardar producto' })
   } finally {
     saving.value = false
   }
@@ -170,8 +170,8 @@ async function remove() {
     rows.value = rows.value.filter(r => r.id !== deletingItem.value!.id)
     deleteDialog.value = false
     $q.notify({ type: 'positive', message: 'Producto eliminado' })
-  } catch {
-    $q.notify({ type: 'negative', message: 'Error al eliminar producto' })
+  } catch (err) {
+    $q.notify({ type: 'negative', message: err instanceof Error ? err.message : 'Error al eliminar producto' })
   } finally {
     deleting.value = false
     deletingItem.value = null

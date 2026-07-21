@@ -2,7 +2,7 @@
 
 ### Core
 
-- [ ] [Alta] **Exception system (estrategia definida)** — Implementar `ErrorResponse`, `ApiResponse`, `CodigoError`, excepciones custom, `GlobalExceptionHandler`. Migrar 17 throws legacy en services. → [`docs/EXCEPTION_STRATEGY.md`](./backend/core/docs/EXCEPTION_STRATEGY.md)
+- [x] [Alta] **Exception system (estrategia definida)** — `ErrorResponse`, `ApiResponse`, `CodigoError`, 3 custom exceptions, `GlobalExceptionHandler` (12 handlers). Migrados 18 throws en 7 services (150/150 tests). → [`docs/EXCEPTION_STRATEGY.md`](./backend/core/docs/EXCEPTION_STRATEGY.md)
 - [ ] [Alta] Reportes — dashboard consolidado KPIs + alertas (2026-07)
 - [ ] [Alta] CRUD configuración tenant (edición) (2026-07)
 - [ ] [Media] Integration tests ejecutables en CI (2026-07)

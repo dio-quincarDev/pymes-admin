@@ -4,6 +4,7 @@ import core_pymes.setup.domain.TenantSetup;
 import core_pymes.setup.dto.SetupResponse;
 import core_pymes.setup.mapper.SetupMapper;
 import core_pymes.setup.repository.TenantSetupRepository;
+import core_pymes.common.exception.custom.InvalidInputException;
 import core_pymes.setup.service.impl.SetupServiceImpl;
 import org.junit.jupiter.api.Test;
 import org.junit.jupiter.api.extension.ExtendWith;
@@ -118,7 +119,7 @@ class SetupServiceImplTest {
         when(jdbc.queryForObject(anyString(), eq(Integer.class), eq("inventada"))).thenReturn(0);
 
         assertThatThrownBy(() -> service.completeOnboarding(tenantId, "inventada"))
-                .isInstanceOf(IllegalArgumentException.class)
+                .isInstanceOf(InvalidInputException.class)
                 .hasMessageContaining("Industry not found");
 
         verify(repository, never()).findByTenantId(any());
@@ -146,7 +147,7 @@ class SetupServiceImplTest {
         when(jdbc.queryForObject(anyString(), eq(Integer.class), eq("inventada"))).thenReturn(0);
 
         assertThatThrownBy(() -> service.previewIndustry("inventada"))
-                .isInstanceOf(IllegalArgumentException.class)
+                .isInstanceOf(InvalidInputException.class)
                 .hasMessageContaining("Industry not found");
 
         verify(repository, never()).findByTenantId(any());
@@ -256,7 +257,7 @@ class SetupServiceImplTest {
         when(repository.findByTenantId(tenantId)).thenReturn(Optional.empty());
 
         assertThatThrownBy(() -> service.getCategories(tenantId))
-                .isInstanceOf(IllegalArgumentException.class)
+                .isInstanceOf(InvalidInputException.class)
                 .hasMessageContaining("Tenant not found");
     }
 }

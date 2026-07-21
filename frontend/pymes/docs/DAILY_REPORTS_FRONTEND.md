@@ -4,6 +4,56 @@ Registro cronológico de decisiones, problemas resueltos y estado del frontend.
 
 ---
 
+## 2026-07-21 — Core error messages propagados a páginas core
+
+### Problema
+
+Las páginas core usaban `catch { }` sin parámetro. El interceptor axios (`boot/axios.ts`) ya normaliza errores backend a `new Error(mensaje)` con propiedades `code`, `status`, `details`, `isBackendError`, pero ~30 catch blocks descartaban el error y mostraban mensajes fijos como `'Error al cargar productos'`.
+
+### Cambio
+
+32 catch blocks migrados en 12 archivos:
+
+| Archivo | Catches | Patrón |
+|---------|---------|--------|
+| `PatrimonioPage.vue` | 2 | `catch { msg }` → `catch (err) { err instanceof Error ? err.message : msg }` |
+| `PrestamosPage.vue` | 5 | Ídem |
+| `AnalisisGastosPage.vue` | 1 | Ídem |
+| `ProductosPage.vue` | 3 (1 skip: `/* non-critical */`) | Ídem |
+| `ProveedoresPage.vue` | 3 | Ídem |
+| `ConfiguracionPage.vue` | 1 | Ídem |
+| `AccountingPage.vue` | 2 | Ídem |
+| `FacturasPage.vue` | 5 (incl. 1 `.catch(() => {})`) | `(err: unknown)` + mismo patrón |
+| `VentasPage.vue` | 3 | Ídem |
+| `GastosPage.vue` | 3 | Ídem |
+| `OnboardingPage.vue` | 2 | Ídem |
+| `PresentacionesDialog.vue` | 2 | Ídem |
+
+**Patrón aplicado**:
+```ts
+// Antes
+} catch {
+    $q.notify({ type: 'negative', message: 'Error al guardar' })
+}
+
+// Después
+} catch (err) {
+    $q.notify({ type: 'negative', message: err instanceof Error ? err.message : 'Error al guardar' })
+}
+```
+
+### Dependencias externas
+
+- El interceptor axios (`src/boot/axios.ts:40-73`) ya devuelve `Promise.reject(Object.assign(new Error(mensaje), { code, status, details, isBackendError: true }))` — ningún cambio necesario en infraestructura.
+- Los tipos (`BackendError`, `ERROR_CODES`) ya estaban definidos en `src/types/error.ts`.
+
+### No cambiado
+
+- `ProductosPage.vue:73` — `catch { /* non-critical */ }` intencionalmente silencioso (loadSetup de datos secundarios)
+- Auth pages (Login, Register, VerifyEmail, ResetPassword, AcceptInvitation) — ya usaban `catch (err)` con verificación de códigos específicos
+
+---
+
 ## 2026-07-15 — Rediseño Swiss/Grid + fix tenantId
 
 ### Design system overhaul

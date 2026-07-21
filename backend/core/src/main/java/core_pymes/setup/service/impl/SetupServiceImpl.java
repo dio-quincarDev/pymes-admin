@@ -4,6 +4,7 @@ import core_pymes.setup.domain.TenantSetup;
 import core_pymes.setup.dto.SetupResponse;
 import core_pymes.setup.mapper.SetupMapper;
 import core_pymes.setup.repository.TenantSetupRepository;
+import core_pymes.common.exception.custom.InvalidInputException;
 import core_pymes.setup.service.SetupService;
 import org.springframework.jdbc.core.JdbcTemplate;
 import org.springframework.stereotype.Service;
@@ -38,7 +39,7 @@ public class SetupServiceImpl implements SetupService {
         var count = jdbc.queryForObject(
                 "SELECT COUNT(*) FROM industries WHERE code = ?", Integer.class, industry);
         if (count == null || count == 0) {
-            throw new IllegalArgumentException("Industry not found: " + industry);
+            throw new InvalidInputException("Industry not found: " + industry);
         }
         var config = repository.findByTenantId(tenantId)
                 .orElseGet(() -> repository.save(new TenantSetup(tenantId)));
@@ -108,7 +109,7 @@ public class SetupServiceImpl implements SetupService {
     @Override
     public List<SetupResponse.ItemDTO> getCategories(UUID tenantId) {
         var config = repository.findByTenantId(tenantId)
-                .orElseThrow(() -> new IllegalArgumentException("Tenant not found: " + tenantId));
+                .orElseThrow(() -> new InvalidInputException("Tenant not found: " + tenantId));
         var industry = config.getIndustry();
         if (industry == null) {
             return List.of();
@@ -161,7 +162,7 @@ public class SetupServiceImpl implements SetupService {
         var count = jdbc.queryForObject(
                 "SELECT COUNT(*) FROM industries WHERE code = ?", Integer.class, industry);
         if (count == null || count == 0) {
-            throw new IllegalArgumentException("Industry not found: " + industry);
+            throw new InvalidInputException("Industry not found: " + industry);
         }
     }
 

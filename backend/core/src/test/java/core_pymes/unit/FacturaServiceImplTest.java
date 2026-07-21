@@ -12,7 +12,8 @@ import core_pymes.invoice.service.impl.FacturaServiceImpl;
 import core_pymes.product.domain.Presentacion;
 import core_pymes.product.domain.Producto;
 import core_pymes.product.repository.PresentacionRepository;
-import jakarta.persistence.EntityNotFoundException;
+import core_pymes.common.exception.custom.InvalidInputException;
+import core_pymes.common.exception.custom.ResourceNotFoundException;
 import org.junit.jupiter.api.Test;
 import org.junit.jupiter.api.extension.ExtendWith;
 import org.mockito.ArgumentCaptor;
@@ -26,6 +27,7 @@ import org.springframework.jdbc.core.JdbcTemplate;
 
 import java.math.BigDecimal;
 import java.time.LocalDate;
+import java.util.ArrayList;
 import java.util.List;
 import java.util.Optional;
 import java.util.UUID;
@@ -166,7 +168,7 @@ class FacturaServiceImplTest {
                 "FACTURA", null, BigDecimal.ZERO, List.of(item));
 
         assertThatThrownBy(() -> service.createFactura(request))
-                .isInstanceOf(IllegalArgumentException.class)
+                .isInstanceOf(InvalidInputException.class)
                 .hasMessageContaining("does not belong to product");
     }
 
@@ -196,7 +198,7 @@ class FacturaServiceImplTest {
         when(facturaRepository.findById(factura.getId())).thenReturn(Optional.of(factura));
 
         assertThatThrownBy(() -> service.pagarFactura(factura.getId(), tenantId))
-                .isInstanceOf(IllegalStateException.class)
+                .isInstanceOf(InvalidInputException.class)
                 .hasMessageContaining("already");
     }
 
@@ -207,8 +209,73 @@ class FacturaServiceImplTest {
         when(facturaRepository.findById(factura.getId())).thenReturn(Optional.of(factura));
 
         assertThatThrownBy(() -> service.deleteFactura(factura.getId(), tenantId))
-                .isInstanceOf(IllegalStateException.class)
+                .isInstanceOf(InvalidInputException.class)
                 .hasMessageContaining("Cannot delete");
+    }
+
+    @Test
+    void updateFactura_withEmptyItems_throws() {
+        var tenantId = UUID.randomUUID();
+        var facturaId = UUID.randomUUID();
+        var factura = Factura.builder().id(facturaId).tenantId(tenantId).status("REGISTRADA").items(List.of()).build();
+        when(facturaRepository.findById(facturaId)).thenReturn(Optional.of(factura));
+
+        var request = new FacturaRequest(tenantId, UUID.randomUUID(), LocalDate.of(2026, 7, 1),
+                "FACTURA", null, BigDecimal.ZERO, List.of());
+
+        assertThatThrownBy(() -> service.updateFactura(facturaId, tenantId, request))
+                .isInstanceOf(InvalidInputException.class)
+                .hasMessageContaining("al menos un item");
+    }
+
+    @Test
+    void updateFactura_whenAlreadyPaid_throws() {
+        var tenantId = UUID.randomUUID();
+        var facturaId = UUID.randomUUID();
+        var factura = Factura.builder().id(facturaId).tenantId(tenantId).status("PAGADA").build();
+        when(facturaRepository.findById(facturaId)).thenReturn(Optional.of(factura));
+
+        var request = new FacturaRequest(tenantId, UUID.randomUUID(), LocalDate.of(2026, 7, 1),
+                "FACTURA", null, BigDecimal.ZERO, List.of());
+
+        assertThatThrownBy(() -> service.updateFactura(facturaId, tenantId, request))
+                .isInstanceOf(InvalidInputException.class)
+                .hasMessageContaining("REGISTRADA");
+    }
+
+    @Test
+    void updateFactura_withValidRequest_updatesFactura() {
+        var tenantId = UUID.randomUUID();
+        var facturaId = UUID.randomUUID();
+        var productId = UUID.randomUUID();
+        var proveedorId = UUID.randomUUID();
+        var presentacion = mockPresentacion(productId, 1);
+        var factura = Factura.builder().id(facturaId).tenantId(tenantId).providerId(proveedorId).status("REGISTRADA")
+                .items(new ArrayList<>()).issueDate(LocalDate.of(2026, 6, 1)).build();
+        when(facturaRepository.findById(facturaId)).thenReturn(Optional.of(factura));
+        when(facturaRepository.save(any())).thenAnswer(i -> i.getArgument(0));
+        lenient().when(proveedorRepository.findById(proveedorId)).thenReturn(Optional.of(
+                Proveedor.builder().id(proveedorId).tenantId(tenantId).name("Prov").build()));
+        mockPresentaciones(List.of(presentacion));
+
+        var item = new ItemFacturaRequest(productId, presentacion.getId(), new BigDecimal("10"), new BigDecimal("5.50"), BigDecimal.ZERO, null, null, null, null, null);
+        var request = new FacturaRequest(tenantId, proveedorId, LocalDate.of(2026, 7, 1),
+                "FACTURA", "EFECTIVO", BigDecimal.ZERO, List.of(item));
+
+        when(mapper.toItemResponseList(anyList())).thenReturn(List.of());
+        when(mapper.toResponse(any(), anyList())).thenAnswer(i -> {
+            Factura f = i.getArgument(0);
+            return new FacturaResponse(f.getId(), f.getTenantId(), f.getProviderId(), null,
+                    f.getInvoiceNumber(), f.getIssueDate(), f.getType(), f.getGlobalDiscount(),
+                    f.getPaymentMethod(), f.getStatus(), f.getTotal(), List.of(), null);
+        });
+
+        var result = service.updateFactura(facturaId, tenantId, request);
+
+        assertThat(result).isNotNull();
+        assertThat(result.status()).isEqualTo("REGISTRADA");
+        verify(facturaRepository, times(1)).save(any());
+        verify(jdbc, atLeastOnce()).update(anyString(), any(), any(), any(), any(), any());
     }
 
     @Test
@@ -219,7 +286,7 @@ class FacturaServiceImplTest {
         when(proveedorRepository.findById(proveedor.getId())).thenReturn(Optional.of(proveedor));
 
         assertThatThrownBy(() -> service.findProveedor(proveedor.getId(), tenantId))
-                .isInstanceOf(EntityNotFoundException.class)
+                .isInstanceOf(ResourceNotFoundException.class)
                 .hasMessageContaining("Proveedor not found");
     }
 }

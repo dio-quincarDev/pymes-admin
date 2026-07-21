@@ -10,9 +10,10 @@ import core_pymes.invoice.repository.FacturaRepository;
 import core_pymes.invoice.repository.ProveedorRepository;
 import core_pymes.invoice.service.FacturaService;
 import core_pymes.invoice.service.InvoiceCalculator;
+import core_pymes.common.exception.custom.InvalidInputException;
+import core_pymes.common.exception.custom.ResourceNotFoundException;
 import core_pymes.product.domain.Presentacion;
 import core_pymes.product.repository.PresentacionRepository;
-import jakarta.persistence.EntityNotFoundException;
 import lombok.RequiredArgsConstructor;
 import lombok.extern.slf4j.Slf4j;
 import org.springframework.cache.annotation.CacheEvict;
@@ -115,7 +116,7 @@ public class FacturaServiceImpl implements FacturaService {
     @CacheEvict(cacheNames = "facturas", allEntries = true)
     public FacturaResponse createFactura(FacturaRequest request) {
         var proveedor = proveedorRepository.findById(request.proveedorId())
-                .orElseThrow(() -> new EntityNotFoundException("Proveedor not found: " + request.proveedorId()));
+                .orElseThrow(() -> new ResourceNotFoundException("Proveedor not found: " + request.proveedorId()));
 
         var invoiceNumber = generateInvoiceNumber(request.tenantId(), request.fecha().getYear());
 
@@ -174,7 +175,10 @@ public class FacturaServiceImpl implements FacturaService {
     public FacturaResponse updateFactura(UUID id, UUID tenantId, FacturaRequest request) {
         var factura = getFactura(id, tenantId);
         if (!"REGISTRADA".equals(factura.getStatus())) {
-            throw new IllegalStateException("Solo facturas en estado REGISTRADA pueden editarse");
+            throw new InvalidInputException("Solo facturas en estado REGISTRADA pueden editarse");
+        }
+        if (request.items() == null || request.items().isEmpty()) {
+            throw new InvalidInputException("Factura debe tener al menos un item");
         }
 
         // 1. Reverse product stats from OLD items
@@ -225,7 +229,7 @@ public class FacturaServiceImpl implements FacturaService {
         return mapper.toResponse(factura, mapper.toItemResponseList(factura.getItems()));
     }
 
-private InvoiceCalculator.CalculatedItem buildItem(ItemFacturaRequest itemReq,
+    private InvoiceCalculator.CalculatedItem buildItem(ItemFacturaRequest itemReq,
                                                          Map<UUID, String> productNameMap,
                                                          Map<UUID, Presentacion> presentacionMap,
                                                          Factura factura,
@@ -238,10 +242,10 @@ private InvoiceCalculator.CalculatedItem buildItem(ItemFacturaRequest itemReq,
         if (itemReq.presentacionId() != null) {
             var presentacion = presentacionMap.get(itemReq.presentacionId());
             if (presentacion == null) {
-                throw new EntityNotFoundException("Presentacion not found: " + itemReq.presentacionId());
+                throw new ResourceNotFoundException("Presentacion not found: " + itemReq.presentacionId());
             }
             if (!presentacion.getProducto().getId().equals(itemReq.productoId())) {
-                throw new IllegalArgumentException("Presentacion does not belong to product " + itemReq.productoId());
+                throw new InvalidInputException("Presentacion does not belong to product " + itemReq.productoId());
             }
             conversionFactor = presentacion.getConversion();
             presentacionId = presentacion.getId();
@@ -293,29 +297,36 @@ private InvoiceCalculator.CalculatedItem buildItem(ItemFacturaRequest itemReq,
     }
 
     private void reverseProductStats(List<ItemFactura> oldItems, UUID tenantId, UUID facturaId) {
-        for (ItemFactura item : oldItems) {
-            jdbc.update("""
-                UPDATE core.products SET
-                    total_investment = total_investment - ?,
-                    last_unit_price = (
-                        SELECT ii.unit_price FROM core.invoice_items ii
-                        JOIN core.invoices i ON i.id = ii.invoice_id
-                        WHERE ii.product_id = ? AND i.tenant_id = ? AND i.status != 'ELIMINADA' AND i.id != ?
-                        ORDER BY i.issue_date DESC, i.created_at DESC
-                        LIMIT 1
-                    ),
-                    last_purchase_date = (
-                        SELECT i.issue_date FROM core.invoices i
-                        JOIN core.invoice_items ii ON ii.invoice_id = i.id
-                        WHERE ii.product_id = ? AND i.tenant_id = ? AND i.status != 'ELIMINADA' AND i.id != ?
-                        ORDER BY i.issue_date DESC, i.created_at DESC
-                        LIMIT 1
-                    )
-                WHERE id = ? AND tenant_id = ?
-                """, item.getSubtotal(), item.getProductId(), tenantId, facturaId,
-                    item.getProductId(), tenantId, facturaId,
-                    item.getProductId(), tenantId);
+        if (oldItems.isEmpty()) return;
+
+        var sql = """
+            UPDATE core.products SET
+                total_investment = total_investment - ?,
+                last_unit_price = (
+                    SELECT ii.unit_price FROM core.invoice_items ii
+                    JOIN core.invoices i ON i.id = ii.invoice_id
+                    WHERE ii.product_id = ? AND i.tenant_id = ? AND i.status != 'ELIMINADA' AND i.id != ?
+                    ORDER BY i.issue_date DESC, i.created_at DESC
+                    LIMIT 1
+                ),
+                last_purchase_date = (
+                    SELECT i.issue_date FROM core.invoices i
+                    JOIN core.invoice_items ii ON ii.invoice_id = i.id
+                    WHERE ii.product_id = ? AND i.tenant_id = ? AND i.status != 'ELIMINADA' AND i.id != ?
+                    ORDER BY i.issue_date DESC, i.created_at DESC
+                    LIMIT 1
+                )
+            WHERE id = ? AND tenant_id = ?
+            """;
+        var batchArgs = new ArrayList<Object[]>();
+        for (var item : oldItems) {
+            batchArgs.add(new Object[]{
+                item.getSubtotal(), item.getProductId(), tenantId, facturaId,
+                item.getProductId(), tenantId, facturaId,
+                item.getProductId(), tenantId
+            });
         }
+        jdbc.batchUpdate(sql, batchArgs);
     }
 
     @Override
@@ -324,7 +335,7 @@ private InvoiceCalculator.CalculatedItem buildItem(ItemFacturaRequest itemReq,
     public FacturaResponse pagarFactura(UUID id, UUID tenantId) {
         var factura = getFactura(id, tenantId);
         if (!"REGISTRADA".equals(factura.getStatus())) {
-            throw new IllegalStateException("Factura already " + factura.getStatus());
+            throw new InvalidInputException("Factura already " + factura.getStatus());
         }
         factura.setStatus("PAGADA");
         factura = facturaRepository.save(factura);
@@ -337,7 +348,7 @@ private InvoiceCalculator.CalculatedItem buildItem(ItemFacturaRequest itemReq,
     public void deleteFactura(UUID id, UUID tenantId) {
         var factura = getFactura(id, tenantId);
         if (!"REGISTRADA".equals(factura.getStatus())) {
-            throw new IllegalStateException("Cannot delete factura in status " + factura.getStatus());
+            throw new InvalidInputException("Cannot delete factura in status " + factura.getStatus());
         }
         reverseProductStats(factura.getItems(), tenantId, factura.getId());
         facturaRepository.delete(factura);
@@ -347,18 +358,18 @@ private InvoiceCalculator.CalculatedItem buildItem(ItemFacturaRequest itemReq,
 
     private Proveedor getProveedor(UUID id, UUID tenantId) {
         var proveedor = proveedorRepository.findById(id)
-                .orElseThrow(() -> new EntityNotFoundException("Proveedor not found: " + id));
+                .orElseThrow(() -> new ResourceNotFoundException("Proveedor not found: " + id));
         if (!proveedor.getTenantId().equals(tenantId)) {
-            throw new EntityNotFoundException("Proveedor not found: " + id);
+            throw new ResourceNotFoundException("Proveedor not found: " + id);
         }
         return proveedor;
     }
 
     private Factura getFactura(UUID id, UUID tenantId) {
         var factura = facturaRepository.findById(id)
-                .orElseThrow(() -> new EntityNotFoundException("Factura not found: " + id));
+                .orElseThrow(() -> new ResourceNotFoundException("Factura not found: " + id));
         if (!factura.getTenantId().equals(tenantId)) {
-            throw new EntityNotFoundException("Factura not found: " + id);
+            throw new ResourceNotFoundException("Factura not found: " + id);
         }
         return factura;
     }

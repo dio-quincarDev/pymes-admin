@@ -32,8 +32,8 @@ async function load() {
   try {
     const res = await proveedorService.getAll(tenantId);
     rows.value = res.data;
-  } catch {
-    $q.notify({ type: 'negative', message: 'Error al cargar proveedores' });
+  } catch (err) {
+    $q.notify({ type: 'negative', message: err instanceof Error ? err.message : 'Error al cargar proveedores' });
   } finally {
     loading.value = false;
   }
@@ -90,8 +90,8 @@ async function save() {
       type: 'positive',
       message: `Proveedor ${editingId.value ? 'actualizado' : 'creado'}`,
     });
-  } catch {
-    $q.notify({ type: 'negative', message: 'Error al guardar proveedor' });
+  } catch (err) {
+    $q.notify({ type: 'negative', message: err instanceof Error ? err.message : 'Error al guardar proveedor' });
   } finally {
     saving.value = false;
   }
@@ -110,8 +110,8 @@ async function remove() {
     rows.value = rows.value.filter((r) => r.id !== deletingItem.value!.id);
     deleteDialog.value = false;
     $q.notify({ type: 'positive', message: 'Proveedor eliminado' });
-  } catch {
-    $q.notify({ type: 'negative', message: 'Error al eliminar proveedor' });
+  } catch (err) {
+    $q.notify({ type: 'negative', message: err instanceof Error ? err.message : 'Error al eliminar proveedor' });
   } finally {
     deleting.value = false;
     deletingItem.value = null;

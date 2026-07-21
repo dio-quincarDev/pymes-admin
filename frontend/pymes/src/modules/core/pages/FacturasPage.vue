@@ -384,9 +384,9 @@ function onProviderSelected(val: string | null) {
     providerFilteredOptions.value = [...providerOptions.value]
     form.value.proveedorId = res.data.id
     $q.notify({ type: 'positive', message: `Proveedor "${name}" creado` })
-  }).catch(() => {
+  }).catch((err: unknown) => {
     form.value.proveedorId = null
-    $q.notify({ type: 'negative', message: 'Error al crear proveedor' })
+    $q.notify({ type: 'negative', message: err instanceof Error ? err.message : 'Error al crear proveedor' })
   })
 }
 
@@ -430,8 +430,8 @@ async function openEdit(factura: Factura) {
     providerFilteredOptions.value = [...providerOptions.value]
     dialogOpen.value = true
     await nextTick()
-  } catch {
-    $q.notify({ type: 'negative', message: 'Error al cargar factura para editar' })
+  } catch (err) {
+    $q.notify({ type: 'negative', message: err instanceof Error ? err.message : 'Error al cargar factura para editar' })
   }
 }
 
@@ -560,8 +560,8 @@ async function pay() {
     if (idx >= 0) rows.value[idx] = res.data
     payDialog.value = false
     $q.notify({ type: 'positive', message: 'Factura pagada' })
-  } catch {
-    $q.notify({ type: 'negative', message: 'Error al pagar factura' })
+  } catch (err) {
+    $q.notify({ type: 'negative', message: err instanceof Error ? err.message : 'Error al pagar factura' })
   } finally {
     paying.value = false
     payingItem.value = null
@@ -585,8 +585,8 @@ async function remove() {
     rows.value = rows.value.filter(r => r.id !== deletingItem.value!.id)
     deleteDialog.value = false
     $q.notify({ type: 'positive', message: 'Factura eliminada' })
-  } catch {
-    $q.notify({ type: 'negative', message: 'Error al eliminar factura' })
+  } catch (err) {
+    $q.notify({ type: 'negative', message: err instanceof Error ? err.message : 'Error al eliminar factura' })
   } finally {
     deleting.value = false
     deletingItem.value = null
@@ -598,7 +598,7 @@ async function load() {
   try {
     const res = await facturaService.getAll(tenantId)
     rows.value = res.data
-  } catch { $q.notify({ type: 'negative', message: 'Error al cargar facturas' })
+  } catch (err) { $q.notify({ type: 'negative', message: err instanceof Error ? err.message : 'Error al cargar facturas' })
   } finally { loading.value = false }
 }
 

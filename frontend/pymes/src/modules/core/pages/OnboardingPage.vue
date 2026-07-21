@@ -52,8 +52,8 @@ async function loadPreview(industry: string) {
     const { data } = await setupService.preview(industry)
     previewData.value = data
     step.value = 2
-  } catch {
-    $q.notify({ type: 'negative', message: 'Error al cargar preview. Intenta de nuevo.' })
+  } catch (err) {
+    $q.notify({ type: 'negative', message: err instanceof Error ? err.message : 'Error al cargar preview. Intenta de nuevo.' })
   } finally {
     loadingPreview.value = false
   }
@@ -71,8 +71,8 @@ async function confirm() {
     await setupService.completeOnboarding(tenantId, selected.value)
     $q.notify({ type: 'positive', message: 'Configuracion completada' })
     void router.push('/dashboard')
-  } catch {
-    $q.notify({ type: 'negative', message: 'Error al guardar. Intenta de nuevo.' })
+  } catch (err) {
+    $q.notify({ type: 'negative', message: err instanceof Error ? err.message : 'Error al guardar. Intenta de nuevo.' })
   } finally {
     saving.value = false
   }

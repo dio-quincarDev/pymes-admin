@@ -49,8 +49,8 @@ async function addPresentation() {
     presItems.value.push(res.data)
     presForm.value = { name: '', conversion: 1 }
     emit('updated')
-  } catch {
-    $q.notify({ type: 'negative', message: 'Error al agregar presentación' })
+  } catch (err) {
+    $q.notify({ type: 'negative', message: err instanceof Error ? err.message : 'Error al agregar presentación' })
   } finally {
     addingPres.value = false
   }
@@ -62,8 +62,8 @@ async function removePresentation(p: Presentacion) {
     await productoService.removePresentation(p.id, tenantId)
     presItems.value = presItems.value.filter(x => x.id !== p.id)
     emit('updated')
-  } catch {
-    $q.notify({ type: 'negative', message: 'Error al eliminar presentación' })
+  } catch (err) {
+    $q.notify({ type: 'negative', message: err instanceof Error ? err.message : 'Error al eliminar presentación' })
   } finally {
     removingPres.value = false
   }

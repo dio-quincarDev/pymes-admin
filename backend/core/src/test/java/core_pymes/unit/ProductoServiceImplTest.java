@@ -13,8 +13,9 @@ import core_pymes.product.event.ProductoCreadoEvent;
 import core_pymes.product.mapper.ProductoMapper;
 import core_pymes.product.repository.PresentacionRepository;
 import core_pymes.product.repository.ProductoRepository;
+import core_pymes.common.exception.custom.InvalidInputException;
+import core_pymes.common.exception.custom.ResourceNotFoundException;
 import core_pymes.product.service.impl.ProductoServiceImpl;
-import jakarta.persistence.EntityNotFoundException;
 import org.junit.jupiter.api.Test;
 import org.junit.jupiter.api.extension.ExtendWith;
 import org.mockito.ArgumentCaptor;
@@ -69,7 +70,7 @@ class ProductoServiceImplTest {
         when(productoRepository.findById(any())).thenReturn(Optional.empty());
 
         assertThatThrownBy(() -> service.findById(UUID.randomUUID(), tenantId))
-                .isInstanceOf(EntityNotFoundException.class)
+                .isInstanceOf(ResourceNotFoundException.class)
                 .hasMessageContaining("Producto not found");
     }
 
@@ -81,7 +82,7 @@ class ProductoServiceImplTest {
         when(productoRepository.findById(producto.getId())).thenReturn(Optional.of(producto));
 
         assertThatThrownBy(() -> service.findById(producto.getId(), tenantId))
-                .isInstanceOf(EntityNotFoundException.class)
+                .isInstanceOf(ResourceNotFoundException.class)
                 .hasMessageContaining("Producto not found");
     }
 
@@ -225,7 +226,7 @@ class ProductoServiceImplTest {
         when(presentacionRepository.findById(presentacion.getId())).thenReturn(Optional.of(presentacion));
 
         assertThatThrownBy(() -> service.deletePresentacion(presentacion.getId(), tenantId))
-                .isInstanceOf(IllegalArgumentException.class)
+                .isInstanceOf(InvalidInputException.class)
                 .hasMessageContaining("does not belong to tenant");
     }
 }

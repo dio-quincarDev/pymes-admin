@@ -26,7 +26,7 @@ async function load() {
       startDate: res.data.startDate || '',
       notes: res.data.notes || '',
     }
-  } catch { $q.notify({ type: 'negative', message: 'Error al cargar patrimonio' })
+  } catch (err) { $q.notify({ type: 'negative', message: err instanceof Error ? err.message : 'Error al cargar patrimonio' })
   } finally { loading.value = false }
 }
 
@@ -48,7 +48,7 @@ async function save() {
     editing.value = false
     $q.notify({ type: 'positive', message: 'Patrimonio actualizado' })
     await load()
-  } catch { $q.notify({ type: 'negative', message: 'Error al guardar patrimonio' })
+  } catch (err) { $q.notify({ type: 'negative', message: err instanceof Error ? err.message : 'Error al guardar patrimonio' })
   } finally { saving.value = false }
 }
 

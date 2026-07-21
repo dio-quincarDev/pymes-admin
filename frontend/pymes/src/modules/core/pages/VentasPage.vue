@@ -65,7 +65,7 @@ async function load() {
   try {
     const res = await ventaService.getAll(tenantId)
     rows.value = res.data
-  } catch { $q.notify({ type: 'negative', message: 'Error al cargar ventas' })
+  } catch (err) { $q.notify({ type: 'negative', message: err instanceof Error ? err.message : 'Error al cargar ventas' })
   } finally { loading.value = false }
 }
 
@@ -101,7 +101,7 @@ async function save() {
     }
     dialogOpen.value = false
     $q.notify({ type: 'positive', message: `Venta ${editingId.value ? 'actualizada' : 'registrada'}` })
-  } catch { $q.notify({ type: 'negative', message: 'Error al guardar venta' })
+  } catch (err) { $q.notify({ type: 'negative', message: err instanceof Error ? err.message : 'Error al guardar venta' })
   } finally { saving.value = false }
 }
 
@@ -122,8 +122,8 @@ async function remove() {
     rows.value = rows.value.filter(r => r.id !== deletingItem.value!.id)
     deleteDialog.value = false
     $q.notify({ type: 'positive', message: 'Venta eliminada' })
-  } catch {
-    $q.notify({ type: 'negative', message: 'Error al eliminar venta' })
+  } catch (err) {
+    $q.notify({ type: 'negative', message: err instanceof Error ? err.message : 'Error al eliminar venta' })
   } finally {
     deleting.value = false
     deletingItem.value = null

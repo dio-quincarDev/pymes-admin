@@ -89,8 +89,8 @@ async function loadSetup() {
   try {
     const res = await api.get<SetupInfo>(`/core/setup/${tenantId}`)
     setup.value = res.data
-  } catch {
-    $q.notify({ type: 'negative', message: 'Error al cargar configuración' })
+  } catch (err) {
+    $q.notify({ type: 'negative', message: err instanceof Error ? err.message : 'Error al cargar configuración' })
   } finally {
     loading.value = false
   }

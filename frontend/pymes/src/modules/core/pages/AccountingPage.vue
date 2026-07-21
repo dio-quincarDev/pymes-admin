@@ -23,7 +23,7 @@ async function load() {
   try {
     const res = await accountingService.consultar(tenantId, periodo.value)
     data.value = res.data
-  } catch { $q.notify({ type: 'negative', message: 'Error al cargar métricas' })
+  } catch (err) { $q.notify({ type: 'negative', message: err instanceof Error ? err.message : 'Error al cargar métricas' })
   } finally { loading.value = false }
 }
 
@@ -33,7 +33,7 @@ async function recalcular() {
     const res = await accountingService.recalcular(tenantId, periodo.value)
     data.value = res.data
     $q.notify({ type: 'positive', message: 'Métricas recalculadas' })
-  } catch { $q.notify({ type: 'negative', message: 'Error al recalcular' })
+  } catch (err) { $q.notify({ type: 'negative', message: err instanceof Error ? err.message : 'Error al recalcular' })
   } finally { recalculando.value = false }
 }
 

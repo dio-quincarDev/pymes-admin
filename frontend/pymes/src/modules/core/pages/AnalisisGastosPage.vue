@@ -114,7 +114,7 @@ async function load() {
     ])
     products.value = prodRes.data
     setupCategories.value = setupRes.data.categories || []
-  } catch { $q.notify({ type: 'negative', message: 'Error al cargar datos' })
+  } catch (err) { $q.notify({ type: 'negative', message: err instanceof Error ? err.message : 'Error al cargar datos' })
   } finally { loading.value = false }
 }
 

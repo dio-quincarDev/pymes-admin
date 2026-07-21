@@ -14,7 +14,8 @@ import core_pymes.product.mapper.ProductoMapper;
 import core_pymes.product.repository.PresentacionRepository;
 import core_pymes.product.repository.ProductoRepository;
 import core_pymes.product.service.ProductoService;
-import jakarta.persistence.EntityNotFoundException;
+import core_pymes.common.exception.custom.InvalidInputException;
+import core_pymes.common.exception.custom.ResourceNotFoundException;
 import lombok.RequiredArgsConstructor;
 import lombok.extern.slf4j.Slf4j;
 import org.springframework.cache.annotation.CacheEvict;
@@ -157,10 +158,10 @@ public class ProductoServiceImpl implements ProductoService {
     @CacheEvict(cacheNames = "productos", allEntries = true)
     public void deletePresentacion(UUID presentacionId, UUID tenantId) {
         var presentacion = presentacionRepository.findById(presentacionId)
-                .orElseThrow(() -> new EntityNotFoundException("Presentacion not found: " + presentacionId));
+                .orElseThrow(() -> new ResourceNotFoundException("Presentacion not found: " + presentacionId));
         var producto = presentacion.getProducto();
         if (!producto.getTenantId().equals(tenantId)) {
-            throw new IllegalArgumentException("Presentacion does not belong to tenant");
+            throw new InvalidInputException("Presentacion does not belong to tenant");
         }
         presentacionRepository.delete(presentacion);
         log.debug("Presentacion deleted: {}", presentacionId);
@@ -168,9 +169,9 @@ public class ProductoServiceImpl implements ProductoService {
 
     private Producto getProducto(UUID id, UUID tenantId) {
         var producto = productoRepository.findById(id)
-                .orElseThrow(() -> new EntityNotFoundException("Producto not found: " + id));
+                .orElseThrow(() -> new ResourceNotFoundException("Producto not found: " + id));
         if (!producto.getTenantId().equals(tenantId)) {
-            throw new EntityNotFoundException("Producto not found: " + id);
+            throw new ResourceNotFoundException("Producto not found: " + id);
         }
         return producto;
     }

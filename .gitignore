@@ -43,3 +43,6 @@ opencode.json
 
 # Design specs (local-only)
 .ulpi/
+
+# HyperFrames video project (local-only)
+pymes-architecture-teaser/

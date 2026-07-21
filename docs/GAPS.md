@@ -52,36 +52,31 @@
 |---|-----|--------------------|-------------|---------|
 | — | *(sin gaps funcionales)* | — | — | — |
 | 1 | Endpoints no documentados | CORE.md/ARCHITECTURE.md listan solo CRUD clásico | `GET /search` (paginado) y `GET /{tenantId}/categories` existen | Bajo — endpoints internos, frontend los conoce | ✅ |
+| 2 | Todos los gaps de code review cerrados en 2026-07-21 | — | — | — | ✅ |
 
-### Code Review Findings (2026-07-15)
+### Code Review Findings (2026-07-21 — Todos cerrados)
 
 #### 🔴 Critical
 
-1. **IN clause vacía crashea si no hay productIds** (`FacturaServiceImpl.java:188`) — `updateFactura()` construye `WHERE id IN (?)` sin validar que `productIds` no esté vacío. Si `request.items()` está vacío, se ejecuta `SELECT ... WHERE id IN ()` → SQL error. Fix: validar items no vacío al inicio del método.
-
-2. **`reverseProductStats` = N+1 UPDATEs con subqueries** (`FacturaServiceImpl.java:295-317`) — Por cada item ejecuta un UPDATE con 2 subqueries correlacionadas. Para facturas con 20+ items son 20 queries separadas. Fix: convertir a un solo UPDATE con `FROM` subquery o batching.
-
-3. **Sin tests para `updateFactura` ni `InvoiceCalculator`** — `InvoiceCalculator.resolve()` tiene 7+ ramas condicionales (null checks, división, conversión), pero cero tests. `reverseProductStats` tampoco está testeado.
+| # | Gap | Fix | Estado |
+|---|-----|-----|--------|
+| 1 | **IN clause vacía** (`FacturaServiceImpl.java:188`) — `updateFactura()` sin items → SQL error | Validar `request.items()` no vacío al inicio del método | ✅ |
+| 2 | **reverseProductStats N+1** (`FacturaServiceImpl.java:295-317`) — loop por item con 2 subqueries | `batchUpdate()` en lote único | ✅ |
+| 3 | **Sin tests** — `updateFactura` ni `InvoiceCalculator` tenían cobertura | `FacturaServiceImplTest` + nuevo `InvoiceCalculatorTest` (16 tests) | ✅ |
 
 #### 🟡 Suggestions
 
-1. **Indentación rota en `buildItem()`** (`FacturaServiceImpl.java:228`) — La declaración del método tiene 0 espacios de indentación. Fix: indentar 4 espacios.
-
-2. **`productoName` puede ser null** (`FacturaServiceImpl.java:234`) — `productNameMap.get()` retorna null si el producto no existe en la BD. Fix: lanzar `EntityNotFoundException`.
-
-3. **Subtotal calculado 2 veces en `InvoiceCalculator`** (`InvoiceCalculator.java:67-71, 112-113`) — Primero en step 3 para derivación y después en step 7 como `gross - discount`. El primero se descarta. Fix: unificar en un solo cálculo.
-
-4. **`reverseProductStats` debería ser batchable** (`FacturaServiceImpl.java:295-317`) — Las subqueries por item se pueden convertir a un solo UPDATE con `DISTINCT ON`. Fix: refactorizar a query única.
-
-5. **Sin `@PreAuthorize` en PUT** (`FacturaController.java:38`) — Endpoint update no verifica rol. Consistente con el resto del controller, pero gap transversal.
-
-6. **`tenantId` como `@RequestParam` en PUT vs dentro del body en POST** (`FacturaApi.java:34`) — Inconsistencia en diseño de API. Fix: mover `tenantId` al body o estandarizar ambas.
-
-7. **`reverseProductStats` ejecutado antes de save exitoso** (`FacturaServiceImpl.java:181, 339`) — Si `save()` falla después de reverseProductStats, los stats quedan revertidos pero la transacción no se completa (rollback solo si no hay commit explícito). Riesgo de inconsistencia si hay error fuera de la transacción.
-
-8. **EXCEPTION_STRATEGY.md sin implementación** — Documentación completa pero sin código de `GlobalExceptionHandler`, `ApiResponse`, etc. Fix: implementar o marcar como deuda con fecha.
-
-9. **Índices potencialmente duplicados** (`V16__invoice_performance_indexes.sql`) — Verificar que migraciones anteriores no hayan creado `idx_products_tenant_id` u otros índices. `IF NOT EXISTS` mitiga, pero revisar.
+| # | Gap | Resolución | Estado |
+|---|-----|------------|--------|
+| 1 | **Indentación `buildItem()`** — declaración sin indentación | Indentado 4 espacios | ✅ |
+| 2 | **`productoName` null** — `productNameMap.get()` sin null check | `EntityNotFoundException` si es null | ✅ |
+| 3 | **Subtotal duplicado en `InvoiceCalculator`** — step 3 descartado | Eliminado step 3, derivación inline en step 5 | ✅ |
+| 4 | **reverseProductStats batchable** — mismo que critical #2 | Consolidado con critical #2 | ✅ |
+| 5 | **Sin `@PreAuthorize` en PUT** — gap transversal (ningún controller core tiene autorización) | ✅ Aceptado — `ponytail: agregar cuando se implemente seguridad a nivel endpoint` | ✅ |
+| 6 | **`tenantId` inconsistente** — `@RequestParam` en PUT vs body en POST | ✅ Aceptado — `ponytail: @RequestParam es patrón dominante, no cambiar POST para no romper frontend` | ✅ |
+| 7 | **`reverseProductStats` antes de save** — riesgo si save falla | ✅ Aceptado — `protegido por @Transactional, rollback undo ambas operaciones` | ✅ |
+| 8 | **EXCEPTION_STRATEGY.md sin implementación** — documentación completa sin código | Implementado: ApiResponse, ErrorResponse (con `status` int), CodigoError, CoreApiException + 3 custom (ResourceNotFound, InvalidInput, DuplicateResource). GlobalExceptionHandler con 12 handlers. Migrados 18 throws en 7 servicios. 13 tests nuevos. | ✅ |
+| 9 | **Índices duplicados** (`V16__invoice_performance_indexes.sql`) — `idx_invoice_items_product_id` duplica `idx_invoice_items_product` (V6) | Eliminado el índice redundante de V16 + comentario | ✅ |
 
 ## Gateway
 

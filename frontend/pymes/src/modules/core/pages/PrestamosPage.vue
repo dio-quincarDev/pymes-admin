@@ -23,7 +23,7 @@ async function load() {
   try {
     const res = await prestamoService.getAll(tenantId)
     rows.value = res.data
-  } catch { $q.notify({ type: 'negative', message: 'Error al cargar pr\u00E9stamos' })
+  } catch (err) { $q.notify({ type: 'negative', message: err instanceof Error ? err.message : 'Error al cargar pr\u00E9stamos' })
   } finally { loading.value = false }
 }
 
@@ -59,7 +59,7 @@ async function save() {
     }
     dialogOpen.value = false
     $q.notify({ type: 'positive', message: `Pr\u00E9stamo ${editingId.value ? 'actualizado' : 'creado'}` })
-  } catch { $q.notify({ type: 'negative', message: 'Error al guardar pr\u00E9stamo' })
+  } catch (err) { $q.notify({ type: 'negative', message: err instanceof Error ? err.message : 'Error al guardar pr\u00E9stamo' })
   } finally { saving.value = false }
 }
 
@@ -80,8 +80,8 @@ async function remove() {
     rows.value = rows.value.filter(r => r.id !== deletingItem.value!.id)
     deleteDialog.value = false
     $q.notify({ type: 'positive', message: 'Pr\u00E9stamo eliminado' })
-  } catch {
-    $q.notify({ type: 'negative', message: 'Error al eliminar pr\u00E9stamo' })
+  } catch (err) {
+    $q.notify({ type: 'negative', message: err instanceof Error ? err.message : 'Error al eliminar pr\u00E9stamo' })
   } finally {
     deleting.value = false
     deletingItem.value = null
@@ -108,7 +108,7 @@ async function loadPagos(loanId: string) {
   try {
     const res = await prestamoService.getPagos(loanId, tenantId)
     pagos.value = res.data
-  } catch { $q.notify({ type: 'negative', message: 'Error al cargar pagos' })
+  } catch (err) { $q.notify({ type: 'negative', message: err instanceof Error ? err.message : 'Error al cargar pagos' })
   } finally { pagosLoaded.value = true }
 }
 
@@ -121,7 +121,7 @@ async function savePago() {
     pagoForm.value = { amount: 0, paymentDate: new Date().toISOString().slice(0, 10) }
     await loadPagos(pagoPrestamo.value.id)
     await load()
-  } catch { $q.notify({ type: 'negative', message: 'Error al registrar pago' })
+  } catch (err) { $q.notify({ type: 'negative', message: err instanceof Error ? err.message : 'Error al registrar pago' })
   } finally { savingPago.value = false }
 }
 

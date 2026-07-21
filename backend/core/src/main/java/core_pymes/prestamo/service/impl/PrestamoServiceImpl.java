@@ -11,7 +11,7 @@ import core_pymes.prestamo.event.PrestamoCreadoEvent;
 import core_pymes.prestamo.repository.PagoPrestamoRepository;
 import core_pymes.prestamo.repository.PrestamoRepository;
 import core_pymes.prestamo.service.PrestamoService;
-import jakarta.persistence.EntityNotFoundException;
+import core_pymes.common.exception.custom.ResourceNotFoundException;
 import lombok.RequiredArgsConstructor;
 import lombok.extern.slf4j.Slf4j;
 import org.springframework.cache.annotation.CacheEvict;
@@ -128,9 +128,9 @@ public class PrestamoServiceImpl implements PrestamoService {
 
     private Prestamo getPrestamo(UUID id, UUID tenantId) {
         var prestamo = prestamoRepository.findById(id)
-                .orElseThrow(() -> new EntityNotFoundException("Prestamo not found: " + id));
+                .orElseThrow(() -> new ResourceNotFoundException("Prestamo not found: " + id));
         if (!prestamo.getTenantId().equals(tenantId)) {
-            throw new EntityNotFoundException("Prestamo not found: " + id);
+            throw new ResourceNotFoundException("Prestamo not found: " + id);
         }
         return prestamo;
     }

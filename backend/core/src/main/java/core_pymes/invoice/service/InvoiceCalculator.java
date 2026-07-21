@@ -1,5 +1,6 @@
 package core_pymes.invoice.service;
 
+import core_pymes.common.exception.custom.InvalidInputException;
 import java.math.BigDecimal;
 import java.math.RoundingMode;
 import java.util.ArrayList;
@@ -38,7 +39,6 @@ public final class InvoiceCalculator {
         BigDecimal quantity = null;
         BigDecimal unitPrice = null;
         BigDecimal discount = BigDecimal.ZERO;
-        BigDecimal subtotal = null;
 
         // Preserve original inputs for audit
         BigDecimal cantPresOrig = req.cantidadPresentacion();
@@ -63,13 +63,6 @@ public final class InvoiceCalculator {
             unitPrice = req.precioUnitario();
         }
 
-        // 3) Resolve subtotal if directly derivable
-        if (req.cantidadPresentacion() != null && req.valorPresentacion() != null) {
-            subtotal = req.cantidadPresentacion().multiply(req.valorPresentacion());
-        } else if (req.cantidad() != null && req.precioUnitario() != null) {
-            subtotal = req.cantidad().multiply(req.precioUnitario());
-        }
-
         // 4) Validate: need at least 2 independent inputs to resolve
         List<String> provided = new ArrayList<>();
         if (req.cantidadPresentacion() != null || req.cantidad() != null) provided.add("cantidad");
@@ -77,22 +70,25 @@ public final class InvoiceCalculator {
         if (req.cantidadPresentacion() != null && req.valorPresentacion() != null) provided.add("subtotal");
 
         if (provided.size() < 2 && (quantity == null || unitPrice == null)) {
-            throw new IllegalArgumentException("Se requieren al menos 2 inputs independientes (cantidad + precio/valor/subtotal)");
+            throw new InvalidInputException("Se requieren al menos 2 inputs independientes (cantidad + precio/valor/subtotal)");
         }
 
-        // 5) Derive missing quantity/unitPrice from subtotal if available
+        // 5) Derive missing quantity/unitPrice from presentacion-level subtotal if available
+        boolean hasDirectSubtotal = req.cantidadPresentacion() != null && req.valorPresentacion() != null;
         if (quantity == null) {
-            if (subtotal != null && unitPrice != null && unitPrice.compareTo(BigDecimal.ZERO) > 0) {
-                quantity = subtotal.divide(unitPrice, 6, RoundingMode.HALF_UP);
+            if (hasDirectSubtotal && unitPrice != null && unitPrice.compareTo(BigDecimal.ZERO) > 0) {
+                BigDecimal directSubtotal = req.cantidadPresentacion().multiply(req.valorPresentacion());
+                quantity = directSubtotal.divide(unitPrice, 6, RoundingMode.HALF_UP);
             } else {
-                throw new IllegalArgumentException("No se puede resolver cantidad: faltan datos");
+                throw new InvalidInputException("No se puede resolver cantidad: faltan datos");
             }
         }
         if (unitPrice == null) {
-            if (subtotal != null && quantity != null && quantity.compareTo(BigDecimal.ZERO) > 0) {
-                unitPrice = subtotal.divide(quantity, 6, RoundingMode.HALF_UP);
+            if (hasDirectSubtotal && quantity != null && quantity.compareTo(BigDecimal.ZERO) > 0) {
+                BigDecimal directSubtotal = req.cantidadPresentacion().multiply(req.valorPresentacion());
+                unitPrice = directSubtotal.divide(quantity, 6, RoundingMode.HALF_UP);
             } else {
-                throw new IllegalArgumentException("No se puede resolver precio unitario: faltan datos");
+                throw new InvalidInputException("No se puede resolver precio unitario: faltan datos");
             }
         }
 

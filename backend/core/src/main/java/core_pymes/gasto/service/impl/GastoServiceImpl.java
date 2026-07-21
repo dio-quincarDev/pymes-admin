@@ -7,7 +7,7 @@ import core_pymes.gasto.dto.GastoResponse;
 import core_pymes.gasto.event.GastoCreadoEvent;
 import core_pymes.gasto.repository.GastoRepository;
 import core_pymes.gasto.service.GastoService;
-import jakarta.persistence.EntityNotFoundException;
+import core_pymes.common.exception.custom.ResourceNotFoundException;
 import lombok.RequiredArgsConstructor;
 import lombok.extern.slf4j.Slf4j;
 import org.springframework.cache.annotation.CacheEvict;
@@ -85,9 +85,9 @@ public class GastoServiceImpl implements GastoService {
 
     private GastoOperativo getGasto(UUID id, UUID tenantId) {
         var gasto = repository.findById(id)
-                .orElseThrow(() -> new EntityNotFoundException("GastoOperativo not found: " + id));
+                .orElseThrow(() -> new ResourceNotFoundException("GastoOperativo not found: " + id));
         if (!gasto.getTenantId().equals(tenantId)) {
-            throw new EntityNotFoundException("GastoOperativo not found: " + id);
+            throw new ResourceNotFoundException("GastoOperativo not found: " + id);
         }
         return gasto;
     }
