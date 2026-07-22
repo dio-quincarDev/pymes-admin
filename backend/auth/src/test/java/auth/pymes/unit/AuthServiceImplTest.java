@@ -95,7 +95,7 @@ public class AuthServiceImplTest {
     @Test
     void register_WithValidRequest_ReturnsAuthResponseWithNullTokens() {
         RegisterRequest request = new RegisterRequest(
-                "New User", "new@example.com", "password", "New Company", "new-company"
+                "New User", "new@example.com", "password", "New Company", "new-company", null
         );
 
         when(userRepository.existsByEmail(request.email())).thenReturn(false);
@@ -111,7 +111,7 @@ public class AuthServiceImplTest {
     @Test
     void completeRegistration_WithValidRequest_ReturnsAuthResponse() {
         RegisterRequest request = new RegisterRequest(
-                "New User", "new@example.com", "password", "New Company", "new-company"
+                "New User", "new@example.com", "password", "New Company", "new-company", null
         );
 
         UserEntity user = UserEntity.builder()
@@ -254,7 +254,7 @@ public class AuthServiceImplTest {
 
     @Test
     void register_WhenUserExists_ThrowsDuplicateResourceException() {
-        RegisterRequest request = new RegisterRequest("New User", "existing@example.com", "password", "Company", "company");
+        RegisterRequest request = new RegisterRequest("New User", "existing@example.com", "password", "Company", "company", null);
         when(userRepository.existsByEmail(request.email())).thenReturn(true);
 
         assertThatThrownBy(() -> authService.register(request, httpRequest))

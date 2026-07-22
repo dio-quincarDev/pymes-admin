@@ -6,6 +6,7 @@ import auth.pymes.common.models.entities.Tenant;
 import auth.pymes.common.models.entities.UserEntity;
 import auth.pymes.common.models.entities.UserTenant;
 import auth.pymes.common.models.enums.AuthProvider;
+import auth.pymes.common.models.enums.PlanName;
 import auth.pymes.common.models.enums.RoleName;
 import auth.pymes.common.models.mappers.UserMapper;
 import auth.pymes.repositories.TenantRepository;
@@ -22,7 +23,9 @@ import org.springframework.data.domain.PageImpl;
 import org.springframework.data.domain.PageRequest;
 import org.springframework.data.domain.Pageable;
 import org.springframework.security.oauth2.core.user.OAuth2User;
+import org.springframework.test.util.ReflectionTestUtils;
 
+import java.time.ZonedDateTime;
 import java.util.List;
 import java.util.Optional;
 import java.util.UUID;
@@ -87,12 +90,17 @@ public class MemberServiceImplTest {
         UserTenant ownerRelation = UserTenant.builder().role(RoleName.OWNER).build();
         when(userTenantRepository.findByUserIdAndTenantId(owner.getId(), tenantId)).thenReturn(Optional.of(ownerRelation));
 
+        Tenant tenant = Tenant.builder().id(tenantId).plan(PlanName.FREE).lastRoleChangeAt(null).build();
+        when(tenantRepository.findById(tenantId)).thenReturn(Optional.of(tenant));
+
         UUID targetUserId = UUID.randomUUID();
         UserEntity targetUser = UserEntity.builder().id(targetUserId).build();
         UserTenant targetRelation = UserTenant.builder().user(targetUser).userId(targetUserId).role(RoleName.VIEWER).build();
         when(userTenantRepository.findByUserIdAndTenantId(targetUserId, tenantId)).thenReturn(Optional.of(targetRelation));
         
         when(userMapper.toResponse(any())).thenReturn(new UserEntityResponse(targetUserId, "t@ex.com", "Target", null, AuthProvider.LOCAL, null, null, null));
+
+        ReflectionTestUtils.setField(memberService, "roleChangeCooldownDays", 30);
 
         MemberResponse response = memberService.updateUserRole(tenantId, targetUserId, "ADMIN", principal);
 

@@ -131,9 +131,11 @@ import { ref, onMounted, onUnmounted, computed } from 'vue';
 import { useQuasar } from 'quasar';
 import { useRoute, useRouter } from 'vue-router';
 import { useLogout } from 'src/composables/useLogout';
+import { useAuthStore } from 'src/modules/auth/store';
 import BaseButton from 'src/components/base/BaseButton.vue';
 
 const $q = useQuasar();
+const authStore = useAuthStore();
 const route = useRoute();
 const router = useRouter();
 const { logout: handleLogout } = useLogout();
@@ -190,6 +192,7 @@ interface NavItem {
   title: string
   icon: string
   path: string
+  roles?: string[]
 }
 
 interface NavGroup {
@@ -197,7 +200,7 @@ interface NavGroup {
   items: NavItem[]
 }
 
-const navGroups: NavGroup[] = [
+const allNavGroups: NavGroup[] = [
   {
     label: 'Operaciones',
     items: [
@@ -220,10 +223,19 @@ const navGroups: NavGroup[] = [
     label: 'Sistema',
     items: [
       { title: 'Contabilidad', icon: 'balance', path: '/dashboard/accounting' },
+      { title: 'Teams', icon: 'group', path: '/dashboard/teams', roles: ['OWNER', 'ADMIN'] },
       { title: 'Configuración', icon: 'settings', path: '/dashboard/configuracion' },
     ],
   },
 ];
+
+const userRole = authStore.user?.role || '';
+const navGroups = computed(() =>
+  allNavGroups.map(group => ({
+    ...group,
+    items: group.items.filter(item => !item.roles || item.roles.includes(userRole)),
+  })).filter(group => group.items.length > 0)
+);
 
 function toggleLeftDrawer() {
   leftDrawerOpen.value = !leftDrawerOpen.value;

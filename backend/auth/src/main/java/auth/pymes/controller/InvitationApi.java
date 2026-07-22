@@ -4,6 +4,7 @@ import auth.pymes.common.constants.ApiPathConstants;
 import auth.pymes.common.models.dto.request.AcceptInvitationRequest;
 import auth.pymes.common.models.dto.request.CreateInvitationRequest;
 import auth.pymes.common.models.dto.response.ApiResponse;
+import auth.pymes.common.models.dto.response.InvitationInfoResponse;
 import auth.pymes.common.models.dto.response.InvitationResponse;
 import io.swagger.v3.oas.annotations.Operation;
 import io.swagger.v3.oas.annotations.tags.Tag;
@@ -44,4 +45,9 @@ public interface InvitationApi {
     ResponseEntity<ApiResponse<Void>> cancelInvitation(
             @PathVariable UUID invitationId,
             @AuthenticationPrincipal Object principal);
+
+    @Operation(summary = "Info de invitación", description = "Obtiene datos públicos de una invitación por token (sin auth)")
+    @GetMapping("/{token}/info")
+    ResponseEntity<ApiResponse<InvitationInfoResponse>> getInvitationInfo(
+            @PathVariable String token);
 }

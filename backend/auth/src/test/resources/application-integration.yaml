@@ -55,6 +55,10 @@ app:
   frontend:
     url: http://localhost:9200
 
+plan:
+  free:
+    role-change-cooldown-days: 30
+
 management:
   health:
     redis:

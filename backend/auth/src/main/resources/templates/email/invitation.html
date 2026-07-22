@@ -4,21 +4,19 @@
 <body>
 <div th:replace="email/fragments/layout :: page(~{::.content-body})">
     <div class="content-body">
-        <p style="margin:0 0 16px; font-size:18px; font-weight:600; color:#F5F3EF;">Hola,</p>
-        <p style="margin:0 0 16px; font-size:15px; color:#9B9790; line-height:1.6;">
-            <strong th:text="${inviterName}" style="color:#F5F3EF; font-weight:600;">Usuario</strong> te ha invitado a
-            <strong th:text="${tenantName}" style="color:#F5F3EF; font-weight:600;">Empresa</strong> en PymeQ.
+        <p style="margin:0 0 8px; font-family:'Geist',-apple-system,BlinkMacSystemFont,sans-serif; font-size:20px; font-weight:700; color:#F5F3EF;">Te invitaron a <strong th:text="${tenantName}" style="color:#C8963E;">Empresa</strong></p>
+        <p style="margin:0 0 24px; font-family:'Satoshi',-apple-system,BlinkMacSystemFont,sans-serif; font-size:15px; color:#9B9790; line-height:1.6;">
+            <strong th:text="${inviterName}" style="color:#F5F3EF; font-weight:600;">Usuario</strong> te invitó a colaborar en PymeQ. Al aceptar, vas a poder gestionar las operaciones de la empresa segun el rol asignado.
         </p>
-        <p style="margin:0 0 24px; font-size:15px; color:#9B9790; line-height:1.6;">Al unirte, podrás colaborar en la gestión de la empresa según el rol que te ha sido asignado.</p>
         <table width="100%" cellpadding="0" cellspacing="0">
             <tr>
                 <td align="center" style="padding:8px 0 24px;">
-                    <a th:href="${url}" class="email-btn" style="display:inline-block; background-color:#C8963E; color:#ffffff; padding:14px 28px; font-size:16px; font-weight:600; text-decoration:none; border-radius:4px; margin:24px 0;">Aceptar Invitación</a>
+                    <a th:href="${url}" class="email-btn" style="display:inline-block; background-color:#C8963E; color:#08090D !important; padding:14px 28px; font-family:'Geist',-apple-system,BlinkMacSystemFont,sans-serif; font-size:15px; font-weight:700; text-decoration:none; border-radius:6px; margin:24px 0;">ACEPTAR INVITACION</a>
                 </td>
             </tr>
         </table>
-        <hr class="email-divider" style="border:none; border-top:1px solid #C8A042; margin:25px 0;">
-        <p style="margin:0; font-size:13px; color:#6B6863;">Este enlace de invitación expira en 7 días.<br>Si no esperabas esta invitación, puedes ignorar este correo.</p>
+        <hr class="email-divider" style="border:none; border-top:1px solid #353945; margin:25px 0;">
+        <p style="margin:0; font-family:'Satoshi',-apple-system,BlinkMacSystemFont,sans-serif; font-size:13px; color:#6B6863; line-height:1.5;">Este enlace expira en 7 dias. Si no esperabas esta invitacion, ignora este correo.</p>
     </div>
 </div>
 </body>

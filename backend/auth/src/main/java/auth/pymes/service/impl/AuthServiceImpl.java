@@ -7,6 +7,7 @@ import auth.pymes.common.models.dto.request.TokenRefreshRequest;
 import auth.pymes.common.models.dto.response.AuthResponse;
 import auth.pymes.common.models.dto.response.LogoutResponse;
 import auth.pymes.common.models.entities.AuditLog;
+import auth.pymes.common.models.entities.Invitation;
 import auth.pymes.common.models.entities.Tenant;
 import auth.pymes.common.models.entities.UserEntity;
 import auth.pymes.common.models.entities.UserTenant;
@@ -16,6 +17,7 @@ import auth.pymes.common.models.enums.RoleName;
 import auth.pymes.common.models.mappers.TenantMapper;
 import auth.pymes.common.models.mappers.UserMapper;
 import auth.pymes.repositories.AuditLogRepository;
+import auth.pymes.repositories.InvitationRepository;
 import auth.pymes.repositories.RefreshTokenRepository;
 import auth.pymes.repositories.TenantRepository;
 import auth.pymes.repositories.UserEntityRepository;
@@ -63,6 +65,7 @@ public class AuthServiceImpl implements AuthService {
     private final UserMapper userMapper;
     private final TenantMapper tenantMapper;
     private final EmailVerificationService emailVerificationService;
+    private final InvitationRepository invitationRepository;
     private final RedisTemplate<String, Object> redisTemplate;
 
     // ==================== LOCAL AUTH ====================
@@ -70,6 +73,10 @@ public class AuthServiceImpl implements AuthService {
     @Override
     @Transactional
     public AuthResponse register(RegisterRequest request, HttpServletRequest httpRequest) {
+        if (request.invitationToken() != null && !request.invitationToken().isBlank()) {
+            return registerWithInvitation(request);
+        }
+
         if (userRepository.existsByEmail(request.email())) {
             throw new DuplicateResourceException(USER_ALREADY_EXISTS, request.email());
         }
@@ -88,6 +95,65 @@ public class AuthServiceImpl implements AuthService {
 
         // Return empty response (tokens will be generated after verification)
         return new AuthResponse(null, null, null, null);
+    }
+
+    private AuthResponse registerWithInvitation(RegisterRequest request) {
+        Invitation invitation = invitationRepository.findByTokenAndAcceptedAtIsNull(request.invitationToken())
+                .orElseThrow(() -> new InvalidInputException(INVITATION_NOT_FOUND, request.invitationToken()));
+
+        if (invitation.getExpiresAt().isBefore(ZonedDateTime.now())) {
+            throw new InvalidInputException(INVITATION_EXPIRED);
+        }
+
+        String email = invitation.getEmail();
+
+        if (userRepository.existsByEmail(email)) {
+            throw new DuplicateResourceException(USER_ALREADY_EXISTS, email);
+        }
+
+        UserEntity user = UserEntity.builder()
+                .name(request.name())
+                .email(email)
+                .password(passwordEncoder.encode(request.password()))
+                .provider(AuthProvider.LOCAL)
+                .providerId(email)
+                .isActive(true)
+                .emailVerifiedAt(ZonedDateTime.now())
+                .build();
+
+        user = userRepository.save(user);
+        log.info("Usuario creado desde invitación: {}", user.getEmail());
+
+        UserTenant userTenant = UserTenant.builder()
+                .userId(user.getId())
+                .tenantId(invitation.getTenantId())
+                .role(invitation.getRole())
+                .invitedBy(invitation.getInvitedBy())
+                .acceptedAt(ZonedDateTime.now())
+                .isActive(true)
+                .build();
+
+        userTenantRepository.save(userTenant);
+
+        invitation.setAcceptedAt(ZonedDateTime.now());
+        invitationRepository.save(invitation);
+
+        Tenant tenant = tenantRepository.findById(invitation.getTenantId()).orElse(null);
+
+        String role = invitation.getRole().name();
+        String plan = tenant != null ? tenant.getPlan().name() : "FREE";
+        String accessToken = jwtService.generateAccessToken(user, invitation.getTenantId(), role, plan);
+        String refreshToken = jwtService.generateRefreshToken(user);
+        jwtService.saveRefreshToken(user, invitation.getTenantId(), refreshToken);
+
+        log.info("Usuario {} registrado y aceptó invitación al tenant {}", user.getEmail(), invitation.getTenantId());
+
+        return new AuthResponse(
+                accessToken,
+                refreshToken,
+                userMapper.toResponse(user),
+                tenant != null ? tenantMapper.toResponse(tenant) : null
+        );
     }
 
     @Override

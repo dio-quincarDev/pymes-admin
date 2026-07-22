@@ -61,6 +61,12 @@ export const coreRoutes: RouteRecordRaw[] = [
     component: () => import('../pages/AccountingPage.vue'),
     meta: { title: 'Contabilidad' },
   },
+  {
+    path: 'teams',
+    name: 'teams',
+    component: () => import('../pages/TeamsPage.vue'),
+    meta: { title: 'Teams' },
+  },
 ]
 
 export const onboardingRoute: RouteRecordRaw = {

@@ -1,5 +1,5 @@
 # =============================================================================
-# PyMes Admin - Frontend Dockerfile (Quasar PWA)
+# PymeQ - Frontend Dockerfile (Quasar PWA)
 # =============================================================================
 
 # 1. Build stage with Node 20 Alpine

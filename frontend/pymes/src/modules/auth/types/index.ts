@@ -4,13 +4,14 @@ export interface User {
   name: string;
   role?: string;
   tenantId?: string;
+  plan?: string;
 }
 
 export interface AuthResponse {
   accessToken: string;
   refreshToken: string;
   user: User;
-  activeTenant?: { id: string; name: string; slug: string };
+  activeTenant?: { id: string; name: string; slug: string; plan: string };
 }
 
 export interface LoginRequest {
@@ -22,8 +23,9 @@ export interface RegisterRequest {
   name: string;
   email: string;
   password: string;
-  companyName: string;
-  companySlug: string;
+  companyName?: string;
+  companySlug?: string;
+  invitationToken?: string;
 }
 
 export interface ApiResponse<T> {
@@ -47,4 +49,9 @@ export interface InvitationResponse {
   tenant: {
     name: string;
   };
+}
+
+export interface InvitationInfo {
+  email: string;
+  tenantName: string;
 }

@@ -47,6 +47,7 @@ public enum CodigoError {
     INVALID_ROLE("ROLE002", "Invalid role: {0}", HttpStatus.BAD_REQUEST),
     INSUFFICIENT_PERMISSIONS("ROLE003", "User does not have permission to perform this action", HttpStatus.FORBIDDEN),
     OWNER_CANNOT_BE_REMOVED("ROLE004", "The owner of the tenant cannot be removed", HttpStatus.BAD_REQUEST),
+    ROLE_CHANGE_COOLDOWN("ROLE005", "Role changes on the FREE plan are limited to once every {0} days", HttpStatus.CONFLICT),
     
     // ==================== INVITATION (INV) ====================
     INVITATION_NOT_FOUND("INV001", "Invitation with token {0} does not exist", HttpStatus.NOT_FOUND),

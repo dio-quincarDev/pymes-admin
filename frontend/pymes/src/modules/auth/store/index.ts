@@ -46,7 +46,7 @@ export const useAuthStore = defineStore('auth', {
         const response = await authService.login(credentials);
         const { data } = response.data as ApiResponse<AuthResponse>;
         const user = data.activeTenant
-          ? { ...data.user, tenantId: data.activeTenant.id }
+          ? { ...data.user, tenantId: data.activeTenant.id, plan: data.activeTenant.plan }
           : data.user;
         this.setSession(data.accessToken, data.refreshToken, user);
         return data;
@@ -68,7 +68,7 @@ export const useAuthStore = defineStore('auth', {
         
         if (authData && authData.accessToken) {
           const user = authData.activeTenant
-            ? { ...authData.user, tenantId: authData.activeTenant.id }
+            ? { ...authData.user, tenantId: authData.activeTenant.id, plan: authData.activeTenant.plan }
             : authData.user;
           this.setSession(authData.accessToken, authData.refreshToken, user);
         }
@@ -92,7 +92,7 @@ export const useAuthStore = defineStore('auth', {
         // Auto-login después de verificar
         if (authData && authData.accessToken) {
           const user = authData.activeTenant
-            ? { ...authData.user, tenantId: authData.activeTenant.id }
+            ? { ...authData.user, tenantId: authData.activeTenant.id, plan: authData.activeTenant.plan }
             : authData.user;
           this.setSession(authData.accessToken, authData.refreshToken, user);
         }

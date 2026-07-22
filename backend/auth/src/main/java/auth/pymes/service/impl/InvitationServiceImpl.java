@@ -1,6 +1,7 @@
 package auth.pymes.service.impl;
 
 import auth.pymes.common.models.dto.request.CreateInvitationRequest;
+import auth.pymes.common.models.dto.response.InvitationInfoResponse;
 import auth.pymes.common.models.dto.response.InvitationResponse;
 import auth.pymes.common.models.entities.Invitation;
 import auth.pymes.common.models.entities.Tenant;
@@ -179,6 +180,23 @@ public class InvitationServiceImpl implements InvitationService {
 
         invitationRepository.delete(invitation);
         log.info("Invitación {} cancelada por {}", invitationId, inviter.getEmail());
+    }
+
+    @Override
+    public InvitationInfoResponse getInvitationInfo(String token) {
+        Invitation invitation = invitationRepository.findByTokenAndAcceptedAtIsNull(token)
+                .orElseThrow(() -> new ResourceNotFoundException(INVITATION_NOT_FOUND, token));
+
+        if (invitation.getExpiresAt().isBefore(ZonedDateTime.now())) {
+            throw new InvalidInputException(INVITATION_EXPIRED);
+        }
+
+        Tenant tenant = tenantRepository.findById(invitation.getTenantId()).orElse(null);
+
+        return new InvitationInfoResponse(
+                invitation.getEmail(),
+                tenant != null ? tenant.getName() : null
+        );
     }
 
     private String extractEmail(Object principal) {

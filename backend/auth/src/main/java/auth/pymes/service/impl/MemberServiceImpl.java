@@ -1,8 +1,10 @@
 package auth.pymes.service.impl;
 
 import auth.pymes.common.models.dto.response.MemberResponse;
+import auth.pymes.common.models.entities.Tenant;
 import auth.pymes.common.models.entities.UserEntity;
 import auth.pymes.common.models.entities.UserTenant;
+import auth.pymes.common.models.enums.PlanName;
 import auth.pymes.common.models.enums.RoleName;
 import auth.pymes.common.models.mappers.UserMapper;
 import auth.pymes.repositories.TenantRepository;
@@ -10,10 +12,12 @@ import auth.pymes.repositories.UserEntityRepository;
 import auth.pymes.repositories.UserTenantRepository;
 import auth.pymes.service.MemberService;
 import auth.pymes.utils.exception.auth.AuthorizationException;
+import auth.pymes.utils.exception.custom.DuplicateResourceException;
 import auth.pymes.utils.exception.custom.InvalidInputException;
 import auth.pymes.utils.exception.custom.ResourceNotFoundException;
 import lombok.RequiredArgsConstructor;
 import lombok.extern.slf4j.Slf4j;
+import org.springframework.beans.factory.annotation.Value;
 import org.springframework.data.domain.Page;
 import org.springframework.data.domain.Pageable;
 import org.springframework.security.core.userdetails.UserDetails;
@@ -21,6 +25,7 @@ import org.springframework.security.oauth2.core.user.OAuth2User;
 import org.springframework.stereotype.Service;
 import org.springframework.transaction.annotation.Transactional;
 
+import java.time.ZonedDateTime;
 import java.util.UUID;
 
 import static auth.pymes.utils.exception.CodigoError.*;
@@ -34,6 +39,9 @@ public class MemberServiceImpl implements MemberService {
     private final TenantRepository tenantRepository;
     private final UserTenantRepository userTenantRepository;
     private final UserMapper userMapper;
+
+    @Value("${plan.free.role-change-cooldown-days:30}")
+    private int roleChangeCooldownDays;
 
     @Override
     public Page<MemberResponse> getTenantUsers(UUID tenantId, Pageable pageable, Object principal) {
@@ -95,8 +103,21 @@ public class MemberServiceImpl implements MemberService {
             throw new AuthorizationException(OWNER_CANNOT_BE_REMOVED);
         }
 
+        Tenant tenant = tenantRepository.findById(tenantId)
+                .orElseThrow(() -> new ResourceNotFoundException(TENANT_NOT_FOUND, tenantId));
+
+        if (tenant.getPlan() == PlanName.FREE && tenant.getLastRoleChangeAt() != null) {
+            var nextAllowedChange = tenant.getLastRoleChangeAt().plusDays(roleChangeCooldownDays);
+            if (nextAllowedChange.isAfter(ZonedDateTime.now())) {
+                throw new DuplicateResourceException(ROLE_CHANGE_COOLDOWN, roleChangeCooldownDays);
+            }
+        }
+
         targetRelation.setRole(newRoleEnum);
         userTenantRepository.save(targetRelation);
+
+        tenant.setLastRoleChangeAt(ZonedDateTime.now());
+        tenantRepository.save(tenant);
 
         log.info("Usuario {} cambió rol de userId={} a {} en tenant {}",
                 requester.getEmail(), userId, newRole, tenantId);

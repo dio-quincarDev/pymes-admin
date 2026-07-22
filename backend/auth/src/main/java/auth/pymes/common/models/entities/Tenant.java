@@ -47,7 +47,10 @@ public class Tenant {
 
     @Column(name = "max_users", nullable = false)
     @Builder.Default
-    private Integer maxUsers = 1;
+    private Integer maxUsers = 2;
+
+    @Column(name = "last_role_change_at")
+    private ZonedDateTime lastRoleChangeAt;
 
     @Column(name = "stripe_customer_id")
     private String stripeCustomerId;

@@ -17,5 +17,9 @@ export const invitationService = {
 
   acceptInvitation(invitationToken: string) {
     return api.post('/invitations/accept', { invitationToken });
+  },
+
+  getInvitationInfo(token: string) {
+    return api.get(`/invitations/${token}/info`);
   }
 };

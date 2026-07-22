@@ -56,7 +56,7 @@ class PasswordResetIntegrationTest extends AbstractIntegrationTest {
         jdbcTemplate.update("DELETE FROM users WHERE email = ?", testEmail);
 
         RegisterRequest registerRequest = new RegisterRequest(
-                "Reset User", testEmail, testPassword, "Test Corp", "reset-corp-" + System.currentTimeMillis());
+                "Reset User", testEmail, testPassword, "Test Corp", "reset-corp-" + System.currentTimeMillis(), null);
         
         // 1. Iniciar registro
         mockMvc.perform(post(TestApiPaths.AUTH_REGISTER)

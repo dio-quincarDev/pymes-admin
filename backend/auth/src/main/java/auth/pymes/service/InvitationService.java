@@ -1,6 +1,7 @@
 package auth.pymes.service;
 
 import auth.pymes.common.models.dto.request.CreateInvitationRequest;
+import auth.pymes.common.models.dto.response.InvitationInfoResponse;
 import auth.pymes.common.models.dto.response.InvitationResponse;
 import org.springframework.data.domain.Page;
 import org.springframework.data.domain.Pageable;
@@ -27,4 +28,9 @@ public interface InvitationService {
      * Cancela una invitación.
      */
     void cancelInvitation(UUID invitationId, Object principal);
+
+    /**
+     * Obtiene info pública de una invitación por token.
+     */
+    InvitationInfoResponse getInvitationInfo(String token);
 }

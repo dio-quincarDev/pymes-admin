@@ -83,7 +83,8 @@ class SecurityConstraintIntegrationTest extends AbstractIntegrationTest {
                 ownerEmail,
                 ownerPassword,
                 "Security Corp",
-                "sec-corp-" + uniqueId
+                "sec-corp-" + uniqueId,
+                null
         );
 
         mockMvc.perform(post(TestApiPaths.AUTH_REGISTER)
@@ -133,7 +134,7 @@ class SecurityConstraintIntegrationTest extends AbstractIntegrationTest {
     }
 
     private String registerUserAndGetToken(String email, String password, String name, String slug) throws Exception {
-        RegisterRequest request = new RegisterRequest(name, email, password, "Corp " + slug, slug);
+        RegisterRequest request = new RegisterRequest(name, email, password, "Corp " + slug, slug, null);
 
         mockMvc.perform(post(TestApiPaths.AUTH_REGISTER)
                         .contentType(MediaType.APPLICATION_JSON)
@@ -370,7 +371,7 @@ class SecurityConstraintIntegrationTest extends AbstractIntegrationTest {
             mockMvc.perform(post(TestApiPaths.AUTH_REGISTER)
                             .contentType(MediaType.APPLICATION_JSON)
                             .content(objectMapper.writeValueAsString(
-                                    new RegisterRequest("Flow User", userEmail, userPassword, "Flow Corp", "flow-" + uniqueId))))
+                                    new RegisterRequest("Flow User", userEmail, userPassword, "Flow Corp", "flow-" + uniqueId, null))))
                     .andExpect(status().isOk());
 
             // 2. Verify email

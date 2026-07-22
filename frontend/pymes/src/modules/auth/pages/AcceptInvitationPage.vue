@@ -1,11 +1,11 @@
 <template>
   <div class="accept-invitation-page-wrapper">
-    <SkeletonLoader :is-loading="loading && !success && !error" layout="card">
+    <SkeletonLoader :is-loading="loadingInfo || submitting" layout="card">
       <BaseCard variant="elevated" class="q-pa-lg">
         <div class="text-center q-mb-lg">
           <div class="text-h6 text-weight-medium q-mb-sm">Invitación al Equipo</div>
-          <p class="text-body2" style="color: var(--pq-text-muted);">
-            Has sido invitado a colaborar en un espacio de trabajo. Confirma tu acceso para unirte.
+          <p v-if="invitationEmail" class="text-body2" style="color: var(--pq-text-muted);">
+            Fuiste invitado a <strong>{{ tenantName || 'un equipo' }}</strong> como {{ emailMask }}
           </p>
         </div>
 
@@ -13,12 +13,7 @@
           <q-icon name="group_add" color="positive" size="4rem" class="q-mb-md" />
           <div class="text-h6" style="color: var(--pq-text);">¡Bienvenido al Equipo!</div>
           <p style="color: var(--pq-text-muted);" class="q-mt-sm">Ahora eres parte de <strong>{{ tenantName }}</strong>.</p>
-          <BaseButton
-            label="IR AL PANEL DE CONTROL"
-            class="full-width q-mt-md"
-            size="lg"
-            to="/dashboard"
-          >
+          <BaseButton class="full-width q-mt-md" size="lg" to="/dashboard">
             IR AL PANEL DE CONTROL
           </BaseButton>
         </div>
@@ -27,23 +22,56 @@
           <q-icon name="error" color="negative" size="4rem" class="q-mb-md" />
           <div class="text-h6" style="color: var(--pq-danger);">Error de Invitación</div>
           <p style="color: var(--pq-text-muted);" class="q-mt-sm">{{ errorMessage }}</p>
-          <BaseButton variant="ghost" class="q-mt-md" to="/login">
-            Volver al Login
+          <BaseButton variant="ghost" class="q-mt-md" to="/">
+            Volver al inicio
           </BaseButton>
+        </div>
+
+        <div v-else-if="!authStore.isAuthenticated" class="q-py-md">
+          <q-form @submit="onRegister" ref="formRef">
+            <q-input
+              :model-value="invitationEmail"
+              label="Email"
+              dark
+              dense
+              filled
+              readonly
+              class="q-mb-md"
+            />
+            <q-input
+              v-model="form.name"
+              label="Nombre"
+              dark
+              dense
+              filled
+              :rules="[(val) => !!val || 'Nombre requerido']"
+              class="q-mb-md"
+            />
+            <q-input
+              v-model="form.password"
+              label="Contraseña"
+              type="password"
+              dark
+              dense
+              filled
+              :rules="[(val) => !!val || 'Contraseña requerida', (val) => val.length >= 8 || 'Mínimo 8 caracteres']"
+              class="q-mb-md"
+            />
+            <BaseButton variant="primary" type="submit" class="full-width" size="lg" :loading="submitting">
+              CREAR CUENTA Y ACEPTAR
+            </BaseButton>
+          </q-form>
         </div>
 
         <div v-else class="text-center q-py-md">
           <BaseButton
-            label="ACEPTAR Y UNIRME AL EQUIPO"
+            label="ACEPTAR INVITACIÓN"
             class="full-width"
             size="lg"
-            :loading="loading"
+            :loading="submitting"
             @click="onAccept"
           >
-            ACEPTAR Y UNIRME AL EQUIPO
-          </BaseButton>
-          <BaseButton variant="ghost" class="q-mt-md" to="/">
-            Cancelar
+            ACEPTAR INVITACIÓN
           </BaseButton>
         </div>
       </BaseCard>
@@ -52,67 +80,114 @@
 </template>
 
 <script setup lang="ts">
-import { ref, onMounted } from 'vue';
+import { ref, onMounted, computed } from 'vue';
 import { useMeta } from 'quasar';
 
 useMeta({ title: 'Invitación — PYMEQ' });
-import { useRoute, useRouter } from 'vue-router';
+import { useRoute } from 'vue-router';
 import { authService } from '../services/auth.service';
+import { invitationService } from '../services/invitation.service';
 import { useAuthStore } from '../store';
-import { useQuasar } from 'quasar';
 import BaseCard from 'src/components/base/BaseCard.vue';
 import BaseButton from 'src/components/base/BaseButton.vue';
 import SkeletonLoader from 'src/components/ui/SkeletonLoader.vue';
-import type { ApiResponse, InvitationResponse } from '../types';
+import type { ApiResponse, InvitationInfo } from '../types';
 
 const route = useRoute();
-const router = useRouter();
 const authStore = useAuthStore();
-const $q = useQuasar();
 
 const token = ref(route.query.token as string);
-const loading = ref(false);
+const loadingInfo = ref(false);
+const submitting = ref(false);
 const success = ref(false);
 const error = ref(false);
 const errorMessage = ref('');
+const invitationEmail = ref('');
 const tenantName = ref('');
+const formRef = ref<{ validate: () => Promise<boolean> } | null>(null);
+const form = ref({ name: '', password: '' });
 
-onMounted(() => {
+const emailMask = computed(() => invitationEmail.value || 'invitado');
+
+onMounted(async () => {
   if (!token.value) {
     error.value = true;
     errorMessage.value = 'Token de invitación ausente.';
     return;
   }
-
-  if (!authStore.isAuthenticated) {
-    $q.notify({
-      type: 'info',
-      message: 'Debes iniciar sesión primero para aceptar la invitación.'
-    });
-    void router.push(`/login?redirect=${encodeURIComponent(route.fullPath)}`);
+  const valid = await loadInvitationInfo();
+  if (!valid) return;
+  if (authStore.isAuthenticated) {
+    void doAccept();
   }
 });
 
-const onAccept = async () => {
-  loading.value = true;
+async function loadInvitationInfo(): Promise<boolean> {
+  loadingInfo.value = true;
   try {
-    const response = await authService.acceptInvitation(token.value);
-    const apiResponse = response.data as ApiResponse<InvitationResponse>;
-    const data = apiResponse.data;
-    tenantName.value = data?.tenant?.name || 'la empresa';
-    success.value = true;
-    $q.notify({
-      type: 'positive',
-      message: 'Acceso concedido correctamente.'
-    });
+    const res = await invitationService.getInvitationInfo(token.value);
+    const info = (res.data as ApiResponse<InvitationInfo>).data;
+    invitationEmail.value = info.email;
+    tenantName.value = info.tenantName;
+    return true;
   } catch (err: unknown) {
     error.value = true;
-    const responseData = (err as { response?: { data?: { mensaje?: string } } })?.response?.data;
-    errorMessage.value = responseData?.mensaje || 'No se pudo procesar la invitación. El enlace puede ser inválido o ya expiró.';
+    const resp = (err as { response?: { data?: { mensaje?: string } } })?.response?.data;
+    errorMessage.value = resp?.mensaje || 'El enlace de invitación no es válido o ya expiró.';
+    return false;
   } finally {
-    loading.value = false;
+    loadingInfo.value = false;
   }
-};
+}
+
+async function onRegister() {
+  if (!(await formRef.value?.validate())) return;
+  submitting.value = true;
+  try {
+    await authStore.register({
+      name: form.value.name,
+      email: invitationEmail.value,
+      password: form.value.password,
+      invitationToken: token.value,
+    });
+    success.value = true;
+  } catch (err: unknown) {
+    const resp = (err as { response?: { data?: { mensaje?: string; codigo?: string } } })?.response?.data;
+    const codigo = resp?.codigo;
+    if (codigo === 'AUTH001') {
+      errorMessage.value = 'Ya existe una cuenta con este email. Iniciá sesión en otra ventana y volvé a abrir este enlace.';
+    } else {
+      errorMessage.value = resp?.mensaje || 'Error al crear la cuenta.';
+    }
+    error.value = true;
+  } finally {
+    submitting.value = false;
+  }
+}
+
+async function doAccept() {
+  submitting.value = true;
+  try {
+    const response = await authService.acceptInvitation(token.value);
+    const apiResponse = response.data as ApiResponse<{ tenant?: { name: string } }>;
+    const data = apiResponse.data;
+    if (data?.tenant?.name) {
+      tenantName.value = data.tenant.name;
+    }
+    success.value = true;
+  } catch (err: unknown) {
+    const resp = (err as { response?: { data?: { mensaje?: string } } })?.response?.data;
+    error.value = true;
+    errorMessage.value = resp?.mensaje || 'No se pudo procesar la invitación.';
+    if (authStore.isAuthenticated) {
+      await authStore.logout();
+    }
+  } finally {
+    submitting.value = false;
+  }
+}
+
+const onAccept = doAccept;
 </script>
 
 <style lang="scss" scoped>
