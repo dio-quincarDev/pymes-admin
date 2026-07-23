@@ -630,3 +630,39 @@ docs/DAILY_REPORTS_AUTH_SOLUTIONS.md                                            
 ```
 
 **Estado:** ✅ RESUELTO
+
+---
+
+## 2026-07-22 — ❌ FAILED: Invitation Register+Accept Flow
+
+### Objetivo
+
+Permitir que nuevos usuarios registren + acepten invitación en un solo paso, sin tener que registrarse primero y luego aceptar.
+
+### Estrategia intentada
+
+1. **Primer intento (descartado):** Contaminar `RegisterRequest` con `invitationToken` opcional + branch en `AuthServiceImpl.register()`. Se descartó porque rompía el flujo normal de registro (companyName/companySlug requeridos).
+
+2. **Segundo intento (archivado en `refactor/invitation-attempt`):** Endpoint separado `POST /api/v1/invitations/{token}/register` con DTO propio `InvitationRegisterRequest { name, email, password }`. `InvitationServiceImpl.registerAndAccept()` validaba token, matcheaba email, creaba usuario + link a tenant + generaba JWT. Frontend: `AcceptInvitationPage.vue` llamaba `invitationService.registerAndAccept()` + `authStore.setSession()`.
+
+### Qué falló
+
+| Problema | Impacto |
+|----------|---------|
+| **Contaminación de RegisterRequest** | El branch de invitación en AuthServiceImpl rompió el flujo normal de registro. Tests fallaban. |
+| **Slug OAuth2 feo** | `generateSlugFromEmail()` produce `localPart-timestamp` (ej: `devpruebaszar-1784773999777`) en Priority 3. No se arregló. |
+| **Tests rotos por cambios en RegisterRequest** | 25 archivos modificados, 6 constructores con signature cambiada. |
+| **Complejidad innecesaria** | Se intentó mantener ambos flujos en el mismo endpoint cuando debían estar separados desde el principio. |
+
+### Ramas preservadas
+
+- `refactor/invitation-attempt` — commit `956584c` contiene todo el intento con sus fixes parciales
+
+### Lecciones
+
+- Nunca contaminar `RegisterRequest` con campos de invitación. El endpoint normal de registro `POST /auth/register` debe permanecer limpio.
+- El slug de OAuth2 Priority 3 debería usar `oAuth2User.getAttribute("name")` en vez de `localPart-timestamp`.
+- Endpoints separados para flujos separados: no mezclar registro normal con registro por invitación.
+- Si el approach se vuelve complejo, es mejor revertir temprano y replantear.
+
+**Estado:** ❌ ABANDONADO — archivado en `refactor/invitation-attempt`

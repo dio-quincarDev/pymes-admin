@@ -876,6 +876,31 @@ frontend/pymes/src/modules/core/types/index.ts                 # +parentId, +chi
 
 ---
 
+## 2026-07-22 — ❌ FAILED: Invitation AcceptPage Register Flow
+
+### Objetivo
+
+`AcceptInvitationPage.vue` debía permitir registro + aceptación en un solo paso, usando un endpoint separado en vez de contaminar el flujo normal de registro.
+
+### Cambios hechos
+
+- `types/index.ts`: `RegisterRequest` sin `invitationToken?`, +`InvitationRegisterRequest` type
+- `invitation.service.ts`: +`registerAndAccept(token, data)` → `POST /api/v1/invitations/{token}/register`
+- `AcceptInvitationPage.vue`: `onRegister()` usa `invitationService.registerAndAccept()` + `authStore.setSession()`
+- `store/index.ts`: `setSession()` se usaba directamente con la respuesta del backend
+
+### Por qué se abandonó
+
+El backend cambió demasiadas cosas para soportar esto (RegisterRequest, AuthServiceImpl, tests). El approach era correcto (endpoint separado) pero la ejecución fue desastrosa y contaminó código que funcionaba. Se revirtió todo al commit `3354165`.
+
+### Ramas preservadas
+
+- `refactor/invitation-attempt` — commit `956584c` contiene todos los cambios
+
+**Estado:** ❌ ABANDONADO — archivado en `refactor/invitation-attempt`
+
+---
+
 ## 2026-06-23 — Onboarding Post-Login (Selección de Industria)
 
 ### Problema
