@@ -132,13 +132,15 @@ public class OAuth2AuthenticationSuccessHandler extends SimpleUrlAuthenticationS
             }
         }
 
-        // 4. Prioridad 3: Solo si no hay intent Y no hay nada existente, crear "Mi Empresa"
+        // 4. Prioridad 3: Solo si no hay intent Y no hay nada existente, crear tenant desde nombre Google
         if (activeTenantId == null) {
-            log.info("Usuario {} no tiene tenant ni intent, creando 'Mi Empresa' por defecto", email);
+            String tenantName = oAuth2User.getAttribute("name");
+            if (tenantName == null || tenantName.isBlank()) tenantName = email.split("@")[0];
+            log.info("Usuario {} no tiene tenant ni intent, creando '{}' por defecto", email, tenantName);
 
             String slug = generateSlugFromEmail(email);
             Tenant defaultTenant = Tenant.builder()
-                    .name("Mi Empresa")
+                    .name(tenantName)
                     .slug(slug)
                     .plan(PlanName.FREE)
                     .isActive(true)

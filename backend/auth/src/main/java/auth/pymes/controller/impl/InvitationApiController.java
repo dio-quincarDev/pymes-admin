@@ -2,7 +2,9 @@ package auth.pymes.controller.impl;
 
 import auth.pymes.common.models.dto.request.AcceptInvitationRequest;
 import auth.pymes.common.models.dto.request.CreateInvitationRequest;
+import auth.pymes.common.models.dto.request.InvitationRegisterRequest;
 import auth.pymes.common.models.dto.response.ApiResponse;
+import auth.pymes.common.models.dto.response.AuthResponse;
 import auth.pymes.common.models.dto.response.InvitationInfoResponse;
 import auth.pymes.common.models.dto.response.InvitationResponse;
 import auth.pymes.controller.InvitationApi;
@@ -57,5 +59,12 @@ public class InvitationApiController implements InvitationApi {
     public ResponseEntity<ApiResponse<InvitationInfoResponse>> getInvitationInfo(String token) {
         InvitationInfoResponse info = invitationService.getInvitationInfo(token);
         return ResponseEntity.ok(ApiResponse.ok(info));
+    }
+
+    @Override
+    public ResponseEntity<ApiResponse<AuthResponse>> registerAndAccept(
+            String token, @Valid @RequestBody InvitationRegisterRequest request) {
+        AuthResponse response = invitationService.registerAndAccept(token, request);
+        return ResponseEntity.ok(ApiResponse.ok(response));
     }
 }

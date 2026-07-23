@@ -54,8 +54,7 @@ class AuthApiIntegrationTest extends AbstractIntegrationTest {
                 uniqueEmail,
                 "SecurePass123!",
                 "Test Corp",
-                uniqueSlug,
-                null
+                uniqueSlug
         );
     }
 
@@ -113,7 +112,7 @@ class AuthApiIntegrationTest extends AbstractIntegrationTest {
         @DisplayName("Contraseña muy corta → 400 BAD_REQUEST (VAL001)")
         void registerWeakPassword() throws Exception {
             RegisterRequest weakRequest = new RegisterRequest(
-                    "Weak User", "weak@example.com", "123", "Weak Corp", "weak-corp", null);
+                    "Weak User", "weak@example.com", "123", "Weak Corp", "weak-corp");
 
             mockMvc.perform(post(TestApiPaths.AUTH_REGISTER)
                             .contentType(MediaType.APPLICATION_JSON)
@@ -127,7 +126,7 @@ class AuthApiIntegrationTest extends AbstractIntegrationTest {
         @DisplayName("Email inválido → 400 BAD_REQUEST (VAL001)")
         void registerInvalidEmail() throws Exception {
             RegisterRequest invalidRequest = new RegisterRequest(
-                    "Invalid", "not-an-email", "SecurePass123!", "Corp", "corp", null);
+                    "Invalid", "not-an-email", "SecurePass123!", "Corp", "corp");
 
             mockMvc.perform(post(TestApiPaths.AUTH_REGISTER)
                             .contentType(MediaType.APPLICATION_JSON)
@@ -141,7 +140,7 @@ class AuthApiIntegrationTest extends AbstractIntegrationTest {
         @DisplayName("Sin companySlug → 400 BAD_REQUEST (VAL001)")
         void registerMissingCompanySlug() throws Exception {
             RegisterRequest missingSlug = new RegisterRequest(
-                    "User", "noslug@example.com", "SecurePass123!", "Corp", null, null);
+                    "User", "noslug@example.com", "SecurePass123!", "Corp", null);
 
             mockMvc.perform(post(TestApiPaths.AUTH_REGISTER)
                             .contentType(MediaType.APPLICATION_JSON)

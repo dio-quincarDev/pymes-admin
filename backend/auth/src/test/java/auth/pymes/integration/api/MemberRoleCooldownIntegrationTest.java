@@ -58,7 +58,7 @@ class MemberRoleCooldownIntegrationTest extends AbstractIntegrationTest {
         flushRedis();
 
         RegisterRequest registerRequest = new RegisterRequest(
-                "CD Owner", ownerEmail, "SecurePass123!", "CD Corp", tenantSlug, null);
+                "CD Owner", ownerEmail, "SecurePass123!", "CD Corp", tenantSlug);
 
         mockMvc.perform(post(TestApiPaths.AUTH_REGISTER)
                         .contentType(MediaType.APPLICATION_JSON)

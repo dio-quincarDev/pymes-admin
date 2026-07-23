@@ -4,6 +4,67 @@ Registro cronológico de decisiones, problemas resueltos y estado del frontend.
 
 ---
 
+## 2026-07-22 — Selección automática de Tenant activo tras aceptación de invitación
+
+### Problema / Contexto
+
+Al aceptar una invitación a un nuevo tenant (espacio de trabajo), el usuario no podía acceder a los datos de dicha empresa. Si el usuario ya estaba autenticado, se procesaba la invitación en el backend pero su token local de acceso (JWT) seguía apuntando a su tenant anterior (o a ninguno si no tenía tenant activo). Tampoco había una forma automática en el frontend de actualizar las credenciales y seleccionar el tenant aceptado.
+
+Además, el frontend mapeaba incorrectamente la respuesta del backend (`apiResponse.data.tenant.name` en lugar de `apiResponse.data.tenantName` y `apiResponse.data.tenantId`), y realizaba un logout innecesario en caso de error.
+
+### Solución
+
+1. **Mapeo de Tipos (`types/index.ts`)**:
+   - Corregimos la interfaz `InvitationResponse` para alinearse con el record homónimo del backend (`id`, `tenantId`, `tenantName`, `email`, etc.).
+2. **Acción de Selección de Empresa (`store/index.ts`)**:
+   - Implementamos la acción `selectTenant(tenantId: string)` en el store de Pinia. Esta acción consume el endpoint `/tenants/select` para obtener y guardar un nuevo conjunto de JWT y Refresh Token con el contexto del tenant activo recién modificado.
+3. **Flujo de Aceptación (`AcceptInvitationPage.vue`)**:
+   - Corregimos la destructuración y la lectura de `tenantName` y `tenantId` de la respuesta de aceptación de invitación.
+   - Si se detecta un `tenantId` en la respuesta exitosa del backend, invocamos inmediatamente `authStore.selectTenant(data.tenantId)` para actualizar la sesión activa antes de redirigir al Dashboard.
+   - Removimos el cierre de sesión forzado del bloque `catch` para evitar una mala experiencia de usuario ante fallos menores de red o validación.
+
+### Archivos modificados
+
+- `frontend/pymes/src/modules/auth/types/index.ts` (Corrección de `InvitationResponse`)
+- `frontend/pymes/src/modules/auth/store/index.ts` (Adición de acción `selectTenant` e importación de `tenantService`)
+- `frontend/pymes/src/modules/auth/pages/AcceptInvitationPage.vue` (Llamado a `selectTenant` y corrección de mapeo de respuesta)
+
+**Estado:** ✅ RESUELTO
+
+---
+
+## 2026-07-22 — Sistema de invitación por email (Primer Intento)
+
+### Problema / Contexto
+
+Se requería implementar el flujo frontend para que los miembros de un tenant puedan administrar su equipo (invitar miembros, cambiarles el rol, desactivarlos) e integrar la pantalla de aceptación de invitaciones para que soporte tanto a usuarios ya logueados como a invitados no registrados.
+
+### Solución
+
+1. **Gestión de Equipos (`TeamsPage.vue` & `member.service.ts`)**:
+   - Creamos la página de Teams (`TeamsPage.vue`), implementando la visualización de la lista de miembros de la empresa, un formulario emergente (dialog) para invitar nuevos miembros especificando correo y rol (ADMIN, CONTABLE, VIEWER), cambio de rol interactivo y de-autorización de miembros (desactivación).
+   - Implementamos `member.service.ts` para conectar la vista con los endpoints correspondientes de backend.
+   - Declaramos la ruta `teams` en `core/router/routes.ts` e integramos el enlace de navegación condicional en el menú lateral de `MainLayout.vue` (mostrándolo únicamente para roles `OWNER` o `ADMIN`).
+2. **Página de Aceptación de Invitación (`AcceptInvitationPage.vue`)**:
+   - Rediseñamos la pantalla `AcceptInvitationPage.vue` para dar soporte a dos estados:
+     - **Usuario Autenticado**: Si ya está logueado, acepta directamente la invitación consumiendo `/invitations/accept`.
+     - **Usuario No Autenticado**: Se muestra un formulario para crear su cuenta (Nombre y Contraseña) y se envía el registro junto al `invitationToken`.
+   - Implementamos la obtención de los detalles de la invitación (`invitationService.getInvitationInfo`) al montar la página para mostrar de manera personalizada a qué empresa y con qué correo ha sido invitado.
+
+### Archivos modificados
+
+- `frontend/pymes/src/layouts/MainLayout.vue` (Enlace de Teams visible según rol)
+- `frontend/pymes/src/modules/auth/pages/AcceptInvitationPage.vue` (Soporte para registro/aceptación de invitación)
+- `frontend/pymes/src/modules/auth/services/invitation.service.ts` (Endpoint para info de invitación)
+- `frontend/pymes/src/modules/auth/services/member.service.ts` (Servicio para miembros del equipo)
+- `frontend/pymes/src/modules/auth/store/index.ts` (Cambios menores)
+- `frontend/pymes/src/modules/core/pages/TeamsPage.vue` (Página de administración de miembros)
+- `frontend/pymes/src/modules/core/router/routes.ts` (Ruta `teams` mapeada)
+
+**Estado:** 🚧 IMPLEMENTACIÓN INICIAL (PENDIENTE DE AUTO-REFRESCO DE TENANT)
+
+---
+
 ## 2026-07-21 — Brainstorm: Tutorial onboarding para nuevos usuarios
 
 ### Contexto

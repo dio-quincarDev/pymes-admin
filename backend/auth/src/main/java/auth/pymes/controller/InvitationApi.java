@@ -3,7 +3,9 @@ package auth.pymes.controller;
 import auth.pymes.common.constants.ApiPathConstants;
 import auth.pymes.common.models.dto.request.AcceptInvitationRequest;
 import auth.pymes.common.models.dto.request.CreateInvitationRequest;
+import auth.pymes.common.models.dto.request.InvitationRegisterRequest;
 import auth.pymes.common.models.dto.response.ApiResponse;
+import auth.pymes.common.models.dto.response.AuthResponse;
 import auth.pymes.common.models.dto.response.InvitationInfoResponse;
 import auth.pymes.common.models.dto.response.InvitationResponse;
 import io.swagger.v3.oas.annotations.Operation;
@@ -50,4 +52,10 @@ public interface InvitationApi {
     @GetMapping("/{token}/info")
     ResponseEntity<ApiResponse<InvitationInfoResponse>> getInvitationInfo(
             @PathVariable String token);
+
+    @Operation(summary = "Registrarse y aceptar invitación", description = "Registra un nuevo usuario y acepta la invitación en un paso (sin auth)")
+    @PostMapping("/{token}/register")
+    ResponseEntity<ApiResponse<AuthResponse>> registerAndAccept(
+            @PathVariable String token,
+            @Valid @RequestBody InvitationRegisterRequest request);
 }

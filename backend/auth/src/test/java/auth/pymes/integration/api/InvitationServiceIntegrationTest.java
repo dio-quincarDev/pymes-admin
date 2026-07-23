@@ -58,7 +58,7 @@ class InvitationServiceIntegrationTest extends AbstractIntegrationTest {
         flushRedis();
 
         RegisterRequest registerRequest = new RegisterRequest(
-                "Int Owner", ownerEmail, ownerPassword, "Int Test Corp", tenantSlug, null);
+                "Int Owner", ownerEmail, ownerPassword, "Int Test Corp", tenantSlug);
 
         // 1. Iniciar registro
         mockMvc.perform(post(TestApiPaths.AUTH_REGISTER)

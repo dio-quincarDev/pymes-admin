@@ -19,11 +19,11 @@ public record RegisterRequest(
         @Pattern(regexp = "^(?=.*[A-Za-z])(?=.*\\d).+$", message = "Password must contain at least one letter and one number")
         String password,
 
+        @NotBlank(message = "Company name is required")
         @Size(min = 2, max = 100, message = "Company name must be between 2 and 100 characters")
         String companyName,
 
+        @NotBlank(message = "Company slug is required")
         @Size(min = 3, max = 50, message = "Slug must be between 3 and 50 characters")
-        String companySlug,
-
-        String invitationToken
+        String companySlug
 ) {}

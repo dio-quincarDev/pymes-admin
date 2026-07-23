@@ -25,7 +25,12 @@ export interface RegisterRequest {
   password: string;
   companyName?: string;
   companySlug?: string;
-  invitationToken?: string;
+}
+
+export interface InvitationRegisterRequest {
+  name: string;
+  email: string;
+  password: string;
 }
 
 export interface ApiResponse<T> {
@@ -43,12 +48,15 @@ export interface LogoutResponse {
 }
 
 export interface InvitationResponse {
-  accessToken: string;
-  refreshToken: string;
-  user: User;
-  tenant: {
-    name: string;
-  };
+  id: string;
+  tenantId: string;
+  tenantName: string;
+  email: string;
+  role: string;
+  invitedBy: string;
+  invitedAt: string;
+  expiresAt: string;
+  accepted: boolean;
 }
 
 export interface InvitationInfo {

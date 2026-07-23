@@ -1,25 +1,32 @@
 package auth.pymes.service.impl;
 
 import auth.pymes.common.models.dto.request.CreateInvitationRequest;
+import auth.pymes.common.models.dto.request.InvitationRegisterRequest;
+import auth.pymes.common.models.dto.response.AuthResponse;
 import auth.pymes.common.models.dto.response.InvitationInfoResponse;
 import auth.pymes.common.models.dto.response.InvitationResponse;
 import auth.pymes.common.models.entities.Invitation;
 import auth.pymes.common.models.entities.Tenant;
 import auth.pymes.common.models.entities.UserEntity;
 import auth.pymes.common.models.entities.UserTenant;
+import auth.pymes.common.models.enums.AuthProvider;
 import auth.pymes.common.models.mappers.InvitationMapper;
+import auth.pymes.common.models.mappers.TenantMapper;
+import auth.pymes.common.models.mappers.UserMapper;
 import auth.pymes.repositories.InvitationRepository;
 import auth.pymes.repositories.TenantRepository;
 import auth.pymes.repositories.UserEntityRepository;
 import auth.pymes.repositories.UserTenantRepository;
 import auth.pymes.service.EmailService;
 import auth.pymes.service.InvitationService;
+import auth.pymes.service.JwtService;
 import auth.pymes.utils.exception.auth.AuthorizationException;
 import auth.pymes.utils.exception.custom.DuplicateResourceException;
 import auth.pymes.utils.exception.custom.InvalidInputException;
 import auth.pymes.utils.exception.custom.ResourceNotFoundException;
 import lombok.RequiredArgsConstructor;
 import lombok.extern.slf4j.Slf4j;
+import org.springframework.security.crypto.password.PasswordEncoder;
 import org.springframework.beans.factory.annotation.Value;
 import org.springframework.data.domain.Page;
 import org.springframework.data.domain.Pageable;
@@ -45,6 +52,10 @@ public class InvitationServiceImpl implements InvitationService {
     private final InvitationRepository invitationRepository;
     private final InvitationMapper invitationMapper;
     private final EmailService emailService;
+    private final PasswordEncoder passwordEncoder;
+    private final JwtService jwtService;
+    private final UserMapper userMapper;
+    private final TenantMapper tenantMapper;
 
     @Value("${app.frontend.url}")
     private String frontendUrl;
@@ -157,6 +168,71 @@ public class InvitationServiceImpl implements InvitationService {
         UserEntity inviter = userRepository.findById(invitation.getInvitedBy()).orElse(null);
 
         return invitationMapper.toResponse(invitation, tenant, inviter);
+    }
+
+    @Override
+    @Transactional
+    public AuthResponse registerAndAccept(String token, InvitationRegisterRequest request) {
+        Invitation invitation = invitationRepository.findByTokenAndAcceptedAtIsNull(token)
+                .orElseThrow(() -> new InvalidInputException(INVITATION_NOT_FOUND, token));
+
+        if (invitation.getExpiresAt().isBefore(ZonedDateTime.now())) {
+            throw new InvalidInputException(INVITATION_EXPIRED);
+        }
+
+        String email = invitation.getEmail();
+
+        if (!email.equalsIgnoreCase(request.email())) {
+            throw new InvalidInputException(INVALID_INPUT, "Email does not match invitation");
+        }
+
+        if (userRepository.existsByEmail(email)) {
+            throw new DuplicateResourceException(USER_ALREADY_EXISTS, email);
+        }
+
+        UserEntity user = UserEntity.builder()
+                .name(request.name())
+                .email(email)
+                .password(passwordEncoder.encode(request.password()))
+                .provider(AuthProvider.LOCAL)
+                .providerId(email)
+                .isActive(true)
+                .emailVerifiedAt(ZonedDateTime.now())
+                .build();
+
+        user = userRepository.save(user);
+        log.info("Usuario creado desde invitación: {}", user.getEmail());
+
+        UserTenant userTenant = UserTenant.builder()
+                .userId(user.getId())
+                .tenantId(invitation.getTenantId())
+                .role(invitation.getRole())
+                .invitedBy(invitation.getInvitedBy())
+                .acceptedAt(ZonedDateTime.now())
+                .isActive(true)
+                .build();
+
+        userTenantRepository.save(userTenant);
+
+        invitation.setAcceptedAt(ZonedDateTime.now());
+        invitationRepository.save(invitation);
+
+        Tenant tenant = tenantRepository.findById(invitation.getTenantId()).orElse(null);
+
+        String role = invitation.getRole().name();
+        String plan = tenant != null ? tenant.getPlan().name() : "FREE";
+        String accessToken = jwtService.generateAccessToken(user, invitation.getTenantId(), role, plan);
+        String refreshToken = jwtService.generateRefreshToken(user);
+        jwtService.saveRefreshToken(user, invitation.getTenantId(), refreshToken);
+
+        log.info("Usuario {} registrado y aceptó invitación al tenant {}", user.getEmail(), invitation.getTenantId());
+
+        return new AuthResponse(
+                accessToken,
+                refreshToken,
+                userMapper.toResponse(user),
+                tenant != null ? tenantMapper.toResponse(tenant) : null
+        );
     }
 
     @Override

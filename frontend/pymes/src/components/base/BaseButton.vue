@@ -7,7 +7,7 @@
       `size-${size}`,
       { 'is-loading': loading, 'is-disabled': disabled }
     ]"
-    :disabled="disabled || loading"
+    :disabled="tag === 'button' ? (disabled || loading) : undefined"
     :aria-busy="loading || undefined"
     v-bind="$attrs"
     @click="handleClick"

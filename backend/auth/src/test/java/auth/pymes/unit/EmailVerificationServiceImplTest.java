@@ -91,7 +91,7 @@ class EmailVerificationServiceImplTest {
 
     @Test
     void generateAndSendPendingRegistrationEmail_StoresRequestInRedisAndSendsEmail() {
-        RegisterRequest request = new RegisterRequest("New User", "new@example.com", "password", "New Company", "new-company", null);
+        RegisterRequest request = new RegisterRequest("New User", "new@example.com", "password", "New Company", "new-company");
 
         emailVerificationService.generateAndSendPendingRegistrationEmail(request);
 
@@ -115,7 +115,7 @@ class EmailVerificationServiceImplTest {
     @Test
     void verifyEmail_WithPendingRegistration_MarksUserAsVerifiedAndCompletesLogin() {
         String token = "pending-token";
-        RegisterRequest regRequest = new RegisterRequest("Test User", "test@example.com", "password", "Company", "company", null);
+        RegisterRequest regRequest = new RegisterRequest("Test User", "test@example.com", "password", "Company", "company");
         HttpServletRequest httpRequest = mock(HttpServletRequest.class);
         AuthResponse authResponse = new AuthResponse("access", "refresh", null, null);
 
@@ -131,7 +131,7 @@ class EmailVerificationServiceImplTest {
     @Test
     void verifyEmail_WithPendingRegistration_EmailMismatch_ThrowsException() {
         String token = "pending-token";
-        RegisterRequest regRequest = new RegisterRequest("Test User", "test@example.com", "password", "Company", "company", null);
+        RegisterRequest regRequest = new RegisterRequest("Test User", "test@example.com", "password", "Company", "company");
         HttpServletRequest httpRequest = mock(HttpServletRequest.class);
 
         when(valueOperations.get("temp-register:" + token)).thenReturn(regRequest);

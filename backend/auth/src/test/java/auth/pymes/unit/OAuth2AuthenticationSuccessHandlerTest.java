@@ -129,7 +129,7 @@ class OAuth2AuthenticationSuccessHandlerTest {
         
         Tenant savedTenant = Tenant.builder()
                 .id(UUID.randomUUID())
-                .name("Mi Empresa")
+                .name("Test User")
                 .build();
         when(tenantRepository.save(any(Tenant.class))).thenReturn(savedTenant);
         when(userTenantRepository.save(any(UserTenant.class))).thenReturn(null);
@@ -137,7 +137,7 @@ class OAuth2AuthenticationSuccessHandlerTest {
         handler.onAuthenticationSuccess(request, response, authentication);
         
         verify(oauth2IntentService, never()).getIntent(any());
-        verify(tenantRepository).save(argThat(t -> t.getName().equals("Mi Empresa")));
+        verify(tenantRepository).save(argThat(t -> t.getName().equals("Test User")));
     }
 
     @Test

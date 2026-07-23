@@ -28,8 +28,10 @@ A partir de 2026-07-16, CORS opera en **doble capa**:
 - **Defensa en profundidad + Code Exchange OAuth2** — En proceso de validación y robustecimiento continuo.
 
 ### ✅ Historial de Soluciones (Orden Cronológico Inverso)
-1. [2026-07-21 — Whitelist unificada (C1 critical)](#-2026-07-21--whitelist-unificada-c1-critical)
-2. [2026-07-16 — Auth criticals (JWT, logout, cookie) + CORS dual layer](#-2026-07-16--auth-criticals-jwt-logout-cookie--cors-dual-layer)
+1. [2026-07-22 — Selección automática de Tenant activo tras aceptación de invitación](#-2026-07-22--selección-automática-de-tenant-activo-tras-aceptación-de-invitación)
+2. [2026-07-22 — Sistema de invitación por email (Primer Intento)](#-2026-07-22--sistema-de-invitación-por-email-primer-intento)
+3. [2026-07-21 — Whitelist unificada (C1 critical)](#-2026-07-21--whitelist-unificada-c1-critical)
+4. [2026-07-16 — Auth criticals (JWT, logout, cookie) + CORS dual layer](#-2026-07-16--auth-criticals-jwt-logout-cookie--cors-dual-layer)
 2. [2026-06-24 — Fix UserServiceImplTest (4 errores)](#-2026-06-24--fix-userserviceimpltest-4-errores)
 2. [2026-06-23 — Fix OAuth2 redirect + Redis serialization + APP_FRONTEND_URL](#-2026-06-23--fix-oauth2-redirect--redis-serialization--app_frontend_url)
 3. [2026-06-21 — Cleanup AuthApiController: Business Logic Extraction](#-2026-06-21--cleanup-authapicontroller-business-logic-extraction)
@@ -60,6 +62,80 @@ A partir de 2026-07-16, CORS opera en **doble capa**:
 26. [2026-04-11 — Email Verification Logic](#-2026-04-11--email-verification-logic)
 27. [2026-04-11 — Password Reset Logic](#-2026-04-11--password-reset-logic)
 28. [2026-04-09 — Testcontainers Setup](#-2026-04-09--testcontainers-setup)
+
+## 2026-07-22 — Selección automática de Tenant activo tras aceptación de invitación
+
+### Problema
+
+Al aceptar una invitación a un nuevo tenant (espacio de trabajo), el usuario no podía acceder a los datos de dicha empresa. Si el usuario ya estaba autenticado, se procesaba la invitación en el backend pero su token local de acceso (JWT) seguía apuntando a su tenant anterior (o a ninguno si no tenía tenant activo). Tampoco había una forma automática en el frontend de actualizar las credenciales y seleccionar el tenant aceptado.
+
+Además, el frontend mapeaba incorrectamente la respuesta del backend (`apiResponse.data.tenant.name` en lugar de `apiResponse.data.tenantName` y `apiResponse.data.tenantId`), y realizaba un logout innecesario en caso de error.
+
+### Solución
+
+Para alinear el comportamiento del frontend con el endpoint `/tenants/select` de Auth Service:
+1. **Mapeo de Tipos (`types/index.ts`)**:
+   - Ajustamos la interfaz `InvitationResponse` para alinearse con el record homónimo del backend (`id`, `tenantId`, `tenantName`, `email`, etc.).
+2. **Acción de Selección de Empresa (`store/index.ts`)**:
+   - Implementamos la acción `selectTenant(tenantId: string)` en el store de Pinia. Esta acción consume el endpoint `/tenants/select` para obtener y guardar un nuevo conjunto de JWT y Refresh Token con el contexto del tenant activo recién modificado.
+3. **Flujo de Aceptación (`AcceptInvitationPage.vue`)**:
+   - Corregimos la destructuración y la lectura de `tenantName` y `tenantId` de la respuesta de aceptación de invitación.
+   - Si se detecta un `tenantId` en la respuesta exitosa del backend, invocamos inmediatamente `authStore.selectTenant(data.tenantId)` para actualizar la sesión activa antes de redirigir al Dashboard.
+   - Removimos el cierre de sesión forzado del bloque `catch` para evitar una mala experiencia de usuario ante fallos menores de red o validación.
+
+### Archivos modificados
+
+```
+frontend/pymes/src/modules/auth/types/index.ts
+frontend/pymes/src/modules/auth/store/index.ts
+frontend/pymes/src/modules/auth/pages/AcceptInvitationPage.vue
+```
+
+**Estado:** ✅ RESUELTO
+
+---
+
+## 2026-07-22 — Sistema de invitación por email (Primer Intento)
+
+### Problema
+
+Se requería implementar un sistema de invitaciones a tenants por correo electrónico. Esto implica permitir a usuarios no registrados crear una cuenta y unirse al tenant directamente desde el enlace de invitación en un solo flujo, y a usuarios ya registrados unirse de forma directa al aceptar la invitación, además de imponer límites en la modificación de roles.
+
+### Solución
+
+1. **Flujo de Invitación y Registro Directo (`AuthServiceImpl.java`)**:
+   - Implementamos `registerWithInvitation` para permitir que usuarios que se registran usando un `invitationToken` queden directamente asignados al tenant correspondiente con el rol asignado, marcando la invitación como aceptada de forma atómica en el registro.
+2. **Límite de Cooldown para Cambio de Roles (`MemberServiceImpl.java`)**:
+   - Implementamos un periodo de enfriamiento (cooldown) de roles para tenants en plan `FREE` (`roleChangeCooldownDays`), previniendo modificaciones repetidas en periodos cortos.
+   - Agregamos la columna `last_role_change_at` en la tabla `auth.tenants` mediante la migración de base de datos `V3__plan_cooldown.sql`.
+3. **Controladores e Interfaces (`InvitationApi.java`, `InvitationApiController.java`)**:
+   - Agregamos el endpoint `/invitations/{token}/info` para que el frontend pueda recuperar información básica de la invitación (email y nombre de empresa) sin requerir autenticación.
+4. **Plantillas de Correo HTML (`templates/email/`)**:
+   - Rediseñamos y actualizamos las plantillas de correo (`invitation.html`, `password-reset.html`, `verification.html`, `layout.html`) con un diseño institucional consistente (Swiss style con colores y fuentes institucionales del proyecto).
+5. **Suite de Pruebas**:
+   - Creamos `MemberRoleCooldownIntegrationTest.java` para validar el bloqueo de cambio de roles bajo periodos de cooldown en el plan gratuito.
+   - Actualizamos los tests de integración en `AuthApiIntegrationTest`, `InvitationServiceIntegrationTest` y `SecurityConstraintIntegrationTest`.
+
+### Archivos modificados
+
+```
+backend/auth/src/main/java/auth/pymes/common/config/SecurityConfig.java
+backend/auth/src/main/java/auth/pymes/common/models/dto/request/RegisterRequest.java
+backend/auth/src/main/java/auth/pymes/common/models/dto/response/InvitationInfoResponse.java
+backend/auth/src/main/java/auth/pymes/common/models/entities/Tenant.java
+backend/auth/src/main/java/auth/pymes/controller/InvitationApi.java
+backend/auth/src/main/java/auth/pymes/controller/impl/InvitationApiController.java
+backend/auth/src/main/java/auth/pymes/service/InvitationService.java
+backend/auth/src/main/java/auth/pymes/service/impl/AuthServiceImpl.java
+backend/auth/src/main/java/auth/pymes/service/impl/InvitationServiceImpl.java
+backend/auth/src/main/java/auth/pymes/service/impl/MemberServiceImpl.java
+backend/auth/src/main/java/auth/pymes/utils/exception/CodigoError.java
+backend/auth/src/main/resources/db/migration/V3__plan_cooldown.sql
+backend/auth/src/main/resources/templates/email/invitation.html
+backend/auth/src/test/java/auth/pymes/integration/api/MemberRoleCooldownIntegrationTest.java
+```
+
+**Estado:** 🚧 IMPLEMENTACIÓN INICIAL (PENDIENTE DE REFACTOR EN FLUJO DE SESIÓN ACTIVA)
 
 ---
 

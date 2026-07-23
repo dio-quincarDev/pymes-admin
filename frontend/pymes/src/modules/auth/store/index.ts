@@ -1,6 +1,7 @@
 import { defineStore } from 'pinia';
 import { api } from 'src/boot/axios';
 import { authService } from '../services/auth.service';
+import { tenantService } from '../services/tenant.service';
 import type { User, LoginRequest, RegisterRequest, ApiResponse, AuthResponse, LogoutResponse } from '../types';
 
 const safeParse = <T>(key: string, defaultValue: T): T => {
@@ -121,6 +122,26 @@ export const useAuthStore = defineStore('auth', {
         localStorage.setItem('pymeq_user', JSON.stringify(this.user));
       } catch {
         this.clearSession();
+      }
+    },
+
+    async selectTenant(tenantId: string) {
+      this.loading = true;
+      this.error = null;
+      try {
+        const response = await tenantService.selectTenant(tenantId);
+        const { data } = response.data as ApiResponse<AuthResponse>;
+        const user = data.activeTenant
+          ? { ...data.user, tenantId: data.activeTenant.id, plan: data.activeTenant.plan }
+          : data.user;
+        this.setSession(data.accessToken, data.refreshToken, user);
+        return data;
+      } catch (err: unknown) {
+        const errorMessage = err instanceof Error ? err.message : 'Error al seleccionar empresa';
+        this.error = errorMessage;
+        throw err;
+      } finally {
+        this.loading = false;
       }
     },
 
