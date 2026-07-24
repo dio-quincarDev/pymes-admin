@@ -259,7 +259,7 @@ const loginWithGoogle = async () => {
 
       const intentId = response.data?.data?.intentId;
       if (intentId) {
-        url += `?state=${intentId}`;
+        url += `?intentId=${intentId}`;
       }
     }
 
