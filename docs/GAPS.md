@@ -49,7 +49,7 @@
 
 | # | Gap | Fix | Severidad |
 |---|-----|-----|-----------|
-| 1 | **`tenantId` no validado contra JWT** — Todos los controllers reciben `@RequestParam UUID tenantId` del frontend. **No se valida que el tenantId del JWT (inyectado por el gateway como `X-Tenant-Id`) coincida con el tenantId de la request**. Un usuario autenticado en tenant A podría enviar `?tenantId=B` y acceder a datos de otro tenant. Solo algunos services verifican manualmente (FacturaService, GastoService). | Implementar filtro o interceptor que valide `X-Tenant-Id` header === `tenantId` param. O migrar a `@AuthenticationPrincipal` + extraer tenantId del JWT directamente. | 🔴 Critical |
+| 1 | **`tenantId` no validado contra JWT** — Todos los controllers reciben `@RequestParam UUID tenantId` del frontend. **No se valida que el tenantId del JWT (inyectado por el gateway como `X-Tenant-Id`) coincida con el tenantId de la request**. Un usuario autenticado en tenant A podría enviar `?tenantId=B` y acceder a datos de otro tenant. Solo algunos services verifican manualmente (FacturaService, GastoService). | `TenantValidationFilter` — Filter que compara `X-Tenant-Id` header vs `?tenantId=` param, 403 si difieren. | 🔴 Critical | ✅ 2026-07-24 |
 | 2 | **Sin `@PreAuthorize`, `@Secured` ni `@EnableMethodSecurity`** — El gateway inyecta `X-User-Role` (OWNER, ADMIN, CONTABLE, VIEWER) pero el core nunca lo lee. Cualquier usuario autenticado puede ejecutar cualquier endpoint (crear, actualizar, eliminar) sin importar su rol. | Agregar `@EnableMethodSecurity` + `@PreAuthorize` en endpoints sensibles (crear/actualizar/eliminar). | 🔴 Critical |
 
 #### 🟡 Sugerencias

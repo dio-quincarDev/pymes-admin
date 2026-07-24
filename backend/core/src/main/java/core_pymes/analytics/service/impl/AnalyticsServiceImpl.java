@@ -15,6 +15,7 @@ import java.math.BigDecimal;
 import java.math.RoundingMode;
 import java.time.LocalDate;
 import java.time.YearMonth;
+import java.time.ZoneOffset;
 import java.util.*;
 import java.util.stream.Collectors;
 
@@ -58,6 +59,7 @@ public class AnalyticsServiceImpl implements AnalyticsService {
     @Override
     @Transactional(readOnly = true)
     public Optional<AnalisisGasto> consultar(UUID tenantId, String periodo) {
+        if (periodo == null) periodo = YearMonth.now(ZoneOffset.UTC).toString();
         return repository.findByTenantIdAndPeriod(tenantId, periodo);
     }
 

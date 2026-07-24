@@ -14,6 +14,7 @@ import java.math.BigDecimal;
 import java.math.RoundingMode;
 import java.time.LocalDate;
 import java.time.YearMonth;
+import java.time.ZoneOffset;
 import java.util.Optional;
 import java.util.UUID;
 
@@ -61,6 +62,7 @@ public class MetricasServiceImpl implements MetricasService {
     @Override
     @Transactional(readOnly = true)
     public Optional<MetricasResponse> consultar(UUID tenantId, String periodo) {
+        if (periodo == null) periodo = YearMonth.now(ZoneOffset.UTC).toString();
         return repository.findByTenantIdAndPeriod(tenantId, periodo)
                 .map(this::toResponse);
     }

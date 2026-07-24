@@ -7,7 +7,6 @@ import lombok.RequiredArgsConstructor;
 import org.springframework.http.ResponseEntity;
 import org.springframework.web.bind.annotation.RestController;
 
-import java.time.YearMonth;
 import java.util.UUID;
 
 @RestController
@@ -18,9 +17,6 @@ public class MetricasController implements MetricasApi {
 
     @Override
     public ResponseEntity<MetricasResponse> consultar(UUID tenantId, String periodo) {
-        if (periodo == null) {
-            periodo = YearMonth.now().toString();
-        }
         return metricasService.consultar(tenantId, periodo)
                 .map(ResponseEntity::ok)
                 .orElse(ResponseEntity.noContent().build());

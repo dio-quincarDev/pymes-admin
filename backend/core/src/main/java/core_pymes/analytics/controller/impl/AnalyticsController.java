@@ -8,7 +8,6 @@ import lombok.RequiredArgsConstructor;
 import org.springframework.http.ResponseEntity;
 import org.springframework.web.bind.annotation.RestController;
 
-import java.time.YearMonth;
 import java.util.UUID;
 
 @RestController
@@ -20,9 +19,6 @@ public class AnalyticsController implements AnalyticsApi {
 
     @Override
     public ResponseEntity<AnalyticsResponse> consultar(UUID tenantId, String periodo) {
-        if (periodo == null) {
-            periodo = YearMonth.now().toString();
-        }
         return analyticsService.consultar(tenantId, periodo)
                 .map(a -> ResponseEntity.ok(mapper.toResponse(a)))
                 .orElse(ResponseEntity.noContent().build());

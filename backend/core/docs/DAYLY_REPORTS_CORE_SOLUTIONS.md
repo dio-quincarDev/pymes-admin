@@ -120,6 +120,25 @@ GAPS.md actualizado (gap EXCEPTION_STRATEGY.md marcado ✅)
 
 ---
 
+## 2026-07-24 — TenantId validation filter (gap crítico)
+
+### TenantValidationFilter
+
+`X-Tenant-Id` header (inyectado por gateway desde JWT) vs `?tenantId=` param (frontend). Si difieren → 403.
+
+- `OncePerRequestFilter` no, `Filter` simple — Spring Boot lo registra automáticamente con `@Component`
+- Si alguno falta (rutas públicas, POST sin param), pasa sin validar
+- Sin nuevas dependencias, sin cambios en controllers
+- 150 tests, 0 fallos
+
+### Archivos
+
+```
+common/config/TenantValidationFilter.java    # +1 archivo, ~25 líneas
+```
+
+---
+
 ## 2026-07-15 — Invoice Update + Audit Fields
 
 ### Feature: `PUT /api/v1/core/invoices/{id}?tenantId=...`
