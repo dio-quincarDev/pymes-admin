@@ -4,6 +4,25 @@ Registro cronológico de decisiones, problemas resueltos y estado del frontend.
 
 ---
 
+## 2026-07-24 — Fix OAuth2 intentId: `?state=` → `?intentId=`
+
+### Bug
+Registro por Google ignoraba el nombre de empresa escrito por el usuario, creando "Mi Empresa" como default.
+
+### Causa raíz
+El frontend pasaba el `intentId` como `?state=${intentId}` al redirect de Google, pero `OAuth2IntentCookieFilter` (auth service) busca el param `?intentId=`. Spring Security usa `state` internamente para CSRF y lo sobreescribe — el param nunca llegaba al filter, la cookie `oauth2_intent` no se seteaba, y `OAuth2AuthenticationSuccessHandler` caía a Prioridad 3 (default "Mi Empresa").
+
+### Fix
+Cambiar `?state=${intentId}` → `?intentId=${intentId}` en ambas páginas.
+
+### Archivos
+```
+modules/auth/pages/LoginPage.vue:218
+modules/auth/pages/RegisterPage.vue:262
+```
+
+---
+
 ## 2026-07-21 — Brainstorm: Tutorial onboarding para nuevos usuarios
 
 ### Contexto

@@ -89,7 +89,8 @@ public class SetupServiceImpl implements SetupService {
             }
 
             jdbc.batchUpdate(
-                "INSERT INTO core.products (id, tenant_id, name, sku, category, base_unit, min_quantity, max_quantity, is_active, created_at, updated_at) VALUES (?, ?, ?, ?, ?, ?, ?, ?, true, NOW(), NOW())",
+                "INSERT INTO core.products (id, tenant_id, name, sku, category, base_unit, min_quantity, max_quantity, is_active, created_at, updated_at) " +
+                        "VALUES (?, ?, ?, ?, ?, ?, ?, ?, true, NOW(), NOW())",
                 prodBatch);
             jdbc.batchUpdate(
                 "INSERT INTO core.product_presentations (id, product_id, name, conversion, is_active, created_at) VALUES (?, ?, ?, ?, true, NOW())",

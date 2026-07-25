@@ -2,6 +2,7 @@
 
 ### Core
 
+- [ ] [Alta] **Cleanup seed: remover conceptos de stock** — `template_locations` y `template_movement_reasons` no pertenecen a un sistema financiero. Incluye: V17 migration (DROP TABLE locations), SeedRunner cleanup (industry codes → constantes java:S1192), SetupServiceImpl/Response/Mapper, frontend types+pages. Ver `backend/core/docs/SEED_TEMPLATES.md` → Cleanup 2026-07.
 - [x] [Alta] **Exception system (estrategia definida)** — `ErrorResponse`, `ApiResponse`, `CodigoError`, 3 custom exceptions, `GlobalExceptionHandler` (12 handlers). Migrados 18 throws en 7 services (150/150 tests). → [`docs/EXCEPTION_STRATEGY.md`](./backend/core/docs/EXCEPTION_STRATEGY.md)
 - [ ] [🔴] **Validar tenantId contra JWT** — interceptor/filtro que compare `X-Tenant-Id` header (del gateway) vs `@RequestParam tenantId`. O migrar a extraer tenantId directo del `Authentication` (2026-07)
 - [ ] [🔴] **`@PreAuthorize` en endpoints sensibles** — agregar `@EnableMethodSecurity` + `@PreAuthorize` en controllers (crear/actualizar/eliminar según rol) (2026-07)
@@ -69,15 +70,19 @@ Todos implementados inline en cada page (sin componentes separados).
 - [ ] [Alta] **Tour guiado con Driver.js** — guía de bienvenida al dashboard post-onboarding (4-5 pasos: sidebar, período, métricas, quick actions, perfil). Disparo único vía localStorage. Botón "Ayuda" en header para reiniciar. (2026-07)
 - [ ] [Media] **Empty states contextuales** — cada página vacía debe tener un mensaje + CTA que guíe al usuario (ej. "Agrega tu primer producto"). (2026-07)
 
+### Frontend — Pendiente (Tenant/User display)
+
+- [ ] [Media] **Mostrar tenantName y userName en Dashboard/Configuración** — Opción A (recomendada): agregar `tenantName` a `UserEntityResponse` (1 campo backend) + mostrar en MainLayout, DashboardPage, ConfiguracionPage. Opción B: solo frontend guardando `activeTenant.name` en localStorage. (2026-07)
+
 ### Frontend — Pendiente (PWA)
 
 - [ ] [Baja] **PWA: pull to refresh** — En mobile, gesto nativo para refrescar datos.
 - [ ] [Baja] **PWA: custom install prompt** — Banner "Instalar PYMEQ" con dismiss persistente.
 - [ ] [Baja] **PWA: transiciones direccionales** — Slide left/right según dirección de navegación.
 
-### Core
+### Core — Migraciones Flyway
 
-- [ ] [Media] **Dashboard聚合 endpoint** — Endpoint que una `MetricasFinancieras` + gastos + ventas + facturas en una sola llamada (actualmente el frontend hace 4 requests paralelos). Optimización para latency.
+- [ ] [Alta] **Consolidar V1–V16 → V1__core_schema.sql único** — 16 archivos → 1. 27 índices → 25 (eliminar `idx_products_tenant` y `idx_invoice_items_invoice` redundantes). Agregar `IF NOT EXISTS` faltantes en V9/V10. Idempotente para stage deploy. (2026-07) → [`docs/strategies/CORE_MIGRATIONS_STRATEGY.md`](./docs/strategies/CORE_MIGRATIONS_STRATEGY.md)
 
 ### Gateway
 
@@ -88,3 +93,9 @@ Todos implementados inline en cada page (sin componentes separados).
 
 - [x] [🔴] **Unificar whitelists de rutas públicas** — `SecurityConfig.WHITE_LIST` y `JwtAuthenticationFilter.publicPaths` separadas. Solución: `shouldNotFilter()` ahora lee de `SecurityConfig.WHITE_LIST` vía `AntPathMatcher`. Se eliminó `publicPaths`. (2026-07-21)
 - [ ] [Baja] Facebook OAuth2 — postergado (Meta no aprobó verificación) (post-MVP)
+
+### Auth — Invitación por Email (estrategia definida)
+
+- [ ] [Alta] **MVP invitaciones: maxUsers 2 + register+accept + TeamsPage** — `Tenant.java` 1→2, `InvitationRegisterRequest`, `InvitationInfoResponse`, `GET /{token}/info` + `POST /{token}/register` públicos, `InvitationServiceImpl.registerAndAccept()` transaccional, `TeamsPage.vue`, nav por roles. Sin cooldown. → [`docs/strategies/EMAIL_INVITATION_STRATEGY.md`](./docs/strategies/EMAIL_INVITATION_STRATEGY.md)
+- [ ] [Media] **Role change cooldown (post-MVP)** — V3 migration `last_role_change_at`, `MemberServiceImpl` cooldown check (30d FREE). → ref: EMAIL_INVITATION_STRATEGY.md
+- [ ] [Baja] **Rediseño templates email** — Swiss style branding PymeQ en invitation/verification/password-reset. → ref: EMAIL_INVITATION_STRATEGY.md

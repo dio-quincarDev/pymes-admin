@@ -717,4 +717,61 @@ docs/DAILY_REPORTS_PROJECT.md                                                   
 
 ---
 
+## 2026-07-24 — Estrategia de Invitación por Email (post-mortem del intento anterior)
+
+### Contexto
+
+Se intentó implementar el sistema de invitación por email en `refactor/invitation-attempt`. El usuario reporta que "rompi todo" al reintentar directamente sobre `feature/core`. Se analizó el diff completo entre ambas ramas para extraer la estrategia correcta.
+
+### Lección principal
+
+**Endpoints separados para flujos separados.** El intento anterior mezcló registro normal + registro por invitación en un solo `POST /auth/register` con `RegisterRequest` condicional. Esto creaba un DTO con campos que solo aplicaban a un camino, validación inconsistente, y errores difíciles de trazar.
+
+La corrección: `POST /invitations/{token}/register` es un endpoint público independiente con su propio DTO `InvitationRegisterRequest`. El registro normal (`POST /auth/register`) queda intacto.
+
+### Estrategia extraída
+
+Ver `docs/strategies/EMAIL_INVITATION_STRATEGY.md` para el documento completo.
+
+### Archivos del intento anterior (22 total)
+
+```
+# Backend Auth (10)
+backend/auth/.../Tenant.java                           → maxUsers 1 → 2
+backend/auth/.../V3__plan_cooldown.sql                 → NUEVO
+backend/auth/.../InvitationRegisterRequest.java         → NUEVO
+backend/auth/.../InvitationInfoResponse.java            → NUEVO
+backend/auth/.../CodigoError.java                      → +ROLE_CHANGE_COOLDOWN
+backend/auth/.../InvitationApi.java                    → +2 endpoints
+backend/auth/.../InvitationApiController.java          → +impl
+backend/auth/.../InvitationServiceImpl.java            → +getInvitationInfo, +registerAndAccept
+backend/auth/.../MemberServiceImpl.java                → +role cooldown
+backend/auth/.../SecurityConfig.java                   → +WHITE_LIST entries
+
+# Backend Gateway (1)
+gateway-pymes/.../RouterValidator.java                 → +3 openEndPoints
+
+# Frontend (8)
+auth/types/index.ts                                    → +plan, +DTOs
+auth/store/index.ts                                    → +selectTenant
+auth/services/invitation.service.ts                    → +2 métodos
+auth/services/member.service.ts                        → NUEVO
+auth/pages/AcceptInvitationPage.vue                    → refactor completo
+core/pages/TeamsPage.vue                               → NUEVO (493 líneas)
+core/router/routes.ts                                  → +teams route
+layouts/MainLayout.vue                                 → +nav item Teams
+```
+
+### Decisión clave
+
+`registerAndAccept()` es transaccional: crea User + UserTenant + marca invitation en una sola transacción. Si falla en cualquier paso, todo revierte. No queda usuario parcial.
+
+### Próximo
+
+1. Implementar MVP (sin cooldown): Tenant maxUsers → 2, register+accept, TeamsPage, nav por roles
+2. Post-MVP: cooldown de cambio de rol (V3 migration)
+3. Opcional: rediseño de templates email (Swiss style)
+
+---
+
 *Creado: 2026-06-19 | Consolidacion de REFACTOR-STRATEGY.md + .github/REFACTOR.md*

@@ -33,7 +33,10 @@ async function load() {
     const res = await proveedorService.getAll(tenantId);
     rows.value = res.data;
   } catch (err) {
-    $q.notify({ type: 'negative', message: err instanceof Error ? err.message : 'Error al cargar proveedores' });
+    $q.notify({
+      type: 'negative',
+      message: err instanceof Error ? err.message : 'Error al cargar proveedores',
+    });
   } finally {
     loading.value = false;
   }
@@ -91,7 +94,10 @@ async function save() {
       message: `Proveedor ${editingId.value ? 'actualizado' : 'creado'}`,
     });
   } catch (err) {
-    $q.notify({ type: 'negative', message: err instanceof Error ? err.message : 'Error al guardar proveedor' });
+    $q.notify({
+      type: 'negative',
+      message: err instanceof Error ? err.message : 'Error al guardar proveedor',
+    });
   } finally {
     saving.value = false;
   }
@@ -111,7 +117,10 @@ async function remove() {
     deleteDialog.value = false;
     $q.notify({ type: 'positive', message: 'Proveedor eliminado' });
   } catch (err) {
-    $q.notify({ type: 'negative', message: err instanceof Error ? err.message : 'Error al eliminar proveedor' });
+    $q.notify({
+      type: 'negative',
+      message: err instanceof Error ? err.message : 'Error al eliminar proveedor',
+    });
   } finally {
     deleting.value = false;
     deletingItem.value = null;
@@ -141,7 +150,7 @@ function handleKeydown(e: KeyboardEvent) {
   <q-page class="core-page">
     <div class="q-mb-md">
       <h1 class="text-h4 text-primary font-bold q-ma-none">Proveedores</h1>
-      <p class="text-subtitle1 text-accent q-mt-xs">Gesti\u00F3n de proveedores</p>
+      <p class="text-subtitle1 text-accent q-mt-xs">Gestion de proveedores</p>
     </div>
 
     <div class="toolbar">

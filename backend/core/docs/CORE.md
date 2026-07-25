@@ -39,7 +39,7 @@ Todos comunican via Spring Events (no bloqueantes). Paquete base: `core_pymes.*`
 | Service | `SetupService` / `SetupServiceImpl` (lazy init + completeOnboarding) |
 | Endpoints | `GET /setup/{tenantId}`, `POST /setup/{tenantId}/onboarding`, `GET /setup/preview/{industry}` |
 | Flyway | V1: `core.tenant_setup` |
-| Templates | Categorias jerarquicas (3 niveles), unidades, ubicaciones, productos precargados por industria |
+| Templates | Categorias jerarquicas (3 niveles), unidades, productos precargados por industria |
 | SKU auto | `P-0001` secuencial al copiar template_products en onboarding |
 
 ### Product (`core_pymes/product/`)
@@ -440,13 +440,14 @@ POST   /api/v1/core/analytics/recalcular?tenantId={uuid}&periodo=YYYY-MM
 
 | Aspecto | Detalle |
 |---------|---------|
-| Flyway V2 | `industries`, `template_categories`, `template_locations` |
+| Flyway V2 | `industries`, `template_categories` |
+| V17 | `DROP TABLE IF EXISTS template_locations` (cleanup stock) |
 | SeedDataRunner | `@Component` idempotente, inserta via JdbcTemplate al startup |
-| DDL | `template_units`, `template_movement_reasons`, `template_payment_methods`, `template_products`, `template_product_presentations` |
+| DDL | `template_units`, `template_payment_methods`, `template_products`, `template_product_presentations` |
 | Industrias | 8: restaurante, bares, salon_belleza, ferreteria, mini_super, taller_mecanico, farmacia, default |
 | Productos | ~160 productos + ~280 presentaciones en seed |
 
-Ver `SEED_TEMPLATES.md` para detalle completo.
+Ver `SEED_TEMPLATES.md` para detalle completo y cleanup 2026-07.
 
 ---
 
@@ -489,13 +490,13 @@ Ver `SEED_TEMPLATES.md` para detalle completo.
 - [x] Redis debounce — RecomputeDebounceService + @Scheduled
 - [x] Testcontainers Redis en AbstractIntegrationTest
 - [x] SQL review — division por cero en analisisABC, indices redundantes removidos
+- [ ] **Cleanup seed: remover stock** — `template_locations` + `template_movement_reasons` eliminadas, industry codes → constantes (java:S1192). Ver `SEED_TEMPLATES.md` → Cleanup 2026-07.
 - [ ] **Financial Health Engine** — Motor #10: scoring compuesto + alertas críticas + señales inversión/expansión. Requiere V15 (columna `financial_health JSONB`), `analisisSaludFinanciera()` en AnalyticsServiceImpl, `FinancialHealthResponse` DTO, actualización de `useAnalytics` + `AnalisisGastosPage.vue`.
 
 ### Mediate
 
 - [ ] Reports — dashboard consolidado con KPIs, alertas
 - [ ] CRUD de configuracion (edicion por tenant)
-- [ ] Movimientos de stock (asociados a facturas+ventas)
 
 ### Infraestructura
 

@@ -19,14 +19,6 @@ General
 - Kg
 - Litro
 
-### Ubicaciones
-- Principal
-
-### Motivos de Movimiento
-- Entrada
-- Salida
-- Ajuste
-
 ### Método de Pago
 - Efectivo
 - Transferencia
@@ -94,18 +86,6 @@ SUMINISTROS
 - Bolsa
 - Paquete
 
-### Ubicaciones
-- Bodega Principal
-- Cocina
-- Freezer 1
-- Freezer 2
-- Nevera
-
-### Motivos de Movimiento
-- Entrada (Compra a proveedor)
-- Salida (Venta, Consumo)
-- Ajuste (Conteo físico, Rotura, Robo)
-
 ### Método de Pago
 - Yappy
 - ACH
@@ -165,18 +145,6 @@ SUMINISTROS
 - Caja
 - Paquete
 - Kg (hielo)
-
-### Ubicaciones
-- Bodega
-- Barra
-- Freezer 1
-- Freezer 2
-- Depósito
-
-### Motivos de Movimiento
-- Entrada (Compra a distribuidor)
-- Salida (Servicio, Consumo personal)
-- Ajuste (Rotura, Conteo físico)
 
 ### Método de Pago
 - Yappy
@@ -249,17 +217,6 @@ LIMPIEZA
 - Caja
 - Kit
 - Botella
-
-### Ubicaciones
-- Almacén
-- Área de Trabajo
-- Recepción
-- Sala de Espera
-
-### Motivos de Movimiento
-- Entrada (Compra a proveedor)
-- Salida (Uso en servicio, Venta)
-- Ajuste (Expiración, Conteo físico)
 
 ### Método de Pago
 - Yappy
@@ -342,17 +299,6 @@ OTROS SUMINISTROS
 - Bolsa
 - Paquete
 
-### Ubicaciones
-- Depósito
-- Tienda
-- Mostrador
-- Área de Carga
-
-### Motivos de Movimiento
-- Entrada (Compra a distribuidor)
-- Salida (Venta a cliente)
-- Ajuste (Conteo físico, Daño)
-
 ### Método de Pago
 - Efectivo
 - Tarjeta
@@ -432,18 +378,6 @@ OTROS
 - Kg
 - Lb
 
-### Ubicaciones
-- Depósito
-- Estantería
-- Nevera
-- Congelador
-- Mostrador
-
-### Motivos de Movimiento
-- Entrada (Compra a distribuidor)
-- Salida (Venta a cliente)
-- Ajuste (Vencimiento, Rotura, Conteo)
-
 ### Método de Pago
 - Efectivo
 - Tarjeta
@@ -515,17 +449,6 @@ PIEZAS VARIADAS
 - Juego
 - Kit
 - Kg
-
-### Ubicaciones
-- Depósito
-- Área de Trabajo
-- Mostrador
-- Banco de Trabajo
-
-### Motivos de Movimiento
-- Entrada (Compra a distribuidor)
-- Salida (Uso en servicio, Venta)
-- Ajuste (Conteo físico, Daño)
 
 ### Método de Pago
 - Efectivo
@@ -606,17 +529,6 @@ HIGIENE DEL HOGAR
 - Gr
 - Botella
 
-### Ubicaciones
-- Almacén
-- Mostrador
-- Vitrina (productos controlados)
-- Refrigeración (si aplica)
-
-### Motivos de Movimiento
-- Entrada (Compra a distribuidor)
-- Salida (Venta a cliente)
-- Ajuste (Vencimiento, Conteo físico)
-
 ### Método de Pago
 - Efectivo
 - Tarjeta
@@ -640,18 +552,6 @@ HIGIENE DEL HOGAR
 - Al crear Producto, debe seleccionar una unidad base
 - Las Presentaciones usan las mismas unidades
 
-### Sobre Ubicaciones
-
-- Necesarias para rastrear inventario (Parte 3)
-- Pueden editarse, agregarse, eliminarse
-- Cada movimiento debe indicar ubicación
-
-### Sobre Motivos
-
-- Fijos para MVP (Entrada, Salida, Ajuste)
-- Posibilidad de agregar más en futuro (Fase 3+)
-- Importante para reportes y análisis
-
 ### Sobre Métodos de Pago
 
 - Varían según industria
@@ -663,7 +563,7 @@ HIGIENE DEL HOGAR
 ## Plantillas de Productos (Implementado)
 
 ### Problema
-Las plantillas actuales solo tienen categorías, unidades y ubicaciones. Al completar onboarding, el usuario tiene una estructura vacía y debe crear productos uno por uno.
+Las plantillas actuales tienen categorías, unidades y productos. Al completar onboarding, el usuario tiene una estructura vacía y debe crear productos uno por uno.
 
 ### Objetivo
 Al completar onboarding → se copian productos genéricos por categoría → al facturar ya hay catálogo cargado con SKU y unidad.
@@ -761,50 +661,37 @@ En `SetupServiceImpl.completeOnboarding()` (transaccional):
 
 ---
 
-## Estructura de Datos en BD (Actual)
+## Estructura de Datos en BD (Post-Cleanup 2026-07)
 
-Cada plantilla se almacena en tablas normalizadas con FK a `industries(code)`:
+Cada plantilla se almacena en tablas normalizadas con FK a `industries(code)`.
 
 ### Tablas (schema `core`)
 
 ```
-industries                          — Creada por Flyway V2
+industries                          — Flyway V2
 ├── code: VARCHAR(50) PK            — "restaurante", "bares", etc.
 └── name: VARCHAR(100)
 
-template_categories                 — Creada por Flyway V2
+template_categories                 — Flyway V2
 ├── id: UUID PK
 ├── industry_code: VARCHAR(50) FK → industries
 ├── name: VARCHAR(100)
 ├── parent_id: UUID FK → template_categories (auto-ref, 3 niveles)
 └── sort_order: INTEGER
 
-template_locations                  — Creada por Flyway V2
-├── id: UUID PK
-├── industry_code: VARCHAR(50) FK → industries
-├── name: VARCHAR(100)
-└── sort_order: INTEGER
-
-template_units                      — Creada por SeedDataRunner (DDL)
+template_units                      — SeedDataRunner (DDL)
 ├── id: UUID PK
 ├── industry_code: VARCHAR(50) FK → industries (INDEX)
 ├── name: VARCHAR(100)
 └── sort_order: INTEGER
 
-template_movement_reasons           — Creada por SeedDataRunner (DDL)
-├── id: UUID PK
-├── industry_code: VARCHAR(50) FK → industries (INDEX)
-├── name: VARCHAR(100)
-├── movement_type: VARCHAR(20)      — "ENTRADA", "SALIDA", "AJUSTE"
-└── sort_order: INTEGER
-
-template_payment_methods            — Creada por SeedDataRunner (DDL)
+template_payment_methods            — SeedDataRunner (DDL)
 ├── id: UUID PK
 ├── industry_code: VARCHAR(50) FK → industries (INDEX)
 ├── name: VARCHAR(100)
 └── sort_order: INTEGER
 
-template_products                   — Creada por SeedDataRunner (DDL, sin FK)
+template_products                   — SeedDataRunner (DDL, sin FK)
 ├── id: UUID PK
 ├── industry_code: VARCHAR(50)       — INDEX, sin FK (datos readonly)
 ├── category_id: UUID                — sin FK (datos readonly)
@@ -812,7 +699,7 @@ template_products                   — Creada por SeedDataRunner (DDL, sin FK)
 ├── base_unit: VARCHAR(50)           — sin SKU (se genera al copiar al tenant)
 └── sort_order: INTEGER
 
-template_product_presentations      — Creada por SeedDataRunner (DDL, sin FK)
+template_product_presentations      — SeedDataRunner (DDL, sin FK)
 ├── id: UUID PK
 ├── template_product_id: UUID NOT NULL  — INDEX, sin FK (datos readonly)
 ├── name: VARCHAR(100)
@@ -820,12 +707,19 @@ template_product_presentations      — Creada por SeedDataRunner (DDL, sin FK)
 └── sort_order: INTEGER
 ```
 
+### Eliminadas (Cleanup 2026-07)
+
+```
+template_locations                  — Flyway V2 (eliminada vía V17 DROP TABLE)
+template_movement_reasons           — SeedDataRunner (nunca en Flyway, solo eliminada del DDL)
+```
+
 ### Seed Data
 
 El seed se ejecuta vía `SeedDataRunner` (ApplicationRunner) al startup:
-1. `createTables()` — DDL con `CREATE TABLE IF NOT EXISTS` + índices (incluye `template_products` y `template_product_presentations`)
+1. `createTables()` — DDL con `CREATE TABLE IF NOT EXISTS` + índices (incluye `template_products`, `template_product_presentations`)
 2. `seedIndustries()` — inserta 8 industrias
-3. `seed{Nombre}()` — por industria inserta categorías, ubicaciones, unidades, motivos, pagos, **productos** y **presentaciones** (todo en un mismo método)
+3. `seed{Nombre}()` — por industria inserta categorías, unidades, pagos, **productos** y **presentaciones** (todo en un mismo método)
 4. Es idempotente: verifica `SELECT COUNT(*) FROM industries` antes de insertar
 
 ### Nota sobre migración futura
@@ -833,5 +727,95 @@ El seed se ejecuta vía `SeedDataRunner` (ApplicationRunner) al startup:
 Si en producción se necesita modificar las tablas creadas por SeedDataRunner,
 agregar una migration Flyway con `ALTER TABLE`. SeedDataRunner solo ejecuta
 `CREATE TABLE IF NOT EXISTS`, no altera tablas existentes.
+
+---
+
+## Cleanup 2026-07 — Remover conceptos de stock
+
+### Contexto
+
+PYMES Admin es un sistema de gestión financiera, NO de inventario/stock.
+Las tablas `template_locations` y `template_movement_reasons` son conceptos
+de inventario físico que no pertenecen al dominio.
+
+### Qué se elimina
+
+| Tabla | Origen | Destino | Razón |
+|-------|--------|---------|-------|
+| `template_locations` | Flyway V2 + SeedRunner | DROP TABLE V17 | Ubicaciones físicas = stock |
+| `template_movement_reasons` | Solo SeedRunner (CREATE TABLE IF NOT EXISTS) | Eliminar de SeedRunner | Entrada/Salida/Ajuste = tracking de inventario |
+
+### Qué se mantiene
+
+| Tabla | Razón |
+|-------|-------|
+| `template_units` | Unidad de medida es transversal a productos |
+| `template_payment_methods` | Método de pago es concepto financiero |
+| `template_products` (con base_unit, min/max qty) | Parte del catálogo de productos |
+
+### Archivos a modificar
+
+| Archivo | Cambio |
+|---------|--------|
+| `SeedDataRunner.java` | +constantes industry codes + SQL INSERTs, -locations, -movement_reasons, -métodos `loc()`/`locs()`/`reasons()` |
+| `V17__cleanup_template.sql` | `DROP TABLE IF EXISTS core.template_locations` |
+| `SetupServiceImpl.java` | Eliminar queries y parámetros de locations |
+| `SetupResponse.java` | Eliminar campo `locations` |
+| `SetupMapper.java` | Eliminar parámetro `locations` |
+| `types/index.ts` (frontend) | Eliminar `locations` de `SetupInfo` |
+| `OnboardingPage.vue` | Eliminar métrica "Ubicaciones" |
+| `ConfiguracionPage.vue` | Eliminar card "Ubicaciones" |
+| `SetupSeedIntegrationTest.java` | Actualizar assertions |
+
+### SeedDataRunner — Constantes (java:S1192)
+
+```java
+// Industry codes (~600 ocurrencias → 8 constantes)
+private static final String R  = "restaurante";
+private static final String B  = "bares";
+private static final String SB = "salon_belleza";
+private static final String F  = "ferreteria";
+private static final String MS = "mini_super";
+private static final String TM = "taller_mecanico";
+private static final String FA = "farmacia";
+private static final String D  = "default";
+
+// INSERT SQLs repetidos 8 veces → 1 cada uno
+private static final String SQL_INSERT_CATS =
+    "INSERT INTO template_categories (id, industry_code, name, parent_id, sort_order) VALUES (?, ?, ?, ?, ?)";
+private static final String SQL_INSERT_UNITS =
+    "INSERT INTO template_units (id, industry_code, name, sort_order) VALUES (?, ?, ?, ?)";
+private static final String SQL_INSERT_PAY =
+    "INSERT INTO template_payment_methods (id, industry_code, name, sort_order) VALUES (?, ?, ?, ?)";
+private static final String SQL_INSERT_PRODS =
+    "INSERT INTO template_products (id, industry_code, category_id, name, base_unit, min_quantity, max_quantity, sort_order) VALUES (?, ?, ?, ?, ?, ?, ?, ?)";
+private static final String SQL_INSERT_PRES =
+    "INSERT INTO template_product_presentations (id, template_product_id, name, conversion, sort_order) VALUES (?, ?, ?, ?, ?)";
+```
+
+### SQL Audit (SQL Code Review)
+
+| Check | Estado |
+|-------|--------|
+| Queries parametrizadas (`?`) | ✅ JdbcTemplate con placeholders |
+| SQL dinámico con concatenación | ✅ No existe |
+| SELECT * | ✅ Todas las queries usan columnas explícitas |
+| Batch INSERTs | ✅ jdbc.batchUpdate en SeedRunner + SetupServiceImpl |
+| LEFT JOIN innecesario | ⚠️ SetupServiceImpl.completeOnboarding() — COALESCE(tp.category_id::text, tc.id::text) siempre retorna tp.category_id — puede simplificarse eliminando el JOIN |
+
+### Schema impacto
+
+```
+Antes:
+  Flyway V2 → industries, template_categories, template_locations
+  SeedRunner → template_units, template_movement_reasons, template_payment_methods,
+               template_products, template_product_presentations
+
+Después:
+  Flyway V2 → industries, template_categories
+  V17        → DROP TABLE template_locations
+  SeedRunner → template_units, template_payment_methods,
+               template_products, template_product_presentations
+```
 
 ---
