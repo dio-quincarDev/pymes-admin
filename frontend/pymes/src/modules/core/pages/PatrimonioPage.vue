@@ -17,6 +17,7 @@ const loading = ref(true)
 const saving = ref(false)
 
 async function load() {
+  if (!tenantId) return
   loading.value = true
   try {
     const res = await patrimonioService.get(tenantId)
@@ -42,6 +43,7 @@ function toggleEdit() {
 }
 
 async function save() {
+  if (!tenantId) return
   saving.value = true
   try {
     await patrimonioService.update(tenantId, form.value)

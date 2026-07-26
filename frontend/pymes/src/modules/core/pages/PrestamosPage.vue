@@ -19,6 +19,7 @@ const loading = shallowRef(false)
 const statusColor = (s: string) => s === 'ACTIVO' ? 'positive' : s === 'PAGADO' ? 'info' : 'grey'
 
 async function load() {
+  if (!tenantId) return
   loading.value = true
   try {
     const res = await prestamoService.getAll(tenantId)
@@ -73,7 +74,7 @@ function confirmDelete(p: Prestamo) {
 }
 
 async function remove() {
-  if (!deletingItem.value) return
+  if (!deletingItem.value || !tenantId) return
   deleting.value = true
   try {
     await prestamoService.remove(deletingItem.value.id, tenantId)
@@ -105,6 +106,7 @@ function openPagos(p: Prestamo) {
 }
 
 async function loadPagos(loanId: string) {
+  if (!tenantId) return
   try {
     const res = await prestamoService.getPagos(loanId, tenantId)
     pagos.value = res.data
@@ -113,7 +115,7 @@ async function loadPagos(loanId: string) {
 }
 
 async function savePago() {
-  if (!pagoPrestamo.value) return
+  if (!pagoPrestamo.value || !tenantId) return
   savingPago.value = true
   try {
     await prestamoService.createPago(pagoPrestamo.value.id, pagoForm.value, tenantId)

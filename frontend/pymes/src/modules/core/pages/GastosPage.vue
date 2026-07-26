@@ -47,6 +47,7 @@ const catGroups = computed(() => {
 const totalGeneral = computed(() => rows.value.reduce((s, g) => s + g.amount, 0))
 
 async function load() {
+  if (!tenantId) return
   loading.value = true
   try {
     const res = await gastoService.getAll(tenantId)
@@ -101,7 +102,7 @@ function confirmDelete(g: GastoOperativo) {
 }
 
 async function remove() {
-  if (!deletingItem.value) return
+  if (!deletingItem.value || !tenantId) return
   deleting.value = true
   try {
     await gastoService.remove(deletingItem.value.id, tenantId)

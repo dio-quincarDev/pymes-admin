@@ -19,6 +19,7 @@ const recalculando = ref(false)
 const periodo = ref(new Date().toISOString().slice(0, 7))
 
 async function load() {
+  if (!tenantId) return
   loading.value = true
   try {
     const res = await accountingService.consultar(tenantId, periodo.value)
@@ -28,6 +29,7 @@ async function load() {
 }
 
 async function recalcular() {
+  if (!tenantId) return
   recalculando.value = true
   try {
     const res = await accountingService.recalcular(tenantId, periodo.value)

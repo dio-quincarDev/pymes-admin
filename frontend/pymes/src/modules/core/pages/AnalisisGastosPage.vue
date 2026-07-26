@@ -106,6 +106,7 @@ const pagination = shallowRef({ sortBy: 'lastPurchaseDate', descending: true, pa
 const filter = shallowRef('')
 
 async function load() {
+  if (!tenantId) return
   loading.value = true
   try {
     const [prodRes, setupRes] = await Promise.all([

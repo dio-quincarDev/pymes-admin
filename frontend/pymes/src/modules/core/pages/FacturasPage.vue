@@ -408,6 +408,7 @@ async function openCreate() {
 }
 
 async function openEdit(factura: Factura) {
+  if (!tenantId) return
   editingId.value = factura.id
   try {
     const res = await facturaService.getById(factura.id, tenantId)
@@ -461,6 +462,7 @@ function mapProductsToOptions(prods: Producto[]): ProductOption[] {
 }
 
 async function loadDependencies() {
+  if (!tenantId) return
   try {
     const [provs, setupRes, prodsRes] = await Promise.all([
       proveedorService.getAll(tenantId),
@@ -497,6 +499,7 @@ async function loadDependencies() {
 }
 
 async function save() {
+  if (!tenantId) return
   saving.value = true
   try {
     const payload: FacturaRequest = {
@@ -552,7 +555,7 @@ function confirmPay(f: Factura) {
 }
 
 async function pay() {
-  if (!payingItem.value) return
+  if (!payingItem.value || !tenantId) return
   paying.value = true
   try {
     const res = await facturaService.pay(payingItem.value.id, tenantId)
@@ -578,7 +581,7 @@ function confirmDelete(f: Factura) {
 }
 
 async function remove() {
-  if (!deletingItem.value) return
+  if (!deletingItem.value || !tenantId) return
   deleting.value = true
   try {
     await facturaService.remove(deletingItem.value.id, tenantId)
@@ -594,6 +597,7 @@ async function remove() {
 }
 
 async function load() {
+  if (!tenantId) return
   loading.value = true
   try {
     const res = await facturaService.getAll(tenantId)

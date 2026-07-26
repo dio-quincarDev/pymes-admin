@@ -61,6 +61,7 @@ const dayGroups = computed(() => {
 })
 
 async function load() {
+  if (!tenantId) return
   loading.value = true
   try {
     const res = await ventaService.getAll(tenantId)
@@ -115,7 +116,7 @@ function confirmDelete(v: VentaDiaria) {
 }
 
 async function remove() {
-  if (!deletingItem.value) return
+  if (!deletingItem.value || !tenantId) return
   deleting.value = true
   try {
     await ventaService.remove(deletingItem.value.id, tenantId)

@@ -28,6 +28,7 @@ const filtrados = computed(() => {
 });
 
 async function load() {
+  if (!tenantId) return
   loading.value = true;
   try {
     const res = await proveedorService.getAll(tenantId);
@@ -109,7 +110,7 @@ function confirmDelete(p: Proveedor) {
 }
 
 async function remove() {
-  if (!deletingItem.value) return;
+  if (!deletingItem.value || !tenantId) return;
   deleting.value = true;
   try {
     await proveedorService.remove(deletingItem.value.id, tenantId);

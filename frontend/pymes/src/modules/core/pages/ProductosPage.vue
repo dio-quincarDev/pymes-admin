@@ -74,6 +74,7 @@ async function loadSetup() {
 }
 
 async function load(p = 0) {
+  if (!tenantId) return
   loading.value = true
   try {
     const params: { category?: string; page: number; size?: number } = { page: p, size: 30 }
@@ -163,7 +164,7 @@ function confirmDelete(p: Producto) {
 }
 
 async function remove() {
-  if (!deletingItem.value) return
+  if (!deletingItem.value || !tenantId) return
   deleting.value = true
   try {
     await productoService.remove(deletingItem.value.id, tenantId)
