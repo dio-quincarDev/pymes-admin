@@ -14,7 +14,7 @@ import BaseButton from 'src/components/base/BaseButton.vue'
 const router = useRouter()
 const authStore = useAuthStore()
 const $q = useQuasar()
-const tenantId = authStore.user?.tenantId || ''
+const tenantId = authStore.user?.tenantId
 
 const industries = [
   { code: 'restaurante', name: 'Restaurante', icon: 'restaurant', desc: 'Comida, bebidas, insumos de cocina' },

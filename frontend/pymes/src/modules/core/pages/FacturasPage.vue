@@ -184,7 +184,7 @@ useMeta({ title: 'Facturas — PYMEQ' })
 
 const $q = useQuasar()
 const authStore = useAuthStore()
-const tenantId = authStore.user?.tenantId || ''
+const tenantId = authStore.user?.tenantId
 
 interface OptionItem { label: string; value: string; __isCreate?: boolean }
 
@@ -378,7 +378,7 @@ function providerFilter(val: string, update: (fn: () => void) => void) {
 function onProviderSelected(val: string | null) {
   if (!val || !val.startsWith('__CREATE__')) return
   const name = val.replace('__CREATE__', '')
-  proveedorService.create({ tenantId, name }).then(res => {
+  proveedorService.create({ tenantId: tenantId as string, name }).then(res => {
     const newOpt = { label: res.data.name, value: res.data.id }
     providerOptions.value.push(newOpt)
     providerFilteredOptions.value = [...providerOptions.value]
@@ -603,6 +603,7 @@ async function load() {
 }
 
 onMounted(async () => {
+  if (!tenantId) return;
   await Promise.all([load(), loadDependencies()])
   window.addEventListener('keydown', handleKeydown)
 })

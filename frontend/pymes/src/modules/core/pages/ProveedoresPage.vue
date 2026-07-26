@@ -10,7 +10,7 @@ useMeta({ title: 'Proveedores — PYMEQ' });
 
 const $q = useQuasar();
 const authStore = useAuthStore();
-const tenantId = authStore.user?.tenantId || '';
+const tenantId = authStore.user?.tenantId;
 
 const rows = ref<Proveedor[]>([]);
 const loading = shallowRef(false);
@@ -47,7 +47,7 @@ const editingId = shallowRef<string | null>(null);
 const saving = shallowRef(false);
 const formRef = ref<{ validate: () => Promise<boolean> } | null>(null);
 const form = ref<ProveedorRequest>({
-  tenantId,
+  tenantId: tenantId as string,
   name: '',
   contactName: '',
   contactPhone: '',
@@ -60,7 +60,7 @@ const deleting = shallowRef(false);
 
 function openCreate() {
   editingId.value = null;
-  form.value = { tenantId, name: '', contactName: '', contactPhone: '', contactEmail: '' };
+  form.value = { tenantId: tenantId as string, name: '', contactName: '', contactPhone: '', contactEmail: '' };
   dialogOpen.value = true;
 }
 
@@ -128,6 +128,7 @@ async function remove() {
 }
 
 onMounted(() => {
+  if (!tenantId) return;
   void load();
   window.addEventListener('keydown', handleKeydown);
 });

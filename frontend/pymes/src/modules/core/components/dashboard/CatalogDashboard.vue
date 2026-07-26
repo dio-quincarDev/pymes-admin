@@ -15,7 +15,7 @@ import KpiCard from './KpiCard.vue'
 const $q = useQuasar()
 const authStore = useAuthStore()
 const { greeting } = useGreeting()
-const tenantId = authStore.user?.tenantId || ''
+const tenantId = authStore.user?.tenantId
 const { formatCurrency } = useNumberFormat()
 
 useMeta({ title: 'Dashboard — PYMEQ' })

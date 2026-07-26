@@ -115,8 +115,8 @@
 | # | File | Line | Issue | Severity |
 |---|------|------|-------|----------|
 | 1 | `prestamo.service.ts`, `producto.service.ts`, `factura.service.ts` | 24, 26, 21 | **`tenantId` interpolado directo en URL string** — `?tenantId=${tenantId}` en vez de `params` object de axios. Si `tenantId` contiene caracteres especiales, causa encoding incorrecto. Inconsistente con el resto de servicios que usan `params`. | 🔴 Critical | ✅ 2026-07-21 |
-| 2 | Todas las páginas CRUD | ~14 | **`tenantId` fallback a `''` vacío** — `authStore.user?.tenantId \|\| ''` pasa string vacío al backend si no hay sesión. Backend responde 400/403, pero el error no se maneja como "no autenticado". Mejor guard en router o early-return. | 🔴 Critical |
-| 3 | — | — | **Cero tests** para 6 páginas nuevas + 5 servicios nuevos. `npm run test` es placeholder según proyecto. | 🔴 Critical |
+| 2 | Todas las páginas CRUD | ~14 | **`tenantId` fallback a `''` vacío** — `authStore.user?.tenantId \|\| ''` pasa string vacío al backend si no hay sesión. Backend responde 400/403, pero el error no se maneja como "no autenticado". Mejor guard en router o early-return. | 🔴 Critical | ✅ 2026-07-25 |
+| 3 | — | — | **Cero tests** para 6 páginas nuevas + 5 servicios nuevos. `npm run test` es placeholder según proyecto. | 🔴 Critical | ✅ 2026-07-25 |
 
 #### 🟡 Suggestions
 
@@ -140,16 +140,16 @@
 
 | # | File | Line | Issue | Severidad |
 |---|------|------|-------|-----------|
-| 1 | `services/auth.service.ts` | — | **Sin refresh token rotation** — el interceptor captura 401 y borra sesión, nunca intenta renovar con refresh token. Token expira en 1h, usuario force login cada hora. | 🔴 Critical |
-| 2 | — | — | **1 test para 106 archivos** — solo existe `errors.spec.ts`. Cero tests para composables, stores, pages, services. | 🔴 Critical |
+| 1 | `boot/axios.ts` | — | **Sin refresh token rotation** — el interceptor captura 401 y borra sesión, nunca intenta renovar con refresh token. Token expira en 1h, usuario force login cada hora. | 🔴 Critical | ✅ 2026-07-25 |
+| 2 | — | — | **1 test para 106 archivos** — solo existe `errors.spec.ts`. Cero tests para composables, stores, pages, services. | 🔴 Critical | ✅ 2026-07-25 |
 
 #### 🟡 Suggestions
 
 | # | File | Line | Suggestion | Categoría |
 |---|------|------|------------|-----------|
-| 1 | `store/index.ts` | 158-163 | **Listener `auth:401` duplica lógica** — replica `clearSession()` parcialmente. `clearSession()` ya hace `window.location.href = '#/login'`, lo que recarga la store. | Mantenibilidad |
-| 2 | Todas las pages | ~14 | **`tenantId` fallback a `''`** — `authStore.user?.tenantId \|\| ''` en todas las pages. Si store vacío, se envía `?tenantId=` → 400. | Correctitud |
-| 3 | `services/error.ts` | — | **`isAuthError()` lee del raw axios** en vez del error normalizado — el interceptor normaliza a `Error` con `code/status/details/isBackendError`, pero `isAuthError` analiza `error.response?.data?.codigo` directamente. | Mantenibilidad |
+| 1 | `store/index.ts` | 148 | **Listener `auth:401` duplica lógica** — replica `clearSession()` parcialmente. `clearSession()` ya hace `window.location.href = '#/login'`, lo que recarga la store. | Mantenibilidad | ✅ 2026-07-25 |
+| 2 | Todas las pages | ~14 | **`tenantId` fallback a `''`** — `authStore.user?.tenantId \|\| ''` en todas las pages. Si store vacío, se envía `?tenantId=` → 400. | Correctitud | ✅ 2026-07-25 |
+| 3 | `utils/errors.ts` | — | **`isAuthError()` lee del raw axios** en vez del error normalizado — el interceptor normaliza a `Error` con `code/status/details/isBackendError`, pero `isAuthError` analiza `error.response?.data?.codigo` directamente. | Mantenibilidad | ✅ 2026-07-25 |
 | 4 | `LoginPage.vue` | — | **Redirect query ignorado** — `Router.beforeEach` redirige a `/login?redirect=/dashboard/...` pero LoginPage nunca lo lee. | Correctitud |
 
 ## PostgreSQL

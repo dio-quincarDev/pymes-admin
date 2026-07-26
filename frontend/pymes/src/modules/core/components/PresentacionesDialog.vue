@@ -19,7 +19,7 @@ const emit = defineEmits<{
 
 const $q = useQuasar()
 const authStore = useAuthStore()
-const tenantId = authStore.user?.tenantId || ''
+const tenantId = authStore.user?.tenantId
 
 const presItems = ref<Presentacion[]>([])
 const presForm = ref<PresentacionRequest>({ name: '', conversion: 1 })
@@ -42,7 +42,7 @@ watch(() => props.modelValue, (val) => {
 })
 
 async function addPresentation() {
-  if (!presForm.value.name || !props.product) return
+  if (!presForm.value.name || !props.product || !tenantId) return
   addingPres.value = true
   try {
     const res = await productoService.addPresentation(props.product.id, presForm.value, tenantId)
@@ -57,6 +57,7 @@ async function addPresentation() {
 }
 
 async function removePresentation(p: Presentacion) {
+  if (!tenantId) return;
   removingPres.value = true
   try {
     await productoService.removePresentation(p.id, tenantId)

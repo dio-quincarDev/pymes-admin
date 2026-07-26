@@ -11,7 +11,7 @@ useMeta({ title: 'Gastos — PYMEQ' });
 
 const $q = useQuasar()
 const authStore = useAuthStore()
-const tenantId = authStore.user?.tenantId || ''
+const tenantId = authStore.user?.tenantId
 
 const categoriaOptions = ['SALARIOS', 'AGUA', 'LUZ', 'INTERNET', 'ALQUILER', 'MANTENIMIENTO', 'PUBLICIDAD', 'OTROS']
 const metodoPagoOptions = ['EFECTIVO', 'TRANSFERENCIA', 'TARJETA', 'CHEQUE']
@@ -59,11 +59,11 @@ const dialogOpen = shallowRef(false)
 const editingId = shallowRef<string | null>(null)
 const saving = shallowRef(false)
 const formRef = ref<{ validate: () => Promise<boolean> } | null>(null)
-const form = ref<GastoRequest>({ tenantId, category: '', description: '', amount: 0, expenseDate: new Date().toISOString().slice(0, 10) })
+const form = ref<GastoRequest>({ tenantId: tenantId as string, category: '', description: '', amount: 0, expenseDate: new Date().toISOString().slice(0, 10) })
 
 function openCreate() {
   editingId.value = null
-  form.value = { tenantId, category: '', description: '', amount: 0, expenseDate: new Date().toISOString().slice(0, 10) }
+  form.value = { tenantId: tenantId as string, category: '', description: '', amount: 0, expenseDate: new Date().toISOString().slice(0, 10) }
   dialogOpen.value = true
 }
 
@@ -117,6 +117,7 @@ async function remove() {
 }
 
 onMounted(() => {
+  if (!tenantId) return;
   void load()
   window.addEventListener('keydown', handleKeydown)
 })

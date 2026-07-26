@@ -10,7 +10,7 @@ useMeta({ title: 'Patrimonio — PYMEQ' })
 
 const $q = useQuasar()
 const authStore = useAuthStore()
-const tenantId = authStore.user?.tenantId || ''
+const tenantId = authStore.user?.tenantId
 
 const data = ref<Patrimonio | null>(null)
 const loading = ref(true)
@@ -52,7 +52,7 @@ async function save() {
   } finally { saving.value = false }
 }
 
-onMounted(load)
+onMounted(() => { if (tenantId) void load() })
 </script>
 
 <template>

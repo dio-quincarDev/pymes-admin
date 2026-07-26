@@ -17,7 +17,7 @@ import type { Producto, SetupInfo, SetupCategory } from '../types'
 
 const $q = useQuasar()
 const authStore = useAuthStore()
-const tenantId = authStore.user?.tenantId || ''
+const tenantId = authStore.user?.tenantId
 
 const { period, setPeriod, recalcular: recalcularAnalytics, loading: analyticsLoading, supplierComparison, supplierRecommendations, pricePrediction } = useAnalytics()
 
@@ -118,7 +118,7 @@ async function load() {
   } finally { loading.value = false }
 }
 
-onMounted(load)
+onMounted(() => { if (tenantId) void load() })
 </script>
 
 <template>

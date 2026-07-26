@@ -13,7 +13,7 @@ useMeta({ title: 'Productos — PYMEQ' })
 
 const $q = useQuasar()
 const authStore = useAuthStore()
-const tenantId = authStore.user?.tenantId || ''
+const tenantId = authStore.user?.tenantId
 
 const rows = ref<Producto[]>([])
 const loading = shallowRef(false)
@@ -102,7 +102,7 @@ const dialogOpen = shallowRef(false)
 const editingId = shallowRef<string | null>(null)
 const saving = shallowRef(false)
 const formRef = ref<{ validate: () => Promise<boolean> } | null>(null)
-const form = ref<ProductoRequest>({ tenantId, name: '', category: '', baseUnit: '', proveedorId: null })
+const form = ref<ProductoRequest>({ tenantId: tenantId as string, name: '', category: '', baseUnit: '', proveedorId: null })
 
 const presDialog = shallowRef(false)
 const presProduct = ref<Producto | null>(null)
@@ -114,7 +114,7 @@ const unitLabel = computed(() => {
 
 function openCreate() {
   editingId.value = null
-  form.value = { tenantId, name: '', category: '', baseUnit: '', proveedorId: null }
+  form.value = { tenantId: tenantId as string, name: '', category: '', baseUnit: '', proveedorId: null }
   dialogOpen.value = true
 }
 

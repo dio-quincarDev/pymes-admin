@@ -54,16 +54,34 @@ Todos implementados inline en cada page (sin componentes separados).
 - [x] [Media] **PrestamosPage: progress cards** — CSS grid con cards de progreso (`q-linear-progress`), saldo, timeline de pagos.
 - [x] [Media] **ProveedoresPage: contact cards** — Grid de cards con nombre, contacto, teléfono, email y acciones.
 
+### Frontend — Completado (Critical Fixes 2026-07-25)
+
+- [x] [🔴] **`isAuthError()` normalizado** — `utils/errors.ts`: todas las funciones de verificación leen del error normalizado (`ApiError.code`/`.status`) primero, fallback a raw axios. Ya no dependen de estructura `AxiosError`.
+- [x] [🔴] **Listener `auth:401` duplicado** — `store/index.ts`: simplificado de 5 líneas manuales a `clearSession()` directo. Guard `typeof window` para entornos no-browser.
+- [x] [🔴] **`tenantId` fallback `|| ''` eliminado en 12 archivos** — reemplazado por guard `if (!tenantId) return` temprano. Form inits usan `as string`.
+- [x] [🔴] **Refresh token rotation** — `boot/axios.ts`: cola de requests + flag `isRefreshing` + raw `axios.post` para evitar loop de interceptor. Si refresh falla → `clearSession()`.
+- [x] [🔴] **Cobertura de tests** — 29 tests (errors + store + composables). `vitest run` pasa limpio.
+
+### Frontend — Pendiente (Analytics Suite Redesign)
+
+- [ ] [Alta] **Rediseñar suite de análisis** — Implementar spec completo en `.ulpi/design/analytics-suite.md`. Incluye:
+  - `AnalyticsHeader` compartido (título narrativo + período global + recalcular)
+  - `KpiCard` refinado con sparkline inline opcional
+  - `CategoryBreakdownChart` (barras comparativas período anterior)
+  - `DataTable` wrapper de QTable con tokens de DESIGN.md
+  - Reestructurar DashboardPage, AnalisisGastosPage, AccountingPage
+  - Estados loading/empty/error/stale en cada página
+  - Referencia: `.ulpi/design/analytics-suite.md` (spec completo)
+
 ### Frontend — Pendiente (Dashboard financiero)
 
-- [ ] [Alta] **Dashboard UI polish** — El dashboard base funciona pero tiene espacio de mejora: animaciones de entrada más pulidas, hover states en stat strip, empty states más expresivos, responsive tuning, posible sparkline en métricas de tendencia.
-- [ ] [Media] **Dashboard: sparklines** — Agregar mini-gráficos de tendencia en el stat strip (Geist Mono number + sparkline inline por métrica).
-- [ ] [Media] **Dashboard: expense doughnut** — Opción de vista doughnut chart para desglose de gastos (reutilizar `BaseChart` existente).
+- [ ] [Alta] **Dashboard UI polish** — El dashboard base funciona pero tiene espacio de mejora: animaciones de entrada más pulidas, hover states en stat strip, empty states más expresivos, responsive tuning.
+- [ ] [Media] **Dashboard: sparklines** — Agregar mini-gráficos de tendencia en el stat strip (Geist Mono number + sparkline inline por métrica). Véase spec en `.ulpi/design/analytics-suite.md` (componente KpiCard con sparkline).
 
 ### Frontend — Pendiente (Critical)
 
-- [ ] [🔴] **Refresh token rotation** — el interceptor debe capturar 401, intentar renovar con refresh token, y solo si falla, borrar sesión (2026-07)
-- [ ] [🔴] **Cobertura de tests** — 1 test para 106 archivos. Prioridad: services, stores, composables (2026-07)
+- [x] [🔴] **Refresh token rotation** — interceptor captura 401, encola requests fallidas, renueva con refresh token, replay. Si falla refresh → clearSession(). Implementado en `boot/axios.ts`. (2026-07-25)
+- [x] [🔴] **Cobertura de tests** — 29 tests (errors 10 + store 6 + composables 3 + errores extendidos 10). Tirados con vitest en node env. (2026-07-25)
 
 ### Frontend — Pendiente (Tutorial onboarding)
 

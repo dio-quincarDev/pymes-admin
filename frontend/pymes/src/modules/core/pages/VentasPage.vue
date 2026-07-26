@@ -11,7 +11,7 @@ useMeta({ title: 'Ventas — PYMEQ' });
 
 const $q = useQuasar()
 const authStore = useAuthStore()
-const tenantId = authStore.user?.tenantId || ''
+const tenantId = authStore.user?.tenantId
 
 const rows = ref<VentaDiaria[]>([])
 const loading = shallowRef(false)
@@ -73,11 +73,11 @@ const dialogOpen = shallowRef(false)
 const editingId = shallowRef<string | null>(null)
 const saving = shallowRef(false)
 const formRef = ref<{ validate: () => Promise<boolean> } | null>(null)
-const form = ref<VentaRequest>({ tenantId, saleDate: new Date().toISOString().slice(0, 10), grossAmount: 0 })
+const form = ref<VentaRequest>({ tenantId: tenantId as string, saleDate: new Date().toISOString().slice(0, 10), grossAmount: 0 })
 
 function openCreate() {
   editingId.value = null
-  form.value = { tenantId, saleDate: new Date().toISOString().slice(0, 10), grossAmount: 0 }
+  form.value = { tenantId: tenantId as string, saleDate: new Date().toISOString().slice(0, 10), grossAmount: 0 }
   dialogOpen.value = true
 }
 
@@ -131,6 +131,7 @@ async function remove() {
 }
 
 onMounted(() => {
+  if (!tenantId) return;
   void load()
   window.addEventListener('keydown', handleKeydown)
 })

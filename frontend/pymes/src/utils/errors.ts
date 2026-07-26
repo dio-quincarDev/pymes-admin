@@ -90,37 +90,34 @@ export function getErrorMessage(error: unknown): string {
   return parsed.message;
 }
 
+const AUTH_ERROR_CODES = ['AUTH001', 'AUTH002', 'AUTH003', 'AUTH004', 'AUTH005', 'AUTH006', 'AUTH007'];
+
+function getNormalizedStatus(error: unknown): number | undefined {
+  return (error as ApiError).status ?? (error as { response?: { status?: number } }).response?.status;
+}
+
+function getNormalizedCode(error: unknown): string | undefined {
+  return (error as ApiError).code ?? (error as { response?: { data?: { codigo?: string } } }).response?.data?.codigo ?? undefined;
+}
+
 export function isAuthError(error: unknown): boolean {
-  const axiosError = error as AxiosError;
-  const status = axiosError.response?.status;
-  const code = axiosError.response?.data?.codigo;
-
-  if (status === 401 || status === 403) {
-    return true;
-  }
-
-  if (code && ['AUTH001', 'AUTH002', 'AUTH003', 'AUTH004', 'AUTH005', 'AUTH006', 'AUTH007'].includes(code)) {
-    return true;
-  }
-
-  return false;
+  const status = getNormalizedStatus(error);
+  const code = getNormalizedCode(error);
+  return status === 401 || status === 403 || (!!code && AUTH_ERROR_CODES.includes(code));
 }
 
 export function isTokenExpiredError(error: unknown): boolean {
-  const axiosError = error as AxiosError;
-  const code = axiosError.response?.data?.codigo;
+  const code = getNormalizedCode(error);
   return code === 'AUTH003' || code === 'AUTH006';
 }
 
 export function isTokenRevokedError(error: unknown): boolean {
-  const axiosError = error as AxiosError;
-  const code = axiosError.response?.data?.codigo;
+  const code = getNormalizedCode(error);
   return code === 'AUTH005';
 }
 
 export function isValidationError(error: unknown): boolean {
-  const axiosError = error as AxiosError;
-  const code = axiosError.response?.data?.codigo;
+  const code = getNormalizedCode(error);
   return code === 'VAL001' || code === 'VAL002';
 }
 

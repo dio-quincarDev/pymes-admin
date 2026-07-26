@@ -11,7 +11,7 @@ useMeta({ title: 'Contabilidad — PYMEQ' })
 
 const $q = useQuasar()
 const authStore = useAuthStore()
-const tenantId = authStore.user?.tenantId || ''
+const tenantId = authStore.user?.tenantId
 
 const data = ref<MetricasFinancieras | null>(null)
 const loading = ref(true)
@@ -37,7 +37,7 @@ async function recalcular() {
   } finally { recalculando.value = false }
 }
 
-onMounted(load)
+onMounted(() => { if (tenantId) void load() })
 </script>
 
 <template>

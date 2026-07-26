@@ -4,6 +4,54 @@ Registro cronológico de decisiones, problemas resueltos y estado del frontend.
 
 ---
 
+## 2026-07-25 — Critical fixes: refresh rotation, tenantId guard, error normalization, tests
+
+### Que se hizo
+
+5 items críticos del TO_DO.md y GAPS.md resueltos en una sesión:
+
+**1. `isAuthError()` normalizado** — `utils/errors.ts`: `isAuthError`, `isTokenExpiredError`, `isTokenRevokedError`, `isValidationError` ahora leen del error normalizado (`ApiError.code`/`.status`) primero, fallback a raw axios. Ya no dependen de estructura `AxiosError`.
+
+**2. Listener `auth:401` duplicado** — `store/index.ts`: el listener replicaba `clearSession()` parcialmente. Simplificado a `clearSession()` directo + guard `typeof window` para entornos no-browser (tests).
+
+**3. `tenantId` fallback `|| ''` eliminado en 12 archivos** — `authStore.user?.tenantId || ''` reemplazado por guard `if (!tenantId) return` antes del primer llamado API. Form inits usan `as string`.
+
+**4. Refresh token rotation** — `boot/axios.ts`: interceptor captura 401, encola requests fallidas, renueva con refresh token via raw `axios.post` (evita loop de interceptor). Si refresh falla → `clearSession()` + redirect.
+
+**5. Tests** — 29 tests (errors 10 existentes + store 6 + composables 3 + errores extendidos 10). `vitest run` pasa limpio. `npm run lint`: 0 errores.
+
+### Archivos modificados
+
+```
+src/utils/errors.ts                                    # error checks normalizados
+src/modules/auth/store/index.ts                         # listener simplificado + guard window
+src/modules/auth/pages/LoginPage.vue                    # tenantId guard
+src/modules/auth/pages/RegisterPage.vue                 # tenantId guard
+src/modules/core/pages/ProductosPage.vue                # tenantId guard
+src/modules/core/pages/ProveedoresPage.vue              # tenantId guard
+src/modules/core/pages/FacturasPage.vue                 # tenantId guard
+src/modules/core/pages/GastosPage.vue                   # tenantId guard
+src/modules/core/pages/VentasPage.vue                   # tenantId guard
+src/modules/core/pages/PrestamosPage.vue                # tenantId guard
+src/modules/core/pages/PatrimonioPage.vue               # tenantId guard
+src/modules/core/pages/AccountingPage.vue               # tenantId guard
+src/modules/core/pages/AnalisisGastosPage.vue           # tenantId guard
+src/modules/core/pages/OnboardingPage.vue               # tenantId guard
+src/modules/core/pages/ConfiguracionPage.vue            # tenantId guard
+src/modules/auth/pages/AcceptInvitationPage.vue         # tenantId guard
+src/boot/axios.ts                                       # refresh rotation + cola
+src/modules/auth/store/__tests__/index.spec.ts           # store test (nuevo)
+src/composables/__tests__/useAuthForm.spec.ts            # composable test (nuevo)
+src/utils/__tests__/errors.spec.ts                      # tests extendidos
+```
+
+### Build
+
+- `npm run lint`: ✅
+- `npx vitest run`: ✅ 29 tests passed
+
+---
+
 ## 2026-07-24 — Fix OAuth2 intentId: `?state=` → `?intentId=`
 
 ### Bug

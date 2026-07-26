@@ -11,7 +11,7 @@ useMeta({ title: 'Pr\u00E9stamos — PYMEQ' });
 
 const $q = useQuasar()
 const authStore = useAuthStore()
-const tenantId = authStore.user?.tenantId || ''
+const tenantId = authStore.user?.tenantId
 
 const rows = ref<Prestamo[]>([])
 const loading = shallowRef(false)
@@ -31,11 +31,11 @@ const dialogOpen = shallowRef(false)
 const editingId = shallowRef<string | null>(null)
 const saving = shallowRef(false)
 const formRef = ref<{ validate: () => Promise<boolean> } | null>(null)
-const form = ref<PrestamoRequest>({ tenantId, name: '', amount: 0, interestRate: 0, termMonths: 0, startDate: new Date().toISOString().slice(0, 10) })
+const form = ref<PrestamoRequest>({ tenantId: tenantId as string, name: '', amount: 0, interestRate: 0, termMonths: 0, startDate: new Date().toISOString().slice(0, 10) })
 
 function openCreate() {
   editingId.value = null
-  form.value = { tenantId, name: '', amount: 0, interestRate: 0, termMonths: 0, startDate: new Date().toISOString().slice(0, 10) }
+  form.value = { tenantId: tenantId as string, name: '', amount: 0, interestRate: 0, termMonths: 0, startDate: new Date().toISOString().slice(0, 10) }
   dialogOpen.value = true
 }
 
@@ -131,6 +131,7 @@ const totalPrestado = computed(() => rows.value.reduce((s, p) => s + p.amount, 0
 const totalSaldo = computed(() => rows.value.reduce((s, p) => s + p.remainingBalance, 0))
 
 onMounted(() => {
+  if (!tenantId) return;
   void load()
   window.addEventListener('keydown', handleKeydown)
 })
