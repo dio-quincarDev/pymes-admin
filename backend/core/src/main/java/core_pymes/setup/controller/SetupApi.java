@@ -5,6 +5,7 @@ import core_pymes.setup.dto.SetupResponse;
 import io.swagger.v3.oas.annotations.Operation;
 import io.swagger.v3.oas.annotations.tags.Tag;
 import org.springframework.http.ResponseEntity;
+import org.springframework.security.access.prepost.PreAuthorize;
 import org.springframework.web.bind.annotation.*;
 
 import java.util.List;
@@ -21,6 +22,7 @@ public interface SetupApi {
 
     @Operation(summary = "Complete tenant onboarding with industry")
     @PostMapping("/{tenantId}/onboarding")
+    @PreAuthorize("hasAnyRole('OWNER', 'ADMIN')")
     ResponseEntity<SetupResponse> completeOnboarding(
             @PathVariable UUID tenantId,
             @RequestBody Map<String, String> body);

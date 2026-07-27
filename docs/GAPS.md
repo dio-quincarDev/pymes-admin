@@ -50,7 +50,7 @@
 | # | Gap | Fix | Severidad |
 |---|-----|-----|-----------|
 | 1 | **`tenantId` no validado contra JWT** — Todos los controllers reciben `@RequestParam UUID tenantId` del frontend. **No se valida que el tenantId del JWT (inyectado por el gateway como `X-Tenant-Id`) coincida con el tenantId de la request**. Un usuario autenticado en tenant A podría enviar `?tenantId=B` y acceder a datos de otro tenant. Solo algunos services verifican manualmente (FacturaService, GastoService). | `TenantValidationFilter` — Filter que compara `X-Tenant-Id` header vs `?tenantId=` param, 403 si difieren. | 🔴 Critical | ✅ 2026-07-24 |
-| 2 | **Sin `@PreAuthorize`, `@Secured` ni `@EnableMethodSecurity`** — El gateway inyecta `X-User-Role` (OWNER, ADMIN, CONTABLE, VIEWER) pero el core nunca lo lee. Cualquier usuario autenticado puede ejecutar cualquier endpoint (crear, actualizar, eliminar) sin importar su rol. | Agregar `@EnableMethodSecurity` + `@PreAuthorize` en endpoints sensibles (crear/actualizar/eliminar). | 🔴 Critical |
+| 2 | **Sin `@PreAuthorize`, `@Secured` ni `@EnableMethodSecurity`** — El gateway inyecta `X-User-Role` (OWNER, ADMIN, CONTABLE, VIEWER) pero el core nunca lo lee. Cualquier usuario autenticado puede ejecutar cualquier endpoint (crear, actualizar, eliminar) sin importar su rol. | `RoleHeaderFilter` lee `X-User-Role` → `SecurityContext` con `ROLE_<rol>`. `SecurityConfig` con `@EnableMethodSecurity` + `spring-boot-starter-security`. `@PreAuthorize("hasAnyRole('OWNER', 'ADMIN')")` en 18 endpoints WRITE across 10 controllers. CONTABLE/VIEWER solo leen. Tests: +`spring-security-test` + `@WithMockUser(roles = "OWNER")` en 4 integration tests. | 🔴 Critical | ✅ 2026-07-27 |
 
 #### 🟡 Sugerencias
 
@@ -100,13 +100,13 @@
 
 ## Frontend
 
-| # | Gap | Documentación dice | Realidad es | Impacto |
-|---|-----|--------------------|-------------|---------|
-| — | *(sin gaps funcionales)* | — | — | — |
-| 1 | ConfiguracionPage read-only | UI muestra campos editables (categorías, unidades, ubicaciones) | No hay endpoints PUT ni diálogos de edición | Medio — usuario espera poder editar. Pendiente backend. |
-| 2 | Frontend no usa búsqueda paginada | Backend tiene `GET /search` paginado desde 2026-07-12 | `ProductosPage.vue`, `FacturasPage.vue` y `CatalogDashboard.vue` siguen usando `getAll()` sin paginación | Alto — degradación en catálogos grandes (>100 productos) | Pendiente |
-| 3 | Descuento en Factura es monto fijo | UI muestra `prefix="$"` — usuario espera porcentaje (5%, 10%) | Input trata descuento como monto, no como porcentaje | Medio — UX confusa, usuario no puede poner descuentos promocionales | Pendiente |
-| 4 | precioUnitario no usa conversión | Presentaciones tienen `conversion` factor | `precioUnitario` se auto-llena con `lastUnitPrice` sin dividir por conversión | Alto — precio unitario no refleja costo real por unidad base | Pendiente |
+| # | Gap | Documentación dice | Realidad es | Impacto | Prioridad |
+|---|-----|--------------------|-------------|---------|-----------|
+| — | *(sin gaps funcionales)* | — | — | — | — |
+| 1 | ConfiguracionPage read-only | UI muestra campos editables (categorías, unidades, ubicaciones) | No hay endpoints PUT ni diálogos de edición | Medio — usuario espera poder editar. Pendiente backend. | ⬜ Non-priority (ponytail: YAGNI para MVP) |
+| 2 | Frontend no usa búsqueda paginada | Backend tiene `GET /search` paginado desde 2026-07-12 | `ProductosPage.vue` usaba `getAll()` sin paginación; "Cargar más" reemplazaba filas en vez de apilar | Alto — degradación en catálogos grandes (>100 productos) | ✅ 2026-07-27 — fix: `load()` append en vez de replace, `totalElements` del server, condición de "load more" corregida |
+| 3 | Descuento en Factura es monto fijo | UI muestra `prefix="$"` — usuario espera porcentaje (5%, 10%) | Input trata descuento como monto, no como porcentaje | Medio — UX confusa, usuario no puede poner descuentos promocionales | ⬜ Non-priority (ponytail: backend ya soporta %, cambio UI trivial) |
+| 4 | precioUnitario no usa conversión | Presentaciones tienen `conversion` factor | `precioUnitario` se auto-llena con `lastUnitPrice` sin dividir por conversión | Alto — precio unitario no refleja costo real por unidad base | ⬜ Non-priority (ponytail: requiere backend change, no es solo frontend) |
 
 ### Code Review Findings (2026-07-15)
 

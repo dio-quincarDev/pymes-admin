@@ -7,6 +7,7 @@ import io.swagger.v3.oas.annotations.Operation;
 import io.swagger.v3.oas.annotations.tags.Tag;
 import jakarta.validation.Valid;
 import org.springframework.http.ResponseEntity;
+import org.springframework.security.access.prepost.PreAuthorize;
 import org.springframework.web.bind.annotation.*;
 
 import java.util.UUID;
@@ -21,6 +22,7 @@ public interface PatrimonioApi {
 
     @Operation(summary = "Update patrimony for a tenant")
     @PutMapping("/{tenantId}")
+    @PreAuthorize("hasAnyRole('OWNER', 'ADMIN')")
     ResponseEntity<PatrimonioResponse> update(@PathVariable UUID tenantId,
                                                @Valid @RequestBody PatrimonioRequest request);
 }

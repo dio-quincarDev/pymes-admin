@@ -7,6 +7,7 @@ import io.swagger.v3.oas.annotations.Operation;
 import io.swagger.v3.oas.annotations.tags.Tag;
 import jakarta.validation.Valid;
 import org.springframework.http.ResponseEntity;
+import org.springframework.security.access.prepost.PreAuthorize;
 import org.springframework.web.bind.annotation.*;
 
 import java.util.List;
@@ -26,14 +27,17 @@ public interface VentaApi {
 
     @Operation(summary = "Create a daily sale")
     @PostMapping
+    @PreAuthorize("hasAnyRole('OWNER', 'ADMIN')")
     ResponseEntity<VentaResponse> create(@Valid @RequestBody VentaRequest request);
 
     @Operation(summary = "Update a daily sale")
     @PutMapping("/{id}")
+    @PreAuthorize("hasAnyRole('OWNER', 'ADMIN')")
     ResponseEntity<VentaResponse> update(@PathVariable UUID id, @RequestParam UUID tenantId,
                                           @Valid @RequestBody VentaRequest request);
 
     @Operation(summary = "Delete a daily sale")
     @DeleteMapping("/{id}")
+    @PreAuthorize("hasAnyRole('OWNER', 'ADMIN')")
     ResponseEntity<Void> delete(@PathVariable UUID id, @RequestParam UUID tenantId);
 }

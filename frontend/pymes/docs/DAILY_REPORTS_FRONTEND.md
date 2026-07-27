@@ -4,6 +4,37 @@ Registro cronológico de decisiones, problemas resueltos y estado del frontend.
 
 ---
 
+## 2026-07-27 — Fix paginación ProductosPage
+
+### Problema
+
+`ProductosPage.vue` tenía un bug en la paginación: el botón "Cargar más" llamaba `load(page + 1)` pero `load()` reemplazaba `rows.value` en vez de apilar resultados. Cada click cargaba la siguiente página pero descartaba las anteriores.
+
+Además, el conteo de productos mostraba `filteredRows.length` (solo la página actual) en vez del total real del server.
+
+### Solución
+
+| Cambio | Antes | Después |
+|--------|-------|---------|
+| `load()` | `rows.value = res.data.content` | `rows.value = p === 0 ? res.data.content : [...rows.value, ...res.data.content]` |
+| `totalElements` | no existía | `totalElements.value = res.data.totalElements` |
+| Conteo | `filteredRows.length` | `totalElements` |
+| Condición "load more" | `rows.length >= 30` | `totalElements > rows.length` |
+
+### Archivos modificados
+
+```
+src/modules/core/pages/ProductosPage.vue    # +totalElements, fix load() append, fix count, fix load-more condition
+```
+
+### Build
+
+- `npm run lint`: ✅
+
+**Estado:** ✅ RESUELTO
+
+---
+
 ## 2026-07-25 — Critical fixes: refresh rotation, tenantId guard, error normalization, tests
 
 ### Que se hizo

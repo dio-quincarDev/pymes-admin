@@ -3,6 +3,9 @@ spring:
     active: @spring.profiles.active@
   application:
     name: core
+  autoconfigure:
+    exclude:
+      - org.springframework.boot.autoconfigure.security.servlet.UserDetailsServiceAutoConfiguration
 
   threads:
     virtual:

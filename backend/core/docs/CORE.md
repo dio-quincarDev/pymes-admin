@@ -334,6 +334,31 @@ TTL: 1 hora. Retry: key se conserva si falla (reintenta en proximo ciclo).
 | Escrituras | `@CacheEvict(allEntries=true)` en writes |
 | Condicion | `@ConditionalOnBean(RedisConnectionFactory.class)` |
 
+### Security
+
+Core no valida JWT (eso lo hace el gateway). Core confia en los headers inyectados por el gateway:
+
+| Header | Uso | Validacion |
+|--------|-----|------------|
+| `X-Tenant-Id` | Tenant isolation | `TenantValidationFilter`: compara header vs `?tenantId=` param, 403 si difieren |
+| `X-User-Role` | Role-based access | `RoleHeaderFilter`: lee header → `SecurityContext` con `ROLE_<rol>` |
+| `X-User-Id` | User identification | Disponible en request para services si se necesita |
+
+**Authorization:**
+
+- `@EnableMethodSecurity` en `SecurityConfig.java`
+- `@PreAuthorize("hasAnyRole('OWNER', 'ADMIN')")` en todos los endpoints WRITE (POST/PUT/DELETE) — 18 endpoints across 10 controllers
+- Endpoints READ (GET) no tienen restriccion de rol — cualquier autenticado puede leer
+- Roles: `OWNER(4)` > `ADMIN(3)` > `CONTABLE(2)` > `VIEWER(1)` — definidos en auth service (`RoleName.java`)
+
+**Archivos:**
+
+```
+common/config/SecurityConfig.java        # @EnableMethodSecurity, SecurityFilterChain, stateless
+common/config/RoleHeaderFilter.java      # OncePerRequestFilter: X-User-Role → SecurityContext
+common/config/TenantValidationFilter.java  # X-Tenant-Id vs ?tenantId= comparison
+```
+
 ---
 
 ## Endpoints
@@ -500,7 +525,7 @@ Ver `SEED_TEMPLATES.md` para detalle completo y cleanup 2026-07.
 
 ### Infraestructura
 
-- [ ] Spring Security (JWT validation local en core)
+- [x] Spring Security — `@EnableMethodSecurity` + `@PreAuthorize` en endpoints WRITE (OWNER/ADMIN). `RoleHeaderFilter` lee `X-User-Role` del gateway.
 - [ ] FeignClient para Auth
 - [x] Cache con Redis
 - [x] Sistema de eventos cross-module (Spring Events)

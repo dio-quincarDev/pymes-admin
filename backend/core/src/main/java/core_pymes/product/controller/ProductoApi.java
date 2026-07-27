@@ -11,6 +11,7 @@ import jakarta.validation.Valid;
 import org.springframework.data.domain.Page;
 import org.springframework.data.domain.Pageable;
 import org.springframework.http.ResponseEntity;
+import org.springframework.security.access.prepost.PreAuthorize;
 import org.springframework.web.bind.annotation.*;
 
 import java.util.List;
@@ -38,15 +39,18 @@ public interface ProductoApi {
 
     @Operation(summary = "Create a product")
     @PostMapping
+    @PreAuthorize("hasAnyRole('OWNER', 'ADMIN')")
     ResponseEntity<ProductoResponse> create(@Valid @RequestBody ProductoRequest request);
 
     @Operation(summary = "Update a product")
     @PutMapping("/{id}")
+    @PreAuthorize("hasAnyRole('OWNER', 'ADMIN')")
     ResponseEntity<ProductoResponse> update(@PathVariable UUID id, @RequestParam UUID tenantId,
                                             @Valid @RequestBody ProductoRequest request);
 
     @Operation(summary = "Delete a product")
     @DeleteMapping("/{id}")
+    @PreAuthorize("hasAnyRole('OWNER', 'ADMIN')")
     ResponseEntity<Void> delete(@PathVariable UUID id, @RequestParam UUID tenantId);
 
     @Operation(summary = "List presentations for a product")
@@ -56,10 +60,12 @@ public interface ProductoApi {
 
     @Operation(summary = "Add a presentation to a product")
     @PostMapping("/{id}/presentaciones")
+    @PreAuthorize("hasAnyRole('OWNER', 'ADMIN')")
     ResponseEntity<PresentacionResponse> addPresentacion(@PathVariable UUID id, @RequestParam UUID tenantId,
                                                          @Valid @RequestBody PresentacionRequest request);
 
     @Operation(summary = "Delete a presentation")
     @DeleteMapping("/presentaciones/{presentacionId}")
+    @PreAuthorize("hasAnyRole('OWNER', 'ADMIN')")
     ResponseEntity<Void> deletePresentacion(@PathVariable UUID presentacionId, @RequestParam UUID tenantId);
 }

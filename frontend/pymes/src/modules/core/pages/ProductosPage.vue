@@ -19,6 +19,7 @@ const rows = ref<Producto[]>([])
 const loading = shallowRef(false)
 const search = shallowRef('')
 const page = shallowRef(0)
+const totalElements = shallowRef(0)
 const categoryFilter = shallowRef('')
 
 const catOptions = ref<{ label: string; value: string }[]>([])
@@ -80,7 +81,8 @@ async function load(p = 0) {
     const params: { category?: string; page: number; size?: number } = { page: p, size: 30 }
     if (categoryFilter.value) params.category = categoryFilter.value
     const res = await productoService.search(tenantId, params)
-    rows.value = res.data.content
+    rows.value = p === 0 ? res.data.content : [...rows.value, ...res.data.content]
+    totalElements.value = res.data.totalElements
     page.value = p
   } catch (err) {
     $q.notify({ type: 'negative', message: err instanceof Error ? err.message : 'Error al cargar productos' })
@@ -207,7 +209,7 @@ function handleKeydown(e: KeyboardEvent) {
     </div>
 
     <div class="row items-center q-gutter-x-xs q-mb-sm">
-      <span class="text-accent text-caption">{{ filteredRows.length }} {{ filteredRows.length === 1 ? 'producto' : 'productos' }}</span>
+      <span class="text-accent text-caption">{{ totalElements }} {{ totalElements === 1 ? 'producto' : 'productos' }}</span>
       <q-icon name="circle" size="0.25rem" color="accent" />
       <span class="text-accent text-caption">{{ totalCategories }} {{ totalCategories === 1 ? 'categoría' : 'categorías' }}</span>
     </div>
@@ -281,7 +283,7 @@ function handleKeydown(e: KeyboardEvent) {
       </div>
     </div>
 
-    <div class="q-mt-md flex justify-center" v-if="rows.length >= 30 && !search && !categoryFilter">
+    <div class="q-mt-md flex justify-center" v-if="totalElements > rows.length && !search && !categoryFilter">
       <q-btn flat color="primary" label="Cargar más" @click="load(page + 1)" :loading="loading" />
     </div>
 

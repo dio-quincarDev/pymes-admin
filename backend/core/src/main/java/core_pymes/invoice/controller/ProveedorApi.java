@@ -7,6 +7,7 @@ import io.swagger.v3.oas.annotations.Operation;
 import io.swagger.v3.oas.annotations.tags.Tag;
 import jakarta.validation.Valid;
 import org.springframework.http.ResponseEntity;
+import org.springframework.security.access.prepost.PreAuthorize;
 import org.springframework.web.bind.annotation.*;
 
 import java.util.List;
@@ -26,14 +27,17 @@ public interface ProveedorApi {
 
     @Operation(summary = "Create a provider")
     @PostMapping
+    @PreAuthorize("hasAnyRole('OWNER', 'ADMIN')")
     ResponseEntity<ProveedorResponse> create(@Valid @RequestBody ProveedorRequest request);
 
     @Operation(summary = "Update a provider")
     @PutMapping("/{id}")
+    @PreAuthorize("hasAnyRole('OWNER', 'ADMIN')")
     ResponseEntity<ProveedorResponse> update(@PathVariable UUID id, @RequestParam UUID tenantId,
                                              @Valid @RequestBody ProveedorRequest request);
 
     @Operation(summary = "Delete a provider")
     @DeleteMapping("/{id}")
+    @PreAuthorize("hasAnyRole('OWNER', 'ADMIN')")
     ResponseEntity<Void> delete(@PathVariable UUID id, @RequestParam UUID tenantId);
 }

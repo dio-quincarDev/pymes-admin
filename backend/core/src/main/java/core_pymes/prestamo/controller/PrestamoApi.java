@@ -9,6 +9,7 @@ import io.swagger.v3.oas.annotations.Operation;
 import io.swagger.v3.oas.annotations.tags.Tag;
 import jakarta.validation.Valid;
 import org.springframework.http.ResponseEntity;
+import org.springframework.security.access.prepost.PreAuthorize;
 import org.springframework.web.bind.annotation.*;
 
 import java.util.List;
@@ -28,19 +29,23 @@ public interface PrestamoApi {
 
     @Operation(summary = "Create a loan")
     @PostMapping
+    @PreAuthorize("hasAnyRole('OWNER', 'ADMIN')")
     ResponseEntity<PrestamoResponse> create(@Valid @RequestBody PrestamoRequest request);
 
     @Operation(summary = "Update a loan")
     @PutMapping("/{id}")
+    @PreAuthorize("hasAnyRole('OWNER', 'ADMIN')")
     ResponseEntity<PrestamoResponse> update(@PathVariable UUID id, @RequestParam UUID tenantId,
                                              @Valid @RequestBody PrestamoRequest request);
 
     @Operation(summary = "Delete a loan")
     @DeleteMapping("/{id}")
+    @PreAuthorize("hasAnyRole('OWNER', 'ADMIN')")
     ResponseEntity<Void> delete(@PathVariable UUID id, @RequestParam UUID tenantId);
 
     @Operation(summary = "Register a loan payment")
     @PostMapping("/{id}/pagos")
+    @PreAuthorize("hasAnyRole('OWNER', 'ADMIN')")
     ResponseEntity<PagoPrestamoResponse> registrarPago(@PathVariable UUID id,
                                                        @RequestParam UUID tenantId,
                                                        @Valid @RequestBody PagoPrestamoRequest request);

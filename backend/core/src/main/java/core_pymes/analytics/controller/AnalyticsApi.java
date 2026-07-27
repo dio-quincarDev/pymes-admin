@@ -5,6 +5,7 @@ import core_pymes.common.constant.CorePath;
 import io.swagger.v3.oas.annotations.Operation;
 import io.swagger.v3.oas.annotations.tags.Tag;
 import org.springframework.http.ResponseEntity;
+import org.springframework.security.access.prepost.PreAuthorize;
 import org.springframework.web.bind.annotation.*;
 
 import java.util.UUID;
@@ -20,6 +21,7 @@ public interface AnalyticsApi {
 
     @Operation(summary = "Recalculate analytics for a period")
     @PostMapping("/recalcular")
+    @PreAuthorize("hasAnyRole('OWNER', 'ADMIN')")
     ResponseEntity<AnalyticsResponse> recalcular(@RequestParam UUID tenantId,
                                                  @RequestParam String periodo);
 }

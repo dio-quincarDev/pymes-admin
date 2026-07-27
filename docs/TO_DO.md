@@ -4,8 +4,8 @@
 
 - [ ] [Alta] **Cleanup seed: remover conceptos de stock** — `template_locations` y `template_movement_reasons` no pertenecen a un sistema financiero. Incluye: V17 migration (DROP TABLE locations), SeedRunner cleanup (industry codes → constantes java:S1192), SetupServiceImpl/Response/Mapper, frontend types+pages. Ver `backend/core/docs/SEED_TEMPLATES.md` → Cleanup 2026-07.
 - [x] [Alta] **Exception system (estrategia definida)** — `ErrorResponse`, `ApiResponse`, `CodigoError`, 3 custom exceptions, `GlobalExceptionHandler` (12 handlers). Migrados 18 throws en 7 services (150/150 tests). → [`docs/EXCEPTION_STRATEGY.md`](./backend/core/docs/EXCEPTION_STRATEGY.md)
-- [ ] [🔴] **Validar tenantId contra JWT** — interceptor/filtro que compare `X-Tenant-Id` header (del gateway) vs `@RequestParam tenantId`. O migrar a extraer tenantId directo del `Authentication` (2026-07)
-- [ ] [🔴] **`@PreAuthorize` en endpoints sensibles** — agregar `@EnableMethodSecurity` + `@PreAuthorize` en controllers (crear/actualizar/eliminar según rol) (2026-07)
+- [x] [🔴] **Validar tenantId contra JWT** — `TenantValidationFilter` que compara `X-Tenant-Id` header vs `@RequestParam tenantId`, 403 si difieren. (2026-07-24)
+- [x] [🔴] **`@PreAuthorize` en endpoints sensibles** — agregar `@EnableMethodSecurity` + `@PreAuthorize` en controllers (crear/actualizar/eliminar según rol) (2026-07)
 - [ ] [Alta] Reportes — dashboard consolidado KPIs + alertas (2026-07)
 - [ ] [Alta] CRUD configuración tenant (edición) (2026-07)
 - [ ] [Media] Integration tests ejecutables en CI (2026-07)
@@ -21,6 +21,7 @@
 - [x] Spin buttons eliminados — `type="text" inputmode="decimal"` en cantidad/precio/descuento
 - [x] Docker healthcheck fix — `localhost` → `127.0.0.1` (IPv6 Alpine)
 - [x] Conversion UX — helper text + preview dinámico en ProductosPage
+- [x] [🔴] **ProductosPage "Cargar más" arreglado** — `load()` reemplazaba filas en vez de apilar. Fix: `rows.value = p === 0 ? res.data.content : [...rows.value, ...res.data.content]`. Agregado `totalElements` del server para condición de "load more" y conteo real. (2026-07-27)
 
 ### Frontend — Completado (UX/UI Review 2026-07-14)
 

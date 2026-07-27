@@ -139,6 +139,88 @@ common/config/TenantValidationFilter.java    # +1 archivo, ~25 líneas
 
 ---
 
+## 2026-07-27 — @PreAuthorize + role-based access control (gap crítico)
+
+### Problema
+
+El gateway inyecta `X-User-Role` (OWNER/ADMIN/CONTABLE/VIEWER) en todos los requests que llegan al core, pero el core nunca lo leía. Cualquier usuario autenticado podía crear, actualizar o eliminar datos sin importar su rol.
+
+### Solución
+
+Agregado Spring Security al core service para authorization basada en roles, sin JWT validation (eso lo sigue haciendo el gateway).
+
+**Componentes:**
+
+| Componente | Archivo | Responsabilidad |
+|------------|---------|-----------------|
+| `RoleHeaderFilter` | `common/config/RoleHeaderFilter.java` | `OncePerRequestFilter` que lee `X-User-Role` → crea `UsernamePasswordAuthenticationToken` con `ROLE_<rol>` → lo setea en `SecurityContextHolder` |
+| `SecurityConfig` | `common/config/SecurityConfig.java` | `@EnableMethodSecurity`, `SecurityFilterChain` stateless, CSRF off, todas las rutas `permitAll()` (gateway ya autentica), registra `RoleHeaderFilter` antes de `UsernamePasswordAuthenticationFilter` |
+| `@PreAuthorize` | 10 controllers (interfaces `*Api.java`) | `@PreAuthorize("hasAnyRole('OWNER', 'ADMIN')")` en 18 endpoints WRITE |
+
+**Matriz de permisos:**
+
+| Rol | Leer (GET) | Crear/Editar/Eliminar |
+|-----|-----------|----------------------|
+| OWNER | ✅ | ✅ |
+| ADMIN | ✅ | ✅ |
+| CONTABLE | ✅ | ❌ |
+| VIEWER | ✅ | ❌ |
+
+**Endpoints protegidos (18 WRITE):**
+
+| Controller | Endpoints con `@PreAuthorize` |
+|------------|------------------------------|
+| `SetupApi` | `POST /{tenantId}/onboarding` |
+| `ProductoApi` | `POST`, `PUT /{id}`, `DELETE /{id}`, `POST /{id}/presentaciones`, `DELETE /presentaciones/{id}` |
+| `ProveedorApi` | `POST`, `PUT /{id}`, `DELETE /{id}` |
+| `FacturaApi` | `POST`, `PUT /{id}`, `POST /{id}/pagar`, `DELETE /{id}` |
+| `GastoApi` | `POST`, `PUT /{id}`, `DELETE /{id}` |
+| `VentaApi` | `POST`, `PUT /{id}`, `DELETE /{id}` |
+| `PrestamoApi` | `POST`, `PUT /{id}`, `DELETE /{id}`, `POST /{id}/pagos` |
+| `MetricasApi` | `POST /recalcular` |
+| `AnalyticsApi` | `POST /recalcular` |
+| `PatrimonioApi` | `PUT /{tenantId}` |
+
+**Dependencias agregadas:**
+
+- `spring-boot-starter-security` en `core/pom.xml`
+- `spring-security-test` (scope test) en `core/pom.xml`
+
+**Tests:**
+
+- 4 integration tests actualizados: `@WithMockUser(roles = "OWNER")` en `ProductoIntegrationTest`, `FacturaIntegrationTest`, `ProveedorProductoEdgeCaseIntegrationTest`, `SetupSeedIntegrationTest`
+- Fix pre-existente: `$.error` → `$.message` en `SetupSeedIntegrationTest.completeOnboarding_InvalidIndustry_ReturnsBadRequest` (ErrorResponse record no tiene campo `error`)
+- Resultado: 172 tests (150 unit + 22 integration), 0 failures
+
+**Archivos creados (2):**
+
+```
+common/config/RoleHeaderFilter.java
+common/config/SecurityConfig.java
+```
+
+**Archivos modificados (15):**
+
+```
+pom.xml                                    +spring-boot-starter-security +spring-security-test
+product/controller/ProductoApi.java        +@PreAuthorize en 5 endpoints
+invoice/controller/FacturaApi.java         +@PreAuthorize en 4 endpoints
+invoice/controller/ProveedorApi.java       +@PreAuthorize en 3 endpoints
+gasto/controller/GastoApi.java             +@PreAuthorize en 3 endpoints
+venta/controller/VentaApi.java             +@PreAuthorize en 3 endpoints
+prestamo/controller/PrestamoApi.java       +@PreAuthorize en 4 endpoints
+inversion/controller/PatrimonioApi.java    +@PreAuthorize en 1 endpoint
+accounting/controller/MetricasApi.java     +@PreAuthorize en 1 endpoint
+analytics/controller/AnalyticsApi.java     +@PreAuthorize en 1 endpoint
+setup/controller/SetupApi.java             +@PreAuthorize en 1 endpoint
+integration/ProductoIntegrationTest.java   +@WithMockUser(roles = "OWNER")
+integration/FacturaIntegrationTest.java    +@WithMockUser(roles = "OWNER")
+integration/ProveedorProductoEdgeCaseIntegrationTest.java  +@WithMockUser(roles = "OWNER")
+integration/SetupSeedIntegrationTest.java  +@WithMockUser(roles = "OWNER") + fix $.error→$.message
+```
+
+---
+
 ## 2026-07-15 — Invoice Update + Audit Fields
 
 ### Feature: `PUT /api/v1/core/invoices/{id}?tenantId=...`

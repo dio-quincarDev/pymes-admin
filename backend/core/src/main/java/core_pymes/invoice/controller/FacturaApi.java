@@ -7,6 +7,7 @@ import io.swagger.v3.oas.annotations.Operation;
 import io.swagger.v3.oas.annotations.tags.Tag;
 import jakarta.validation.Valid;
 import org.springframework.http.ResponseEntity;
+import org.springframework.security.access.prepost.PreAuthorize;
 import org.springframework.web.bind.annotation.*;
 
 import java.util.List;
@@ -26,17 +27,21 @@ public interface FacturaApi {
 
     @Operation(summary = "Create an invoice")
     @PostMapping
+    @PreAuthorize("hasAnyRole('OWNER', 'ADMIN')")
     ResponseEntity<FacturaResponse> create(@Valid @RequestBody FacturaRequest request);
 
     @Operation(summary = "Update an invoice (only REGISTRADA status)")
     @PutMapping("/{id}")
+    @PreAuthorize("hasAnyRole('OWNER', 'ADMIN')")
     ResponseEntity<FacturaResponse> update(@PathVariable UUID id, @RequestParam UUID tenantId, @Valid @RequestBody FacturaRequest request);
 
     @Operation(summary = "Mark invoice as paid")
     @PostMapping("/{id}/pagar")
+    @PreAuthorize("hasAnyRole('OWNER', 'ADMIN')")
     ResponseEntity<FacturaResponse> pagar(@PathVariable UUID id, @RequestParam UUID tenantId);
 
     @Operation(summary = "Delete an invoice")
     @DeleteMapping("/{id}")
+    @PreAuthorize("hasAnyRole('OWNER', 'ADMIN')")
     ResponseEntity<Void> delete(@PathVariable UUID id, @RequestParam UUID tenantId);
 }

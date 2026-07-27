@@ -7,6 +7,7 @@ import io.swagger.v3.oas.annotations.Operation;
 import io.swagger.v3.oas.annotations.tags.Tag;
 import jakarta.validation.Valid;
 import org.springframework.http.ResponseEntity;
+import org.springframework.security.access.prepost.PreAuthorize;
 import org.springframework.web.bind.annotation.*;
 
 import java.util.List;
@@ -26,14 +27,17 @@ public interface GastoApi {
 
     @Operation(summary = "Create an operating expense")
     @PostMapping
+    @PreAuthorize("hasAnyRole('OWNER', 'ADMIN')")
     ResponseEntity<GastoResponse> create(@Valid @RequestBody GastoRequest request);
 
     @Operation(summary = "Update an operating expense")
     @PutMapping("/{id}")
+    @PreAuthorize("hasAnyRole('OWNER', 'ADMIN')")
     ResponseEntity<GastoResponse> update(@PathVariable UUID id, @RequestParam UUID tenantId,
                                           @Valid @RequestBody GastoRequest request);
 
     @Operation(summary = "Delete an operating expense")
     @DeleteMapping("/{id}")
+    @PreAuthorize("hasAnyRole('OWNER', 'ADMIN')")
     ResponseEntity<Void> delete(@PathVariable UUID id, @RequestParam UUID tenantId);
 }

@@ -5,6 +5,7 @@ import core_pymes.common.constant.CorePath;
 import io.swagger.v3.oas.annotations.Operation;
 import io.swagger.v3.oas.annotations.tags.Tag;
 import org.springframework.http.ResponseEntity;
+import org.springframework.security.access.prepost.PreAuthorize;
 import org.springframework.web.bind.annotation.*;
 
 import java.time.YearMonth;
@@ -21,6 +22,7 @@ public interface MetricasApi {
 
     @Operation(summary = "Recalculate financial metrics for a period")
     @PostMapping("/recalcular")
+    @PreAuthorize("hasAnyRole('OWNER', 'ADMIN')")
     ResponseEntity<MetricasResponse> recalcular(@RequestParam UUID tenantId,
                                                   @RequestParam String periodo);
 }
