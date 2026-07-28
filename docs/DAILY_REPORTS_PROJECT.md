@@ -4,6 +4,48 @@ Registro cronológico de decisiones técnicas, refactors y post-mortems del proy
 
 ---
 
+## 2026-07-27 — CI/CD Security Hardening + Efficiency
+
+### Contexto
+
+Dos revisiones independientes (GitHub Actions Efficiency + GitHub Actions Hardening) identificaron vulnerabilidades de seguridad y desperdicio de tiempo en los 3 workflows (`ci.yml`, `cd-staging.yml`, `cd-prod.yml`).
+
+### Qué se hizo
+
+**Security (PR1):**
+
+1. **`permissions: {}` (deny-all)** — Todos los workflows ahora empiezan con permisos denegados. Cada job declara solo `contents: read`. Si un step es comprometido, el token no puede pushear código ni crear releases.
+
+2. **`persist-credentials: false`** — Todos los `actions/checkout` ahora setean esta opción. El `GITHUB_TOKEN` ya no se escribe en `.git/config`, evitando que código no confiable lo robe.
+
+3. **SHA-pinning de acciones de terceros** — `mikepenz/action-junit-report@v4` → SHA fijo (v6.4.1), `appleboy/ssh-action@v1.0.3` → SHA fijo (v1.2.5). Tags mutables ya no se usan para acciones de terceros.
+
+**Efficiency (PR2):**
+
+4. **CD tests redundantes eliminados** — `cd-staging.yml` y `cd-prod.yml` ya no ejecutan `mvn test -B`. CI ya validó estos tests. Ahorro: ~12-16 min/deploy.
+
+**Efficiency (PR3):**
+
+5. **`docker-build-check` limitado a develop/main** — Ya no corre en feature branches. Ahorro: ~3-5 min/CI en feature branches.
+
+### Archivos modificados
+
+```
+.github/workflows/ci.yml          # +permissions, +persist-credentials, SHA-pin junit-report, +docker-build-check condition
+.github/workflows/cd-staging.yml  # +permissions, +persist-credentials, SHA-pin ssh-action, -3 steps mvn test
+.github/workflows/cd-prod.yml     # +permissions, +persist-credentials, SHA-pin ssh-action, -3 steps mvn test
+```
+
+### Ahorro estimado
+
+| Concepto | Ahorro |
+|----------|--------|
+| CD tests redundantes | ~12-16 min/deploy |
+| CI docker-build-check | ~3-5 min/CI (feature branches) |
+| Seguridad | Tokens least-privilege, supply chain protegida |
+
+---
+
 ## 2026-06-24 — Onboarding: preview de categorías/subcategorías por industria
 
 ### Contexto

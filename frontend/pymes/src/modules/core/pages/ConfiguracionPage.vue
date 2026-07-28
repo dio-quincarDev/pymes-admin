@@ -46,21 +46,6 @@
             </q-card-section>
           </q-card>
         </div>
-
-        <div class="col-12 col-md-6">
-          <q-card dark class="bg-surface-pine">
-            <q-card-section>
-              <div class="text-h6 text-primary">Ubicaciones</div>
-              <q-separator dark class="q-my-sm" />
-              <div v-if="setup.locations?.length" class="row q-col-gutter-xs">
-                <div v-for="loc in setup.locations" :key="loc.code" class="col-12 col-md-6">
-                  <q-chip dense dark color="accent" text-color="dark">{{ loc.name }}</q-chip>
-                </div>
-              </div>
-              <div v-else class="text-accent text-caption">Sin ubicaciones cargadas</div>
-            </q-card-section>
-          </q-card>
-        </div>
       </div>
     </SkeletonLoader>
   </q-page>

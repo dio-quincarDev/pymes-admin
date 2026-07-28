@@ -38,14 +38,8 @@ class SetupSeedIntegrationTest extends AbstractIntegrationTest {
         var categories = jdbcTemplate.queryForObject("SELECT COUNT(*) FROM template_categories", Integer.class);
         assertThat(categories).isGreaterThan(0);
 
-        var locations = jdbcTemplate.queryForObject("SELECT COUNT(*) FROM template_locations", Integer.class);
-        assertThat(locations).isGreaterThan(0);
-
         var units = jdbcTemplate.queryForObject("SELECT COUNT(*) FROM template_units", Integer.class);
         assertThat(units).isGreaterThan(0);
-
-        var reasons = jdbcTemplate.queryForObject("SELECT COUNT(*) FROM template_movement_reasons", Integer.class);
-        assertThat(reasons).isGreaterThan(0);
 
         var payments = jdbcTemplate.queryForObject("SELECT COUNT(*) FROM template_payment_methods", Integer.class);
         assertThat(payments).isGreaterThan(0);
@@ -53,10 +47,6 @@ class SetupSeedIntegrationTest extends AbstractIntegrationTest {
         var defaultUnits = jdbcTemplate.queryForObject(
                 "SELECT COUNT(*) FROM template_units WHERE industry_code = ?", Integer.class, "default");
         assertThat(defaultUnits).isEqualTo(5);
-
-        var defaultReasons = jdbcTemplate.queryForObject(
-                "SELECT COUNT(*) FROM template_movement_reasons WHERE industry_code = ?", Integer.class, "default");
-        assertThat(defaultReasons).isEqualTo(3);
 
         var templateProducts = jdbcTemplate.queryForObject("SELECT COUNT(*) FROM template_products", Integer.class);
         assertThat(templateProducts).isGreaterThan(0);

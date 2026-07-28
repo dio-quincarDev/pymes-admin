@@ -234,7 +234,7 @@ core_pymes/
 │   ├── exception/
 │   │   └── GlobalExceptionHandler.java
 │   ├── seed/
-│   │   └── SeedDataRunner.java     # 8 industrias, 6 tablas template
+│   │   └── SeedDataRunner.java     # 8 industrias, INSERT data (sin DDL)
 │   └── service/
 │       └── RecomputeDebounceService.java  # Redis debounce para metricas/analytics
 │
@@ -466,13 +466,14 @@ POST   /api/v1/core/analytics/recalcular?tenantId={uuid}&periodo=YYYY-MM
 | Aspecto | Detalle |
 |---------|---------|
 | Flyway V2 | `industries`, `template_categories` |
+| Flyway V18 | `template_units`, `template_payment_methods`, `template_products`, `template_product_presentations` |
 | V17 | `DROP TABLE IF EXISTS template_locations` (cleanup stock) |
-| SeedDataRunner | `@Component` idempotente, inserta via JdbcTemplate al startup |
-| DDL | `template_units`, `template_payment_methods`, `template_products`, `template_product_presentations` |
+| SeedDataRunner | `@Component` idempotente, inserta via JdbcTemplate al startup (sin DDL) |
+| Constantes | Industry codes (8) + SQL INSERT strings (5) — java:S1192 cleanup |
 | Industrias | 8: restaurante, bares, salon_belleza, ferreteria, mini_super, taller_mecanico, farmacia, default |
 | Productos | ~160 productos + ~280 presentaciones en seed |
 
-Ver `SEED_TEMPLATES.md` para detalle completo y cleanup 2026-07.
+Ver `SEED_TEMPLATES.md` para detalle completo.
 
 ---
 
@@ -515,7 +516,7 @@ Ver `SEED_TEMPLATES.md` para detalle completo y cleanup 2026-07.
 - [x] Redis debounce — RecomputeDebounceService + @Scheduled
 - [x] Testcontainers Redis en AbstractIntegrationTest
 - [x] SQL review — division por cero en analisisABC, indices redundantes removidos
-- [ ] **Cleanup seed: remover stock** — `template_locations` + `template_movement_reasons` eliminadas, industry codes → constantes (java:S1192). Ver `SEED_TEMPLATES.md` → Cleanup 2026-07.
+- [x] **Cleanup seed: remover stock** — `template_locations` + `template_movement_reasons` eliminadas, industry codes → constantes (java:S1192). Flyway V18 para DDL. Ver `SEED_TEMPLATES.md` → Cleanup 2026-07.
 - [ ] **Financial Health Engine** — Motor #10: scoring compuesto + alertas críticas + señales inversión/expansión. Requiere V15 (columna `financial_health JSONB`), `analisisSaludFinanciera()` en AnalyticsServiceImpl, `FinancialHealthResponse` DTO, actualización de `useAnalytics` + `AnalisisGastosPage.vue`.
 
 ### Mediate

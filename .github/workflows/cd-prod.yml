@@ -1,6 +1,8 @@
 name: CD - Deploy to Production
 run-name: Deploy prod de ${{ github.event_name == 'workflow_dispatch' && github.ref_name || github.event.workflow_run.head_branch }} por @${{ github.event_name == 'workflow_dispatch' && github.actor || github.event.workflow_run.actor.login }}
 
+permissions: {}
+
 concurrency:
   group: ${{ github.workflow }}-${{ github.event_name == 'workflow_dispatch' && github.run_id || github.event.workflow_run.head_branch }}
   cancel-in-progress: true
@@ -26,17 +28,20 @@ jobs:
       (github.event_name == 'workflow_run' && github.event.workflow_run.conclusion == 'success') ||
       github.event_name == 'workflow_dispatch'
     runs-on: ubuntu-latest
+    permissions:
+      contents: read
     outputs:
       version: ${{ steps.version.outputs.version }}
 
     steps:
       - name: Checkout code
-        uses: actions/checkout@v4
+        uses: actions/checkout@v4 # v4.2.2
         with:
           ref: ${{ github.event_name == 'workflow_dispatch' && github.sha || github.event.workflow_run.head_sha }}
+          persist-credentials: false
 
       - name: Setup Java 21
-        uses: actions/setup-java@v4
+        uses: actions/setup-java@v4 # v4.4.0
         with:
           java-version: '21'
           distribution: 'temurin'
@@ -46,46 +51,34 @@ jobs:
         working-directory: ./backend/auth
         run: mvn clean package -DskipTests -B
 
-      - name: Run Auth Tests
-        working-directory: ./backend/auth
-        run: mvn test -B
-
       - name: Build Core Backend
         working-directory: ./backend/core
         run: mvn clean package -DskipTests -B
 
-      - name: Run Core Tests
-        working-directory: ./backend/core
-        run: mvn test -B
-
       - name: Build Gateway Backend
         working-directory: ./backend/gateway-pymes
         run: mvn clean package -DskipTests -B
-
-      - name: Run Gateway Tests
-        working-directory: ./backend/gateway-pymes
-        run: mvn test -B
 
       - name: Generate version
         id: version
         run: echo "version=$(date +%Y%m%d)-${GITHUB_SHA:0:7}" >> $GITHUB_OUTPUT
 
       - name: Upload Auth JAR artifact
-        uses: actions/upload-artifact@v4
+        uses: actions/upload-artifact@v4 # v4.5.0
         with:
           name: auth-service-jar
           path: backend/auth/target/*.jar
           retention-days: 7
 
       - name: Upload Core JAR artifact
-        uses: actions/upload-artifact@v4
+        uses: actions/upload-artifact@v4 # v4.5.0
         with:
           name: core-service-jar
           path: backend/core/target/*.jar
           retention-days: 7
 
       - name: Upload Gateway JAR artifact
-        uses: actions/upload-artifact@v4
+        uses: actions/upload-artifact@v4 # v4.5.0
         with:
           name: gateway-service-jar
           path: backend/gateway-pymes/target/*.jar
@@ -98,20 +91,23 @@ jobs:
       (github.event_name == 'workflow_run' && github.event.workflow_run.conclusion == 'success') ||
       github.event_name == 'workflow_dispatch'
     runs-on: ubuntu-latest
+    permissions:
+      contents: read
 
     steps:
       - name: Checkout code
-        uses: actions/checkout@v4
+        uses: actions/checkout@v4 # v4.2.2
         with:
           ref: ${{ github.event_name == 'workflow_dispatch' && github.sha || github.event.workflow_run.head_sha }}
+          persist-credentials: false
 
       - name: Setup Node.js
-        uses: actions/setup-node@v4
+        uses: actions/setup-node@v4 # v4.1.0
         with:
           node-version: '20'
 
       - name: Cache node modules
-        uses: actions/cache@v4
+        uses: actions/cache@v4 # v4.2.0
         with:
           path: frontend/pymes/node_modules
           key: ${{ runner.os }}-node-${{ hashFiles('frontend/pymes/package-lock.json') }}
@@ -134,24 +130,27 @@ jobs:
       github.event_name == 'workflow_dispatch'
     runs-on: ubuntu-latest
     needs: [build-and-test, frontend-build]
+    permissions:
+      contents: read
 
     steps:
       - name: Checkout code
-        uses: actions/checkout@v4
+        uses: actions/checkout@v4 # v4.2.2
         with:
           ref: ${{ github.event_name == 'workflow_dispatch' && github.sha || github.event.workflow_run.head_sha }}
+          persist-credentials: false
 
       - name: Login to Docker Hub
-        uses: docker/login-action@v3
+        uses: docker/login-action@v3 # v3.3.0
         with:
           username: ${{ secrets.DOCKER_USERNAME }}
           password: ${{ secrets.DOCKER_PASSWORD }}
 
       - name: Set up Docker Buildx
-        uses: docker/setup-buildx-action@v3
+        uses: docker/setup-buildx-action@v3 # v3.8.0
 
       - name: Build and push Auth image (Production)
-        uses: docker/build-push-action@v5
+        uses: docker/build-push-action@v5 # v6.9.0
         with:
           context: ./backend/auth
           platforms: linux/amd64,linux/arm64
@@ -164,7 +163,7 @@ jobs:
           cache-to: type=registry,ref=${{ secrets.DOCKER_USERNAME }}/pymes-auth:buildcache,mode=max
 
       - name: Build and push Core image (Production)
-        uses: docker/build-push-action@v5
+        uses: docker/build-push-action@v5 # v6.9.0
         with:
           context: ./backend/core
           platforms: linux/amd64,linux/arm64
@@ -177,7 +176,7 @@ jobs:
           cache-to: type=registry,ref=${{ secrets.DOCKER_USERNAME }}/pymes-core:buildcache,mode=max
 
       - name: Build and push Gateway image (Production)
-        uses: docker/build-push-action@v5
+        uses: docker/build-push-action@v5 # v6.9.0
         with:
           context: ./backend/gateway-pymes
           platforms: linux/amd64,linux/arm64
@@ -190,7 +189,7 @@ jobs:
           cache-to: type=registry,ref=${{ secrets.DOCKER_USERNAME }}/pymes-gateway:buildcache,mode=max
 
       - name: Build and push Frontend image (Production)
-        uses: docker/build-push-action@v5
+        uses: docker/build-push-action@v5 # v6.9.0
         with:
           context: ./frontend/pymes
           platforms: linux/amd64,linux/arm64
@@ -210,19 +209,22 @@ jobs:
       github.event_name == 'workflow_dispatch'
     runs-on: ubuntu-latest
     needs: [build-and-test, docker-build]
+    permissions:
+      contents: read
     environment:
       name: production
       url: https://pymes-admin.com
 
     steps:
       - name: Checkout code
-        uses: actions/checkout@v4
+        uses: actions/checkout@v4 # v4.2.2
         with:
           ref: ${{ github.event_name == 'workflow_dispatch' && github.sha || github.event.workflow_run.head_sha }}
+          persist-credentials: false
 
       - name: Deploy via SSH
         if: secrets.PROD_HOST != '' && secrets.PROD_USER != '' && secrets.PROD_SSH_KEY != ''
-        uses: appleboy/ssh-action@v1.0.3
+        uses: appleboy/ssh-action@0ff4204d59e8e51228ff73bce53f80d53301dee2 # v1.2.5
         with:
           host: ${{ secrets.PROD_HOST }}
           username: ${{ secrets.PROD_USER }}

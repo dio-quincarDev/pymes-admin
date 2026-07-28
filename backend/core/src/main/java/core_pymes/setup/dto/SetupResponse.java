@@ -10,11 +10,10 @@ public record SetupResponse(
     boolean onboardingCompleted,
     List<ItemDTO> categories,
     List<ItemDTO> units,
-    List<ItemDTO> locations,
     List<ProductTemplateDTO> products
 ) {
-    public static SetupResponse preview(String industry, List<ItemDTO> categories, List<ItemDTO> units, List<ItemDTO> locations, List<ProductTemplateDTO> products) {
-        return new SetupResponse(null, null, industry, false, categories, units, locations, products);
+    public static SetupResponse preview(String industry, List<ItemDTO> categories, List<ItemDTO> units, List<ProductTemplateDTO> products) {
+        return new SetupResponse(null, null, industry, false, categories, units, products);
     }
 
     public record ItemDTO(String code, String name, String parentId, List<ItemDTO> children) {

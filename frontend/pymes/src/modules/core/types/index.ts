@@ -140,7 +140,6 @@ export interface SetupInfo {
   industry: string | null
   categories: SetupCategory[]
   units: { code: string; name: string }[]
-  locations: { code: string; name: string }[]
   products: ProductTemplateDTO[]
 }
 

@@ -144,10 +144,6 @@ async function confirm() {
               <span class="preview-metric__value">{{ previewData.units.length }}</span>
               <span class="preview-metric__label">Unidades</span>
             </div>
-            <div class="preview-metric">
-              <span class="preview-metric__value">{{ previewData.locations.length }}</span>
-              <span class="preview-metric__label">Ubicaciones</span>
-            </div>
           </div>
 
           <div v-if="previewData.products.length > 0" class="preview-products-section">

@@ -43,8 +43,8 @@ class SetupServiceImplTest {
         var tenantId = UUID.randomUUID();
         when(repository.findByTenantId(tenantId)).thenReturn(Optional.empty());
         when(repository.save(any())).thenAnswer(i -> i.getArgument(0));
-        when(mapper.toResponse(any(), any(), any(), any(), any())).thenReturn(
-                new SetupResponse(null, tenantId, null, false, List.of(), List.of(), List.of(), List.of()));
+        when(mapper.toResponse(any(), any(), any(), any())).thenReturn(
+                new SetupResponse(null, tenantId, null, false, List.of(), List.of(), List.of()));
 
         var result = service.getOrInitialize(tenantId);
 
@@ -52,7 +52,6 @@ class SetupServiceImplTest {
         assertThat(result.onboardingCompleted()).isFalse();
         assertThat(result.categories()).isEmpty();
         assertThat(result.units()).isEmpty();
-        assertThat(result.locations()).isEmpty();
         verify(repository).save(any());
     }
 
@@ -61,8 +60,8 @@ class SetupServiceImplTest {
         var tenantId = UUID.randomUUID();
         var existing = new TenantSetup(tenantId);
         when(repository.findByTenantId(tenantId)).thenReturn(Optional.of(existing));
-        when(mapper.toResponse(any(), any(), any(), any(), any())).thenReturn(
-                new SetupResponse(null, tenantId, null, false, List.of(), List.of(), List.of(), List.of()));
+        when(mapper.toResponse(any(), any(), any(), any())).thenReturn(
+                new SetupResponse(null, tenantId, null, false, List.of(), List.of(), List.of()));
 
         var result = service.getOrInitialize(tenantId);
 
@@ -81,8 +80,8 @@ class SetupServiceImplTest {
         when(repository.save(any())).thenAnswer(i -> i.getArgument(0));
         when(jdbc.query(anyString(), any(org.springframework.jdbc.core.RowMapper.class), eq(industry)))
                 .thenReturn(List.of());
-        when(mapper.toResponse(any(), any(), any(), any(), any())).thenReturn(
-                new SetupResponse(null, tenantId, industry, true, List.of(), List.of(), List.of(), List.of()));
+        when(mapper.toResponse(any(), any(), any(), any())).thenReturn(
+                new SetupResponse(null, tenantId, industry, true, List.of(), List.of(), List.of()));
 
         var result = service.completeOnboarding(tenantId, industry);
 
@@ -102,8 +101,8 @@ class SetupServiceImplTest {
         when(repository.save(any())).thenAnswer(i -> i.getArgument(0));
         when(jdbc.query(anyString(), any(org.springframework.jdbc.core.RowMapper.class), eq(industry)))
                 .thenReturn(List.of());
-        when(mapper.toResponse(any(), any(), any(), any(), any())).thenReturn(
-                new SetupResponse(null, tenantId, industry, true, List.of(), List.of(), List.of(), List.of()));
+        when(mapper.toResponse(any(), any(), any(), any())).thenReturn(
+                new SetupResponse(null, tenantId, industry, true, List.of(), List.of(), List.of()));
 
         var result = service.completeOnboarding(tenantId, industry);
 

@@ -573,58 +573,6 @@ Al completar onboarding → se copian productos genéricos por categoría → al
 - 1-2 presentaciones por producto (~280 presentaciones total)
 - SKU auto-generado al copiar al tenant: `P-0001`, `P-0002`... (secuencial por tenant)
 
-### Implementación: Tablas + Seed (vía SeedDataRunner DDL)
-
-Las tablas se crean via DDL en `SeedDataRunner.createTables()` (mismo patrón que `template_units`), **no** con Flyway:
-
-```sql
-template_products (
-    id UUID PRIMARY KEY,
-    industry_code VARCHAR(50) NOT NULL,
-    category_id UUID,
-    name VARCHAR(150) NOT NULL,
-    base_unit VARCHAR(50) NOT NULL,
-    sort_order INTEGER DEFAULT 0
-);
-
-template_product_presentations (
-    id UUID PRIMARY KEY,
-    template_product_id UUID NOT NULL,
-    name VARCHAR(100) NOT NULL,
-    conversion INTEGER DEFAULT 1,
-    sort_order INTEGER DEFAULT 0
-);
-```
-
-- Sin FK a industries ni template_categories (datos readonly, orphan aceptable)
-- Sin columna `sku` — se genera al copiar al tenant
-- Sin FK entre presentaciones y products (misma razón)
-- Índices: `idx_tp_industry` en industry_code, `idx_tpp_product` en template_product_id
-- Creadas con `CREATE TABLE IF NOT EXISTS` en SeedDataRunner
-
-Cada industria tiene su método `seed<Industria>()` que inserta productos como batch de arrays con el helper `addProd()`:
-
-```java
-private Object[] addProd(String name, UUID catId, String unit, Object[]... pres) {
-    return new Object[]{UUID.randomUUID(), industryCode, catId, name, unit, 0};
-}
-// pres se pasa como Object[][]{name, conversion, sort}
-```
-
-Ejemplo para restaurante:
-```
-Bebidas > Cervezas:           Cerveza (Unidad) → Caja x12
-Bebidas > Refrescos:          Refresco (Botella 2L) → Unidad
-Bebidas > Jugos:              Jugo natural (Litro) → Unidad
-Abarrotes > Arroz:            Arroz (Kg) → Bolsa 5lb
-Abarrotes > Fideos:           Fideos (Paquete 500g) → Unidad
-Aceites:                      Aceite vegetal (Litro) → Garrafa 5L
-Condimentos:                  Sal (Kg), Azúcar (Kg)
-Limpieza:                     Detergente (Litro) → Galón
-```
-
-**~20-25 productos por industria**, 1-2 presentaciones cada uno. Todas las industrias menos `default` (2 productos).
-
 ### Implementación: Onboarding copia productos
 
 En `SetupServiceImpl.completeOnboarding()` (transaccional):
@@ -679,29 +627,31 @@ template_categories                 — Flyway V2
 ├── parent_id: UUID FK → template_categories (auto-ref, 3 niveles)
 └── sort_order: INTEGER
 
-template_units                      — SeedDataRunner (DDL)
+template_units                      — Flyway V18
 ├── id: UUID PK
 ├── industry_code: VARCHAR(50) FK → industries (INDEX)
 ├── name: VARCHAR(100)
 └── sort_order: INTEGER
 
-template_payment_methods            — SeedDataRunner (DDL)
+template_payment_methods            — Flyway V18
 ├── id: UUID PK
 ├── industry_code: VARCHAR(50) FK → industries (INDEX)
 ├── name: VARCHAR(100)
 └── sort_order: INTEGER
 
-template_products                   — SeedDataRunner (DDL, sin FK)
+template_products                   — Flyway V18
 ├── id: UUID PK
-├── industry_code: VARCHAR(50)       — INDEX, sin FK (datos readonly)
-├── category_id: UUID                — sin FK (datos readonly)
+├── industry_code: VARCHAR(50) FK → industries (INDEX)
+├── category_id: UUID
 ├── name: VARCHAR(150)
-├── base_unit: VARCHAR(50)           — sin SKU (se genera al copiar al tenant)
+├── base_unit: VARCHAR(50)
+├── min_quantity: DECIMAL(12,2)
+├── max_quantity: DECIMAL(12,2)
 └── sort_order: INTEGER
 
-template_product_presentations      — SeedDataRunner (DDL, sin FK)
+template_product_presentations      — Flyway V18
 ├── id: UUID PK
-├── template_product_id: UUID NOT NULL  — INDEX, sin FK (datos readonly)
+├── template_product_id: UUID NOT NULL (INDEX)
 ├── name: VARCHAR(100)
 ├── conversion: INTEGER DEFAULT 1
 └── sort_order: INTEGER
@@ -717,16 +667,13 @@ template_movement_reasons           — SeedDataRunner (nunca en Flyway, solo el
 ### Seed Data
 
 El seed se ejecuta vía `SeedDataRunner` (ApplicationRunner) al startup:
-1. `createTables()` — DDL con `CREATE TABLE IF NOT EXISTS` + índices (incluye `template_products`, `template_product_presentations`)
-2. `seedIndustries()` — inserta 8 industrias
-3. `seed{Nombre}()` — por industria inserta categorías, unidades, pagos, **productos** y **presentaciones** (todo en un mismo método)
-4. Es idempotente: verifica `SELECT COUNT(*) FROM industries` antes de insertar
+1. `seedIndustries()` — inserta 8 industrias
+2. `seed{Nombre}()` — por industria inserta categorías, unidades, pagos, **productos** y **presentaciones** (todo en un mismo método)
+3. Es idempotente: verifica `SELECT COUNT(*) FROM industries` antes de insertar
 
-### Nota sobre migración futura
+### Flyway migration
 
-Si en producción se necesita modificar las tablas creadas por SeedDataRunner,
-agregar una migration Flyway con `ALTER TABLE`. SeedDataRunner solo ejecuta
-`CREATE TABLE IF NOT EXISTS`, no altera tablas existentes.
+DDL de template tables en `V18__template_tables.sql` (movido desde `SeedDataRunner.createTables()`). Flyway crea las tablas al startup; SeedDataRunner solo inserta data.
 
 ---
 
@@ -770,27 +717,22 @@ de inventario físico que no pertenecen al dominio.
 ### SeedDataRunner — Constantes (java:S1192)
 
 ```java
-// Industry codes (~600 ocurrencias → 8 constantes)
-private static final String R  = "restaurante";
-private static final String B  = "bares";
-private static final String SB = "salon_belleza";
-private static final String F  = "ferreteria";
-private static final String MS = "mini_super";
-private static final String TM = "taller_mecanico";
-private static final String FA = "farmacia";
-private static final String D  = "default";
+// Industry codes (~550 ocurrencias → 8 constantes)
+private static final String RESTAURANTE    = "restaurante";
+private static final String BARES          = "bares";
+private static final String SALON_BELLEZA  = "salon_belleza";
+private static final String FERRETERIA     = "ferreteria";
+private static final String MINI_SUPER     = "mini_super";
+private static final String TALLER_MECANICO = "taller_mecanico";
+private static final String FARMACIA       = "farmacia";
+private static final String DEFAULT        = "default";
 
 // INSERT SQLs repetidos 8 veces → 1 cada uno
-private static final String SQL_INSERT_CATS =
-    "INSERT INTO template_categories (id, industry_code, name, parent_id, sort_order) VALUES (?, ?, ?, ?, ?)";
-private static final String SQL_INSERT_UNITS =
-    "INSERT INTO template_units (id, industry_code, name, sort_order) VALUES (?, ?, ?, ?)";
-private static final String SQL_INSERT_PAY =
-    "INSERT INTO template_payment_methods (id, industry_code, name, sort_order) VALUES (?, ?, ?, ?)";
-private static final String SQL_INSERT_PRODS =
-    "INSERT INTO template_products (id, industry_code, category_id, name, base_unit, min_quantity, max_quantity, sort_order) VALUES (?, ?, ?, ?, ?, ?, ?, ?)";
-private static final String SQL_INSERT_PRES =
-    "INSERT INTO template_product_presentations (id, template_product_id, name, conversion, sort_order) VALUES (?, ?, ?, ?, ?)";
+private static final String SQL_INSERT_CATEGORIES    = "INSERT INTO template_categories ...";
+private static final String SQL_INSERT_UNITS         = "INSERT INTO template_units ...";
+private static final String SQL_INSERT_PRODUCTS      = "INSERT INTO template_products ...";
+private static final String SQL_INSERT_PRESENTATIONS = "INSERT INTO template_product_presentations ...";
+private static final String SQL_INSERT_PAYMENTS      = "INSERT INTO template_payment_methods ...";
 ```
 
 ### SQL Audit (SQL Code Review)
@@ -801,21 +743,18 @@ private static final String SQL_INSERT_PRES =
 | SQL dinámico con concatenación | ✅ No existe |
 | SELECT * | ✅ Todas las queries usan columnas explícitas |
 | Batch INSERTs | ✅ jdbc.batchUpdate en SeedRunner + SetupServiceImpl |
-| LEFT JOIN innecesario | ⚠️ SetupServiceImpl.completeOnboarding() — COALESCE(tp.category_id::text, tc.id::text) siempre retorna tp.category_id — puede simplificarse eliminando el JOIN |
+| LEFT JOIN innecesario | ✅ Eliminado (V18 cleanup). COALESCE siempre retornaba tp.category_id |
+| O(n×m) loop en onboarding | ✅ Optimizado con Collectors.groupingBy() → O(n+m) |
 
 ### Schema impacto
 
 ```
-Antes:
-  Flyway V2 → industries, template_categories, template_locations
-  SeedRunner → template_units, template_movement_reasons, template_payment_methods,
-               template_products, template_product_presentations
-
-Después:
-  Flyway V2 → industries, template_categories
-  V17        → DROP TABLE template_locations
-  SeedRunner → template_units, template_payment_methods,
-               template_products, template_product_presentations
+Flyway V2  → industries, template_categories
+Flyway V18 → template_units, template_payment_methods, template_products, template_product_presentations
+V17        → DROP TABLE template_locations
+SeedDataRunner → solo INSERT (sin DDL)
 ```
 
----
+### Implementación: Tablas + Seed
+
+Las tablas se crean via Flyway V18, no via DDL en Java. SeedDataRunner solo inserta datos.

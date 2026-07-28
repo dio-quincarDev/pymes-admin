@@ -1,6 +1,8 @@
 name: CI - Build and Test
 run-name: CI en ${{ github.ref_name }} por @${{ github.actor }}
 
+permissions: {}
+
 concurrency:
   group: ${{ github.workflow }}-${{ github.ref }}
   cancel-in-progress: true
@@ -23,9 +25,13 @@ jobs:
   security-check:
     name: Security Check
     runs-on: ubuntu-latest
+    permissions:
+      contents: read
     steps:
       - name: Checkout code
-        uses: actions/checkout@v4
+        uses: actions/checkout@v4 # v4.2.2
+        with:
+          persist-credentials: false
 
       - name: Check for .env files in repo
         run: |
@@ -65,6 +71,8 @@ jobs:
     name: Unit Tests Auth
     runs-on: ubuntu-latest
     needs: security-check
+    permissions:
+      contents: read
     env:
       MAVEN_OPTS: -Xmx512m
     defaults:
@@ -73,10 +81,12 @@ jobs:
 
     steps:
       - name: Checkout code
-        uses: actions/checkout@v4
+        uses: actions/checkout@v4 # v4.2.2
+        with:
+          persist-credentials: false
 
       - name: Setup Java 21
-        uses: actions/setup-java@v4
+        uses: actions/setup-java@v4 # v4.4.0
         with:
           java-version: '21'
           distribution: 'temurin'
@@ -90,14 +100,14 @@ jobs:
 
       - name: Upload Unit Test Results
         if: always()
-        uses: actions/upload-artifact@v4
+        uses: actions/upload-artifact@v4 # v4.5.0
         with:
           name: auth-unit-test-results
           path: backend/auth/target/surefire-reports/
           retention-days: 7
 
       - name: Publish Unit Test Report
-        uses: mikepenz/action-junit-report@v4
+        uses: mikepenz/action-junit-report@3a81627bfac62268172037048872e8ebd4207e6d # v6.4.1
         if: always()
         with:
           report_paths: 'backend/auth/target/surefire-reports/TEST-*.xml'
@@ -109,6 +119,8 @@ jobs:
     name: Integration Tests Auth
     runs-on: ubuntu-latest
     needs: backend-auth-unit-test
+    permissions:
+      contents: read
     env:
       MAVEN_OPTS: -Xmx512m
     defaults:
@@ -117,17 +129,19 @@ jobs:
 
     steps:
       - name: Checkout code
-        uses: actions/checkout@v4
+        uses: actions/checkout@v4 # v4.2.2
+        with:
+          persist-credentials: false
 
       - name: Setup Java 21
-        uses: actions/setup-java@v4
+        uses: actions/setup-java@v4 # v4.4.0
         with:
           java-version: '21'
           distribution: 'temurin'
           cache: 'maven'
 
       - name: Set up Docker Buildx
-        uses: docker/setup-buildx-action@v3
+        uses: docker/setup-buildx-action@v3 # v3.8.0
 
       - name: Make mvnw executable
         run: chmod +x mvnw
@@ -136,7 +150,7 @@ jobs:
         run: ./mvnw verify -B -Dspring.profiles.active=integration -Ddocker.client.api.version=1.44
 
       - name: Upload JAR artifact
-        uses: actions/upload-artifact@v4
+        uses: actions/upload-artifact@v4 # v4.5.0
         with:
           name: auth-service-jar
           path: backend/auth/target/*.jar
@@ -144,14 +158,14 @@ jobs:
 
       - name: Upload Integration Test Results
         if: always()
-        uses: actions/upload-artifact@v4
+        uses: actions/upload-artifact@v4 # v4.5.0
         with:
           name: auth-integration-test-results
           path: backend/auth/target/failsafe-reports/
           retention-days: 7
 
       - name: Publish Integration Test Report
-        uses: mikepenz/action-junit-report@v4
+        uses: mikepenz/action-junit-report@3a81627bfac62268172037048872e8ebd4207e6d # v6.4.1
         if: always()
         with:
           report_paths: 'backend/auth/target/failsafe-reports/TEST-*.xml'
@@ -163,6 +177,8 @@ jobs:
     name: Unit Tests Core
     runs-on: ubuntu-latest
     needs: security-check
+    permissions:
+      contents: read
     env:
       MAVEN_OPTS: -Xmx512m
     defaults:
@@ -171,10 +187,12 @@ jobs:
 
     steps:
       - name: Checkout code
-        uses: actions/checkout@v4
+        uses: actions/checkout@v4 # v4.2.2
+        with:
+          persist-credentials: false
 
       - name: Setup Java 21
-        uses: actions/setup-java@v4
+        uses: actions/setup-java@v4 # v4.4.0
         with:
           java-version: '21'
           distribution: 'temurin'
@@ -186,11 +204,71 @@ jobs:
       - name: Run Unit Tests
         run: ./mvnw test -B
 
+  # ==================== INTEGRATION TESTS CORE ====================
+  backend-core-integration-test:
+    name: Integration Tests Core
+    runs-on: ubuntu-latest
+    needs: backend-core-unit-test
+    permissions:
+      contents: read
+    env:
+      MAVEN_OPTS: -Xmx512m
+    defaults:
+      run:
+        working-directory: ./backend/core
+
+    steps:
+      - name: Checkout code
+        uses: actions/checkout@v4 # v4.2.2
+        with:
+          persist-credentials: false
+
+      - name: Setup Java 21
+        uses: actions/setup-java@v4 # v4.4.0
+        with:
+          java-version: '21'
+          distribution: 'temurin'
+          cache: 'maven'
+
+      - name: Set up Docker Buildx
+        uses: docker/setup-buildx-action@v3 # v3.8.0
+
+      - name: Make mvnw executable
+        run: chmod +x mvnw
+
+      - name: Build and Run Integration Tests
+        run: ./mvnw verify -B -Dspring.profiles.active=integration -Ddocker.client.api.version=1.44
+
+      - name: Upload JAR artifact
+        uses: actions/upload-artifact@v4 # v4.5.0
+        with:
+          name: core-service-jar
+          path: backend/core/target/*.jar
+          retention-days: 7
+
+      - name: Upload Integration Test Results
+        if: always()
+        uses: actions/upload-artifact@v4 # v4.5.0
+        with:
+          name: core-integration-test-results
+          path: backend/core/target/failsafe-reports/
+          retention-days: 7
+
+      - name: Publish Integration Test Report
+        uses: mikepenz/action-junit-report@3a81627bfac62268172037048872e8ebd4207e6d # v6.4.1
+        if: always()
+        with:
+          report_paths: 'backend/core/target/failsafe-reports/TEST-*.xml'
+          annotate_only: true
+          detailed_summary: true
+
   # ==================== GATEWAY BUILD ====================
   backend-gateway-build:
     name: Build and Test Gateway
     runs-on: ubuntu-latest
     needs: security-check
+    permissions:
+      contents: read
     env:
       MAVEN_OPTS: -Xmx512m
     defaults:
@@ -199,10 +277,12 @@ jobs:
 
     steps:
       - name: Checkout code
-        uses: actions/checkout@v4
+        uses: actions/checkout@v4 # v4.2.2
+        with:
+          persist-credentials: false
 
       - name: Setup Java 21
-        uses: actions/setup-java@v4
+        uses: actions/setup-java@v4 # v4.4.0
         with:
           java-version: '21'
           distribution: 'temurin'
@@ -215,7 +295,7 @@ jobs:
         run: ./mvnw test -B
 
       - name: Upload JAR artifact
-        uses: actions/upload-artifact@v4
+        uses: actions/upload-artifact@v4 # v4.5.0
         with:
           name: gateway-service-jar
           path: backend/gateway-pymes/target/*.jar
@@ -226,18 +306,22 @@ jobs:
     name: Build Frontend
     runs-on: ubuntu-latest
     needs: security-check
+    permissions:
+      contents: read
 
     steps:
       - name: Checkout code
-        uses: actions/checkout@v4
+        uses: actions/checkout@v4 # v4.2.2
+        with:
+          persist-credentials: false
 
       - name: Setup Node.js
-        uses: actions/setup-node@v4
+        uses: actions/setup-node@v4 # v4.1.0
         with:
           node-version: '20'
 
       - name: Cache node modules
-        uses: actions/cache@v4
+        uses: actions/cache@v4 # v4.2.0
         with:
           path: frontend/pymes/node_modules
           key: ${{ runner.os }}-node-${{ hashFiles('frontend/pymes/package-lock.json') }}
@@ -257,7 +341,7 @@ jobs:
         run: npx quasar build
 
       - name: Upload build artifact
-        uses: actions/upload-artifact@v4
+        uses: actions/upload-artifact@v4 # v4.5.0
         with:
           name: frontend-build
           path: frontend/pymes/dist/
@@ -267,11 +351,16 @@ jobs:
   docker-build-check:
     name: Docker Build Check
     runs-on: ubuntu-latest
-    needs: [backend-auth-integration-test, backend-core-unit-test, backend-gateway-build, frontend-build]
+    needs: [backend-auth-integration-test, backend-core-integration-test, backend-gateway-build, frontend-build]
+    if: github.ref == 'refs/heads/develop' || github.ref == 'refs/heads/main'
+    permissions:
+      contents: read
 
     steps:
       - name: Checkout code
-        uses: actions/checkout@v4
+        uses: actions/checkout@v4 # v4.2.2
+        with:
+          persist-credentials: false
 
       - name: Build Auth Docker image (test)
         run: |

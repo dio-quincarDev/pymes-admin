@@ -2,7 +2,7 @@
 
 ### Core
 
-- [ ] [Alta] **Cleanup seed: remover conceptos de stock** — `template_locations` y `template_movement_reasons` no pertenecen a un sistema financiero. Incluye: V17 migration (DROP TABLE locations), SeedRunner cleanup (industry codes → constantes java:S1192), SetupServiceImpl/Response/Mapper, frontend types+pages. Ver `backend/core/docs/SEED_TEMPLATES.md` → Cleanup 2026-07.
+- [x] [Alta] **Cleanup seed: remover conceptos de stock** — `template_locations` y `template_movement_reasons` eliminadas. V17 DROP TABLE + V18 Flyway DDL (movido desde SeedDataRunner). Industry codes → 8 constantes + SQL INSERT strings → 5 constantes (java:S1192). SQL optimization: dead LEFT JOIN eliminado + O(n×m) → Collectors.groupingBy(). Ver `backend/core/docs/SEED_TEMPLATES.md`.
 - [x] [Alta] **Exception system (estrategia definida)** — `ErrorResponse`, `ApiResponse`, `CodigoError`, 3 custom exceptions, `GlobalExceptionHandler` (12 handlers). Migrados 18 throws en 7 services (150/150 tests). → [`docs/EXCEPTION_STRATEGY.md`](./backend/core/docs/EXCEPTION_STRATEGY.md)
 - [x] [🔴] **Validar tenantId contra JWT** — `TenantValidationFilter` que compara `X-Tenant-Id` header vs `@RequestParam tenantId`, 403 si difieren. (2026-07-24)
 - [x] [🔴] **`@PreAuthorize` en endpoints sensibles** — agregar `@EnableMethodSecurity` + `@PreAuthorize` en controllers (crear/actualizar/eliminar según rol) (2026-07)
@@ -101,7 +101,7 @@ Todos implementados inline en cada page (sin componentes separados).
 
 ### Core — Migraciones Flyway
 
-- [ ] [Alta] **Consolidar V1–V16 → V1__core_schema.sql único** — 16 archivos → 1. 27 índices → 25 (eliminar `idx_products_tenant` y `idx_invoice_items_invoice` redundantes). Agregar `IF NOT EXISTS` faltantes en V9/V10. Idempotente para stage deploy. (2026-07) → [`docs/strategies/CORE_MIGRATIONS_STRATEGY.md`](./docs/strategies/CORE_MIGRATIONS_STRATEGY.md)
+- [ ] [Alta] **Consolidar V1–V18 → V1__core_schema.sql único** — 18 archivos → 1. 27 índices → 25 (eliminar `idx_products_tenant` y `idx_invoice_items_invoice` redundantes). Agregar `IF NOT EXISTS` faltantes en V9/V10. Idempotente para stage deploy. (2026-07) → [`docs/strategies/CORE_MIGRATIONS_STRATEGY.md`](./docs/strategies/CORE_MIGRATIONS_STRATEGY.md)
 
 ### Gateway
 
