@@ -63,16 +63,11 @@ Todos implementados inline en cada page (sin componentes separados).
 - [x] [🔴] **Refresh token rotation** — `boot/axios.ts`: cola de requests + flag `isRefreshing` + raw `axios.post` para evitar loop de interceptor. Si refresh falla → `clearSession()`.
 - [x] [🔴] **Cobertura de tests** — 29 tests (errors + store + composables). `vitest run` pasa limpio.
 
-### Frontend — Pendiente (Analytics Suite Redesign)
+### Frontend — Completado (Analytics Suite Redesign + Invitation UX/UI — 2026-07-29)
 
-- [ ] [Alta] **Rediseñar suite de análisis** — Implementar spec completo en `.ulpi/design/analytics-suite.md`. Incluye:
-  - `AnalyticsHeader` compartido (título narrativo + período global + recalcular)
-  - `KpiCard` refinado con sparkline inline opcional
-  - `CategoryBreakdownChart` (barras comparativas período anterior)
-  - `DataTable` wrapper de QTable con tokens de DESIGN.md
-  - Reestructurar DashboardPage, AnalisisGastosPage, AccountingPage
-  - Estados loading/empty/error/stale en cada página
-  - Referencia: `.ulpi/design/analytics-suite.md` (spec completo)
+- [x] [Alta] **Rediseñar suite de análisis** — 5 componentes nuevos (`AnalyticsHeader`, `KpiCard`, `MetricCard`, `CategoryBreakdownChart`, `DataTable`). Refactor de `DashboardPage`, `AnalisisGastosPage`, `AccountingPage`. Spec: `.ulpi/design/analytics-suite.md`.
+- [x] [Alta] **BaseButton label prop fix** — Agregado `label?: string` prop + fallback render. `AcceptInvitationPage` y `TeamsPage` ahora muestran texto en botones.
+- [x] [Alta] **Invitation flow dark mode forms** — 7 fields en `AcceptInvitationPage` y `TeamsPage`: `outlined dense` → `dark filled color="primary" label-color="accent"`. Spec: `.ulpi/design/invitation-flow-fix.md`.
 
 ### Frontend — Pendiente (Dashboard financiero)
 
@@ -91,7 +86,14 @@ Todos implementados inline en cada page (sin componentes separados).
 
 ### Frontend — Pendiente (Tenant/User display)
 
-- [ ] [Media] **Mostrar tenantName y userName en Dashboard/Configuración** — Opción A (recomendada): agregar `tenantName` a `UserEntityResponse` (1 campo backend) + mostrar en MainLayout, DashboardPage, ConfiguracionPage. Opción B: solo frontend guardando `activeTenant.name` en localStorage. (2026-07)
+- [ ] [Media] **Mostrar tenantName y userName en layout** — `authStore` descarta `activeTenant.name` en login/selectTenant (solo guarda `tenantId`). Fix: agregar `tenantName` al state + persistir en localStorage + capturar en login/register/verifyEmail/selectTenant. Mostrar en sidebar strip (avatar + nombre + email + empresa). (2026-07)
+
+### Frontend — Pendiente (UX/UI Review 2026-07-29)
+
+- [ ] [Alta] **Botones +Nuevo duplicados en EmptyState** — 5 páginas (Proveedores, Gastos, Ventas, Productos, Préstamos): toolbar muestra "+Nuevo" incondicionalmente, EmptyState también. Cuando la lista está vacía se ven ambos. Fix: `v-if="rows.length"` en toolbar button. (2026-07-29)
+- [ ] [Alta] **Contabilidad sin estado visible** — `AccountingPage.vue`: cuando `data` es null (cargando/error), `kpis` retorna array vacío y la grilla no renderiza nada. Fix: loading skeletons + empty state. (2026-07-29)
+- [ ] [Media] **Flechas incremento/decremento en inputs number** — 7 campos `type="number"` en Patrimonio, Ventas, Préstamos (4), Gastos muestran spinners nativos del browser. Fix: CSS global ocultando `::-webkit-inner-spin-button` + `-moz-appearance: textfield` en `app.scss`. (2026-07-29)
+- [ ] [Media] **Botón Editar en Patrimonio usa `round`** — Botón circular fuera del diseño industrial/no-nonsense. Fix: sacar `round`, dejar flat con label consistente con el resto de la app. (2026-07-29)
 
 ### Frontend — Pendiente (PWA)
 
@@ -111,7 +113,11 @@ Todos implementados inline en cada page (sin componentes separados).
 ### Auth
 
 - [x] [🔴] **Unificar whitelists de rutas públicas** — `SecurityConfig.WHITE_LIST` y `JwtAuthenticationFilter.publicPaths` separadas. Solución: `shouldNotFilter()` ahora lee de `SecurityConfig.WHITE_LIST` vía `AntPathMatcher`. Se eliminó `publicPaths`. (2026-07-21)
-- [ ] [Baja] Facebook OAuth2 — postergado (Meta no aprobó verificación) (post-MVP)
+- [ ] [🔴] **TOCTOU en refresh token rotation** — `JwtServiceImpl.validateAndRevokeRefreshToken()` read→check→write no atómico. Dos requests concurrentes con el mismo refresh token producen dos pares válidos. Sesión hijackeable. Fix: `@Version` o `@Lock(PESSIMISTIC_WRITE)` o SQL atómico.
+- [ ] [Media] **Email casing inconsistente** — `AuthServiceImpl.completeRegistration()` no normaliza email a lowercase, `InvitationServiceImpl.registerAndAccept()` sí. Pueden crearse duplicados por case. Fix: normalizar en `completeRegistration()`.
+- [ ] [Baja] **JWT `jti` no usado** — `JwtServiceImpl.createToken()` genera `.id(UUID.randomUUID())` pero no se persiste. `logout()` borra TODOS los refresh tokens del usuario (no hay logout por sesión). Fix: persistir `jti` o documentar como diseño.
+- [ ] [Baja] **`@Transactional` en métodos Redis-only** — `PasswordResetServiceImpl.generateResetToken()`, `EmailVerificationServiceImpl.generateAndSendPendingRegistrationEmail()` tienen `@Transactional` pero solo tocan Redis. Consumen pool HikariCP innecesariamente.
+- [ ] [Baja] **Facebook OAuth2** — postergado (Meta no aprobó verificación) (post-MVP)
 
 ### Auth — Invitación por Email (estrategia definida)
 

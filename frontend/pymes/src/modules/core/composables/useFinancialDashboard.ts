@@ -20,12 +20,22 @@ export interface ActividadItem {
   date: string;
 }
 
+function getPreviousPeriod(period: string): string {
+  const parts = period.split('-').map(Number);
+  const y = parts[0] ?? new Date().getFullYear();
+  const m = parts[1] ?? 1;
+  const d = new Date(y, m - 2, 1);
+  return `${d.getFullYear()}-${String(d.getMonth() + 1).padStart(2, '0')}`;
+}
+
 export function useFinancialDashboard() {
   const authStore = useAuthStore();
   const { period, setPeriod } = usePeriod();
 
   const metricas = ref<MetricasFinancieras | null>(null);
+  const metricasPrev = ref<MetricasFinancieras | null>(null);
   const gastos = ref<GastoOperativo[]>([]);
+  const gastosPrev = ref<GastoOperativo[]>([]);
   const ventas = ref<VentaDiaria[]>([]);
   const facturas = ref<Factura[]>([]);
   const loading = ref(false);
@@ -40,10 +50,23 @@ export function useFinancialDashboard() {
       grandTotal += g.amount;
     }
     if (grandTotal === 0) return [];
-    const items = Array.from(totals.entries())
+    return Array.from(totals.entries())
       .map(([category, total]) => ({ category, total, pct: (total / grandTotal) * 100 }))
       .sort((a, b) => b.total - a.total);
-    return items;
+  });
+
+  const gastosPorCategoriaPrev = computed<GastoPorCategoria[]>(() => {
+    if (!gastosPrev.value.length) return [];
+    const totals = new Map<string, number>();
+    let grandTotal = 0;
+    for (const g of gastosPrev.value) {
+      totals.set(g.category, (totals.get(g.category) ?? 0) + g.amount);
+      grandTotal += g.amount;
+    }
+    if (grandTotal === 0) return [];
+    return Array.from(totals.entries())
+      .map(([category, total]) => ({ category, total, pct: (total / grandTotal) * 100 }))
+      .sort((a, b) => b.total - a.total);
   });
 
   const actividadReciente = computed<ActividadItem[]>(() => {
@@ -74,14 +97,19 @@ export function useFinancialDashboard() {
     loading.value = true;
     error.value = null;
     try {
-      const [metricasRes, gastosRes, ventasRes, facturasRes] = await Promise.all([
+      const prev = getPreviousPeriod(period.value);
+      const [metricasRes, metricasPrevRes, gastosRes, gastosPrevRes, ventasRes, facturasRes] = await Promise.all([
         accountingService.consultar(tenantId, period.value),
+        accountingService.consultar(tenantId, prev),
+        gastoService.getAll(tenantId),
         gastoService.getAll(tenantId),
         ventaService.getAll(tenantId),
         facturaService.getAll(tenantId),
       ]);
       metricas.value = metricasRes.data;
+      metricasPrev.value = metricasPrevRes.data;
       gastos.value = gastosRes.data;
+      gastosPrev.value = gastosPrevRes.data;
       ventas.value = ventasRes.data;
       facturas.value = facturasRes.data;
     } catch (e: unknown) {
@@ -111,10 +139,13 @@ export function useFinancialDashboard() {
 
   return {
     metricas,
+    metricasPrev,
     gastos,
+    gastosPrev,
     ventas,
     facturas,
     gastosPorCategoria,
+    gastosPorCategoriaPrev,
     actividadReciente,
     facturasPendientes,
     loading,

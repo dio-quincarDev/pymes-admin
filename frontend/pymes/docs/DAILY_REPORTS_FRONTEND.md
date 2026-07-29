@@ -4,6 +4,80 @@ Registro cronológico de decisiones, problemas resueltos y estado del frontend.
 
 ---
 
+## 2026-07-29 — Analytics Suite + Invitation UX/UI fixes
+
+### Contexto
+
+Se implementó el rediseño de la suite de analytics (spec en `.ulpi/design/analytics-suite.md`) y se corrigieron 2 bugs UX/UI en el flujo de invitación/registro.
+
+### Analytics Suite — componentes nuevos
+
+5 componentes creados en `src/modules/core/components/analytics/`:
+
+| Componente | Props | Descripción |
+|------------|-------|-------------|
+| `AnalyticsHeader.vue` | title, subtitle, period, loading, showRecalculate | Header compartido con selector de período y botón recalcular |
+| `KpiCard.vue` | label, value, delta, deltaLabel, accent, loading | Card de métrica con sparkline inline opcional |
+| `MetricCard.vue` | label, value, icon, trend, previousAmount | Card de métrica con tendencia |
+| `CategoryBreakdownChart.vue` | categories, loading, title | Gráfico de barras comparativo por período |
+| `DataTable.vue` | columns, rows, loading, title, search, pagination | Wrapper de QTable con tokens de DESIGN.md |
+
+### Páginas refactorizadas
+
+**DashboardPage.vue:**
+- Reemplazado header manual + `StatStrip` + `PeriodSelector` por `AnalyticsHeader` + 4 `KpiCard` + `CategoryBreakdownChart`
+- Eliminado gradient text, layout 2 columnas para chart + actividad reciente
+- Composable `useFinancialDashboard.ts` ya tenía datos de período anterior — sin cambios necesarios
+
+**AnalisisGastosPage.vue:**
+- Reemplazado header por `AnalyticsHeader`, 3 `MetricCard`, `CategoryBreakdownChart`, `DataTable`, panel de alertas con severity badge
+
+**AccountingPage.vue:**
+- Reemplazado header por `AnalyticsHeader`, 6 `KpiCard` con delta, `SummaryCard` refinado
+- Eliminado gradient text
+
+### Invitation flow — UX/UI fixes
+
+**BaseButton.vue — bug fix:**
+- Agregado `label?: string` prop + fallback `<span v-if="!$slots.default && label">{{ label }}</span>` después del `<slot />`
+- Antes: `AcceptInvitationPage` y `TeamsPage` pasaban `label="..."` pero el componente solo renderizaba via `<slot />` → botones vacíos
+
+**AcceptInvitationPage.vue — dark mode forms:**
+- 4 `q-input` (name, email, password, confirmPassword): `outlined dense` → `dark filled color="primary" label-color="accent"`
+
+**TeamsPage.vue — dark mode forms:**
+- 3 fields (email `q-input`, rol `q-select` invite dialog, rol `q-select` role dialog): `outlined dense` → `dark filled color="primary" label-color="accent"`
+
+### Archivos modificados
+
+```
+src/modules/core/components/analytics/AnalyticsHeader.vue     # refactor: periodOptions a script setup
+src/modules/core/components/analytics/KpiCard.vue             # nuevo
+src/modules/core/components/analytics/MetricCard.vue          # nuevo
+src/modules/core/components/analytics/CategoryBreakdownChart.vue  # nuevo
+src/modules/core/components/analytics/DataTable.vue           # nuevo
+src/pages/DashboardPage.vue                                   # refactor con analytics components
+src/modules/core/pages/AnalisisGastosPage.vue                 # refactor con analytics components
+src/modules/core/pages/AccountingPage.vue                     # refactor con analytics components
+src/components/base/BaseButton.vue                            # +label prop + fallback render
+src/modules/auth/pages/AcceptInvitationPage.vue               # dark mode forms
+src/modules/auth/pages/TeamsPage.vue                          # dark mode forms
+```
+
+### Design spec
+
+- `.ulpi/design/analytics-suite.md` — spec completo del rediseño
+- `.ulpi/design/invitation-flow-fix.md` — spec de los fixes de invitación
+
+### Build
+
+- `npm run lint`: ✅
+- `npm run build`: ✅
+
+**Estado:** ✅ RESUELTO
+
+---
+
 ## 2026-07-28 — TeamsPage migrado a auth + onAccept fix
 
 ### Problema

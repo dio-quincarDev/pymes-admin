@@ -76,7 +76,10 @@
           <q-input
             v-model="inviteForm.email"
             label="Email"
-            outlined
+            dark
+            filled
+            color="primary"
+            label-color="accent"
             dense
             :rules="[val => !!val || 'Requerido', val => /.+@.+/.test(val) || 'Email inválido']"
           />
@@ -84,7 +87,10 @@
             v-model="inviteForm.role"
             :options="roleOptions"
             label="Rol"
-            outlined
+            dark
+            filled
+            color="primary"
+            label-color="accent"
             dense
           />
         </q-card-section>
@@ -114,7 +120,10 @@
             v-model="newRole"
             :options="roleOptions"
             label="Nuevo rol"
-            outlined
+            dark
+            filled
+            color="primary"
+            label-color="accent"
             dense
           />
         </q-card-section>

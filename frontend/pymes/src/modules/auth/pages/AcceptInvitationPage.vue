@@ -72,14 +72,20 @@
               <q-input
                 v-model="form.name"
                 label="Tu nombre"
-                outlined
+                dark
+                filled
+                color="primary"
+                label-color="accent"
                 dense
                 :rules="[val => !!val || 'Nombre requerido']"
               />
               <q-input
                 v-model="form.email"
                 :label="invitationInfo.email"
-                outlined
+                dark
+                filled
+                color="primary"
+                label-color="accent"
                 dense
                 disable
               />
@@ -87,7 +93,10 @@
                 v-model="form.password"
                 label="Contraseña"
                 type="password"
-                outlined
+                dark
+                filled
+                color="primary"
+                label-color="accent"
                 dense
                 :rules="[val => val && val.length >= 8 || 'Mínimo 8 caracteres']"
               />
@@ -95,7 +104,10 @@
                 v-model="form.confirmPassword"
                 label="Confirmar contraseña"
                 type="password"
-                outlined
+                dark
+                filled
+                color="primary"
+                label-color="accent"
                 dense
                 :rules="[val => val === form.password || 'Las contraseñas no coinciden']"
               />

@@ -18,6 +18,7 @@
     <span v-else class="content-wrapper">
       <q-icon v-if="iconLeft" :name="iconLeft" class="icon-left" />
       <slot />
+      <span v-if="!$slots.default && label">{{ label }}</span>
       <q-icon v-if="iconRight" :name="iconRight" class="icon-right" />
     </span>
   </component>
@@ -34,6 +35,7 @@ interface Props {
   disabled?: boolean;
   iconLeft?: string;
   iconRight?: string;
+  label?: string;
 }
 
 const props = withDefaults(defineProps<Props>(), {
