@@ -3,7 +3,10 @@ package auth.pymes.controller;
 import auth.pymes.common.constants.ApiPathConstants;
 import auth.pymes.common.models.dto.request.AcceptInvitationRequest;
 import auth.pymes.common.models.dto.request.CreateInvitationRequest;
+import auth.pymes.common.models.dto.request.InvitationRegisterRequest;
 import auth.pymes.common.models.dto.response.ApiResponse;
+import auth.pymes.common.models.dto.response.AuthResponse;
+import auth.pymes.common.models.dto.response.InvitationInfoResponse;
 import auth.pymes.common.models.dto.response.InvitationResponse;
 import io.swagger.v3.oas.annotations.Operation;
 import io.swagger.v3.oas.annotations.tags.Tag;
@@ -20,6 +23,17 @@ import java.util.UUID;
 @Tag(name = "Invitations", description = "Endpoints de gestión de invitaciones")
 @RequestMapping(ApiPathConstants.V1_ROUTE + ApiPathConstants.INVITATIONS_ROUTE)
 public interface InvitationApi {
+
+    @Operation(summary = "Obtener info de invitación", description = "Preview público: email + nombre del tenant")
+    @GetMapping(ApiPathConstants.INVITATIONS_TOKEN_INFO)
+    ResponseEntity<ApiResponse<InvitationInfoResponse>> getInvitationInfo(
+            @PathVariable String token);
+
+    @Operation(summary = "Registro por invitación", description = "Crea usuario + acepta invitación en una transacción")
+    @PostMapping(ApiPathConstants.INVITATIONS_TOKEN_REGISTER)
+    ResponseEntity<ApiResponse<AuthResponse>> registerAndAccept(
+            @PathVariable String token,
+            @Valid @RequestBody InvitationRegisterRequest request);
 
     @Operation(summary = "Obtener invitaciones pendientes", description = "Lista las invitaciones pendientes del usuario")
     @GetMapping

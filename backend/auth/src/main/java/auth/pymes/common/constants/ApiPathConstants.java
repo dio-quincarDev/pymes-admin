@@ -35,6 +35,8 @@ public class ApiPathConstants {
 
     // Invitation sub-paths
     public static final String INVITATIONS_ACCEPT = "/accept";
+    public static final String INVITATIONS_TOKEN_INFO = "/{token}/info";
+    public static final String INVITATIONS_TOKEN_REGISTER = "/{token}/register";
 
     // Full paths for security config
     public static final String FULL_AUTH_REGISTER = V1_ROUTE + AUTH_ROUTE + AUTH_REGISTER;

@@ -47,7 +47,7 @@ public class Tenant {
 
     @Column(name = "max_users", nullable = false)
     @Builder.Default
-    private Integer maxUsers = 1;
+    private Integer maxUsers = 2;
 
     @Column(name = "stripe_customer_id")
     private String stripeCustomerId;

@@ -1,6 +1,7 @@
 package auth.pymes.integration.api;
 
 import auth.pymes.common.models.dto.request.CreateInvitationRequest;
+import auth.pymes.common.models.dto.request.InvitationRegisterRequest;
 import auth.pymes.common.models.dto.request.LoginRequest;
 import auth.pymes.common.models.dto.request.RegisterRequest;
 import auth.pymes.common.models.enums.RoleName;
@@ -123,6 +124,19 @@ class InvitationServiceIntegrationTest extends AbstractIntegrationTest {
         jdbcTemplate.update("DELETE FROM tenants WHERE slug = ?", tenantSlug);
     }
 
+    private String createInvitationAndGetToken(String email, RoleName role) throws Exception {
+        CreateInvitationRequest request = new CreateInvitationRequest(tenantId, email, role);
+        mockMvc.perform(post(TestApiPaths.INVITATIONS)
+                        .contentType(MediaType.APPLICATION_JSON)
+                        .header("Authorization", "Bearer " + ownerToken)
+                        .content(objectMapper.writeValueAsString(request)))
+                .andExpect(status().isOk());
+
+        return jdbcTemplate.queryForObject(
+                "SELECT token FROM invitations WHERE email = ? AND tenant_id = ?",
+                String.class, email, tenantId);
+    }
+
     @Test
     @DisplayName("Owner can invite a new user with ADMIN role")
     void ownerCanInviteAdmin() throws Exception {
@@ -148,6 +162,116 @@ class InvitationServiceIntegrationTest extends AbstractIntegrationTest {
                         .contentType(MediaType.APPLICATION_JSON)
                         .header("Authorization", "Bearer " + ownerToken)
                         .content(objectMapper.writeValueAsString(request)))
+                .andExpect(status().isBadRequest());
+    }
+
+    @Test
+    @DisplayName("GET /{token}/info — valid token returns email + tenantName")
+    void getInvitationInfo_Success() throws Exception {
+        String token = createInvitationAndGetToken(targetEmail, RoleName.ADMIN);
+
+        mockMvc.perform(org.springframework.test.web.servlet.request.MockMvcRequestBuilders
+                        .get(TestApiPaths.invitationsTokenInfo(token)))
+                .andExpect(status().isOk())
+                .andExpect(jsonPath("$.data.email").value(targetEmail))
+                .andExpect(jsonPath("$.data.tenantName").value("Int Test Corp"));
+    }
+
+    @Test
+    @DisplayName("GET /{token}/info — expired token → 400")
+    void getInvitationInfo_Expired() throws Exception {
+        String expiredToken = "expired-token-" + UUID.randomUUID();
+        jdbcTemplate.update(
+                "INSERT INTO invitations (id, tenant_id, email, role, invited_by, token, expires_at, created_at) " +
+                        "VALUES (?, ?, ?, 'ADMIN', (SELECT id FROM users WHERE email = ?), ?, CURRENT_TIMESTAMP - INTERVAL '2 days', CURRENT_TIMESTAMP)",
+                UUID.randomUUID(), tenantId, targetEmail, ownerEmail, expiredToken);
+
+        mockMvc.perform(org.springframework.test.web.servlet.request.MockMvcRequestBuilders
+                        .get(TestApiPaths.invitationsTokenInfo(expiredToken)))
+                .andExpect(status().isBadRequest());
+    }
+
+    @Test
+    @DisplayName("GET /{token}/info — non-existent token → 404")
+    void getInvitationInfo_NotFound() throws Exception {
+        mockMvc.perform(org.springframework.test.web.servlet.request.MockMvcRequestBuilders
+                        .get(TestApiPaths.invitationsTokenInfo("no-such-token")))
+                .andExpect(status().isNotFound());
+    }
+
+    @Test
+    @DisplayName("POST /{token}/register — happy path creates user + returns JWT + login works")
+    void registerAndAccept_Success() throws Exception {
+        String token = createInvitationAndGetToken(targetEmail, RoleName.CONTABLE);
+        InvitationRegisterRequest registerRequest = new InvitationRegisterRequest("Int Member", targetEmail, "MemberPass123!");
+
+        MvcResult result = mockMvc.perform(post(TestApiPaths.invitationsTokenRegister(token))
+                        .contentType(MediaType.APPLICATION_JSON)
+                        .content(objectMapper.writeValueAsString(registerRequest)))
+                .andExpect(status().isOk())
+                .andExpect(jsonPath("$.data.accessToken").isNotEmpty())
+                .andExpect(jsonPath("$.data.refreshToken").isNotEmpty())
+                .andExpect(jsonPath("$.data.user.email").value(targetEmail.toLowerCase()))
+                .andReturn();
+
+        String accessToken = objectMapper.readTree(result.getResponse().getContentAsString())
+                .at("/data/accessToken").asText();
+
+        mockMvc.perform(post(TestApiPaths.AUTH_LOGIN)
+                        .contentType(MediaType.APPLICATION_JSON)
+                        .content(objectMapper.writeValueAsString(new LoginRequest(targetEmail, "MemberPass123!"))))
+                .andExpect(status().isOk())
+                .andExpect(jsonPath("$.data.accessToken").isNotEmpty());
+
+        String acceptedAt = jdbcTemplate.queryForObject(
+                "SELECT accepted_at::text FROM invitations WHERE token = ?",
+                String.class, token);
+        org.assertj.core.api.Assertions.assertThat(acceptedAt).isNotNull();
+    }
+
+    @Test
+    @DisplayName("POST /{token}/register — email already exists → 400 USR004")
+    void registerAndAccept_EmailExists() throws Exception {
+        String token = createInvitationAndGetToken(targetEmail, RoleName.VIEWER);
+
+        jdbcTemplate.update(
+                "INSERT INTO users (id, name, email, password, provider, provider_id, is_active, email_verified_at, created_at) " +
+                        "VALUES (?, ?, ?, ?, 'LOCAL', ?, true, CURRENT_TIMESTAMP, CURRENT_TIMESTAMP)",
+                UUID.randomUUID(), "Dup User", targetEmail, "hashed", targetEmail);
+
+        InvitationRegisterRequest registerAndAcceptRequest = new InvitationRegisterRequest("Dup User", targetEmail, "MemberPass123!");
+        mockMvc.perform(post(TestApiPaths.invitationsTokenRegister(token))
+                        .contentType(MediaType.APPLICATION_JSON)
+                        .content(objectMapper.writeValueAsString(registerAndAcceptRequest)))
+                .andExpect(status().isConflict());
+    }
+
+    @Test
+    @DisplayName("POST /{token}/register — expired token → 400")
+    void registerAndAccept_Expired() throws Exception {
+        String expiredToken = "expired-reg-" + UUID.randomUUID();
+        jdbcTemplate.update(
+                "INSERT INTO invitations (id, tenant_id, email, role, invited_by, token, expires_at, created_at) " +
+                        "VALUES (?, ?, ?, 'ADMIN', (SELECT id FROM users WHERE email = ?), ?, CURRENT_TIMESTAMP - INTERVAL '2 days', CURRENT_TIMESTAMP)",
+                UUID.randomUUID(), tenantId, targetEmail, ownerEmail, expiredToken);
+
+        InvitationRegisterRequest registerRequest = new InvitationRegisterRequest("Expired User", targetEmail, "MemberPass123!");
+
+        mockMvc.perform(post(TestApiPaths.invitationsTokenRegister(expiredToken))
+                        .contentType(MediaType.APPLICATION_JSON)
+                        .content(objectMapper.writeValueAsString(registerRequest)))
+                .andExpect(status().isBadRequest());
+    }
+
+    @Test
+    @DisplayName("POST /{token}/register — weak password → 400")
+    void registerAndAccept_WeakPassword() throws Exception {
+        String token = createInvitationAndGetToken(targetEmail, RoleName.ADMIN);
+        InvitationRegisterRequest registerRequest = new InvitationRegisterRequest("Weak User", targetEmail, "123");
+
+        mockMvc.perform(post(TestApiPaths.invitationsTokenRegister(token))
+                        .contentType(MediaType.APPLICATION_JSON)
+                        .content(objectMapper.writeValueAsString(registerRequest)))
                 .andExpect(status().isBadRequest());
     }
 }

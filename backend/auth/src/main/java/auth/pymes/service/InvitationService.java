@@ -1,6 +1,9 @@
 package auth.pymes.service;
 
 import auth.pymes.common.models.dto.request.CreateInvitationRequest;
+import auth.pymes.common.models.dto.request.InvitationRegisterRequest;
+import auth.pymes.common.models.dto.response.AuthResponse;
+import auth.pymes.common.models.dto.response.InvitationInfoResponse;
 import auth.pymes.common.models.dto.response.InvitationResponse;
 import org.springframework.data.domain.Page;
 import org.springframework.data.domain.Pageable;
@@ -8,23 +11,16 @@ import org.springframework.data.domain.Pageable;
 import java.util.UUID;
 
 public interface InvitationService {
-    /**
-     * Obtiene las invitaciones pendientes del usuario (paginado).
-     */
+
+    InvitationInfoResponse getInvitationInfo(String token);
+
+    AuthResponse registerAndAccept(String token, InvitationRegisterRequest request);
+
     Page<InvitationResponse> getPendingInvitations(Pageable pageable, Object principal);
 
-    /**
-     * Crea una invitación para un usuario.
-     */
     InvitationResponse createInvitation(CreateInvitationRequest request, Object principal);
 
-    /**
-     * Acepta una invitación usando el token.
-     */
     InvitationResponse acceptInvitation(String invitationToken, Object principal);
 
-    /**
-     * Cancela una invitación.
-     */
     void cancelInvitation(UUID invitationId, Object principal);
 }

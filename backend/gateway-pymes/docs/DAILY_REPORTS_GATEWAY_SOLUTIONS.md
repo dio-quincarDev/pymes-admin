@@ -4,6 +4,12 @@ Registro cronológico de problemas resueltos y decisiones de implementación en 
 
 ---
 
+## 2026-07-28 — Sin cambios
+
+TeamsPage migration fue solo frontend/auth. Gateway no requiere modificaciones.
+
+---
+
 ## 2026-07-16 — CORS Bug: `globalcors` reinstalado con `allowed-origins` (doble capa)
 
 ### Problema

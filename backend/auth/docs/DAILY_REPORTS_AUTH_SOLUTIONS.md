@@ -28,6 +28,7 @@ A partir de 2026-07-16, CORS opera en **doble capa**:
 - **Defensa en profundidad + Code Exchange OAuth2** — En proceso de validación y robustecimiento continuo.
 
 ### ✅ Historial de Soluciones (Orden Cronológico Inverso)
+0. [2026-07-28 — Invitación MVP: email mismatch + TeamsPage fix](#-2026-07-28--invitación-mvp-email-mismatch--teamspage-fix)
 1. [2026-07-21 — Whitelist unificada (C1 critical)](#-2026-07-21--whitelist-unificada-c1-critical)
 2. [2026-07-16 — Auth criticals (JWT, logout, cookie) + CORS dual layer](#-2026-07-16--auth-criticals-jwt-logout-cookie--cors-dual-layer)
 2. [2026-06-24 — Fix UserServiceImplTest (4 errores)](#-2026-06-24--fix-userserviceimpltest-4-errores)
@@ -60,6 +61,52 @@ A partir de 2026-07-16, CORS opera en **doble capa**:
 26. [2026-04-11 — Email Verification Logic](#-2026-04-11--email-verification-logic)
 27. [2026-04-11 — Password Reset Logic](#-2026-04-11--password-reset-logic)
 28. [2026-04-09 — Testcontainers Setup](#-2026-04-09--testcontainers-setup)
+
+---
+
+## 2026-07-28 — Invitación MVP: email mismatch + TeamsPage fix
+
+### Problema
+
+1. `AcceptInvitationPage.vue` tenía un bug crítico: `onAccept()` hacía `response as AuthResponse` pero el endpoint de aceptar invitación no retorna `AuthResponse` — el usuario ya está autenticado cuando acepta.
+2. `TeamsPage.vue` estaba en `core/pages/` pero debería estar en `auth/pages/` (es funcionalidad de autenticación/members, no core).
+3. No existía manejo de mismatch de email: si un usuario autenticado con email A abre una invitación para email B, se comportaba erróneamente.
+4. No existía `selectTenant` en el store de auth.
+
+### Fix
+
+**AcceptInvitationPage.vue:**
+- `onAccept()` ahora hace `await invitationService.accept(token)` + `await fetchCurrentUser()` sin castear como `AuthResponse`
+- Nuevo computed `emailMismatch`: compara `currentUser.email` con `invitationInfo.email`
+- Muestra alerta "Email no coincide" con botón "Cerrar sesión y registrarme"
+
+**TeamsPage.vue:**
+- Movido de `modules/core/pages/` → `modules/auth/pages/`
+- Imports actualizados: `useAuthStore` en vez de `useSetupStore`
+- `fetchMembers()` usa `authStore.user.tenantId`
+
+**Router:**
+- Ruta `/teams` removida de `coreRoutes`
+- Creado `authDashboardRoutes` en `modules/auth/router/routes.ts`
+- Importado en `src/router/routes.ts`
+
+**Auth store:**
+- Acción `selectTenant(tenantId)` agregada — llama `tenantService.selectTenant(tenantId)`
+
+### Tests
+
+140 unit tests auth + 37 gateway = todos pasan. 9 integration tests pasan.
+
+### Archivos modificados
+
+```
+frontend/pymes/src/modules/auth/pages/AcceptInvitationPage.vue   # onAccept fix + email mismatch
+frontend/pymes/src/modules/auth/pages/TeamsPage.vue               # moved from core
+frontend/pymes/src/modules/auth/store/index.ts                   # selectTenant action
+frontend/pymes/src/modules/auth/router/routes.ts                 # authDashboardRoutes
+frontend/pymes/src/modules/core/router/routes.ts                 # removed /teams route
+frontend/pymes/src/router/routes.ts                              # imports authDashboardRoutes
+```
 
 ---
 

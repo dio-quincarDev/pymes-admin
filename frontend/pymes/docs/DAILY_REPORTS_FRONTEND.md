@@ -4,6 +4,51 @@ Registro cronológico de decisiones, problemas resueltos y estado del frontend.
 
 ---
 
+## 2026-07-28 — TeamsPage migrado a auth + onAccept fix
+
+### Problema
+
+1. `TeamsPage.vue` estaba en `modules/core/pages/` — pero es funcionalidad de autenticación/members, no core business.
+2. `AcceptInvitationPage.vue` tenía bug crítico: `onAccept()` hacía `response as AuthResponse` pero el endpoint de aceptar invitación no retorna `AuthResponse`.
+3. No existía manejo de mismatch de email entre usuario autenticado y email de la invitación.
+
+### Solución
+
+**AcceptInvitationPage.vue:**
+- `onAccept()` ahora hace `await invitationService.accept(token)` + `fetchCurrentUser()` (sin cast)
+- Nuevo computed `emailMismatch`: compara `currentUser.email` con `invitationInfo.email`
+- Muestra alerta "Email no coincide" con botón "Cerrar sesión y registrarme"
+
+**TeamsPage.vue:**
+- Movido de `modules/core/pages/` → `modules/auth/pages/`
+- Imports actualizados: `useAuthStore` en vez de `useSetupStore`
+- `fetchMembers()` usa `authStore.user.tenantId`
+
+**Router:**
+- Ruta `/teams` removida de `coreRoutes`
+- Creado `authDashboardRoutes` en `modules/auth/router/routes.ts`
+- Importado en `src/router/routes.ts`
+
+### Archivos modificados
+
+```
+src/modules/auth/pages/AcceptInvitationPage.vue   # onAccept fix + email mismatch
+src/modules/auth/pages/TeamsPage.vue               # moved from core
+src/modules/auth/store/index.ts                   # selectTenant action
+src/modules/auth/router/routes.ts                 # authDashboardRoutes
+src/modules/core/router/routes.ts                 # removed /teams route
+src/router/routes.ts                              # imports authDashboardRoutes
+```
+
+### Build
+
+- `npm run lint`: ✅
+- `npm run build`: ✅
+
+**Estado:** ✅ RESUELTO
+
+---
+
 ## 2026-07-27 — Fix paginación ProductosPage
 
 ### Problema

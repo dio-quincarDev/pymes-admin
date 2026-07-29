@@ -29,4 +29,12 @@ public final class TestApiPaths {
 
     public static final String INVITATIONS = ApiPathConstants.V1_ROUTE + ApiPathConstants.INVITATIONS_ROUTE;
     public static final String INVITATIONS_ACCEPT = INVITATIONS + ApiPathConstants.INVITATIONS_ACCEPT;
+
+    public static String invitationsTokenInfo(String token) {
+        return INVITATIONS + "/" + token + "/info";
+    }
+
+    public static String invitationsTokenRegister(String token) {
+        return INVITATIONS + "/" + token + "/register";
+    }
 }

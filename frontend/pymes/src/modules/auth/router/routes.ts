@@ -1,5 +1,14 @@
 import type { RouteRecordRaw } from 'vue-router';
 
+export const authDashboardRoutes: RouteRecordRaw[] = [
+  {
+    path: 'teams',
+    name: 'teams',
+    component: () => import('../pages/TeamsPage.vue'),
+    meta: { title: 'Equipo', roles: ['OWNER', 'ADMIN'] },
+  },
+];
+
 export const authRoutes: RouteRecordRaw[] = [
   {
     path: '/login',

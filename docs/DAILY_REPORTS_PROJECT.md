@@ -4,6 +4,46 @@ Registro cronológico de decisiones técnicas, refactors y post-mortems del proy
 
 ---
 
+## 2026-07-28 — TeamsPage migration + onAccept email mismatch fix
+
+### Contexto
+
+UX/UI issues reportados por usuario: colores invertidos en formulario, nombres de botones no visibles. Se procedió a investigar y corregir bugs críticos del sistema de invitación.
+
+### Qué se hizo
+
+**Backend (auth):**
+- `selectTenant(tenantId)` agregado a `AuthStore` — llama `tenantService.selectTenant(tenantId)`
+
+**Frontend:**
+- `TeamsPage.vue` movido de `modules/core/pages/` → `modules/auth/pages/` (es funcionalidad auth, no core)
+- `AcceptInvitationPage.vue` bug fix: `onAccept()` ya no castea como `AuthResponse`; ahora hace `await invitationService.accept(token)` + `fetchCurrentUser()`
+- Nuevo computed `emailMismatch`: valida que email autenticado coincida con email de la invitación
+- Router: `/teams` removido de `coreRoutes`, nuevo `authDashboardRoutes` en auth
+
+**UX/UI issues identificados (pendientes):**
+- BaseButton usa `<slot />` pero AcceptInvitationPage/TeamsPage pasan `label="..."` → botones renderizan vacíos
+- Form fields usan `outlined dense` sin `dark filled color="primary" label-color="accent"` → colores invertidos en dark mode
+
+### Archivos modificados
+
+```
+frontend/pymes/src/modules/auth/pages/AcceptInvitationPage.vue   # onAccept fix + email mismatch
+frontend/pymes/src/modules/auth/pages/TeamsPage.vue               # moved from core
+frontend/pymes/src/modules/auth/store/index.ts                   # selectTenant action
+frontend/pymes/src/modules/auth/router/routes.ts                 # authDashboardRoutes
+frontend/pymes/src/modules/core/router/routes.ts                 # removed /teams route
+frontend/pymes/src/router/routes.ts                              # imports authDashboardRoutes
+backend/auth/docs/DAILY_REPORTS_AUTH_SOLUTIONS.md                # entry added
+frontend/pymes/docs/DAILY_REPORTS_FRONTEND.md                    # entry added
+```
+
+### Tests
+
+140 auth + 37 gateway unit tests + 9 integration tests = todos pasan. Lint + build frontend limpio.
+
+---
+
 ## 2026-07-27 — CI/CD Security Hardening + Efficiency
 
 ### Contexto

@@ -71,7 +71,11 @@ public class SecurityConfig {
             ApiPathConstants.FULL_AUTH_OAUTH2_INTENT,
             ApiPathConstants.V1_ROUTE + ApiPathConstants.AUTH_ROUTE + "/oauth2/intent/**",
             // OAuth2 code exchange (public — intercambia código por tokens)
-            ApiPathConstants.V1_ROUTE + ApiPathConstants.AUTH_ROUTE + "/exchange"
+            ApiPathConstants.V1_ROUTE + ApiPathConstants.AUTH_ROUTE + "/exchange",
+            // Invitation public endpoints (register + accept)
+            ApiPathConstants.V1_ROUTE + ApiPathConstants.INVITATIONS_ROUTE + "/*/info",
+            ApiPathConstants.V1_ROUTE + ApiPathConstants.INVITATIONS_ROUTE + "/*/register",
+            ApiPathConstants.V1_ROUTE + ApiPathConstants.INVITATIONS_ROUTE + "/accept"
     };
 
     @Bean

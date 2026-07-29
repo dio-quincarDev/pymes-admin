@@ -23,6 +23,22 @@ Registro de lo implementado y lo pendiente.
 
 ---
 
+## 2026-07-28 — TeamsPage migration out of core
+
+### Cambio
+
+`TeamsPage.vue` movido de `modules/core/pages/` → `modules/auth/pages/`. Ruta `/teams` removida de `coreRoutes` en `modules/core/router/routes.ts`.
+
+Teams management es funcionalidad de autenticación/members, no core business logic. El módulo core ahora solo contiene: Setup, Products, Invoices, Gastos, Préstamos, Inversiones, Ventas, Contabilidad.
+
+### Archivos modificados
+
+```
+frontend/pymes/src/modules/core/router/routes.ts   # removed /teams route
+```
+
+---
+
 ## 2026-07-21 — Exception Strategy + Frontend error consumption + SQL review
 
 ### Exception Strategy (EXCEPTION_STRATEGY.md → implementado)

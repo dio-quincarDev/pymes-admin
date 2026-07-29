@@ -2,7 +2,10 @@ package auth.pymes.controller.impl;
 
 import auth.pymes.common.models.dto.request.AcceptInvitationRequest;
 import auth.pymes.common.models.dto.request.CreateInvitationRequest;
+import auth.pymes.common.models.dto.request.InvitationRegisterRequest;
 import auth.pymes.common.models.dto.response.ApiResponse;
+import auth.pymes.common.models.dto.response.AuthResponse;
+import auth.pymes.common.models.dto.response.InvitationInfoResponse;
 import auth.pymes.common.models.dto.response.InvitationResponse;
 import auth.pymes.controller.InvitationApi;
 import auth.pymes.service.InvitationService;
@@ -22,6 +25,19 @@ import java.util.UUID;
 public class InvitationApiController implements InvitationApi {
 
     private final InvitationService invitationService;
+
+    @Override
+    public ResponseEntity<ApiResponse<InvitationInfoResponse>> getInvitationInfo(String token) {
+        InvitationInfoResponse info = invitationService.getInvitationInfo(token);
+        return ResponseEntity.ok(ApiResponse.ok(info));
+    }
+
+    @Override
+    public ResponseEntity<ApiResponse<AuthResponse>> registerAndAccept(
+            String token, InvitationRegisterRequest request) {
+        AuthResponse response = invitationService.registerAndAccept(token, request);
+        return ResponseEntity.ok(ApiResponse.ok(response));
+    }
 
     @Override
     public ResponseEntity<ApiResponse<Page<InvitationResponse>>> getPendingInvitations(

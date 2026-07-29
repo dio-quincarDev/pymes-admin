@@ -131,12 +131,14 @@ import { ref, onMounted, onUnmounted, computed } from 'vue';
 import { useQuasar } from 'quasar';
 import { useRoute, useRouter } from 'vue-router';
 import { useLogout } from 'src/composables/useLogout';
+import { useAuthStore } from 'src/modules/auth/store';
 import BaseButton from 'src/components/base/BaseButton.vue';
 
 const $q = useQuasar();
 const route = useRoute();
 const router = useRouter();
 const { logout: handleLogout } = useLogout();
+const authStore = useAuthStore();
 
 const leftDrawerOpen = ref(false);
 const activeRoute = computed(() => route.path);
@@ -197,33 +199,39 @@ interface NavGroup {
   items: NavItem[]
 }
 
-const navGroups: NavGroup[] = [
-  {
-    label: 'Operaciones',
-    items: [
-      { title: 'Dashboard', icon: 'dashboard', path: '/dashboard' },
-      { title: 'Productos', icon: 'inventory_2', path: '/dashboard/productos' },
-      { title: 'Proveedores', icon: 'people', path: '/dashboard/proveedores' },
-      { title: 'Facturas', icon: 'receipt_long', path: '/dashboard/facturas' },
-    ],
-  },
-  {
-    label: 'Análisis',
-    items: [
-      { title: 'Gastos', icon: 'money_off', path: '/dashboard/gastos' },
-      { title: 'Análisis', icon: 'analytics', path: '/dashboard/analisis-gastos' },
-      { title: 'Ventas', icon: 'point_of_sale', path: '/dashboard/ventas' },
-      { title: 'Patrimonio', icon: 'savings', path: '/dashboard/patrimonio' },
-    ],
-  },
-  {
-    label: 'Sistema',
-    items: [
-      { title: 'Contabilidad', icon: 'balance', path: '/dashboard/accounting' },
-      { title: 'Configuración', icon: 'settings', path: '/dashboard/configuracion' },
-    ],
-  },
-];
+const navGroups = computed<NavGroup[]>(() => {
+  const userRole = authStore.user?.role || '';
+  const canSeeTeams = userRole === 'OWNER' || userRole === 'ADMIN';
+
+  return [
+    {
+      label: 'Operaciones',
+      items: [
+        { title: 'Dashboard', icon: 'dashboard', path: '/dashboard' },
+        { title: 'Productos', icon: 'inventory_2', path: '/dashboard/productos' },
+        { title: 'Proveedores', icon: 'people', path: '/dashboard/proveedores' },
+        { title: 'Facturas', icon: 'receipt_long', path: '/dashboard/facturas' },
+      ],
+    },
+    {
+      label: 'Análisis',
+      items: [
+        { title: 'Gastos', icon: 'money_off', path: '/dashboard/gastos' },
+        { title: 'Análisis', icon: 'analytics', path: '/dashboard/analisis-gastos' },
+        { title: 'Ventas', icon: 'point_of_sale', path: '/dashboard/ventas' },
+        { title: 'Patrimonio', icon: 'savings', path: '/dashboard/patrimonio' },
+      ],
+    },
+    {
+      label: 'Sistema',
+      items: [
+        { title: 'Contabilidad', icon: 'balance', path: '/dashboard/accounting' },
+        ...(canSeeTeams ? [{ title: 'Equipo', icon: 'groups', path: '/dashboard/teams' }] : []),
+        { title: 'Configuración', icon: 'settings', path: '/dashboard/configuracion' },
+      ],
+    },
+  ];
+});
 
 function toggleLeftDrawer() {
   leftDrawerOpen.value = !leftDrawerOpen.value;

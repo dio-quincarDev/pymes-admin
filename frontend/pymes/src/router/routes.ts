@@ -1,5 +1,5 @@
 import type { RouteRecordRaw } from 'vue-router';
-import { authRoutes } from 'src/modules/auth/router/routes';
+import { authRoutes, authDashboardRoutes } from 'src/modules/auth/router/routes';
 import { coreRoutes, onboardingRoute } from 'src/modules/core/router/routes';
 
 const routes: RouteRecordRaw[] = [
@@ -25,6 +25,7 @@ const routes: RouteRecordRaw[] = [
     meta: { requiresAuth: true },
     children: [
       { path: '', component: () => import('pages/DashboardPage.vue') },
+      ...authDashboardRoutes,
       ...coreRoutes
     ],
   },
