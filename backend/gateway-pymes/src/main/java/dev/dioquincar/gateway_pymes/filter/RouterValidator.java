@@ -22,7 +22,6 @@ public class RouterValidator {
             "/api/v1/auth/reset-password",
             "/api/v1/auth/exchange",
             "/api/v1/auth/oauth2/**",
-            "/api/v1/invitations/accept",
             "/api/v1/invitations/*/info",
             "/api/v1/invitations/*/register",
             "/login/**",

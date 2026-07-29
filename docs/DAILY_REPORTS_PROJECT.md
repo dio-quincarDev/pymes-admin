@@ -44,6 +44,31 @@ frontend/pymes/docs/DAILY_REPORTS_FRONTEND.md                    # entry added
 
 ---
 
+## 2026-07-29 — Invitación: accept endpoint quitado de WHITE_LIST (CI fix)
+
+### Contexto
+
+3 tests de `SecurityConstraintIntegrationTest$InsufficientRoleTests.setUpRoles` fallaban en CI con 400. Causa raíz: `POST /api/v1/invitations/accept` estaba en WHITE_LIST (permitAll), el JWT filter lo saltaba, Spring Security creaba autenticación anónima con principal `"anonymousUser"`, el email no coincidía con la invitación → 400.
+
+### Qué se hizo
+
+**Auth `SecurityConfig.java`:** eliminado `/invitations/accept` de WHITE_LIST
+**Gateway `RouterValidator.java`:** eliminado `/api/v1/invitations/accept` de `openEndPoints`
+**Frontend:** sin cambios (el interceptor de axios inyecta el token automáticamente)
+
+### Archivos modificados
+
+```
+backend/auth/src/main/java/auth/pymes/common/config/SecurityConfig.java
+backend/gateway-pymes/src/main/java/dev/dioquincar/gateway_pymes/filter/RouterValidator.java
+```
+
+### Tests
+
+54 integration tests (3 de InsufficientRoleTests ahora pasan ✅), 140 auth unit, 37 gateway unit, frontend lint + build = todo verde.
+
+---
+
 ## 2026-07-27 — CI/CD Security Hardening + Efficiency
 
 ### Contexto

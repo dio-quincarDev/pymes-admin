@@ -115,6 +115,6 @@ Todos implementados inline en cada page (sin componentes separados).
 
 ### Auth — Invitación por Email (estrategia definida)
 
-- [ ] [Alta] **MVP invitaciones: maxUsers 2 + register+accept + TeamsPage** — `Tenant.java` 1→2, `InvitationRegisterRequest`, `InvitationInfoResponse`, `GET /{token}/info` + `POST /{token}/register` públicos, `InvitationServiceImpl.registerAndAccept()` transaccional, `TeamsPage.vue`, nav por roles. Sin cooldown. → [`docs/strategies/EMAIL_INVITATION_STRATEGY.md`](./docs/strategies/EMAIL_INVITATION_STRATEGY.md)
+- [x] [Alta] **MVP invitaciones: maxUsers 2 + register+accept + TeamsPage** — `Tenant.java` 1→2, `InvitationRegisterRequest`, `InvitationInfoResponse`, `GET /{token}/info` + `POST /{token}/register` públicos, `InvitationServiceImpl.registerAndAccept()` transaccional, `TeamsPage.vue`, nav por roles. Sin cooldown. → [`docs/strategies/EMAIL_INVITATION_STRATEGY.md`](./docs/strategies/EMAIL_INVITATION_STRATEGY.md)
 - [ ] [Media] **Role change cooldown (post-MVP)** — V3 migration `last_role_change_at`, `MemberServiceImpl` cooldown check (30d FREE). → ref: EMAIL_INVITATION_STRATEGY.md
 - [ ] [Baja] **Rediseño templates email** — Swiss style branding PymeQ en invitation/verification/password-reset. → ref: EMAIL_INVITATION_STRATEGY.md

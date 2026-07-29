@@ -28,8 +28,9 @@ A partir de 2026-07-16, CORS opera en **doble capa**:
 - **Defensa en profundidad + Code Exchange OAuth2** — En proceso de validación y robustecimiento continuo.
 
 ### ✅ Historial de Soluciones (Orden Cronológico Inverso)
-0. [2026-07-28 — Invitación MVP: email mismatch + TeamsPage fix](#-2026-07-28--invitación-mvp-email-mismatch--teamspage-fix)
-1. [2026-07-21 — Whitelist unificada (C1 critical)](#-2026-07-21--whitelist-unificada-c1-critical)
+0. [2026-07-29 — Invitación: accept endpoint quitado de WHITE_LIST](#-2026-07-29--invitación-accept-endpoint-quitado-de-white_list)
+1. [2026-07-28 — Invitación MVP: email mismatch + TeamsPage fix](#-2026-07-28--invitación-mvp-email-mismatch--teamspage-fix)
+2. [2026-07-21 — Whitelist unificada (C1 critical)](#-2026-07-21--whitelist-unificada-c1-critical)
 2. [2026-07-16 — Auth criticals (JWT, logout, cookie) + CORS dual layer](#-2026-07-16--auth-criticals-jwt-logout-cookie--cors-dual-layer)
 2. [2026-06-24 — Fix UserServiceImplTest (4 errores)](#-2026-06-24--fix-userserviceimpltest-4-errores)
 2. [2026-06-23 — Fix OAuth2 redirect + Redis serialization + APP_FRONTEND_URL](#-2026-06-23--fix-oauth2-redirect--redis-serialization--app_frontend_url)
@@ -108,6 +109,44 @@ frontend/pymes/src/modules/core/router/routes.ts                 # removed /team
 frontend/pymes/src/router/routes.ts                              # imports authDashboardRoutes
 ```
 
+---
+
+## 2026-07-29 — Invitación: accept endpoint quitado de WHITE_LIST
+
+### Problema
+
+`POST /api/v1/invitations/accept` estaba en `SecurityConfig.WHITE_LIST` (permitAll) y en `RouterValidator.openEndPoints` del gateway. Pero el endpoint requiere autenticación — usa `@AuthenticationPrincipal Object principal` para extraer el email del usuario.
+
+Al ser permitAll, el JWT filter lo salta (`shouldNotFilter` → true). Spring Security crea una autenticación anónima con principal = `"anonymousUser"`. `extractEmail("anonymousUser")` retorna `"anonymousUser"`, que nunca coincide con el email real de la invitación → `AuthorizationException(INVALID_INPUT)` → 400 BAD_REQUEST.
+
+3 tests de `InsufficientRoleTests.setUpRoles` fallaban en CI con `Status expected:<200> but was:<400>`.
+
+### Fix
+
+**Auth `SecurityConfig.java`:**
+- Eliminada línea `ApiPathConstants.V1_ROUTE + ApiPathConstants.INVITATIONS_ROUTE + "/accept"` de WHITE_LIST
+- Ahora el JWT filter procesa el endpoint, inyecta el principal correcto del JWT, email coincide → accept funciona
+
+**Gateway `RouterValidator.java`:**
+- Eliminada línea `"/api/v1/invitations/accept"` de `openEndPoints`
+- Consistente con auth: el endpoint requiere autenticación
+
+Los endpoints públicos de invitación siguen siendo solo `/*/info` (preview) y `/*/register` (registro + accept), que no requieren auth.
+
+### Frontend
+
+Sin cambios. `AcceptInvitationPage.vue` solo muestra el botón "Aceptar" cuando `authStore.isAuthenticated` es true. El interceptor de axios inyecta el Bearer token automáticamente.
+
+### Tests
+
+54 integration tests (los 3 de InsufficientRoleTests ahora pasan), 140 unit tests auth, 37 gateway. Frontend lint + build limpios.
+
+### Archivos modificados
+
+```
+backend/auth/src/main/java/auth/pymes/common/config/SecurityConfig.java              # -whitelist entry
+backend/gateway-pymes/src/main/java/dev/dioquincar/gateway_pymes/filter/RouterValidator.java  # -openEndPoints entry
+```
 ---
 
 ## 2026-07-21 — Whitelist unificada (C1 critical)
