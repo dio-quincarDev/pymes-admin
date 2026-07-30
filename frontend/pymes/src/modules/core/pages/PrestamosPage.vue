@@ -174,7 +174,7 @@ function handleKeydown(e: KeyboardEvent) {
 
     <div class="toolbar">
       <q-space />
-      <q-btn color="primary" icon="add" label="Nuevo" @click="openCreate" />
+      <q-btn v-if="rows.length" color="primary" icon="add" label="Nuevo" @click="openCreate" />
     </div>
 
     <div v-if="!loading && !rows.length" class="q-mt-lg">

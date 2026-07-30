@@ -152,6 +152,23 @@
 | 10 | `ProductosPage.vue` | — | **Search filtra en frontend sobre `getAll()`** — para catálogos grandes debería usar `GET /search` paginado del backend (gap #2 existente en tabla superior). | Performance |
 | 11 | `PrestamosPage.vue` | 298-301 | **`pagoForm` sin validación** — amount=0 pasa sin error. | Correctness |
 
+### Code Review Findings (2026-07-30)
+
+#### 🔴 Critical
+
+| # | File | Line | Issue | Severidad |
+|---|------|------|-------|-----------|
+| 1 | `types/index.ts` + `GastosPage.vue` + `gasto.service.ts` | — | **Field name mismatch Gastos** — Frontend envía `{ category, description, amount, expenseDate, paymentMethod }` pero backend `GastoRequest` espera `{ categoria, descripcion, monto, fecha, metodoPago }`. POST/PUT fallan con 400. Mismo patrón que el bug de Patrimonio. | 🔴 Critical | ✅ 2026-07-30 |
+| 2 | `types/index.ts` + `accounting.service.ts` + AccountingPage/DashboardPage | — | **Field name mismatch MetricasFinancieras** — Frontend `MetricasFinancieras` usa inglés (`totalIncome`, `costOfGoods`, `operatingExpenses`, `loanPayments`), backend `MetricasResponse` responde español (`totalIngresos`, `costoMercaderia`, `gastosOperativos`, `pagosPrestamos`). GET /accounting/consultar devuelve datos que no se mapean. | 🔴 Critical |
+
+#### 🟡 Suggestions
+
+| # | File | Line | Suggestion | Categoría |
+|---|------|------|------------|-----------|
+| 1 | `GastoServiceImpl.java` + `GastoController.java` | — | **Date range query existe pero no se expone** — `GastoRepository` tiene `findByTenantIdAndExpenseDateBetween` pero ningún endpoint ni el frontend la usan. No hay forma de filtrar gastos por período desde la UI. | Funcional |
+| 2 | `GastosPage.vue` | — | **Sin paginación** — Trae todos los gastos del tenant. Sin `page`/`size`. Degradación en catálogos grandes. | Performance |
+| 3 | `AnalisisGastosPage.vue` | — | **Misnomer** — A pesar del nombre "Análisis de Gastos", no analiza gastos operativos. Analiza inversión en productos (`totalInvestment`). El nombre confunde al usuario. | UX |
+
 ### Code Review Findings (2026-07-21)
 
 #### 🔴 Critical

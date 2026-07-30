@@ -49,7 +49,7 @@ onMounted(async () => {
       if (!authData?.accessToken) {
         throw new Error('No se recibieron tokens');
       }
-      await authStore.handleOAuthCallback(authData.accessToken, authData.refreshToken);
+      await authStore.handleOAuthCallback(authData.accessToken, authData.refreshToken, authData.activeTenant?.name);
 
       authStore.clearPendingTenant();
 

@@ -37,6 +37,10 @@ function deltaPct(current: number, previous: number): number | undefined {
   return +((current - previous) / Math.abs(previous) * 100).toFixed(1);
 }
 
+function sparkline(prev: number, cur: number): number[] {
+  return [prev, cur];
+}
+
 const kpis = computed(() => {
   const m = metricas.value;
   const p = metricasPrev.value;
@@ -47,6 +51,7 @@ const kpis = computed(() => {
       value: formatCurrency(m.totalIncome),
       delta: p ? deltaPct(m.totalIncome, p.totalIncome) : undefined,
       deltaLabel: 'vs mes anterior',
+      trend: p ? sparkline(p.totalIncome, m.totalIncome) : undefined,
       accent: 'gold' as const,
     },
     {
@@ -54,6 +59,7 @@ const kpis = computed(() => {
       value: formatCurrency(m.costOfGoods),
       delta: p ? deltaPct(m.costOfGoods, p.costOfGoods) : undefined,
       deltaLabel: 'vs mes anterior',
+      trend: p ? sparkline(p.costOfGoods, m.costOfGoods) : undefined,
       accent: 'red' as const,
     },
     {
@@ -61,6 +67,7 @@ const kpis = computed(() => {
       value: formatPercent(m.grossMarginPct),
       delta: p ? deltaPct(m.grossMarginPct, p.grossMarginPct) : undefined,
       deltaLabel: 'vs mes anterior',
+      trend: p ? sparkline(p.grossMarginPct, m.grossMarginPct) : undefined,
       accent: 'green' as const,
     },
     {
@@ -68,6 +75,7 @@ const kpis = computed(() => {
       value: formatCurrency(m.operatingExpenses),
       delta: p ? deltaPct(m.operatingExpenses, p.operatingExpenses) : undefined,
       deltaLabel: 'vs mes anterior',
+      trend: p ? sparkline(p.operatingExpenses, m.operatingExpenses) : undefined,
       accent: 'blue' as const,
     },
   ];
@@ -75,9 +83,9 @@ const kpis = computed(() => {
 
 const categoryItems = computed(() =>
   gastosPorCategoria.value.map((g) => {
-    const prev = gastosPorCategoriaPrev.value.find((p) => p.category === g.category);
+    const prev = gastosPorCategoriaPrev.value.find((p) => p.categoria === g.categoria);
     return {
-      category: g.category,
+      category: g.categoria,
       currentAmount: g.total,
       previousAmount: prev?.total,
       percentage: g.pct,
@@ -125,6 +133,7 @@ const categoryItems = computed(() =>
           :delta="kpi.delta"
           :delta-label="kpi.deltaLabel"
           :accent="kpi.accent"
+          :trend="kpi.trend"
           :loading="loading"
         />
       </div>

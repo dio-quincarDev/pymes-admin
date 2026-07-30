@@ -10,6 +10,21 @@
       Sin conexión — los datos mostrados pueden no estar actualizados
     </q-banner>
 
+    <q-banner
+      v-if="showInstallBanner"
+      class="install-banner text-center q-py-xs"
+      role="alert"
+    >
+      <template v-slot:avatar>
+        <q-icon name="download" />
+      </template>
+      Instala PYMEQ para una experiencia más rápida
+      <template v-slot:action>
+        <q-btn flat dense no-caps label="Instalar" class="install-banner__btn" @click="installApp" />
+        <q-btn flat dense no-caps label="Ahora no" class="install-banner__dismiss" @click="dismissInstall" />
+      </template>
+    </q-banner>
+
     <!-- Header — minimal, institutional -->
     <q-header class="main-header">
       <q-toolbar class="q-px-lg">
@@ -26,11 +41,18 @@
         </q-toolbar-title>
 
         <q-btn round flat aria-label="Menú de usuario" aria-haspopup="menu">
-          <q-avatar size="32px">
-            <img src="https://cdn.quasar.dev/img/avatar.png" alt="" aria-hidden="true">
+          <q-avatar size="32px" style="background: var(--pq-accent); color: var(--pq-background); font-family: 'Geist', sans-serif; font-weight: 700; font-size: 14px;">
+            {{ userInitials }}
           </q-avatar>
           <q-menu dark class="user-menu">
-            <q-list style="min-width: 200px">
+            <q-list style="min-width: 220px">
+              <q-item class="q-py-sm" v-if="userName || userEmail">
+                <q-item-section>
+                  <q-item-label class="user-menu__name">{{ userName }}</q-item-label>
+                  <q-item-label caption class="user-menu__email">{{ userEmail }}</q-item-label>
+                </q-item-section>
+              </q-item>
+              <q-separator dark style="border-color: var(--pq-border)" />
               <q-item clickable v-close-popup class="q-py-md">
                 <q-item-section avatar>
                   <q-icon name="person" style="color: var(--pq-accent)" />
@@ -127,7 +149,7 @@
 </template>
 
 <script setup lang="ts">
-import { ref, onMounted, onUnmounted, computed } from 'vue';
+import { ref, shallowRef, onMounted, onUnmounted, computed } from 'vue';
 import { useQuasar } from 'quasar';
 import { useRoute, useRouter } from 'vue-router';
 import { useLogout } from 'src/composables/useLogout';
@@ -142,6 +164,13 @@ const authStore = useAuthStore();
 
 const leftDrawerOpen = ref(false);
 const activeRoute = computed(() => route.path);
+const userName = computed(() => authStore.user?.name ?? '');
+const userEmail = computed(() => authStore.user?.email ?? '');
+const userInitials = computed(() => {
+  const name = authStore.user?.name;
+  if (!name) return '?';
+  return name.split(' ').map(n => n[0]).filter(Boolean).slice(0, 2).join('').toUpperCase();
+});
 const mobileTab = computed(() => {
   const p = route.path;
   if (p === '/dashboard') return '/dashboard';
@@ -151,9 +180,34 @@ const mobileTab = computed(() => {
   return '';
 });
 const online = ref(navigator.onLine);
+const deferredPrompt = shallowRef<Event | null>(null);
+const showInstallBanner = ref(
+  typeof window !== 'undefined' && !window.matchMedia('(display-mode: standalone)').matches
+    && !localStorage.getItem('pwa_install_dismissed'),
+);
 
 function onOnline() { online.value = true; }
 function onOffline() { online.value = false; }
+
+function onBeforeInstall(e: Event) {
+  e.preventDefault();
+  deferredPrompt.value = e;
+  showInstallBanner.value = true;
+}
+
+async function installApp() {
+  const prompt = deferredPrompt.value as Event & { prompt: () => void; userChoice: Promise<{ outcome: string }> } | null;
+  if (!prompt) return;
+  prompt.prompt();
+  const result = await prompt.userChoice;
+  if (result.outcome === 'accepted') showInstallBanner.value = false;
+  deferredPrompt.value = null;
+}
+
+function dismissInstall() {
+  showInstallBanner.value = false;
+  localStorage.setItem('pwa_install_dismissed', 'true');
+}
 
 function onSwUpdate() {
   $q.dialog({
@@ -178,6 +232,7 @@ onMounted(() => {
   window.addEventListener('online', onOnline);
   window.addEventListener('offline', onOffline);
   window.addEventListener('sw-update-ready', onSwUpdate);
+  window.addEventListener('beforeinstallprompt', onBeforeInstall);
   navigator.serviceWorker?.addEventListener('controllerchange', onSwControllerChange);
 });
 
@@ -185,6 +240,7 @@ onUnmounted(() => {
   window.removeEventListener('online', onOnline);
   window.removeEventListener('offline', onOffline);
   window.removeEventListener('sw-update-ready', onSwUpdate);
+  window.removeEventListener('beforeinstallprompt', onBeforeInstall);
   navigator.serviceWorker?.removeEventListener('controllerchange', onSwControllerChange);
 });
 
@@ -261,6 +317,19 @@ function navigateTo(path: string) {
 .user-menu {
   background: var(--pq-surface);
   border: 1px solid var(--pq-border);
+
+  &__name {
+    font-family: 'Geist', sans-serif;
+    font-size: 14px;
+    font-weight: 600;
+    color: var(--pq-text);
+  }
+
+  &__email {
+    font-family: 'Satoshi', sans-serif;
+    font-size: 12px;
+    color: var(--pq-text-muted);
+  }
 }
 
 /* --------------------------------------------------
@@ -367,6 +436,26 @@ function navigateTo(path: string) {
 @media (max-width: 767px) {
   .mobile-bottom-nav {
     display: block;
+  }
+}
+
+/* --------------------------------------------------
+   Install Banner
+-------------------------------------------------- */
+.install-banner {
+  background: var(--pq-accent);
+  color: var(--pq-background);
+  font-family: 'Satoshi', sans-serif;
+  font-size: 13px;
+
+  &__btn {
+    color: var(--pq-background) !important;
+    font-weight: 700;
+  }
+
+  &__dismiss {
+    color: var(--pq-background) !important;
+    opacity: 0.7;
   }
 }
 

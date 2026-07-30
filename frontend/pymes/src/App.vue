@@ -1,15 +1,22 @@
 <template>
-  <Transition name="fade" mode="out-in">
+  <Transition :name="transitionName" mode="out-in">
     <router-view />
   </Transition>
 </template>
 
 <script setup lang="ts">
-import { watch, onMounted, onUnmounted } from 'vue';
+import { ref, watch, onMounted, onUnmounted } from 'vue';
 import { useRouter } from 'vue-router';
 import { useAuthStore } from 'src/modules/auth/store';
 
 const router = useRouter();
+const transitionName = ref('fade');
+
+router.beforeEach((to, from) => {
+  if (!from.path || from.path === to.path) { transitionName.value = 'fade'; return; }
+  const delta = to.path.split('/').length - from.path.split('/').length;
+  transitionName.value = delta >= 0 ? 'slide-right' : 'slide-left';
+});
 
 watch(
   () => router.currentRoute.value,
@@ -48,7 +55,13 @@ const onStorage = (e: StorageEvent) => {
   }
 };
 
-onMounted(() => window.addEventListener('storage', onStorage));
+onMounted(() => {
+  window.addEventListener('storage', onStorage);
+  const auth = useAuthStore();
+  if (auth.accessToken && auth.user?.tenantId && !auth.tenantName) {
+    void auth.ensureTenantName();
+  }
+});
 onUnmounted(() => {
   window.removeEventListener('storage', onStorage);
   channel.close();
@@ -69,5 +82,32 @@ onUnmounted(() => {
 .fade-leave-to {
   opacity: 0;
   transform: translateY(-8px);
+}
+
+.slide-right-enter-active,
+.slide-right-leave-active,
+.slide-left-enter-active,
+.slide-left-leave-active {
+  transition: all 0.24s ease;
+}
+
+.slide-right-enter-from {
+  opacity: 0;
+  transform: translateX(20px);
+}
+
+.slide-right-leave-to {
+  opacity: 0;
+  transform: translateX(-20px);
+}
+
+.slide-left-enter-from {
+  opacity: 0;
+  transform: translateX(-20px);
+}
+
+.slide-left-leave-to {
+  opacity: 0;
+  transform: translateX(20px);
 }
 </style>

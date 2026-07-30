@@ -23,16 +23,31 @@ async function load() {
     const res = await patrimonioService.get(tenantId)
     data.value = res.data
     form.value = {
-      initialCapital: res.data.initialCapital,
-      startDate: res.data.startDate || '',
-      notes: res.data.notes || '',
+      capitalInicial: res.data.capitalInicial,
+      fechaInicio: res.data.fechaInicio,
     }
+    capitalStr.value = rawCapital(res.data.capitalInicial)
   } catch (err) { $q.notify({ type: 'negative', message: err instanceof Error ? err.message : 'Error al cargar patrimonio' })
   } finally { loading.value = false }
 }
 
-const form = ref({ initialCapital: 0, startDate: '', notes: '' })
+const form = ref({ capitalInicial: 0, fechaInicio: null as string | null })
 const editing = ref(false)
+
+const capitalStr = ref('')
+function onCapitalInput(val: string | number | null) {
+  capitalStr.value = String(val ?? '').replace(/[^0-9.]/g, '').replace(/(\..*)\./g, '$1')
+}
+function formatCapitalInput() {
+  const n = parseFloat(capitalStr.value)
+  if (!isNaN(n) && capitalStr.value) {
+    capitalStr.value = n.toLocaleString('en-US', { minimumFractionDigits: 2, maximumFractionDigits: 2 })
+    form.value.capitalInicial = n
+  }
+}
+function rawCapital(val: number) {
+  return val ? val.toLocaleString('en-US', { minimumFractionDigits: 2, maximumFractionDigits: 2 }) : ''
+}
 
 function toggleEdit() {
   if (!editing.value) {
@@ -44,9 +59,17 @@ function toggleEdit() {
 
 async function save() {
   if (!tenantId) return
+  if (form.value.capitalInicial <= 0) {
+    $q.notify({ type: 'warning', message: 'El capital inicial debe ser mayor a 0' })
+    return
+  }
   saving.value = true
   try {
-    await patrimonioService.update(tenantId, form.value)
+    await patrimonioService.update(tenantId, {
+      tenantId,
+      capitalInicial: form.value.capitalInicial,
+      fechaInicio: form.value.fechaInicio || null,
+    })
     editing.value = false
     $q.notify({ type: 'positive', message: 'Patrimonio actualizado' })
     await load()
@@ -82,14 +105,14 @@ onMounted(() => { if (tenantId) void load() })
         <div class="col-12 col-sm-4">
           <div class="metric-card metric-card--copper">
             <div class="metric-card__label">Capital Inicial</div>
-            <div class="metric-card__value">{{ formatCurrency(data.initialCapital) }}</div>
+            <div class="metric-card__value">{{ formatCurrency(data.capitalInicial) }}</div>
             <div class="metric-card__bar" />
           </div>
         </div>
         <div class="col-12 col-sm-4">
           <div class="metric-card metric-card--sage">
             <div class="metric-card__label">Fecha de Inicio</div>
-            <div class="metric-card__value metric-card__value--date">{{ data.startDate || '—' }}</div>
+            <div class="metric-card__value metric-card__value--date">{{ data.fechaInicio || '—' }}</div>
             <div class="metric-card__bar" />
           </div>
         </div>
@@ -118,19 +141,16 @@ onMounted(() => { if (tenantId) void load() })
               :loading="saving"
               @click="toggleEdit"
               class="config-card__action"
-              round dense
+              dense
             />
           </div>
           <div class="config-card__body">
             <div class="row q-col-gutter-md">
               <div class="col-12 col-sm-6">
-                <q-input dark filled :disable="!editing" v-model.number="form.initialCapital" label="Capital Inicial" type="number" min="0" step="0.01" prefix="$" />
+                <q-input dark filled :disable="!editing" :model-value="capitalStr" @update:model-value="onCapitalInput" @blur="formatCapitalInput" label="Capital Inicial" type="text" inputmode="decimal" prefix="$" />
               </div>
               <div class="col-12 col-sm-6">
-                <q-input dark filled :disable="!editing" v-model="form.startDate" label="Fecha de Inicio" type="date" />
-              </div>
-              <div class="col-12">
-                <q-input dark filled :disable="!editing" v-model="form.notes" label="Notas" type="textarea" />
+                <q-input dark filled :disable="!editing" v-model="form.fechaInicio" label="Fecha de Inicio" type="date" />
               </div>
             </div>
           </div>

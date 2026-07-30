@@ -8,7 +8,7 @@ import { facturaService } from '../services/factura.service';
 import type { MetricasFinancieras, GastoOperativo, VentaDiaria, Factura } from '../types';
 
 export interface GastoPorCategoria {
-  category: string;
+  categoria: string;
   total: number;
   pct: number;
 }
@@ -46,12 +46,12 @@ export function useFinancialDashboard() {
     const totals = new Map<string, number>();
     let grandTotal = 0;
     for (const g of gastos.value) {
-      totals.set(g.category, (totals.get(g.category) ?? 0) + g.amount);
-      grandTotal += g.amount;
+      totals.set(g.categoria, (totals.get(g.categoria) ?? 0) + g.monto);
+      grandTotal += g.monto;
     }
     if (grandTotal === 0) return [];
     return Array.from(totals.entries())
-      .map(([category, total]) => ({ category, total, pct: (total / grandTotal) * 100 }))
+      .map(([categoria, total]) => ({ categoria, total, pct: (total / grandTotal) * 100 }))
       .sort((a, b) => b.total - a.total);
   });
 
@@ -60,21 +60,21 @@ export function useFinancialDashboard() {
     const totals = new Map<string, number>();
     let grandTotal = 0;
     for (const g of gastosPrev.value) {
-      totals.set(g.category, (totals.get(g.category) ?? 0) + g.amount);
-      grandTotal += g.amount;
+      totals.set(g.categoria, (totals.get(g.categoria) ?? 0) + g.monto);
+      grandTotal += g.monto;
     }
     if (grandTotal === 0) return [];
     return Array.from(totals.entries())
-      .map(([category, total]) => ({ category, total, pct: (total / grandTotal) * 100 }))
+      .map(([categoria, total]) => ({ categoria, total, pct: (total / grandTotal) * 100 }))
       .sort((a, b) => b.total - a.total);
   });
 
   const actividadReciente = computed<ActividadItem[]>(() => {
     const gastosItems: ActividadItem[] = gastos.value.map((g) => ({
       type: 'gasto' as const,
-      description: g.description || g.category,
-      amount: g.amount,
-      date: g.expenseDate,
+      description: g.descripcion || g.categoria,
+      amount: g.monto,
+      date: g.fecha,
     }));
     const ventasItems: ActividadItem[] = ventas.value.map((v) => ({
       type: 'venta' as const,

@@ -4,6 +4,93 @@ Registro cronológico de decisiones, problemas resueltos y estado del frontend.
 
 ---
 
+## 2026-07-30 — Bug fixes Patrimonio + Currency formatting + Gastos/Metricas gap discovery
+
+### Contexto
+
+Revisión y corrección del flujo de Patrimonio, más descubrimiento de gaps en Gastos y Metricas.
+
+### Patrimonio — Bug fixes
+
+El frontend de Patrimonio tenía field names en inglés (`initialCapital`, `startDate`) que no coincidían con el backend (español: `capitalInicial`, `fechaInicio`). Fix:
+
+| Campo | Antes | Después |
+|-------|-------|---------|
+| Capital | `initialCapital` | `capitalInicial` |
+| Fecha | `startDate` | `fechaInicio` |
+| Notas | `notes` (enviado en PUT) | eliminado (backend no lo persiste) |
+| tenantId | solo path param | también en body (`@NotNull` en backend) |
+| fechaInicio vacío | `""` | `null` (backend rechaza string vacío) |
+| capitalInicial ≤ 0 | se enviaba → 400 | validación pre-save con notificación |
+
+Además se eliminó el textarea de Notas del formulario y se agregó la validación `capitalInicial > 0`.
+
+### Currency formatting input — 3 páginas
+
+Se reemplazó `type="number"` por `type="text"` + `inputmode="decimal"` con formateo al blur:
+
+| Página | Campo | Comportamiento |
+|--------|-------|----------------|
+| PatrimonioPage | Capital Inicial | Escribís `10000` → se formatea a `10,000.00` |
+| GastosPage | Monto | Ídem |
+| VentasPage | Monto Bruto | Ídem |
+
+Solo acepta dígitos y un punto decimal mientras se escribe.
+
+### Gaps descubiertos — Gastos + Metricas
+
+1. **🔴 Field name mismatch en Gastos** — Frontend envía `{ category, amount, expenseDate }`, backend espera `{ categoria, monto, fecha }`. POST/PUT probablemente fallan con 400.
+2. **🔴 Field name mismatch en MetricasFinancieras** — Frontend usa inglés (`totalIncome`, `operatingExpenses`), backend responde español (`totalIngresos`, `gastosOperativos`). DashboardPage y AccountingPage no muestran datos correctamente.
+3. **🟡 Date range no expuesto** — `GastoRepository` tiene `findByTenantIdAndExpenseDateBetween` pero ningún endpoint lo usa.
+4. **🟡 Sin paginación** en gastos.
+5. **🟡 AnalisisGastosPage es misnomer** — analiza productos, no gastos operativos.
+
+### Archivos modificados
+
+```
+src/modules/core/pages/PatrimonioPage.vue       # field names alineados, +currency formatting
+src/modules/core/pages/GastosPage.vue            # +currency formatting
+src/modules/core/pages/VentasPage.vue            # +currency formatting
+src/modules/core/types/index.ts                  # Patrimonio/PatrimonioRequest fields renamed
+docs/GAPS.md                                     # +gastos/metricas field mismatch gaps
+docs/TO_DO.md                                    # +session completed items
+frontend/pymes/docs/DAILY_REPORTS_FRONTEND.md    # esta entrada
+```
+
+### Build
+
+- `npm run lint`: ✅
+- `quasar build -m pwa`: ❌ (TS errors por mismatch en Gastos/Metricas aún no corregido — pendiente)
+
+**Estado:** ✅ PARCIAL — bugs de Patrimonio + currency formatting corregidos. Pendiente fix de field names en Metricas.
+
+---
+
+## 2026-07-30 (2) — Fix field name mismatch Gastos
+
+### Contexto
+
+Mismo patrón que Patrimonio: frontend enviaba campos en inglés, backend esperaba español. Bug 🔴 que rompía POST/PUT de gastos.
+
+### Cambios
+
+| Archivo | Cambio |
+|---------|--------|
+| `types/index.ts` | `GastoOperativo` y `GastoRequest`: `category`→`categoria`, `description`→`descripcion`, `amount`→`monto`, `expenseDate`→`fecha`, `paymentMethod`→`metodoPago` |
+| `GastosPage.vue` | Form init, template bindings, computed → campos renombrados |
+| `useFinancialDashboard.ts` | `g.category`→`g.categoria`, `g.amount`→`g.monto`, etc. + `GastoPorCategoria.category`→`categoria` |
+| `ExpenseBreakdown.vue` | `item.category`→`item.categoria`, `{ category: 'Otros' }`→`{ categoria: 'Otros' }` |
+| `DashboardPage.vue` | `g.category`→`g.categoria`, `p.category`→`p.categoria` |
+
+### Build
+
+- `vue-tsc --noEmit`: ✅
+- `npm run lint`: ✅
+
+**Estado:** ✅ Gastos fix completo. Pendiente: field name mismatch MetricasFinancieras.
+
+---
+
 ## 2026-07-29 — Analytics Suite + Invitation UX/UI fixes
 
 ### Contexto

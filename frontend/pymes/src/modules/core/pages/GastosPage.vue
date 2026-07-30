@@ -20,7 +20,7 @@ const rows = ref<GastoOperativo[]>([])
 const loading = shallowRef(false)
 
 interface CatGroup {
-  category: string
+  categoria: string
   items: GastoOperativo[]
   total: number
 }
@@ -28,23 +28,23 @@ interface CatGroup {
 const catGroups = computed(() => {
   const groups = new Map<string, GastoOperativo[]>()
   for (const g of rows.value) {
-    const cat = g.category || 'OTROS'
+    const cat = g.categoria || 'OTROS'
     if (!groups.has(cat)) groups.set(cat, [])
     groups.get(cat)!.push(g)
   }
   const result: CatGroup[] = []
-  for (const [category, list] of groups) {
+  for (const [categoria, list] of groups) {
     result.push({
-      category,
+      categoria,
       items: list,
-      total: list.reduce((s, g) => s + g.amount, 0),
+      total: list.reduce((s, g) => s + g.monto, 0),
     })
   }
   result.sort((a, b) => b.total - a.total)
   return result
 })
 
-const totalGeneral = computed(() => rows.value.reduce((s, g) => s + g.amount, 0))
+const totalGeneral = computed(() => rows.value.reduce((s, g) => s + g.monto, 0))
 
 async function load() {
   if (!tenantId) return
@@ -60,21 +60,39 @@ const dialogOpen = shallowRef(false)
 const editingId = shallowRef<string | null>(null)
 const saving = shallowRef(false)
 const formRef = ref<{ validate: () => Promise<boolean> } | null>(null)
-const form = ref<GastoRequest>({ tenantId: tenantId as string, category: '', description: '', amount: 0, expenseDate: new Date().toISOString().slice(0, 10) })
+const form = ref<GastoRequest>({ tenantId: tenantId as string, categoria: '', descripcion: '', monto: 0, fecha: new Date().toISOString().slice(0, 10) })
+
+const amountStr = ref('')
+function onAmountInput(val: string | number | null) {
+  amountStr.value = String(val ?? '').replace(/[^0-9.]/g, '').replace(/(\..*)\./g, '$1')
+}
+function formatAmount() {
+  const n = parseFloat(amountStr.value)
+  if (!isNaN(n) && amountStr.value) {
+    amountStr.value = n.toLocaleString('en-US', { minimumFractionDigits: 2, maximumFractionDigits: 2 })
+    form.value.monto = n
+  }
+}
+function rawAmount(val: number) {
+  return val ? val.toLocaleString('en-US', { minimumFractionDigits: 2, maximumFractionDigits: 2 }) : ''
+}
 
 function openCreate() {
   editingId.value = null
-  form.value = { tenantId: tenantId as string, category: '', description: '', amount: 0, expenseDate: new Date().toISOString().slice(0, 10) }
+  form.value = { tenantId: tenantId as string, categoria: '', descripcion: '', monto: 0, fecha: new Date().toISOString().slice(0, 10) }
+  amountStr.value = ''
   dialogOpen.value = true
 }
 
 function openEdit(g: GastoOperativo) {
   editingId.value = g.id
-  form.value = { tenantId: g.tenantId, category: g.category, description: g.description, amount: g.amount, expenseDate: g.expenseDate, paymentMethod: g.paymentMethod }
+  form.value = { tenantId: g.tenantId, categoria: g.categoria, descripcion: g.descripcion, monto: g.monto, fecha: g.fecha, metodoPago: g.metodoPago }
+  amountStr.value = rawAmount(g.monto)
   dialogOpen.value = true
 }
 
 async function save() {
+  formatAmount()
   if (!(await formRef.value?.validate())) return
   saving.value = true
   try {
@@ -153,7 +171,7 @@ function handleKeydown(e: KeyboardEvent) {
 
     <div class="toolbar">
       <q-space />
-      <q-btn color="primary" icon="add" label="Nuevo" @click="openCreate" />
+      <q-btn v-if="rows.length" color="primary" icon="add" label="Nuevo" @click="openCreate" />
     </div>
 
     <div v-if="!loading && !rows.length" class="q-mt-lg">
@@ -172,9 +190,9 @@ function handleKeydown(e: KeyboardEvent) {
       </div>
     </div>
 
-    <div v-for="group in catGroups" :key="group.category" class="cat-group">
+    <div v-for="group in catGroups" :key="group.categoria" class="cat-group">
       <div class="cat-group__header">
-        <span class="cat-group__title">{{ group.category }}</span>
+        <span class="cat-group__title">{{ group.categoria }}</span>
         <span class="cat-group__count">{{ group.items.length }} gasto{{ group.items.length !== 1 ? 's' : '' }}</span>
         <q-space />
         <span class="cat-group__total">{{ formatCurrency(group.total) }}</span>
@@ -182,14 +200,14 @@ function handleKeydown(e: KeyboardEvent) {
 
       <div v-for="g in group.items" :key="g.id" class="expense-row">
         <div class="expense-row__main">
-          <div class="expense-row__desc">{{ g.description }}</div>
+          <div class="expense-row__desc">{{ g.descripcion }}</div>
           <div class="expense-row__meta">
-            <span>{{ g.expenseDate }}</span>
-            <span v-if="g.paymentMethod" class="expense-row__sep">·</span>
-            <span v-if="g.paymentMethod">{{ g.paymentMethod }}</span>
+            <span>{{ g.fecha }}</span>
+            <span v-if="g.metodoPago" class="expense-row__sep">·</span>
+            <span v-if="g.metodoPago">{{ g.metodoPago }}</span>
           </div>
         </div>
-        <div class="expense-row__amount">{{ formatCurrency(g.amount) }}</div>
+        <div class="expense-row__amount">{{ formatCurrency(g.monto) }}</div>
         <div class="expense-row__actions">
           <q-btn flat dense round icon="edit" color="primary" size="sm" @click="openEdit(g)" aria-label="Editar" />
           <q-btn flat dense round icon="delete" color="negative" size="sm" @click="confirmDelete(g)" aria-label="Eliminar" />
@@ -205,15 +223,15 @@ function handleKeydown(e: KeyboardEvent) {
           <q-form ref="formRef" @submit.prevent="save" class="q-gutter-y-md">
             <div class="row q-col-gutter-md">
               <div class="col-6">
-                <q-input dark filled v-model="form.expenseDate" label="Fecha" type="date" :rules="[v => !!v || 'Requerido']" />
+                <q-input dark filled v-model="form.fecha" label="Fecha" type="date" :rules="[v => !!v || 'Requerido']" />
               </div>
               <div class="col-6">
-                <q-select dark filled v-model="form.category" :options="categoriaOptions" label="Categor\u00EDa" :rules="[v => !!v || 'Requerido']" />
+                <q-select dark filled v-model="form.categoria" :options="categoriaOptions" label="Categor\u00EDa" :rules="[v => !!v || 'Requerido']" />
               </div>
             </div>
-            <q-input dark filled v-model="form.description" label="Descripci\u00F3n" :rules="[v => !!v || 'Requerido']" />
-            <q-input dark filled v-model.number="form.amount" label="Monto" type="number" min="0" step="0.01" prefix="$" :rules="[v => !!v || 'Requerido']" />
-            <q-select dark filled v-model="form.paymentMethod" :options="metodoPagoOptions" label="M\u00E9todo de pago" clearable />
+            <q-input dark filled v-model="form.descripcion" label="Descripci\u00F3n" :rules="[v => !!v || 'Requerido']" />
+            <q-input dark filled :model-value="amountStr" @update:model-value="onAmountInput" @blur="formatAmount" label="Monto" type="text" inputmode="decimal" prefix="$" :rules="[v => !!v || 'Requerido']" />
+            <q-select dark filled v-model="form.metodoPago" :options="metodoPagoOptions" label="M\u00E9todo de pago" clearable />
             <div class="row justify-end q-gutter-x-sm">
               <q-btn flat label="Cancelar" color="accent" v-close-popup />
               <q-btn type="submit" label="Guardar" color="primary" :loading="saving" />
@@ -227,7 +245,7 @@ function handleKeydown(e: KeyboardEvent) {
       <q-card dark class="bg-surface-pine">
         <q-card-section class="row items-center q-gutter-x-md">
           <q-icon name="warning" color="negative" size="md" />
-          <span>Eliminar gasto <strong>{{ deletingItem?.description }}</strong>?</span>
+          <span>Eliminar gasto <strong>{{ deletingItem?.descripcion }}</strong>?</span>
         </q-card-section>
         <q-card-actions align="right">
           <q-btn flat label="Cancelar" color="accent" v-close-popup />

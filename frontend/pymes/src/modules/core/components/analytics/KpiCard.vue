@@ -112,6 +112,7 @@ const sparklineArea = computed(() => {
 
   &:hover {
     background: var(--pq-elevated);
+    border-color: var(--pq-accent-muted);
   }
 
   &--default {

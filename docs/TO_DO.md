@@ -79,6 +79,12 @@ Todos implementados inline en cada page (sin componentes separados).
 - [x] [🔴] **Refresh token rotation** — interceptor captura 401, encola requests fallidas, renueva con refresh token, replay. Si falla refresh → clearSession(). Implementado en `boot/axios.ts`. (2026-07-25)
 - [x] [🔴] **Cobertura de tests** — 29 tests (errors 10 + store 6 + composables 3 + errores extendidos 10). Tirados con vitest en node env. (2026-07-25)
 
+### Frontend — Completado (Bug fixes Patrimonio + Currency formatting + Gastos field names 2026-07-30)
+
+- [x] [🔴] **Patrimonio: field names alineados con backend** — `initialCapital`→`capitalInicial`, `startDate`→`fechaInicio`, `notes`→`notas` (read-only). `PatrimonioRequest` ahora incluye `tenantId`. Eliminado campo `notes` del form (backend no lo persiste). Valida `capitalInicial > 0` antes de enviar (backend usa `@Positive`). Envía `null` en vez de string vacío para `fechaInicio`.
+- [x] [Media] **Currency formatting input** — `type="text"` + `inputmode="decimal"` + formateo al blur con `toLocaleString`. Aplicado en Patrimonio (capitalInicial), Gastos (amount), Ventas (grossAmount). Usuario escribe "10000", al salir del campo se formatea a "10,000.00".
+- [x] [🔴] **Gastos: field names alineados con backend** — `category`→`categoria`, `description`→`descripcion`, `amount`→`monto`, `expenseDate`→`fecha`, `paymentMethod`→`metodoPago`. Types (`GastoOperativo`, `GastoRequest`), page (`GastosPage.vue`), composable (`useFinancialDashboard.ts`), y chart (`ExpenseBreakdown.vue`) actualizados.
+
 ### Frontend — Pendiente (Tutorial onboarding)
 
 - [ ] [Alta] **Tour guiado con Driver.js** — guía de bienvenida al dashboard post-onboarding (4-5 pasos: sidebar, período, métricas, quick actions, perfil). Disparo único vía localStorage. Botón "Ayuda" en header para reiniciar. (2026-07)
@@ -90,10 +96,10 @@ Todos implementados inline en cada page (sin componentes separados).
 
 ### Frontend — Pendiente (UX/UI Review 2026-07-29)
 
-- [ ] [Alta] **Botones +Nuevo duplicados en EmptyState** — 5 páginas (Proveedores, Gastos, Ventas, Productos, Préstamos): toolbar muestra "+Nuevo" incondicionalmente, EmptyState también. Cuando la lista está vacía se ven ambos. Fix: `v-if="rows.length"` en toolbar button. (2026-07-29)
-- [ ] [Alta] **Contabilidad sin estado visible** — `AccountingPage.vue`: cuando `data` es null (cargando/error), `kpis` retorna array vacío y la grilla no renderiza nada. Fix: loading skeletons + empty state. (2026-07-29)
-- [ ] [Media] **Flechas incremento/decremento en inputs number** — 7 campos `type="number"` en Patrimonio, Ventas, Préstamos (4), Gastos muestran spinners nativos del browser. Fix: CSS global ocultando `::-webkit-inner-spin-button` + `-moz-appearance: textfield` en `app.scss`. (2026-07-29)
-- [ ] [Media] **Botón Editar en Patrimonio usa `round`** — Botón circular fuera del diseño industrial/no-nonsense. Fix: sacar `round`, dejar flat con label consistente con el resto de la app. (2026-07-29)
+- [x] [Alta] **Botones +Nuevo duplicados en EmptyState** — 5 páginas (Proveedores, Gastos, Ventas, Productos, Préstamos): toolbar muestra "+Nuevo" incondicionalmente, EmptyState también. Cuando la lista está vacía se ven ambos. Fix: `v-if="rows.length"` en toolbar button. (2026-07-30) ✅
+- [x] [Alta] **Contabilidad sin estado visible** — `AccountingPage.vue`: cuando `data` es null (cargando/error), `kpis` retorna array vacío y la grilla no renderiza nada. Fix: loading skeletons + empty state. (2026-07-30) ✅
+- [x] [Media] **Flechas incremento/decremento en inputs number** — 7 campos `type="number"` en Patrimonio, Ventas, Préstamos (4), Gastos muestran spinners nativos del browser. Fix: CSS global ocultando `::-webkit-inner-spin-button` + `-moz-appearance: textfield` en `app.scss`. (2026-07-30) ✅
+- [x] [Media] **Botón Editar en Patrimonio usa `round`** — Botón circular fuera del diseño industrial/no-nonsense. Fix: sacar `round`, dejar flat con label consistente con el resto de la app. (2026-07-30) ✅
 
 ### Frontend — Pendiente (PWA)
 

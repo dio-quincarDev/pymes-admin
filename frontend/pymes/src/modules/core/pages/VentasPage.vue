@@ -76,19 +76,37 @@ const saving = shallowRef(false)
 const formRef = ref<{ validate: () => Promise<boolean> } | null>(null)
 const form = ref<VentaRequest>({ tenantId: tenantId as string, saleDate: new Date().toISOString().slice(0, 10), grossAmount: 0 })
 
+const grossAmountStr = ref('')
+function onGrossAmountInput(val: string | number | null) {
+  grossAmountStr.value = String(val ?? '').replace(/[^0-9.]/g, '').replace(/(\..*)\./g, '$1')
+}
+function formatGrossAmount() {
+  const n = parseFloat(grossAmountStr.value)
+  if (!isNaN(n) && grossAmountStr.value) {
+    grossAmountStr.value = n.toLocaleString('en-US', { minimumFractionDigits: 2, maximumFractionDigits: 2 })
+    form.value.grossAmount = n
+  }
+}
+function rawAmount(val: number) {
+  return val ? val.toLocaleString('en-US', { minimumFractionDigits: 2, maximumFractionDigits: 2 }) : ''
+}
+
 function openCreate() {
   editingId.value = null
   form.value = { tenantId: tenantId as string, saleDate: new Date().toISOString().slice(0, 10), grossAmount: 0 }
+  grossAmountStr.value = ''
   dialogOpen.value = true
 }
 
 function openEdit(v: VentaDiaria) {
   editingId.value = v.id
   form.value = { tenantId: v.tenantId, saleDate: v.saleDate, grossAmount: v.grossAmount, description: v.description }
+  grossAmountStr.value = rawAmount(v.grossAmount)
   dialogOpen.value = true
 }
 
 async function save() {
+  formatGrossAmount()
   if (!(await formRef.value?.validate())) return
   saving.value = true
   try {
@@ -173,7 +191,7 @@ function handleKeydown(e: KeyboardEvent) {
 
     <div class="toolbar">
       <q-space />
-      <q-btn color="primary" icon="add" label="Nueva" @click="openCreate" />
+      <q-btn v-if="rows.length" color="primary" icon="add" label="Nueva" @click="openCreate" />
     </div>
 
     <div v-if="!loading && !rows.length" class="q-mt-lg">
@@ -215,7 +233,7 @@ function handleKeydown(e: KeyboardEvent) {
         <q-card-section>
           <q-form ref="formRef" @submit.prevent="save" class="q-gutter-y-md">
             <q-input dark filled v-model="form.saleDate" label="Fecha" type="date" :rules="[v => !!v || 'Requerido']" />
-            <q-input dark filled v-model.number="form.grossAmount" label="Monto Bruto" type="number" min="0" step="0.01" prefix="$" :rules="[v => !!v || 'Requerido']" />
+            <q-input dark filled :model-value="grossAmountStr" @update:model-value="onGrossAmountInput" @blur="formatGrossAmount" label="Monto Bruto" type="text" inputmode="decimal" prefix="$" :rules="[v => !!v || 'Requerido']" />
             <q-input dark filled v-model="form.description" label="Descripci\u00F3n" />
             <div class="row justify-end q-gutter-x-sm">
               <q-btn flat label="Cancelar" color="accent" v-close-popup />

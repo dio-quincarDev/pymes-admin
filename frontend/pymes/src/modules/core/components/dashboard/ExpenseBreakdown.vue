@@ -23,7 +23,7 @@ const displayItems = computed(() => {
     const othersPct = props.gastos.length > MAX_BARS
       ? (othersTotal / props.gastos.reduce((s, i) => s + i.total, 0)) * 100
       : 0;
-    items.push({ category: 'Otros', total: othersTotal, pct: othersPct });
+    items.push({ categoria: 'Otros', total: othersTotal, pct: othersPct });
   }
   return items;
 });
@@ -61,11 +61,11 @@ function barWidth(amount: number) {
     <template v-else>
       <div
         v-for="item in displayItems"
-        :key="item.category"
+        :key="item.categoria"
         class="expense-breakdown__bar-row"
-        :aria-label="`${item.category}: ${formatCurrency(item.total)}, ${item.pct.toFixed(1)}% del total`"
+        :aria-label="`${item.categoria}: ${formatCurrency(item.total)}, ${item.pct.toFixed(1)}% del total`"
       >
-        <span class="expense-breakdown__cat-name">{{ item.category }}</span>
+        <span class="expense-breakdown__cat-name">{{ item.categoria }}</span>
         <div class="expense-breakdown__bar-track">
           <div
             class="expense-breakdown__bar-fill"

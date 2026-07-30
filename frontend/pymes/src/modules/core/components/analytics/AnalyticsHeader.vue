@@ -1,5 +1,6 @@
 <script setup lang="ts">
 import { computed } from 'vue';
+import { useAuthStore } from 'src/modules/auth/store';
 
 interface Props {
   title: string;
@@ -13,6 +14,9 @@ defineEmits<{
   'update:period': [value: string];
   recalculate: [];
 }>();
+
+const authStore = useAuthStore();
+const tenantName = computed(() => authStore.tenantName);
 
 const periodOptions = computed(() => {
   const options: { label: string; value: string }[] = [];
@@ -30,7 +34,7 @@ const periodOptions = computed(() => {
 <template>
   <div class="analytics-header" role="banner" aria-label="Encabezado de análisis">
     <div class="analytics-header__text">
-      <h1 class="analytics-header__title">{{ title }}</h1>
+      <h1 class="analytics-header__title">{{ tenantName ? `${tenantName} · ${title}` : title }}</h1>
       <p class="analytics-header__subtitle">{{ subtitle }}</p>
     </div>
     <div class="analytics-header__actions">

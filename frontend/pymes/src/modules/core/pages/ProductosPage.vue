@@ -232,7 +232,7 @@ function handleKeydown(e: KeyboardEvent) {
         <template v-slot:prepend><q-icon name="search" /></template>
       </q-input>
       <q-space />
-      <q-btn color="primary" icon="add" label="Nuevo" @click="openCreate" />
+      <q-btn v-if="rows.length" color="primary" icon="add" label="Nuevo" @click="openCreate" />
     </div>
 
     <div v-if="!loading && !filteredRows.length">

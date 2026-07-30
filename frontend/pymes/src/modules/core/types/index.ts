@@ -153,21 +153,21 @@ export interface SetupCategory {
 export interface GastoOperativo {
   id: string
   tenantId: string
-  category: string
-  description: string
-  amount: number
-  expenseDate: string
-  paymentMethod: string | null
+  categoria: string
+  descripcion: string
+  monto: number
+  fecha: string
+  metodoPago: string | null
   isActive: boolean
 }
 
 export interface GastoRequest {
   tenantId: string
-  category: string
-  description: string
-  amount: number
-  expenseDate: string
-  paymentMethod?: string | null
+  categoria: string
+  descripcion: string
+  monto: number
+  fecha: string
+  metodoPago?: string | null
 }
 
 export interface VentaDiaria {
@@ -230,15 +230,16 @@ export interface PagoPrestamoRequest {
 
 export interface Patrimonio {
   tenantId: string
-  initialCapital: number
-  startDate: string | null
-  notes: string | null
+  capitalInicial: number
+  fechaInicio: string | null
+  notas: string | null
+  createdAt: string
 }
 
 export interface PatrimonioRequest {
-  initialCapital?: number
-  startDate?: string | null
-  notes?: string | null
+  tenantId: string
+  capitalInicial: number
+  fechaInicio: string | null
 }
 
 export interface MetricasFinancieras {
