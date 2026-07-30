@@ -107,6 +107,18 @@ Todos implementados inline en cada page (sin componentes separados).
 - [ ] [Baja] **PWA: custom install prompt** — Banner "Instalar PYMEQ" con dismiss persistente.
 - [ ] [Baja] **PWA: transiciones direccionales** — Slide left/right según dirección de navegación.
 
+### Core — Motor de Costos ([COSTOS_ENGINE.md](./backend/core/docs/COSTOS_ENGINE.md))
+
+- [ ] [🔴] **V19 migration: collaboradores, gastos_fijos_recurrentes, config_laboral** — 3 tablas nuevas en schema `core`. Idempotente con `IF NOT EXISTS`. (2026-07)
+- [ ] [🔴] **V20 migration: costo_operativo_diario en tenant_financial_metrics** — Columna para persistir costo diario calculado. (2026-07)
+- [ ] [🔴] **Módulo `costos/` scaffold** — 3 entities (soft-delete pattern reciclando `GastoOperativo`), 3 repositories, 7 DTOs, 3 mappers (MapStruct), 1 controller con 4 grupos de endpoints, 1 service con tenant guard + caching + eventos.
+- [ ] [Alta] **GET /costos/diario** — Motor de cálculo: suma gastos fijos activos, colaboradores con conversión por frecuencia, divide por días laborales. Cruza con ventas del día para ganancia real estimada.
+- [ ] [Alta] **Integrar costo diario en MetricasServiceImpl CTE** — Nueva CTE `costos AS (...)` en el query consolidado. Alimenta `costoOperativoDiario` en respuestas de accounting.
+- [ ] [Media] **Integrar costo diario en Financial Health Engine** — Nueva señal `DAILY_COST_CONTROL` (verde si ventasHoy > costoDiario × 1.2 en 3+/7 días).
+- [ ] [Media] **Frontend: CostosPage.vue** — Nueva página con 3 tabs: Colaboradores (tabla CRUD), Gastos Fijos (agrupados por categoría), Config (días laborales). Header con resumen costo diario vs ventas hoy.
+- [ ] [Baja] **Dashboard: daily cost strip** — Nuevo KPI "Costo/Día $232" en el stat strip del dashboard.
+- [ ] [Media] **Tests: JPA + unit** — 3 repositorios (AbstractJpaTest) + 1 service (Mockito).
+
 ### Core — Migraciones Flyway
 
 - [ ] [Alta] **Consolidar V1–V18 → V1__core_schema.sql único** — 18 archivos → 1. 27 índices → 25 (eliminar `idx_products_tenant` y `idx_invoice_items_invoice` redundantes). Agregar `IF NOT EXISTS` faltantes en V9/V10. Idempotente para stage deploy. (2026-07) → [`docs/strategies/CORE_MIGRATIONS_STRATEGY.md`](./docs/strategies/CORE_MIGRATIONS_STRATEGY.md)

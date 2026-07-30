@@ -57,6 +57,7 @@
 
 | # | Gap | Documentación dice | Realidad es | Impacto |
 |---|-----|--------------------|-------------|---------|
+| 🔴 | **Sin modelo de estructura de costos** | Sistema trata gastos como entradas planas sin recurrencia ni colaboradores | No hay entidades para salarios con frecuencias distintas, gastos fijos con día de ejecución, ni configuración laboral. El motor analítico no puede razonar sobre estructura de costos real | **Diferenciador** — imposibilita daily cost vs daily sales, break-even, pricing basado en costos reales. El Financial Health Engine opera con datos incompletos | ⬜ Pendiente — ver `COSTOS_ENGINE.md` |
 | — | *(sin gaps funcionales)* | — | — | — |
 | 1 | Endpoints no documentados | CORE.md/ARCHITECTURE.md listan solo CRUD clásico | `GET /search` (paginado) y `GET /{tenantId}/categories` existen | Bajo — endpoints internos, frontend los conoce | ✅ |
 | 2 | Todos los gaps de code review cerrados en 2026-07-21 | — | — | — | ✅ |
