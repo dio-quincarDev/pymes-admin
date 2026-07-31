@@ -10,5 +10,7 @@ const pctFormatter = new Intl.NumberFormat('en-US', {
   maximumFractionDigits: 1,
 })
 
-export const formatCurrency = (n: number) => currencyFormatter.format(n)
-export const formatPct = (n: number) => pctFormatter.format(n / 100)
+export const formatCurrency = (n: number) =>
+  Number.isFinite(n) ? currencyFormatter.format(n) : '$0.00'
+export const formatPct = (n: number) =>
+  Number.isFinite(n) ? pctFormatter.format(n / 100) : '0.0%'

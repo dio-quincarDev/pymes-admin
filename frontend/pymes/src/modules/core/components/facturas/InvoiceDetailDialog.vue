@@ -14,7 +14,9 @@ const emit = defineEmits<{
 const tipoLabel: Record<string, string> = { FACTURA: 'Factura', GASTO_OPERATIVO: 'Gasto Operativo' }
 
 function formatCurrency(n: number) {
-  return new Intl.NumberFormat('en-US', { style: 'currency', currency: 'USD', minimumFractionDigits: 2 }).format(n)
+  return Number.isFinite(n)
+    ? new Intl.NumberFormat('en-US', { style: 'currency', currency: 'USD', minimumFractionDigits: 2 }).format(n)
+    : '$0.00'
 }
 
 function formatDate(s: string) {

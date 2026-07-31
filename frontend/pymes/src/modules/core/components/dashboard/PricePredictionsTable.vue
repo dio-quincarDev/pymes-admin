@@ -38,10 +38,10 @@
             <span class="preds-card__product-name">{{ props.row.productName }}</span>
           </q-td>
           <q-td key="lastPrice" class="preds-card__cell preds-card__cell--right">
-            <span class="preds-card__price">${{ props.row.lastPrice.toFixed(2) }}</span>
+            <span class="preds-card__price">{{ formatCurrency(props.row.lastPrice) }}</span>
           </q-td>
           <q-td key="predictedPrice" class="preds-card__cell preds-card__cell--right">
-            <span class="preds-card__price preds-card__price--predicted">${{ props.row.predictedPrice.toFixed(2) }}</span>
+            <span class="preds-card__price preds-card__price--predicted">{{ formatCurrency(props.row.predictedPrice) }}</span>
           </q-td>
           <q-td key="pctChange" class="preds-card__cell preds-card__cell--right">
             <span
@@ -89,6 +89,7 @@
 <script setup lang="ts">
 import { shallowRef } from 'vue';
 import type { PricePredictionItem } from '../../types/analytics';
+import { formatCurrency } from 'src/utils/format';
 
 defineProps<{ items: PricePredictionItem[]; loading?: boolean }>();
 

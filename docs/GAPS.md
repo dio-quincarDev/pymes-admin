@@ -7,7 +7,7 @@
 | — | *(sin gaps tras correcciones de esta sesión)* | — | — | ✅ |
 | — | V1 sin composite/partial indexes para consultas frecuentes | V2 agregó índices en user_tenants, refresh_tokens, invitations, audit_log | Medio | ✅ |
 | — | *(sin gaps funcionales nuevos)* | — | — | — |
-| 🔴 | Refresh token rotation tiene TOCTOU — `JwtServiceImpl.validateAndRevokeRefreshToken()` | read→check→write no atómico permite doble uso concurrente del mismo refresh token | **Crítico** — sesión hijackeable | ⬜ Pendiente fix |
+| 🔴 | Refresh token rotation tiene TOCTOU — `JwtServiceImpl.validateAndRevokeRefreshToken()` | read→check→write no atómico permite doble uso concurrente del mismo refresh token | **Crítico** — sesión hijackeable | ✅ `@Lock(PESSIMISTIC_WRITE)` en `RefreshTokenRepository.findByTokenHash()` (2026-07-30) |
 
 ### Code Review Findings (2026-07-21)
 
@@ -21,9 +21,9 @@
 
 #### 🔴 Critical
 
-| # | Gap | Fix | Severidad |
-|---|-----|-----|-----------|
-| 1 | **TOCTOU en refresh token rotation** — `JwtServiceImpl.validateAndRevokeRefreshToken()` (L197-218) ejecuta read→check→write no atómico. Dos requests concurrentes con el mismo refresh token (ya usado en rotación legítima) pasan ambos el `revoked=false` check antes de que el primero escriba `revoked=true`. Cada uno genera un par nuevo de tokens. El atacante que robe un refresh token puede hacer refresh simultáneo con la víctima y mantener acceso indefinido sin ser detectado. | `@Version` optimistic locking, o `@Lock(PESSIMISTIC_WRITE)`, o SQL atómico `UPDATE refresh_tokens SET revoked=true WHERE token_hash=? AND revoked=false RETURNING *`. La solución debe garantizar que solo un hilo pueda rotar un token dado. | 🔴 Critical |
+| # | Gap | Fix | Severidad | Estado |
+|---|-----|-----|-----------|--------|
+| 1 | **TOCTOU en refresh token rotation** — `JwtServiceImpl.validateAndRevokeRefreshToken()` (L197-218) ejecuta read→check→write no atómico. Dos requests concurrentes con el mismo refresh token (ya usado en rotación legítima) pasan ambos el `revoked=false` check antes de que el primero escriba `revoked=true`. Cada uno genera un par nuevo de tokens. El atacante que robe un refresh token puede hacer refresh simultáneo con la víctima y mantener acceso indefinido sin ser detectado. | `@Version` optimistic locking, o `@Lock(PESSIMISTIC_WRITE)`, o SQL atómico `UPDATE refresh_tokens SET revoked=true WHERE token_hash=? AND revoked=false RETURNING *`. La solución debe garantizar que solo un hilo pueda rotar un token dado. | 🔴 Critical | ✅ `@Lock(PESSIMISTIC_WRITE)` en `RefreshTokenRepository.findByTokenHash()` → `SELECT FOR UPDATE` serializa el read-check-write. Perdedor ve `revoked=true` → REUSE DETECTED + `deleteByUserId`. Test de concurrencia en `AuthApiIntegrationTest` (2026-07-30) |
 
 #### 🟡 Suggestions
 
@@ -32,6 +32,7 @@
 | 16 | **Email casing inconsistente** — `AuthServiceImpl.completeRegistration()` usa `request.email()` directo, mientras `InvitationServiceImpl.registerAndAccept()` usa `.toLowerCase()`. PostgreSQL `=` es case-sensitive en VARCHAR. Un usuario registrado con "User@Example.com" no puede loguear con "user@example.com". | Normalizar email a lowercase en `completeRegistration()` o en `RegisterRequest` vía DTO (`@JsonDeserialize`). | Correctitud |
 | 17 | **JWT `jti` generado pero no usado** — `JwtServiceImpl.createToken()` genera `.id(UUID.randomUUID())` pero el `jti` no se persiste ni expone. Sin él, `logout()` no puede identificar qué refresh token corresponde a la sesión actual y debe eliminar TODOS los refresh tokens del usuario (logout global forzado). No hay "cerrar sesión de este dispositivo". | Persistir `jti` en `RefreshToken` y exponerlo al cliente. `logout()` recibe `jti` y borra solo ese token. O documentar como diseño deliberado. | Seguridad |
 | 18 | **`@Transactional` en métodos Redis-only** — `PasswordResetServiceImpl.generateResetToken()`, `EmailVerificationServiceImpl.generateAndSendPendingRegistrationEmail()` y `EmailVerificationServiceImpl.generateVerificationToken()` tienen `@Transactional` pero solo interactúan con Redis, no con la DB. Consumen conexiones del pool HikariCP (`max 20`) innecesariamente. | Mover `@Transactional` solo a métodos que realmente escriben en DB, o usar `@Transactional(propagation = Propagation.NOT_SUPPORTED)`. | Performance |
+| 19 | **`deleteByUserId` revertido por rollback en reuse detection** — `JwtServiceImpl.validateAndRevokeRefreshToken()` llama `deleteByUserId()` y luego lanza `TokenRevokedException` (unchecked). La excepción hace rollback de toda la transacción, incluyendo el DELETE. El token viejo queda `revoked=true` pero la familia NO se borra. | Cambiar a `REQUIRES_NEW` propagation en el `deleteByUserId`, o usar un `@Async` audit event que corra después del commit. | Seguridad |
 
 #### 🟡 Suggestions
 

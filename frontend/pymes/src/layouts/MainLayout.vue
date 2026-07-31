@@ -141,8 +141,8 @@
         <q-route-tab to="/dashboard" icon="dashboard" aria-label="Dashboard" />
         <q-route-tab to="/dashboard/productos" icon="inventory_2" aria-label="Productos" />
         <q-route-tab to="/dashboard/facturas" icon="receipt_long" aria-label="Facturas" />
-        <q-route-tab to="/dashboard/prestamos" icon="account_balance" aria-label="Préstamos" />
         <q-route-tab to="/dashboard/gastos" icon="money_off" aria-label="Gastos" />
+        <q-route-tab to="/dashboard/prestamos" icon="account_balance" aria-label="Préstamos" />
         <q-route-tab icon="more_horiz" aria-label="Más" @click="toggleLeftDrawer" />
       </q-tabs>
     </q-footer>
@@ -268,16 +268,16 @@ const navGroups = computed<NavGroup[]>(() => {
         { title: 'Productos', icon: 'inventory_2', path: '/dashboard/productos' },
         { title: 'Proveedores', icon: 'people', path: '/dashboard/proveedores' },
         { title: 'Facturas', icon: 'receipt_long', path: '/dashboard/facturas' },
-        { title: 'Préstamos', icon: 'account_balance', path: '/dashboard/prestamos' },
+        { title: 'Gastos', icon: 'money_off', path: '/dashboard/gastos' },
       ],
     },
     {
       label: 'Análisis',
       items: [
-        { title: 'Gastos', icon: 'money_off', path: '/dashboard/gastos' },
         { title: 'Análisis', icon: 'analytics', path: '/dashboard/analisis-gastos' },
         { title: 'Ventas', icon: 'point_of_sale', path: '/dashboard/ventas' },
         { title: 'Patrimonio', icon: 'savings', path: '/dashboard/patrimonio' },
+        { title: 'Préstamos', icon: 'account_balance', path: '/dashboard/prestamos' },
       ],
     },
     {

@@ -28,7 +28,8 @@ A partir de 2026-07-16, CORS opera en **doble capa**:
 - **Defensa en profundidad + Code Exchange OAuth2** — En proceso de validación y robustecimiento continuo.
 
 ### ✅ Historial de Soluciones (Orden Cronológico Inverso)
-0. [2026-07-29 — Invitación: accept endpoint quitado de WHITE_LIST](#-2026-07-29--invitación-accept-endpoint-quitado-de-white_list)
+0. [2026-07-30 — TOCTOU fix: @Lock(PESSIMISTIC_WRITE) en refresh token rotation](#-2026-07-30--toctou-fix-lockpessimistic_write-en-refresh-token-rotation)
+1. [2026-07-29 — Invitación: accept endpoint quitado de WHITE_LIST](#-2026-07-29--invitación-accept-endpoint-quitado-de-white_list)
 1. [2026-07-28 — Invitación MVP: email mismatch + TeamsPage fix](#-2026-07-28--invitación-mvp-email-mismatch--teamspage-fix)
 2. [2026-07-21 — Whitelist unificada (C1 critical)](#-2026-07-21--whitelist-unificada-c1-critical)
 2. [2026-07-16 — Auth criticals (JWT, logout, cookie) + CORS dual layer](#-2026-07-16--auth-criticals-jwt-logout-cookie--cors-dual-layer)
@@ -62,6 +63,37 @@ A partir de 2026-07-16, CORS opera en **doble capa**:
 26. [2026-04-11 — Email Verification Logic](#-2026-04-11--email-verification-logic)
 27. [2026-04-11 — Password Reset Logic](#-2026-04-11--password-reset-logic)
 28. [2026-04-09 — Testcontainers Setup](#-2026-04-09--testcontainers-setup)
+
+---
+
+## 2026-07-30 — TOCTOU fix: @Lock(PESSIMISTIC_WRITE) en refresh token rotation ✅
+
+### Problema
+
+`JwtServiceImpl.validateAndRevokeRefreshToken()` ejecutaba read→check→write no atómico. Dos requests concurrentes con el mismo refresh token pasaban ambos el `revoked=false` antes de que el primero escribiera `revoked=true`. Cada uno generaba un par nuevo de tokens — sesión hijackeable.
+
+### Solución
+
+`@Lock(LockModeType.PESSIMISTIC_WRITE)` en `RefreshTokenRepository.findByTokenHash()`. Genera `SELECT ... FOR UPDATE` que serializa el read-check-write. El perdedor queda bloqueado hasta que el ganador commitea; al despertar ve `revoked=true` → `TokenRevokedException` (AUTH005, 401).
+
+### Bug pre-existente descubierto
+
+`deleteByUserId()` en la rama de reuse se ejecuta **dentro de la misma transacción** que lanza `TokenRevokedException` (unchecked). Spring hace rollback de toda la transacción, incluyendo el DELETE. El token viejo queda `revoked=true` (persiste porque lo escribió el ganador en OTRA transacción), pero la familia NO se borra. Documentado como gap #19 en GAPS.md.
+
+### Tests
+
+- Unit tests: 140/140 ✅ (el `@Lock` no afecta mocks)
+- Integration: 55/55 ✅
+- Nuevo test: `concurrentRefreshWithSameToken_OnlyOneRotationSucceedsAndFamilyRevoked` — 2 threads + CyclicBarrier, exactamente 1×200 + 1×401, token viejo `revoked=true`
+
+### Archivos modificados
+
+```
+backend/auth/src/main/java/auth/pymes/repositories/RefreshTokenRepository.java          # +@Lock(PESSIMISTIC_WRITE)
+backend/auth/src/test/java/auth/pymes/integration/api/AuthApiIntegrationTest.java       # +test concurrente
+docs/GAPS.md                                                                             # TOCTOU → ✅, +gap #19
+docs/TO_DO.md                                                                            # TOCTOU → ✅
+```
 
 ---
 

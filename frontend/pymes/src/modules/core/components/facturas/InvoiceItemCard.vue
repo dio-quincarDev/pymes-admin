@@ -59,7 +59,7 @@ const subtotal = computed(() => {
 })
 
 function fmt(n: number | null) {
-  if (n == null) return '—'
+  if (n == null || !Number.isFinite(n)) return '—'
   return new Intl.NumberFormat('en-US', { style: 'currency', currency: 'USD', minimumFractionDigits: 2 }).format(n)
 }
 </script>

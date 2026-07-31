@@ -45,7 +45,7 @@
               <span class="recs-panel__provider-name">{{ rec.recommendedProviderName }}</span>
             </div>
             <div class="recs-panel__pricing">
-              <span class="recs-panel__price">${{ rec.recommendedPrice.toFixed(2) }}</span>
+              <span class="recs-panel__price">{{ formatCurrency(rec.recommendedPrice) }}</span>
               <span v-if="rec.supplierCount > 1" class="recs-panel__savings">
                 ahorro {{ formatCurrency(rec.savingsPerUnit) }}/u
               </span>

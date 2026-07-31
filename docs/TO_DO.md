@@ -131,7 +131,7 @@ Todos implementados inline en cada page (sin componentes separados).
 ### Auth
 
 - [x] [🔴] **Unificar whitelists de rutas públicas** — `SecurityConfig.WHITE_LIST` y `JwtAuthenticationFilter.publicPaths` separadas. Solución: `shouldNotFilter()` ahora lee de `SecurityConfig.WHITE_LIST` vía `AntPathMatcher`. Se eliminó `publicPaths`. (2026-07-21)
-- [ ] [🔴] **TOCTOU en refresh token rotation** — `JwtServiceImpl.validateAndRevokeRefreshToken()` read→check→write no atómico. Dos requests concurrentes con el mismo refresh token producen dos pares válidos. Sesión hijackeable. Fix: `@Version` o `@Lock(PESSIMISTIC_WRITE)` o SQL atómico.
+- [x] [🔴] **TOCTOU en refresh token rotation** — `JwtServiceImpl.validateAndRevokeRefreshToken()` read→check→write no atómico. Dos requests concurrentes con el mismo refresh token producen dos pares válidos. Sesión hijackeable. Fix: `@Lock(PESSIMISTIC_WRITE)` en `RefreshTokenRepository.findByTokenHash()`. Test de concurrencia en `AuthApiIntegrationTest`. (2026-07-30)
 - [ ] [Media] **Email casing inconsistente** — `AuthServiceImpl.completeRegistration()` no normaliza email a lowercase, `InvitationServiceImpl.registerAndAccept()` sí. Pueden crearse duplicados por case. Fix: normalizar en `completeRegistration()`.
 - [ ] [Baja] **JWT `jti` no usado** — `JwtServiceImpl.createToken()` genera `.id(UUID.randomUUID())` pero no se persiste. `logout()` borra TODOS los refresh tokens del usuario (no hay logout por sesión). Fix: persistir `jti` o documentar como diseño.
 - [ ] [Baja] **`@Transactional` en métodos Redis-only** — `PasswordResetServiceImpl.generateResetToken()`, `EmailVerificationServiceImpl.generateAndSendPendingRegistrationEmail()` tienen `@Transactional` pero solo tocan Redis. Consumen pool HikariCP innecesariamente.

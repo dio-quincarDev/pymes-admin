@@ -45,12 +45,12 @@
             </div>
           </q-td>
           <q-td key="avgPrice" class="comparison-card__cell comparison-card__cell--right">
-            <span class="comparison-card__price">${{ props.row.avgPrice.toFixed(2) }}</span>
+            <span class="comparison-card__price">{{ formatCurrency(props.row.avgPrice) }}</span>
           </q-td>
           <q-td key="minMax" class="comparison-card__cell comparison-card__cell--right">
-            <span class="comparison-card__price comparison-card__price--low">${{ props.row.minPrice.toFixed(2) }}</span>
+            <span class="comparison-card__price comparison-card__price--low">{{ formatCurrency(props.row.minPrice) }}</span>
             <span class="comparison-card__separator">—</span>
-            <span class="comparison-card__price comparison-card__price--high">${{ props.row.maxPrice.toFixed(2) }}</span>
+            <span class="comparison-card__price comparison-card__price--high">{{ formatCurrency(props.row.maxPrice) }}</span>
           </q-td>
           <q-td key="purchaseCount" class="comparison-card__cell comparison-card__cell--right">
             <span class="comparison-card__count">{{ props.row.purchaseCount }}</span>
@@ -68,7 +68,7 @@
                 class="comparison-card__volatility-label"
                 :class="volatilityClass(props.row.priceStddev)"
               >
-                ${{ props.row.priceStddev.toFixed(2) }}
+                {{ formatCurrency(props.row.priceStddev) }}
               </span>
             </div>
           </q-td>
@@ -88,6 +88,7 @@
 <script setup lang="ts">
 import { shallowRef } from 'vue';
 import type { SupplierComparisonItem } from '../../types/analytics';
+import { formatCurrency } from 'src/utils/format';
 
 defineProps<{ items: SupplierComparisonItem[]; loading?: boolean }>();
 

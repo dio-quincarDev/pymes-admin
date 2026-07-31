@@ -14,8 +14,11 @@ const numberFormatter = new Intl.NumberFormat('es-PE');
 
 export function useNumberFormat() {
   return {
-    formatCurrency: (value: number) => currencyFormatter.format(value),
-    formatPercent: (value: number) => percentFormatter.format(value / 100),
-    formatNumber: (value: number) => numberFormatter.format(value),
+    formatCurrency: (value: number) =>
+      Number.isFinite(value) ? currencyFormatter.format(value) : '$0.00',
+    formatPercent: (value: number) =>
+      Number.isFinite(value) ? percentFormatter.format(value / 100) : '0.0%',
+    formatNumber: (value: number) =>
+      Number.isFinite(value) ? numberFormatter.format(value) : '0',
   };
 }
