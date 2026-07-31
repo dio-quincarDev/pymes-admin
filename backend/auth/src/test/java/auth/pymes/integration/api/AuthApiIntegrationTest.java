@@ -166,26 +166,26 @@ class AuthApiIntegrationTest extends AbstractIntegrationTest {
     class LoginTests {
 
         @Test
-        @DisplayName("Email inexistente → 400 BAD_REQUEST (AUTH001)")
+        @DisplayName("Email inexistente → 401 UNAUTHORIZED (AUTH001)")
         void loginUserNotFound() throws Exception {
             LoginRequest loginRequest = new LoginRequest("nonexistent@example.com", "AnyPass123!");
 
             mockMvc.perform(post(TestApiPaths.AUTH_LOGIN)
                             .contentType(MediaType.APPLICATION_JSON)
                             .content(objectMapper.writeValueAsString(loginRequest)))
-                    .andExpect(status().isBadRequest())
+                    .andExpect(status().isUnauthorized())
                     .andExpect(jsonPath("$.codigo").value(CodigoError.INVALID_CREDENTIALS.getCodigo()));
         }
 
         @Test
-        @DisplayName("Credenciales inválidas → 400 BAD_REQUEST (AUTH001)")
+        @DisplayName("Credenciales inválidas → 401 UNAUTHORIZED (AUTH001)")
         void loginInvalidCredentials() throws Exception {
             LoginRequest loginRequest = new LoginRequest("nonexistent@example.com", "AnyPass123!");
 
             mockMvc.perform(post(TestApiPaths.AUTH_LOGIN)
                             .contentType(MediaType.APPLICATION_JSON)
                             .content(objectMapper.writeValueAsString(loginRequest)))
-                    .andExpect(status().isBadRequest())
+                    .andExpect(status().isUnauthorized())
                     .andExpect(jsonPath("$.codigo").value(CodigoError.INVALID_CREDENTIALS.getCodigo()));
         }
     }

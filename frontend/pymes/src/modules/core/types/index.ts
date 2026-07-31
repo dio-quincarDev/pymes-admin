@@ -245,17 +245,17 @@ export interface PatrimonioRequest {
 export interface MetricasFinancieras {
   tenantId: string
   periodo: string
-  totalIncome: number
-  costOfGoods: number
-  operatingExpenses: number
-  loanPayments: number
-  totalExpenses: number
-  grossMargin: number
-  grossMarginPct: number
-  operatingMargin: number
-  operatingMarginPct: number
-  netMargin: number
-  netMarginPct: number
+  totalIngresos: number
+  costoMercaderia: number
+  gastosOperativos: number
+  pagosPrestamos: number
+  totalGastos: number
+  margenBruto: number
+  margenBrutoPct: number
+  margenOperativo: number
+  margenOperativoPct: number
+  margenNeto: number
+  margenNetoPct: number
 }
 
 export interface PageResponse<T> {

@@ -11,7 +11,7 @@ import java.text.MessageFormat;
 public enum CodigoError {
     
     // ==================== AUTHENTICATION (AUTH) ====================
-    INVALID_CREDENTIALS("AUTH001", "Invalid username or password", HttpStatus.BAD_REQUEST),
+    INVALID_CREDENTIALS("AUTH001", "Invalid username or password", HttpStatus.UNAUTHORIZED),
     UNAUTHORIZED_ACCESS("AUTH002", "User is not authenticated", HttpStatus.UNAUTHORIZED),
     TOKEN_EXPIRED("AUTH003", "Access token has expired", HttpStatus.UNAUTHORIZED),
     TOKEN_INVALID("AUTH004", "Access token is invalid or malformed", HttpStatus.UNAUTHORIZED),

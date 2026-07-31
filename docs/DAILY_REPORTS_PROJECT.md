@@ -882,3 +882,58 @@ layouts/MainLayout.vue                                 → +nav item Teams
 ---
 
 *Creado: 2026-06-19 | Consolidacion de REFACTOR-STRATEGY.md + .github/REFACTOR.md*
+
+---
+
+## 2026-07-30 — Security + Correctness batch fix (auth + frontend)
+
+### Contexto
+
+Auditoría completa cruzando GAPS.md y TO_DO.md con código real. Se encontraron 6 bugs activos (4 críticos, 2 medios). Se resolvieron los 6 en una sola sesión. Skipped: cache en JwtFilter y rate limit en `/exchange` (ponytail: no son bugs, son optimizaciones).
+
+### Bugs corregidos
+
+| # | Severidad | Bug | Service | Fix |
+|---|-----------|-----|---------|-----|
+| 1 | 🔴 | `deleteByUserId` revertido por rollback | Auth | `TransactionTemplate` REQUIRES_NEW |
+| 2 | 🔴 | MetricasFinancieras field name mismatch | Frontend | Renombrar campos al español |
+| 3 | 🔴 | Email casing inconsistente | Auth | `.toLowerCase()` en `completeRegistration()` |
+| 4 | 🔴 | AUTH001 retorna 400 no 401 | Auth | `HttpStatus.UNAUTHORIZED` |
+| 5 | 🟡 | CORS `allowed-origins` sin default | Auth | `@Value` con fallback |
+| 6 | 🟡 | `@Transactional` en métodos Redis-only | Auth | Quitado de 2 métodos |
+
+### Archivos modificados (12 total)
+
+**Auth (7):**
+- `JwtServiceImpl.java` — `deleteByUserId` en transacción separada
+- `AuthServiceImpl.java` — `.toLowerCase()` en email
+- `CodigoError.java` — 400 → 401
+- `OAuth2AuthenticationSuccessHandler.java` — default CORS
+- `EmailVerificationServiceImpl.java` — quitar `@Transactional` Redis-only
+- `JwtServiceImplTest.java` — mock `TransactionTemplate`
+- `AuthApiIntegrationTest.java` — expect 401
+
+**Frontend (5):**
+- `types/index.ts` — `MetricasFinancieras` campos español
+- `DashboardPage.vue` — campos español
+- `AccountingPage.vue` — campos español
+- `StatStrip.vue` — campos español
+
+### Tests
+
+| Suite | Tests | Estado |
+|-------|-------|--------|
+| Auth unit | 140 | ✅ |
+| Auth integration | 55 | ✅ |
+| Core unit | 150 | ✅ |
+| Core integration | 22 | ✅ |
+| Gateway | 37 | ✅ |
+| Frontend lint | — | ✅ |
+| Frontend vue-tsc | — | ✅ |
+
+### Skipped (ponytail)
+
+- Cache en JwtFilter: no hay Caffeine, agregar cuando load lo demande
+- Rate limit `/exchange`: requiere gateway filter + Redis config
+
+**Estado:** ✅ COMPLETADO

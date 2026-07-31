@@ -97,10 +97,10 @@ public class AuthServiceImpl implements AuthService {
 
         UserEntity user = UserEntity.builder()
                 .name(request.name())
-                .email(request.email())
+                .email(request.email().toLowerCase())
                 .password(passwordEncoder.encode(request.password()))
                 .provider(AuthProvider.LOCAL)
-                .providerId(request.email())
+                .providerId(request.email().toLowerCase())
                 .isActive(true)
                 .emailVerifiedAt(ZonedDateTime.now()) // Ya viene verificado de Redis
                 .build();

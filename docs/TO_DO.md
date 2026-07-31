@@ -84,6 +84,7 @@ Todos implementados inline en cada page (sin componentes separados).
 - [x] [🔴] **Patrimonio: field names alineados con backend** — `initialCapital`→`capitalInicial`, `startDate`→`fechaInicio`, `notes`→`notas` (read-only). `PatrimonioRequest` ahora incluye `tenantId`. Eliminado campo `notes` del form (backend no lo persiste). Valida `capitalInicial > 0` antes de enviar (backend usa `@Positive`). Envía `null` en vez de string vacío para `fechaInicio`.
 - [x] [Media] **Currency formatting input** — `type="text"` + `inputmode="decimal"` + formateo al blur con `toLocaleString`. Aplicado en Patrimonio (capitalInicial), Gastos (amount), Ventas (grossAmount). Usuario escribe "10000", al salir del campo se formatea a "10,000.00".
 - [x] [🔴] **Gastos: field names alineados con backend** — `category`→`categoria`, `description`→`descripcion`, `amount`→`monto`, `expenseDate`→`fecha`, `paymentMethod`→`metodoPago`. Types (`GastoOperativo`, `GastoRequest`), page (`GastosPage.vue`), composable (`useFinancialDashboard.ts`), y chart (`ExpenseBreakdown.vue`) actualizados.
+- [x] [🔴] **MetricasFinancieras: field names alineados con backend** — `totalIncome`→`totalIngresos`, `costOfGoods`→`costoMercaderia`, `operatingExpenses`→`gastosOperativos`, `loanPayments`→`pagosPrestamos`, `totalExpenses`→`totalGastos`, `grossMargin`→`margenBruto`, `grossMarginPct`→`margenBrutoPct`, `operatingMargin`→`margenOperativo`, `operatingMarginPct`→`margenOperativoPct`, `netMargin`→`margenNeto`, `netMarginPct`→`margenNetoPct`. Types + DashboardPage + AccountingPage + StatStrip actualizados. (2026-07-30)
 
 ### Frontend — Pendiente (Tutorial onboarding)
 
@@ -132,9 +133,12 @@ Todos implementados inline en cada page (sin componentes separados).
 
 - [x] [🔴] **Unificar whitelists de rutas públicas** — `SecurityConfig.WHITE_LIST` y `JwtAuthenticationFilter.publicPaths` separadas. Solución: `shouldNotFilter()` ahora lee de `SecurityConfig.WHITE_LIST` vía `AntPathMatcher`. Se eliminó `publicPaths`. (2026-07-21)
 - [x] [🔴] **TOCTOU en refresh token rotation** — `JwtServiceImpl.validateAndRevokeRefreshToken()` read→check→write no atómico. Dos requests concurrentes con el mismo refresh token producen dos pares válidos. Sesión hijackeable. Fix: `@Lock(PESSIMISTIC_WRITE)` en `RefreshTokenRepository.findByTokenHash()`. Test de concurrencia en `AuthApiIntegrationTest`. (2026-07-30)
-- [ ] [Media] **Email casing inconsistente** — `AuthServiceImpl.completeRegistration()` no normaliza email a lowercase, `InvitationServiceImpl.registerAndAccept()` sí. Pueden crearse duplicados por case. Fix: normalizar en `completeRegistration()`.
+- [x] [🔴] **`deleteByUserId` revertido por rollback** — `validateAndRevokeRefreshToken()` llamaba `deleteByUserId()` y luego lanzaba `TokenRevokedException`. El rollback de Spring reviertía el DELETE. Fix: `TransactionTemplate.executeWithoutResult()` para REQUIRES_NEW. (2026-07-30)
+- [x] [Media] **Email casing inconsistente** — `AuthServiceImpl.completeRegistration()` no normaliza email a lowercase, `InvitationServiceImpl.registerAndAccept()` sí. Pueden crearse duplicados por case. Fix: normalizar en `completeRegistration()`. (2026-07-30)
 - [ ] [Baja] **JWT `jti` no usado** — `JwtServiceImpl.createToken()` genera `.id(UUID.randomUUID())` pero no se persiste. `logout()` borra TODOS los refresh tokens del usuario (no hay logout por sesión). Fix: persistir `jti` o documentar como diseño.
-- [ ] [Baja] **`@Transactional` en métodos Redis-only** — `PasswordResetServiceImpl.generateResetToken()`, `EmailVerificationServiceImpl.generateAndSendPendingRegistrationEmail()` tienen `@Transactional` pero solo tocan Redis. Consumen pool HikariCP innecesariamente.
+- [x] [Baja] **`@Transactional` en métodos Redis-only** — `EmailVerificationServiceImpl.generateVerificationToken()` y `generateAndSendPendingRegistrationEmail()` tenían `@Transactional` pero solo tocan Redis. Quitado. (2026-07-30)
+- [x] [🔴] **AUTH001 retorna 400 no 401** — `CodigoError.INVALID_CREDENTIALS` usaba `HttpStatus.BAD_REQUEST`. Un 401 es semánticamente correcto. Tests de integración actualizados. (2026-07-30)
+- [x] [Media] **CORS `allowed-origins` sin default** — `@Value("${app.cors.allowed-origins}")` sin fallback. App no arranca sin `.env`. Fix: default `http://localhost:9200`. (2026-07-30)
 - [ ] [Baja] **Facebook OAuth2** — postergado (Meta no aprobó verificación) (post-MVP)
 
 ### Auth — Invitación por Email (estrategia definida)

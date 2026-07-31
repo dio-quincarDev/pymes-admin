@@ -45,45 +45,45 @@ const kpis = computed(() => {
   return [
     {
       label: 'Ingresos Totales',
-      value: formatCurrency(m.totalIncome),
-      delta: p ? deltaPct(m.totalIncome, p.totalIncome) : undefined,
+      value: formatCurrency(m.totalIngresos),
+      delta: p ? deltaPct(m.totalIngresos, p.totalIngresos) : undefined,
       deltaLabel: 'vs mes anterior',
       accent: 'gold' as const,
     },
     {
       label: 'Costo de Mercadería',
-      value: formatCurrency(m.costOfGoods),
-      delta: p ? deltaPct(m.costOfGoods, p.costOfGoods) : undefined,
+      value: formatCurrency(m.costoMercaderia),
+      delta: p ? deltaPct(m.costoMercaderia, p.costoMercaderia) : undefined,
       deltaLabel: 'vs mes anterior',
       accent: 'red' as const,
     },
     {
       label: 'Gastos Operativos',
-      value: formatCurrency(m.operatingExpenses),
-      delta: p ? deltaPct(m.operatingExpenses, p.operatingExpenses) : undefined,
+      value: formatCurrency(m.gastosOperativos),
+      delta: p ? deltaPct(m.gastosOperativos, p.gastosOperativos) : undefined,
       deltaLabel: 'vs mes anterior',
       accent: 'blue' as const,
     },
     {
       label: 'Margen Bruto',
-      value: formatPercent(m.grossMarginPct),
-      delta: p ? deltaPct(m.grossMarginPct, p.grossMarginPct) : undefined,
+      value: formatPercent(m.margenBrutoPct),
+      delta: p ? deltaPct(m.margenBrutoPct, p.margenBrutoPct) : undefined,
       deltaLabel: 'vs mes anterior',
       accent: 'green' as const,
     },
     {
       label: 'Margen Operativo',
-      value: formatPercent(m.operatingMarginPct),
-      delta: p ? deltaPct(m.operatingMarginPct, p.operatingMarginPct) : undefined,
+      value: formatPercent(m.margenOperativoPct),
+      delta: p ? deltaPct(m.margenOperativoPct, p.margenOperativoPct) : undefined,
       deltaLabel: 'vs mes anterior',
       accent: 'green' as const,
     },
     {
       label: 'Margen Neto',
-      value: formatPercent(m.netMarginPct),
-      delta: p ? deltaPct(m.netMarginPct, p.netMarginPct) : undefined,
+      value: formatPercent(m.margenNetoPct),
+      delta: p ? deltaPct(m.margenNetoPct, p.margenNetoPct) : undefined,
       deltaLabel: 'vs mes anterior',
-      accent: m.netMarginPct >= 0 ? 'green' as const : 'red' as const,
+      accent: m.margenNetoPct >= 0 ? 'green' as const : 'red' as const,
     },
   ]
 })
@@ -169,28 +169,28 @@ onMounted(() => { if (tenantId) void load() })
       <div class="summary-card__grid">
         <div class="summary-card__item">
           <span class="summary-card__item-label">Ingresos</span>
-          <span class="summary-card__item-value">{{ formatCurrency(data.totalIncome) }}</span>
+          <span class="summary-card__item-value">{{ formatCurrency(data.totalIngresos) }}</span>
         </div>
         <div class="summary-card__item">
           <span class="summary-card__item-label">Costo de Ventas</span>
-          <span class="summary-card__item-value">-{{ formatCurrency(data.costOfGoods) }}</span>
+          <span class="summary-card__item-value">-{{ formatCurrency(data.costoMercaderia) }}</span>
         </div>
         <div class="summary-card__item">
           <span class="summary-card__item-label">Gastos Operativos</span>
-          <span class="summary-card__item-value">-{{ formatCurrency(data.operatingExpenses) }}</span>
+          <span class="summary-card__item-value">-{{ formatCurrency(data.gastosOperativos) }}</span>
         </div>
         <div class="summary-card__item">
           <span class="summary-card__item-label">Pagos Préstamos</span>
-          <span class="summary-card__item-value">-{{ formatCurrency(data.loanPayments) }}</span>
+          <span class="summary-card__item-value">-{{ formatCurrency(data.pagosPrestamos) }}</span>
         </div>
           <div class="summary-card__divider" />
         <div class="summary-card__item summary-card__item--result">
           <span class="summary-card__item-label">Resultado Neto</span>
           <span
             class="summary-card__item-value"
-            :class="data.netMargin >= 0 ? 'summary-card__item-value--positive' : 'summary-card__item-value--negative'"
+            :class="data.margenNeto >= 0 ? 'summary-card__item-value--positive' : 'summary-card__item-value--negative'"
           >
-            {{ formatCurrency(data.netMargin) }}
+            {{ formatCurrency(data.margenNeto) }}
           </span>
         </div>
       </div>

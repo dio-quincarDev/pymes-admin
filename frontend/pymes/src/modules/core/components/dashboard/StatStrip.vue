@@ -31,11 +31,11 @@ const stats = computed<StatItem[]>(() => {
     ];
   }
   return [
-    { label: 'Ingresos Totales', value: formatCurrency(m.totalIncome), delta: null, deltaLabel: '—' },
-    { label: 'Gastos Totales', value: formatCurrency(m.totalExpenses), delta: null, deltaLabel: '—' },
-    { label: 'Margen Neto', value: formatPercent(m.netMarginPct), delta: null, deltaLabel: '—' },
-    { label: 'Margen Bruto', value: formatPercent(m.grossMarginPct), delta: null, deltaLabel: '—' },
-    { label: 'Margen Operativo', value: formatPercent(m.operatingMarginPct), delta: null, deltaLabel: '—' },
+    { label: 'Ingresos Totales', value: formatCurrency(m.totalIngresos), delta: null, deltaLabel: '—' },
+    { label: 'Gastos Totales', value: formatCurrency(m.totalGastos), delta: null, deltaLabel: '—' },
+    { label: 'Margen Neto', value: formatPercent(m.margenNetoPct), delta: null, deltaLabel: '—' },
+    { label: 'Margen Bruto', value: formatPercent(m.margenBrutoPct), delta: null, deltaLabel: '—' },
+    { label: 'Margen Operativo', value: formatPercent(m.margenOperativoPct), delta: null, deltaLabel: '—' },
   ];
 });
 

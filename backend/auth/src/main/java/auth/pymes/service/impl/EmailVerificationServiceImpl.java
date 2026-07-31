@@ -55,7 +55,6 @@ public class EmailVerificationServiceImpl implements EmailVerificationService {
     }
 
     @Override
-    @Transactional
     public void generateAndSendPendingRegistrationEmail(RegisterRequest request) {
         String token = generateSecureToken();
         String key = PENDING_REG_PREFIX + token;
@@ -76,7 +75,6 @@ public class EmailVerificationServiceImpl implements EmailVerificationService {
     }
 
     @Override
-    @Transactional
     public String generateVerificationToken(UserEntity user) {
         String token = generateSecureToken();
         String key = VERIFY_KEY_PREFIX + token;

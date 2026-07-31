@@ -45,6 +45,9 @@ class JwtServiceImplTest {
     @Mock
     private RefreshTokenRepository refreshTokenRepository;
 
+    @Mock
+    private org.springframework.transaction.support.TransactionTemplate txTemplate;
+
     @InjectMocks
     private JwtServiceImpl jwtService;
 
@@ -354,6 +357,12 @@ class JwtServiceImplTest {
 
         when(tokenBlacklistService.isTokenRevoked(refreshToken)).thenReturn(false);
         when(refreshTokenRepository.findByTokenHash(tokenHash)).thenReturn(Optional.of(entity));
+        // ponytail: ejecutar la lambda de txTemplate para que deleteByUserId se llame y el verify pase
+        doAnswer(invocation -> {
+            var consumer = invocation.getArgument(0, java.util.function.Consumer.class);
+            consumer.accept(null);
+            return null;
+        }).when(txTemplate).executeWithoutResult(any());
 
         // Act & Assert
         assertThatThrownBy(() -> jwtService.validateAndRevokeRefreshToken(refreshToken))
@@ -366,7 +375,7 @@ class JwtServiceImplTest {
 
     @Test
     void shortSecretThrowsException() throws Exception {
-        var utils = new JwtServiceImpl(tokenBlacklistService, refreshTokenRepository);
+        var utils = new JwtServiceImpl(tokenBlacklistService, refreshTokenRepository, txTemplate);
         ReflectionTestUtils.setField(utils, "secretKey", "short");
         ReflectionTestUtils.setField(utils, "accessTokenExpiration", ACCESS_EXPIRATION);
         ReflectionTestUtils.setField(utils, "refreshTokenExpiration", REFRESH_EXPIRATION);

@@ -1556,3 +1556,45 @@ src/layouts/MainLayout.vue                         # +nav link
 ---
 
 *Creado: 2026-06-19 | Consolidación de FRONTEND_STATUS.md + AUTH_SERVICE_PLAN.md + auth-frontend-strategy-update.md + VERIFICATION_SECURITY_FIX.md + PWA_MODERNIZATION_PLAN.md*
+
+---
+
+## 2026-07-30 — MetricasFinancieras field name mismatch fix
+
+### Contexto
+
+Bug crítico: `GET /core/accounting/consultar` devuelve campos en español (`totalIngresos`, `costoMercaderia`, etc.) pero el frontend `MetricasFinancieras` los definía en inglés (`totalIncome`, `costOfGoods`, etc.). Resultado: todos los KPIs de AccountingPage y DashboardPage mostraban `undefined`/`$0.00`.
+
+### Qué se hizo
+
+Renombrar campos del type `MetricasFinancieras` en `types/index.ts` al español para alinear con el backend `MetricasResponse.java`:
+
+| Antes (inglés) | Después (español) |
+|----------------|-------------------|
+| `totalIncome` | `totalIngresos` |
+| `costOfGoods` | `costoMercaderia` |
+| `operatingExpenses` | `gastosOperativos` |
+| `loanPayments` | `pagosPrestamos` |
+| `totalExpenses` | `totalGastos` |
+| `grossMargin` | `margenBruto` |
+| `grossMarginPct` | `margenBrutoPct` |
+| `operatingMargin` | `margenOperativo` |
+| `operatingMarginPct` | `margenOperativoPct` |
+| `netMargin` | `margenNeto` |
+| `netMarginPct` | `margenNetoPct` |
+
+### Archivos modificados
+
+```
+types/index.ts                              → MetricasFinancieras: 11 campos renombrados
+pages/DashboardPage.vue                     → totalIngresos, costoMercaderia, gastosOperativos, margenBrutoPct
+modules/core/pages/AccountingPage.vue       → +pagosPrestamos, margenOperativoPct, margenNetoPct, margenNeto
+modules/core/components/dashboard/StatStrip.vue → totalIngresos, totalGastos, margenNetoPct, margenBrutoPct, margenOperativoPct
+```
+
+### Verificación
+
+- Frontend lint: clean
+- Frontend vue-tsc: clean (sin errores de tipo)
+
+**Estado:** ✅ COMPLETADO

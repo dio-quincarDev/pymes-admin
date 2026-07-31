@@ -784,3 +784,92 @@ Permitir que nuevos usuarios registren + acepten invitación en un solo paso, si
 - Si el approach se vuelve complejo, es mejor revertir temprano y replantear.
 
 **Estado:** ❌ ABANDONADO — archivado en `refactor/invitation-attempt`
+
+---
+
+## 2026-07-30 — Security fixes: deleteByUserId rollback + email casing + AUTH001 + CORS default + @Transactional cleanup
+
+### Contexto
+
+Auditoría completa cruzando GAPS.md con código real. Se encontraron 5 bugs activos, 4 de los cuales son rápidos de arreglar (ponytail: mínimo esfuerzo, máximo impacto).
+
+### Bugs corregidos
+
+#### 1. `deleteByUserId` revertido por rollback (🔴 Crítico — Seguridad)
+
+**Archivo:** `JwtServiceImpl.java:206-210`
+
+**Bug:** `validateAndRevokeRefreshToken()` llamaba `deleteByUserId()` y luego lanzaba `TokenRevokedException` (unchecked). Spring hace rollback de toda la transacción, incluyendo el DELETE. La familia de tokens del usuario atacante **nunca se borra**. La reuse detection dispara la rama de seguridad pero el delete es silenciosamente revertido.
+
+**Fix:** Envolver el delete en `TransactionTemplate.executeWithoutResult()` para que corra en su propia transacción (`REQUIRES_NEW`). El delete persiste aunque la excepción haga rollback de la transacción padre.
+
+```java
+// ANTES (bug)
+refreshTokenRepository.deleteByUserId(entity.getUserId());
+throw new TokenRevokedException("REUSE DETECTED");
+
+// DESPUÉS (fix)
+UUID userId = entity.getUserId();
+txTemplate.executeWithoutResult(status -> refreshTokenRepository.deleteByUserId(userId));
+throw new TokenRevokedException("REUSE DETECTED");
+```
+
+**Test:** `JwtServiceImplTest` actualizado con mock de `TransactionTemplate` que ejecuta la lambda. `AuthApiIntegrationTest` sin cambios (el test de reuse detection ya existía).
+
+#### 2. Email casing inconsistente (🔴 Crítico — Correctitud)
+
+**Archivo:** `AuthServiceImpl.java:100,103`
+
+**Bug:** `completeRegistration()` almacenaba `request.email()` sin `.toLowerCase()`. `InvitationServiceImpl.registerAndAccept()` sí lo hacía. Un usuario registrado con "User@Example.com" no podía loguear con "user@example.com" (PostgreSQL `=` es case-sensitive en VARCHAR).
+
+**Fix:** `.toLowerCase()` en `request.email()` para `email` y `providerId`.
+
+#### 3. AUTH001 retorna 400 en vez de 401 (🔴 Crítico — HTTP semántico)
+
+**Archivo:** `CodigoError.java:14`
+
+**Bug:** `INVALID_CREDENTIALS` usaba `HttpStatus.BAD_REQUEST` (400). Los demás auth errors (`UNAUTHORIZED_ACCESS`, `TOKEN_EXPIRED`, etc.) usaban 401. El frontend que chequea `status === 401` para re-auth no atrapaba este caso.
+
+**Fix:** `HttpStatus.BAD_REQUEST` → `HttpStatus.UNAUTHORIZED`.
+
+**Tests actualizados:** `AuthApiIntegrationTest.LoginTests` — `loginUserNotFound` y `loginInvalidCredentials` ahora esperan `isUnauthorized()` en vez de `isBadRequest()`.
+
+#### 4. CORS `allowed-origins` sin default (🟡 Medio — Correctitud)
+
+**Archivo:** `OAuth2AuthenticationSuccessHandler.java:60`
+
+**Bug:** `@Value("${app.cors.allowed-origins}")` sin fallback. Si la propiedad no está en `.env`, la app no arranca con `IllegalArgumentException`.
+
+**Fix:** `@Value("${app.cors.allowed-origins:http://localhost:9200}")`.
+
+#### 5. `@Transactional` en métodos Redis-only (🟡 Medio — Performance)
+
+**Archivo:** `EmailVerificationServiceImpl.java:58,80`
+
+**Bug:** `generateVerificationToken()` y `generateAndSendPendingRegistrationEmail()` tenían `@Transactional` pero solo interactúan con Redis. Abren conexión DB + Hibernate session innecesariamente, consumiendo conexiones del pool HikariCP.
+
+**Fix:** Quitado `@Transactional` de ambos métodos. Los métodos que sí tocan DB (`verifyEmail`, `resendVerificationToken`, `createAndSendVerificationEmail`) mantienen la anotación.
+
+### Archivos modificados
+
+```
+JwtServiceImpl.java              → +TransactionTemplate, deleteByUserId en REQUIRES_NEW
+AuthServiceImpl.java             → .toLowerCase() en completeRegistration()
+CodigoError.java                 → INVALID_CREDENTIALS: 400 → 401
+OAuth2AuthenticationSuccessHandler.java → @Value con default
+EmailVerificationServiceImpl.java → -@Transactional en 2 métodos Redis-only
+JwtServiceImplTest.java          → +TransactionTemplate mock, lambda execution
+AuthApiIntegrationTest.java      → expect 401 en vez de 400
+```
+
+### Tests
+
+- Auth unit: 140 pass
+- Auth integration: 55 pass
+
+### Skipped (ponytail)
+
+- **Cache en JwtFilter:** No hay Caffeine en auth. DB lookup por request es performance, no bug. Agregar cuando load lo demande.
+- **Rate limit `/exchange`:** Requiere filter config + Redis en gateway. No es bug, es hardening.
+
+**Estado:** ✅ COMPLETADO

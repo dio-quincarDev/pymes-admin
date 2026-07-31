@@ -57,7 +57,7 @@ public class OAuth2AuthenticationSuccessHandler extends SimpleUrlAuthenticationS
     private final OAuth2IntentService oauth2IntentService;
     private final RedisTemplate<String, Object> redisTemplate;
 
-    @Value("${app.cors.allowed-origins}")
+    @Value("${app.cors.allowed-origins:http://localhost:9200}")
     private String frontendUrl;
 
     private static final Duration CODE_TTL = Duration.ofMinutes(2);
