@@ -1,6 +1,6 @@
 # Motor de Estructura de Costos
 
-> **Estado (2026-07-30):** Estrategia definida. Pendiente implementación.
+> **Estado (2026-07-31):** Implementado (backend + frontend). V2/V3 migraciones, módulo `costos/`, GET /costos/diario, CTE en MetricasServiceImpl, CostosPage.vue + KPI dashboard. Pendiente: señal `DAILY_COST_CONTROL` (Financial Health motor #10 no existe).
 >
 > **Diferenciador del producto:** Mientras otros sistemas ven gastos planos, este motor razona sobre estructura de costos real — colaboradores con distintas frecuencias de pago, gastos fijos recurrentes con día de ejecución, y un cálculo diario que se compara contra ventas del día para dar ganancia real.
 
@@ -61,9 +61,11 @@ costos/
 | Event | `VentaCreadaEvent.java` | Record con `UUID tenantId`, `String periodo` |
 | Listener | `GastoCreadaListener.java` | `@Async @TransactionalEventListener(AFTER_COMMIT)` → `recomputeService.markMetricsDirty()` |
 | Ruta | `CorePath.java` | `+COSTOS_ROUTE = "/costos"` |
-| Migration | `V12` pattern | `V19` con 3 tablas |
+| Migration | `V12` pattern | `V2` con 3 tablas |
 | CTE | `MetricasServiceImpl.java` | Extender el CTE consolidado con fuente `costos` |
 | Salud Financiera | `analisisSaludFinanciera()` | Agregar señal `DAILY_COST_CONTROL` |
+
+> **Nota de implementación (2026-07-31):** Se usó `toResponse` manual (patrón `GastoServiceImpl`) en vez de mappers MapStruct — 1:1 simple, menos procesador de anotaciones. Los 3 mappers del plan original se omitieron (ponytail).
 
 ### Lo que NO se hace (ponytail)
 
@@ -308,10 +310,10 @@ El debounce Redis existente (30s, SETNX) maneja la deduplicación.
 
 ---
 
-## Migración Flyway — V19
+## Migración Flyway — V2
 
 ```sql
--- V19__costos_engine.sql
+-- V2__costos_engine.sql
 
 CREATE TABLE IF NOT EXISTS core.collaboradores (
     id UUID PRIMARY KEY DEFAULT gen_random_uuid(),
@@ -346,7 +348,7 @@ CREATE INDEX IF NOT EXISTS idx_gastos_fijos_tenant ON core.gastos_fijos_recurren
 
 ### MetricasFinanciera — nuevo campo
 
-V20: agregar columna a `tenant_financial_metrics`:
+V3: agregar columna a `tenant_financial_metrics`:
 
 ```sql
 ALTER TABLE core.tenant_financial_metrics
@@ -369,20 +371,19 @@ Ninguna nueva. Todo usa:
 
 | Paso | Descripción | Archivos |
 |------|------------|----------|
-| 1 | V19 + V20 migration | 2 SQL |
-| 2 | 3 entities + ConfigLaboralPK | 4 Java |
+| 1 | V2 + V3 migration | 2 SQL |
+| 2 | 3 entities + TipoPago enum | 4 Java |
 | 3 | 3 repositories | 3 Java |
 | 4 | 7 DTO records | 7 Java |
-| 5 | 3 mappers (MapStruct) | 3 Java |
-| 6 | Event + Listener | 2 Java |
-| 7 | CostoService + impl | 2 Java |
-| 8 | CostoApi + CostoController | 2 Java |
-| 9 | CorePath constant | 1 edit |
-| 10 | Extender MetricasServiceImpl CTE | 1 edit |
-| 11 | Agregar DAILY_COST_CONTROL a Financial Health | 1 edit |
-| 12 | Tests: JPA + unit | 4 Java |
-| 13 | Frontend: CostosPage.vue | 1 Vue |
-| 14 | Dashboard: daily cost strip | 1 edit |
+| 5 | Event + Listener | 2 Java |
+| 6 | CostoService + impl | 2 Java |
+| 7 | CostoApi + CostoController | 2 Java |
+| 8 | CorePath constant | 1 edit |
+| 9 | Extender MetricasServiceImpl CTE | 1 edit |
+| 10 | Agregar DAILY_COST_CONTROL a Financial Health | ⏳ Pendiente (motor #10 no existe) |
+| 11 | Tests: JPA + unit | 2 Java |
+| 12 | Frontend: CostosPage.vue | 1 Vue |
+| 13 | Dashboard: KPI Costo/Día | 2 edits |
 
 ---
 
@@ -390,4 +391,5 @@ Ninguna nueva. Todo usa:
 
 | Fecha | Evento |
 |-------|--------|
-| 2026-07-30 | Estrategia definida y documentada. Pendiente implementación. |
+| 2026-07-30 | Estrategia definida y documentada. |
+| 2026-07-31 | Implementado backend (V2/V3, módulo `costos/`, CTE) + frontend (CostosPage.vue, KPI dashboard). 160 unit + 22 integration verdes. Pendiente: `DAILY_COST_CONTROL`. |

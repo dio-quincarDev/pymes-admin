@@ -56,6 +56,9 @@ public abstract class AbstractJpaTest {
         jdbc.execute("DELETE FROM core.products");
         jdbc.execute("DELETE FROM core.providers");
         jdbc.execute("DELETE FROM core.expense_analysis");
+        jdbc.execute("DELETE FROM core.collaboradores");
+        jdbc.execute("DELETE FROM core.gastos_fijos_recurrentes");
+        jdbc.execute("DELETE FROM core.config_laboral");
         jdbc.execute("DELETE FROM core.tenant_setup");
     }
 }

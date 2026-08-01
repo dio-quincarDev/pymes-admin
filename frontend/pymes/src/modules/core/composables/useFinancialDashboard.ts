@@ -5,7 +5,8 @@ import { accountingService } from '../services/accounting.service';
 import { gastoService } from '../services/gasto.service';
 import { ventaService } from '../services/venta.service';
 import { facturaService } from '../services/factura.service';
-import type { MetricasFinancieras, GastoOperativo, VentaDiaria, Factura } from '../types';
+import { costoService } from '../services/costo.service';
+import type { MetricasFinancieras, GastoOperativo, VentaDiaria, Factura, CostoDiario } from '../types';
 
 export interface GastoPorCategoria {
   categoria: string;
@@ -38,6 +39,7 @@ export function useFinancialDashboard() {
   const gastosPrev = ref<GastoOperativo[]>([]);
   const ventas = ref<VentaDiaria[]>([]);
   const facturas = ref<Factura[]>([]);
+  const costoDiario = ref<CostoDiario | null>(null);
   const loading = ref(false);
   const error = ref<string | null>(null);
 
@@ -98,13 +100,14 @@ export function useFinancialDashboard() {
     error.value = null;
     try {
       const prev = getPreviousPeriod(period.value);
-      const [metricasRes, metricasPrevRes, gastosRes, gastosPrevRes, ventasRes, facturasRes] = await Promise.all([
+      const [metricasRes, metricasPrevRes, gastosRes, gastosPrevRes, ventasRes, facturasRes, costoRes] = await Promise.all([
         accountingService.consultar(tenantId, period.value),
         accountingService.consultar(tenantId, prev),
         gastoService.getAll(tenantId),
         gastoService.getAll(tenantId),
         ventaService.getAll(tenantId),
         facturaService.getAll(tenantId),
+        costoService.getDiario(tenantId),
       ]);
       metricas.value = metricasRes.data;
       metricasPrev.value = metricasPrevRes.data;
@@ -112,6 +115,7 @@ export function useFinancialDashboard() {
       gastosPrev.value = gastosPrevRes.data;
       ventas.value = ventasRes.data;
       facturas.value = facturasRes.data;
+      costoDiario.value = costoRes.data;
     } catch (e: unknown) {
       error.value = e instanceof Error ? e.message : 'Error cargando datos financieros';
     } finally {
@@ -144,6 +148,7 @@ export function useFinancialDashboard() {
     gastosPrev,
     ventas,
     facturas,
+    costoDiario,
     gastosPorCategoria,
     gastosPorCategoriaPrev,
     actividadReciente,

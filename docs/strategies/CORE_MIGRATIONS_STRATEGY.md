@@ -1,18 +1,20 @@
-# Estrategia: Consolidación de Migraciones Core (16→1)
+# Estrategia: Consolidación de Migraciones Core (18→1)
 
 > Aplica a: `backend/core/src/main/resources/db/migration/`. Objetivo: fresh stage deploy.
+>
+> ✅ **EJECUTADO 2026-07-30**: V1–V18 → único `V1__core_schema.sql`. Unit tests (150) + integration (22) verdes sobre Postgres fresh (Testcontainers).
 
 ---
 
 ## Resumen Ejecutivo
 
-Consolidar 16 migraciones de Flyway en un único `V1__core_schema.sql` idempotente (`IF NOT EXISTS`). Eliminar 2 índices redundantes. Corregir 2 sentencias sin protección `IF NOT EXISTS`.
+Consolidar 18 migraciones de Flyway en un único `V1__core_schema.sql` idempotente (`IF NOT EXISTS`). Eliminar 2 índices redundantes. Corregir 2 sentencias sin protección `IF NOT EXISTS`.
 
 ---
 
 ## Problema actual
 
-16 archivos de migración incremental acumulados durante el desarrollo de MVP:
+18 archivos de migración incremental acumulados durante el desarrollo de MVP:
 
 | Archivo | Contenido | Origen |
 |---------|-----------|--------|
@@ -32,6 +34,10 @@ Consolidar 16 migraciones de Flyway en un único `V1__core_schema.sql` idempoten
 | V14 | `idx_products_tenant_category`, `idx_products_active_tenant` | Search indexes |
 | V15 | ALTER `invoice_items` (audit fields) | Audit |
 | V16 | `idx_invoices_tenant_status_dates`, `idx_invoice_items_invoice_product` | Performance indexes |
+| V17 | DROP `template_locations` | Cleanup |
+| V18 | `template_units`, `template_payment_methods`, `template_products`, `template_product_presentations` | Template tables |
+
+> **Nota de ejecución**: V17 y V18 se agregaron después de redactar esta estrategia. En la consolidación, `template_locations` NO se crea (estado final tras V17) y las tablas template de V18 SÍ se incluyen en la Sección 7.
 
 ---
 
@@ -361,21 +367,26 @@ Sí. `idx_invoice_items_invoice_product` tiene `(invoice_id, product_id)`. Para 
 |-------|---------|-------|
 | `tenant_setup` | 1 | `idx_tenant_setup_tenant_id` |
 | `template_categories` | 2 | industry + parent |
-| `template_locations` | 1 | industry |
+| `template_units` | 1 | industry |
+| `template_payment_methods` | 1 | industry |
+| `template_products` | 1 | industry |
+| `template_product_presentations` | 1 | fk |
 | `products` | 4 | tenant_sku (unique), tenant_category, active_tenant (partial), provider |
 | `product_presentations` | 1 | product |
 | `providers` | 1 | tenant |
-| `invoices` | 5 | tenant, provider, number_tenant (unique), tenant_date, tenant_date_type (covering), tenant_status_dates |
-| `invoice_items` | 4 | presentacion, product, invoice_product, loan_loan_date |
+| `invoices` | 5 | tenant, provider, number_tenant (unique), tenant_date_type (covering), tenant_status_dates |
+| `invoice_items` | 3 | presentacion, product, invoice_product |
 | `expense_analysis` | 1 | tenant_period |
 | `operating_expenses` | 1 | tenant_date |
 | `loans` | 1 | tenant |
 | `loan_payments` | 2 | loan, loan_date (covering) |
 | `daily_sales` | 1 | tenant_date |
 | `tenant_financial_metrics` | 0 | UNIQUE constraint (tenant_id, period) actúa como índice |
-| **Total** | **25** | 20 non-unique + 3 unique + 2 covering |
+| **Total** | **28** | 22 non-unique + 3 unique + 2 covering + 1 fk |
 
-**Antes de consolidación:** 27 índices (2 redundantes eliminados = 25 efectivos)
+**Antes de consolidación:** 30 índices (2 redundantes eliminados = 28 efectivos)
+
+> `template_locations` ya no existe (dropeada por V17). `idx_invoices_tenant_date` de V6 quedó absorbido en `idx_invoices_tenant_date_type` (covering con INCLUDE total).
 
 ---
 
@@ -407,17 +418,19 @@ Sí. `idx_invoice_items_invoice_product` tiene `(invoice_id, product_id)`. Para 
 
 ---
 
-## Trazabilidad V1–V16 → Consolidado
+## Trazabilidad V1–V18 → Consolidado
 
 | Sección consolidada | Archivos origen |
 |--------------------|----------------|
-| 1. Setup | V1, V2 |
-| 2. Products | V3, V7, V10, V14 |
-| 3. Invoices | V4, V5, V6, V9, V15, V16 |
-| 4. Analytics | V5, V11 |
-| 5. Accounting | V12, V13 |
-| 6. Data migration | V8 |
+| 1. Setup | V1, V2, V17 (template_locations NO creada) |
+| 2. Providers | V4, V9 |
+| 3. Products | V3, V7, V10, V14 |
+| 4. Invoices | V4, V5, V6, V15, V16 |
+| 5. Analytics | V5, V11 |
+| 6. Accounting | V12, V13 |
+| 7. Template tables | V18 |
+| 8. Data migration | V8 |
 
 ---
 
-*Creado: 2026-07-24 | Análisis de 16 migraciones core para consolidación en stage deploy*
+*Creado: 2026-07-24 | Ejecutado: 2026-07-30 | Consolidación de 18 migraciones core en `V1__core_schema.sql`*

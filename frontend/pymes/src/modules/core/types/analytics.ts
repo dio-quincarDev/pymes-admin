@@ -31,6 +31,8 @@ export interface OpexItem {
   providerCount: number;
   projectedMonthly: number;
   avgDailySpend: number;
+  variableDailySpend?: number;
+  fixedDailyCost?: number;
 }
 
 export interface ProjectionItem {

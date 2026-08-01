@@ -70,7 +70,9 @@ Todos comunican via Spring Events (no bloqueantes). Paquete base: `core_pymes.*`
 | Entidad | `AnalisisGasto` (JSONB por tenant/periodo) |
 | Endpoints | `GET /analytics/consultar`, `POST /analytics/recalcular` |
 | Motores | ABC, tendencias, margenes, opex, proyeccion, alertas, comparativa proveedores, recomendaciones, predicciones, **salud financiera** |
-| Flyway | V5 (expense_analysis schema), V6 (indexes), V11 (supplier fields), V15 (financial_health JSONB) |
+| Flyway | V1 (esquema consolidado V1–V18), V4 (financial_health JSONB) |
+| OLS predicción | `analisisProyeccionPrecios`: OLS en SQL (`regr_slope/regr_intercept/regr_r2`) sobre agrupación diaria; `predictedPrice = slope*(n+1)+intercept` (rn 1-based), filtro `data_points >= 3` en `HAVING`. Verificado con EXPLAIN ANALYZE: a escala PYME PG usa `idx_invoices_tenant` + hash join full-scan de `invoice_items` (óptimo, ~4ms); al crecer la tabla cambia solo al nested loop con `idx_invoice_items_invoice_product`. Sin índice nuevo — `invoice_items` no tiene `tenant_id`. |
+| Guard `conversion_factor` | Todas las divisiones por `conversion_factor` usan `NULLIF(conversion_factor, 0)` — filas con factor 0 se excluyen del agregado en vez de lanzar division-by-zero que mata `ejecutarCompleto`. Test `conversionFactorCero_noRompeMotores`. |
 
 #### Motor de Salud Financiera (Motor #10)
 
@@ -174,7 +176,7 @@ Cada sub-score tiene drivers que explican *por qué* está en ese nivel. No es u
 }
 ```
 
-**Persistencia:** JSONB nullable en `expense_analysis.financial_health` (V15). Filas existentes → null, mapper retorna objeto vacío.
+**Persistencia:** JSONB nullable en `expense_analysis.financial_health` (V4). Filas existentes → null, mapper retorna objeto vacío.
 
 **Trigger de recomputo:** Se ejecuta al final de `ejecutarCompleto()` después de los 9 motores. No tiene debounce propio — hereda el del analytics.
 
@@ -517,7 +519,7 @@ Ver `SEED_TEMPLATES.md` para detalle completo.
 - [x] Testcontainers Redis en AbstractIntegrationTest
 - [x] SQL review — division por cero en analisisABC, indices redundantes removidos
 - [x] **Cleanup seed: remover stock** — `template_locations` + `template_movement_reasons` eliminadas, industry codes → constantes (java:S1192). Flyway V18 para DDL. Ver `SEED_TEMPLATES.md` → Cleanup 2026-07.
-- [ ] **Financial Health Engine** — Motor #10: scoring compuesto + alertas críticas + señales inversión/expansión. Requiere V15 (columna `financial_health JSONB`), `analisisSaludFinanciera()` en AnalyticsServiceImpl, `FinancialHealthResponse` DTO, actualización de `useAnalytics` + `AnalisisGastosPage.vue`.
+- [x] **Financial Health Engine** — Motor #10: scoring compuesto + alertas críticas + señales inversión/expansión. V4 (columna `financial_health JSONB`), `analisisSaludFinanciera()` en AnalyticsServiceImpl. Pendiente: `FinancialHealthResponse` DTO + `useAnalytics` + `AnalisisGastosPage.vue`.
 
 ### Mediate
 

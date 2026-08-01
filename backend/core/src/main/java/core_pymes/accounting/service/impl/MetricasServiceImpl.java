@@ -52,6 +52,7 @@ public class MetricasServiceImpl implements MetricasService {
         metricas.setOperatingMarginPct(metrics.operatingMarginPct);
         metricas.setNetMargin(metrics.netMargin);
         metricas.setNetMarginPct(metrics.netMarginPct);
+        metricas.setCostoOperativoDiario(metrics.costoOperativoDiario);
 
         metricas = repository.save(metricas);
         log.debug("Metrics computed for tenant {} period {}: net margin {}%",
@@ -74,7 +75,7 @@ public class MetricasServiceImpl implements MetricasService {
             BigDecimal operatingExpenses, BigDecimal loanPayments,
             BigDecimal totalExpenses, BigDecimal grossMargin, BigDecimal grossMarginPct,
             BigDecimal operatingMargin, BigDecimal operatingMarginPct,
-            BigDecimal netMargin, BigDecimal netMarginPct) {}
+            BigDecimal netMargin, BigDecimal netMarginPct, BigDecimal costoOperativoDiario) {}
 
     private MetricsResult computeMetrics(UUID tenantId, LocalDate start, LocalDate end) {
         var sql = """
@@ -103,12 +104,28 @@ public class MetricasServiceImpl implements MetricasService {
                     FROM core.loan_payments lp
                     JOIN core.loans l ON lp.loan_id = l.id
                     WHERE l.tenant_id = ? AND lp.payment_date >= ? AND lp.payment_date < ?
+                ),
+                costos AS (
+                    SELECT
+                        COALESCE((SELECT SUM(monto) FROM core.gastos_fijos_recurrentes
+                                  WHERE tenant_id = ? AND activo = true), 0) AS costo_fijo_mensual,
+                        COALESCE((SELECT SUM(
+                            CASE tipo_pago
+                                WHEN 'DIARIO' THEN monto * (SELECT COALESCE(dias_laborales, 26) FROM core.config_laboral WHERE tenant_id = ?)
+                                WHEN 'SEMANAL' THEN monto * 4.33
+                                WHEN 'QUINCENAL' THEN monto * 2
+                                WHEN 'MENSUAL' THEN monto
+                                ELSE monto
+                            END
+                        ) FROM core.collaboradores WHERE tenant_id = ? AND activo = true), 0) AS costo_salarios_mensual,
+                        COALESCE((SELECT dias_laborales FROM core.config_laboral WHERE tenant_id = ?), 26) AS dias_laborales
                 )
                 SELECT s.total AS total_income,
                        ic.total AS cost_of_goods,
                        io.total + o.total AS operating_expenses,
-                       l.total AS loan_payments
-                FROM sales s, invoices_cost ic, invoices_opex io, opex o, loan_pay l
+                       l.total AS loan_payments,
+                       (c.costo_fijo_mensual + c.costo_salarios_mensual) / c.dias_laborales AS costo_operativo_diario
+                FROM sales s, invoices_cost ic, invoices_opex io, opex o, loan_pay l, costos c
                 """;
 
         return jdbc.query(sql, rs -> {
@@ -117,6 +134,7 @@ public class MetricasServiceImpl implements MetricasService {
             var costOfGoods = rs.getBigDecimal("cost_of_goods");
             var opEx = rs.getBigDecimal("operating_expenses");
             var loanPay = rs.getBigDecimal("loan_payments");
+            var costoOperativoDiario = rs.getBigDecimal("costo_operativo_diario");
             var totalExpenses = costOfGoods.add(opEx).add(loanPay);
 
             var grossMargin = totalIncome.subtract(costOfGoods);
@@ -128,13 +146,15 @@ public class MetricasServiceImpl implements MetricasService {
 
             return new MetricsResult(totalIncome, costOfGoods, opEx, loanPay,
                     totalExpenses, grossMargin, grossMarginPct,
-                    operatingMargin, operatingMarginPct, netMargin, netMarginPct);
+                    operatingMargin, operatingMarginPct, netMargin, netMarginPct,
+                    costoOperativoDiario);
         },
                 tenantId, start, end,   // sales
                 tenantId, start, end,   // invoices_cost
                 tenantId, start, end,   // invoices_opex
                 tenantId, start, end,   // opex
-                tenantId, start, end);  // loan_pay
+                tenantId, start, end,   // loan_pay
+                tenantId, tenantId, tenantId, tenantId);  // costos
     }
 
     private BigDecimal safePct(BigDecimal margin, BigDecimal base) {
@@ -150,6 +170,7 @@ public class MetricasServiceImpl implements MetricasService {
                 m.getOperatingExpenses(), m.getLoanPayments(),
                 m.getTotalExpenses(), m.getGrossMargin(), m.getGrossMarginPct(),
                 m.getOperatingMargin(), m.getOperatingMarginPct(),
-                m.getNetMargin(), m.getNetMarginPct(), m.getCreatedAt());
+                m.getNetMargin(), m.getNetMarginPct(),
+                m.getCostoOperativoDiario(), m.getCreatedAt());
     }
 }

@@ -38,6 +38,12 @@ export const coreRoutes: RouteRecordRaw[] = [
     meta: { title: 'Gastos' },
   },
   {
+    path: 'costos',
+    name: 'costos',
+    component: () => import('../pages/CostosPage.vue'),
+    meta: { title: 'Costos' },
+  },
+  {
     path: 'ventas',
     name: 'ventas',
     component: () => import('../pages/VentasPage.vue'),

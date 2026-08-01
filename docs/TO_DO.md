@@ -6,6 +6,9 @@
 - [x] [Alta] **Exception system (estrategia definida)** — `ErrorResponse`, `ApiResponse`, `CodigoError`, 3 custom exceptions, `GlobalExceptionHandler` (12 handlers). Migrados 18 throws en 7 services (150/150 tests). → [`docs/EXCEPTION_STRATEGY.md`](./backend/core/docs/EXCEPTION_STRATEGY.md)
 - [x] [🔴] **Validar tenantId contra JWT** — `TenantValidationFilter` que compara `X-Tenant-Id` header vs `@RequestParam tenantId`, 403 si difieren. (2026-07-24)
 - [x] [🔴] **`@PreAuthorize` en endpoints sensibles** — agregar `@EnableMethodSecurity` + `@PreAuthorize` en controllers (crear/actualizar/eliminar según rol) (2026-07)
+- [x] [Alta] **OLS de proyección de precios en SQL** — `analisisProyeccionPrecios` usa `regr_slope/regr_intercept/regr_r2` en la query (CTEs `daily_prices` + `ranked`, filtro `data_points>=3`, `predictedPrice = slope*(n+1)+intercept`), ~50 líneas Java menos. (2026-07-31)
+- [x] [Alta] **Primeros integration tests del Analytics** — `AnalyticsIntegrationTest` (5 tests, Testcontainers PG15 + Redis7): valida los 10 campos JSONB, casos vacíos, proveedor único, idempotencia. 162 unit + 5 IT = BUILD SUCCESS. (2026-07-31)
+- [x] [Media] **Verificación de índices de las CTEs analytics** — EXPLAIN ANALYZE real: sin índice nuevo necesario (`invoice_items` no tiene `tenant_id`), PG auto-corrige con el volumen. (2026-07-31)
 - [ ] [Alta] Reportes — dashboard consolidado KPIs + alertas (2026-07)
 - [ ] [Alta] CRUD configuración tenant (edición) (2026-07)
 - [ ] [Media] Integration tests ejecutables en CI (2026-07)
@@ -110,13 +113,13 @@ Todos implementados inline en cada page (sin componentes separados).
 
 ### Core — Motor de Costos ([COSTOS_ENGINE.md](./backend/core/docs/COSTOS_ENGINE.md))
 
-- [ ] [🔴] **V19 migration: collaboradores, gastos_fijos_recurrentes, config_laboral** — 3 tablas nuevas en schema `core`. Idempotente con `IF NOT EXISTS`. (2026-07)
-- [ ] [🔴] **V20 migration: costo_operativo_diario en tenant_financial_metrics** — Columna para persistir costo diario calculado. (2026-07)
-- [ ] [🔴] **Módulo `costos/` scaffold** — 3 entities (soft-delete pattern reciclando `GastoOperativo`), 3 repositories, 7 DTOs, 3 mappers (MapStruct), 1 controller con 4 grupos de endpoints, 1 service con tenant guard + caching + eventos.
-- [ ] [Alta] **GET /costos/diario** — Motor de cálculo: suma gastos fijos activos, colaboradores con conversión por frecuencia, divide por días laborales. Cruza con ventas del día para ganancia real estimada.
-- [ ] [Alta] **Integrar costo diario en MetricasServiceImpl CTE** — Nueva CTE `costos AS (...)` en el query consolidado. Alimenta `costoOperativoDiario` en respuestas de accounting.
-- [ ] [Media] **Integrar costo diario en Financial Health Engine** — Nueva señal `DAILY_COST_CONTROL` (verde si ventasHoy > costoDiario × 1.2 en 3+/7 días).
-- [ ] [Media] **Frontend: CostosPage.vue** — Nueva página con 3 tabs: Colaboradores (tabla CRUD), Gastos Fijos (agrupados por categoría), Config (días laborales). Header con resumen costo diario vs ventas hoy.
+- [x] [🔴] **V2 migration: collaboradores, gastos_fijos_recurrentes, config_laboral** — 3 tablas nuevas en schema `core`. Idempotente con `IF NOT EXISTS`. (2026-07-31)
+- [x] [🔴] **V3 migration: costo_operativo_diario en tenant_financial_metrics** — Columna para persistir costo diario calculado. (2026-07-31)
+- [x] [🔴] **Módulo `costos/` scaffold** — 3 entities (soft-delete pattern reciclando `GastoOperativo`), 3 repositories, 7 DTOs, 1 controller con 4 grupos de endpoints, 1 service con tenant guard + caching + eventos. Sin mappers MapStruct: `toResponse` manual como en `GastoServiceImpl` (ponytail). (2026-07-31)
+- [x] [Alta] **GET /costos/diario** — Motor de cálculo: suma gastos fijos activos, colaboradores con conversión por frecuencia, divide por días laborales. Cruza con ventas del día para ganancia real estimada. (2026-07-31)
+- [x] [Alta] **Integrar costo diario en MetricasServiceImpl CTE** — Nueva CTE `costos AS (...)` en el query consolidado. Alimenta `costoOperativoDiario` en respuestas de accounting. (2026-07-31)
+- [ ] [Media] **Integrar costo diario en Financial Health Engine** — Nueva señal `DAILY_COST_CONTROL` (verde si ventasHoy > costoDiario × 1.2 en 3+/7 días). Bloqueado: motor #10 no implementado. (2026-07-31)
+- [x] [Media] **Frontend: CostosPage.vue** — Nueva página con 3 tabs: Colaboradores (tabla CRUD), Gastos Fijos (agrupados por categoría), Config (días laborales). Header sticky con resumen costo diario vs ventas hoy. KPI "Costo / Día" en Dashboard. (2026-07-31)
 - [ ] [Baja] **Dashboard: daily cost strip** — Nuevo KPI "Costo/Día $232" en el stat strip del dashboard.
 - [ ] [Media] **Tests: JPA + unit** — 3 repositorios (AbstractJpaTest) + 1 service (Mockito).
 

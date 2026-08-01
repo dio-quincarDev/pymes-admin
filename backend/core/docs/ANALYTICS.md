@@ -1,7 +1,7 @@
 # Analytics Module
 
-> **Estado (2026-07-14):** Implementado en produccion — 9 motores CTE + 1 motor compuesto (Financial Health), listener conectado a FacturaCreadaEvent via debounce Redis, tabla expense_analysis con 4 columnas JSONB.
-> Tests: 5 unitarios + 4 JPA (AnalyticsServiceImplTest + AnalyticsRepositoryTest).
+> **Estado (2026-07-31):** Implementado en produccion — 9 motores CTE + 1 motor compuesto (Financial Health), listener conectado a FacturaCreadaEvent via debounce Redis, tabla expense_analysis con 10 columnas JSONB.
+> Tests: 6 unitarios + 5 integration (AnalyticsServiceImplTest + AnalyticsIntegrationTest con Testcontainers PG15 + Redis7).
 
 ---
 
@@ -37,7 +37,7 @@
 | ABC de Gastos | `analisisABC()` | Pareto: categorias A/B/C por % acumulado de gasto |
 | Tendencias Precios | `analisisTendencia()` | % cambio vs media movil 90 dias |
 | Impacto Margenes | `analisisMargen()` | Delta precio unitario periodo actual vs anterior |
-| Costo Operativo | `analisisCostoOperativo()` | Gasto operativo % ventas + proyeccion mensual |
+| Gasto Variable | `analisisGastoVariable()` | Gasto operativo % ventas + proyeccion mensual |
 | Proyeccion | `analisisProyeccion()` | Forecast lineal 30/60/90 dias |
 | Alertas | `analisisAlertas()` | Variacion >15% (CV) + alerta SUPPLIER_PREMIUM |
 
@@ -47,9 +47,9 @@
 |-------|--------|-------------|
 | Comparativa Proveedores | `analisisComparativaProveedores()` | avg/min/max/stddev de precio por producto-proveedor |
 | Recomendaciones | `analisisRecomendacionProveedor()` | Proveedor mas barato por producto + savings_pct |
-| Predicciones Precios | `analisisProyeccionPrecios()` | OLS lineal por producto, predice precio proximo mes con R2 |
+| Predicciones Precios | `analisisProyeccionPrecios()` | OLS en SQL (`regr_slope/regr_intercept/regr_r2` en CTEs `daily_prices`+`ranked`), `predictedPrice = slope*(n+1)+intercept` (rn 1-based), filtro `data_points>=3` |
 
-### Financial Health Engine (Motor #10 — V15)
+### Financial Health Engine (Motor #10 — V4)
 
 Motor compuesto, no SQL independiente. Cruza datos de los 9 motores + `MetricasRepository` para producir inteligencia accionable.
 
@@ -78,10 +78,10 @@ Ver `CORE.md` §Motor de Salud Financiera para JSON de salida, inputs y diseño 
 
 | Migration | Contenido |
 |-----------|-----------|
-| V5 | Tabla `expense_analysis` (JSONB por tenant/periodo) |
-| V6 | Indices en `invoices(tenant_id, issue_date)` e `invoice_items(product_id)` para performance |
-| V11 | +3 columnas JSONB: `supplier_comparison`, `supplier_recommendations`, `price_prediction` |
-| V15 | +1 columna JSONB: `financial_health` (nullable, Motor #10) |
+| V1 | Esquema consolidado (V1–V18, 2026-07-30): `expense_analysis` + índices |
+| V2 | Costos engine: `collaboradores`, `gastos_fijos_recurrentes`, `config_laboral` |
+| V3 | `costo_operativo_diario` en `tenant_financial_metrics` |
+| V4 | +1 columna JSONB: `financial_health` (nullable, Motor #10) |
 
 ---
 
@@ -129,7 +129,7 @@ FROM current_prices cp
 LEFT JOIN moving_avg ma ON cp.product_id = ma.product_id
 ```
 
-### Costo Operativo
+### Gasto Variable
 
 ```sql
 WITH period_data AS (

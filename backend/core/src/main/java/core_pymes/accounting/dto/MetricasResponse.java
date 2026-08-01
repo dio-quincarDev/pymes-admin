@@ -19,5 +19,6 @@ public record MetricasResponse(
         BigDecimal margenOperativoPct,
         BigDecimal margenNeto,
         BigDecimal margenNetoPct,
+        BigDecimal costoOperativoDiario,
         ZonedDateTime createdAt
 ) {}

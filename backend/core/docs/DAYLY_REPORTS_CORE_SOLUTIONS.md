@@ -13,13 +13,67 @@ Registro de lo implementado y lo pendiente.
 | Setup | Implementado | 13 unit + 10 integration |
 | Product | Implementado | 11 unit + 30 JPA edge cases |
 | Invoice | Implementado | 7 unit + 4 integration |
-| Analytics | Implementado | 5 unit + 4 JPA |
+| Analytics | Implementado | 6 unit + 5 integration |
 | Gasto | Implementado | 17 JPA |
 | Prestamo | Implementado | 13 JPA |
 | Inversion | Implementado | 9 JPA |
 | Venta | Implementado | 13 JPA |
 | Accounting | Implementado | MetricasFinanciera + CTE consolidado |
 | Reportes | Pendiente | Ver FUTURE_MODULES.md |
+
+---
+
+## 2026-07-31 — Analytics: OLS en SQL + primeros integration tests + verificación de índices
+
+### Contexto
+
+Tres frentes sobre el motor analítico del core:
+1. `analisisProyeccionPrecios` aún computaba regresión OLS en Java (perezoso y frágil).
+2. El módulo Analytics no tenía coverage de integración real (Testcontainers).
+3. Se requería verificar con evidencia que la query OLS usa los índices correctos antes de cerrar una review.
+
+### Qué se hizo
+
+**1. Refactor OLS Java → SQL (`AnalyticsServiceImpl.analisisProyeccionPrecios`)**
+
+- La regresión lineal ahora la hace PostgreSQL en la query (CTEs `daily_prices` + `ranked`):
+  - `daily_prices`: precio promedio diario por producto dentro del lookback (6 meses antes del período).
+  - `ranked`: `ROW_NUMBER()` por producto ordenando por `issue_date` → rn 1-based.
+  - `REGR_SLOPE`, `REGR_INTERCEPT`, `COALESCE(regr_r2, 0)`, `ARRAY_AGG(price_promedio_diario ORDER BY issue_date DESC)[1]` como last_price.
+  - `HAVING data_points >= 3` filtra productos con histórico insuficiente.
+- Java solo calcula `predictedPrice = slope * (rn_total + 1) + intercept` (rn es 1-based; antes era 0-based) y pctChange/confidence. ~50 líneas Java menos.
+- Test unitario `analisisProyeccionPrecios_computesOlsFromSqlRegression` (usa `List.<Object[]>of(...)` por el varargs de `queryForList`).
+
+**2. Primeros integration tests del Analytics (`AnalyticsIntegrationTest`, 5 tests verdes)**
+
+- Extiende `AbstractIntegrationTest` (Testcontainers postgres:15-alpine + redis:7-alpine via `@ServiceConnection`; Failsafe ejecuta `**/integration/**`).
+- `@MockBean RecomputeDebounceService` para silenciar el `@Scheduled(fixedDelay=30000)`.
+- Seed vía `JdbcTemplate` (provider, producto, factura con item, `tenant_financial_metrics.costo_operativo_diario` — obligatorio, si no `analisisGastoVariable` dispara recalculo indeterminista).
+- Valida los 10 campos JSONB de `analisis_gasto` contra el esquema real.
+- Aprendizajes: `opex_pct` es **array de 1 objeto** (analisisGastoVariable devuelve List), no objeto; comparativa/recomendaciones ven solo el período (junio), no el lookback.
+- Resultado: 162 unit + 5 integration = BUILD SUCCESS.
+
+**3. Verificación de índices del OLS (punto 6 de la review)**
+
+- Test desechable `VerifyOlsIndexPlanTest`: seed 300 invoices del tenant target + 6000×3 items de noise, `EXPLAIN (ANALYZE, FORMAT TEXT)`.
+- Plan real: `Bitmap Index Scan on idx_invoices_tenant` (no el compuesto) + `Seq Scan on invoice_items` (18.300 filas = tabla completa) vía hash join. **Execution: ~3.8ms.**
+- **Dictamen: no hay bug, no se crea ningún índice.** A escala PYME el full-scan + hash join es el plan óptimo; al crecer la tabla PG cambia solo a nested loop con `idx_invoice_items_invoice_product` (ya existe). `idx_invoice_items_invoice_product_tenant` del análisis original es **imposible**: `invoice_items` no tiene `tenant_id` (el aislamiento multi-tenant vive en `invoices`).
+- Test desechable borrado; conclusión documentada en `CORE.md`.
+- Principio aplicado (del usuario): ante un test que falla, analizar la lógica antes de forzar la prueba a pasar — no se forzó nada.
+
+### Pendiente (bug de negocio detectado, sin decidir)
+
+~~6 queries dividen por `conversion_factor` sin `NULLIF`~~ → **RESUELTO 2026-07-31**: `NULLIF(conversion_factor, 0)` en los 6 sitios (`analisisTendencia` 128,136; `analisisMargen` 171,179; `analisisAlertas` 287,288), alineando con las 6 queries que ya lo usaban. Test `conversionFactorCero_noRompeMotores` agregado a `AnalyticsIntegrationTest` (6 IT verdes, 162 unit + 6 IT = BUILD SUCCESS). Las filas con factor 0 aportan NULL al agregado → se excluyen del AVG/STDDEV en vez de reventar el análisis.
+
+### Archivos modificados
+
+```
+backend/core/src/main/java/core_pymes/analytics/service/impl/AnalyticsServiceImpl.java   # OLS en SQL + bug conversion_factor
+backend/core/src/test/java/core_pymes/integration/AnalyticsIntegrationTest.java           # NUEVO, 5 IT verdes
+backend/core/src/test/java/core_pymes/integration/VerifyOlsIndexPlanTest.java             # desechable, creado y borrado
+backend/core/src/test/java/core_pymes/analytics/service/impl/AnalyticsServiceImplTest.java # test unitario OLS
+backend/core/docs/CORE.md                                                                 # nota verificación de índices
+```
 
 ---
 

@@ -35,6 +35,7 @@ public class MetricasController implements MetricasApi {
                 m.getOperatingExpenses(), m.getLoanPayments(),
                 m.getTotalExpenses(), m.getGrossMargin(), m.getGrossMarginPct(),
                 m.getOperatingMargin(), m.getOperatingMarginPct(),
-                m.getNetMargin(), m.getNetMarginPct(), m.getCreatedAt());
+                m.getNetMargin(), m.getNetMarginPct(),
+                m.getCostoOperativoDiario(), m.getCreatedAt());
     }
 }

@@ -14,4 +14,5 @@ public class CorePath {
     public static final String PATRIMONIO_ROUTE = "/patrimonio";
     public static final String VENTAS_ROUTE = "/ventas";
     public static final String ACCOUNTING_ROUTE = "/accounting";
+    public static final String COSTOS_ROUTE = "/costos";
 }

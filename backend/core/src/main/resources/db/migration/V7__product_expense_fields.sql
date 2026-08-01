@@ -1,6 +1,0 @@
-ALTER TABLE core.products
-    ADD COLUMN IF NOT EXISTS last_unit_price DECIMAL(12,4),
-    ADD COLUMN IF NOT EXISTS total_investment DECIMAL(12,2) NOT NULL DEFAULT 0,
-    ADD COLUMN IF NOT EXISTS last_purchase_date DATE,
-    ADD COLUMN IF NOT EXISTS min_quantity DECIMAL(12,2),
-    ADD COLUMN IF NOT EXISTS max_quantity DECIMAL(12,2);

@@ -25,6 +25,7 @@ const {
   gastosPorCategoriaPrev,
   actividadReciente,
   facturasPendientes,
+  costoDiario,
   loading,
   error,
   periodo,
@@ -41,7 +42,16 @@ function sparkline(prev: number, cur: number): number[] {
   return [prev, cur];
 }
 
-const kpis = computed(() => {
+interface KpiItem {
+  label: string;
+  value: string;
+  delta: number | undefined;
+  deltaLabel: string;
+  trend: number[] | undefined;
+  accent: 'gold' | 'green' | 'red' | 'blue';
+}
+
+const kpis = computed<KpiItem[]>(() => {
   const m = metricas.value;
   const p = metricasPrev.value;
   if (!m) return [];
@@ -78,8 +88,28 @@ const kpis = computed(() => {
       trend: p ? sparkline(p.gastosOperativos, m.gastosOperativos) : undefined,
       accent: 'blue' as const,
     },
+    ...(costoKpi ? [costoKpi] : []),
   ];
 });
+
+const costoKpi: KpiItem | null = costoDiario.value
+  ? {
+      label: 'Costo / Día',
+      value: formatCurrency(costoDiario.value.costoOperativoDiario),
+      delta:
+        costoDiario.value.costoOperativoDiario > 0
+          ? +(
+              ((costoDiario.value.ventasHoy - costoDiario.value.costoOperativoDiario) /
+                costoDiario.value.costoOperativoDiario) *
+              100
+            ).toFixed(1)
+          : undefined,
+      deltaLabel: 'vs costo diario',
+      trend: undefined,
+      accent:
+        costoDiario.value.ventasHoy >= costoDiario.value.costoOperativoDiario ? 'green' : 'red',
+    }
+  : null;
 
 const categoryItems = computed(() =>
   gastosPorCategoria.value.map((g) => {
@@ -183,17 +213,9 @@ const categoryItems = computed(() =>
 
 .kpi-row {
   display: grid;
-  grid-template-columns: repeat(4, 1fr);
+  grid-template-columns: repeat(auto-fit, minmax(200px, 1fr));
   gap: 16px;
   margin-bottom: 24px;
-
-  @media (max-width: 1024px) {
-    grid-template-columns: repeat(2, 1fr);
-  }
-
-  @media (max-width: 639px) {
-    grid-template-columns: 1fr;
-  }
 }
 
 .dashboard-content {

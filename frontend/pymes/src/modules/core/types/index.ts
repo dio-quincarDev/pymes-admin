@@ -256,6 +256,64 @@ export interface MetricasFinancieras {
   margenOperativoPct: number
   margenNeto: number
   margenNetoPct: number
+  costoOperativoDiario: number | null
+}
+
+export interface Collaborador {
+  id: string
+  tenantId: string
+  nombre: string
+  tipoPago: string
+  monto: number
+  activo: boolean
+  createdAt: string | null
+}
+
+export interface CollaboradorRequest {
+  tenantId: string
+  nombre: string
+  tipoPago: string
+  monto: number
+}
+
+export interface GastoFijoRecurrente {
+  id: string
+  tenantId: string
+  categoria: string
+  monto: number
+  descripcion: string | null
+  diaEjecucion: number
+  metodoPago: string | null
+  activo: boolean
+}
+
+export interface GastoFijoRequest {
+  tenantId: string
+  categoria: string
+  monto: number
+  descripcion?: string | null
+  diaEjecucion: number
+  metodoPago?: string | null
+}
+
+export interface ConfigLaboral {
+  tenantId: string
+  diasLaborales: number
+}
+
+export interface ConfigLaboralRequest {
+  diasLaborales: number
+}
+
+export interface CostoDiario {
+  costoFijoMensual: number
+  costoSemiFijoMensual: number
+  costoSalariosMensual: number
+  costoOperativoMensual: number
+  diasLaborales: number
+  costoOperativoDiario: number
+  ventasHoy: number
+  gananciaRealEstimada: number
 }
 
 export interface PageResponse<T> {

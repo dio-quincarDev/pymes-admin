@@ -65,6 +65,10 @@ public class AnalisisGasto {
     @Column(name = "price_prediction", columnDefinition = "JSONB")
     private String pricePrediction;
 
+    @JdbcTypeCode(SqlTypes.JSON)
+    @Column(name = "financial_health", columnDefinition = "JSONB")
+    private String financialHealth;
+
     @CreationTimestamp
     @Column(name = "created_at", nullable = false, updatable = false)
     private ZonedDateTime createdAt;

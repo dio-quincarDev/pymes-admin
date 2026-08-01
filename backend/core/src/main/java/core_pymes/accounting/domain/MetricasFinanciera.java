@@ -64,6 +64,9 @@ public class MetricasFinanciera {
     @Column(name = "net_margin_pct", nullable = false)
     private BigDecimal netMarginPct;
 
+    @Column(name = "costo_operativo_diario")
+    private BigDecimal costoOperativoDiario;
+
     @CreationTimestamp
     @Column(name = "created_at", nullable = false, updatable = false)
     private ZonedDateTime createdAt;
