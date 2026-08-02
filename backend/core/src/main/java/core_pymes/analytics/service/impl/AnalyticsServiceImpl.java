@@ -8,6 +8,7 @@ import core_pymes.accounting.service.MetricasService;
 import core_pymes.analytics.domain.AnalisisGasto;
 import core_pymes.analytics.repository.AnalisisGastoRepository;
 import core_pymes.analytics.service.AnalyticsService;
+import core_pymes.inversion.repository.PatrimonioRepository;
 import core_pymes.product.domain.Producto;
 import core_pymes.product.repository.ProductoRepository;
 import lombok.RequiredArgsConstructor;
@@ -35,6 +36,7 @@ public class AnalyticsServiceImpl implements AnalyticsService {
     private final MetricasService metricasService;
     private final MetricasRepository metricasRepository;
     private final ProductoRepository productoRepository;
+    private final PatrimonioRepository patrimonioRepository;
 
     @Override
     @Transactional
@@ -206,11 +208,25 @@ public class AnalyticsServiceImpl implements AnalyticsService {
 
     List<Map<String, Object>> analisisGastoVariable(UUID tenantId, LocalDate start, LocalDate end, String period) {
         var sql = """
-                WITH period_data AS (
+                WITH items_spend AS (
                     SELECT i.id, i.issue_date, ii.product_id, i.provider_id, ii.subtotal
                     FROM core.invoices i
                     JOIN core.invoice_items ii ON ii.invoice_id = i.id
                     WHERE i.tenant_id = ? AND i.issue_date >= ? AND i.issue_date < ?
+                      AND (i.type = 'FACTURA'
+                           OR (i.type = 'GASTO_OPERATIVO' AND i.status = 'PAGADA'))
+                ),
+                header_spend AS (
+                    SELECT i.id, i.issue_date, CAST(NULL AS UUID) AS product_id, i.provider_id, i.total AS subtotal
+                    FROM core.invoices i
+                    WHERE i.tenant_id = ? AND i.issue_date >= ? AND i.issue_date < ?
+                      AND i.type = 'GASTO_OPERATIVO' AND i.status = 'PAGADA'
+                      AND NOT EXISTS (SELECT 1 FROM core.invoice_items ii WHERE ii.invoice_id = i.id)
+                ),
+                period_data AS (
+                    SELECT * FROM items_spend
+                    UNION ALL
+                    SELECT * FROM header_spend
                 )
                 SELECT COUNT(DISTINCT id) AS invoice_count,
                        COUNT(DISTINCT product_id) AS product_count,
@@ -254,7 +270,7 @@ public class AnalyticsServiceImpl implements AnalyticsService {
                     "fixedDailyCost", fixedDailyCost,
                     "projectedMonthly", dailyAvg.multiply(BigDecimal.valueOf(daysInMonth))
             );
-        }, tenantId, start, end);
+        }, tenantId, start, end, tenantId, start, end);
     }
 
     List<Map<String, Object>> analisisProyeccion(UUID tenantId, LocalDate start, LocalDate end) {
@@ -604,6 +620,38 @@ public class AnalyticsServiceImpl implements AnalyticsService {
                     dead.stream().map(p -> nz(p.getTotalInvestment())).reduce(BigDecimal.ZERO, BigDecimal::add),
                     BigDecimal.ZERO, "Liquida o negocia devoluciones para liberar capital."));
             recommendations.add("Capital estancado en " + dead.size() + " productos sin compra en 60+ días — liquida inventario.");
+        }
+
+        // ---- 💸 Costo operativo diario vs ingreso diario ----
+        var costPerDay = nz(current.getCostoOperativoDiario());
+        var daysInMonth = start.lengthOfMonth();
+        var revenuePerDay = revenue.divide(BigDecimal.valueOf(daysInMonth), 4, RoundingMode.HALF_UP);
+        if (costPerDay.signum() > 0 && revenuePerDay.signum() > 0) {
+            if (costPerDay.compareTo(revenuePerDay.multiply(new BigDecimal("1.2"))) > 0) {
+                criticals.add(alert("DAILY_COST_CONTROL", "Costo Diario Sobre Ingreso Diario",
+                        "Tu costo operativo diario supera en 20%+ el ingreso diario. Estás quemando capital cada día.",
+                        costPerDay, revenuePerDay, "Reduce costos fijos o sube el ticket promedio de venta."));
+                recommendations.add("El costo operativo diario supera el ingreso diario en 20%+ — recorta gastos fijos ya.");
+            } else if (costPerDay.compareTo(revenuePerDay.multiply(new BigDecimal("0.8"))) < 0) {
+                expansions.add(signal("DAILY_COST_COVERED", "Costo Diario Cubierto",
+                        "Costo diario vs ingreso diario", costPerDay, "costo < 80% del ingreso diario"));
+            }
+        }
+
+        // ---- 💰 Capital de respaldo (Patrimonio vs burn) ----
+        var patrimonio = patrimonioRepository.findByTenantId(tenantId).orElse(null);
+        if (patrimonio != null && patrimonio.getInitialCapital() != null && costPerDay.signum() > 0) {
+            var monthlyBurn = costPerDay.multiply(BigDecimal.valueOf(30));
+            var monthsCovered = patrimonio.getInitialCapital().divide(monthlyBurn, 2, RoundingMode.HALF_UP);
+            if (monthsCovered.compareTo(BigDecimal.ONE) < 0 && netMarginPct.signum() < 0) {
+                criticals.add(alert("CAPITAL_BURN", "Quema de Capital",
+                        "El capital inicial cubre menos de 1 mes de costos operativos y el margen neto es negativo.",
+                        monthsCovered, BigDecimal.ONE, "Inyecta capital o detén la quema recortando costos de inmediato."));
+                recommendations.add("Tu capital cubre menos de 1 mes de operación con margen neto negativo — urgen medidas de costos.");
+            } else if (monthsCovered.compareTo(new BigDecimal("3")) >= 0 && netMarginPct.signum() > 0) {
+                expansions.add(signal("CAPITAL_READINESS", "Capital de Respaldo",
+                        "Meses cubiertos por capital inicial", monthsCovered, "3+ meses con margen neto positivo"));
+            }
         }
 
         // ---- 🟢 Señales de inversión ----

@@ -12,14 +12,99 @@ Registro de lo implementado y lo pendiente.
 |--------|--------|-------|
 | Setup | Implementado | 13 unit + 10 integration |
 | Product | Implementado | 11 unit + 30 JPA edge cases |
-| Invoice | Implementado | 7 unit + 4 integration |
-| Analytics | Implementado | 6 unit + 5 integration |
+| Invoice | Implementado | 7 unit + 5 integration |
+| Analytics | Implementado | 6 unit + 6 integration |
+| Modelo de Gastos | Implementado (backend) | 4 integration (ModeloGastosIntegrationTest) |
 | Gasto | Implementado | 17 JPA |
 | Prestamo | Implementado | 13 JPA |
 | Inversion | Implementado | 9 JPA |
 | Venta | Implementado | 13 JPA |
 | Accounting | Implementado | MetricasFinanciera + CTE consolidado |
 | Reportes | Pendiente | Ver FUTURE_MODULES.md |
+
+---
+
+## 2026-08-02 — Modelo de Gastos (backend) + revisión y optimización SQL
+
+### Contexto
+
+El motor de gastos operativos mezclaba dos capas (presupuesto `costos/` vs realidad `operating_expenses`) y el dashboard de gasto variable duplicaba cuentas. Se ejecutó `strategies/EXPENSES_MODEL_STRATEGY.md` (backend) y luego una revisión + optimización SQL sobre la implementación. Alcance acotado por el usuario: **solo backend**; el frontend (helpers, deprecación GastosPage, dashboard) quedó pendiente en TO_DO.
+
+### Qué se hizo (cluster del Modelo de Gastos)
+
+**1. Gastos reales solo con facturas PAGADAS (`MetricasServiceImpl.computeMetrics`)**
+
+- Eliminado el CTE `opex` (duplicaba gastos). `invoices_opex` ahora filtra `type='GASTO_OPERATIVO' AND status='PAGADA'`. Doble conteo eliminado.
+
+**2. Pago de factura dispara recálculo (`FacturaPagadaEvent` + `FacturaPagadaListener`)**
+
+- Evento nuevo + listener `@Async @TransactionalEventListener(AFTER_COMMIT)` → `markMetricsDirty`. `pagarFactura` publica el evento. Sin esto, pagar una factura no refrescaba las métricas hasta el debounce.
+
+**3. Facturas GASTO_OPERATIVO sin items (`FacturaRequest`)**
+
+- `items` pasó a opcional (sin `@NotEmpty`) + campo `total` (antes de `items` en el record).
+- Helpers `isGastoSinItems` + `nz` en `FacturaServiceImpl`; `createFactura`/`updateFactura` aceptan monto directo para GASTO_OPERATIVO. Validación "al menos un item" se mantiene para los demás tipos. Cierra el hueco de salarios/servicios que no pasaban por items.
+
+**4. Salud financiera conectada al costo diario y al patrimonio (`AnalyticsServiceImpl.analisisSaludFinanciera`)**
+
+- Nuevas señales:
+  - `DAILY_COST_CONTROL` (🔴 crítica: `costoDiario > ventaDiaria × 1.2`) + expansión `DAILY_COST_COVERED`.
+  - `CAPITAL_BURN` (🔴 crítica: capital inicial < 1 mes de costo operativo y margen neto negativo) + `CAPITAL_READINESS` (expansión: cubre 3+ meses con margen neto positivo).
+- `AnalyticsServiceImpl` ganó dependencia `PatrimonioRepository` → `AnalyticsServiceImplTest` actualizado (mock en constructor).
+
+### Revisión SQL (skill `sql-code-review`) — hallazgos
+
+| Severidad | Hallazgo | Acción |
+|-----------|----------|--------|
+| ✅ 10/10 | SQL injection | 0 — todo parametrizado |
+| 🔹 MEDIA | `analisisGastoVariable` no filtra PAGADA ni incluía facturas sin items → dashboard inconsistente con `operatingExpenses` | Corregido abajo |
+| 🔹 BAJA | `idx_invoices_tenant_date_type` sin `status` → heap lookup | Corregido abajo |
+| 🔹 BAJA | `type`/`status` VARCHAR sin CHECK | Dejado fuera (requiere validar datos existentes) |
+
+### Optimización SQL (skill `sql-optimization`) — aplicado
+
+**1. `analisisGastoVariable` alineado con el modelo**
+
+- CTE partido: `items_spend` (FACTURA + GASTO_OPERATIVO PAGADA con items) + `header_spend` (GASTO_OPERATIVO PAGADA **sin items** vía `i.total`, `NOT EXISTS` items, `CAST(NULL AS UUID) AS product_id` para tipar el UNION) → `UNION ALL` → `period_data`.
+- Ahora el gasto variable del dashboard incluye salarios/servicios sin items y excluye gastos REGISTRADA — consistente con `operatingExpenses`.
+- Fix de aridad: el query pasó de 3 a 6 placeholders (3 por CTE) → `jdbc.query(..., tenantId, start, end, tenantId, start, end)`.
+- **No tocados (por diseño):** `analisisProyeccion` (proyección de compras) y `supplierSpend` (concentración por producto) miden mercancía, no gasto operativo; filtrarlos cambiaría su semántica.
+
+**2. Índice covering `status` (`V5__invoices_status_index.sql`)**
+
+- `idx_invoices_tenant_date_type` reemplazado por `(tenant_id, issue_date, type, status) INCLUDE (total)` — elimina heap lookup en los CTEs de facturas. Cuidado con merges: `V1` crea el índice viejo; `V5` lo dropea y recrea con `status`.
+
+### Tests
+
+- `ModeloGastosIntegrationTest` (NUEVO, 4 ITs): `operatingExpenses` solo PAGADA, `DAILY_COST_CONTROL`, `CAPITAL_BURN`, y `gastoVariable_alineadoConModelo` (PAGADA 500 + REGISTRADA 300 → invoiceCount=1, totalSpend=500). Seed arreglado insertando provider antes (FK).
+- `FacturaIntegrationTest`: +`createGastoOperativoSinItems` (MockMvc).
+- `FacturaServiceImplTest`: 7 constructores `new FacturaRequest(...)` actualizados (campo `total`).
+- `AnalyticsServiceImplTest`: +mock `patrimonioRepository`.
+- Resultado: **162 unit + 38 integration = BUILD SUCCESS** (al cerrar la revisión, 37 → 38 con el IT de gasto variable).
+
+### Archivos modificados
+
+```
+docs/TO_DO.md                                                                   # cluster backend ✅, frontend pendiente, +2 items SQL
+backend/core/docs/EXPENSES_MODEL_STRATEGY.md                                    # estado: backend implementado + nota revisión SQL
+backend/core/docs/COSTOS_ENGINE.md                                              # changelog 2026-08-02
+core_pymes/accounting/service/impl/MetricasServiceImpl.java                     # CTE invoices_opex filtra PAGADA, CTE opex eliminado
+core_pymes/invoice/event/FacturaPagadaEvent.java                                # NUEVO
+core_pymes/invoice/listener/FacturaPagadaListener.java                          # NUEVO
+core_pymes/invoice/service/impl/FacturaServiceImpl.java                         # evento al pagar + helpers + branch GASTO sin items
+core_pymes/invoice/dto/FacturaRequest.java                                      # items opcional + campo total
+core_pymes/analytics/service/impl/AnalyticsServiceImpl.java                     # señales DAILY_COST/CAPITAL + analisisGastoVariable reescrito
+resources/db/migration/V5__invoices_status_index.sql                            # NUEVO
+core_pymes/integration/ModeloGastosIntegrationTest.java                         # NUEVO (4 ITs)
+core_pymes/integration/FacturaIntegrationTest.java                              # +createGastoOperativoSinItems
+core_pymes/invoice/service/impl/FacturaServiceImplTest.java                     # constructores actualizados
+core_pymes/analytics/service/impl/AnalyticsServiceImplTest.java                 # +mock patrimonioRepository
+```
+
+### Pendiente
+
+- Frontend del Modelo de Gastos (TO_DO L131-133): helper "Pago de salario", deprecar GastosPage, dashboard desde facturas pagadas. (a definir)
+- CHECK constraints en `type`/`status` de `invoices` — add cuando se toque migración.
 
 ---
 

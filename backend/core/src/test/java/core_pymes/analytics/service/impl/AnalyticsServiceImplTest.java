@@ -31,11 +31,12 @@ class AnalyticsServiceImplTest {
     @Mock MetricasService metricasService;
     @Mock MetricasRepository metricasRepository;
     @Mock ProductoRepository productoRepository;
+    @Mock core_pymes.inversion.repository.PatrimonioRepository patrimonioRepository;
     AnalyticsServiceImpl service;
 
     @BeforeEach
     void setUp() {
-        service = spy(new AnalyticsServiceImpl(jdbc, repository, objectMapper, metricasService, metricasRepository, productoRepository));
+        service = spy(new AnalyticsServiceImpl(jdbc, repository, objectMapper, metricasService, metricasRepository, productoRepository, patrimonioRepository));
     }
 
     @Test

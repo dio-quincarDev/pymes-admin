@@ -71,7 +71,7 @@ class FacturaServiceImplTest {
 
         var item = new ItemFacturaRequest(productId, presentacion.getId(), new BigDecimal("10"), new BigDecimal("5.50"), BigDecimal.ZERO, null, null, null, null, null);
         var request = new FacturaRequest(tenantId, proveedorId, LocalDate.of(2026, 6, 1),
-                "FACTURA", "EFECTIVO", BigDecimal.ZERO, List.of(item));
+                "FACTURA", "EFECTIVO", BigDecimal.ZERO, null, List.of(item));
 
         var savedFactura = Factura.builder().id(UUID.randomUUID()).tenantId(tenantId).providerId(proveedorId)
                 .invoiceNumber("F-PROV-2026-0001").total(new BigDecimal("55.00")).status("REGISTRADA")
@@ -106,7 +106,7 @@ class FacturaServiceImplTest {
 
         var item = new ItemFacturaRequest(productId, presentacion.getId(), new BigDecimal("5"), new BigDecimal("20.00"), BigDecimal.ZERO, null, null, null, null, null);
         var request = new FacturaRequest(tenantId, proveedorId, LocalDate.of(2026, 6, 1),
-                "FACTURA", null, new BigDecimal("10.00"), List.of(item));
+                "FACTURA", null, new BigDecimal("10.00"), null, List.of(item));
 
         var savedFactura = Factura.builder().id(UUID.randomUUID()).tenantId(tenantId)
                 .invoiceNumber("F-PROV-2026-0001").total(new BigDecimal("90.00")).status("REGISTRADA")
@@ -143,7 +143,7 @@ class FacturaServiceImplTest {
                         null, null, null, null, List.of(), null));
 
         service.createFactura(new FacturaRequest(tenantId, proveedorId, LocalDate.of(2026, 6, 1),
-                "FACTURA", null, BigDecimal.ZERO,
+                "FACTURA", null, BigDecimal.ZERO, null,
                 List.of(new ItemFacturaRequest(productId, presentacion.getId(), BigDecimal.ONE, BigDecimal.TEN, BigDecimal.ZERO, null, null, null, null, null))));
 
         var captor = ArgumentCaptor.forClass(FacturaCreadaEvent.class);
@@ -165,7 +165,7 @@ class FacturaServiceImplTest {
 
         var item = new ItemFacturaRequest(productId, presentacion.getId(), BigDecimal.ONE, BigDecimal.TEN, BigDecimal.ZERO, null, null, null, null, null);
         var request = new FacturaRequest(tenantId, proveedorId, LocalDate.of(2026, 6, 1),
-                "FACTURA", null, BigDecimal.ZERO, List.of(item));
+                "FACTURA", null, BigDecimal.ZERO, null, List.of(item));
 
         assertThatThrownBy(() -> service.createFactura(request))
                 .isInstanceOf(InvalidInputException.class)
@@ -221,7 +221,7 @@ class FacturaServiceImplTest {
         when(facturaRepository.findById(facturaId)).thenReturn(Optional.of(factura));
 
         var request = new FacturaRequest(tenantId, UUID.randomUUID(), LocalDate.of(2026, 7, 1),
-                "FACTURA", null, BigDecimal.ZERO, List.of());
+                "FACTURA", null, BigDecimal.ZERO, null, List.of());
 
         assertThatThrownBy(() -> service.updateFactura(facturaId, tenantId, request))
                 .isInstanceOf(InvalidInputException.class)
@@ -236,7 +236,7 @@ class FacturaServiceImplTest {
         when(facturaRepository.findById(facturaId)).thenReturn(Optional.of(factura));
 
         var request = new FacturaRequest(tenantId, UUID.randomUUID(), LocalDate.of(2026, 7, 1),
-                "FACTURA", null, BigDecimal.ZERO, List.of());
+                "FACTURA", null, BigDecimal.ZERO, null, List.of());
 
         assertThatThrownBy(() -> service.updateFactura(facturaId, tenantId, request))
                 .isInstanceOf(InvalidInputException.class)
@@ -260,7 +260,7 @@ class FacturaServiceImplTest {
 
         var item = new ItemFacturaRequest(productId, presentacion.getId(), new BigDecimal("10"), new BigDecimal("5.50"), BigDecimal.ZERO, null, null, null, null, null);
         var request = new FacturaRequest(tenantId, proveedorId, LocalDate.of(2026, 7, 1),
-                "FACTURA", "EFECTIVO", BigDecimal.ZERO, List.of(item));
+                "FACTURA", "EFECTIVO", BigDecimal.ZERO, null, List.of(item));
 
         when(mapper.toItemResponseList(anyList())).thenReturn(List.of());
         when(mapper.toResponse(any(), anyList())).thenAnswer(i -> {

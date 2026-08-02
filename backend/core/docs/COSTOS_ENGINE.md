@@ -1,6 +1,6 @@
 # Motor de Estructura de Costos
 
-> **Estado (2026-07-31):** Implementado (backend + frontend). V2/V3 migraciones, módulo `costos/`, GET /costos/diario, CTE en MetricasServiceImpl, CostosPage.vue + KPI dashboard. Pendiente: señal `DAILY_COST_CONTROL` (Financial Health motor #10 no existe).
+> **Estado (2026-08-02):** Implementado (backend + frontend). V2/V3 migraciones, módulo `costos/`, GET /costos/diario, CTE en MetricasServiceImpl, CostosPage.vue + KPI dashboard. Señal `DAILY_COST_CONTROL` + `DAILY_COST_COVERED` + `CAPITAL_BURN`/`CAPITAL_READINESS` implementadas en `analisisSaludFinanciera` (2026-08-02).
 >
 > **Diferenciador del producto:** Mientras otros sistemas ven gastos planos, este motor razona sobre estructura de costos real — colaboradores con distintas frecuencias de pago, gastos fijos recurrentes con día de ejecución, y un cálculo diario que se compara contra ventas del día para dar ganancia real.
 
@@ -380,7 +380,7 @@ Ninguna nueva. Todo usa:
 | 7 | CostoApi + CostoController | 2 Java |
 | 8 | CorePath constant | 1 edit |
 | 9 | Extender MetricasServiceImpl CTE | 1 edit |
-| 10 | Agregar DAILY_COST_CONTROL a Financial Health | ⏳ Pendiente (motor #10 no existe) |
+| 10 | Agregar DAILY_COST_CONTROL a Financial Health | ✅ Implementado (2026-08-02) |
 | 11 | Tests: JPA + unit | 2 Java |
 | 12 | Frontend: CostosPage.vue | 1 Vue |
 | 13 | Dashboard: KPI Costo/Día | 2 edits |
@@ -393,3 +393,4 @@ Ninguna nueva. Todo usa:
 |-------|--------|
 | 2026-07-30 | Estrategia definida y documentada. |
 | 2026-07-31 | Implementado backend (V2/V3, módulo `costos/`, CTE) + frontend (CostosPage.vue, KPI dashboard). 160 unit + 22 integration verdes. Pendiente: `DAILY_COST_CONTROL`. |
+| 2026-08-02 | Modelo de Gastos (EXPENSES_MODEL_STRATEGY): CTE `opex` eliminado, `invoices_opex` filtra PAGADA, `FacturaPagadaEvent`, GASTO_OPERATIVO sin items, señales `DAILY_COST_CONTROL`/`DAILY_COST_COVERED`/`CAPITAL_BURN`/`CAPITAL_READINESS`. Revisión SQL: `analisisGastoVariable` solo gastos PAGADA + incluye facturas sin items (UNION items/header), índice `idx_invoices_tenant_date_type` con `status` (V5). 162 unit + 38 integration verdes. |

@@ -5,6 +5,7 @@ import core_pymes.invoice.domain.ItemFactura;
 import core_pymes.invoice.domain.Proveedor;
 import core_pymes.invoice.dto.*;
 import core_pymes.invoice.event.FacturaCreadaEvent;
+import core_pymes.invoice.event.FacturaPagadaEvent;
 import core_pymes.invoice.mapper.FacturaMapper;
 import core_pymes.invoice.repository.FacturaRepository;
 import core_pymes.invoice.repository.ProveedorRepository;
@@ -133,6 +134,18 @@ public class FacturaServiceImpl implements FacturaService {
                 .total(BigDecimal.ZERO)
                 .build();
 
+        if (isGastoSinItems(request)) {
+            // ponytail: gasto operativo con monto directo, sin items de producto (ej: servicios, salarios)
+            factura.setTotal(nz(request.total()).subtract(factura.getGlobalDiscount()));
+            factura = facturaRepository.save(factura);
+            eventPublisher.publishEvent(new FacturaCreadaEvent(factura));
+            return mapper.toResponse(factura, mapper.toItemResponseList(factura.getItems()));
+        }
+
+        if (request.items() == null || request.items().isEmpty()) {
+            throw new InvalidInputException("Factura debe tener al menos un item");
+        }
+
         var productIds = request.items().stream().map(ItemFacturaRequest::productoId).distinct().toList();
         var inClause = productIds.stream().map(id -> "?").collect(Collectors.joining(","));
         var productNameMap = new HashMap<UUID, String>();
@@ -177,11 +190,22 @@ public class FacturaServiceImpl implements FacturaService {
         if (!"REGISTRADA".equals(factura.getStatus())) {
             throw new InvalidInputException("Solo facturas en estado REGISTRADA pueden editarse");
         }
+        if (isGastoSinItems(request)) {
+            // ponytail: gasto operativo con monto directo, sin items de producto
+            reverseProductStats(factura.getItems(), tenantId, factura.getId());
+            factura.getItems().clear();
+            factura.setProviderId(request.proveedorId());
+            factura.setIssueDate(request.fecha());
+            factura.setType(request.tipo());
+            factura.setGlobalDiscount(request.descuentoGlobal() != null ? request.descuentoGlobal() : BigDecimal.ZERO);
+            factura.setPaymentMethod(request.metodoPago());
+            factura.setTotal(nz(request.total()).subtract(factura.getGlobalDiscount()));
+            factura = facturaRepository.save(factura);
+            return mapper.toResponse(factura, mapper.toItemResponseList(factura.getItems()));
+        }
         if (request.items() == null || request.items().isEmpty()) {
             throw new InvalidInputException("Factura debe tener al menos un item");
         }
-
-        // 1. Reverse product stats from OLD items
         reverseProductStats(factura.getItems(), tenantId, factura.getId());
 
         // 2. Clear old items (orphanRemoval=true deletes from DB)
@@ -339,6 +363,7 @@ public class FacturaServiceImpl implements FacturaService {
         }
         factura.setStatus("PAGADA");
         factura = facturaRepository.save(factura);
+        eventPublisher.publishEvent(new FacturaPagadaEvent(factura));
         return mapper.toResponse(factura, mapper.toItemResponseList(factura.getItems()));
     }
 
@@ -355,6 +380,15 @@ public class FacturaServiceImpl implements FacturaService {
     }
 
     // -- helpers --
+
+    private boolean isGastoSinItems(FacturaRequest request) {
+        return "GASTO_OPERATIVO".equals(request.tipo())
+                && (request.items() == null || request.items().isEmpty());
+    }
+
+    private BigDecimal nz(BigDecimal value) {
+        return value != null ? value : BigDecimal.ZERO;
+    }
 
     private Proveedor getProveedor(UUID id, UUID tenantId) {
         var proveedor = proveedorRepository.findById(id)

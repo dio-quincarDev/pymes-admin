@@ -11,7 +11,7 @@
 - [x] [Media] **Verificación de índices de las CTEs analytics** — EXPLAIN ANALYZE real: sin índice nuevo necesario (`invoice_items` no tiene `tenant_id`), PG auto-corrige con el volumen. (2026-07-31)
 - [ ] [Alta] Reportes — dashboard consolidado KPIs + alertas (2026-07)
 - [ ] [Alta] CRUD configuración tenant (edición) (2026-07)
-- [ ] [Media] Integration tests ejecutables en CI (2026-07)
+- [x] [Media] Integration tests ejecutables en CI — Job `backend-core-integration-test` en `ci.yml` corre `./mvnw verify -Dspring.profiles.active=integration` + 6 clases IT (`Analytics`, `CostoDiario`, `Factura`, `Producto`, `SetupSeed`, `ProveedorProductoEdgeCase`). (2026-08-02)
 - [ ] [Baja] Refactor Producto → InsumoTemplate (post-MVP)
 - [ ] [Baja] Spring Security local JWT (post-MVP)
 
@@ -75,7 +75,7 @@ Todos implementados inline en cada page (sin componentes separados).
 ### Frontend — Pendiente (Dashboard financiero)
 
 - [ ] [Alta] **Dashboard UI polish** — El dashboard base funciona pero tiene espacio de mejora: animaciones de entrada más pulidas, hover states en stat strip, empty states más expresivos, responsive tuning.
-- [ ] [Media] **Dashboard: sparklines** — Agregar mini-gráficos de tendencia en el stat strip (Geist Mono number + sparkline inline por métrica). Véase spec en `.ulpi/design/analytics-suite.md` (componente KpiCard con sparkline).
+- [x] [Media] **Dashboard: sparklines** — `analytics/KpiCard.vue` renderiza SVG sparkline; `DashboardPage` pasa `trend` por KPI. Nota: usa 2 puntos `[prev, cur]` (línea degenerada pero funcional). (2026-08-02)
 
 ### Frontend — Pendiente (Critical)
 
@@ -92,11 +92,11 @@ Todos implementados inline en cada page (sin componentes separados).
 ### Frontend — Pendiente (Tutorial onboarding)
 
 - [ ] [Alta] **Tour guiado con Driver.js** — guía de bienvenida al dashboard post-onboarding (4-5 pasos: sidebar, período, métricas, quick actions, perfil). Disparo único vía localStorage. Botón "Ayuda" en header para reiniciar. (2026-07)
-- [ ] [Media] **Empty states contextuales** — cada página vacía debe tener un mensaje + CTA que guíe al usuario (ej. "Agrega tu primer producto"). (2026-07)
+- [x] [Media] **Empty states contextuales** — cada página vacía debe tener un mensaje + CTA que guíe al usuario (ej. "Agrega tu primer producto"). (2026-07)
 
 ### Frontend — Pendiente (Tenant/User display)
 
-- [ ] [Media] **Mostrar tenantName y userName en layout** — `authStore` descarta `activeTenant.name` en login/selectTenant (solo guarda `tenantId`). Fix: agregar `tenantName` al state + persistir en localStorage + capturar en login/register/verifyEmail/selectTenant. Mostrar en sidebar strip (avatar + nombre + email + empresa). (2026-07)
+- [x] [Media] **Mostrar tenantName y userName en layout** — `authStore` captura/persiste `tenantName` (`store/index.ts` + localStorage `pymeq_tenant_name`); `App.vue` restaura vía `ensureTenantName`; `MainLayout.vue` muestra nombre+email en el menú; `AnalyticsHeader.vue` muestra empresa. Falta el "sidebar strip" puntual (nombre/email en drawer, no en header). (2026-08-02)
 
 ### Frontend — Pendiente (UX/UI Review 2026-07-29)
 
@@ -107,9 +107,9 @@ Todos implementados inline en cada page (sin componentes separados).
 
 ### Frontend — Pendiente (PWA)
 
-- [ ] [Baja] **PWA: pull to refresh** — En mobile, gesto nativo para refrescar datos.
-- [ ] [Baja] **PWA: custom install prompt** — Banner "Instalar PYMEQ" con dismiss persistente.
-- [ ] [Baja] **PWA: transiciones direccionales** — Slide left/right según dirección de navegación.
+- [ ] [Baja] **PWA: pull to refresh** — En mobile, gesto nativo para refrescar datos. Nota: `usePullToRefresh.ts` existe pero no se importa en ninguna página (código muerto). (2026-08-02)
+- [x] [Baja] **PWA: custom install prompt** — Banner "Instalar PYMEQ" con dismiss persistido (`beforeinstallprompt` + `pwa_install_dismissed` en `MainLayout.vue`). (2026-08-02)
+- [x] [Baja] **PWA: transiciones direccionales** — Slide left/right por profundidad de ruta en `App.vue`. Caveat: solo rutas top-level; el `router-view` interno de `MainLayout` sigue en `fade`. (2026-08-02)
 
 ### Core — Motor de Costos ([COSTOS_ENGINE.md](./backend/core/docs/COSTOS_ENGINE.md))
 
@@ -118,14 +118,27 @@ Todos implementados inline en cada page (sin componentes separados).
 - [x] [🔴] **Módulo `costos/` scaffold** — 3 entities (soft-delete pattern reciclando `GastoOperativo`), 3 repositories, 7 DTOs, 1 controller con 4 grupos de endpoints, 1 service con tenant guard + caching + eventos. Sin mappers MapStruct: `toResponse` manual como en `GastoServiceImpl` (ponytail). (2026-07-31)
 - [x] [Alta] **GET /costos/diario** — Motor de cálculo: suma gastos fijos activos, colaboradores con conversión por frecuencia, divide por días laborales. Cruza con ventas del día para ganancia real estimada. (2026-07-31)
 - [x] [Alta] **Integrar costo diario en MetricasServiceImpl CTE** — Nueva CTE `costos AS (...)` en el query consolidado. Alimenta `costoOperativoDiario` en respuestas de accounting. (2026-07-31)
-- [ ] [Media] **Integrar costo diario en Financial Health Engine** — Nueva señal `DAILY_COST_CONTROL` (verde si ventasHoy > costoDiario × 1.2 en 3+/7 días). Bloqueado: motor #10 no implementado. (2026-07-31)
+- [x] [Media] **Integrar costo diario en Financial Health Engine** — Nueva señal `DAILY_COST_CONTROL` (rojo si `costoDiario > ventaDiaria × 1.2`, verde/expansión `DAILY_COST_COVERED` si `< × 0.8`). Implementado en `AnalyticsServiceImpl.analisisSaludFinanciera`. (2026-08-02)
 - [x] [Media] **Frontend: CostosPage.vue** — Nueva página con 3 tabs: Colaboradores (tabla CRUD), Gastos Fijos (agrupados por categoría), Config (días laborales). Header sticky con resumen costo diario vs ventas hoy. KPI "Costo / Día" en Dashboard. (2026-07-31)
-- [ ] [Baja] **Dashboard: daily cost strip** — Nuevo KPI "Costo/Día $232" en el stat strip del dashboard.
-- [ ] [Media] **Tests: JPA + unit** — 3 repositorios (AbstractJpaTest) + 1 service (Mockito).
+- [x] [Baja] **Dashboard: daily cost strip** — KPI "Costo / Día" en `DashboardPage.vue` (verde/rojo según ventas vs costo). No está en `StatStrip` (el dashboard ya no lo usa), pero el KPI está en pantalla. (2026-08-02)
+- [x] [Media] **Tests: JPA + unit** — `CostosRepositoryTest` (AbstractJpaTest, cubre Collaborador/GastoFijo/ConfigLaboral) + `CostoServiceImplTest` (Mockito). (2026-08-02)
+
+### Core — Modelo de Gastos Operativos ([EXPENSES_MODEL_STRATEGY.md](./backend/core/docs/EXPENSES_MODEL_STRATEGY.md))
+
+- [x] [Alta] **Gastos reales solo con facturas PAGADAS** — `MetricasServiceImpl.computeMetrics`: eliminado CTE `opex`, `invoices_opex` filtra por `status='PAGADA'`. Doble conteo eliminado. (2026-08-02)
+- [x] [🔴] **Pago de factura dispara recálculo de métricas** — `FacturaPagadaEvent` + `FacturaPagadaListener` (`@Async` + `AFTER_COMMIT`) → `markMetricsDirty`. (2026-08-02)
+- [x] [Media] **Facturas GASTO_OPERATIVO sin items** — `FacturaRequest.items` opcional + campo `total`; `createFactura`/`updateFactura` aceptan monto directo cuando `tipo=GASTO_OPERATIVO`. (2026-08-02)
+- [ ] [Media] **Helper "Pago de salario" en FacturasPage** — tipo `GASTO_OPERATIVO` + colaborador DIARIO + rango de días → total precargado `días × tarifa` (editable) + descripción "Salarios — {nombre}, {rango}". → estrategia (paso 4) (pendiente — frontend, a definir)
+- [ ] [Baja] **Deprecar GastosPage** — banner + enlace a CostosPage → Gastos Fijos. → estrategia (paso 5) (pendiente — frontend, a definir)
+- [ ] [Media] **Dashboard: gastos desde facturas pagadas** — `useFinancialDashboard` lee facturas `GASTO_OPERATIVO` PAGADAS (por proveedor) en vez de `operating_expenses`, para coincidir con el motor. → estrategia (paso 6) (pendiente — frontend, a definir)
+- [x] [Media] **Patrimonio conectado a la salud financiera** — `CAPITAL_BURN` (crítica si capital inicial < 1 mes de costo operativo y margen neto negativo) + `CAPITAL_READINESS` (expansión si cubre 3+ meses con margen neto positivo). Implementado en `analisisSaludFinanciera`. (2026-08-02)
+- [x] [Media] **Alinear `analisisGastoVariable` con el modelo** — revisión SQL (2026-08-02): el dashboard de gasto variable solo cuenta gastos `GASTO_OPERATIVO` PAGADA e incluye facturas sin items vía `i.total` (UNION items/header). Antes ignoraba facturas sin items y contaba REGISTRADA. +IT `gastoVariable_alineadoConModelo`. (2026-08-02)
+- [x] [Baja] **Índice covering con `status`** — `V5__invoices_status_index.sql`: `idx_invoices_tenant_date_type` pasa a `(tenant_id, issue_date, type, status) INCLUDE (total)`. Elimina heap lookup en los CTEs de facturas. (2026-08-02)
+- [ ] [Media] **Recuperación de inversión (payback real)** — reemplazar `CAPITAL_BURN`/`CAPITAL_READINESS` por "a este ritmo recuperas tu plata en X meses": `plata a recuperar = capital inicial + saldo pendiente de préstamos ACTIVOS`, `meses = plata ÷ ganancia mensual` (ingresos × margen neto). Semáforo: ≤12 verde, >24 amarillo, margen negativo rojo. Requiere `PrestamoRepository` en `AnalyticsServiceImpl` (suma `remaining_balance` ACTIVOS) + adaptar tests. → [`backend/core/docs/strategies/INVESTMENT_RECOVERY_STRATEGY.md`](./backend/core/docs/strategies/INVESTMENT_RECOVERY_STRATEGY.md) (pendiente — backend, a implementar)
 
 ### Core — Migraciones Flyway
 
-- [ ] [Alta] **Consolidar V1–V18 → V1__core_schema.sql único** — 18 archivos → 1. 27 índices → 25 (eliminar `idx_products_tenant` y `idx_invoice_items_invoice` redundantes). Agregar `IF NOT EXISTS` faltantes en V9/V10. Idempotente para stage deploy. (2026-07) → [`docs/strategies/CORE_MIGRATIONS_STRATEGY.md`](./docs/strategies/CORE_MIGRATIONS_STRATEGY.md)
+- [x] [Alta] **Consolidar V1–V18 → V1__core_schema.sql único** — Ejecutado 2026-07-30 (estrategia ✅). `db/migration/` queda con V1 (consolidado) + V2/V3/V4 (costos engine). → [`docs/strategies/CORE_MIGRATIONS_STRATEGY.md`](./docs/strategies/CORE_MIGRATIONS_STRATEGY.md)
 
 ### Gateway
 

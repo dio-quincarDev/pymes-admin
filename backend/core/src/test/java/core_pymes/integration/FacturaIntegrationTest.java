@@ -222,4 +222,34 @@ class FacturaIntegrationTest extends AbstractIntegrationTest {
                 .andExpect(status().isOk())
                 .andExpect(jsonPath("$.length()").value(0));
     }
+
+    @Test
+    @DisplayName("Create GASTO_OPERATIVO without items uses direct total")
+    void createGastoOperativoSinItems() throws Exception {
+        var tenantId = UUID.randomUUID();
+
+        var provResult = mockMvc.perform(post("/api/v1/core/proveedores")
+                        .contentType(MediaType.APPLICATION_JSON)
+                        .content(objectMapper.writeValueAsString(Map.of(
+                                "tenantId", tenantId.toString(), "name", "Servicios Generales"))))
+                .andExpect(status().isOk()).andReturn();
+        var providerId = objectMapper.readTree(provResult.getResponse().getContentAsString()).get("id").asText();
+
+        var gastoBody = objectMapper.writeValueAsString(Map.of(
+                "tenantId", tenantId.toString(),
+                "proveedorId", providerId,
+                "fecha", "2026-06-10",
+                "tipo", "GASTO_OPERATIVO",
+                "metodoPago", "TRANSFERENCIA",
+                "total", 250.50));
+
+        mockMvc.perform(post("/api/v1/core/facturas")
+                        .contentType(MediaType.APPLICATION_JSON)
+                        .content(gastoBody))
+                .andExpect(status().isOk())
+                .andExpect(jsonPath("$.type").value("GASTO_OPERATIVO"))
+                .andExpect(jsonPath("$.total").value(250.50))
+                .andExpect(jsonPath("$.status").value("REGISTRADA"))
+                .andExpect(jsonPath("$.items.length()").value(0));
+    }
 }

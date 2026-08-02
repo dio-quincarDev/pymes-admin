@@ -1,7 +1,6 @@
 package core_pymes.invoice.dto;
 
 import jakarta.validation.constraints.NotBlank;
-import jakarta.validation.constraints.NotEmpty;
 import jakarta.validation.constraints.NotNull;
 
 import java.math.BigDecimal;
@@ -16,5 +15,6 @@ public record FacturaRequest(
         @NotBlank String tipo,
         String metodoPago,
         BigDecimal descuentoGlobal,
-        @NotEmpty List<ItemFacturaRequest> items
+        BigDecimal total,
+        List<ItemFacturaRequest> items
 ) {}

@@ -92,12 +92,8 @@ public class MetricasServiceImpl implements MetricasService {
                 invoices_opex AS (
                     SELECT COALESCE(SUM(total), 0) AS total
                     FROM core.invoices
-                    WHERE tenant_id = ? AND issue_date >= ? AND issue_date < ? AND type = 'GASTO_OPERATIVO'
-                ),
-                opex AS (
-                    SELECT COALESCE(SUM(amount), 0) AS total
-                    FROM core.operating_expenses
-                    WHERE tenant_id = ? AND expense_date >= ? AND expense_date < ?
+                    WHERE tenant_id = ? AND issue_date >= ? AND issue_date < ?
+                      AND type = 'GASTO_OPERATIVO' AND status = 'PAGADA'
                 ),
                 loan_pay AS (
                     SELECT COALESCE(SUM(lp.amount), 0) AS total
@@ -122,10 +118,10 @@ public class MetricasServiceImpl implements MetricasService {
                 )
                 SELECT s.total AS total_income,
                        ic.total AS cost_of_goods,
-                       io.total + o.total AS operating_expenses,
+                       io.total AS operating_expenses,
                        l.total AS loan_payments,
                        (c.costo_fijo_mensual + c.costo_salarios_mensual) / c.dias_laborales AS costo_operativo_diario
-                FROM sales s, invoices_cost ic, invoices_opex io, opex o, loan_pay l, costos c
+                FROM sales s, invoices_cost ic, invoices_opex io, loan_pay l, costos c
                 """;
 
         return jdbc.query(sql, rs -> {
@@ -152,7 +148,6 @@ public class MetricasServiceImpl implements MetricasService {
                 tenantId, start, end,   // sales
                 tenantId, start, end,   // invoices_cost
                 tenantId, start, end,   // invoices_opex
-                tenantId, start, end,   // opex
                 tenantId, start, end,   // loan_pay
                 tenantId, tenantId, tenantId, tenantId);  // costos
     }
