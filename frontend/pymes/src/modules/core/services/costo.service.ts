@@ -17,7 +17,7 @@ export const costoService = {
     return api.post<Collaborador>('/core/costos/collaboradores', data)
   },
   updateCollaborador(id: string, data: CollaboradorRequest) {
-    return api.put<Collaborador>(`/core/costos/collaboradores/${id}`, data)
+    return api.put<Collaborador>(`/core/costos/collaboradores/${id}`, data, { params: { tenantId: data.tenantId } })
   },
   removeCollaborador(id: string, tenantId: string) {
     return api.delete(`/core/costos/collaboradores/${id}`, { params: { tenantId } })
@@ -29,7 +29,7 @@ export const costoService = {
     return api.post<GastoFijoRecurrente>('/core/costos/gastos-fijos', data)
   },
   updateGastoFijo(id: string, data: GastoFijoRequest) {
-    return api.put<GastoFijoRecurrente>(`/core/costos/gastos-fijos/${id}`, data)
+    return api.put<GastoFijoRecurrente>(`/core/costos/gastos-fijos/${id}`, data, { params: { tenantId: data.tenantId } })
   },
   removeGastoFijo(id: string, tenantId: string) {
     return api.delete(`/core/costos/gastos-fijos/${id}`, { params: { tenantId } })

@@ -189,43 +189,43 @@ export interface VentaRequest {
 export interface Prestamo {
   id: string
   tenantId: string
-  name: string
-  lender: string | null
-  amount: number
-  interestRate: number
-  termMonths: number
-  startDate: string
-  remainingBalance: number
-  status: string
-  notes: string | null
+  nombre: string
+  prestamista: string | null
+  monto: number
+  tasaInteres: number
+  plazoMeses: number
+  fechaInicio: string
+  saldoPendiente: number
+  estado: string
+  notas: string | null
   isActive: boolean
 }
 
 export interface PagoPrestamo {
   id: string
-  loanId: string
-  amount: number
-  interestPaid: number
-  principalPaid: number
-  paymentDate: string
-  paymentMethod: string | null
+  prestamoId: string
+  monto: number
+  interesPagado: number
+  capitalPagado: number
+  fechaPago: string
+  metodoPago: string | null
 }
 
 export interface PrestamoRequest {
   tenantId: string
-  name: string
-  lender?: string | null
-  amount: number
-  interestRate: number
-  termMonths: number
-  startDate: string
-  notes?: string | null
+  nombre: string
+  prestamista?: string | null
+  monto: number
+  tasaInteres: number
+  plazoMeses: number
+  fechaInicio: string
+  notas?: string | null
 }
 
 export interface PagoPrestamoRequest {
-  amount: number
-  paymentDate: string
-  paymentMethod?: string | null
+  monto: number
+  fechaPago: string
+  metodoPago?: string | null
 }
 
 export interface Patrimonio {

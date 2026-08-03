@@ -11,6 +11,7 @@ import RecentActivity from 'src/modules/core/components/dashboard/RecentActivity
 import PendingInvoices from 'src/modules/core/components/dashboard/PendingInvoices.vue';
 import QuickActions from 'src/modules/core/components/dashboard/QuickActions.vue';
 import BaseButton from 'src/components/base/BaseButton.vue';
+import { usePullToRefresh } from 'src/composables/usePullToRefresh';
 
 useMeta({ title: 'Dashboard — PYMEQ' });
 
@@ -30,8 +31,11 @@ const {
   error,
   periodo,
   setPeriod,
+  fetch,
   recalcular,
 } = useFinancialDashboard();
+
+const { pullDistance, isRefreshing } = usePullToRefresh({ onRefresh: fetch });
 
 function deltaPct(current: number, previous: number): number | undefined {
   if (!previous || previous === 0) return undefined;
@@ -126,6 +130,19 @@ const categoryItems = computed(() =>
 
 <template>
   <q-page class="dashboard-page">
+    <transition name="ptr">
+      <div
+        v-show="isRefreshing || pullDistance > 0"
+        class="ptr-indicator"
+        :style="{ height: `${isRefreshing ? 44 : pullDistance}px` }"
+        role="status"
+        aria-live="polite"
+      >
+        <q-spinner v-if="isRefreshing" size="20px" color="accent" />
+        <q-icon v-else name="arrow_downward" size="20px" color="accent" />
+      </div>
+    </transition>
+
     <template v-if="!hasTenant">
       <div class="no-tenant-state">
         <q-icon name="domain_disabled" size="64px" style="color: var(--pq-text-subtle)" aria-hidden="true" />
@@ -189,6 +206,30 @@ const categoryItems = computed(() =>
 <style scoped lang="scss">
 .dashboard-page {
   width: 100%;
+}
+
+.ptr-indicator {
+  position: fixed;
+  top: 0;
+  left: 0;
+  right: 0;
+  z-index: 10;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  background: var(--pq-surface);
+  border-bottom: 1px solid var(--pq-border);
+  pointer-events: none;
+}
+
+.ptr-enter-active,
+.ptr-leave-active {
+  transition: opacity var(--pq-motion-fast);
+}
+
+.ptr-enter-from,
+.ptr-leave-to {
+  opacity: 0;
 }
 
 .dashboard-error-banner {

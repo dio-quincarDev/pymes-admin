@@ -1,5 +1,6 @@
 <script setup lang="ts">
 import { ref, shallowRef, computed, onMounted, onUnmounted } from 'vue';
+import { useRoute } from 'vue-router';
 import { useQuasar, useMeta } from 'quasar';
 import { useAuthStore } from 'src/modules/auth/store';
 import { formatCurrency } from 'src/utils/format';
@@ -17,6 +18,7 @@ import EmptyState from 'src/components/ui/EmptyState.vue';
 useMeta({ title: 'Costos — PYMEQ' });
 
 const $q = useQuasar();
+const route = useRoute();
 const authStore = useAuthStore();
 const tenantId = authStore.user?.tenantId;
 
@@ -112,16 +114,14 @@ const amounts = {
   amountStrGasto: ref(''),
 };
 
-function onAmountInput(target: { monto: number }, field: 'amountStr' | 'amountStrGasto') {
-  return (val: string | number | null) => {
-    amounts[field].value = String(val ?? '')
-      .replace(/[^0-9.]/g, '')
-      .replace(/(\..*)\./g, '$1');
-  };
+function onAmountInput(field: 'amountStr' | 'amountStrGasto', val: string | number | null) {
+  amounts[field].value = String(val ?? '')
+    .replace(/[^0-9.]/g, '')
+    .replace(/(\..*)\./g, '$1');
 }
 
 function formatAmount(target: { monto: number }, field: 'amountStr' | 'amountStrGasto') {
-  const n = parseFloat(amounts[field].value);
+  const n = parseFloat(amounts[field].value.replace(/,/g, ''));
   if (!isNaN(n) && amounts[field].value) {
     amounts[field].value = n.toLocaleString('en-US', {
       minimumFractionDigits: 2,
@@ -339,6 +339,8 @@ async function saveConfig() {
 const gananciaPositiva = computed(() => (diario.value?.gananciaRealEstimada ?? 0) >= 0);
 
 onMounted(() => {
+  const t = route.query.tab;
+  if (t === 'gastosFijos' || t === 'configuracion' || t === 'colaboradores') tab.value = t;
   if (!tenantId) return;
   void loadAll();
   window.addEventListener('keydown', handleKeydown);
@@ -557,7 +559,7 @@ function handleKeydown(e: KeyboardEvent) {
               dark
               filled
               :model-value="amounts.amountStr.value"
-              @update:model-value="onAmountInput(colabForm, 'amountStr')"
+              @update:model-value="(val) => onAmountInput('amountStr', val)"
               @blur="formatAmount(colabForm, 'amountStr')"
               label="Monto"
               type="text"
@@ -620,7 +622,7 @@ function handleKeydown(e: KeyboardEvent) {
               dark
               filled
               :model-value="amounts.amountStrGasto.value"
-              @update:model-value="onAmountInput(gastoForm, 'amountStrGasto')"
+              @update:model-value="(val) => onAmountInput('amountStrGasto', val)"
               @blur="formatAmount(gastoForm, 'amountStrGasto')"
               label="Monto"
               type="text"

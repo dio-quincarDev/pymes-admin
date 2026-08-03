@@ -5,7 +5,6 @@ const router = useRouter();
 
 const emit = defineEmits<{
   'nuevo-gasto': [];
-  'ver-reportes': [];
   'exportar': [];
 }>();
 
@@ -15,8 +14,7 @@ function handleNuevoGasto() {
 }
 
 function handleVerReportes() {
-  emit('ver-reportes');
-  void router.push('/dashboard/accounting');
+  void router.push('/dashboard/analisis-gastos');
 }
 
 function handleExportar() {

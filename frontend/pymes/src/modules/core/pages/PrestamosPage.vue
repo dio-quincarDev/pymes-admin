@@ -40,22 +40,22 @@ const saving = shallowRef(false);
 const formRef = ref<{ validate: () => Promise<boolean> } | null>(null);
 const form = ref<PrestamoRequest>({
   tenantId: tenantId as string,
-  name: '',
-  amount: 0,
-  interestRate: 0,
-  termMonths: 0,
-  startDate: new Date().toISOString().slice(0, 10),
+  nombre: '',
+  monto: 0,
+  tasaInteres: 0,
+  plazoMeses: 0,
+  fechaInicio: new Date().toISOString().slice(0, 10),
 });
 
 function openCreate() {
   editingId.value = null;
   form.value = {
     tenantId: tenantId as string,
-    name: '',
-    amount: 0,
-    interestRate: 0,
-    termMonths: 0,
-    startDate: new Date().toISOString().slice(0, 10),
+    nombre: '',
+    monto: 0,
+    tasaInteres: 0,
+    plazoMeses: 0,
+    fechaInicio: new Date().toISOString().slice(0, 10),
   };
   dialogOpen.value = true;
 }
@@ -64,13 +64,13 @@ function openEdit(p: Prestamo) {
   editingId.value = p.id;
   form.value = {
     tenantId: p.tenantId,
-    name: p.name,
-    lender: p.lender,
-    amount: p.amount,
-    interestRate: p.interestRate,
-    termMonths: p.termMonths,
-    startDate: p.startDate,
-    notes: p.notes,
+    nombre: p.nombre,
+    prestamista: p.prestamista,
+    monto: p.monto,
+    tasaInteres: p.tasaInteres,
+    plazoMeses: p.plazoMeses,
+    fechaInicio: p.fechaInicio,
+    notas: p.notas,
   };
   dialogOpen.value = true;
 }
@@ -135,14 +135,14 @@ const pagoPrestamo = shallowRef<Prestamo | null>(null);
 const pagos = ref<PagoPrestamo[]>([]);
 const savingPago = shallowRef(false);
 const pagoForm = ref<PagoPrestamoRequest>({
-  amount: 0,
-  paymentDate: new Date().toISOString().slice(0, 10),
+  monto: 0,
+  fechaPago: new Date().toISOString().slice(0, 10),
 });
 const pagosLoaded = shallowRef(false);
 
 function openPagos(p: Prestamo) {
   pagoPrestamo.value = p;
-  pagoForm.value = { amount: 0, paymentDate: new Date().toISOString().slice(0, 10) };
+  pagoForm.value = { monto: 0, fechaPago: new Date().toISOString().slice(0, 10) };
   pagosLoaded.value = false;
   pagos.value = [];
   pagoDialog.value = true;
@@ -170,7 +170,7 @@ async function savePago() {
   try {
     await prestamoService.createPago(pagoPrestamo.value.id, pagoForm.value, tenantId);
     $q.notify({ type: 'positive', message: 'Pago registrado' });
-    pagoForm.value = { amount: 0, paymentDate: new Date().toISOString().slice(0, 10) };
+    pagoForm.value = { monto: 0, fechaPago: new Date().toISOString().slice(0, 10) };
     await loadPagos(pagoPrestamo.value.id);
     await load();
   } catch (err) {
@@ -183,10 +183,10 @@ async function savePago() {
   }
 }
 
-const totalPagado = computed(() => pagos.value.reduce((sum, p) => sum + p.amount, 0));
+const totalPagado = computed(() => pagos.value.reduce((sum, p) => sum + p.monto, 0));
 
-const totalPrestado = computed(() => rows.value.reduce((s, p) => s + p.amount, 0));
-const totalSaldo = computed(() => rows.value.reduce((s, p) => s + p.remainingBalance, 0));
+const totalPrestado = computed(() => rows.value.reduce((s, p) => s + p.monto, 0));
+const totalSaldo = computed(() => rows.value.reduce((s, p) => s + p.saldoPendiente, 0));
 
 onMounted(() => {
   if (!tenantId) return;
@@ -268,41 +268,41 @@ function handleKeydown(e: KeyboardEvent) {
     <div v-if="!loading && rows.length" class="loan-grid">
       <div v-for="p in rows" :key="p.id" class="loan-card">
         <div class="loan-card__top">
-          <div class="loan-card__name">{{ p.name }}</div>
-          <q-badge :color="statusColor(p.status)" class="q-px-sm q-py-xs">{{ p.status }}</q-badge>
+          <div class="loan-card__name">{{ p.nombre }}</div>
+          <q-badge :color="statusColor(p.estado)" class="q-px-sm q-py-xs">{{ p.estado }}</q-badge>
         </div>
 
         <div class="loan-card__amounts">
           <div class="loan-card__amount">
             <span class="loan-card__amount-label">Monto</span>
-            <span class="loan-card__amount-value">{{ formatCurrency(p.amount) }}</span>
+            <span class="loan-card__amount-value">{{ formatCurrency(p.monto) }}</span>
           </div>
           <div class="loan-card__amount">
             <span class="loan-card__amount-label">Saldo</span>
             <span class="loan-card__amount-value loan-card__amount-value--balance">{{
-              formatCurrency(p.remainingBalance)
+              formatCurrency(p.saldoPendiente)
             }}</span>
           </div>
           <div class="loan-card__amount">
             <span class="loan-card__amount-label">Tasa</span>
-            <span class="loan-card__amount-value">{{ p.interestRate }}%</span>
+            <span class="loan-card__amount-value">{{ p.tasaInteres }}%</span>
           </div>
         </div>
 
         <q-linear-progress
-          :value="p.amount > 0 ? (p.amount - p.remainingBalance) / p.amount : 0"
-          :color="p.remainingBalance === 0 ? 'positive' : 'accent'"
+          :value="p.monto > 0 ? (p.monto - p.saldoPendiente) / p.monto : 0"
+          :color="p.saldoPendiente === 0 ? 'positive' : 'accent'"
           class="q-mt-sm q-mb-sm"
           size="4px"
           rounded
         />
 
-        <div v-if="p.lender" class="loan-card__lender">
+        <div v-if="p.prestamista" class="loan-card__lender">
           <q-icon name="person" size="0.8rem" class="text-accent" />
-          {{ p.lender }}
+          {{ p.prestamista }}
         </div>
 
-        <div v-if="p.termMonths" class="loan-card__term">{{ p.termMonths }} meses</div>
+        <div v-if="p.plazoMeses" class="loan-card__term">{{ p.plazoMeses }} meses</div>
 
         <div class="loan-card__actions">
           <q-btn
@@ -316,7 +316,7 @@ function handleKeydown(e: KeyboardEvent) {
             aria-label="Pagos"
           />
           <q-btn
-            v-if="p.status === 'ACTIVO'"
+            v-if="p.estado === 'ACTIVO'"
             flat
             dense
             round
@@ -353,7 +353,7 @@ function handleKeydown(e: KeyboardEvent) {
             <q-input
               dark
               filled
-              v-model="form.name"
+              v-model="form.nombre"
               label="Nombre"
               :rules="[(v) => !!v || 'Requerido']"
             />
@@ -362,7 +362,7 @@ function handleKeydown(e: KeyboardEvent) {
                 <q-input
                   dark
                   filled
-                  v-model.number="form.amount"
+                  v-model.number="form.monto"
                   label="Monto"
                   type="number"
                   min="0"
@@ -375,7 +375,7 @@ function handleKeydown(e: KeyboardEvent) {
                 <q-input
                   dark
                   filled
-                  v-model="form.startDate"
+                  v-model="form.fechaInicio"
                   label="Fecha inicio"
                   type="date"
                   :rules="[(v) => !!v || 'Requerido']"
@@ -387,7 +387,7 @@ function handleKeydown(e: KeyboardEvent) {
                 <q-input
                   dark
                   filled
-                  v-model.number="form.interestRate"
+                  v-model.number="form.tasaInteres"
                   label="Tasa % mensual"
                   type="number"
                   min="0"
@@ -400,7 +400,7 @@ function handleKeydown(e: KeyboardEvent) {
                 <q-input
                   dark
                   filled
-                  v-model.number="form.termMonths"
+                  v-model.number="form.plazoMeses"
                   label="Plazo (meses)"
                   type="number"
                   min="1"
@@ -409,8 +409,8 @@ function handleKeydown(e: KeyboardEvent) {
                 />
               </div>
             </div>
-            <q-input dark filled v-model="form.lender" label="Prestamista" />
-            <q-input dark filled v-model="form.notes" label="Notas" type="textarea" />
+            <q-input dark filled v-model="form.prestamista" label="Prestamista" />
+            <q-input dark filled v-model="form.notas" label="Notas" type="textarea" />
             <div class="row justify-end q-gutter-x-sm">
               <q-btn flat label="Cancelar" color="accent" v-close-popup />
               <q-btn type="submit" label="Guardar" color="primary" :loading="saving" />
@@ -424,11 +424,11 @@ function handleKeydown(e: KeyboardEvent) {
       <q-card dark class="bg-surface-pine" style="width: 90vw; max-width: 600px">
         <q-card-section>
           <div class="text-h6 text-primary">
-            Pagos: <strong>{{ pagoPrestamo?.name }}</strong>
+            Pagos: <strong>{{ pagoPrestamo?.nombre }}</strong>
           </div>
           <div class="text-caption text-accent q-mt-xs">
-            Monto: {{ formatCurrency(pagoPrestamo?.amount || 0) }} | Saldo:
-            {{ formatCurrency(pagoPrestamo?.remainingBalance || 0) }} | Pagado:
+            Monto: {{ formatCurrency(pagoPrestamo?.monto || 0) }} | Saldo:
+            {{ formatCurrency(pagoPrestamo?.saldoPendiente || 0) }} | Pagado:
             {{ formatCurrency(totalPagado) }}
           </div>
         </q-card-section>
@@ -444,10 +444,10 @@ function handleKeydown(e: KeyboardEvent) {
             style="border-radius: 4px"
           >
             <div>
-              <span class="text-weight-bold">{{ formatCurrency(p.amount) }}</span>
-              <span class="text-accent text-caption q-ml-sm">{{ p.paymentDate }}</span>
+              <span class="text-weight-bold">{{ formatCurrency(p.monto) }}</span>
+              <span class="text-accent text-caption q-ml-sm">{{ p.fechaPago }}</span>
             </div>
-            <span class="text-accent text-caption">{{ p.paymentMethod || '—' }}</span>
+            <span class="text-accent text-caption">{{ p.metodoPago || '—' }}</span>
           </div>
         </q-card-section>
         <q-separator dark />
@@ -459,7 +459,7 @@ function handleKeydown(e: KeyboardEvent) {
                 dark
                 dense
                 filled
-                v-model.number="pagoForm.amount"
+                v-model.number="pagoForm.monto"
                 label="Monto"
                 type="number"
                 min="0"
@@ -468,7 +468,7 @@ function handleKeydown(e: KeyboardEvent) {
               />
             </div>
             <div class="col-4">
-              <q-input dark dense filled v-model="pagoForm.paymentDate" label="Fecha" type="date" />
+              <q-input dark dense filled v-model="pagoForm.fechaPago" label="Fecha" type="date" />
             </div>
             <div class="col-4">
               <q-btn
@@ -489,7 +489,7 @@ function handleKeydown(e: KeyboardEvent) {
         <q-card-section class="row items-center q-gutter-x-md">
           <q-icon name="warning" color="negative" size="md" />
           <span
-            >Eliminar préstamo <strong>{{ deletingItem?.name }}</strong
+            >Eliminar préstamo <strong>{{ deletingItem?.nombre }}</strong
             >?</span
           >
         </q-card-section>

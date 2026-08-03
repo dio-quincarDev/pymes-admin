@@ -1,5 +1,6 @@
 <script setup lang="ts">
 import { ref, shallowRef, computed, onMounted, onUnmounted } from 'vue';
+import { useRouter } from 'vue-router';
 import { useQuasar, useMeta } from 'quasar';
 import { useAuthStore } from 'src/modules/auth/store';
 import { formatCurrency } from 'src/utils/format';
@@ -10,6 +11,7 @@ import EmptyState from 'src/components/ui/EmptyState.vue';
 useMeta({ title: 'Gastos — PYMEQ' });
 
 const $q = useQuasar();
+const router = useRouter();
 const authStore = useAuthStore();
 const tenantId = authStore.user?.tenantId;
 
@@ -207,6 +209,29 @@ function handleKeydown(e: KeyboardEvent) {
 
 <template>
   <q-page class="core-page">
+    <q-banner
+      class="deprecation-banner q-mb-md"
+      role="note"
+    >
+      <template v-slot:avatar>
+        <q-icon name="info" />
+      </template>
+      <div>
+        <strong>Esta sección quedó en desuso.</strong>
+        Los gastos fijos y colaboradores ahora se administran en Estructura de Costos.
+      </div>
+      <template v-slot:action>
+        <q-btn
+          flat
+          dense
+          no-caps
+          label="Ir a Costos → Gastos Fijos"
+          color="accent"
+          @click="router.push('/dashboard/costos?tab=gastosFijos')"
+        />
+      </template>
+    </q-banner>
+
     <div class="q-mb-md">
       <h1 class="text-h4 text-primary font-bold q-ma-none">Gastos Operativos</h1>
       <p class="text-subtitle1 text-accent q-mt-xs">Registro de gastos operativos del negocio</p>
@@ -376,6 +401,12 @@ function handleKeydown(e: KeyboardEvent) {
 </template>
 
 <style scoped>
+.deprecation-banner {
+  background: rgba(200, 150, 62, 0.06);
+  border: 1px solid rgba(200, 150, 62, 0.3);
+  border-radius: 6px;
+}
+
 .toolbar {
   display: flex;
   align-items: center;

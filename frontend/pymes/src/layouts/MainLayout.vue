@@ -141,7 +141,6 @@
         <q-route-tab to="/dashboard" icon="dashboard" aria-label="Dashboard" />
         <q-route-tab to="/dashboard/productos" icon="inventory_2" aria-label="Productos" />
         <q-route-tab to="/dashboard/facturas" icon="receipt_long" aria-label="Facturas" />
-        <q-route-tab to="/dashboard/gastos" icon="money_off" aria-label="Gastos" />
         <q-route-tab to="/dashboard/prestamos" icon="account_balance" aria-label="Préstamos" />
         <q-route-tab icon="more_horiz" aria-label="Más" @click="toggleLeftDrawer" />
       </q-tabs>
@@ -177,7 +176,6 @@ const mobileTab = computed(() => {
   if (p === '/dashboard') return '/dashboard';
   if (p.startsWith('/dashboard/productos')) return '/dashboard/productos';
   if (p.startsWith('/dashboard/facturas')) return '/dashboard/facturas';
-  if (p.startsWith('/dashboard/gastos')) return '/dashboard/gastos';
   return '';
 });
 const online = ref(navigator.onLine);
@@ -268,7 +266,7 @@ const navGroups = computed<NavGroup[]>(() => {
         { title: 'Productos', icon: 'inventory_2', path: '/dashboard/productos' },
         { title: 'Proveedores', icon: 'people', path: '/dashboard/proveedores' },
         { title: 'Facturas', icon: 'receipt_long', path: '/dashboard/facturas' },
-        { title: 'Gastos', icon: 'money_off', path: '/dashboard/gastos' },
+        { title: 'Costos', icon: 'money_off', path: '/dashboard/costos' },
       ],
     },
     {
