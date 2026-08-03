@@ -5,6 +5,7 @@ import { useQuasar, useMeta } from 'quasar';
 import { useAuthStore } from 'src/modules/auth/store';
 import { formatCurrency } from 'src/utils/format';
 import { costoService } from '../services/costo.service';
+import { proveedorService } from '../services/proveedor.service';
 import type {
   Collaborador,
   CollaboradorRequest,
@@ -12,6 +13,7 @@ import type {
   CostoDiario,
   GastoFijoRecurrente,
   GastoFijoRequest,
+  Proveedor,
 } from '../types';
 import EmptyState from 'src/components/ui/EmptyState.vue';
 
@@ -26,6 +28,7 @@ const categoriaOptions = [
   'SALARIOS',
   'AGUA',
   'LUZ',
+  'GAS',
   'INTERNET',
   'ALQUILER',
   'MANTENIMIENTO',
@@ -40,8 +43,13 @@ const loading = shallowRef(false);
 
 const colaboradores = ref<Collaborador[]>([]);
 const gastosFijos = ref<GastoFijoRecurrente[]>([]);
+const proveedores = ref<Proveedor[]>([]);
 const diario = ref<CostoDiario | null>(null);
 const configuracion = ref<ConfigLaboral | null>(null);
+
+const proveedorOptions = computed(() =>
+  proveedores.value.map((p) => ({ label: p.name, value: p.id })),
+);
 
 async function loadDiario() {
   if (!tenantId) return;
@@ -60,13 +68,15 @@ async function loadAll() {
   if (!tenantId) return;
   loading.value = true;
   try {
-    const [colabRes, gastosRes, configRes] = await Promise.all([
+    const [colabRes, gastosRes, configRes, provRes] = await Promise.all([
       costoService.getAllCollaboradores(tenantId),
       costoService.getAllGastosFijos(tenantId),
       costoService.getConfiguracion(tenantId),
+      proveedorService.getAll(tenantId),
     ]);
     colaboradores.value = colabRes.data;
     gastosFijos.value = gastosRes.data;
+    proveedores.value = provRes.data;
     configuracion.value = configRes.data;
     configForm.value = { tenantId, diasLaborales: configRes.data.diasLaborales };
   } catch (err) {
@@ -229,6 +239,7 @@ const gastoForm = ref<GastoFijoRequest>({
   descripcion: '',
   diaEjecucion: 1,
   metodoPago: null,
+  proveedorId: null,
 });
 
 function openCreateGasto() {
@@ -240,6 +251,7 @@ function openCreateGasto() {
     descripcion: '',
     diaEjecucion: 1,
     metodoPago: null,
+    proveedorId: null,
   };
   amounts.amountStrGasto.value = '';
   gastoDialog.value = true;
@@ -254,6 +266,7 @@ function openEditGasto(g: GastoFijoRecurrente) {
     descripcion: g.descripcion,
     diaEjecucion: g.diaEjecucion,
     metodoPago: g.metodoPago,
+    proveedorId: g.proveedorId,
   };
   amounts.amountStrGasto.value = rawAmount(g.monto);
   gastoDialog.value = true;
@@ -493,6 +506,8 @@ function handleKeydown(e: KeyboardEvent) {
               <span>Día {{ g.diaEjecucion }}</span>
               <span v-if="g.metodoPago" class="row-item__sep">·</span>
               <span v-if="g.metodoPago">{{ g.metodoPago }}</span>
+              <span v-if="g.proveedorName" class="row-item__sep">·</span>
+              <span v-if="g.proveedorName">{{ g.proveedorName }}</span>
             </div>
           </div>
           <div class="row-item__amount">{{ formatCurrency(g.monto) }}</div>
@@ -637,6 +652,16 @@ function handleKeydown(e: KeyboardEvent) {
               :options="metodoPagoOptions"
               label="Método de pago"
               clearable
+            />
+            <q-select
+              dark
+              filled
+              v-model="gastoForm.proveedorId"
+              :options="proveedorOptions"
+              label="Proveedor"
+              clearable
+              map-options
+              emit-value
             />
             <div class="row justify-end q-gutter-x-sm">
               <q-btn flat label="Cancelar" color="accent" v-close-popup />

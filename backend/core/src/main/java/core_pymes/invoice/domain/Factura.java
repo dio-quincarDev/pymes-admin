@@ -32,7 +32,7 @@ public class Factura {
     @Column(name = "tenant_id", nullable = false)
     private UUID tenantId;
 
-    @Column(name = "provider_id", nullable = false)
+    @Column(name = "provider_id", nullable = true)
     private UUID providerId;
 
     @ManyToOne(fetch = FetchType.LAZY)

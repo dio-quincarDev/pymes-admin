@@ -11,5 +11,7 @@ public record GastoFijoResponse(
         String descripcion,
         Integer diaEjecucion,
         String metodoPago,
+        UUID proveedorId,
+        String proveedorName,
         Boolean activo
 ) {}

@@ -64,8 +64,8 @@ export interface Factura {
   id: string
   tenantId: string
   invoiceNumber: string
-  providerId: string
-  providerName: string
+  providerId: string | null
+  providerName: string | null
   issueDate: string
   type: string
   paymentMethod: string | null
@@ -108,11 +108,12 @@ export interface ItemFacturaRequest {
 
 export interface FacturaRequest {
   tenantId: string
-  proveedorId: string
+  proveedorId: string | null
   fecha: string
   tipo: string
   metodoPago?: string | null
   descuentoGlobal?: number | null
+  total?: number | null
   items: ItemFacturaRequest[]
 }
 
@@ -284,6 +285,8 @@ export interface GastoFijoRecurrente {
   descripcion: string | null
   diaEjecucion: number
   metodoPago: string | null
+  proveedorId: string | null
+  proveedorName: string | null
   activo: boolean
 }
 
@@ -294,6 +297,7 @@ export interface GastoFijoRequest {
   descripcion?: string | null
   diaEjecucion: number
   metodoPago?: string | null
+  proveedorId?: string | null
 }
 
 export interface ConfigLaboral {

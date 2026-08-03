@@ -116,8 +116,11 @@ public class FacturaServiceImpl implements FacturaService {
     @Transactional
     @CacheEvict(cacheNames = "facturas", allEntries = true)
     public FacturaResponse createFactura(FacturaRequest request) {
-        var proveedor = proveedorRepository.findById(request.proveedorId())
-                .orElseThrow(() -> new ResourceNotFoundException("Proveedor not found: " + request.proveedorId()));
+        Proveedor proveedor = null;
+        if (request.proveedorId() != null) {
+            proveedor = proveedorRepository.findById(request.proveedorId())
+                    .orElseThrow(() -> new ResourceNotFoundException("Proveedor not found: " + request.proveedorId()));
+        }
 
         var invoiceNumber = generateInvoiceNumber(request.tenantId(), request.fecha().getYear());
 

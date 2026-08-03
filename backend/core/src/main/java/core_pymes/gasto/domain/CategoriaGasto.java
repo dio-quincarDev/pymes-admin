@@ -4,6 +4,7 @@ public enum CategoriaGasto {
     SALARIOS,
     AGUA,
     LUZ,
+    GAS,
     INTERNET,
     ALQUILER,
     MANTENIMIENTO,

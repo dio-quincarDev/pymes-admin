@@ -1,6 +1,7 @@
 package core_pymes.costos.domain;
 
 import core_pymes.gasto.domain.CategoriaGasto;
+import core_pymes.invoice.domain.Proveedor;
 import jakarta.persistence.*;
 import lombok.*;
 import org.hibernate.annotations.SQLDelete;
@@ -41,6 +42,13 @@ public class GastoFijoRecurrente {
 
     @Column(name = "metodo_pago")
     private String metodoPago;
+
+    @Column(name = "provider_id", nullable = true)
+    private UUID providerId;
+
+    @ManyToOne(fetch = FetchType.LAZY)
+    @JoinColumn(name = "provider_id", insertable = false, updatable = false)
+    private Proveedor proveedor;
 
     @Builder.Default
     @Column(nullable = false)

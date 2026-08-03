@@ -14,5 +14,6 @@ public record GastoFijoRequest(
         @NotNull @Positive BigDecimal monto,
         String descripcion,
         @NotNull @Min(1) @Max(31) Integer diaEjecucion,
-        String metodoPago
+        String metodoPago,
+        UUID proveedorId
 ) {}

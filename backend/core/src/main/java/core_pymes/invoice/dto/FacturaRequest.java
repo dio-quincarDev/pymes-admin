@@ -10,7 +10,7 @@ import java.util.UUID;
 
 public record FacturaRequest(
         @NotNull UUID tenantId,
-        @NotNull UUID proveedorId,
+        UUID proveedorId,
         @NotNull LocalDate fecha,
         @NotBlank String tipo,
         String metodoPago,

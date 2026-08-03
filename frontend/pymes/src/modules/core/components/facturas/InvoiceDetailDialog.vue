@@ -41,7 +41,7 @@ const statusColor: Record<string, string> = { PAGADA: 'positive', REGISTRADA: 'w
         <div class="row q-col-gutter-md">
           <div class="col-6">
             <div class="text-caption text-accent">Proveedor</div>
-            <div class="text-secondary text-weight-medium">{{ factura.providerName }}</div>
+            <div class="text-secondary text-weight-medium">{{ factura.providerName || '—' }}</div>
           </div>
           <div class="col-3">
             <div class="text-caption text-accent">Tipo</div>
@@ -62,7 +62,11 @@ const statusColor: Record<string, string> = { PAGADA: 'positive', REGISTRADA: 'w
       <q-separator dark />
       <q-card-section>
         <div class="text-subtitle2 text-primary q-mb-sm">Items</div>
+        <div v-if="factura.type === 'GASTO_OPERATIVO' && !factura.items.length" class="text-caption text-accent q-py-sm">
+          Monto directo (sin items)
+        </div>
         <q-table
+          v-else
           dark flat dense
           :rows="factura.items"
           :columns="[

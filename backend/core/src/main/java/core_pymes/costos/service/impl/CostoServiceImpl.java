@@ -13,6 +13,8 @@ import core_pymes.costos.repository.ConfigLaboralRepository;
 import core_pymes.costos.repository.GastoFijoRepository;
 import core_pymes.costos.service.CostoService;
 import core_pymes.gasto.domain.CategoriaGasto;
+import core_pymes.invoice.domain.Proveedor;
+import core_pymes.invoice.repository.ProveedorRepository;
 import core_pymes.venta.repository.VentaRepository;
 import lombok.RequiredArgsConstructor;
 import lombok.extern.slf4j.Slf4j;
@@ -41,6 +43,7 @@ public class CostoServiceImpl implements CostoService {
     private final CollaboradorRepository collaboradorRepository;
     private final GastoFijoRepository gastoFijoRepository;
     private final ConfigLaboralRepository configLaboralRepository;
+    private final ProveedorRepository proveedorRepository;
     private final VentaRepository ventaRepository;
     private final MetricasRepository metricasRepository;
     private final ApplicationEventPublisher eventPublisher;
@@ -117,6 +120,7 @@ public class CostoServiceImpl implements CostoService {
     @Transactional
     @CacheEvict(cacheNames = "costos", allEntries = true)
     public GastoFijoResponse crearGastoFijo(GastoFijoRequest request) {
+        var proveedor = getProveedor(request.proveedorId(), request.tenantId());
         var gastoFijo = gastoFijoRepository.save(GastoFijoRecurrente.builder()
                 .tenantId(request.tenantId())
                 .categoria(CategoriaGasto.valueOf(request.categoria()))
@@ -124,6 +128,8 @@ public class CostoServiceImpl implements CostoService {
                 .descripcion(request.descripcion())
                 .diaEjecucion(request.diaEjecucion())
                 .metodoPago(request.metodoPago())
+                .providerId(request.proveedorId())
+                .proveedor(proveedor)
                 .build());
         publishChanged(gastoFijo.getTenantId());
         return toResponse(gastoFijo);
@@ -139,6 +145,8 @@ public class CostoServiceImpl implements CostoService {
         gastoFijo.setDescripcion(request.descripcion());
         gastoFijo.setDiaEjecucion(request.diaEjecucion());
         gastoFijo.setMetodoPago(request.metodoPago());
+        gastoFijo.setProviderId(request.proveedorId());
+        gastoFijo.setProveedor(getProveedor(request.proveedorId(), tenantId));
         gastoFijo = gastoFijoRepository.save(gastoFijo);
         publishChanged(gastoFijo.getTenantId());
         return toResponse(gastoFijo);
@@ -251,6 +259,18 @@ public class CostoServiceImpl implements CostoService {
         return gastoFijo;
     }
 
+    private Proveedor getProveedor(UUID proveedorId, UUID tenantId) {
+        if (proveedorId == null) {
+            return null;
+        }
+        var proveedor = proveedorRepository.findById(proveedorId)
+                .orElseThrow(() -> new ResourceNotFoundException("Proveedor not found: " + proveedorId));
+        if (!proveedor.getTenantId().equals(tenantId)) {
+            throw new ResourceNotFoundException("Proveedor not found: " + proveedorId);
+        }
+        return proveedor;
+    }
+
     private CollaboradorResponse toResponse(Collaborador c) {
         return new CollaboradorResponse(
                 c.getId(), c.getTenantId(), c.getNombre(),
@@ -260,6 +280,9 @@ public class CostoServiceImpl implements CostoService {
     private GastoFijoResponse toResponse(GastoFijoRecurrente g) {
         return new GastoFijoResponse(
                 g.getId(), g.getTenantId(), g.getCategoria().name(),
-                g.getMonto(), g.getDescripcion(), g.getDiaEjecucion(), g.getMetodoPago(), g.getActivo());
+                g.getMonto(), g.getDescripcion(), g.getDiaEjecucion(), g.getMetodoPago(),
+                g.getProviderId(),
+                g.getProveedor() != null ? g.getProveedor().getName() : null,
+                g.getActivo());
     }
 }

@@ -43,7 +43,7 @@
       >
         <div class="invoice-row__info">
           <div class="invoice-row__number">{{ inv.invoiceNumber }}</div>
-          <div class="invoice-row__provider">{{ inv.providerName }}</div>
+          <div class="invoice-row__provider">{{ inv.providerName || '—' }}</div>
         </div>
         <div class="invoice-row__date">{{ inv.issueDate }}</div>
         <div class="invoice-row__total">{{ formatCurrency(inv.total) }}</div>
@@ -78,7 +78,7 @@
           <q-card-section class="invoice-dialog__body col">
             <!-- Form header: 2x2 grid -->
             <div class="row q-col-gutter-x-sm q-col-gutter-y-sm q-mb-md">
-              <div class="col-12 col-sm-6">
+              <div v-if="form.tipo !== 'GASTO_OPERATIVO'" class="col-12 col-sm-6">
                 <q-select dark dense v-model="form.proveedorId" :options="providerFilteredOptions" label="Proveedor" :rules="[v=>!!v||'Requerido']" map-options emit-value use-input @filter="providerFilter" popup-content-class="product-dropdown">
                   <template v-slot:no-option><q-item><q-item-section class="text-accent text-caption">Escribe el nombre para crearlo</q-item-section></q-item></template>
                 </q-select>
@@ -95,7 +95,7 @@
             </div>
 
             <!-- Items header -->
-            <div class="invoice-dialog__items-header">
+            <div v-if="form.tipo !== 'GASTO_OPERATIVO'" class="invoice-dialog__items-header">
               <div class="invoice-dialog__items-title">
                 <q-icon name="list" size="0.85rem" class="text-primary" />
                 <span>Items</span>
@@ -104,9 +104,9 @@
               <span v-if="form.items.length" class="invoice-dialog__items-total">{{ formatCurrency(computedTotal) }}</span>
             </div>
 
-            <CategoryTabs v-if="allProducts.length" v-model="activeCategory" :categories="setupCategories" />
+            <CategoryTabs v-if="form.tipo !== 'GASTO_OPERATIVO' && allProducts.length" v-model="activeCategory" :categories="setupCategories" />
 
-            <div class="invoice-dialog__items q-gutter-y-sm">
+            <div v-if="form.tipo !== 'GASTO_OPERATIVO'" class="invoice-dialog__items q-gutter-y-sm">
               <InvoiceItemCard
                 v-for="(item, i) in form.items" :key="item._key"
                 :item="item" :index="i"
@@ -122,12 +122,55 @@
               />
             </div>
 
-            <div class="invoice-dialog__add">
+            <div v-if="form.tipo !== 'GASTO_OPERATIVO'" class="invoice-dialog__add">
               <q-btn outline color="primary" icon="add" label="Agregar item" @click="addItem" no-caps size="sm" />
             </div>
 
+            <!-- Gasto operativo: categoría desde CostosPage + monto -->
+            <div v-if="form.tipo === 'GASTO_OPERATIVO'" class="q-gutter-y-sm q-mt-sm">
+              <div class="invoice-dialog__items-title">
+                <q-icon name="payments" size="0.85rem" class="text-primary" />
+                <span>Categoría</span>
+              </div>
+              <q-select
+                dark dense v-model="form.categoria"
+                :options="categoriaOptions"
+                label="Categoría"
+                map-options emit-value
+                :rules="[v => !!v || 'Requerido']"
+              />
+              <q-select
+                v-if="form.categoria === 'SALARIOS'"
+                dark dense v-model="form.colaboradorId"
+                :options="colaboradorOptions"
+                label="Colaborador"
+                map-options emit-value
+                clearable
+              />
+              <div v-if="form.categoria === 'SALARIOS' && selectedColaborador?.tipoPago === 'DIARIO'" class="row q-col-gutter-x-sm">
+                <div class="col-6">
+                  <q-input dark dense v-model="form.fechaDesde" label="Desde" type="date" />
+                </div>
+                <div class="col-6">
+                  <q-input dark dense v-model="form.fechaHasta" label="Hasta" type="date" />
+                </div>
+              </div>
+              <div v-if="form.categoria === 'SALARIOS' && selectedColaborador?.tipoPago === 'DIARIO'" class="text-caption text-accent q-mt-xs">
+                {{ diasEnRango }} días × ${{ selectedColaborador.monto.toLocaleString('en-US') }} = {{ formatCurrency(diasEnRango * selectedColaborador.monto) }}
+              </div>
+              <q-input
+                dark dense filled :model-value="totalStr"
+                label="Total / Monto"
+                placeholder="0.00"
+                prefix="$"
+                :rules="[() => !!form.total || 'Requerido']"
+                @update:model-value="onTotalInput"
+                @blur="formatTotal"
+              />
+            </div>
+
             <q-separator dark class="opacity-10 q-mt-sm" />
-            <div v-if="form.items.length" class="invoice-dialog__total">
+            <div v-if="form.items.length || form.tipo === 'GASTO_OPERATIVO'" class="invoice-dialog__total">
               <span class="invoice-dialog__total-label">Total factura</span>
               <span class="invoice-dialog__total-val">{{ formatCurrency(computedTotal) }}</span>
             </div>
@@ -172,7 +215,8 @@ import { formatCurrency } from 'src/utils/format'
 import { facturaService } from '../services/factura.service'
 import { productoService } from '../services/producto.service'
 import { proveedorService } from '../services/proveedor.service'
-import type { Factura, FacturaRequest, SetupInfo, SetupCategory, ProductOption, Producto } from '../types'
+import { costoService } from '../services/costo.service'
+import type { Collaborador, Factura, FacturaRequest, GastoFijoRecurrente, SetupInfo, SetupCategory, ProductOption, Producto } from '../types'
 import EmptyState from 'src/components/ui/EmptyState.vue'
 import { api } from 'src/boot/axios'
 import CategoryTabs from '../components/facturas/CategoryTabs.vue'
@@ -201,7 +245,7 @@ const filteredRows = computed(() => {
   const q = filter.value.toLowerCase()
   return rows.value.filter(r =>
     r.invoiceNumber.toLowerCase().includes(q) ||
-    r.providerName.toLowerCase().includes(q)
+    (r.providerName ?? '').toLowerCase().includes(q)
   )
 })
 
@@ -240,6 +284,8 @@ const detailDialog = shallowRef(false)
 const detailItem = shallowRef<Factura | null>(null)
 const presentationNameMap = ref<Map<string, string>>(new Map())
 const presentationConversionMap = ref<Map<string, number>>(new Map())
+const colaboradores = ref<Collaborador[]>([])
+const gastosFijos = ref<GastoFijoRecurrente[]>([])
 
 function openDetail(f: Factura) {
   detailItem.value = f
@@ -307,6 +353,9 @@ interface ItemForm {
   descuento: number
 }
 
+const CATEGORIA_SALARIOS = 'SALARIOS'
+const CATEGORIA_OTRO = 'OTRO'
+
 const dialogOpen = shallowRef(false)
 const saving = shallowRef(false)
 const form = ref<{
@@ -316,6 +365,11 @@ const form = ref<{
   metodoPago: string | null
   descuentoGlobal: number
   items: ItemForm[]
+  total: number | null
+  categoria: string | null
+  colaboradorId: string | null
+  fechaDesde: string | null
+  fechaHasta: string | null
 }>({
   proveedorId: null,
   fecha: new Date().toISOString().slice(0, 10),
@@ -323,6 +377,11 @@ const form = ref<{
   metodoPago: null,
   descuentoGlobal: 0,
   items: [],
+  total: null,
+  categoria: null,
+  colaboradorId: null,
+  fechaDesde: null,
+  fechaHasta: null,
 })
 
 function addItem() {
@@ -352,6 +411,7 @@ function removeItem(i: number) {
 }
 
 const computedTotal = computed(() => {
+  if (form.value.tipo === 'GASTO_OPERATIVO') return form.value.total || 0
   return form.value.items.reduce((sum, item) => {
     const qty = item.cantidad || 0
     const val = item.valor || 0
@@ -359,6 +419,81 @@ const computedTotal = computed(() => {
     return sum + (qty * val * (1 - disc / 100))
   }, 0)
 })
+
+const totalStr = ref('')
+
+function onTotalInput(val: string | number | null) {
+  totalStr.value = String(val ?? '').replace(/[^0-9.]/g, '').replace(/(\..*)\./g, '$1')
+}
+
+function formatTotal() {
+  const n = parseFloat(totalStr.value.replace(/,/g, ''))
+  if (!isNaN(n) && totalStr.value) {
+    totalStr.value = n.toLocaleString('en-US', { minimumFractionDigits: 2, maximumFractionDigits: 2 })
+    form.value.total = n
+  } else {
+    form.value.total = null
+  }
+}
+
+function rawTotal(val: number | null) {
+  return val
+    ? val.toLocaleString('en-US', { minimumFractionDigits: 2, maximumFractionDigits: 2 })
+    : ''
+}
+
+const colaboradorOptions = computed(() =>
+  colaboradores.value.filter(c => c.activo).map(c => ({
+    label: `${c.nombre} · ${c.tipoPago} $${c.monto.toLocaleString('en-US')}`,
+    value: c.id,
+  }))
+)
+
+const gastoFijoCategorias = computed(() => {
+  const seen = new Set<string>()
+  const out: { label: string; value: string; monto: number }[] = []
+  for (const g of gastosFijos.value) {
+    if (!g.activo || seen.has(g.categoria)) continue
+    seen.add(g.categoria)
+    out.push({ label: `${g.categoria} · $${g.monto.toLocaleString('en-US')}`, value: g.categoria, monto: g.monto })
+  }
+  return out
+})
+
+const categoriaOptions = computed(() => [
+  { label: 'Salarios', value: CATEGORIA_SALARIOS },
+  ...gastoFijoCategorias.value,
+  { label: 'Otro', value: CATEGORIA_OTRO },
+])
+
+const selectedColaborador = computed(() =>
+  colaboradores.value.find(c => c.id === form.value.colaboradorId) || null
+)
+
+const diasEnRango = computed(() => {
+  if (!form.value.fechaDesde || !form.value.fechaHasta) return 0
+  const ms = new Date(form.value.fechaHasta).getTime() - new Date(form.value.fechaDesde).getTime()
+  // ponytail: cuenta días calendario (inclusive); días laborables vía config_laboral si hace falta
+  return Math.max(1, Math.round(ms / 86400000) + 1)
+})
+
+function applyCategoria() {
+  if (form.value.tipo !== 'GASTO_OPERATIVO') return
+  form.value.colaboradorId = null
+  const gf = gastoFijoCategorias.value.find(c => c.value === form.value.categoria)
+  form.value.total = gf?.monto ?? null
+  totalStr.value = rawTotal(form.value.total)
+}
+
+function applySalario() {
+  if (form.value.tipo !== 'GASTO_OPERATIVO' || form.value.categoria !== CATEGORIA_SALARIOS) return
+  const col = selectedColaborador.value
+  form.value.total = col ? (col.tipoPago === 'DIARIO' ? col.monto * diasEnRango.value : col.monto) : null
+  totalStr.value = rawTotal(form.value.total)
+}
+
+watch(() => form.value.categoria, applyCategoria)
+watch(() => [form.value.colaboradorId, form.value.fechaDesde, form.value.fechaHasta], applySalario)
 
 function providerFilter(val: string, update: (fn: () => void) => void) {
   update(() => {
@@ -398,7 +533,13 @@ async function openCreate() {
     metodoPago: null,
     descuentoGlobal: 0,
     items: [],
+    total: null,
+    categoria: null,
+    colaboradorId: null,
+    fechaDesde: null,
+    fechaHasta: null,
   }
+  totalStr.value = ''
   editingId.value = null
   keyCounter = 0
   providerFilteredOptions.value = [...providerOptions.value]
@@ -413,13 +554,14 @@ async function openEdit(factura: Factura) {
   try {
     const res = await facturaService.getById(factura.id, tenantId)
     const f = res.data
+    const gastoOperativo = f.type === 'GASTO_OPERATIVO'
     form.value = {
       proveedorId: f.providerId,
       fecha: f.issueDate,
       tipo: f.type,
       metodoPago: f.paymentMethod || null,
       descuentoGlobal: Number(f.globalDiscount || 0),
-      items: f.items.map(item => ({
+      items: gastoOperativo ? [] : f.items.map(item => ({
         _key: ++keyCounter,
         productoId: item.productId,
         presentacionId: item.presentacionId,
@@ -427,7 +569,13 @@ async function openEdit(factura: Factura) {
         valor: item.valorPresentacion ? Number(item.valorPresentacion) : (item.conversionFactor && item.conversionFactor > 1 ? Number(item.unitPrice) * item.conversionFactor : Number(item.unitPrice)),
         descuento: item.descuentoEsPorcentaje && item.descuentoInput ? Number(item.descuentoInput) : (item.discount && item.quantity ? Number(item.discount) / Number(item.quantity) * 100 : 0),
       })),
+      total: gastoOperativo ? Number(f.total || 0) : null,
+      categoria: gastoOperativo ? CATEGORIA_OTRO : null,
+      colaboradorId: null,
+      fechaDesde: null,
+      fechaHasta: null,
     }
+    totalStr.value = gastoOperativo ? rawTotal(Number(f.total || 0)) : ''
     providerFilteredOptions.value = [...providerOptions.value]
     dialogOpen.value = true
     await nextTick()
@@ -464,11 +612,15 @@ function mapProductsToOptions(prods: Producto[]): ProductOption[] {
 async function loadDependencies() {
   if (!tenantId) return
   try {
-    const [provs, setupRes, prodsRes] = await Promise.all([
+    const [provs, setupRes, prodsRes, colRes, gfRes] = await Promise.all([
       proveedorService.getAll(tenantId),
       api.get<SetupInfo>(`/core/setup/${tenantId}`),
       productoService.search(tenantId, { page: 0, size: 100 }),
+      costoService.getAllCollaboradores(tenantId),
+      costoService.getAllGastosFijos(tenantId),
     ])
+    colaboradores.value = colRes.data
+    gastosFijos.value = gfRes.data
     setupCategories.value = setupRes.data.categories || []
     setupUnits.value = setupRes.data.units || []
     const provOpts = provs.data.map(p => ({ label: p.name, value: p.id }))
@@ -500,16 +652,22 @@ async function loadDependencies() {
 
 async function save() {
   if (!tenantId) return
+  const gastoOperativo = form.value.tipo === 'GASTO_OPERATIVO'
+  if (gastoOperativo && !(form.value.total && form.value.total > 0)) {
+    $q.notify({ type: 'negative', message: 'Ingresa un monto total mayor a cero' })
+    return
+  }
   saving.value = true
   try {
     const payload: FacturaRequest = {
       tenantId,
-      proveedorId: form.value.proveedorId!,
+      proveedorId: gastoOperativo ? null : form.value.proveedorId,
       fecha: form.value.fecha,
       tipo: form.value.tipo,
       metodoPago: form.value.metodoPago,
       descuentoGlobal: form.value.descuentoGlobal || 0,
-      items: form.value.items.map(item => {
+      total: gastoOperativo ? form.value.total : null,
+      items: gastoOperativo ? [] : form.value.items.map(item => {
         const conv = item.presentacionId
           ? (presentationConversionMap.value.get(item.presentacionId) || 1)
           : 1
