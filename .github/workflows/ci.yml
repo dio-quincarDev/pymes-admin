@@ -29,7 +29,7 @@ jobs:
       contents: read
     steps:
       - name: Checkout code
-        uses: actions/checkout@v4 # v4.2.2
+        uses: actions/checkout@11bd71901bbe5b1630ceea73d27597364c9af683 # v4.2.2
         with:
           persist-credentials: false
 
@@ -81,12 +81,12 @@ jobs:
 
     steps:
       - name: Checkout code
-        uses: actions/checkout@v4 # v4.2.2
+        uses: actions/checkout@11bd71901bbe5b1630ceea73d27597364c9af683 # v4.2.2
         with:
           persist-credentials: false
 
       - name: Setup Java 21
-        uses: actions/setup-java@v4 # v4.4.0
+        uses: actions/setup-java@b36c23c0d998641eff861008f374ee103c25ac73 # v4.4.0
         with:
           java-version: '21'
           distribution: 'temurin'
@@ -100,7 +100,7 @@ jobs:
 
       - name: Upload Unit Test Results
         if: always()
-        uses: actions/upload-artifact@v4 # v4.5.0
+        uses: actions/upload-artifact@6f51ac03b9356f520e9adb1b1b7802705f340c2b # v4.5.0
         with:
           name: auth-unit-test-results
           path: backend/auth/target/surefire-reports/
@@ -123,34 +123,40 @@ jobs:
       contents: read
     env:
       MAVEN_OPTS: -Xmx512m
+      TESTCONTAINERS_RYUK_DISABLED: "true"
     defaults:
       run:
         working-directory: ./backend/auth
 
     steps:
       - name: Checkout code
-        uses: actions/checkout@v4 # v4.2.2
+        uses: actions/checkout@11bd71901bbe5b1630ceea73d27597364c9af683 # v4.2.2
         with:
           persist-credentials: false
 
       - name: Setup Java 21
-        uses: actions/setup-java@v4 # v4.4.0
+        uses: actions/setup-java@b36c23c0d998641eff861008f374ee103c25ac73 # v4.4.0
         with:
           java-version: '21'
           distribution: 'temurin'
           cache: 'maven'
 
       - name: Set up Docker Buildx
-        uses: docker/setup-buildx-action@v3 # v3.8.0
+        uses: docker/setup-buildx-action@6524bf65af31da8d45b59e8c27de4bd072b392f5 # v3.8.0
 
       - name: Make mvnw executable
         run: chmod +x mvnw
 
+      - name: Precache Testcontainers images
+        run: |
+          docker pull postgres:15-alpine
+          docker pull redis:7-alpine
+
       - name: Build and Run Integration Tests
-        run: ./mvnw verify -B -Dspring.profiles.active=integration -Ddocker.client.api.version=1.44
+        run: ./mvnw verify -B -Dspring.profiles.active=integration -Dsurefire.skip=true -Ddocker.client.api.version=1.44
 
       - name: Upload JAR artifact
-        uses: actions/upload-artifact@v4 # v4.5.0
+        uses: actions/upload-artifact@6f51ac03b9356f520e9adb1b1b7802705f340c2b # v4.5.0
         with:
           name: auth-service-jar
           path: backend/auth/target/*.jar
@@ -158,7 +164,7 @@ jobs:
 
       - name: Upload Integration Test Results
         if: always()
-        uses: actions/upload-artifact@v4 # v4.5.0
+        uses: actions/upload-artifact@6f51ac03b9356f520e9adb1b1b7802705f340c2b # v4.5.0
         with:
           name: auth-integration-test-results
           path: backend/auth/target/failsafe-reports/
@@ -181,22 +187,26 @@ jobs:
       contents: read
     env:
       MAVEN_OPTS: -Xmx512m
+      TESTCONTAINERS_RYUK_DISABLED: "true"
     defaults:
       run:
         working-directory: ./backend/core
 
     steps:
       - name: Checkout code
-        uses: actions/checkout@v4 # v4.2.2
+        uses: actions/checkout@11bd71901bbe5b1630ceea73d27597364c9af683 # v4.2.2
         with:
           persist-credentials: false
 
       - name: Setup Java 21
-        uses: actions/setup-java@v4 # v4.4.0
+        uses: actions/setup-java@b36c23c0d998641eff861008f374ee103c25ac73 # v4.4.0
         with:
           java-version: '21'
           distribution: 'temurin'
           cache: 'maven'
+
+      - name: Precache Testcontainers image
+        run: docker pull postgres:15-alpine
 
       - name: Make mvnw executable
         run: chmod +x mvnw
@@ -213,34 +223,40 @@ jobs:
       contents: read
     env:
       MAVEN_OPTS: -Xmx512m
+      TESTCONTAINERS_RYUK_DISABLED: "true"
     defaults:
       run:
         working-directory: ./backend/core
 
     steps:
       - name: Checkout code
-        uses: actions/checkout@v4 # v4.2.2
+        uses: actions/checkout@11bd71901bbe5b1630ceea73d27597364c9af683 # v4.2.2
         with:
           persist-credentials: false
 
       - name: Setup Java 21
-        uses: actions/setup-java@v4 # v4.4.0
+        uses: actions/setup-java@b36c23c0d998641eff861008f374ee103c25ac73 # v4.4.0
         with:
           java-version: '21'
           distribution: 'temurin'
           cache: 'maven'
 
       - name: Set up Docker Buildx
-        uses: docker/setup-buildx-action@v3 # v3.8.0
+        uses: docker/setup-buildx-action@6524bf65af31da8d45b59e8c27de4bd072b392f5 # v3.8.0
 
       - name: Make mvnw executable
         run: chmod +x mvnw
 
+      - name: Precache Testcontainers images
+        run: |
+          docker pull postgres:15-alpine
+          docker pull redis:7-alpine
+
       - name: Build and Run Integration Tests
-        run: ./mvnw verify -B -Dspring.profiles.active=integration -Ddocker.client.api.version=1.44
+        run: ./mvnw verify -B -Dspring.profiles.active=integration -Dsurefire.skip=true -Ddocker.client.api.version=1.44
 
       - name: Upload JAR artifact
-        uses: actions/upload-artifact@v4 # v4.5.0
+        uses: actions/upload-artifact@6f51ac03b9356f520e9adb1b1b7802705f340c2b # v4.5.0
         with:
           name: core-service-jar
           path: backend/core/target/*.jar
@@ -248,7 +264,7 @@ jobs:
 
       - name: Upload Integration Test Results
         if: always()
-        uses: actions/upload-artifact@v4 # v4.5.0
+        uses: actions/upload-artifact@6f51ac03b9356f520e9adb1b1b7802705f340c2b # v4.5.0
         with:
           name: core-integration-test-results
           path: backend/core/target/failsafe-reports/
@@ -277,12 +293,12 @@ jobs:
 
     steps:
       - name: Checkout code
-        uses: actions/checkout@v4 # v4.2.2
+        uses: actions/checkout@11bd71901bbe5b1630ceea73d27597364c9af683 # v4.2.2
         with:
           persist-credentials: false
 
       - name: Setup Java 21
-        uses: actions/setup-java@v4 # v4.4.0
+        uses: actions/setup-java@b36c23c0d998641eff861008f374ee103c25ac73 # v4.4.0
         with:
           java-version: '21'
           distribution: 'temurin'
@@ -295,7 +311,7 @@ jobs:
         run: ./mvnw test -B
 
       - name: Upload JAR artifact
-        uses: actions/upload-artifact@v4 # v4.5.0
+        uses: actions/upload-artifact@6f51ac03b9356f520e9adb1b1b7802705f340c2b # v4.5.0
         with:
           name: gateway-service-jar
           path: backend/gateway-pymes/target/*.jar
@@ -311,17 +327,17 @@ jobs:
 
     steps:
       - name: Checkout code
-        uses: actions/checkout@v4 # v4.2.2
+        uses: actions/checkout@11bd71901bbe5b1630ceea73d27597364c9af683 # v4.2.2
         with:
           persist-credentials: false
 
       - name: Setup Node.js
-        uses: actions/setup-node@v4 # v4.1.0
+        uses: actions/setup-node@39370e3970a6d050c480ffad4ff0ed4d3fdee5af # v4.1.0
         with:
           node-version: '20'
 
       - name: Cache node modules
-        uses: actions/cache@v4 # v4.2.0
+        uses: actions/cache@1bd1e32a3bdc45362d1e726936510720a7c30a57 # v4.2.0
         with:
           path: frontend/pymes/node_modules
           key: ${{ runner.os }}-node-${{ hashFiles('frontend/pymes/package-lock.json') }}
@@ -341,7 +357,7 @@ jobs:
         run: npx quasar build
 
       - name: Upload build artifact
-        uses: actions/upload-artifact@v4 # v4.5.0
+        uses: actions/upload-artifact@6f51ac03b9356f520e9adb1b1b7802705f340c2b # v4.5.0
         with:
           name: frontend-build
           path: frontend/pymes/dist/
@@ -358,7 +374,7 @@ jobs:
 
     steps:
       - name: Checkout code
-        uses: actions/checkout@v4 # v4.2.2
+        uses: actions/checkout@11bd71901bbe5b1630ceea73d27597364c9af683 # v4.2.2
         with:
           persist-credentials: false
 
