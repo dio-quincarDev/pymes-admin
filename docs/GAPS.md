@@ -30,7 +30,7 @@
 | # | Gap | Fix | Categoría |
 |---|-----|-----|-----------|
 | 16 | **Email casing inconsistente** — `AuthServiceImpl.completeRegistration()` usa `request.email()` directo, mientras `InvitationServiceImpl.registerAndAccept()` usa `.toLowerCase()`. PostgreSQL `=` es case-sensitive en VARCHAR. Un usuario registrado con "User@Example.com" no puede loguear con "user@example.com". | Normalizar email a lowercase en `completeRegistration()` o en `RegisterRequest` vía DTO (`@JsonDeserialize`). | Correctitud | ✅ `.toLowerCase()` en `completeRegistration()` (2026-07-30) |
-| 17 | **JWT `jti` generado pero no usado** — `JwtServiceImpl.createToken()` genera `.id(UUID.randomUUID())` pero el `jti` no se persiste ni expone. Sin él, `logout()` no puede identificar qué refresh token corresponde a la sesión actual y debe eliminar TODOS los refresh tokens del usuario (logout global forzado). No hay "cerrar sesión de este dispositivo". | Persistir `jti` en `RefreshToken` y exponerlo al cliente. `logout()` recibe `jti` y borra solo ese token. O documentar como diseño deliberado. | Seguridad |
+| 17 | **JWT `jti` generado pero no usado** — `JwtServiceImpl.createToken()` genera `.id(UUID.randomUUID())` pero el `jti` no se persiste ni expone. Sin él, `logout()` no puede identificar qué refresh token corresponde a la sesión actual y debe eliminar TODOS los refresh tokens del usuario (logout global forzado). No hay "cerrar sesión de este dispositivo". | Persistir `jti` en `RefreshToken` y exponerlo al cliente. `logout()` recibe `jti` y borra solo ese token. O documentar como diseño deliberado. | Seguridad | ✅ documentado como diseño deliberado — Logout Global multi-session + `jti` en RTR (DAILY 2026-04-12 / 2026-05-05) |
 | 18 | **`@Transactional` en métodos Redis-only** — `PasswordResetServiceImpl.generateResetToken()`, `EmailVerificationServiceImpl.generateAndSendPendingRegistrationEmail()` y `EmailVerificationServiceImpl.generateVerificationToken()` tienen `@Transactional` pero solo interactúan con Redis, no con la DB. Consumen conexiones del pool HikariCP (`max 20`) innecesariamente. | Mover `@Transactional` solo a métodos que realmente escriben en DB, o usar `@Transactional(propagation = Propagation.NOT_SUPPORTED)`. | Performance | ✅ Quitado de `generateVerificationToken()` y `generateAndSendPendingRegistrationEmail()` (2026-07-30) |
 | 19 | **`deleteByUserId` revertido por rollback en reuse detection** — `JwtServiceImpl.validateAndRevokeRefreshToken()` llama `deleteByUserId()` y luego lanza `TokenRevokedException` (unchecked). La excepción hace rollback de toda la transacción, incluyendo el DELETE. El token viejo queda `revoked=true` pero la familia NO se borra. | Cambiar a `REQUIRES_NEW` propagation en el `deleteByUserId`, o usar un `@Async` audit event que corra después del commit. | Seguridad | ✅ `TransactionTemplate.executeWithoutResult()` para REQUIRES_NEW (2026-07-30) |
 
@@ -40,12 +40,12 @@
 |---|-----|-----|-----------|
 | 1 | **`app.cors.allowed-origins` sin default** (`OAuth2AuthenticationSuccessHandler.java:60-61`) — `@Value("${app.cors.allowed-origins}")` no aparece en `application.yaml` ni tiene default. Si no está en `.env`, la app no arranca. | Agregar default: `@Value("${app.cors.allowed-origins:http://localhost:9200}")` | Correctitud | ✅ 2026-07-30 |
 | 2 | **`AUTH001` retorna 400 en vez de 401** (`CodigoError.java:14`) — `INVALID_CREDENTIALS` usa `HttpStatus.BAD_REQUEST`. Un 401 es semánticamente correcto para credenciales inválidas. | Cambiar `HttpStatus.BAD_REQUEST` → `HttpStatus.UNAUTHORIZED` | Correctitud | ✅ 2026-07-30 |
-| 3 | **DB lookup en cada request autenticado** (`JwtAuthenticationFilter.java:84`) — `userRepository.findById(validated.userId)` en cada request. Si la DB tiene latencia, afecta a todos los endpoints protegidos. | Cache de usuarios activos (Caffeine) con TTL corto o solo validar si el usuario existe en Redis. | Performance |
+| 3 | **DB lookup en cada request autenticado** (`JwtAuthenticationFilter.java:84`) — `userRepository.findById(validated.userId)` en cada request. Si la DB tiene latencia, afecta a todos los endpoints protegidos. | Cache de usuarios activos (Caffeine) con TTL corto o solo validar si el usuario existe en Redis. | Performance | Diferido (ponytail) — no es bug; agregar cache cuando el load lo demande (DAILY 2026-07-30) |
 | 4 | **JWT access-expiration default 1h, refresh 24h** (`application.yaml:85-86`) — Refresh token con TAN larga. | Reducir refresh a 12h o 6h según política de seguridad. | Security |
-| 5 | **Cookie OAuth2 intent sin `Secure` flag detrás del gateway** (`OAuth2IntentCookieFilter.java:42`) — `request.isSecure()` es `false` si el gateway reenvía en HTTP interno. | Forzar `cookie.setSecure(true)` siempre, o configurable. | Security |
+| 5 | **Cookie OAuth2 intent sin `Secure` flag detrás del gateway** (`OAuth2IntentCookieFilter.java:42`) — `request.isSecure()` es `false` si el gateway reenvía en HTTP interno. | Forzar `cookie.setSecure(true)` siempre, o configurable. | Security | Fix parcial: `setSecure(request.isSecure())` (2026-07-16); detrás del gateway (HTTP interno) `isSecure()`=false → sigue abierto |
 | 6 | **`@Lazy` circular** (`EmailVerificationServiceImpl.java:41`) — `EmailVerificationServiceImpl` ↔ `AuthServiceImpl` | Extraer lógica de registro a tercer service | Mantenibilidad |
 | 7 | **`extractEmail()` duplicado** (`InvitationServiceImpl.java:184`, `MemberServiceImpl.java:143`) — misma lógica en 3 servicios | Utility class o leer directo de `SecurityContextHolder` | Mantenibilidad |
-| 8 | **`/exchange` sin rate limit** (`AuthApiController.java:81-83`) — cualquiera puede brute-forcear códigos OAuth | Rate limit por IP | Security |
+| 8 | **`/exchange` sin rate limit** (`AuthApiController.java:81-83`) — cualquiera puede brute-forcear códigos OAuth | Rate limit por IP | Security | Diferido (ponytail) — hardening, no bug; requiere filter config + Redis en gateway (DAILY 2026-07-30) |
 | 9 | **CORS permisivo con credenciales** (`WebCorsConfig.java:21,24`) — `allowedOriginPatterns` permite `*` | Separar orígenes productivos y dev | Security |
 | 10 | **JWT completo como key Redis** (`TokenBlacklistService.java:31`) — tokens largos = keys largas | Hashear el token como key | Performance |
 | 11 | **`Thread.sleep(200)` anti-enumeration** (`PasswordResetServiceImpl.java:96-100`) — primitivo | Delay constante async + respuesta genérica | Security |
@@ -103,11 +103,11 @@
 
 #### 🟡 Suggestions
 
-1. **Blacklist Redis con JWT completo** (`AuthenticationFilter.java:64`) — Token ~1KB como key Redis. Fix: hashear token con SHA-256.
+1. **Blacklist Redis con JWT completo** (`AuthenticationFilter.java:64`) — Token ~1KB como key Redis. Fix: hashear token con SHA-256. — **Estado:** Diferido (ponytail) — aceptado; keys ≤1h, memoria trivial a escala PYME.
 
-2. **Blacklist check = RTT por request** (`AuthenticationFilter.java:64`) — Sin cache local. Fix: añadir Caffeine cache con TTL 30s.
+2. **Blacklist check = RTT por request** (`AuthenticationFilter.java:64`) — Sin cache local. Fix: añadir Caffeine cache con TTL 30s. — **Estado:** Diferido (ponytail) — aceptado; performance, no bug. Caffeine cuando el load lo demande.
 
-3. **`/exchange` sin rate limit** (`RouterValidator.java:15-30`) — Ruta pública permite brute-force sobre códigos OAuth (TTL 2 min). Fix: rate limit por IP en gateway.
+3. **`/exchange` sin rate limit** (`RouterValidator.java:15-30`) — Ruta pública permite brute-force sobre códigos OAuth (TTL 2 min). Fix: rate limit por IP en gateway. — **Estado:** Diferido (ponytail) — aceptado; el código es UUID de alta entropía, hardening no bug. Requiere Redis en gateway.
 
 4. **Swagger solo agrega Auth** (`SwaggerAggregatorConfig.java:28`) — Core Service no aparece. Fix: agregar URL de core si tiene OpenAPI docs, o ruta en gateway.
 
@@ -117,7 +117,7 @@
 
 7. **Faltan tests de integración** — Solo unitarios con mocks. Fix: tests con `WebTestClient` simulando requests HTTP reales.
 
-8. **Default JWT secret conocido** (`.env.example:11`) — String público como default permite forjar JWTs. Fix: generar random con `openssl rand -base64 32` y poner el valor generado.
+8. **Default JWT secret conocido** (`.env.example:11`) — String público como default permite forjar JWTs. Fix: generar random con `openssl rand -base64 32` y poner el valor generado. — **Estado:** Aceptado — el código ya falla rápido sin `JWT_SECRET` (C7, sin default); el placeholder solo vive en `.env.example` (git-ignored). Preocupación operacional: reemplazar al generar el `.env` real.
 
 ## Frontend
 

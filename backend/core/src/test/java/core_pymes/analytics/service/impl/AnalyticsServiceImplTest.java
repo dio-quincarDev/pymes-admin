@@ -6,6 +6,10 @@ import core_pymes.accounting.repository.MetricasRepository;
 import core_pymes.accounting.service.MetricasService;
 import core_pymes.analytics.domain.AnalisisGasto;
 import core_pymes.analytics.repository.AnalisisGastoRepository;
+import core_pymes.inversion.domain.Patrimonio;
+import core_pymes.prestamo.domain.EstadoPrestamo;
+import core_pymes.prestamo.domain.Prestamo;
+import core_pymes.prestamo.repository.PrestamoRepository;
 import core_pymes.product.repository.ProductoRepository;
 import org.junit.jupiter.api.BeforeEach;
 import org.junit.jupiter.api.Test;
@@ -32,11 +36,12 @@ class AnalyticsServiceImplTest {
     @Mock MetricasRepository metricasRepository;
     @Mock ProductoRepository productoRepository;
     @Mock core_pymes.inversion.repository.PatrimonioRepository patrimonioRepository;
+    @Mock PrestamoRepository prestamoRepository;
     AnalyticsServiceImpl service;
 
     @BeforeEach
     void setUp() {
-        service = spy(new AnalyticsServiceImpl(jdbc, repository, objectMapper, metricasService, metricasRepository, productoRepository, patrimonioRepository));
+        service = spy(new AnalyticsServiceImpl(jdbc, repository, objectMapper, metricasService, metricasRepository, productoRepository, patrimonioRepository, prestamoRepository));
     }
 
     @Test
@@ -165,6 +170,113 @@ class AnalyticsServiceImplTest {
         var criticals = (List<Map<String, Object>>) result.get("criticalAlerts");
         assertThat(criticals).extracting(m -> m.get("type")).contains("NEGATIVE_OPERATING_MARGIN");
         assertThat(result.get("overallHealth")).isInstanceOf(Integer.class);
+    }
+
+    @Test
+    void saludFinanciera_conGananciaMensualNegativa_emitePaybackRojo() {
+        var tenantId = UUID.randomUUID();
+        var metric = MetricasFinanciera.builder()
+                .tenantId(tenantId)
+                .period("2026-06")
+                .totalIncome(new BigDecimal("100000"))
+                .netMarginPct(new BigDecimal("-10"))
+                .build();
+        when(metricasRepository.findByTenantIdAndPeriodLessThanEqualOrderByPeriodDesc(tenantId, "2026-06"))
+                .thenReturn(List.of(metric));
+        when(jdbc.query(anyString(), any(RowMapper.class), any(), any(), any())).thenReturn(List.of());
+        when(patrimonioRepository.findByTenantId(tenantId))
+                .thenReturn(Optional.of(Patrimonio.builder().tenantId(tenantId).initialCapital(new BigDecimal("1000")).build()));
+
+        var result = service.analisisSaludFinanciera(tenantId, "2026-06",
+                LocalDate.parse("2026-06-01"), LocalDate.parse("2026-07-01"),
+                List.of(), List.of(), List.of());
+
+        var criticals = (List<Map<String, Object>>) result.get("criticalAlerts");
+        assertThat(criticals).extracting(m -> m.get("type")).contains("PAYBACK_RECOVERY");
+    }
+
+    @Test
+    void saludFinanciera_conRitmoBueno_emitePaybackVerde() {
+        var tenantId = UUID.randomUUID();
+        var metric = MetricasFinanciera.builder()
+                .tenantId(tenantId)
+                .period("2026-06")
+                .totalIncome(new BigDecimal("100000"))
+                .netMarginPct(new BigDecimal("10"))
+                .build();
+        when(metricasRepository.findByTenantIdAndPeriodLessThanEqualOrderByPeriodDesc(tenantId, "2026-06"))
+                .thenReturn(List.of(metric));
+        when(jdbc.query(anyString(), any(RowMapper.class), any(), any(), any())).thenReturn(List.of());
+        when(patrimonioRepository.findByTenantId(tenantId))
+                .thenReturn(Optional.of(Patrimonio.builder().tenantId(tenantId).initialCapital(new BigDecimal("1000")).build()));
+
+        var result = service.analisisSaludFinanciera(tenantId, "2026-06",
+                LocalDate.parse("2026-06-01"), LocalDate.parse("2026-07-01"),
+                List.of(), List.of(), List.of());
+
+        var expansion = (Map<String, Object>) result.get("expansionReadiness");
+        var requirements = (List<Map<String, Object>>) expansion.get("requirements");
+        assertThat(requirements).extracting(r -> r.get("label")).contains("Recuperación de Inversión");
+        assertThat(result.get("recommendations")).asList()
+                .anyMatch(r -> r.toString().contains("Buen ritmo"));
+    }
+
+    @Test
+    void saludFinanciera_deudaActivaSumaAlTiempoDeRecuperacion() {
+        var tenantId = UUID.randomUUID();
+        var metric = MetricasFinanciera.builder()
+                .tenantId(tenantId)
+                .period("2026-06")
+                .totalIncome(new BigDecimal("100000"))
+                .netMarginPct(new BigDecimal("10"))
+                .build();
+        when(metricasRepository.findByTenantIdAndPeriodLessThanEqualOrderByPeriodDesc(tenantId, "2026-06"))
+                .thenReturn(List.of(metric));
+        when(jdbc.query(anyString(), any(RowMapper.class), any(), any(), any())).thenReturn(List.of());
+        when(patrimonioRepository.findByTenantId(tenantId))
+                .thenReturn(Optional.of(Patrimonio.builder().tenantId(tenantId).initialCapital(new BigDecimal("1000")).build()));
+        when(prestamoRepository.findByTenantIdAndStatus(tenantId, EstadoPrestamo.ACTIVO))
+                .thenReturn(List.of(Prestamo.builder()
+                        .tenantId(tenantId)
+                        .remainingBalance(new BigDecimal("4000"))
+                        .status(EstadoPrestamo.ACTIVO)
+                        .build()));
+
+        var result = service.analisisSaludFinanciera(tenantId, "2026-06",
+                LocalDate.parse("2026-06-01"), LocalDate.parse("2026-07-01"),
+                List.of(), List.of(), List.of());
+
+        // plata a recuperar = 1000 (capital) + 4000 (deuda ACTIVA) = 5000; ganancia = 100000 * 10% = 10000 → 0.50 meses
+        var expansion = (Map<String, Object>) result.get("expansionReadiness");
+        var requirements = (List<Map<String, Object>>) expansion.get("requirements");
+        assertThat(requirements).extracting(r -> r.get("current")).contains("0.50");
+        verify(prestamoRepository).findByTenantIdAndStatus(tenantId, EstadoPrestamo.ACTIVO);
+    }
+
+    @Test
+    void saludFinanciera_conRitmoLento_soloEmiteRecomendacion() {
+        var tenantId = UUID.randomUUID();
+        var metric = MetricasFinanciera.builder()
+                .tenantId(tenantId)
+                .period("2026-06")
+                .totalIncome(new BigDecimal("100000"))
+                .netMarginPct(new BigDecimal("10"))
+                .build();
+        when(metricasRepository.findByTenantIdAndPeriodLessThanEqualOrderByPeriodDesc(tenantId, "2026-06"))
+                .thenReturn(List.of(metric));
+        when(jdbc.query(anyString(), any(RowMapper.class), any(), any(), any())).thenReturn(List.of());
+        when(patrimonioRepository.findByTenantId(tenantId))
+                .thenReturn(Optional.of(Patrimonio.builder().tenantId(tenantId).initialCapital(new BigDecimal("300000")).build()));
+
+        var result = service.analisisSaludFinanciera(tenantId, "2026-06",
+                LocalDate.parse("2026-06-01"), LocalDate.parse("2026-07-01"),
+                List.of(), List.of(), List.of());
+
+        var expansion = (Map<String, Object>) result.get("expansionReadiness");
+        var requirements = (List<Map<String, Object>>) expansion.get("requirements");
+        assertThat(requirements).extracting(r -> r.get("label")).doesNotContain("Recuperación de Inversión");
+        assertThat(result.get("recommendations")).asList()
+                .anyMatch(r -> r.toString().contains("Vas lento"));
     }
 
     @Test

@@ -9,6 +9,9 @@ import core_pymes.analytics.domain.AnalisisGasto;
 import core_pymes.analytics.repository.AnalisisGastoRepository;
 import core_pymes.analytics.service.AnalyticsService;
 import core_pymes.inversion.repository.PatrimonioRepository;
+import core_pymes.prestamo.domain.EstadoPrestamo;
+import core_pymes.prestamo.domain.Prestamo;
+import core_pymes.prestamo.repository.PrestamoRepository;
 import core_pymes.product.domain.Producto;
 import core_pymes.product.repository.ProductoRepository;
 import lombok.RequiredArgsConstructor;
@@ -37,6 +40,7 @@ public class AnalyticsServiceImpl implements AnalyticsService {
     private final MetricasRepository metricasRepository;
     private final ProductoRepository productoRepository;
     private final PatrimonioRepository patrimonioRepository;
+    private final PrestamoRepository prestamoRepository;
 
     @Override
     @Transactional
@@ -638,19 +642,38 @@ public class AnalyticsServiceImpl implements AnalyticsService {
             }
         }
 
-        // ---- 💰 Capital de respaldo (Patrimonio vs burn) ----
+        // ---- 💰 Recuperación de Inversión (Payback real) ----
         var patrimonio = patrimonioRepository.findByTenantId(tenantId).orElse(null);
-        if (patrimonio != null && patrimonio.getInitialCapital() != null && costPerDay.signum() > 0) {
-            var monthlyBurn = costPerDay.multiply(BigDecimal.valueOf(30));
-            var monthsCovered = patrimonio.getInitialCapital().divide(monthlyBurn, 2, RoundingMode.HALF_UP);
-            if (monthsCovered.compareTo(BigDecimal.ONE) < 0 && netMarginPct.signum() < 0) {
-                criticals.add(alert("CAPITAL_BURN", "Quema de Capital",
-                        "El capital inicial cubre menos de 1 mes de costos operativos y el margen neto es negativo.",
-                        monthsCovered, BigDecimal.ONE, "Inyecta capital o detén la quema recortando costos de inmediato."));
-                recommendations.add("Tu capital cubre menos de 1 mes de operación con margen neto negativo — urgen medidas de costos.");
-            } else if (monthsCovered.compareTo(new BigDecimal("3")) >= 0 && netMarginPct.signum() > 0) {
-                expansions.add(signal("CAPITAL_READINESS", "Capital de Respaldo",
-                        "Meses cubiertos por capital inicial", monthsCovered, "3+ meses con margen neto positivo"));
+        var initialCapital = patrimonio != null && patrimonio.getInitialCapital() != null
+                ? patrimonio.getInitialCapital()
+                : BigDecimal.ZERO;
+
+        var prestamosActivos = prestamoRepository.findByTenantIdAndStatus(tenantId, EstadoPrestamo.ACTIVO);
+        var totalDeudaActiva = prestamosActivos.stream()
+                .map(Prestamo::getRemainingBalance)
+                .filter(balance -> balance != null)
+                .reduce(BigDecimal.ZERO, BigDecimal::add);
+
+        var plataARecuperar = initialCapital.add(totalDeudaActiva);
+
+        if (plataARecuperar.signum() > 0) {
+            var gananciaMensual = revenue.multiply(netMarginPct).divide(BigDecimal.valueOf(100), 4, RoundingMode.HALF_UP);
+            if (gananciaMensual.signum() <= 0) {
+                criticals.add(alert("PAYBACK_RECOVERY", "Recuperación de Inversión",
+                        "Estás perdiendo dinero y no recuperas tu inversión.",
+                        BigDecimal.valueOf(-1), BigDecimal.ZERO, "Sube tus ventas o baja gastos."));
+                recommendations.add("Estás perdiendo dinero y no recuperas tu inversión.");
+            } else {
+                var meses = plataARecuperar.divide(gananciaMensual, 2, RoundingMode.HALF_UP);
+                if (meses.compareTo(BigDecimal.valueOf(12)) <= 0) {
+                    expansions.add(signal("PAYBACK_RECOVERY", "Recuperación de Inversión",
+                            "Meses para recuperar la inversión", meses, "≤12 meses para recuperación rápida"));
+                    recommendations.add("¡Buen ritmo! Recuperas tu inversión en ~" + meses + " meses.");
+                } else if (meses.compareTo(BigDecimal.valueOf(24)) > 0) {
+                    recommendations.add("Vas lento: recuperarás tu inversión en " + meses + " meses. Sube tus ventas o baja gastos.");
+                } else {
+                    recommendations.add("A este ritmo, recuperarás tu inversión en ~" + meses + " meses.");
+                }
             }
         }
 

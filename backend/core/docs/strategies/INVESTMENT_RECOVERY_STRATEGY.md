@@ -1,6 +1,6 @@
 # Recuperación de Inversión — Estrategia (Core)
 
-Estado: **pendiente** (diseño confirmado con el usuario, 2026-08-02). No implementado.
+Estado: **implementado** (2026-08-02). Backend: señal `PAYBACK_RECOVERY` en `analisisSaludFinanciera`, `PrestamoRepository.findByTenantIdAndStatus`, `financialHealth` expuesto en `AnalyticsResponse`. Tests: 4 unit (rojo/verde/amarillo/deuda ACTIVA suma al tiempo) + 2 IT (rojo, deuda ACTIVA suma al tiempo). Frontend: pendiente — ver TO_DO.
 Objetivo: reemplazar el concepto de "meses de capital de respaldo" (`CAPITAL_BURN`/`CAPITAL_READINESS`) por **tiempo de recuperación de la inversión** — la pregunta que un dueño de PYME sin formación financiera realmente se hace: *"¿en cuántos meses, al ritmo de mis ventas actuales, recupero la plata que metí y la que debo?"*.
 
 > Relacionado: `EXPENSES_MODEL_STRATEGY.md` §7b (define el enfoque actual que se reemplaza), `COSTOS_ENGINE.md` (costo operativo diario), `FUTURE_MODULES.md` §4 (patrimonio e inversión).
@@ -59,18 +59,14 @@ meses             = plata a recuperar ÷ ganancia mensual
 
 ## Plan de implementación (backend)
 
-> Pendiente — no iniciado.
+> Completado (2026-08-02).
 
-1. **`AnalyticsServiceImpl.analisisSaludFinanciera`** — reemplazar el bloque "Capital de respaldo (Patrimonio vs burn)" (~L641-655):
-   - Leer patrimonio (ya inyectado `patrimonioRepository`) + nuevos métodos de préstamos.
-   - Calcular `plata a recuperar`, `ganancia mensual`, `meses` con las reglas de arriba.
-   - Emitir señal `PAYBACK_RECOVERY` (o nombre a definir) + mensaje humano; alimentar `criticals`/`expansions`/`recommendations` según el semáforo.
-   - Cero jerga en los mensajes que llegan a UI.
-2. **`PrestamoRepository`** — agregar método para traer préstamos ACTIVOS por tenant (o `@Query` que sume `remaining_balance`).
-3. **Tests**:
-   - `AnalyticsServiceImplTest`: mock de préstamos + patrimonio, casos verde/amarillo/rojo/neutro.
-   - `ModeloGastosIntegrationTest`: adaptar `capitalBurn_seActiva` → nueva señal; agregar IT con deuda ACTIVA sumando al tiempo de recuperación.
-4. **Docs**: `DAYLY_REPORTS_CORE_SOLUTIONS.md`, `TO_DO.md`, `COSTOS_ENGINE.md` changelog, `EXPENSES_MODEL_STRATEGY.md` §7b (marcar reemplazado por esta estrategia).
+1. ✅ **`AnalyticsServiceImpl.analisisSaludFinanciera`** — reemplazado el bloque "Capital de respaldo" por el payback (`plata a recuperar` = capital + deuda ACTIVA; `meses` = plata ÷ ganancia mensual). Señal `PAYBACK_RECOVERY` alimenta `criticals`/`expansions`/`recommendations` según el semáforo, mensajes en lenguaje humano.
+2. ✅ **`PrestamoRepository`** — `findByTenantIdAndStatus(UUID, EstadoPrestamo.ACTIVO)` (derived query). `@Where(is_active=true)` excluye prestamos soft-deleted.
+3. ✅ **Tests**:
+   - `AnalyticsServiceImplTest`: 4 casos (rojo → crítica, verde → expansión, amarillo → solo recomendación, deuda ACTIVA suma al tiempo).
+   - `ModeloGastosIntegrationTest`: `paybackRecovery_perdidaSeActiva` (crítica con margen negativo) + `paybackRecovery_deudaActivaSumaAlTiempo` (deuda ACTIVA suma, `current=0.50`).
+4. ✅ **Docs**: actualizadas — TO_DO, esta estrategia, COSTOS_ENGINE.md changelog, DAYLY_REPORTS_CORE_SOLUTIONS.md, EXPENSES_MODEL_STRATEGY.md §7b.
 
 ## Fuera de alcance
 

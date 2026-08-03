@@ -27,7 +27,18 @@ public class AnalyticsMapper {
                 parseJsonArray(a.getAlerts()),
                 parseJsonArray(a.getSupplierComparison()),
                 parseJsonArray(a.getSupplierRecommendations()),
-                parseJsonArray(a.getPricePrediction()));
+                parseJsonArray(a.getPricePrediction()),
+                parseJsonMap(a.getFinancialHealth()));
+    }
+
+    @SuppressWarnings("unchecked")
+    private Map<String, Object> parseJsonMap(String json) {
+        if (json == null || json.isBlank()) return Map.of();
+        try {
+            return objectMapper.readValue(json, Map.class);
+        } catch (Exception e) {
+            return Map.of();
+        }
     }
 
     @SuppressWarnings("unchecked")

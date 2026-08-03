@@ -71,7 +71,7 @@ io.total   -- WHERE ... AND type = 'GASTO_OPERATIVO' AND status = 'PAGADA'
    - Crítica `CAPITAL_BURN` si `mesesRespaldo < 1` **y** el negocio pierde dinero (`netMarginPct < 0`): "el capital inicial no cubre ni un mes de costo operativo y estás perdiendo".
    - Señal de expansión `CAPITAL_READINESS` si `mesesRespaldo ≥ 3` **y** `netMarginPct > 0`: "capital suficiente para 3+ meses de operación" (alimenta `expansionReadiness`).
    - Sin tablas nuevas; solo lectura del repositorio existente.
-   - ⚠️ **Implementado 2026-08-02, pero en revisión.** El usuario detectó que el concepto "meses que el capital cubre los costos" no refleja la realidad (el capital inicial ya está gastado). Será **reemplazado** por tiempo de recuperación de inversión contra ventas — ver [`INVESTMENT_RECOVERY_STRATEGY.md`](INVESTMENT_RECOVERY_STRATEGY.md).
+   - ⚠️ **REEMPLAZADO (2026-08-02)** por tiempo de recuperación de inversión (`PAYBACK_RECOVERY`): el concepto "meses que el capital cubre los costos" no refleja la realidad (el capital inicial ya está gastado). Ver [`INVESTMENT_RECOVERY_STRATEGY.md`](INVESTMENT_RECOVERY_STRATEGY.md).
 
 ### Tests + docs
 

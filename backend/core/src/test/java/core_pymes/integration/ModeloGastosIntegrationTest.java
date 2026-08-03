@@ -58,8 +58,8 @@ class ModeloGastosIntegrationTest extends AbstractIntegrationTest {
     }
 
     @Test
-    @DisplayName("Señal CAPITAL_BURN aparece con capital insuficiente y margen neto negativo")
-    void capitalBurn_seActiva() throws Exception {
+    @DisplayName("Señal PAYBACK_RECOVERY aparece como crítica con margen neto negativo")
+    void paybackRecovery_perdidaSeActiva() throws Exception {
         var tenantId = UUID.randomUUID();
         seedMetricsNegativas(tenantId, "5000");
         jdbcTemplate.update("""
@@ -70,7 +70,29 @@ class ModeloGastosIntegrationTest extends AbstractIntegrationTest {
         var result = analyticsService.ejecutarCompleto(tenantId, PERIOD);
         var salud = objectMapper.readTree(result.getFinancialHealth());
 
-        assertThat(salud.get("criticalAlerts").findValuesAsText("type")).contains("CAPITAL_BURN");
+        assertThat(salud.get("criticalAlerts").findValuesAsText("type")).contains("PAYBACK_RECOVERY");
+    }
+
+    @Test
+    @DisplayName("Deuda ACTIVA suma al tiempo de recuperación (señal verde de expansión)")
+    void paybackRecovery_deudaActivaSumaAlTiempo() throws Exception {
+        var tenantId = UUID.randomUUID();
+        seedMetrics(tenantId, "5000");
+        jdbcTemplate.update("""
+                        INSERT INTO core.patrimony (tenant_id, initial_capital, start_date)
+                        VALUES (?, ?, ?)""",
+                tenantId, new BigDecimal("1000"), LocalDate.of(2026, 1, 1));
+        seedLoan(tenantId, "Prestamo Banco", "4000.00");
+
+        var result = analyticsService.ejecutarCompleto(tenantId, PERIOD);
+        var salud = objectMapper.readTree(result.getFinancialHealth());
+        var requirements = salud.get("expansionReadiness").get("requirements");
+
+        // plata a recuperar = 1000 + 4000 = 5000; ganancia mensual = 100000 * 10% = 10000 → 0.50 meses
+        var payback = requirements.findValuesAsText("label");
+        assertThat(payback).contains("Recuperación de Inversión");
+        var current = requirements.findValuesAsText("current");
+        assertThat(current).contains("0.50");
     }
 
     @Test
@@ -101,6 +123,15 @@ class ModeloGastosIntegrationTest extends AbstractIntegrationTest {
                         VALUES (?, ?, ?, ?, ?, 'GASTO_OPERATIVO', ?, ?)""",
                 invoiceId, tenantId, providerId,
                 "GO-" + invoiceId.toString().substring(0, 8), JUN_15, new BigDecimal(total), status);
+    }
+
+    private void seedLoan(UUID tenantId, String name, String remainingBalance) {
+        jdbcTemplate.update("""
+                        INSERT INTO core.loans
+                        (id, tenant_id, name, amount, start_date, remaining_balance, status)
+                        VALUES (?, ?, ?, ?, ?, ?, 'ACTIVO')""",
+                UUID.randomUUID(), tenantId, name, new BigDecimal(remainingBalance),
+                LocalDate.of(2026, 1, 1), new BigDecimal(remainingBalance));
     }
 
     private void seedMetrics(UUID tenantId, String costoDiario) {

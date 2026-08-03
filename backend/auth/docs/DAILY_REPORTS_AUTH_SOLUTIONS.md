@@ -24,8 +24,8 @@ A partir de 2026-07-16, CORS opera en **doble capa**:
 ### 🔲 Bugs Pendientes
 - **[P2] Facebook OAuth2** — *POSTERGADO* (Meta no aprobó la verificación de la empresa. Queda pendiente indefinidamente hasta obtener credenciales válidas en la consola de Meta Developer).
 
-### 🚧 En Progreso
-- **Defensa en profundidad + Code Exchange OAuth2** — En proceso de validación y robustecimiento continuo.
+### ✅ En Progreso
+- **Defensa en profundidad + Code Exchange OAuth2** — ✅ completado (2026-06-19).
 
 ### ✅ Historial de Soluciones (Orden Cronológico Inverso)
 0. [2026-07-30 — TOCTOU fix: @Lock(PESSIMISTIC_WRITE) en refresh token rotation](#-2026-07-30--toctou-fix-lockpessimistic_write-en-refresh-token-rotation)

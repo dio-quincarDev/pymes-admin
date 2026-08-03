@@ -16,5 +16,6 @@ public record AnalyticsResponse(
         List<Map<String, Object>> alerts,
         List<Map<String, Object>> supplierComparison,
         List<Map<String, Object>> supplierRecommendations,
-        List<Map<String, Object>> pricePrediction
+        List<Map<String, Object>> pricePrediction,
+        Map<String, Object> financialHealth
 ) {}

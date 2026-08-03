@@ -49,8 +49,8 @@ El motor de gastos operativos mezclaba dos capas (presupuesto `costos/` vs reali
 
 - Nuevas señales:
   - `DAILY_COST_CONTROL` (🔴 crítica: `costoDiario > ventaDiaria × 1.2`) + expansión `DAILY_COST_COVERED`.
-  - `CAPITAL_BURN` (🔴 crítica: capital inicial < 1 mes de costo operativo y margen neto negativo) + `CAPITAL_READINESS` (expansión: cubre 3+ meses con margen neto positivo).
-- `AnalyticsServiceImpl` ganó dependencia `PatrimonioRepository` → `AnalyticsServiceImplTest` actualizado (mock en constructor).
+  - ~~`CAPITAL_BURN`/`CAPITAL_READINESS`~~ **reemplazadas** por `PAYBACK_RECOVERY` (INVESTMENT_RECOVERY_STRATEGY): `meses = (capital inicial + deuda ACTIVA) ÷ (ingresos × margen neto)`. Rojo (ganancia ≤0, crítica), verde ≤12 meses (expansión), amarillo >24 (recomendación).
+- `AnalyticsServiceImpl` ganó dependencias `PatrimonioRepository` + `PrestamoRepository` → `AnalyticsServiceImplTest` actualizado (mocks en constructor).
 
 ### Revisión SQL (skill `sql-code-review`) — hallazgos
 
@@ -76,10 +76,10 @@ El motor de gastos operativos mezclaba dos capas (presupuesto `costos/` vs reali
 
 ### Tests
 
-- `ModeloGastosIntegrationTest` (NUEVO, 4 ITs): `operatingExpenses` solo PAGADA, `DAILY_COST_CONTROL`, `CAPITAL_BURN`, y `gastoVariable_alineadoConModelo` (PAGADA 500 + REGISTRADA 300 → invoiceCount=1, totalSpend=500). Seed arreglado insertando provider antes (FK).
+- `ModeloGastosIntegrationTest` (NUEVO, 6 ITs): `operatingExpenses` solo PAGADA, `DAILY_COST_CONTROL`, `paybackRecovery_perdidaSeActiva`, `paybackRecovery_deudaActivaSumaAlTiempo`, y `gastoVariable_alineadoConModelo` (PAGADA 500 + REGISTRADA 300 → invoiceCount=1, totalSpend=500). Seed arreglado insertando provider antes (FK).
 - `FacturaIntegrationTest`: +`createGastoOperativoSinItems` (MockMvc).
 - `FacturaServiceImplTest`: 7 constructores `new FacturaRequest(...)` actualizados (campo `total`).
-- `AnalyticsServiceImplTest`: +mock `patrimonioRepository`.
+- `AnalyticsServiceImplTest`: +mocks `patrimonioRepository` + `prestamoRepository`; +4 tests semáforo payback (rojo/verde/amarillo/deuda ACTIVA suma al tiempo).
 - Resultado: **162 unit + 38 integration = BUILD SUCCESS** (al cerrar la revisión, 37 → 38 con el IT de gasto variable).
 
 ### Archivos modificados
