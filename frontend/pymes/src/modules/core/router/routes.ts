@@ -33,9 +33,7 @@ export const coreRoutes: RouteRecordRaw[] = [
   },
   {
     path: 'gastos',
-    name: 'gastos',
-    component: () => import('../pages/GastosPage.vue'),
-    meta: { title: 'Gastos' },
+    redirect: () => ({ path: '/dashboard/costos', query: { tab: 'gastosFijos' } }),
   },
   {
     path: 'costos',

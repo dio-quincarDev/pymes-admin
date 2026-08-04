@@ -12,11 +12,11 @@
 
 Estrategia de cierre: → [`FRONTEND_PENDIENTES_STRATEGY.md`](./frontend/pymes/docs/strategies/FRONTEND_PENDIENTES_STRATEGY.md)
 
-**Fase 1 — Quick wins (riesgo ~0)**
+**Fase 1 — Quick wins (riesgo ~0)** ✅ CERRADO (2026-08-04)
 
-- [ ] [Baja] **Deprecar GastosPage** — banner + enlace a CostosPage → Gastos Fijos + sacar de la bottom nav mobile. → EXPENSES_MODEL_STRATEGY (paso 5) / FRONTEND_PENDIENTES_STRATEGY (Fase 1).
-- [ ] [Baja] **PWA: pull to refresh** — En mobile, gesto nativo para refrescar datos. Nota: `usePullToRefresh.ts` existe pero no se importa en ninguna página (código muerto). (2026-08-02) → FRONTEND_PENDIENTES_STRATEGY (Fase 1).
-- [ ] [Baja] **Reportes — fix ruta QuickActions** — `ver-reportes` apunta a `/dashboard/accounting`; debe ir a `/dashboard/analisis-gastos`. Emit `ver-reportes` es código muerto en `DashboardPage` (eliminar). → FRONTEND_PENDIENTES_STRATEGY (Fase 1).
+- [x] [Baja] **Deprecar GastosPage** — banner + enlace a CostosPage → Gastos Fijos + sacar de la bottom nav mobile. Ruta redirige a `/dashboard/costos?tab=gastosFijos`. → EXPENSES_MODEL_STRATEGY (paso 5) / FRONTEND_PENDIENTES_STRATEGY (Fase 1). (2026-08-04)
+- [x] [Baja] **PWA: pull to refresh** — En mobile, gesto nativo para refrescar datos. `usePullToRefresh.ts` importado en `DashboardPage.vue` con spinner + animación. (2026-08-02) → FRONTEND_PENDIENTES_STRATEGY (Fase 1).
+- [x] [Baja] **Reportes — fix ruta QuickActions** — `ver-reportes` apunta a `/dashboard/analisis-gastos`. `handleNuevoGasto` redirige a `/dashboard/costos?tab=gastosFijos`. Emit `ver-reportes` eliminado. → FRONTEND_PENDIENTES_STRATEGY (Fase 1). (2026-08-04)
 
 **Fase 2 — Reportes (backend listo)**
 

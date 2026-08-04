@@ -10,7 +10,7 @@ const emit = defineEmits<{
 
 function handleNuevoGasto() {
   emit('nuevo-gasto');
-  void router.push('/dashboard/gastos');
+  void router.push('/dashboard/costos?tab=gastosFijos');
 }
 
 function handleVerReportes() {

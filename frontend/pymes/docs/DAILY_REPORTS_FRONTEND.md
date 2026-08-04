@@ -45,6 +45,29 @@ Se completó el flujo de facturación GASTO_OPERATIVO con vinculación a colabor
 
 ---
 
+## 2026-08-04 — Cierre Fase 1: redirect GastosPage + fix QuickActions
+
+### Contexto
+
+Fase 1 del TO_DO.md (Quick wins) estaba al 70%. Faltaba cerrar la ruta `gastos` y el botón "Registrar gasto" en QuickActions.
+
+### Cambios
+
+**`core/router/routes.ts`:** ruta `gastos` reemplazada por redirect a `/dashboard/costos?tab=gastosFijos`. Maneja bookmarks viejos sin romper.
+
+**`QuickActions.vue`:** `handleNuevoGasto()` navega a `/dashboard/costos?tab=gastosFijos` en vez de `/dashboard/gastos`.
+
+**No se tocó:** `GastosPage.vue` (tree-shaking lo excluye del bundle), `gasto.service.ts` (lo usa el dashboard).
+
+### Build
+
+- `npm run lint`: ✅
+- `npm run build`: ✅
+
+**Estado:** ✅ FASE 1 CERRADA
+
+---
+
 ## 2026-08-04 — GASTO_OPERATIVO suite + Proveedor en gastos fijos + Bug fix q-select
 
 ### Contexto
