@@ -12,7 +12,7 @@ Registro de lo implementado y lo pendiente.
 |--------|--------|-------|
 | Setup | Implementado | 13 unit + 10 integration |
 | Product | Implementado | 11 unit + 30 JPA edge cases |
-| Invoice | Implementado | 7 unit + 5 integration |
+| Invoice | Implementado | 18 unit + 11 integration |
 | Analytics | Implementado | 6 unit + 6 integration |
 | Modelo de Gastos | Implementado (backend) | 4 integration (ModeloGastosIntegrationTest) |
 | Gasto | Implementado | 17 JPA |
@@ -21,6 +21,150 @@ Registro de lo implementado y lo pendiente.
 | Venta | Implementado | 13 JPA |
 | Accounting | Implementado | MetricasFinanciera + CTE consolidado |
 | Reportes | Pendiente | Ver FUTURE_MODULES.md |
+
+---
+
+## 2026-08-04 — Colaborador en facturas GASTO_OPERATIVO + validación tenant
+
+### Contexto
+
+Las facturas `GASTO_OPERATIVO` con categoría `SALARIOS` no tenían forma de registrar **a quién se le pagó**. El `providerId` apunta a proveedores externos, no a colaboradores del tenant. Se necesitaba un campo `colaborador_id` en `invoices` con la misma lógica de vinculación que `proveedor_id`.
+
+### Qué se hizo
+
+**1. Migración `V9__add_invoice_colaborador.sql`**
+
+- `core.invoices.colaborador_id` UUID nullable, FK → `core.collaboradores(id)` ON DELETE SET NULL, índice.
+
+**2. Entity + DTOs + Mapper**
+
+- `Factura.java`: +`colaboradorId` (UUID) + `@ManyToOne(LAZY) colaborador` (mismo patrón que `proveedor`).
+- `FacturaRequest.java`: +`colaboradorId` (UUID, nullable).
+- `FacturaResponse.java`: +`colaboradorId` + `collaboradorName`.
+- `FacturaMapper.java`: resolución `f.getColaborador().getNombre()` en `toResponse()`.
+
+**3. Validación tenant-scoped (fix de lógica de negocio)**
+
+Revisión de lógica reveló que la validación de `colaboradorId` originalmente corría para **todos** los tipos de factura, incluyendo FACTURA con items donde el campo se ignora. Fix: la validación y persistencia de `colaboradorId` ahora solo ocurre dentro del bloque `isGastoSinItems`:
+
+```java
+if (isGastoSinItems(request)) {
+    Collaborador colaborador = null;
+    if (request.colaboradorId() != null) {
+        colaborador = collaboradorRepository.findById(request.colaboradorId())...;
+        if (!colaborador.getTenantId().equals(request.tenantId())) {
+            throw new ResourceNotFoundException("Colaborador not found");
+        }
+    }
+    factura.setColaboradorId(request.colaboradorId());
+    factura.setColaborador(colaborador);
+    ...
+}
+```
+
+Esto garantiza:
+- GASTO_OPERATIVO: valida y guarda `colaboradorId` ✓
+- FACTURA con items: ignora `colaboradorId` completamente ✓
+- Tenant isolation: cross-tenant `colaboradorId` → 404 ✓
+
+**4. Tests unitarios (`FacturaServiceImplTest`)**
+
+7 tests nuevos (total: 18):
+
+| Test | Qué verifica |
+|------|-------------|
+| `createFactura_gastoOperativoSinItems_withColaboradorId` | Guarda colaboradorId + collaborador entity |
+| `createFactura_gastoOperativoSinItems_withoutColaboradorId` | colaboradorId queda null |
+| `createFactura_gastoOperativoSinItems_withColaboradorId_publishesEvent` | Evento contiene colaboradorId |
+| `createFactura_gastoOperativoSinItems_withNonExistentColaborador_throws` | ResourceNotFoundException |
+| `createFactura_gastoOperativoSinItems_withColaboradorFromOtherTenant_throws` | Tenant isolation check |
+| `updateFactura_gastoOperativoSinItems_setsColaboradorId` | Update setea colaborador |
+| `updateFactura_gastoOperativoSinItems_removesColaboradorId` | Update a null limpia colaborador |
+
+**5. Tests de integración (`FacturaColaboradorIntegrationTest`)**
+
+6 tests nuevos (total: 11 integration para Invoice):
+
+| Test | Qué verifica |
+|------|-------------|
+| `createGastoOperativoSalariosWithColaborador` | Response incluye collaboradorName |
+| `createGastoOperativoSalariosWithoutColaborador` | collaboradorName null/ausente |
+| `createGastoOperativoWithNonExistentColaborador` | 404 |
+| `updateGastoOperativoChangeColaborador` | Cambio de A → B |
+| `createGastoOperativoWithColaboradorFromOtherTenant` | 404 cross-tenant |
+| `createFacturaWithItemsAndColaborador_ignored` | FACTURA tipo ignora colaboradorId |
+
+**6. Verificación en DB (`docker exec`)**
+
+- Schema confirmado: `colaborador_id` UUID, FK `fk_invoices_colaborador`, ON DELETE SET NULL, índice.
+- Datos existentes: facturas 0005/0006 referencian colaboradores válidos (FONCHO, Pan).
+- Query de referencia para dashboards: `SELECT ... FROM core.invoices i JOIN core.collaboradores c ON c.id = i.colaborador_id WHERE i.category = 'SALARIOS'`.
+
+### Archivos modificados
+
+```
+resources/db/migration/V9__add_invoice_colaborador.sql          # NUEVO
+core_pymes/invoice/domain/Factura.java                          # +colaboradorId + @ManyToOne
+core_pymes/invoice/dto/FacturaRequest.java                      # +colaboradorId
+core_pymes/invoice/dto/FacturaResponse.java                     # +colaboradorId + collaboradorName
+core_pymes/invoice/mapper/FacturaMapper.java                    # resolución collaborador name
+core_pymes/invoice/service/impl/FacturaServiceImpl.java         # validación + persistencia en isGastoSinItems
+core_pymes/unit/FacturaServiceImplTest.java                     # +7 tests, +CollaboradorRepository mock
+core_pymes/integration/FacturaColaboradorIntegrationTest.java   # NUEVO, 6 ITs
+```
+
+### Tests
+
+- **173 unit tests + 45 integration tests**, 0 fallos, BUILD SUCCESS.
+
+---
+
+## 2026-08-04 — Proveedor opcional + Enum GAS + Proveedor en gasto fijo
+
+### Contexto
+
+Se extiende el sistema de proveedores para cubrir dos áreas: facturas GASTO_OPERATIVO (que antes requerían proveedor obligatorio) y gastos fijos recurrentes (que no tenían vinculación con proveedores).
+
+### Qué se hizo
+
+**1. Proveedor opcional en facturas GASTO_OPERATIVO (`V6__invoices_provider_nullable.sql`)**
+
+- `invoices.provider_id` ahora nullable (antes `NOT NULL`).
+- `FacturaRequest.proveedorId` sin `@NotNull`.
+- `FacturaServiceImpl.createFactura`: busca proveedor solo si `!= null`, inicializa `Proveedor proveedor = null` antes del null check.
+- Frontend: campo Proveedor oculto con `v-if="form.tipo !== 'GASTO_OPERATIVO'"`. Fila usa `inv.providerName || '—'`.
+
+**2. Enum `GAS` en `CategoriaGasto`**
+
+- Añadido `GAS` al enum `CategoriaGasto.java` (junto a AGUA, LUZ, INTERNET, etc.).
+- Frontend: `categoriaOptions` en CostosPage ahora incluye `GAS`.
+
+**3. Proveedor vinculable a gasto fijo recurrente (`V7__gastos_fijos_provider.sql`)**
+
+- `gastos_fijos_recurrentes.provider_id` nullable + FK a `core.providers(id)` + índice.
+- `GastoFijoRecurrente`: `providerId` + `@ManyToOne(LAZY) proveedor` (mismo patrón que `Factura`).
+- `GastoFijoRequest`: `UUID proveedorId` opcional.
+- `GastoFijoResponse`: `proveedorId` + `proveedorName`.
+- `CostoServiceImpl`: inyecta `ProveedorRepository`. Helper `getProveedor(UUID proveedorId, UUID tenantId)` retorna null si id null, valida pertenencia al tenant. Usado en `crearGastoFijo` y `actualizarGastoFijo`. `toResponse` incluye `proveedorName`.
+
+### Tests
+
+- 166 unit tests, 0 fallos, BUILD SUCCESS.
+
+### Archivos modificados
+
+```
+resources/db/migration/V6__invoices_provider_nullable.sql               # provider_id nullable en invoices
+resources/db/migration/V7__gastos_fijos_provider.sql                    # NUEVO — provider_id nullable en gastos_fijos
+core_pymes/costos/domain/GastoFijoRecurrente.java                       # providerId + @ManyToOne(LAZY)
+core_pymes/costos/dto/GastoFijoRequest.java                             # +proveedorId
+core_pymes/costos/dto/GastoFijoResponse.java                            # +proveedorId, +proveedorName
+core_pymes/costos/service/impl/CostoServiceImpl.java                    # +ProveedorRepository, getProveedor, toResponse
+core_pymes/gasto/domain/CategoriaGasto.java                             # +GAS
+core_pymes/invoice/domain/Factura.java                                  # providerId nullable
+core_pymes/invoice/dto/FacturaRequest.java                              # proveedorId sin @NotNull
+core_pymes/invoice/service/impl/FacturaServiceImpl.java                 # createFactura: null check proveedor
+```
 
 ---
 

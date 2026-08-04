@@ -4,6 +4,89 @@ Registro cronológico de decisiones, problemas resueltos y estado del frontend.
 
 ---
 
+## 2026-08-04 — Colaborador en facturas SALARIOS + auto-fill desde gastos fijos + mini-dialog proveedor
+
+### Contexto
+
+Se completó el flujo de facturación GASTO_OPERATIVO con vinculación a colaboradores para la categoría SALARIOS, auto-fill de proveedor desde gastos fijos recurrentes, y mini-dialog de creación de proveedor desde CostosPage.
+
+### Colaborador en FacturasPage (SALARIOS)
+
+- `FacturaRequest`: +`colaboradorId?: string | null`.
+- `Factura`: +`colaboradorId: string | null`, +`collaboradorName: string | null`.
+- `save()`: envía `colaboradorId: gastoOperativo ? form.value.colaboradorId : null`.
+- El backend solo guarda `colaboradorId` cuando `isGastoSinItems=true` (GASTO_OPERATIVO sin items).
+
+### Auto-fill proveedor desde gastos fijos
+
+- `gastoFijoCategorias` ya no deduplica — muestra cada gasto fijo como opción separada con nombre de proveedor (ej: `LUZ — Naturgy · $100`).
+- `applyCategoria()` auto-fill `total` + `proveedorId` desde el gasto fijo seleccionado + resetea `providerFilteredOptions`.
+
+### Mini-dialog creación de proveedor (CostosPage)
+
+- Botón `q-btn icon="add"` (`type="button"`) + `q-input` name + "Crear" button.
+- `saveNewProveedor()` llama `proveedorService.create()`, agrega a lista, auto-selecciona.
+
+### InvoiceDetailDialog — collaborador
+
+- Cuando `category === 'SALARIOS'`: muestra "Colaborador: {name}" en vez de "Proveedor: —".
+
+### Types
+
+- `Factura`: +`colaboradorId: string | null`, +`collaboradorName: string | null`.
+- `FacturaRequest`: +`colaboradorId?: string | null`.
+
+### Build
+
+- `npm run lint`: ✅
+- `npm run build`: ✅
+
+**Estado:** ✅ RESUELTO
+
+---
+
+## 2026-08-04 — GASTO_OPERATIVO suite + Proveedor en gastos fijos + Bug fix q-select
+
+### Contexto
+
+Se completó la suite de facturación GASTO_OPERATIVO con soporte para categorías de gastos fijos, salario por rango de días, y se vinculó proveedor a gastos fijos recurrentes desde CostosPage.
+
+### Suite GASTO_OPERATIVO en FacturasPage
+
+Al elegir tipo `GASTO_OPERATIVO` se ocultan items/CategoryTabs/"Agregar item" y se muestra sección Categoría + Total/Monto:
+
+- **Categoría** (opciones: Salarios + categorías de gastos fijos activos + Otro, con monto en label).
+- **Salarios** → select colaborador + rango Desde/Hasta para DIARIO (precarga `días × monto`, hint del cálculo).
+- **Total** siempre editable.
+
+### Bug fix: q-select tipo con opciones objeto
+
+Root cause: `q-select` de tipo con opciones objeto sin `map-options emit-value`, dejaba `form.tipo` como objeto → condiciones `=== 'GASTO_OPERATIVO'` fallaban. Fix: revertido a opciones strings `['FACTURA','GASTO_OPERATIVO']`. `map-options emit-value` añadido a selects Categoría y Colaborador.
+
+### Proveedor en gastos fijos (CostosPage)
+
+- Import `proveedorService`. Fetch en `loadAll()` via `Promise.all`.
+- Select "Proveedor" opcional (`clearable`, `map-options emit-value`) en dialog de gasto fijo.
+- ProveedorName en tarjeta: Día · método · proveedor.
+
+### Enum GAS
+
+- `GAS` añadido a `categoriaOptions` en CostosPage (antes faltaba pese al enum backend).
+
+### Types
+
+- `GastoFijoRecurrente`: +`proveedorId: string | null`, +`proveedorName: string | null`.
+- `GastoFijoRequest`: +`proveedorId?: string | null`.
+
+### Build
+
+- `npm run lint`: ✅
+- `npm run build`: ✅
+
+**Estado:** ✅ RESUELTO
+
+---
+
 ## 2026-07-30 — Bug fixes Patrimonio + Currency formatting + Gastos/Metricas gap discovery
 
 ### Contexto

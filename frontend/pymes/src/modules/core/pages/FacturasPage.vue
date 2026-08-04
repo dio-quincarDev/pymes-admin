@@ -78,8 +78,8 @@
           <q-card-section class="invoice-dialog__body col">
             <!-- Form header: 2x2 grid -->
             <div class="row q-col-gutter-x-sm q-col-gutter-y-sm q-mb-md">
-              <div v-if="form.tipo !== 'GASTO_OPERATIVO'" class="col-12 col-sm-6">
-                <q-select dark dense v-model="form.proveedorId" :options="providerFilteredOptions" label="Proveedor" :rules="[v=>!!v||'Requerido']" map-options emit-value use-input @filter="providerFilter" popup-content-class="product-dropdown">
+              <div class="col-12 col-sm-6">
+                <q-select dark dense v-model="form.proveedorId" :options="providerFilteredOptions" label="Proveedor" :rules="form.tipo !== 'GASTO_OPERATIVO' ? [v=>!!v||'Requerido'] : []" map-options emit-value use-input @filter="providerFilter" popup-content-class="product-dropdown">
                   <template v-slot:no-option><q-item><q-item-section class="text-accent text-caption">Escribe el nombre para crearlo</q-item-section></q-item></template>
                 </q-select>
               </div>
@@ -450,12 +450,11 @@ const colaboradorOptions = computed(() =>
 )
 
 const gastoFijoCategorias = computed(() => {
-  const seen = new Set<string>()
-  const out: { label: string; value: string; monto: number }[] = []
+  const out: { label: string; value: string; monto: number; proveedorId: string | null }[] = []
   for (const g of gastosFijos.value) {
-    if (!g.activo || seen.has(g.categoria)) continue
-    seen.add(g.categoria)
-    out.push({ label: `${g.categoria} · $${g.monto.toLocaleString('en-US')}`, value: g.categoria, monto: g.monto })
+    if (!g.activo) continue
+    const prov = g.proveedorName ? ` — ${g.proveedorName}` : ''
+    out.push({ label: `${g.categoria}${prov} · $${g.monto.toLocaleString('en-US')}`, value: g.id, monto: g.monto, proveedorId: g.proveedorId })
   }
   return out
 })
@@ -482,6 +481,8 @@ function applyCategoria() {
   form.value.colaboradorId = null
   const gf = gastoFijoCategorias.value.find(c => c.value === form.value.categoria)
   form.value.total = gf?.monto ?? null
+  form.value.proveedorId = gf?.proveedorId ?? null
+  providerFilteredOptions.value = [...providerOptions.value]
   totalStr.value = rawTotal(form.value.total)
 }
 
@@ -661,10 +662,12 @@ async function save() {
   try {
     const payload: FacturaRequest = {
       tenantId,
-      proveedorId: gastoOperativo ? null : form.value.proveedorId,
+      proveedorId: form.value.proveedorId,
+      colaboradorId: gastoOperativo ? form.value.colaboradorId : null,
       fecha: form.value.fecha,
       tipo: form.value.tipo,
       metodoPago: form.value.metodoPago,
+      category: gastoOperativo ? form.value.categoria : null,
       descuentoGlobal: form.value.descuentoGlobal || 0,
       total: gastoOperativo ? form.value.total : null,
       items: gastoOperativo ? [] : form.value.items.map(item => {

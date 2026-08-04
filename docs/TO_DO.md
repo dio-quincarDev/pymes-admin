@@ -24,7 +24,7 @@ Estrategia de cierre: → [`FRONTEND_PENDIENTES_STRATEGY.md`](./frontend/pymes/d
 
 **Fase 3 — Cierre modelo de gastos**
 
-- [ ] [Media] **Helper "Pago de salario" en FacturasPage** — tipo `GASTO_OPERATIVO` + colaborador DIARIO + rango de días → total precargado `días × tarifa` (editable) + descripción "Salarios — {nombre}, {rango}". Requiere `FacturaRequest` +`total`/`items` opcional (backend ya lo acepta). → EXPENSES_MODEL_STRATEGY (paso 4) / FRONTEND_PENDIENTES_STRATEGY (Fase 3).
+- [x] [Media] **Helper "Pago de salario" en FacturasPage** — tipo `GASTO_OPERATIVO` + colaborador DIARIO + rango de días → total precargado `días × tarifa` (editable) + descripción "Salarios — {nombre}, {rango}". Requiere `FacturaRequest` +`total`/`items` opcional (backend ya lo acepta). → EXPENSES_MODEL_STRATEGY (paso 4) / FRONTEND_PENDIENTES_STRATEGY (Fase 3).
 - [ ] [Media] **Dashboard: gastos desde facturas pagadas** — `useFinancialDashboard` lee facturas `GASTO_OPERATIVO` PAGADAS (por proveedor) en vez de `operating_expenses`, para coincidir con el motor. Elimina `gastoService.getAll` duplicado. → EXPENSES_MODEL_STRATEGY (paso 6) / FRONTEND_PENDIENTES_STRATEGY (Fase 3).
 
 **Diferido (post-MVP)**
@@ -55,6 +55,12 @@ Estrategia de cierre: → [`FRONTEND_PENDIENTES_STRATEGY.md`](./frontend/pymes/d
 - [x] [Alta] **Primeros integration tests del Analytics** — `AnalyticsIntegrationTest` (5 tests, Testcontainers PG15 + Redis7): valida los 10 campos JSONB, casos vacíos, proveedor único, idempotencia. 162 unit + 5 IT = BUILD SUCCESS. (2026-07-31)
 - [x] [Media] **Verificación de índices de las CTEs analytics** — EXPLAIN ANALYZE real: sin índice nuevo necesario (`invoice_items` no tiene `tenant_id`), PG auto-corrige con el volumen. (2026-07-31)
 - [x] [Media] Integration tests ejecutables en CI — Job `backend-core-integration-test` en `ci.yml` corre `./mvnw verify -Dspring.profiles.active=integration` + 6 clases IT (`Analytics`, `CostoDiario`, `Factura`, `Producto`, `SetupSeed`, `ProveedorProductoEdgeCase`). (2026-08-02)
+
+### Core — Proveedor opcional (GASTO_OPERATIVO + gastos fijos)
+
+- [x] [Media] **Proveedor opcional en facturas GASTO_OPERATIVO** — `V6__invoices_provider_nullable.sql`: `invoices.provider_id` ahora nullable. `FacturaRequest.proveedorId` sin `@NotNull`. `FacturaServiceImpl.createFactura` busca proveedor solo si `!= null`. Frontend: campo Proveedor oculto cuando `tipo=GASTO_OPERATIVO`. (2026-08-04)
+- [x] [Baja] **Enum `GAS` en `CategoriaGasto`** — añadido `GAS` al enum backend. Frontend: `categoriaOptions` en CostosPage ahora incluye `GAS`. (2026-08-04)
+- [x] [Media] **Proveedor vinculable a gasto fijo recurrente** — `V7__gastos_fijos_provider.sql`: `gastos_fijos_recurrentes.provider_id` nullable + FK + índice. `GastoFijoRecurrente` + `GastoFijoRequest`/`GastoFijoResponse` con `proveedorId`/`proveedorName`. `CostoServiceImpl` con validación tenant. Frontend: select "Proveedor" opcional en dialog de gasto fijo, nombre en tarjeta. (2026-08-04)
 
 ### Core — Motor de Costos ([COSTOS_ENGINE.md](./backend/core/docs/COSTOS_ENGINE.md))
 

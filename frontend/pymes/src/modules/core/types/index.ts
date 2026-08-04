@@ -66,9 +66,12 @@ export interface Factura {
   invoiceNumber: string
   providerId: string | null
   providerName: string | null
+  colaboradorId: string | null
+  collaboradorName: string | null
   issueDate: string
   type: string
   paymentMethod: string | null
+  category: string | null
   globalDiscount: number | null
   status: string
   total: number
@@ -109,9 +112,11 @@ export interface ItemFacturaRequest {
 export interface FacturaRequest {
   tenantId: string
   proveedorId: string | null
+  colaboradorId?: string | null
   fecha: string
   tipo: string
   metodoPago?: string | null
+  category?: string | null
   descuentoGlobal?: number | null
   total?: number | null
   items: ItemFacturaRequest[]

@@ -17,8 +17,10 @@ public interface FacturaMapper {
     default FacturaResponse toResponse(Factura f, List<ItemFacturaResponse> items) {
         return new FacturaResponse(f.getId(), f.getTenantId(), f.getProviderId(),
                 f.getProveedor() != null ? f.getProveedor().getName() : null,
+                f.getColaboradorId(),
+                f.getColaborador() != null ? f.getColaborador().getNombre() : null,
                 f.getInvoiceNumber(), f.getIssueDate(), f.getType(),
-                f.getGlobalDiscount(), f.getPaymentMethod(), f.getStatus(),
+                f.getGlobalDiscount(), f.getPaymentMethod(), f.getCategory(), f.getStatus(),
                 f.getTotal(), items, f.getCreatedAt());
     }
 

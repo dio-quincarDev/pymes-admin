@@ -242,6 +242,31 @@ const gastoForm = ref<GastoFijoRequest>({
   proveedorId: null,
 });
 
+const newProveedorDialog = shallowRef(false);
+const newProveedorName = ref('');
+const savingNewProveedor = shallowRef(false);
+
+function openNewProveedor() {
+  newProveedorName.value = '';
+  newProveedorDialog.value = true;
+}
+
+async function saveNewProveedor() {
+  if (!newProveedorName.value.trim() || !tenantId) return;
+  savingNewProveedor.value = true;
+  try {
+    const res = await proveedorService.create({ tenantId, name: newProveedorName.value.trim() });
+    proveedores.value = [...proveedores.value, res.data];
+    gastoForm.value.proveedorId = res.data.id;
+    newProveedorDialog.value = false;
+    $q.notify({ type: 'positive', message: `Proveedor "${res.data.name}" creado` });
+  } catch (err) {
+    $q.notify({ type: 'negative', message: err instanceof Error ? err.message : 'Error al crear proveedor' });
+  } finally {
+    savingNewProveedor.value = false;
+  }
+}
+
 function openCreateGasto() {
   editingGastoId.value = null;
   gastoForm.value = {
@@ -653,22 +678,50 @@ function handleKeydown(e: KeyboardEvent) {
               label="Método de pago"
               clearable
             />
-            <q-select
-              dark
-              filled
-              v-model="gastoForm.proveedorId"
-              :options="proveedorOptions"
-              label="Proveedor"
-              clearable
-              map-options
-              emit-value
-            />
+            <div class="row items-center q-gutter-x-sm">
+              <q-select
+                dark
+                filled
+                v-model="gastoForm.proveedorId"
+                :options="proveedorOptions"
+                label="Proveedor"
+                clearable
+                map-options
+                emit-value
+                class="col"
+              />
+              <q-btn flat round icon="add" color="primary" type="button" @click="openNewProveedor" />
+            </div>
             <div class="row justify-end q-gutter-x-sm">
               <q-btn flat label="Cancelar" color="accent" v-close-popup />
               <q-btn type="submit" label="Guardar" color="primary" :loading="saving" />
             </div>
           </q-form>
         </q-card-section>
+      </q-card>
+    </q-dialog>
+
+    <!-- New proveedor dialog -->
+    <q-dialog v-model="newProveedorDialog" dark>
+      <q-card dark class="bg-surface-pine" style="min-width: 320px">
+        <q-card-section>
+          <div class="text-h6 text-primary">Nuevo Proveedor</div>
+        </q-card-section>
+        <q-card-section>
+          <q-input
+            dark
+            filled
+            v-model="newProveedorName"
+            label="Nombre"
+            autofocus
+            :rules="[(v) => !!v || 'Requerido']"
+            @keyup.enter="saveNewProveedor"
+          />
+        </q-card-section>
+        <q-card-actions align="right">
+          <q-btn flat label="Cancelar" color="accent" v-close-popup />
+          <q-btn label="Crear" color="primary" :loading="savingNewProveedor" @click="saveNewProveedor" />
+        </q-card-actions>
       </q-card>
     </q-dialog>
 

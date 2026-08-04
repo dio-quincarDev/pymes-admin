@@ -11,9 +11,11 @@ import java.util.UUID;
 public record FacturaRequest(
         @NotNull UUID tenantId,
         UUID proveedorId,
+        UUID colaboradorId,
         @NotNull LocalDate fecha,
         @NotBlank String tipo,
         String metodoPago,
+        String category,
         BigDecimal descuentoGlobal,
         BigDecimal total,
         List<ItemFacturaRequest> items

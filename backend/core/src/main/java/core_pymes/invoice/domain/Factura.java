@@ -1,5 +1,6 @@
 package core_pymes.invoice.domain;
 
+import core_pymes.costos.domain.Collaborador;
 import jakarta.persistence.*;
 import lombok.*;
 import org.hibernate.annotations.CreationTimestamp;
@@ -39,6 +40,13 @@ public class Factura {
     @JoinColumn(name = "provider_id", insertable = false, updatable = false)
     private Proveedor proveedor;
 
+    @Column(name = "colaborador_id", nullable = true)
+    private UUID colaboradorId;
+
+    @ManyToOne(fetch = FetchType.LAZY)
+    @JoinColumn(name = "colaborador_id", insertable = false, updatable = false)
+    private Collaborador colaborador;
+
     @Column(name = "invoice_number", nullable = false)
     private String invoiceNumber;
 
@@ -53,6 +61,8 @@ public class Factura {
 
     @Column(name = "payment_method")
     private String paymentMethod;
+
+    private String category;
 
     @Column(nullable = false)
     private String status;

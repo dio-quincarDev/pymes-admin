@@ -3,6 +3,8 @@ package core_pymes.invoice.service.impl;
 import core_pymes.invoice.domain.Factura;
 import core_pymes.invoice.domain.ItemFactura;
 import core_pymes.invoice.domain.Proveedor;
+import core_pymes.costos.domain.Collaborador;
+import core_pymes.costos.repository.CollaboradorRepository;
 import core_pymes.invoice.dto.*;
 import core_pymes.invoice.event.FacturaCreadaEvent;
 import core_pymes.invoice.event.FacturaPagadaEvent;
@@ -35,6 +37,7 @@ import java.util.stream.Collectors;
 public class FacturaServiceImpl implements FacturaService {
 
     private final ProveedorRepository proveedorRepository;
+    private final CollaboradorRepository collaboradorRepository;
     private final FacturaRepository facturaRepository;
     private final FacturaMapper mapper;
     private final ApplicationEventPublisher eventPublisher;
@@ -133,12 +136,23 @@ public class FacturaServiceImpl implements FacturaService {
                 .type(request.tipo())
                 .globalDiscount(request.descuentoGlobal() != null ? request.descuentoGlobal() : BigDecimal.ZERO)
                 .paymentMethod(request.metodoPago())
+                .category(request.category())
                 .status("REGISTRADA")
                 .total(BigDecimal.ZERO)
                 .build();
 
         if (isGastoSinItems(request)) {
             // ponytail: gasto operativo con monto directo, sin items de producto (ej: servicios, salarios)
+            Collaborador colaborador = null;
+            if (request.colaboradorId() != null) {
+                colaborador = collaboradorRepository.findById(request.colaboradorId())
+                        .orElseThrow(() -> new ResourceNotFoundException("Colaborador not found: " + request.colaboradorId()));
+                if (!colaborador.getTenantId().equals(request.tenantId())) {
+                    throw new ResourceNotFoundException("Colaborador not found: " + request.colaboradorId());
+                }
+            }
+            factura.setColaboradorId(request.colaboradorId());
+            factura.setColaborador(colaborador);
             factura.setTotal(nz(request.total()).subtract(factura.getGlobalDiscount()));
             factura = facturaRepository.save(factura);
             eventPublisher.publishEvent(new FacturaCreadaEvent(factura));
@@ -193,15 +207,27 @@ public class FacturaServiceImpl implements FacturaService {
         if (!"REGISTRADA".equals(factura.getStatus())) {
             throw new InvalidInputException("Solo facturas en estado REGISTRADA pueden editarse");
         }
+
         if (isGastoSinItems(request)) {
             // ponytail: gasto operativo con monto directo, sin items de producto
+            Collaborador colaborador = null;
+            if (request.colaboradorId() != null) {
+                colaborador = collaboradorRepository.findById(request.colaboradorId())
+                        .orElseThrow(() -> new ResourceNotFoundException("Colaborador not found: " + request.colaboradorId()));
+                if (!colaborador.getTenantId().equals(tenantId)) {
+                    throw new ResourceNotFoundException("Colaborador not found: " + request.colaboradorId());
+                }
+            }
             reverseProductStats(factura.getItems(), tenantId, factura.getId());
             factura.getItems().clear();
             factura.setProviderId(request.proveedorId());
+            factura.setColaboradorId(request.colaboradorId());
+            factura.setColaborador(colaborador);
             factura.setIssueDate(request.fecha());
             factura.setType(request.tipo());
             factura.setGlobalDiscount(request.descuentoGlobal() != null ? request.descuentoGlobal() : BigDecimal.ZERO);
             factura.setPaymentMethod(request.metodoPago());
+            factura.setCategory(request.category());
             factura.setTotal(nz(request.total()).subtract(factura.getGlobalDiscount()));
             factura = facturaRepository.save(factura);
             return mapper.toResponse(factura, mapper.toItemResponseList(factura.getItems()));
@@ -248,6 +274,7 @@ public class FacturaServiceImpl implements FacturaService {
         factura.setType(request.tipo());
         factura.setGlobalDiscount(request.descuentoGlobal() != null ? request.descuentoGlobal() : BigDecimal.ZERO);
         factura.setPaymentMethod(request.metodoPago());
+        factura.setCategory(request.category());
         factura.setTotal(total.subtract(factura.getGlobalDiscount()));
 
         factura = facturaRepository.save(factura);

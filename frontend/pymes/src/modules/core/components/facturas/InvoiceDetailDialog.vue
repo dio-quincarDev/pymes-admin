@@ -40,8 +40,8 @@ const statusColor: Record<string, string> = { PAGADA: 'positive', REGISTRADA: 'w
       <q-card-section class="q-gutter-y-sm">
         <div class="row q-col-gutter-md">
           <div class="col-6">
-            <div class="text-caption text-accent">Proveedor</div>
-            <div class="text-secondary text-weight-medium">{{ factura.providerName || '—' }}</div>
+            <div class="text-caption text-accent">{{ factura.category === 'SALARIOS' ? 'Colaborador' : 'Proveedor' }}</div>
+            <div class="text-secondary text-weight-medium">{{ factura.category === 'SALARIOS' ? (factura.collaboradorName || '—') : (factura.providerName || '—') }}</div>
           </div>
           <div class="col-3">
             <div class="text-caption text-accent">Tipo</div>
@@ -50,6 +50,12 @@ const statusColor: Record<string, string> = { PAGADA: 'positive', REGISTRADA: 'w
           <div class="col-3">
             <div class="text-caption text-accent">Estado</div>
             <q-badge :color="statusColor[factura.status] || 'grey'" class="q-px-sm q-py-xs">{{ factura.status }}</q-badge>
+          </div>
+        </div>
+        <div v-if="factura.type === 'GASTO_OPERATIVO' && factura.category" class="row">
+          <div class="col-6">
+            <div class="text-caption text-accent">Categoría</div>
+            <div class="text-secondary">{{ factura.category }}</div>
           </div>
         </div>
         <div v-if="factura.paymentMethod" class="row">
