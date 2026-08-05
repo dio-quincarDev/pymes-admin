@@ -39,14 +39,49 @@ Estrategia: eliminar redundancia entre Dashboard (4 KPIs duplicados) y Contabili
 - [ ] [Alta] **Tour guiado con Driver.js** — guía de bienvenida al dashboard post-onboarding (4-5 pasos: sidebar, período, métricas, quick actions, perfil). Disparo único vía localStorage. Botón "Ayuda" en header para reiniciar. (2026-07) → FRONTEND_PENDIENTES_STRATEGY (Diferido).
 - [ ] [Alta] **Dashboard UI polish** — animaciones de entrada más pulidas, hover states en stat strip, empty states más expresivos, responsive tuning. → FRONTEND_PENDIENTES_STRATEGY (Diferido).
 
+### E2E Testing Suite
+
+Estrategia completa: → [`E2E_TESTING_STRATEGY.md`](./strategies/E2E_TESTING_STRATEGY.md)
+
+**Fase 1 — Backend integration tests (ahora)**
+
+- [x] [Alta] **Setup Playwright E2E** — Root `package.json` + `e2e/` folder (config, fixtures, tests). Chromium installed. 5 test cases base. (2026-08-05)
+- [ ] [Alta] **Auth:填补 5 endpoints sin integration test** — `POST /exchange`, `POST /tenants/select`, `GET /invitations`, `DELETE /invitations/{id}`, `GET /tenants/{id}/shutdown`. → E2E_TESTING_STRATEGY.md (A-IT1 a A-IT5)
+- [ ] [Alta] **Auth:填补 4 services sin unit test** — `PermissionCacheService`, `RateLimitService`, `CustomOAuth2UserService`, `TokenBlacklistService`. → E2E_TESTING_STRATEGY.md (A-UT1 a A-UT4)
+- [ ] [Alta] **Auth: integration test completo CRUD** — Register→Verify→Login→Create tenant→Invite→Accept→List members→Delete member. → E2E_TESTING_STRATEGY.md (A-IT6)
+- [ ] [Alta] **Gateway: 9 integration tests nuevos** — proxy routing, route ordering, CORS, security headers, JWT validation, identity headers forward. → E2E_TESTING_STRATEGY.md (G-IT1 a G-IT8, G-UT1)
+
+**Fase 2 — Playwright E2E (después)**
+
+- [ ] [Alta] **Login fixture vía API** — `e2e/fixtures/auth.ts`: login directo via POST /auth/login (no UI), guardar `storageState`. → E2E_TESTING_STRATEGY.md (Fixture)
+- [ ] [Alta] **auth-login.spec.ts** — Login completo → dashboard visible. → E2E_TESTING_STRATEGY.md (P-1)
+- [ ] [Alta] **auth-register.spec.ts** — Registro → verificación → login. → E2E_TESTING_STRATEGY.md (P-2)
+- [ ] [Alta] **setup-onboarding.spec.ts** — Onboarding crear empresa. → E2E_TESTING_STRATEGY.md (P-3)
+- [ ] [Media] **productos.spec.ts** — CRUD productos. → E2E_TESTING_STRATEGY.md (P-4)
+- [ ] [Media] **facturas.spec.ts** — CRUD facturas. → E2E_TESTING_STRATEGY.md (P-5)
+- [ ] [Media] **dashboard.spec.ts** — KPIs visibles. → E2E_TESTING_STRATEGY.md (P-6)
+- [ ] [Baja] **navigation.spec.ts** — Sidebar/bottom nav. → E2E_TESTING_STRATEGY.md (P-7)
+- [ ] [Baja] **auth-logout.spec.ts** — Logout → sesión inválida. → E2E_TESTING_STRATEGY.md (P-8)
+
+**Fase 3 — CI**
+
+- [ ] [Media] **CI integration** — job `e2e-tests` en `ci.yml`: Docker compose + Playwright. Solo en PRs a `develop`/`main`. → E2E_TESTING_STRATEGY.md (CI)
+- [ ] [Baja] **Multibrowser** — agregar Firefox + WebKit (post-MVP).
+
+**Fase 4 — Core (pendiente lectura completa de .md y tests)**
+
+- [ ] [Media] **Core integration tests** — Setup CRUD, Factura with items, Costos engine, Analytics engines. → E2E_TESTING_STRATEGY.md (C-IT1 a C-IT4)
+
 ### Gateway
 
-- [ ] [Media] Integration tests WebTestClient + Testcontainers (2026-07)
+- [ ] [Alta] **Integration tests WebTestClient + MockWebServer** — 9 tests: proxy routing, route ordering, CORS, security headers, JWT validation, identity headers. → E2E_TESTING_STRATEGY.md (G-IT1 a G-IT8)
 
 ### Auth
 
-- [ ] [Media] **Role change cooldown (post-MVP)** — V3 migration `last_role_change_at` ✅ ya existe (`V3__add_role_change_tracking.sql`). Falta solo el cooldown check en `MemberServiceImpl` (30d FREE). → ref: EMAIL_INVITATION_STRATEGY.md
-- [ ] [Baja] **Facebook OAuth2** — postergado (Meta no aprobó verificación) (post-MVP)
+- [ ] [Alta] **Integration tests: 5 endpoints pendientes** — `POST /exchange`, `POST /tenants/select`, `GET /invitations`, `DELETE /invitations/{id}`, `GET /tenants/{id}/shutdown`. → E2E_TESTING_STRATEGY.md (A-IT1 a A-IT5)
+- [ ] [Alta] **Unit tests: 4 services pendientes** — `PermissionCacheService`, `RateLimitService`, `CustomOAuth2UserService`, `TokenBlacklistService`. → E2E_TESTING_STRATEGY.md (A-UT1 a A-UT4)
+- [ ] [Media] **Role change cooldown (post-MVP)** — V3 migration `last_role_change_at` ✅ ya existe. Falta cooldown check en `MemberServiceImpl`. → ref: EMAIL_INVITATION_STRATEGY.md
+- [ ] [Baja] **Facebook OAuth2** — postergado (post-MVP)
 
 ---
 
