@@ -1,3 +1,6 @@
+# Node
+node_modules/
+
 # Environment variables
 .env
 .env.local
@@ -33,6 +36,9 @@ nginx-proxy-manager/
 tmp/
 temp/
 *.tmp
+
+# Playwright
+playwright-report/
 
 # Agent instruction files (local-only)
 AGENTS.md
