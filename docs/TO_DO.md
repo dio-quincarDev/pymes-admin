@@ -18,14 +18,21 @@ Estrategia de cierre: → [`FRONTEND_PENDIENTES_STRATEGY.md`](./frontend/pymes/d
 - [x] [Baja] **PWA: pull to refresh** — En mobile, gesto nativo para refrescar datos. `usePullToRefresh.ts` importado en `DashboardPage.vue` con spinner + animación. (2026-08-02) → FRONTEND_PENDIENTES_STRATEGY (Fase 1).
 - [x] [Baja] **Reportes — fix ruta QuickActions** — `ver-reportes` apunta a `/dashboard/analisis-gastos`. `handleNuevoGasto` redirige a `/dashboard/costos?tab=gastosFijos`. Emit `ver-reportes` eliminado. → FRONTEND_PENDIENTES_STRATEGY (Fase 1). (2026-08-04)
 
-**Fase 2 — Reportes (backend listo)**
+**Fase 2 — Simplificación UI + Salud financiera** ✅ CERRADO (2026-08-05)
 
-- [ ] [Alta] **Reportes — panel salud financiera en Dashboard** (2026-07) — Backend listo (`financialHealth` expuesto en `AnalyticsResponse`). Falta consumirlo en UI: tipo `financialHealth` en `types/analytics.ts`, exponer en `useAnalytics`, panel de alertas financieras en `DashboardPage` (criticalAlerts + recommendations + overallHealth). → FRONTEND_PENDIENTES_STRATEGY (Fase 2).
+Estrategia: eliminar redundancia entre Dashboard (4 KPIs duplicados) y Contabilidad (mismos 4 KPIs). Cada página se queda con su responsabilidad:
+- **Dashboard** = KPIs operativos (Ingresos, Costos, Margen Bruto, Gastos Operativos, Costo/Día) + Margen Operativo + Margen Neto (mover desde Contabilidad) + activity feed + facturas pendientes + quick actions + panel `financialHealth` (nuevo).
+- **Contabilidad** = solo análisis de márgenes consolidados (sin repetir los 4 KPIs del dashboard).
+- **Análisis** = sin cambios (productos, proveedores, predicciones).
 
-**Fase 3 — Cierre modelo de gastos**
+- [x] [Alta] **Eliminar 4 KPIs duplicados de AccountingPage** — quitar Ingresos, Costos, Margen Bruto, Gastos Operativos (mismos que Dashboard). Queda como vista de márgenes consolidados. (2026-08-05)
+- [x] [Alta] **Agregar Margen Operativo + Margen Neto a DashboardPage** — `KpiCard` con `margenOperativoPct` y `margenNetoPct` (ya en `MetricasFinancieras`). (2026-08-05)
+- [x] [Alta] **Panel salud financiera en Dashboard** — tipo `financialHealth` en `types/analytics.ts`, exponer en `useAnalytics`, card con overallHealth, criticalAlerts, recommendations. (2026-08-05)
+
+**Fase 3 — Cierre modelo de gastos** ✅ CERRADO (2026-08-05)
 
 - [x] [Media] **Helper "Pago de salario" en FacturasPage** — tipo `GASTO_OPERATIVO` + colaborador DIARIO + rango de días → total precargado `días × tarifa` (editable) + descripción "Salarios — {nombre}, {rango}". Requiere `FacturaRequest` +`total`/`items` opcional (backend ya lo acepta). → EXPENSES_MODEL_STRATEGY (paso 4) / FRONTEND_PENDIENTES_STRATEGY (Fase 3).
-- [ ] [Media] **Dashboard: gastos desde facturas pagadas** — `useFinancialDashboard` lee facturas `GASTO_OPERATIVO` PAGADAS (por proveedor) en vez de `operating_expenses`, para coincidir con el motor. Elimina `gastoService.getAll` duplicado. → EXPENSES_MODEL_STRATEGY (paso 6) / FRONTEND_PENDIENTES_STRATEGY (Fase 3).
+- [x] [Media] **Dashboard: gastos desde facturas pagadas** — `useFinancialDashboard` lee facturas `GASTO_OPERATIVO` PAGADAS (por categoría) en vez de `operating_expenses`, para coincidir con el motor. Elimina `gastoService.getAll` duplicado. → EXPENSES_MODEL_STRATEGY (paso 6) / FRONTEND_PENDIENTES_STRATEGY (Fase 3). (2026-08-05)
 
 **Diferido (post-MVP)**
 
@@ -65,7 +72,7 @@ Estrategia de cierre: → [`FRONTEND_PENDIENTES_STRATEGY.md`](./frontend/pymes/d
 ### Core — Motor de Costos ([COSTOS_ENGINE.md](./backend/core/docs/COSTOS_ENGINE.md))
 
 - [x] [🔴] **V2 migration: collaboradores, gastos_fijos_recurrentes, config_laboral** — 3 tablas nuevas en schema `core`. Idempotente con `IF NOT EXISTS`. (2026-07-31)
-- [x] [🔴] **V3 migration: costo_operativo_diario en tenant_financial_metrics** — Columna para persistir costo diario calculado. (2026-07-31)
+- [x] [🔴] **V1 consolidado: costo_operativo_diario en tenant_financial_metrics** — Columna para persistir costo diario calculado. (2026-07-31)
 - [x] [🔴] **Módulo `costos/` scaffold** — 3 entities (soft-delete pattern reciclando `GastoOperativo`), 3 repositories, 7 DTOs, 1 controller con 4 grupos de endpoints, 1 service con tenant guard + caching + eventos. Sin mappers MapStruct: `toResponse` manual como en `GastoServiceImpl` (ponytail). (2026-07-31)
 - [x] [Alta] **GET /costos/diario** — Motor de cálculo: suma gastos fijos activos, colaboradores con conversión por frecuencia, divide por días laborales. Cruza con ventas del día para ganancia real estimada. (2026-07-31)
 - [x] [Alta] **Integrar costo diario en MetricasServiceImpl CTE** — Nueva CTE `costos AS (...)` en el query consolidado. Alimenta `costoOperativoDiario` en respuestas de accounting. (2026-07-31)
@@ -81,12 +88,12 @@ Estrategia de cierre: → [`FRONTEND_PENDIENTES_STRATEGY.md`](./frontend/pymes/d
 - [x] [Media] **Facturas GASTO_OPERATIVO sin items** — `FacturaRequest.items` opcional + campo `total`; `createFactura`/`updateFactura` aceptan monto directo cuando `tipo=GASTO_OPERATIVO`. (2026-08-02)
 - [x] [Media] **Patrimonio conectado a la salud financiera** — ~~`CAPITAL_BURN`/`CAPITAL_READINESS`~~ implementadas (2026-08-02) pero **reemplazadas el mismo día** por `PAYBACK_RECOVERY` (ver ítem Recuperación de inversión abajo).
 - [x] [Media] **Alinear `analisisGastoVariable` con el modelo** — revisión SQL (2026-08-02): el dashboard de gasto variable solo cuenta gastos `GASTO_OPERATIVO` PAGADA e incluye facturas sin items vía `i.total` (UNION items/header). Antes ignoraba facturas sin items y contaba REGISTRADA. +IT `gastoVariable_alineadoConModelo`. (2026-08-02)
-- [x] [Baja] **Índice covering con `status`** — `V5__invoices_status_index.sql`: `idx_invoices_tenant_date_type` pasa a `(tenant_id, issue_date, type, status) INCLUDE (total)`. Elimina heap lookup en los CTEs de facturas. (2026-08-02)
+- [x] [Baja] **Índice covering con `status`** — consolidado en V1: `idx_invoices_tenant_date_type` pasa a `(tenant_id, issue_date, type, status) INCLUDE (total)`. Elimina heap lookup en los CTEs de facturas. (2026-08-02)
 - [x] [Media] **Recuperación de inversión (payback real)** — reemplaza `CAPITAL_BURN`/`CAPITAL_READINESS` por señal `PAYBACK_RECOVERY`: `plata a recuperar = capital inicial + saldo pendiente de préstamos ACTIVOS`, `meses = plata ÷ ganancia mensual` (ingresos × margen neto). Semáforo: ganancia ≤0 rojo (crítica), ≤12 verde (expansión), >24 amarillo (solo recomendación), 12-24 neutro. `PrestamoRepository.findByTenantIdAndStatus` + `financialHealth` expuesto en `AnalyticsResponse`. Tests: 4 unit (rojo/verde/amarillo/deuda ACTIVA suma al tiempo) + 2 IT (rojo, deuda ACTIVA suma al tiempo). → [`backend/core/docs/strategies/INVESTMENT_RECOVERY_STRATEGY.md`](./backend/core/docs/strategies/INVESTMENT_RECOVERY_STRATEGY.md) (2026-08-02)
 
 ### Core — Migraciones Flyway
 
-- [x] [Alta] **Consolidar V1–V18 → V1__core_schema.sql único** — Ejecutado 2026-07-30 (estrategia ✅). `db/migration/` queda con V1 (consolidado) + V2/V3/V4 (costos engine). → [`docs/strategies/CORE_MIGRATIONS_STRATEGY.md`](./docs/strategies/CORE_MIGRATIONS_STRATEGY.md)
+- [x] [Alta] **Consolidar V1–V18 → V1__core_schema.sql único** — Ejecutado 2026-07-30 (estrategia ✅). Re-consolidado 2026-08-05: absorbidas V3–V9 (columnas, indexes, FK). `db/migration/` queda con V1 (consolidado) + V2 (costos) + V3 (performance indexes). → [`docs/strategies/CORE_MIGRATIONS_STRATEGY.md`](./docs/strategies/CORE_MIGRATIONS_STRATEGY.md)
 
 ### Gateway
 

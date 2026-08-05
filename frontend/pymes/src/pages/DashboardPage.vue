@@ -3,6 +3,7 @@ import { computed } from 'vue';
 import { useMeta } from 'quasar';
 import { useAuthStore } from 'src/modules/auth/store';
 import { useFinancialDashboard } from 'src/modules/core/composables/useFinancialDashboard';
+import { useAnalytics } from 'src/modules/core/composables/useAnalytics';
 import { useNumberFormat } from 'src/modules/core/composables/useNumberFormat';
 import AnalyticsHeader from 'src/modules/core/components/analytics/AnalyticsHeader.vue';
 import KpiCard from 'src/modules/core/components/analytics/KpiCard.vue';
@@ -10,6 +11,7 @@ import CategoryBreakdownChart from 'src/modules/core/components/analytics/Catego
 import RecentActivity from 'src/modules/core/components/dashboard/RecentActivity.vue';
 import PendingInvoices from 'src/modules/core/components/dashboard/PendingInvoices.vue';
 import QuickActions from 'src/modules/core/components/dashboard/QuickActions.vue';
+import FinancialHealthPanel from 'src/modules/core/components/dashboard/FinancialHealthPanel.vue';
 import BaseButton from 'src/components/base/BaseButton.vue';
 import { usePullToRefresh } from 'src/composables/usePullToRefresh';
 
@@ -34,6 +36,8 @@ const {
   fetch,
   recalcular,
 } = useFinancialDashboard();
+
+const { financialHealth, loading: analyticsLoading } = useAnalytics();
 
 const { pullDistance, isRefreshing } = usePullToRefresh({ onRefresh: fetch });
 
@@ -91,6 +95,22 @@ const kpis = computed<KpiItem[]>(() => {
       deltaLabel: 'vs mes anterior',
       trend: p ? sparkline(p.gastosOperativos, m.gastosOperativos) : undefined,
       accent: 'blue' as const,
+    },
+    {
+      label: 'Margen Operativo',
+      value: formatPercent(m.margenOperativoPct),
+      delta: p ? deltaPct(m.margenOperativoPct, p.margenOperativoPct) : undefined,
+      deltaLabel: 'vs mes anterior',
+      trend: p ? sparkline(p.margenOperativoPct, m.margenOperativoPct) : undefined,
+      accent: 'green' as const,
+    },
+    {
+      label: 'Margen Neto',
+      value: formatPercent(m.margenNetoPct),
+      delta: p ? deltaPct(m.margenNetoPct, p.margenNetoPct) : undefined,
+      deltaLabel: 'vs mes anterior',
+      trend: p ? sparkline(p.margenNetoPct, m.margenNetoPct) : undefined,
+      accent: m.margenNetoPct >= 0 ? 'green' as const : 'red' as const,
     },
     ...(costoKpi ? [costoKpi] : []),
   ];
@@ -158,7 +178,7 @@ const categoryItems = computed(() =>
     <template v-else>
       <AnalyticsHeader
         title="Dashboard"
-        subtitle="Resumen financiero del período"
+        subtitle="Cómo está mi negocio hoy"
         :period="periodo"
         :loading="loading"
         @update:period="setPeriod"
@@ -196,6 +216,7 @@ const categoryItems = computed(() =>
         </div>
         <div class="dashboard-content__side">
           <PendingInvoices :facturas="facturasPendientes" :loading="loading" />
+          <FinancialHealthPanel :data="financialHealth" :loading="analyticsLoading" />
           <QuickActions />
         </div>
       </div>

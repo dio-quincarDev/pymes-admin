@@ -2,11 +2,10 @@ import { ref, computed, watch } from 'vue';
 import { useAuthStore } from 'src/modules/auth/store';
 import { usePeriod } from './usePeriod';
 import { accountingService } from '../services/accounting.service';
-import { gastoService } from '../services/gasto.service';
 import { ventaService } from '../services/venta.service';
 import { facturaService } from '../services/factura.service';
 import { costoService } from '../services/costo.service';
-import type { MetricasFinancieras, GastoOperativo, VentaDiaria, Factura, CostoDiario } from '../types';
+import type { MetricasFinancieras, VentaDiaria, Factura, CostoDiario } from '../types';
 
 export interface GastoPorCategoria {
   categoria: string;
@@ -35,8 +34,6 @@ export function useFinancialDashboard() {
 
   const metricas = ref<MetricasFinancieras | null>(null);
   const metricasPrev = ref<MetricasFinancieras | null>(null);
-  const gastos = ref<GastoOperativo[]>([]);
-  const gastosPrev = ref<GastoOperativo[]>([]);
   const ventas = ref<VentaDiaria[]>([]);
   const facturas = ref<Factura[]>([]);
   const costoDiario = ref<CostoDiario | null>(null);
@@ -44,12 +41,16 @@ export function useFinancialDashboard() {
   const error = ref<string | null>(null);
 
   const gastosPorCategoria = computed<GastoPorCategoria[]>(() => {
-    if (!gastos.value.length) return [];
+    const gastosFacturas = facturas.value.filter(
+      (f) => f.type === 'GASTO_OPERATIVO' && f.status === 'PAGADA',
+    );
+    if (!gastosFacturas.length) return [];
     const totals = new Map<string, number>();
     let grandTotal = 0;
-    for (const g of gastos.value) {
-      totals.set(g.categoria, (totals.get(g.categoria) ?? 0) + g.monto);
-      grandTotal += g.monto;
+    for (const f of gastosFacturas) {
+      const cat = f.category || 'Sin categoría';
+      totals.set(cat, (totals.get(cat) ?? 0) + f.total);
+      grandTotal += f.total;
     }
     if (grandTotal === 0) return [];
     return Array.from(totals.entries())
@@ -57,27 +58,18 @@ export function useFinancialDashboard() {
       .sort((a, b) => b.total - a.total);
   });
 
-  const gastosPorCategoriaPrev = computed<GastoPorCategoria[]>(() => {
-    if (!gastosPrev.value.length) return [];
-    const totals = new Map<string, number>();
-    let grandTotal = 0;
-    for (const g of gastosPrev.value) {
-      totals.set(g.categoria, (totals.get(g.categoria) ?? 0) + g.monto);
-      grandTotal += g.monto;
-    }
-    if (grandTotal === 0) return [];
-    return Array.from(totals.entries())
-      .map(([categoria, total]) => ({ categoria, total, pct: (total / grandTotal) * 100 }))
-      .sort((a, b) => b.total - a.total);
-  });
+  // ponytail: comparación por período no estaba filtrada antes, se mantiene como empty
+  const gastosPorCategoriaPrev = computed<GastoPorCategoria[]>(() => []);
 
   const actividadReciente = computed<ActividadItem[]>(() => {
-    const gastosItems: ActividadItem[] = gastos.value.map((g) => ({
-      type: 'gasto' as const,
-      description: g.descripcion || g.categoria,
-      amount: g.monto,
-      date: g.fecha,
-    }));
+    const gastosItems: ActividadItem[] = facturas.value
+      .filter((f) => f.type === 'GASTO_OPERATIVO' && f.status === 'PAGADA')
+      .map((f) => ({
+        type: 'gasto' as const,
+        description: f.category || 'Gasto',
+        amount: f.total,
+        date: f.issueDate,
+      }));
     const ventasItems: ActividadItem[] = ventas.value.map((v) => ({
       type: 'venta' as const,
       description: v.description || 'Venta del día',
@@ -100,19 +92,15 @@ export function useFinancialDashboard() {
     error.value = null;
     try {
       const prev = getPreviousPeriod(period.value);
-      const [metricasRes, metricasPrevRes, gastosRes, gastosPrevRes, ventasRes, facturasRes, costoRes] = await Promise.all([
+      const [metricasRes, metricasPrevRes, ventasRes, facturasRes, costoRes] = await Promise.all([
         accountingService.consultar(tenantId, period.value),
         accountingService.consultar(tenantId, prev),
-        gastoService.getAll(tenantId),
-        gastoService.getAll(tenantId),
         ventaService.getAll(tenantId),
         facturaService.getAll(tenantId),
         costoService.getDiario(tenantId),
       ]);
       metricas.value = metricasRes.data;
       metricasPrev.value = metricasPrevRes.data;
-      gastos.value = gastosRes.data;
-      gastosPrev.value = gastosPrevRes.data;
       ventas.value = ventasRes.data;
       facturas.value = facturasRes.data;
       costoDiario.value = costoRes.data;
@@ -144,8 +132,6 @@ export function useFinancialDashboard() {
   return {
     metricas,
     metricasPrev,
-    gastos,
-    gastosPrev,
     ventas,
     facturas,
     costoDiario,

@@ -11,6 +11,8 @@ import type {
   SupplierComparisonItem,
   SupplierRecommendationItem,
   PricePredictionItem,
+  FinancialHealth,
+  FinancialHealthAlert,
 } from '../types/analytics';
 import { useAuthStore } from 'src/modules/auth/store';
 import { usePeriod } from './usePeriod';
@@ -72,6 +74,15 @@ export function useAnalytics() {
   const pricePrediction = computed<PricePredictionItem[]>(
     () => data.value?.pricePrediction ?? [],
   );
+  const financialHealth = computed<FinancialHealth | null>(
+    () => data.value?.financialHealth ?? null,
+  );
+  const criticalAlerts = computed<FinancialHealthAlert[]>(
+    () => financialHealth.value?.criticalAlerts ?? [],
+  );
+  const recommendations = computed<string[]>(
+    () => financialHealth.value?.recommendations ?? [],
+  );
 
   watch(period, fetch, { immediate: true });
 
@@ -92,5 +103,8 @@ export function useAnalytics() {
     supplierComparison,
     supplierRecommendations,
     pricePrediction,
+    financialHealth,
+    criticalAlerts,
+    recommendations,
   };
 }

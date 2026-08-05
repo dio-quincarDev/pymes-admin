@@ -346,13 +346,34 @@ CREATE INDEX IF NOT EXISTS idx_collaboradores_tenant ON core.collaboradores(tena
 CREATE INDEX IF NOT EXISTS idx_gastos_fijos_tenant ON core.gastos_fijos_recurrentes(tenant_id);
 ```
 
-### MetricasFinanciera — nuevo campo
+### MetricasFinanciera — costo_operativo_diario
 
-V3: agregar columna a `tenant_financial_metrics`:
+V1 ya incluye `costo_operativo_diario` en `tenant_financial_metrics` (consolidado de V3).
+
+### Performance Indexes (V3)
 
 ```sql
-ALTER TABLE core.tenant_financial_metrics
-ADD COLUMN IF NOT EXISTS costo_operativo_diario DECIMAL(12,2);
+-- Costos CTE: index-only scan para SUM(monto) WHERE activo = true
+CREATE INDEX IF NOT EXISTS idx_gastos_fijos_tenant_active
+    ON core.gastos_fijos_recurrentes(tenant_id, monto)
+    WHERE activo = true;
+
+CREATE INDEX IF NOT EXISTS idx_collaboradores_tenant_active
+    ON core.collaboradores(tenant_id, monto, tipo_pago)
+    WHERE activo = true;
+
+-- Invoice number lookup (FacturaRepository.findMaxInvoiceNumber)
+CREATE INDEX IF NOT EXISTS idx_invoices_tenant_number
+    ON core.invoices(tenant_id, invoice_number);
+
+-- Analytics covering indexes (7+ CTEs en AnalyticsServiceImpl)
+CREATE INDEX IF NOT EXISTS idx_invoices_analytics
+    ON core.invoices(tenant_id, issue_date)
+    INCLUDE (id, provider_id, type, status);
+
+CREATE INDEX IF NOT EXISTS idx_invoice_items_analytics
+    ON core.invoice_items(invoice_id)
+    INCLUDE (product_id, subtotal, unit_price, conversion_factor);
 ```
 
 ---
@@ -371,7 +392,7 @@ Ninguna nueva. Todo usa:
 
 | Paso | Descripción | Archivos |
 |------|------------|----------|
-| 1 | V2 + V3 migration | 2 SQL |
+| 1 | V2 migration + V3 performance indexes | 2 SQL |
 | 2 | 3 entities + TipoPago enum | 4 Java |
 | 3 | 3 repositories | 3 Java |
 | 4 | 7 DTO records | 7 Java |
@@ -384,6 +405,68 @@ Ninguna nueva. Todo usa:
 | 11 | Tests: JPA + unit | 2 Java |
 | 12 | Frontend: CostosPage.vue | 1 Vue |
 | 13 | Dashboard: KPI Costo/Día | 2 edits |
+
+---
+
+## Queries de referencia
+
+### Capa 1 — Config (presupuesto mensual)
+
+```sql
+-- Costo mensual de salarios (desde collaboradores + config_laboral)
+SELECT SUM(
+    CASE tipo_pago
+        WHEN 'DIARIO' THEN monto * (SELECT COALESCE(dias_laborales, 26) FROM core.config_laboral WHERE tenant_id = ?)
+        WHEN 'SEMANAL' THEN monto * 4.33
+        WHEN 'QUINCENAL' THEN monto * 2
+        WHEN 'MENSUAL' THEN monto
+        ELSE monto
+    END
+) AS costo_salarios_mensual
+FROM core.collaboradores
+WHERE tenant_id = ? AND activo = true;
+```
+
+### Capa 2 — Registro real (facturas pagadas)
+
+```sql
+-- Salarios pagados: facturas GASTO_OPERATIVO con categoría SALARIOS
+SELECT i.id AS factura_id,
+       i.total,
+       i.issue_date,
+       i.description,
+       c.nombre AS colaborador_nombre,
+       c.tipo_pago,
+       c.monto AS tarifa
+FROM core.invoices i
+LEFT JOIN core.collaboradores c ON c.id = i.colaborador_id
+WHERE i.tenant_id = ?
+  AND i.category = 'SALARIOS'
+  AND i.type = 'GASTO_OPERATIVO'
+  AND i.status = 'PAGADA'
+ORDER BY i.issue_date DESC;
+```
+
+### Costo operativo diario (CTE consolidado)
+
+```sql
+costos AS (
+    SELECT
+        COALESCE((SELECT SUM(monto) FROM core.gastos_fijos_recurrentes
+                  WHERE tenant_id = ? AND activo = true), 0) AS costo_fijo_mensual,
+        COALESCE((SELECT SUM(
+            CASE tipo_pago
+                WHEN 'DIARIO' THEN monto * (SELECT COALESCE(dias_laborales, 26) FROM core.config_laboral WHERE tenant_id = ?)
+                WHEN 'SEMANAL' THEN monto * 4.33
+                WHEN 'QUINCENAL' THEN monto * 2
+                WHEN 'MENSUAL' THEN monto
+                ELSE monto
+            END
+        ) FROM core.collaboradores WHERE tenant_id = ? AND activo = true), 0) AS costo_salarios_mensual,
+        COALESCE((SELECT dias_laborales FROM core.config_laboral WHERE tenant_id = ?), 26) AS dias_laborales
+)
+-- costo_operativo_diario = (costo_fijo_mensual + costo_salarios_mensual) / dias_laborales
+```
 
 ---
 

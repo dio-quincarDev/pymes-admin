@@ -84,6 +84,41 @@ export interface PricePredictionItem {
   dataPoints: number;
 }
 
+export interface FinancialHealthBreakdown {
+  score: number;
+  drivers: string[];
+}
+
+export interface FinancialHealthAlert {
+  code: string;
+  title: string;
+  description: string;
+  current: number;
+  threshold: number;
+  action: string;
+}
+
+export interface FinancialHealthExpansionRequirement {
+  met: boolean;
+  label: string;
+  current: string;
+}
+
+export interface FinancialHealthExpansion {
+  score: number;
+  status: string;
+  requirements: FinancialHealthExpansionRequirement[];
+}
+
+export interface FinancialHealth {
+  overallHealth: number;
+  breakdown: Record<string, FinancialHealthBreakdown>;
+  criticalAlerts: FinancialHealthAlert[];
+  investmentSignals: Record<string, unknown>[];
+  expansionReadiness: FinancialHealthExpansion;
+  recommendations: string[];
+}
+
 export interface AnalyticsResponse {
   id: string;
   tenantId: string;
@@ -97,4 +132,5 @@ export interface AnalyticsResponse {
   supplierComparison: SupplierComparisonItem[];
   supplierRecommendations: SupplierRecommendationItem[];
   pricePrediction: PricePredictionItem[];
+  financialHealth?: FinancialHealth;
 }

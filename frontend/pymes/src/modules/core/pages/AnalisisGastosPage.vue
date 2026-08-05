@@ -136,7 +136,7 @@ onMounted(() => { if (tenantId) void load() })
   <q-page class="core-page">
     <AnalyticsHeader
       title="Análisis de Gastos"
-      subtitle="¿Dónde va tu plata?"
+      subtitle="Dónde gasto y qué proveedores me convienen"
       :period="period"
       :loading="analyticsLoading || loading"
       @update:period="setPeriod"

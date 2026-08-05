@@ -78,10 +78,9 @@ Ver `CORE.md` §Motor de Salud Financiera para JSON de salida, inputs y diseño 
 
 | Migration | Contenido |
 |-----------|-----------|
-| V1 | Esquema consolidado (V1–V18, 2026-07-30): `expense_analysis` + índices |
+| V1 | Esquema consolidado: `expense_analysis` + `financial_health` JSONB + `costo_operativo_diario` + índices |
 | V2 | Costos engine: `collaboradores`, `gastos_fijos_recurrentes`, `config_laboral` |
-| V3 | `costo_operativo_diario` en `tenant_financial_metrics` |
-| V4 | +1 columna JSONB: `financial_health` (nullable, Motor #10) |
+| V3 | Performance indexes: partial indexes (activo), covering indexes (analytics) |
 
 ---
 
@@ -154,7 +153,7 @@ FROM period_data
 
 | Aspecto | Estado |
 |---------|--------|
-| Indexes | `idx_invoices_tenant_date_type INCLUDE (total)` (V13) — covering index para ABC/opex |
+| Indexes | `idx_invoices_tenant_date_type INCLUDE (total)` (V1) — covering index para ABC/opex, + V3 partial indexes (activo) |
 | Rango fechas | `>= ? AND < ?` (sargable) en vez de `DATE(ts) = ?` |
 | Division por cero | `CASE WHEN grand_total > 0` guard en analisisABC |
 | Redundant indexes | Removidos `idx_operating_expenses_tenant` y `idx_daily_sales_tenant` (composite los cubre) |

@@ -44,34 +44,6 @@ const kpis = computed(() => {
   if (!m) return []
   return [
     {
-      label: 'Ingresos Totales',
-      value: formatCurrency(m.totalIngresos),
-      delta: p ? deltaPct(m.totalIngresos, p.totalIngresos) : undefined,
-      deltaLabel: 'vs mes anterior',
-      accent: 'gold' as const,
-    },
-    {
-      label: 'Costo de Mercadería',
-      value: formatCurrency(m.costoMercaderia),
-      delta: p ? deltaPct(m.costoMercaderia, p.costoMercaderia) : undefined,
-      deltaLabel: 'vs mes anterior',
-      accent: 'red' as const,
-    },
-    {
-      label: 'Gastos Operativos',
-      value: formatCurrency(m.gastosOperativos),
-      delta: p ? deltaPct(m.gastosOperativos, p.gastosOperativos) : undefined,
-      deltaLabel: 'vs mes anterior',
-      accent: 'blue' as const,
-    },
-    {
-      label: 'Margen Bruto',
-      value: formatPercent(m.margenBrutoPct),
-      delta: p ? deltaPct(m.margenBrutoPct, p.margenBrutoPct) : undefined,
-      deltaLabel: 'vs mes anterior',
-      accent: 'green' as const,
-    },
-    {
       label: 'Margen Operativo',
       value: formatPercent(m.margenOperativoPct),
       delta: p ? deltaPct(m.margenOperativoPct, p.margenOperativoPct) : undefined,
@@ -124,7 +96,7 @@ onMounted(() => { if (tenantId) void load() })
   <q-page class="core-page">
     <AnalyticsHeader
       title="Contabilidad"
-      subtitle="Rendimiento financiero consolidado"
+      subtitle="Cuánto gano después de todos los costos"
       :period="periodo"
       :loading="loading"
       @update:period="(v) => { periodo = v; load() }"
@@ -138,7 +110,7 @@ onMounted(() => { if (tenantId) void load() })
     </div>
 
     <div v-if="isLoading" class="kpi-grid">
-      <div v-for="i in 6" :key="i" class="skeleton skeleton--kpi" />
+      <div v-for="i in 2" :key="i" class="skeleton skeleton--kpi" />
     </div>
 
     <div v-else-if="isEmpty" class="empty-state">
@@ -243,16 +215,12 @@ onMounted(() => { if (tenantId) void load() })
 
 .kpi-grid {
   display: grid;
-  grid-template-columns: repeat(6, 1fr);
+  grid-template-columns: repeat(2, 1fr);
   gap: 16px;
   margin-bottom: 24px;
 
-  @media (max-width: 1200px) {
-    grid-template-columns: repeat(3, 1fr);
-  }
-
   @media (max-width: 639px) {
-    grid-template-columns: repeat(2, 1fr);
+    grid-template-columns: 1fr;
   }
 }
 

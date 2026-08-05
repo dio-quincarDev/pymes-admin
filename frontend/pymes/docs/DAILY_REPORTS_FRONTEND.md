@@ -4,6 +4,65 @@ Registro cronológico de decisiones, problemas resueltos y estado del frontend.
 
 ---
 
+## 2026-08-05 — Cierre Fase 2 + Fase 3 + subtítulos descriptivos
+
+### Contexto
+
+Cierre de las fases 2 y 3 del TO_DO.md frontend. Fase 2: simplificación UI (eliminar duplicación Dashboard/Contabilidad + panel salud financiera). Fase 3: cierre del modelo de gastos (facturas como fuente única).
+
+### Fase 2 — Simplificación UI + Salud financiera
+
+**AccountingPage.vue:**
+- Eliminados 4 KPIs duplicados (Ingresos, Costos, Margen Bruto, Gastos Operativos). Quedan solo Margen Operativo + Margen Neto.
+- Grid CSS: `repeat(6, 1fr)` → `repeat(2, 1fr)`.
+- Skeleton: `v-for="i in 6"` → `v-for="i in 2"`.
+
+**DashboardPage.vue:**
+- Agregados 2 KPIs nuevos: Margen Operativo + Margen Neto (datos ya en `MetricasFinancieras`).
+- Import de `useAnalytics` para obtener `financialHealth`.
+- Import + render de `FinancialHealthPanel` en sidebar.
+
+**types/analytics.ts:**
+- +5 interfaces: `FinancialHealthBreakdown`, `FinancialHealthAlert`, `FinancialHealthExpansionRequirement`, `FinancialHealthExpansion`, `FinancialHealth`.
+- `AnalyticsResponse` +`financialHealth?: FinancialHealth`.
+
+**useAnalytics.ts:**
+- +`financialHealth` computed (lee `data.value?.financialHealth`).
+- +`criticalAlerts` computed (deriva de `financialHealth`).
+- +`recommendations` computed (deriva de `financialHealth`).
+
+**FinancialHealthPanel.vue (nuevo):**
+- Score circular 0-100 con color dinámico (rojo <40, amarillo 40-70, verde >70).
+- Lista de `criticalAlerts` (dot + título + acción).
+- Lista de `recommendations`.
+- Loading skeleton + empty state.
+
+### Fase 3 — Cierre modelo de gastos
+
+**useFinancialDashboard.ts:**
+- Eliminado `gastoService` (import + 2 llamadas `getAll` en `Promise.all`).
+- Eliminados refs `gastos` y `gastosPrev`.
+- `gastosPorCategoria` ahora deriva de `facturas` filtradas por `type === 'GASTO_OPERATIVO' && status === 'PAGADA'`, agrupadas por `category`.
+- `gastosPorCategoriaPrev` retorna `[]` (comparación por período no estaba filtrada antes).
+- `actividadReciente` ahora usa facturas en vez de gastos.
+- Reducido `Promise.all` de 7 a 5 llamadas.
+
+### Subtítulos descriptivos
+
+- Dashboard: "Resumen financiero del período" → "Cómo está mi negocio hoy"
+- Análisis: "¿Dónde va tu plata?" → "Dónde gasto y qué proveedores me convienen"
+- Contabilidad: "Rendimiento financiero consolidado" → "Cuánto gano después de todos los costos"
+- `AnalyticsHeader.vue`: eliminado `display: none` del subtítulo en mobile.
+
+### Build
+
+- `npm run lint`: ✅
+- `npm run build`: ✅
+
+**Estado:** ✅ FASE 2 + FASE 3 CERRADAS
+
+---
+
 ## 2026-08-04 — Colaborador en facturas SALARIOS + auto-fill desde gastos fijos + mini-dialog proveedor
 
 ### Contexto

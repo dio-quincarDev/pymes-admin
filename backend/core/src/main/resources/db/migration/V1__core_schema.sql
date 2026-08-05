@@ -1,7 +1,7 @@
--- Consolidado V1–V18 → V1. Fresh stage deploy.
+-- Consolidado V1–V9 → V1. Fresh stage deploy.
 -- Idempotente (IF NOT EXISTS): local con DB existente = no-op tras flyway repair.
 
--- ============ 1. Setup (V1+V2) ============
+-- ============ 1. Setup ============
 
 CREATE TABLE IF NOT EXISTS core.tenant_setup (
     id                   UUID PRIMARY KEY,
@@ -30,9 +30,7 @@ CREATE TABLE IF NOT EXISTS core.template_categories (
 CREATE INDEX IF NOT EXISTS idx_template_categories_industry ON core.template_categories(industry_code);
 CREATE INDEX IF NOT EXISTS idx_template_categories_parent ON core.template_categories(parent_id);
 
--- V17 dropeó template_locations: NO se crea en el estado final.
-
--- ============ 2. Providers (V4+V9) — antes que products/invoices por FKs ============
+-- ============ 2. Providers ============
 
 CREATE TABLE IF NOT EXISTS core.providers (
     id            UUID PRIMARY KEY,
@@ -48,7 +46,7 @@ CREATE TABLE IF NOT EXISTS core.providers (
 
 CREATE INDEX IF NOT EXISTS idx_providers_tenant ON core.providers(tenant_id);
 
--- ============ 3. Products (V3+V7+V10+V14) ============
+-- ============ 3. Products ============
 
 CREATE TABLE IF NOT EXISTS core.products (
     id                 UUID PRIMARY KEY,
@@ -69,7 +67,6 @@ CREATE TABLE IF NOT EXISTS core.products (
     updated_at         TIMESTAMP WITH TIME ZONE NOT NULL DEFAULT NOW()
 );
 
--- idx_products_tenant ELIMINADO: redundante con idx_products_tenant_category (tenant_id es prefijo)
 CREATE UNIQUE INDEX IF NOT EXISTS idx_products_tenant_sku ON core.products(tenant_id, sku) WHERE sku IS NOT NULL;
 CREATE INDEX IF NOT EXISTS idx_products_tenant_category ON core.products(tenant_id, category);
 CREATE INDEX IF NOT EXISTS idx_products_active_tenant ON core.products(tenant_id) WHERE is_active = true;
@@ -86,20 +83,22 @@ CREATE TABLE IF NOT EXISTS core.product_presentations (
 
 CREATE INDEX IF NOT EXISTS idx_presentations_product ON core.product_presentations(product_id);
 
--- ============ 4. Invoices (V4+V5+V6+V15+V16) ============
+-- ============ 4. Invoices (V6: provider_id nullable, V8: category, V9: colaborador) ============
 
 CREATE TABLE IF NOT EXISTS core.invoices (
     id              UUID PRIMARY KEY,
     tenant_id       UUID NOT NULL,
-    provider_id     UUID NOT NULL REFERENCES core.providers(id),
+    provider_id     UUID REFERENCES core.providers(id),
     invoice_number  VARCHAR(50) NOT NULL,
     issue_date      DATE NOT NULL,
     type            VARCHAR(20) NOT NULL,
+    category        VARCHAR(50),
     global_discount DECIMAL(12,2) NOT NULL DEFAULT 0,
     payment_method  VARCHAR(50),
     status          VARCHAR(20) NOT NULL DEFAULT 'REGISTRADA',
     total           DECIMAL(12,2) NOT NULL,
     is_active       BOOLEAN NOT NULL DEFAULT TRUE,
+    colaborador_id  UUID,
     created_at      TIMESTAMP WITH TIME ZONE NOT NULL DEFAULT NOW(),
     updated_at      TIMESTAMP WITH TIME ZONE NOT NULL DEFAULT NOW()
 );
@@ -107,6 +106,7 @@ CREATE TABLE IF NOT EXISTS core.invoices (
 CREATE INDEX IF NOT EXISTS idx_invoices_tenant ON core.invoices(tenant_id);
 CREATE INDEX IF NOT EXISTS idx_invoices_provider ON core.invoices(provider_id);
 CREATE UNIQUE INDEX IF NOT EXISTS idx_invoices_number_tenant ON core.invoices(tenant_id, invoice_number);
+CREATE INDEX IF NOT EXISTS idx_invoices_colaborador_id ON core.invoices(colaborador_id);
 
 CREATE TABLE IF NOT EXISTS core.invoice_items (
     id                     UUID PRIMARY KEY,
@@ -127,12 +127,11 @@ CREATE TABLE IF NOT EXISTS core.invoice_items (
     created_at             TIMESTAMP WITH TIME ZONE NOT NULL DEFAULT NOW()
 );
 
--- idx_invoice_items_invoice ELIMINADO: redundante con idx_invoice_items_invoice_product
 CREATE INDEX IF NOT EXISTS idx_invoice_items_presentacion ON core.invoice_items(presentacion_id);
 CREATE INDEX IF NOT EXISTS idx_invoice_items_product ON core.invoice_items(product_id);
 CREATE INDEX IF NOT EXISTS idx_invoice_items_invoice_product ON core.invoice_items(invoice_id, product_id);
 
--- ============ 5. Analytics (V5+V11) ============
+-- ============ 5. Analytics ============
 
 CREATE TABLE IF NOT EXISTS core.expense_analysis (
     id                       UUID PRIMARY KEY,
@@ -147,13 +146,14 @@ CREATE TABLE IF NOT EXISTS core.expense_analysis (
     supplier_comparison      JSONB,
     supplier_recommendations JSONB,
     price_prediction         JSONB,
+    financial_health         JSONB,
     created_at               TIMESTAMP WITH TIME ZONE NOT NULL DEFAULT NOW(),
     updated_at               TIMESTAMP WITH TIME ZONE NOT NULL DEFAULT NOW()
 );
 
 CREATE INDEX IF NOT EXISTS idx_expense_analysis_tenant_period ON core.expense_analysis(tenant_id, period);
 
--- ============ 6. Accounting (V12+V13) ============
+-- ============ 6. Accounting ============
 
 CREATE TABLE IF NOT EXISTS core.operating_expenses (
     id             UUID PRIMARY KEY,
@@ -225,40 +225,41 @@ CREATE TABLE IF NOT EXISTS core.daily_sales (
 CREATE INDEX IF NOT EXISTS idx_daily_sales_tenant_date ON core.daily_sales(tenant_id, sale_date);
 
 CREATE TABLE IF NOT EXISTS core.tenant_financial_metrics (
-    id                   UUID PRIMARY KEY,
-    tenant_id            UUID NOT NULL,
-    period               VARCHAR(7) NOT NULL,
-    total_income         DECIMAL(15,2) DEFAULT 0,
-    cost_of_goods        DECIMAL(15,2) DEFAULT 0,
-    operating_expenses   DECIMAL(15,2) DEFAULT 0,
-    loan_payments        DECIMAL(15,2) DEFAULT 0,
-    total_expenses       DECIMAL(15,2) DEFAULT 0,
-    gross_margin         DECIMAL(15,2) DEFAULT 0,
-    gross_margin_pct     DECIMAL(10,4) DEFAULT 0,
-    operating_margin     DECIMAL(15,2) DEFAULT 0,
-    operating_margin_pct DECIMAL(10,4) DEFAULT 0,
-    net_margin           DECIMAL(15,2) DEFAULT 0,
-    net_margin_pct       DECIMAL(10,4) DEFAULT 0,
-    created_at           TIMESTAMP WITH TIME ZONE NOT NULL DEFAULT NOW(),
-    updated_at           TIMESTAMP WITH TIME ZONE NOT NULL DEFAULT NOW(),
+    id                     UUID PRIMARY KEY,
+    tenant_id              UUID NOT NULL,
+    period                 VARCHAR(7) NOT NULL,
+    total_income           DECIMAL(15,2) DEFAULT 0,
+    cost_of_goods          DECIMAL(15,2) DEFAULT 0,
+    operating_expenses     DECIMAL(15,2) DEFAULT 0,
+    loan_payments          DECIMAL(15,2) DEFAULT 0,
+    total_expenses         DECIMAL(15,2) DEFAULT 0,
+    gross_margin           DECIMAL(15,2) DEFAULT 0,
+    gross_margin_pct       DECIMAL(10,4) DEFAULT 0,
+    operating_margin       DECIMAL(15,2) DEFAULT 0,
+    operating_margin_pct   DECIMAL(10,4) DEFAULT 0,
+    net_margin             DECIMAL(15,2) DEFAULT 0,
+    net_margin_pct         DECIMAL(10,4) DEFAULT 0,
+    costo_operativo_diario DECIMAL(12,2),
+    created_at             TIMESTAMP WITH TIME ZONE NOT NULL DEFAULT NOW(),
+    updated_at             TIMESTAMP WITH TIME ZONE NOT NULL DEFAULT NOW(),
     CONSTRAINT uk_metrics_tenant_period UNIQUE (tenant_id, period)
 );
 
--- Covering index: SUM(amount) WHERE loan_id = ? AND payment_date >= ? AND payment_date < ?
+-- ============ 7. Covering indexes ============
+
 CREATE INDEX IF NOT EXISTS idx_loan_payments_loan_date
     ON core.loan_payments(loan_id, payment_date)
     INCLUDE (amount);
 
--- Covering index: SUM(total) WHERE tenant_id = ? AND issue_date >= ? AND issue_date < ? AND type = ?
+-- V5: status added for GASTO_OPERATIVO + PAGADA filter
 CREATE INDEX IF NOT EXISTS idx_invoices_tenant_date_type
-    ON core.invoices(tenant_id, issue_date, type)
+    ON core.invoices(tenant_id, issue_date, type, status)
     INCLUDE (total);
 
--- Correlated subqueries en reverseProductStats: WHERE tenant_id = ? AND status != 'ELIMINADA' ORDER BY issue_date DESC, created_at DESC
 CREATE INDEX IF NOT EXISTS idx_invoices_tenant_status_dates
     ON core.invoices(tenant_id, status, issue_date DESC, created_at DESC);
 
--- ============ 7. Template tables (V18) ============
+-- ============ 8. Template tables ============
 
 CREATE TABLE IF NOT EXISTS core.template_units (
     id            UUID PRIMARY KEY,
@@ -293,21 +294,10 @@ CREATE INDEX IF NOT EXISTS idx_template_products_industry ON core.template_produ
 
 CREATE TABLE IF NOT EXISTS core.template_product_presentations (
     id                  UUID PRIMARY KEY,
-    template_product_id UUID NOT NULL,
+    template_product_id UUID NOT NULL REFERENCES core.template_products(id),
     name                VARCHAR(100) NOT NULL,
     conversion          INTEGER NOT NULL DEFAULT 1,
     sort_order          INTEGER NOT NULL DEFAULT 0
 );
 
 CREATE INDEX IF NOT EXISTS idx_template_product_presentations_fk ON core.template_product_presentations(template_product_id);
-
--- ============ 8. Data migration (V8) — JOIN explícito, idempotente ============
-
-UPDATE core.products p
-SET category = tc.id::text
-FROM core.tenant_setup ts
-JOIN core.template_categories tc ON ts.industry = tc.industry_code
-WHERE p.tenant_id = ts.tenant_id
-  AND tc.name = p.category
-  AND p.category IS NOT NULL
-  AND p.category !~ '^[0-9a-f]{8}-';

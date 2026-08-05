@@ -49,7 +49,7 @@ Todos comunican via Spring Events (no bloqueantes). Paquete base: `core_pymes.*`
 | Entidades | `Producto` (UUID, soft-delete), `Presentacion` (FK, conversionFactor, soft-delete) |
 | Endpoints | CRUD `/productos`, CRUD `/productos/{id}/presentaciones`, `DELETE /presentaciones/{id}` |
 | Eventos | `ProductoCreadoEvent`, `PresentacionCreadaEvent` |
-| Flyway | V3: `core.products`, `core.product_presentations` |
+| Flyway | V1: `core.products`, `core.product_presentations` |
 
 ### Invoice (`core_pymes/invoice/`)
 
@@ -61,7 +61,7 @@ Todos comunican via Spring Events (no bloqueantes). Paquete base: `core_pymes.*`
 | Invoice number | `F-PROV-{year}-{sequential:04d}` por tenant |
 | Update logic | Solo `REGISTRADA`. `reverseProductStats()` → `clear items` → `buildItem()` con `InvoiceCalculator` → recalc total |
 | Audit fields | `cantidad_presentacion`, `valor_presentacion`, `precio_unitario_input`, `descuento_input`, `descuento_es_porcentaje` (raw user input) |
-| Flyway | V4: schema, V15: audit fields, V16: performance indexes |
+| Flyway | V1: `core.invoices`, `core.invoice_items`, `core.providers` (nullable provider_id, category, colaborador_id) |
 
 ### Analytics (`core_pymes/analytics/`)
 
@@ -70,7 +70,7 @@ Todos comunican via Spring Events (no bloqueantes). Paquete base: `core_pymes.*`
 | Entidad | `AnalisisGasto` (JSONB por tenant/periodo) |
 | Endpoints | `GET /analytics/consultar`, `POST /analytics/recalcular` |
 | Motores | ABC, tendencias, margenes, opex, proyeccion, alertas, comparativa proveedores, recomendaciones, predicciones, **salud financiera** |
-| Flyway | V1 (esquema consolidado V1–V18), V4 (financial_health JSONB) |
+| Flyway | V1: `core.expense_analysis` (consolidado), `core.financial_health` JSONB |
 | OLS predicción | `analisisProyeccionPrecios`: OLS en SQL (`regr_slope/regr_intercept/regr_r2`) sobre agrupación diaria; `predictedPrice = slope*(n+1)+intercept` (rn 1-based), filtro `data_points >= 3` en `HAVING`. Verificado con EXPLAIN ANALYZE: a escala PYME PG usa `idx_invoices_tenant` + hash join full-scan de `invoice_items` (óptimo, ~4ms); al crecer la tabla cambia solo al nested loop con `idx_invoice_items_invoice_product`. Sin índice nuevo — `invoice_items` no tiene `tenant_id`. |
 | Guard `conversion_factor` | Todas las divisiones por `conversion_factor` usan `NULLIF(conversion_factor, 0)` — filas con factor 0 se excluyen del agregado en vez de lanzar division-by-zero que mata `ejecutarCompleto`. Test `conversionFactorCero_noRompeMotores`. |
 
@@ -467,9 +467,7 @@ POST   /api/v1/core/analytics/recalcular?tenantId={uuid}&periodo=YYYY-MM
 
 | Aspecto | Detalle |
 |---------|---------|
-| Flyway V2 | `industries`, `template_categories` |
-| Flyway V18 | `template_units`, `template_payment_methods`, `template_products`, `template_product_presentations` |
-| V17 | `DROP TABLE IF EXISTS template_locations` (cleanup stock) |
+| Flyway V1 | `industries`, `template_categories`, `template_units`, `template_payment_methods`, `template_products`, `template_product_presentations` (consolidado) |
 | SeedDataRunner | `@Component` idempotente, inserta via JdbcTemplate al startup (sin DDL) |
 | Constantes | Industry codes (8) + SQL INSERT strings (5) — java:S1192 cleanup |
 | Industrias | 8: restaurante, bares, salon_belleza, ferreteria, mini_super, taller_mecanico, farmacia, default |

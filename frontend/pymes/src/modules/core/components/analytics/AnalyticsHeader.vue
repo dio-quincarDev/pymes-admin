@@ -118,10 +118,6 @@ const periodOptions = computed(() => {
     flex-direction: column;
     gap: 12px;
 
-    &__subtitle {
-      display: none;
-    }
-
     &__select {
       min-width: 140px;
     }

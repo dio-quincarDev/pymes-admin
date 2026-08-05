@@ -24,6 +24,62 @@ Registro de lo implementado y lo pendiente.
 
 ---
 
+## 2026-08-05 — Consolidación de migraciones Flyway V1–V9 + Performance Indexes
+
+### Contexto
+
+Las migraciones V1–V9 acumuladas tenían contradicciones: V1 definía `provider_id NOT NULL` pero V6 lo hacía nullable; V1 creaba un índice de 3 columnas que V5 dropeaba y recreaba con 4; V3–V9 agregaban columnas que V1 no incluía. Fresh deploy ejecutaba 9 archivos con operaciones redundantes.
+
+### Qué se hizo
+
+**Consolidación V1 (reescritura):**
+- Absorbidas V3–V9: `category`, `colaborador_id`, `provider_id` nullable, `costo_operativo_diario`, `financial_health` JSONB
+- Fix `idx_invoices_tenant_date_type`: versión final con 4 columnas `(tenant_id, issue_date, type, status) INCLUDE (total)`
+- Fix `template_product_presentations.template_product_id`: agregado FK a `template_products`
+- Eliminada data migration `UPDATE products` (insegura en V1 consolidado)
+- Comentarios limpiados (referencias a V17/V18 eliminadas)
+
+**Consolidación V2 (absorción de V7):**
+- `provider_id UUID REFERENCES core.providers(id)` + índice agregado a `gastos_fijos_recurrentes`
+- `fk_invoices_colaborador` movido de V1 a V2 (FK order: `collaboradores` se define en V2)
+
+**Nueva V3 — Performance Indexes:**
+- `idx_gastos_fijos_tenant_active` — partial `(tenant_id, monto) WHERE activo = true`
+- `idx_collaboradores_tenant_active` — partial `(tenant_id, monto, tipo_pago) WHERE activo = true`
+- `idx_invoices_tenant_number` — composite para `findMaxInvoiceNumber`
+- `idx_invoices_analytics` — covering `(tenant_id, issue_date) INCLUDE (id, provider_id, type, status)`
+- `idx_invoice_items_analytics` — covering `(invoice_id) INCLUDE (product_id, subtotal, unit_price, conversion_factor)`
+
+**Eliminadas V3–V9 originales** (7 archivos).
+
+### Archivos modificados
+
+```
+db/migration/V1__core_schema.sql        # Reescritura completa (304 líneas)
+db/migration/V2__costos_engine.sql      # +provider_id, +FK invoices→collaboradores
+db/migration/V3__performance_indexes.sql # NUEVO (5 indexes)
+db/migration/V3__costo_operativo_diario.sql  # ELIMINADO (absorbido en V1)
+db/migration/V4__add_financial_health.sql    # ELIMINADO (absorbido en V1)
+db/migration/V5__invoices_status_index.sql   # ELIMINADO (absorbido en V1)
+db/migration/V6__invoices_provider_nullable.sql # ELIMINADO (absorbido en V1)
+db/migration/V7__gastos_fijos_provider.sql   # ELIMINADO (absorbido en V2)
+db/migration/V8__add_invoice_category.sql    # ELIMINADO (absorbido en V1)
+db/migration/V9__add_invoice_colaborador.sql # ELIMINADO (absorbido en V1+V2)
+```
+
+### Tests
+
+- 173 unit tests: ✅ BUILD SUCCESS
+- 45 integration tests: ✅ BUILD SUCCESS
+- **Total: 218 tests, 0 failures**
+
+### Notas
+
+- Para DBs existentes con V1–V9 ya aplicados: ejecutar `flyway repair` antes de aplicar la nueva V3.
+- `mvn clean` necesario después de cambiar migraciones (target/ cachea archivos viejos).
+
+---
+
 ## 2026-08-04 — Colaborador en facturas GASTO_OPERATIVO + validación tenant
 
 ### Contexto
@@ -98,12 +154,27 @@ Esto garantiza:
 
 - Schema confirmado: `colaborador_id` UUID, FK `fk_invoices_colaborador`, ON DELETE SET NULL, índice.
 - Datos existentes: facturas 0005/0006 referencian colaboradores válidos (FONCHO, Pan).
-- Query de referencia para dashboards: `SELECT ... FROM core.invoices i JOIN core.collaboradores c ON c.id = i.colaborador_id WHERE i.category = 'SALARIOS'`.
+- Query de referencia para dashboards (salarios pagados — capa 2):
+  ```sql
+  SELECT i.id AS factura_id,
+         i.total,
+         i.issue_date,
+         i.description,
+         c.nombre AS colaborador_nombre,
+         c.tipo_pago,
+         c.monto AS tarifa
+  FROM core.invoices i
+  LEFT JOIN core.collaboradores c ON c.id = i.colaborador_id
+  WHERE i.tenant_id = ?
+    AND i.category = 'SALARIOS'
+    AND i.type = 'GASTO_OPERATIVO'
+    AND i.status = 'PAGADA'
+  ORDER BY i.issue_date DESC;
+  ```
 
 ### Archivos modificados
 
 ```
-resources/db/migration/V9__add_invoice_colaborador.sql          # NUEVO
 core_pymes/invoice/domain/Factura.java                          # +colaboradorId + @ManyToOne
 core_pymes/invoice/dto/FacturaRequest.java                      # +colaboradorId
 core_pymes/invoice/dto/FacturaResponse.java                     # +colaboradorId + collaboradorName
@@ -154,8 +225,6 @@ Se extiende el sistema de proveedores para cubrir dos áreas: facturas GASTO_OPE
 ### Archivos modificados
 
 ```
-resources/db/migration/V6__invoices_provider_nullable.sql               # provider_id nullable en invoices
-resources/db/migration/V7__gastos_fijos_provider.sql                    # NUEVO — provider_id nullable en gastos_fijos
 core_pymes/costos/domain/GastoFijoRecurrente.java                       # providerId + @ManyToOne(LAZY)
 core_pymes/costos/dto/GastoFijoRequest.java                             # +proveedorId
 core_pymes/costos/dto/GastoFijoResponse.java                            # +proveedorId, +proveedorName
@@ -238,7 +307,6 @@ core_pymes/invoice/listener/FacturaPagadaListener.java                          
 core_pymes/invoice/service/impl/FacturaServiceImpl.java                         # evento al pagar + helpers + branch GASTO sin items
 core_pymes/invoice/dto/FacturaRequest.java                                      # items opcional + campo total
 core_pymes/analytics/service/impl/AnalyticsServiceImpl.java                     # señales DAILY_COST/CAPITAL + analisisGastoVariable reescrito
-resources/db/migration/V5__invoices_status_index.sql                            # NUEVO
 core_pymes/integration/ModeloGastosIntegrationTest.java                         # NUEVO (4 ITs)
 core_pymes/integration/FacturaIntegrationTest.java                              # +createGastoOperativoSinItems
 core_pymes/invoice/service/impl/FacturaServiceImplTest.java                     # constructores actualizados
@@ -764,7 +832,6 @@ resources/db/migration/V11__analytics_supplier_fields.sql
 
 ```
 core/setup/service/impl/SetupServiceImpl.java
-resources/db/migration/V8__fix_product_category.sql
 ```
 
 ---

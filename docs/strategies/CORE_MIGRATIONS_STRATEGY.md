@@ -41,6 +41,16 @@ Consolidar 18 migraciones de Flyway en un único `V1__core_schema.sql` idempoten
 
 ---
 
+## Estado final consolidado (2026-08-05)
+
+| Migration | Contenido | Cambios |
+|-----------|-----------|---------|
+| V1 | Esquema consolidado: setup, providers, products, invoices (nullable provider, category, colaborador), expense_analysis (+financial_health), accounting, templates | Absorbe V3-V9: +category, +colaborador_id, +provider_id nullable, +costo_operativo_diario, +financial_health, fix idx_invoices_tenant_date_type, +FK template_product_presentations |
+| V2 | Costos engine: collaboradores, gastos_fijos, config_laboral | Sin cambios |
+| V3 | Performance indexes: partial (activo), covering (analytics), invoice number | Nuevo |
+
+---
+
 ## Consolidación: 6 secciones en 1 archivo
 
 ### Sección 1 — Setup (V1+V2)

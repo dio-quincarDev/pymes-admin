@@ -7,7 +7,7 @@ Objetivo: cerrar los 7 pendientes frontend priorizando backend listo primero, ri
 
 | # | Ítem | Esfuerzo | Dependencia backend | Archivos clave |
 |---|------|----------|---------------------|----------------|
-| 1 | Reportes: panel `financialHealth` + fix ruta QuickActions | Medio | ✅ listo (`financialHealth` en `/core/analytics`) | `useAnalytics.ts`, `types/analytics.ts`, `DashboardPage.vue`, `QuickActions.vue` |
+| 1 | Simplificar UI + panel `financialHealth` | Medio | ✅ listo (`financialHealth` en `/core/analytics`) | `AccountingPage.vue`, `DashboardPage.vue`, `useAnalytics.ts`, `types/analytics.ts` |
 | 2 | Dashboard UI polish | Bajo (subjetivo) | — | `DashboardPage.vue` |
 | 3 | Tour guiado Driver.js | Medio + nueva dep | — | `MainLayout.vue` |
 | 4 | Helper "Pago de salario" | Medio-alto | ✅ listo (`GASTO_OPERATIVO` sin items + `total`) | `FacturasPage.vue`, `types/index.ts` |
@@ -23,13 +23,15 @@ Objetivo: cerrar los 7 pendientes frontend priorizando backend listo primero, ri
 2. **Pull to refresh** — `composables/usePullToRefresh.ts` existe completo y no se importa en ninguna página (código muerto). Cablearlo en `DashboardPage.vue` + indicador visual (pullDistance / isRefreshing).
 3. **Fix ruta QuickActions** — `QuickActions.vue` "Ver reportes" apunta a `/dashboard/accounting` (Contabilidad); debe ir a `/dashboard/analisis-gastos` (donde vive `useAnalytics`). Emit `ver-reportes` es código muerto en `DashboardPage.vue` — eliminar.
 
-## Fase 2 — Reportes (backend 100% listo, mayor valor)
+## Fase 2 — Simplificación UI + Salud financiera
 
-Ítem: **1** (panel `financialHealth`). Cierra el loop de toda la estrategia backend de salud financiera (payback, costo diario, señales críticas).
+Backend 100% listo. Oportunidad de eliminar redundancia: Dashboard y Contabilidad comparten 4 KPIs idénticos de la misma fuente. Estrategia: cada página se queda con su responsabilidad.
 
-1. **Tipo `financialHealth`** en `types/analytics.ts` — shape verificado en `AnalyticsServiceImpl.analisisSaludFinanciera`: `overallHealth` (0-100), `criticalAlerts` (lista de alertas críticas), `investmentSignals`, `expansionReadiness`, `recommendations` (lista de strings). Respuesta vacía cuando no hay métricas.
-2. **Exponerlo en `useAnalytics.ts`** — computed `financialHealth` (y derivados `criticalAlerts`/`recommendations`) leyendo `data.value?.financialHealth`.
-3. **Panel de salud financiera en `DashboardPage.vue`** — card reusando el estilo de `AlertsPanel.vue`: overallHealth, lista de criticalAlerts y recommendations. Solo visible con datos.
+1. **Eliminar 4 KPIs duplicados de `AccountingPage.vue`** — quitar Ingresos, Costos, Margen Bruto, Gastos Operativos (mismos que Dashboard). Queda como vista de márgenes consolidados.
+2. **Agregar Margen Operativo + Margen Neto a `DashboardPage.vue`** — `KpiCard` con `margenOperativoPct` y `margenNetoPct` (ya en `MetricasFinancieras`).
+3. **Tipo `financialHealth`** en `types/analytics.ts` — shape verificado en `AnalyticsServiceImpl.analisisSaludFinanciera`: `overallHealth` (0-100), `criticalAlerts`, `investmentSignals`, `expansionReadiness`, `recommendations`.
+4. **Exponerlo en `useAnalytics.ts`** — computed `financialHealth` (y derivados `criticalAlerts`/`recommendations`).
+5. **Panel de salud financiera en `DashboardPage.vue`** — card con overallHealth, criticalAlerts, recommendations. Solo visible con datos.
 
 ## Fase 3 — Cierre del modelo de gastos (EXPENSES_MODEL_STRATEGY pasos 4/5/6)
 

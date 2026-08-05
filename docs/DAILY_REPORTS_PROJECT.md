@@ -4,6 +4,33 @@ Registro cronológico de decisiones técnicas, refactors y post-mortems del proy
 
 ---
 
+## 2026-08-05 — Consolidación de migraciones Core V1–V9 + Performance Indexes
+
+### Contexto
+
+Las migraciones V1–V9 del core service acumulaban contradicciones de esquema y operaciones redundantes. V1 definía columnas/índices que V3–V9 modificaban inmediatamente. Fresh deploy ejecutaba 9 archivos con DDL contradictorio.
+
+### Qué se hizo
+
+- **V1 reescrito**: absorbidas V3–V9 (columnas, índices, FK). Estado final limpio en un solo archivo.
+- **V2 extendido**: `provider_id` en `gastos_fijos_recurrentes` + FK `invoices→collaboradores`.
+- **V3 nueva**: 5 performance indexes (2 partial para costos CTE, 2 covering para analytics, 1 para invoice number).
+- **V3–V9 originales eliminadas** (7 archivos).
+- Docs actualizados: `CORE.md`, `ANALYTICS.md`, `COSTOS_ENGINE.md`, `CORE_MIGRATIONS_STRATEGY.md`, `TO_DO.md`.
+
+### Resultado
+
+```
+db/migration/
+├── V1__core_schema.sql         (12.7 KB) — Esquema consolidado
+├── V2__costos_engine.sql       (1.7 KB)  — Costos engine + FK
+└── V3__performance_indexes.sql (1.2 KB)  — 5 indexes
+```
+
+173 unit + 45 integration = **218 tests, 0 failures**.
+
+---
+
 ## 2026-07-28 — TeamsPage migration + onAccept email mismatch fix
 
 ### Contexto
