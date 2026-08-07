@@ -1,0 +1,46 @@
+# Gateway Perfil Producción
+server:
+  port: 8080
+
+spring:
+  data:
+    redis:
+      host: ${REDIS_HOST}
+      port: 6379
+
+  cloud:
+    gateway:
+      routes:
+        - id: core-service
+          uri: http://${CORE_SERVICE_HOST}:8082
+          predicates:
+            - Path=/api/v1/core/**
+          filters:
+            - PreserveHostHeader
+            - AuthenticationFilter
+
+        - id: auth-service
+          uri: http://${AUTH_SERVICE_HOST}:8081
+          predicates:
+            - Path=/api/v1/**
+          filters:
+            - PreserveHostHeader
+            - AuthenticationFilter
+
+        - id: auth-service-oauth2
+          uri: http://${AUTH_SERVICE_HOST}:8081
+          predicates:
+            - Path=/oauth2/**, /login/oauth2/**, /login/**, /v3/api-docs/auth
+          filters:
+            - PreserveHostHeader
+
+        # Swagger/OpenAPI spec - Auth Service (public)
+        - id: swagger-api-docs-auth
+          uri: http://${AUTH_SERVICE_HOST}:8081
+          predicates:
+            - Path=/v3/api-docs/auth
+
+logging:
+  level:
+    root: WARN
+    org.springframework.cloud.gateway: WARN

@@ -1,3 +1,6 @@
+# Node
+node_modules/
+
 # Environment variables
 .env
 .env.local
@@ -33,3 +36,23 @@ nginx-proxy-manager/
 tmp/
 temp/
 *.tmp
+
+# Playwright
+playwright-report/
+
+# Agent instruction files (local-only)
+AGENTS.md
+.opencode/
+.agents/
+opencode.json
+.ponytail
+
+# Design specs (local-only)
+.ulpi/
+
+# HyperFrames video project (local-only)
+pymes-architecture-teaser/
+e2e/node_modules/
+e2e/test-results/
+e2e/playwright-report/
+e2e/.auth/

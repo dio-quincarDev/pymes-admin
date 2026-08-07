@@ -12,23 +12,19 @@ export default defineConfig((ctx) => {
     // app boot file (/src/boot)
     // --> boot files are part of "main.js"
     // https://v2.quasar.dev/quasar-cli-vite/boot-files
-    boot: ['i18n', 'axios'],
+    boot: ['i18n', 'axios', 'error-handler', 'web-vitals'],
 
     // https://v2.quasar.dev/quasar-cli-vite/quasar-config-file#css
     css: ['app.scss'],
 
     // https://github.com/quasarframework/quasar/tree/dev/extras
     extras: [
-      // 'ionicons-v4',
-      // 'mdi-v7',
-      // 'fontawesome-v6',
-      // 'eva-icons',
-      // 'themify',
-      // 'line-awesome',
-      // 'roboto-font-latin-ext', // this or either 'roboto-font', NEVER both!
+      'ionicons-v4',
+      'material-icons',
 
-      'roboto-font', // optional, you are not bound to it
-      'material-icons', // optional, you are not bound to it
+      'roboto-font-latin-ext',
+
+      'fontawesome-v6',
     ],
 
     // Full list of options: https://v2.quasar.dev/quasar-cli-vite/quasar-config-file#build
@@ -62,6 +58,16 @@ export default defineConfig((ctx) => {
 
       // extendViteConf (viteConf) {},
       // viteVuePluginOptions: {},
+      extendViteConf(viteConf) {
+        viteConf.css = viteConf.css || {};
+        viteConf.css.preprocessorOptions = viteConf.css.preprocessorOptions || {};
+        (viteConf.css.preprocessorOptions as any).sass = {
+          api: 'legacy',
+        };
+        (viteConf.css.preprocessorOptions as any).scss = {
+          api: 'legacy',
+        };
+      },
 
       vitePlugins: [
         [
@@ -116,7 +122,11 @@ export default defineConfig((ctx) => {
       // directives: [],
 
       // Quasar plugins
-      plugins: [],
+      plugins: [
+        'Notify',
+        'Loading',
+        'LoadingBar',
+      ],
     },
 
     // animations: 'all', // --- includes all animations
@@ -136,6 +146,10 @@ export default defineConfig((ctx) => {
     //   bexManifestFile: 'src-bex/manifest.json
     // },
 
+    bin: {
+      linuxAndroidStudio: '/snap/bin/android-studio'
+    },
+
     // https://v2.quasar.dev/quasar-cli-vite/developing-ssr/configuring-ssr
     ssr: {
       prodPort: 3000, // The default port that the production server should use
@@ -153,7 +167,7 @@ export default defineConfig((ctx) => {
       // manualStoreHydration: true,
       // manualPostHydrationTrigger: true,
 
-      pwa: false,
+      pwa: true,
       // pwaOfflineHtmlFilename: 'offline.html', // do NOT use index.html as name!
 
       // pwaExtendGenerateSWOptions (cfg) {},
@@ -162,7 +176,7 @@ export default defineConfig((ctx) => {
 
     // https://v2.quasar.dev/quasar-cli-vite/developing-pwa/configuring-pwa
     pwa: {
-      workboxMode: 'GenerateSW', // 'GenerateSW' or 'InjectManifest'
+      workboxMode: 'InjectManifest', // 'GenerateSW' or 'InjectManifest'
       // swFilename: 'sw.js',
       // manifestFilename: 'manifest.json',
       // extendManifestJson (json) {},
@@ -181,6 +195,13 @@ export default defineConfig((ctx) => {
     // Full list of options: https://v2.quasar.dev/quasar-cli-vite/developing-capacitor-apps/configuring-capacitor
     capacitor: {
       hideSplashscreen: true,
+      extendConfig: {
+        server: {
+          hostname: '10.0.2.2',
+          port: 9200,
+          cleartext: true,
+        },
+      },
     },
 
     // Full list of options: https://v2.quasar.dev/quasar-cli-vite/developing-electron-apps/configuring-electron

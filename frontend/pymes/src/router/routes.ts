@@ -1,14 +1,42 @@
 import type { RouteRecordRaw } from 'vue-router';
+import { authRoutes, authDashboardRoutes } from 'src/modules/auth/router/routes';
+import { coreRoutes, onboardingRoute } from 'src/modules/core/router/routes';
 
 const routes: RouteRecordRaw[] = [
+  // Public Landing Flow
   {
     path: '/',
-    component: () => import('layouts/MainLayout.vue'),
-    children: [{ path: '', component: () => import('pages/IndexPage.vue') }],
+    component: () => import('layouts/LandingLayout.vue'),
+    children: [
+      { path: '', component: () => import('pages/IndexPage.vue') },
+    ],
   },
 
-  // Always leave this as last one,
-  // but you can also remove it
+  // Auth Flow (Login, Register, etc.)
+  ...authRoutes,
+
+  // Onboarding (post-login, industry selection)
+  onboardingRoute,
+
+  // Private Dashboard Routes
+  {
+    path: '/dashboard',
+    component: () => import('layouts/MainLayout.vue'),
+    meta: { requiresAuth: true },
+    children: [
+      { path: '', component: () => import('pages/DashboardPage.vue') },
+      ...authDashboardRoutes,
+      ...coreRoutes
+    ],
+  },
+
+  // Error pages
+  {
+    path: '/500',
+    component: () => import('pages/ErrorServerError.vue'),
+  },
+
+  // Always leave this as last one
   {
     path: '/:catchAll(.*)*',
     component: () => import('pages/ErrorNotFound.vue'),

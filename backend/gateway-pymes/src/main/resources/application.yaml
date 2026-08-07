@@ -1,0 +1,85 @@
+server:
+  port: 8080
+
+spring:
+  profiles:
+    active: @spring.profiles.active@
+  application:
+    name: pymes-gateway
+
+  data:
+    redis:
+      host: ${REDIS_HOST}
+      port: ${REDIS_PORT:6379}
+
+  cloud:
+    gateway:
+      routes:
+        # Core Service Route — requiere autenticación
+        - id: core-service-api
+          uri: http://${CORE_SERVICE_HOST:localhost}:8082
+          predicates:
+            - Path=/api/v1/core/**
+          filters:
+            - PreserveHostHeader
+            - AuthenticationFilter
+
+        # Auth Service Route (API v1) — requiere autenticación
+        - id: auth-service-api
+          uri: http://${AUTH_SERVICE_HOST}:8081
+          predicates:
+            - Path=/api/v1/**
+          filters:
+            - PreserveHostHeader
+            - AuthenticationFilter
+
+        # Auth Service Route (OAuth2 & Login) — rutas públicas de entrada
+        - id: auth-service-oauth2
+          uri: http://${AUTH_SERVICE_HOST}:8081
+          predicates:
+            - Path=/oauth2/**, /login/oauth2/**, /login/**, /v3/api-docs/auth
+          filters:
+            - PreserveHostHeader
+            # Sin AuthenticationFilter — son rutas públicas de entrada/login
+      globalcors:
+        cors-configurations:
+          '[/**]':
+            allowed-origins: "${CORS_ALLOWED_ORIGINS}"
+            allowed-methods: "GET,POST,PUT,PATCH,DELETE,OPTIONS"
+            allowed-headers: "*"
+            allow-credentials: true
+      default-filters:
+        # CORS deduplication — gateway globalcors + auth service ambos agregan ACAO
+        - DedupeResponseHeader=Access-Control-Allow-Origin Access-Control-Allow-Credentials, RETAIN_FIRST
+        # Security headers
+        - AddResponseHeader=Strict-Transport-Security, "max-age=31536000; includeSubDomains"
+        - AddResponseHeader=X-Frame-Options, DENY
+        - AddResponseHeader=X-Content-Type-Options, nosniff
+        - AddResponseHeader=Referrer-Policy, strict-origin-when-cross-origin
+
+jwt:
+  secret: ${jwt.secret}
+
+# ==================== SWAGGER AGGREGATION ====================
+# Each service's API docs are exposed via Gateway with named paths.
+# To add a new service:
+#   1. Add a route above (swagger-api-docs-{name})
+#   2. Add an entry to the urls list below
+#   3. Configure the service with: springdoc.api-docs.path=/v3/api-docs/{name}
+springdoc:
+  swagger-ui:
+    enabled: true
+    path: /swagger-ui.html
+    config-url: /v3/api-docs/swagger-config
+    urls:
+      - name: Auth Service
+        url: /v3/api-docs/auth
+
+management:
+  endpoints:
+    web:
+      exposure:
+        include: health,info
+  endpoint:
+    health:
+      show-details: always

@@ -1,144 +1,177 @@
 # 🔐 Secrets Requeridos para CI/CD
 
-Este documento lista todos los secrets que debes configurar en GitHub para que los workflows funcionen correctamente.
-
-## 📍 Dónde Configurar
-
-1. Ve a tu repositorio en GitHub
-2. **Settings** → **Secrets and variables** → **Actions**
-3. Click en **New repository secret**
+Todos los secrets deben configurarse en **GitHub → Settings → Secrets and variables → Actions → New repository secret**.
 
 ---
 
-## 🔑 Secrets Requeridos
+## 🐳 Docker Hub
 
-### Docker Hub (Para publicar imágenes)
-
-| Secret Name | Descripción | Ejemplo |
-|-------------|-------------|---------|
-| `DOCKER_USERNAME` | Tu usuario de Docker Hub | `dio-quincar` |
-| `DOCKER_PASSWORD` | Password o Access Token de Docker Hub | `ghp_xxxxxxxxxxxx` |
-
-**Cómo obtener DOCKER_PASSWORD:**
-1. Ve a https://hub.docker.com/settings/security
-2. Genera un "Access Token"
-3. Copia y pégalo en el secret
+| Secret | Descripción | Cómo obtenerlo |
+|--------|-------------|----------------|
+| `DOCKER_USERNAME` | Usuario de Docker Hub | Tu usuario en hub.docker.com |
+| `DOCKER_PASSWORD` | Access Token de Docker Hub | hub.docker.com/settings/security → Generate Access Token |
 
 ---
 
-### Staging Server (Oracle Cloud Free Tier)
+## ☁️ Staging Server (Oracle Cloud Free Tier)
 
-| Secret Name | Descripción | Ejemplo |
-|-------------|-------------|---------|
-| `STAGING_HOST` | IP pública del servidor de staging | `<TU_IP_OCI>` |
-| `STAGING_USER` | Usuario SSH del servidor | `ubuntu` |
+| Secret | Descripción | Ejemplo |
+|--------|-------------|---------|
+| `STAGING_HOST` | IP pública del servidor staging | `<IP_OCI_STAGING>` |
+| `STAGING_USER` | Usuario SSH | `ubuntu` |
 | `STAGING_SSH_KEY` | Llave privada SSH (contenido completo) | `-----BEGIN OPENSSH PRIVATE KEY-----...` |
 
-**Cómo obtener STAGING_SSH_KEY:**
-```bash
-# Copia el contenido completo de tu llave privada
-cat ~/.ssh/<TU_LLAVE_PRIVADA>
-# Copia TODO el output (incluye BEGIN y END)
-```
+---
+
+## 🚀 Production Server (Oracle Cloud Free Tier)
+
+| Secret | Descripción | Ejemplo |
+|--------|-------------|---------|
+| `PROD_HOST` | IP pública del servidor producción | `<IP_OCI_PROD>` |
+| `PROD_USER` | Usuario SSH | `ubuntu` |
+| `PROD_SSH_KEY` | Llave privada SSH (contenido completo) | `-----BEGIN OPENSSH PRIVATE KEY-----...` |
 
 ---
 
-### Production Server (Oracle Cloud Free Tier)
+## 🗄️ Base de Datos (PostgreSQL)
 
-| Secret Name | Descripción | Ejemplo |
-|-------------|-------------|---------|
-| `PROD_HOST` | IP pública del servidor de producción | `<TU_IP_PROD>` |
-| `PROD_USER` | Usuario SSH del servidor | `ubuntu` |
-| `PROD_SSH_KEY` | Llave privada SSH para producción | `-----BEGIN OPENSSH PRIVATE KEY-----...` |
+| Secret | Descripción | Ejemplo |
+|--------|-------------|---------|
+| `DB_NAME` | Nombre de la base de datos | `pymes_db` |
+| `DB_USERNAME` | Usuario de PostgreSQL | `postgres` |
+| `DB_PASSWORD` | Contraseña de PostgreSQL | *(password real)* |
 
 ---
 
-## 📝 Resumen de Secrets
+## 🔑 JWT (JSON Web Tokens)
+
+| Secret | Descripción | Valor recomendado |
+|--------|-------------|-------------------|
+| `JWT_SECRET` | Clave secreta para firmar tokens (≥256 bits) | `openssl rand -hex 32` |
+| `JWT_ACCESS_EXPIRATION` | Expiración del access token (ms) | `900000` (15 min) |
+| `JWT_REFRESH_EXPIRATION` | Expiración del refresh token (ms) | `604800000` (7 días) |
+
+---
+
+## 🔐 OAuth2 (Google & Facebook)
+
+| Secret | Descripción | Dónde obtenerlo |
+|--------|-------------|-----------------|
+| `GOOGLE_CLIENT_ID` | Client ID de Google OAuth | console.cloud.google.com → APIs & Services → Credentials |
+| `GOOGLE_CLIENT_SECRET` | Client Secret de Google OAuth | console.cloud.google.com → APIs & Services → Credentials |
+| `FACEBOOK_CLIENT_ID` | App ID de Facebook OAuth | developers.facebook.com → My Apps |
+| `FACEBOOK_CLIENT_SECRET` | App Secret de Facebook OAuth | developers.facebook.com → My Apps → App Settings |
+| `OAUTH2_REDIRECT_URI` | URI de redirección OAuth2 | `http://staging.tudominio.com` / `https://tudominio.com` |
+
+---
+
+## 📧 Email (SMTP - Gmail)
+
+| Secret | Descripción | Ejemplo |
+|--------|-------------|---------|
+| `SPRING_MAIL_USERNAME` | Correo Gmail para envío de emails | `devpruebas.zar@gmail.com` |
+| `SPRING_MAIL_PASSWORD` | App Password de Gmail | *(16 caracteres)* |
+
+**Cómo obtener SPRING_MAIL_PASSWORD:**
+1. Ve a myaccount.google.com/security
+2. Activa **2-Step Verification**
+3. Ve a myaccount.google.com/apppasswords
+4. Genera un "App Password" para "Mail"
+5. Copia los 16 caracteres
+
+---
+
+## 🌐 CORS (Cross-Origin Resource Sharing)
+
+| Secret | Descripción | Ejemplo |
+|--------|-------------|---------|
+| `CORS_ALLOWED_ORIGINS_STAGING` | Orígenes permitidos en staging | `http://staging.tudominio.com:9200` |
+| `CORS_ALLOWED_ORIGINS_PROD` | Orígenes permitidos en producción | `https://tudominio.com,https://app.tudominio.com` |
+
+---
+
+## 📝 Resumen completo (23 secrets)
 
 ```
-DOCKER_USERNAME       → Usuario Docker Hub
-DOCKER_PASSWORD       → Token Docker Hub
-STAGING_HOST          → IP Staging (Oracle Cloud)
-STAGING_USER          → SSH User Staging (ubuntu)
-STAGING_SSH_KEY       → SSH Key Staging
-PROD_HOST             → IP Producción (Oracle Cloud)
-PROD_USER             → SSH User Producción (ubuntu)
-PROD_SSH_KEY          → SSH Key Producción
+# Docker
+DOCKER_USERNAME
+DOCKER_PASSWORD
+
+# Staging
+STAGING_HOST
+STAGING_USER
+STAGING_SSH_KEY
+
+# Producción
+PROD_HOST
+PROD_USER
+PROD_SSH_KEY
+
+# Base de datos
+DB_NAME
+DB_USERNAME
+DB_PASSWORD
+
+# JWT
+JWT_SECRET
+JWT_ACCESS_EXPIRATION
+JWT_REFRESH_EXPIRATION
+
+# OAuth2
+GOOGLE_CLIENT_ID
+GOOGLE_CLIENT_SECRET
+FACEBOOK_CLIENT_ID
+FACEBOOK_CLIENT_SECRET
+OAUTH2_REDIRECT_URI
+
+# Email
+SPRING_MAIL_USERNAME
+SPRING_MAIL_PASSWORD
+
+# CORS
+CORS_ALLOWED_ORIGINS_STAGING
+CORS_ALLOWED_ORIGINS_PROD
 ```
 
 ---
 
 ## 🛠️ Configuración del Servidor Oracle Cloud
 
-### 1. Crear la instancia Ubuntu
-
-1. Ve a Oracle Cloud Console
-2. **Compute** → **Instances** → **Create Instance**
-3. Selecciona:
-   - Image: **Ubuntu 22.04** o **24.04**
-   - Shape: **VM.Standard.A1.Flex** (Free Tier - ARM) o **VM.Standard.E2.1.Micro** (Free Tier - AMD)
-   - SSH Keys: Sube tu llave pública
-
-### 2. Configurar el servidor
-
 ```bash
-# Conéctate a tu instancia
+# Conectar
 ssh -i ~/.ssh/<TU_LLAVE> ubuntu@<TU_IP_PUBLICA>
 
 # Instalar Docker
 curl -fsSL https://get.docker.com -o get-docker.sh
 sudo sh get-docker.sh
-
-# Agregar usuario al grupo docker
 sudo usermod -aG docker $USER
 newgrp docker
-
-# Instalar Docker Compose Plugin
 sudo apt update && sudo apt install -y docker-compose-plugin
 
-# Verificar instalación
-docker --version
-docker compose version
-```
-
-### 3. Clonar el repositorio
-
-```bash
+# Clonar repositorio
 git clone https://github.com/dio-quincarDev/pymes-admin.git ~/pymes-admin
-cd ~/pymes-admin
-
-# Configurar variables de entorno
-cp backend/auth/.env.example backend/auth/.env
-nano backend/auth/.env  # Edita con tus valores reales
 ```
 
-### 4. Configurar Security List (Oracle Cloud)
-
-En Oracle Cloud Console:
-1. Ve a tu **Virtual Cloud Network**
-2. **Security Lists** → Agrega las siguientes reglas de ingress:
+### Security List (Oracle Cloud)
 
 | Puerto | Protocolo | Descripción |
 |--------|-----------|-------------|
 | 22 | TCP | SSH |
+| 8080 | TCP | Gateway Service |
 | 8081 | TCP | Auth Service |
-| 80 | TCP | HTTP (si usas proxy) |
-| 443 | TCP | HTTPS (si usas SSL) |
+| 9200 | TCP | Frontend |
+| 80 | TCP | HTTP (opcional) |
+| 443 | TCP | HTTPS (opcional) |
 
 ---
 
 ## ✅ Verificar Configuración
 
-Después de configurar los secrets, puedes verificar que todo está correcto:
-
-1. Haz un push a una rama `feature/test`
-   - ✅ Debe correr solo el CI (build + tests)
-
-2. Haz un push a `develop`
-   - ✅ Debe correr CI + Deploy a Staging
-
-3. Haz un push a `main`
-   - ✅ Debe correr CI + Quality Gate + Deploy a Producción
+| Acción | Workflow que se ejecuta |
+|--------|------------------------|
+| Push a `feature/**` | CI (build + tests). Salta si solo cambian `**/*.md` |
+| Push a `develop` | CI + CD Staging |
+| Push a `main` | CI + CD Producción |
 
 ---
 
@@ -146,15 +179,8 @@ Después de configurar los secrets, puedes verificar que todo está correcto:
 
 | Problema | Solución |
 |----------|----------|
-| `Permission denied (publickey)` | Verifica que STAGING_SSH_KEY tenga el contenido completo de la llave privada |
+| `Permission denied (publickey)` | Verifica que STAGING_SSH_KEY / PROD_SSH_KEY tenga el contenido **completo** de la llave privada |
 | `docker: command not found` | Ejecuta `newgrp docker` en el servidor |
 | `Connection timed out` | Verifica Security List en Oracle Cloud Console |
 | `unauthorized: authentication required` | Verifica DOCKER_USERNAME y DOCKER_PASSWORD |
-
----
-
-<div align="center">
-
-**PyMes Admin** - Secrets Documentation 🔐
-
-</div>
+| `.env` file found in repo | Los `.env` están en `.gitignore`, pero si ya están trackeados, ejecuta `git rm --cached .env` |

@@ -1,0 +1,79 @@
+spring:
+  profiles:
+    active: @spring.profiles.active@
+  application:
+    name: core
+  autoconfigure:
+    exclude:
+      - org.springframework.boot.autoconfigure.security.servlet.UserDetailsServiceAutoConfiguration
+
+  threads:
+    virtual:
+      enabled: true
+
+  datasource:
+    url: jdbc:postgresql://${DB_HOST}:${DB_PORT}/${DB_NAME}
+    username: ${DB_USERNAME}
+    password: ${DB_PASSWORD}
+    driver-class-name: org.postgresql.Driver
+    hikari:
+      maximum-pool-size: 20
+
+  jpa:
+    hibernate:
+      ddl-auto: none
+    show-sql: false
+    properties:
+      hibernate:
+        dialect: org.hibernate.dialect.PostgreSQLDialect
+        default_schema: core
+
+  flyway:
+    enabled: true
+    schemas: core
+    locations: classpath:db/migration
+    baseline-on-migrate: true
+
+  data:
+    redis:
+      host: ${REDIS_HOST}
+      port: ${REDIS_PORT}
+
+  jackson:
+    serialization:
+      write-dates-as-timestamps: false
+    default-property-inclusion: non_null
+
+services:
+  auth:
+    base-url: ${AUTH_SERVICE_URL}
+
+server:
+  port: ${SERVER_PORT:8082}
+  servlet:
+    context-path: /
+
+management:
+  endpoints:
+    web:
+      exposure:
+        include: health,info
+  endpoint:
+    health:
+      show-details: when_authorized
+  health:
+    db:
+      enabled: true
+    redis:
+      enabled: true
+
+springdoc:
+  swagger-ui:
+    path: /swagger-ui/index.html
+    enabled: ${SWAGGER_ENABLED:true}
+  api-docs:
+    path: /v3/api-docs/core
+    enabled: ${SWAGGER_ENABLED:true}
+  server:
+    url: ${SWAGGER_SERVER_URL:http://localhost:8080}
+    description: Gateway URL

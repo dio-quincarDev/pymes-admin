@@ -1,0 +1,53 @@
+package auth.pymes.controller;
+
+import auth.pymes.common.constants.ApiPathConstants;
+import auth.pymes.common.models.dto.request.CreateTenantRequest;
+import auth.pymes.common.models.dto.request.SelectTenantRequest;
+import auth.pymes.common.models.dto.response.ApiResponse;
+import auth.pymes.common.models.dto.response.AuthResponse;
+import auth.pymes.common.models.dto.response.TenantResponse;
+import auth.pymes.common.models.dto.response.UserTenantResponse;
+import io.swagger.v3.oas.annotations.Operation;
+import io.swagger.v3.oas.annotations.tags.Tag;
+import jakarta.validation.Valid;
+import org.springframework.data.domain.Page;
+import org.springframework.data.domain.Pageable;
+import org.springframework.http.ResponseEntity;
+import org.springframework.security.core.Authentication;
+import org.springframework.web.bind.annotation.DeleteMapping;
+import org.springframework.web.bind.annotation.GetMapping;
+import org.springframework.web.bind.annotation.PathVariable;
+import org.springframework.web.bind.annotation.PostMapping;
+import org.springframework.web.bind.annotation.RequestBody;
+import org.springframework.web.bind.annotation.RequestMapping;
+
+import java.util.UUID;
+
+@Tag(name = "Tenants", description = "Endpoints de gestión de empresas/tenants")
+@RequestMapping(ApiPathConstants.V1_ROUTE + ApiPathConstants.TENANTS_ROUTE)
+public interface TenantApi {
+
+    @Operation(summary = "Obtener tenants del usuario", description = "Lista todas las empresas/tenants a las que pertenece el usuario")
+    @GetMapping
+    ResponseEntity<ApiResponse<Page<UserTenantResponse>>> getUserTenants(
+            Pageable pageable,
+            Authentication authentication);
+
+    @Operation(summary = "Seleccionar tenant activo", description = "Cambia el tenant activo para el usuario")
+    @PostMapping(ApiPathConstants.TENANTS_SELECT)
+    ResponseEntity<ApiResponse<AuthResponse>> selectTenant(
+            @Valid @RequestBody SelectTenantRequest request,
+            Authentication authentication);
+
+    @Operation(summary = "Crear nuevo tenant", description = "Crea una nueva empresa/tenant para el usuario autenticado")
+    @PostMapping
+    ResponseEntity<ApiResponse<TenantResponse>> createTenant(
+            @Valid @RequestBody CreateTenantRequest request,
+            Authentication authentication);
+
+    @Operation(summary = "Shutdown tenant", description = "Realiza el shutdown (soft delete) de un tenant. Solo el OWNER puede ejecutar esta accion.")
+    @DeleteMapping("/{tenantId}")
+    ResponseEntity<ApiResponse<Void>> shutdownTenant(
+            @PathVariable UUID tenantId,
+            Authentication authentication);
+}

@@ -1,24 +1,43 @@
+# Perfil de Test Unitario / Local (H2 In-Memory)
 spring:
   datasource:
     url: jdbc:h2:mem:testdb;DB_CLOSE_DELAY=-1;DB_CLOSE_ON_EXIT=FALSE;MODE=PostgreSQL
     driver-class-name: org.h2.Driver
     username: sa
-    password:
+    password: ""
+  
   jpa:
     database-platform: org.hibernate.dialect.H2Dialect
     hibernate:
       ddl-auto: create-drop
     show-sql: true
+    properties:
+      hibernate:
+        format_sql: true
+
   flyway:
     enabled: false
+
   data:
     redis:
       repositories:
         enabled: false
+
   autoconfigure:
     exclude:
       - org.springframework.boot.autoconfigure.data.redis.RedisAutoConfiguration
       - org.springframework.boot.autoconfigure.data.redis.RedisRepositoriesAutoConfiguration
+  
+  security:
+    oauth2:
+      client:
+        registration:
+          google:
+            client-id: unit-test-google-id
+            client-secret: unit-test-google-secret
+          facebook:
+            client-id: unit-test-facebook-id
+            client-secret: unit-test-facebook-secret
 
 management:
   health:
@@ -26,7 +45,8 @@ management:
       enabled: false
 
 jwt:
-  secret: 404E635266556A586E3272357538782F413F4428472B4B6250645367566B5970
+  # Secreto mock para tests unitarios (no debe usarse en ningún entorno real)
+  secret: ${JWT_SECRET_TEST:404E635266556A586E3272357538782F413F4428472B4B6250645367566B5970_UNIT_TEST_SECRET}
   access-expiration: 3600000
   refresh-expiration: 86400000
 

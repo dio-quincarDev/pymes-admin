@@ -1,0 +1,15 @@
+{
+	"appId": "org.capacitor.quasar.app",
+	"appName": "pymes",
+	"webDir": "www",
+	"server": {
+		"androidScheme": "https",
+		"hostname": "10.0.2.2",
+		"port": 9200,
+		"url": "http://192.168.60.133:9500",
+		"cleartext": true
+	},
+	"android": {
+		"allowMixedContent": true
+	}
+}

@@ -1,0 +1,1 @@
+ALTER TABLE auth.tenants ADD COLUMN IF NOT EXISTS last_role_change_at TIMESTAMP WITH TIME ZONE;

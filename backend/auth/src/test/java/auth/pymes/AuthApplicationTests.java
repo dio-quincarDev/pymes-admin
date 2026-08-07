@@ -1,12 +1,9 @@
 package auth.pymes;
 
+import auth.pymes.integration.AbstractIntegrationTest;
 import org.junit.jupiter.api.Test;
-import org.springframework.boot.test.context.SpringBootTest;
-import org.springframework.test.context.ActiveProfiles;
 
-@SpringBootTest
-@ActiveProfiles("test")
-class AuthApplicationTests {
+class AuthApplicationTests extends AbstractIntegrationTest {
 
 	@Test
 	void contextLoads() {

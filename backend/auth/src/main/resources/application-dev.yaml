@@ -1,0 +1,35 @@
+# Perfil de Desarrollo Local
+server:
+  port: 8081
+
+spring:
+  datasource:
+    url: jdbc:postgresql://${DB_HOST:localhost}:${DB_PORT:5432}/${DB_NAME:pymes_db}?currentSchema=auth
+    username: ${DB_USERNAME:postgres}
+    password: ${DB_PASSWORD:postgres}
+
+  data:
+    redis:
+      host: ${REDIS_HOST:localhost}
+      port: ${REDIS_PORT:6379}
+
+  jpa:
+    show-sql: true
+    properties:
+      hibernate:
+        format_sql: true
+
+# Secretos deben proveerse via archivo .env local o variables de entorno
+jwt:
+  access-expiration: 3600000
+  refresh-expiration: 86400000
+
+app:
+  cors:
+    allowed-origins: "http://localhost:9200"
+
+logging:
+  level:
+    auth.pymes: DEBUG
+    org.springframework: INFO
+    org.hibernate.SQL: DEBUG

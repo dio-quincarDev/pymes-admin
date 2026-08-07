@@ -1,25 +1,61 @@
-// Quasar SCSS (& Sass) Variables
-// --------------------------------------------------
-// To customize the look and feel of this app, you can override
-// the Sass/SCSS variables found in Quasar's source Sass/SCSS files.
+// Quasar SCSS Variables
+// PYMEQ Design System — Swiss / Grid + Institutional Warmth
+// See .ulpi/design/DESIGN.md for full spec.
 
-// Check documentation for full list of Quasar variables
+// Paleta de Colores
+$primary   : #C8963E; // Bronze Amber (acento)
+$secondary : #F5F3EF; // Warm white (texto)
+$accent    : #9B9790; // Muted warm grey (soporte)
 
-// Your own variables (that are declared here) and Quasar's own
-// ones will be available out of the box in your .vue/.scss/.sass files
+$dark      : #12141A; // Surface (tarjetas/sidebar)
+$dark-page : #08090D; // Background (fondo base)
 
-// It's highly recommended to change the default colors
-// to match your app's branding.
-// Tip: Use the "Theme Builder" on Quasar's documentation website.
+$positive  : #3D7A5A; // Success
+$negative  : #A04038; // Danger
+$info      : #6E8BB8; // Info
+$warning   : #C8A042; // Warning
 
-$primary: #1976d2;
-$secondary: #26a69a;
-$accent: #9c27b0;
+$grid-gutter: 40px;
 
-$dark: #1d1d1d;
-$dark-page: #121212;
+// Spacing (4px base)
+$pq-space-4xs: 4px;
+$pq-space-3xs: 6px;
+$pq-space-2xs: 8px;
+$pq-space-xs: 12px;
+$pq-space-sm: 16px;
+$pq-space-md: 24px;
+$pq-space-lg: 32px;
+$pq-space-xl: 40px;
+$pq-space-2xl: 48px;
+$pq-space-3xl: 64px;
 
-$positive: #21ba45;
-$negative: #c10015;
-$info: #31ccec;
-$warning: #f2c037;
+// Border Radius (precise, not rounded)
+$pq-radius-xs: 2px;
+$pq-radius-sm: 4px;
+$pq-radius-md: 6px;
+$pq-radius-lg: 8px;
+$pq-radius-xl: 12px;
+$pq-radius-2xl: 16px;
+$pq-radius-full: 9999px;
+
+// Shadows (elevation only, no glow)
+$shadow-subtle: 0 1px 3px rgba(0, 0, 0, 0.3);
+$shadow-sm: 0 4px 10px rgba(0, 0, 0, 0.3);
+$shadow-md: 0 8px 24px rgba(0, 0, 0, 0.25);
+$shadow-lg: 0 16px 48px rgba(0, 0, 0, 0.3);
+
+// Transitions
+$transition-fast: 80ms ease;
+$transition-base: 160ms cubic-bezier(0.4, 0, 0.2, 1);
+$transition-smooth: 240ms cubic-bezier(0.16, 1, 0.3, 1);
+$transition-slow: 320ms ease;
+
+// Z-Index Scale
+$z-base: 1;
+$z-dropdown: 100;
+$z-sticky: 200;
+$z-fixed: 300;
+$z-modal-backdrop: 400;
+$z-modal: 500;
+$z-popover: 600;
+$z-tooltip: 700;

@@ -1,5 +1,5 @@
 -- ============================================================
--- PyMes Auth Microservice - Initial Schema
+-- PyMes Auth Microservice - Initial Schema (Clean Version)
 -- ============================================================
 
 -- Enable UUID extension
@@ -16,11 +16,15 @@ CREATE TABLE users (
     provider_id VARCHAR(255) NOT NULL,
     picture_url TEXT,
     phone VARCHAR(20),
+    password VARCHAR(255),
+    email_verified_at TIMESTAMP WITH TIME ZONE,
+    deleted_at TIMESTAMP WITH TIME ZONE,
     is_active BOOLEAN DEFAULT TRUE NOT NULL,
     created_at TIMESTAMP WITH TIME ZONE DEFAULT CURRENT_TIMESTAMP NOT NULL,
     updated_at TIMESTAMP WITH TIME ZONE DEFAULT CURRENT_TIMESTAMP NOT NULL,
 
-    CONSTRAINT users_provider_provider_id_unique UNIQUE (provider, provider_id)
+    CONSTRAINT users_provider_provider_id_unique UNIQUE (provider, provider_id),
+    CONSTRAINT users_provider_check CHECK (provider IN ('GOOGLE', 'FACEBOOK', 'LOCAL'))
 );
 
 CREATE INDEX idx_users_email ON users(email);
@@ -34,16 +38,19 @@ CREATE TABLE tenants (
     name VARCHAR(255) NOT NULL,
     slug VARCHAR(50) UNIQUE NOT NULL,
     industry VARCHAR(50),
-    plan VARCHAR(50) DEFAULT 'free' NOT NULL,
+    plan VARCHAR(50) DEFAULT 'FREE' NOT NULL,
     plan_expires_at TIMESTAMP WITH TIME ZONE,
     max_users INTEGER DEFAULT 1 NOT NULL,
     stripe_customer_id VARCHAR(255),
     logo_url TEXT,
     timezone VARCHAR(50) DEFAULT 'America/Panama' NOT NULL,
     currency VARCHAR(3) DEFAULT 'USD' NOT NULL,
+    deleted_at TIMESTAMP WITH TIME ZONE,
     is_active BOOLEAN DEFAULT TRUE NOT NULL,
     created_at TIMESTAMP WITH TIME ZONE DEFAULT CURRENT_TIMESTAMP NOT NULL,
-    updated_at TIMESTAMP WITH TIME ZONE DEFAULT CURRENT_TIMESTAMP NOT NULL
+    updated_at TIMESTAMP WITH TIME ZONE DEFAULT CURRENT_TIMESTAMP NOT NULL,
+
+    CONSTRAINT tenants_plan_check CHECK (plan IN ('FREE', 'STARTER', 'PRO', 'ENTERPRISE'))
 );
 
 CREATE INDEX idx_tenants_slug ON tenants(slug);
@@ -62,6 +69,7 @@ CREATE TABLE user_tenants (
     invited_at TIMESTAMP WITH TIME ZONE DEFAULT CURRENT_TIMESTAMP NOT NULL,
     accepted_at TIMESTAMP WITH TIME ZONE,
     is_active BOOLEAN DEFAULT TRUE NOT NULL,
+    deleted_at TIMESTAMP WITH TIME ZONE,
     created_at TIMESTAMP WITH TIME ZONE DEFAULT CURRENT_TIMESTAMP NOT NULL,
 
     CONSTRAINT user_tenants_user_tenant_unique UNIQUE (user_id, tenant_id),
@@ -101,6 +109,7 @@ CREATE TABLE refresh_tokens (
     user_id UUID NOT NULL REFERENCES users(id) ON DELETE CASCADE,
     tenant_id UUID REFERENCES tenants(id) ON DELETE SET NULL,
     token_hash VARCHAR(255) NOT NULL,
+    CONSTRAINT refresh_tokens_token_hash_unique UNIQUE (token_hash),
     expires_at TIMESTAMP WITH TIME ZONE NOT NULL,
     revoked BOOLEAN DEFAULT FALSE NOT NULL,
     created_at TIMESTAMP WITH TIME ZONE DEFAULT CURRENT_TIMESTAMP NOT NULL
@@ -115,7 +124,7 @@ CREATE INDEX idx_refresh_tokens_revoked ON refresh_tokens(revoked);
 -- ============================================================
 CREATE TABLE audit_log (
     id UUID PRIMARY KEY DEFAULT uuid_generate_v4(),
-    tenant_id UUID NOT NULL,
+    tenant_id UUID NOT NULL REFERENCES tenants(id) ON DELETE CASCADE,
     user_id UUID REFERENCES users(id) ON DELETE SET NULL,
     action VARCHAR(100) NOT NULL,
     resource VARCHAR(100),
@@ -126,16 +135,13 @@ CREATE TABLE audit_log (
     created_at TIMESTAMP WITH TIME ZONE DEFAULT CURRENT_TIMESTAMP NOT NULL
 );
 
-CREATE INDEX idx_audit_log_tenant ON audit_log(tenant_id);
+CREATE INDEX idx_audit_log_tenant_created ON audit_log(tenant_id, created_at);
 CREATE INDEX idx_audit_log_user ON audit_log(user_id);
 CREATE INDEX idx_audit_log_action ON audit_log(action);
-CREATE INDEX idx_audit_log_created ON audit_log(created_at);
 
--- ============================================================
--- SEED DATA - Roles iniciales (información en código)
--- ============================================================
--- Los roles y permisos están hardcodeados en la aplicación
--- Ver: auth.pymes.common.enums.RoleName y Permission
+-- Índice parcial para usuarios no verificados
+CREATE INDEX idx_users_email_verified ON users(email_verified_at)
+    WHERE email_verified_at IS NULL;
 
 -- ============================================================
 -- TRIGGERS - Actualizar updated_at automáticamente
@@ -168,10 +174,16 @@ COMMENT ON TABLE invitations IS 'Invitaciones pendientes a tenants';
 COMMENT ON TABLE refresh_tokens IS 'Tokens JWT refresh (para revocar logout)';
 COMMENT ON TABLE audit_log IS 'Log de auditoría de todas las acciones';
 
-COMMENT ON COLUMN users.provider IS 'Proveedor OAuth2: google, facebook, email';
+COMMENT ON COLUMN users.provider IS 'Proveedor OAuth2: GOOGLE, FACEBOOK, LOCAL';
 COMMENT ON COLUMN users.provider_id IS 'ID del usuario en el proveedor OAuth2';
-COMMENT ON COLUMN tenants.plan IS 'Plan de suscripción: free, starter, pro, enterprise';
+COMMENT ON COLUMN tenants.plan IS 'Plan de suscripción: FREE, STARTER, PRO, ENTERPRISE';
 COMMENT ON COLUMN tenants.slug IS 'Identificador URL-friendly único';
 COMMENT ON COLUMN user_tenants.role IS 'Rol del usuario en el tenant: OWNER, ADMIN, CONTABLE, VIEWER';
 COMMENT ON COLUMN invitations.token IS 'Token único para aceptar invitación';
 COMMENT ON COLUMN refresh_tokens.token_hash IS 'Hash del token (no se guarda plain text)';
+
+COMMENT ON COLUMN users.password IS 'Hash BCrypt para auth LOCAL; NULL para OAuth2';
+COMMENT ON COLUMN users.email_verified_at IS 'Fecha de verificación del email (null = no verificado)';
+COMMENT ON COLUMN users.deleted_at IS 'Timestamp de desvinculación lógica (soft delete forense)';
+COMMENT ON COLUMN tenants.deleted_at IS 'Timestamp de baja del tenant (soft delete forense)';
+COMMENT ON COLUMN user_tenants.deleted_at IS 'Timestamp de desvinculación usuario-tenant (soft delete forense)';

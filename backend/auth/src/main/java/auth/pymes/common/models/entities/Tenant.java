@@ -1,9 +1,12 @@
 package auth.pymes.common.models.entities;
 
+import auth.pymes.common.models.enums.PlanName;
 import jakarta.persistence.*;
 import lombok.*;
 import org.hibernate.annotations.CreationTimestamp;
+import org.hibernate.annotations.SQLDelete;
 import org.hibernate.annotations.UpdateTimestamp;
+import org.hibernate.annotations.Where;
 
 import java.time.ZonedDateTime;
 import java.util.HashSet;
@@ -17,6 +20,8 @@ import java.util.UUID;
 @NoArgsConstructor
 @Entity
 @Table(name = "tenants")
+@SQLDelete(sql = "UPDATE tenants SET is_active = false, deleted_at = CURRENT_TIMESTAMP WHERE id = ?")
+@Where(clause = "is_active = true")
 public class Tenant {
 
     @Id
@@ -32,16 +37,17 @@ public class Tenant {
     @Column(length = 50)
     private String industry;
 
+    @Enumerated(EnumType.STRING)
     @Column(nullable = false)
     @Builder.Default
-    private String plan = "free";
+    private PlanName plan = PlanName.FREE;
 
     @Column(name = "plan_expires_at")
     private ZonedDateTime planExpiresAt;
 
     @Column(name = "max_users", nullable = false)
     @Builder.Default
-    private Integer maxUsers = 1;
+    private Integer maxUsers = 2;
 
     @Column(name = "stripe_customer_id")
     private String stripeCustomerId;
@@ -61,6 +67,9 @@ public class Tenant {
     @Builder.Default
     private Boolean isActive = true;
 
+    @Column(name = "deleted_at")
+    private ZonedDateTime deletedAt;
+
     @CreationTimestamp
     @Column(name = "created_at", nullable = false, updatable = false)
     private ZonedDateTime createdAt;
@@ -74,15 +83,15 @@ public class Tenant {
     @Builder.Default
     private Set<UserTenant> userTenants = new HashSet<>();
 
-    @OneToMany(mappedBy = "tenant", cascade = CascadeType.ALL, orphanRemoval = true)
+    @OneToMany(mappedBy = "tenant")
     @Builder.Default
     private Set<Invitation> invitations = new HashSet<>();
 
-    @OneToMany(mappedBy = "tenant", cascade = CascadeType.ALL, orphanRemoval = true)
+    @OneToMany(mappedBy = "tenant")
     @Builder.Default
     private Set<RefreshToken> refreshTokens = new HashSet<>();
 
-    @OneToMany(mappedBy = "tenant", cascade = CascadeType.ALL, orphanRemoval = true)
+    @OneToMany(mappedBy = "tenant")
     @Builder.Default
     private Set<AuditLog> auditLogs = new HashSet<>();
 }
