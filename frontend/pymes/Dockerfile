@@ -3,7 +3,7 @@
 # =============================================================================
 
 # 1. Build stage with Node 20 Alpine
-FROM node:20-alpine AS build
+FROM node:20-slim AS build
 
 WORKDIR /app
 
