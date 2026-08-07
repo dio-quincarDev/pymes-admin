@@ -1,5 +1,6 @@
 import type { RouteRecordRaw } from 'vue-router';
-import { authRoutes } from 'src/modules/auth/router/routes';
+import { authRoutes, authDashboardRoutes } from 'src/modules/auth/router/routes';
+import { coreRoutes, onboardingRoute } from 'src/modules/core/router/routes';
 
 const routes: RouteRecordRaw[] = [
   // Public Landing Flow
@@ -14,14 +15,25 @@ const routes: RouteRecordRaw[] = [
   // Auth Flow (Login, Register, etc.)
   ...authRoutes,
 
+  // Onboarding (post-login, industry selection)
+  onboardingRoute,
+
   // Private Dashboard Routes
   {
     path: '/dashboard',
     component: () => import('layouts/MainLayout.vue'),
     meta: { requiresAuth: true },
     children: [
-      { path: '', component: () => import('pages/DashboardPage.vue') }
+      { path: '', component: () => import('pages/DashboardPage.vue') },
+      ...authDashboardRoutes,
+      ...coreRoutes
     ],
+  },
+
+  // Error pages
+  {
+    path: '/500',
+    component: () => import('pages/ErrorServerError.vue'),
   },
 
   // Always leave this as last one

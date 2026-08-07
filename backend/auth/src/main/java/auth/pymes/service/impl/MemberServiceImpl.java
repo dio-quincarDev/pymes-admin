@@ -16,6 +16,7 @@ import lombok.RequiredArgsConstructor;
 import lombok.extern.slf4j.Slf4j;
 import org.springframework.data.domain.Page;
 import org.springframework.data.domain.Pageable;
+import org.springframework.security.core.userdetails.UserDetails;
 import org.springframework.security.oauth2.core.user.OAuth2User;
 import org.springframework.stereotype.Service;
 import org.springframework.transaction.annotation.Transactional;
@@ -35,8 +36,8 @@ public class MemberServiceImpl implements MemberService {
     private final UserMapper userMapper;
 
     @Override
-    public Page<MemberResponse> getTenantUsers(UUID tenantId, Pageable pageable, OAuth2User principal) {
-        String requesterEmail = principal.getAttribute("email");
+    public Page<MemberResponse> getTenantUsers(UUID tenantId, Pageable pageable, Object principal) {
+        String requesterEmail = extractEmail(principal);
         UserEntity requester = userRepository.findByEmail(requesterEmail)
                 .orElseThrow(() -> new ResourceNotFoundException(USER_NOT_FOUND_BY_EMAIL, requesterEmail));
 
@@ -62,8 +63,8 @@ public class MemberServiceImpl implements MemberService {
 
     @Override
     @Transactional
-    public MemberResponse updateUserRole(UUID tenantId, UUID userId, String newRole, OAuth2User principal) {
-        String requesterEmail = principal.getAttribute("email");
+    public MemberResponse updateUserRole(UUID tenantId, UUID userId, String newRole, Object principal) {
+        String requesterEmail = extractEmail(principal);
         UserEntity requester = userRepository.findByEmail(requesterEmail)
                 .orElseThrow(() -> new ResourceNotFoundException(USER_NOT_FOUND_BY_EMAIL, requesterEmail));
 
@@ -110,8 +111,8 @@ public class MemberServiceImpl implements MemberService {
 
     @Override
     @Transactional
-    public void deleteUserFromTenant(UUID tenantId, UUID userId, OAuth2User principal) {
-        String requesterEmail = principal.getAttribute("email");
+    public void deleteUserFromTenant(UUID tenantId, UUID userId, Object principal) {
+        String requesterEmail = extractEmail(principal);
         UserEntity requester = userRepository.findByEmail(requesterEmail)
                 .orElseThrow(() -> new ResourceNotFoundException(USER_NOT_FOUND_BY_EMAIL, requesterEmail));
 
@@ -137,5 +138,18 @@ public class MemberServiceImpl implements MemberService {
         userTenantRepository.delete(targetRelation);
 
         log.info("Usuario {} desvinculó userId={} del tenant {}", requester.getEmail(), userId, tenantId);
+    }
+
+    private String extractEmail(Object principal) {
+        if (principal instanceof OAuth2User oAuth2User) {
+            return oAuth2User.getAttribute("email");
+        }
+        if (principal instanceof UserDetails userDetails) {
+            return userDetails.getUsername();
+        }
+        if (principal instanceof String email) {
+            return email;
+        }
+        throw new AuthorizationException(UNAUTHORIZED_ACCESS, "Could not extract email from principal");
     }
 }

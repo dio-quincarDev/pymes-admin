@@ -1,86 +1,104 @@
 <template>
   <div class="login-page-wrapper">
-    <SkeletonLoader :is-loading="initialLoading" layout="form">
+    <SkeletonLoader :is-loading="initialLoading" layout="card">
       <BaseCard variant="elevated" class="q-pa-lg">
-        <div class="text-center q-mb-lg">
-          <div class="text-h6 text-weight-medium q-mb-xs">Centro de Control</div>
-          <div class="text-caption text-accent">Introduce tus credenciales de acceso</div>
-        </div>
-
-        <div class="q-gutter-y-md">
-          <q-input
-            v-model="loginForm.email"
-            label="Correo Electrónico"
-            dark
-            filled
-            color="primary"
-            label-color="accent"
-            class="focus-ring radius-xs"
-          >
-            <template v-slot:prepend>
-              <q-icon name="email" color="primary" />
-            </template>
-          </q-input>
-
-          <q-input
-            v-model="loginForm.password"
-            label="Contraseña"
-            :type="showPassword ? 'text' : 'password'"
-            dark
-            filled
-            color="primary"
-            label-color="accent"
-            class="focus-ring radius-xs"
-          >
-            <template v-slot:prepend>
-              <q-icon name="lock" color="primary" />
-            </template>
-            <template v-slot:append>
-              <q-icon
-                :name="showPassword ? 'visibility' : 'visibility_off'"
-                class="cursor-pointer"
-                color="primary"
-                @click="showPassword = !showPassword"
-              />
-            </template>
-          </q-input>
-
-          <div class="row items-center justify-between q-mt-sm">
-            <q-checkbox v-model="rememberMe" label="Recordar sesión" dark color="primary" class="text-caption text-accent" />
-            <q-btn flat no-caps label="¿Olvidaste tu contraseña?" color="accent" size="sm" to="/forgot-password" class="radius-xs" />
+        <template v-if="currentMode === 'oauth-primary'">
+          <div class="text-center q-mb-lg">
+            <div class="text-h6 text-weight-medium q-mb-xs">Centro de Control</div>
+            <div class="text-caption" style="color: var(--pq-text-muted);">Accede con tu cuenta institucional</div>
           </div>
 
-          <BaseButton
-            label="INICIAR SESIÓN"
-            class="full-width q-mt-lg"
-            size="lg"
-            :loading="loading"
-            @click="handleLoginClick"
-          >
-            INICIAR SESIÓN
-          </BaseButton>
-        </div>
-
-        <div class="relative-position q-my-xl">
-          <q-separator dark />
-          <div class="absolute-center bg-dark-page q-px-md text-caption text-accent text-weight-bold">
-            O CONTINUA CON
-          </div>
-        </div>
-
-        <div class="row justify-center q-mb-lg">
           <BaseButton
             variant="secondary"
             class="full-width"
+            size="lg"
+            :loading="oauthLoading"
             @click="loginWithSocial('google')"
           >
             <q-icon name="img:https://cdn.cdnlogo.com/logos/g/35/google-icon.svg" size="xs" class="q-mr-sm" />
-            Google
+            Continuar con Google
           </BaseButton>
-        </div>
 
-        <div class="text-center">
-          <div class="text-caption text-accent">
+          <div class="text-center q-mt-lg">
+            <button
+              class="auth-mode-toggle"
+              @click="currentMode = 'email'"
+              type="button"
+              aria-label="Iniciar sesión con email y contraseña"
+            >
+              Iniciar sesión con email y contraseña
+              <q-icon name="chevron_right" size="xs" />
+            </button>
+          </div>
+        </template>
+
+        <template v-else>
+          <div class="text-center q-mb-lg" style="position: relative;">
+            <button
+              class="auth-back-link"
+              @click="currentMode = 'oauth-primary'"
+              type="button"
+              aria-label="Volver a inicio de sesión con Google"
+            >
+              <q-icon name="chevron_left" size="xs" />
+              Volver
+            </button>
+            <div class="text-h6 text-weight-medium">Iniciar Sesión</div>
+          </div>
+
+          <q-form @submit.prevent="handleLoginClick" class="q-gutter-y-md">
+            <q-input
+              v-model="loginForm.email"
+              label="Correo Electrónico"
+              dark filled color="primary"
+              label-color="accent"
+              class="focus-ring radius-xs"
+              :disable="loading"
+            >
+              <template v-slot:prepend>
+                <q-icon name="email" color="primary" />
+              </template>
+            </q-input>
+
+            <q-input
+              v-model="loginForm.password"
+              label="Contraseña"
+              :type="showPassword ? 'text' : 'password'"
+              dark filled color="primary"
+              label-color="accent"
+              class="focus-ring radius-xs"
+              :disable="loading"
+            >
+              <template v-slot:prepend>
+                <q-icon name="lock" color="primary" />
+              </template>
+              <template v-slot:append>
+                <q-icon
+                  :name="showPassword ? 'visibility' : 'visibility_off'"
+                  class="cursor-pointer" color="primary" role="button" tabindex="0"
+                  :aria-label="showPassword ? 'Ocultar contraseña' : 'Mostrar contraseña'"
+                  @click="showPassword = !showPassword"
+                  @keydown.enter="showPassword = !showPassword"
+                  @keydown.space.prevent="showPassword = !showPassword"
+                />
+              </template>
+            </q-input>
+
+            <div class="row items-center justify-between q-mt-sm">
+              <q-checkbox v-model="rememberMe" label="Recordar sesión" dark color="primary" class="text-caption" style="color: var(--pq-text-muted);" />
+              <q-btn flat no-caps label="¿Olvidaste tu contraseña?" color="accent" size="sm" to="/forgot-password" class="radius-xs" />
+            </div>
+
+            <BaseButton
+              type="submit" class="full-width q-mt-lg" size="lg" :loading="loading"
+            >
+              INICIAR SESIÓN
+            </BaseButton>
+          </q-form>
+        </template>
+
+        <div class="text-center q-mt-lg">
+          <div class="text-caption" style="color: var(--pq-text-muted);">
             ¿No tienes una empresa?
             <q-btn flat no-caps label="Crea tu espacio de trabajo" color="primary" class="q-px-xs text-weight-bold" to="/" />
           </div>
@@ -91,11 +109,15 @@
 </template>
 
 <script setup lang="ts">
-import { ref, reactive, onMounted } from 'vue';
+import { ref, reactive } from 'vue';
+import { useMeta } from 'quasar';
+
+useMeta({ title: 'Iniciar Sesión — PYMEQ' });
 import { useAuthStore } from '../store';
 import { useQuasar } from 'quasar';
-import { useRouter } from 'vue-router';
+import { useRouter, useRoute } from 'vue-router';
 import { authService } from '../services/auth.service';
+import { useAuthForm } from 'src/composables/useAuthForm';
 import BaseCard from 'src/components/base/BaseCard.vue';
 import BaseButton from 'src/components/base/BaseButton.vue';
 import SkeletonLoader from 'src/components/ui/SkeletonLoader.vue';
@@ -103,22 +125,16 @@ import SkeletonLoader from 'src/components/ui/SkeletonLoader.vue';
 const authStore = useAuthStore();
 const $q = useQuasar();
 const router = useRouter();
+const route = useRoute();
+const { loading, initialLoading, showPassword } = useAuthForm();
 
-const loading = ref(false);
-const initialLoading = ref(true);
+const currentMode = ref<'oauth-primary' | 'email'>('oauth-primary');
+const oauthLoading = ref(false);
 const rememberMe = ref(localStorage.getItem('pymeq_remember') === 'true');
-const showPassword = ref(false);
 
 const loginForm = reactive({
   email: localStorage.getItem('pymeq_email') || '',
   password: ''
-});
-
-onMounted(() => {
-  // Simulamos carga inicial para mostrar el skeleton
-  setTimeout(() => {
-    initialLoading.value = false;
-  }, 800);
 });
 
 const handleLoginClick = async () => {
@@ -142,14 +158,22 @@ const handleLoginClick = async () => {
       localStorage.removeItem('pymeq_email');
     }
 
-    await authStore.login(loginForm);
+    const authData = await authStore.login(loginForm);
     $q.notify({
       type: 'positive',
       message: 'Acceso autorizado',
       caption: 'Bienvenido al Centro de Control',
       position: 'top-right'
     });
-    void router.push('/');
+
+    const redirect = route.query.redirect as string;
+    if (redirect) {
+      void router.push(redirect);
+    } else if (authData.user?.tenantId || authData.activeTenant) {
+      void router.push('/dashboard');
+    } else {
+      void router.push('/onboarding');
+    }
   } catch (err: unknown) {
     const error = err as { response?: { status?: number; data?: { codigo?: string; mensaje?: string } } };
     const errorStatus = error.response?.status;
@@ -177,6 +201,7 @@ const handleLoginClick = async () => {
 };
 
 const loginWithSocial = async (provider: 'google') => {
+  oauthLoading.value = true;
   try {
     let url = `http://localhost:8080/oauth2/authorization/${provider}`;
 
@@ -190,20 +215,18 @@ const loginWithSocial = async (provider: 'google') => {
 
       const intentId = response.data?.data?.intentId;
       if (intentId) {
-        url += `?state=${intentId}`;
+        url += `?intentId=${intentId}`;
       }
     }
 
     window.location.href = url;
-  } catch (error) {
-    console.error(`Error al iniciar login con ${provider}:`, error);
+  } catch {
     $q.notify({
       type: 'negative',
       message: 'No se pudo iniciar el proceso social. Intenta de nuevo.',
       position: 'top-right'
     });
-  } finally {
-    $q.loading.hide();
+    oauthLoading.value = false;
   }
 };
 </script>
@@ -213,19 +236,42 @@ const loginWithSocial = async (provider: 'google') => {
   width: 100%;
 }
 
-:deep(.q-field--filled .q-field__control) {
-  background: rgba(0, 0, 0, 0.2);
-  border: 1px solid rgba(113, 131, 127, 0.1);
-  transition: all 0.2s ease;
-  
-  &:hover {
-    background: rgba(0, 0, 0, 0.3);
-    border-color: rgba(163, 120, 94, 0.3);
-  }
+.auth-mode-toggle {
+  background: none;
+  border: none;
+  cursor: pointer;
+  color: var(--pq-text-muted);
+  font-family: 'Satoshi', -apple-system, BlinkMacSystemFont, 'Segoe UI', sans-serif;
+  font-size: 14px;
+  font-weight: 400;
+  padding: 8px 12px;
+  display: inline-flex;
+  align-items: center;
+  gap: 2px;
+  transition: color var(--pq-motion-fast);
+
+  &:hover { color: var(--pq-accent); }
+  &:focus-visible { outline: 2px solid var(--pq-accent); outline-offset: 2px; }
 }
 
-:deep(.q-field--focused .q-field__control) {
-  border-color: $primary;
-  box-shadow: 0 0 10px rgba(163, 120, 94, 0.2);
+.auth-back-link {
+  background: none;
+  border: none;
+  cursor: pointer;
+  color: var(--pq-text-muted);
+  font-family: 'Satoshi', -apple-system, BlinkMacSystemFont, 'Segoe UI', sans-serif;
+  font-size: 13px;
+  font-weight: 400;
+  padding: 4px 8px;
+  display: inline-flex;
+  align-items: center;
+  gap: 2px;
+  position: absolute;
+  left: 0;
+  top: 2px;
+  transition: color var(--pq-motion-fast);
+
+  &:hover { color: var(--pq-accent); }
+  &:focus-visible { outline: 2px solid var(--pq-accent); outline-offset: 2px; }
 }
 </style>

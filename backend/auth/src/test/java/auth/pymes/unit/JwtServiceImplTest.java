@@ -45,6 +45,9 @@ class JwtServiceImplTest {
     @Mock
     private RefreshTokenRepository refreshTokenRepository;
 
+    @Mock
+    private org.springframework.transaction.support.TransactionTemplate txTemplate;
+
     @InjectMocks
     private JwtServiceImpl jwtService;
 
@@ -59,6 +62,7 @@ class JwtServiceImplTest {
         ReflectionTestUtils.setField(jwtService, "secretKey", TEST_SECRET);
         ReflectionTestUtils.setField(jwtService, "accessTokenExpiration", ACCESS_EXPIRATION);
         ReflectionTestUtils.setField(jwtService, "refreshTokenExpiration", REFRESH_EXPIRATION);
+        jwtService.init();
 
         // Datos base
         defaultUser = UserEntity.builder()
@@ -260,15 +264,14 @@ class JwtServiceImplTest {
         ReflectionTestUtils.setField(jwtService, "accessTokenExpiration", ACCESS_EXPIRATION);
 
         // Act & Assert
-        org.assertj.core.api.ThrowableAssert.ThrowingCallable call = () -> jwtService.validateToken(expiredToken);
-        org.assertj.core.api.Assertions.assertThatThrownBy(call)
+        assertThatThrownBy(() -> jwtService.validateToken(expiredToken))
                 .isInstanceOf(TokenExpiredException.class);
     }
 
     @Test
     void validateToken_WithMalformedToken_ThrowsTokenInvalidException() {
         // Act & Assert
-        org.assertj.core.api.Assertions.assertThatThrownBy(() -> jwtService.validateToken("not.a.jwt"))
+        assertThatThrownBy(() -> jwtService.validateToken("not.a.jwt"))
                 .isInstanceOf(TokenInvalidException.class);
     }
 
@@ -286,7 +289,7 @@ class JwtServiceImplTest {
                 .compact();
 
         // Act & Assert
-        org.assertj.core.api.Assertions.assertThatThrownBy(() -> jwtService.validateToken(invalidSignedToken))
+        assertThatThrownBy(() -> jwtService.validateToken(invalidSignedToken))
                 .isInstanceOf(TokenInvalidException.class);
     }
 
@@ -297,7 +300,7 @@ class JwtServiceImplTest {
         when(tokenBlacklistService.isTokenRevoked(token)).thenReturn(true);
 
         // Act & Assert
-        org.assertj.core.api.Assertions.assertThatThrownBy(() -> jwtService.validateToken(token))
+        assertThatThrownBy(() -> jwtService.validateToken(token))
                 .isInstanceOf(TokenRevokedException.class);
     }
 
@@ -354,6 +357,12 @@ class JwtServiceImplTest {
 
         when(tokenBlacklistService.isTokenRevoked(refreshToken)).thenReturn(false);
         when(refreshTokenRepository.findByTokenHash(tokenHash)).thenReturn(Optional.of(entity));
+        // ponytail: ejecutar la lambda de txTemplate para que deleteByUserId se llame y el verify pase
+        doAnswer(invocation -> {
+            var consumer = invocation.getArgument(0, java.util.function.Consumer.class);
+            consumer.accept(null);
+            return null;
+        }).when(txTemplate).executeWithoutResult(any());
 
         // Act & Assert
         assertThatThrownBy(() -> jwtService.validateAndRevokeRefreshToken(refreshToken))
@@ -362,6 +371,15 @@ class JwtServiceImplTest {
 
         verify(refreshTokenRepository).deleteByUserId(defaultUser.getId());
         verify(refreshTokenRepository, never()).save(any());
+    }
+
+    @Test
+    void shortSecretThrowsException() throws Exception {
+        var utils = new JwtServiceImpl(tokenBlacklistService, refreshTokenRepository, txTemplate);
+        ReflectionTestUtils.setField(utils, "secretKey", "short");
+        ReflectionTestUtils.setField(utils, "accessTokenExpiration", ACCESS_EXPIRATION);
+        ReflectionTestUtils.setField(utils, "refreshTokenExpiration", REFRESH_EXPIRATION);
+        assertThatThrownBy(utils::init).isInstanceOf(IllegalArgumentException.class);
     }
 
     @Test

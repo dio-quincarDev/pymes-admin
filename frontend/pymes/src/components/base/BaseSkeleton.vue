@@ -3,6 +3,7 @@
     class="base-skeleton"
     :class="[`skeleton-${variant}`, `skeleton-${size}`]"
     :style="{ width: customWidth, height: customHeight }"
+    aria-hidden="true"
   />
 </template>
 

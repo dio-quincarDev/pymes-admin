@@ -17,10 +17,11 @@ import auth.pymes.service.PasswordResetService;
 import jakarta.servlet.http.HttpServletRequest;
 import lombok.RequiredArgsConstructor;
 import lombok.extern.slf4j.Slf4j;
-import org.springframework.http.HttpStatus;
 import org.springframework.http.ResponseEntity;
-import org.springframework.util.StringUtils;
+import org.springframework.web.bind.annotation.RequestBody;
 import org.springframework.web.bind.annotation.RestController;
+
+import java.util.Map;
 
 @RestController
 @RequiredArgsConstructor
@@ -33,45 +34,29 @@ public class AuthApiController implements AuthApi {
 
     @Override
     public ResponseEntity<ApiResponse<AuthResponse>> register(RegisterRequest request,
-                                                              HttpServletRequest httpRequest) {
-        AuthResponse response = authService.register(request, httpRequest);
-        // Si hay tokens, es registro completado → 201, si no → 200 (pending verification)
-        if (response.accessToken() != null) {
-            return ResponseEntity.status(HttpStatus.CREATED).body(ApiResponse.ok(response));
-        }
-        return ResponseEntity.ok(ApiResponse.ok(response));
+                                                               HttpServletRequest httpRequest) {
+        return ResponseEntity.ok(ApiResponse.ok(authService.register(request, httpRequest)));
     }
 
     @Override
     public ResponseEntity<ApiResponse<AuthResponse>> login(LoginRequest request,
-                                                           HttpServletRequest httpRequest) {
-        AuthResponse response = authService.login(request, httpRequest);
-        return ResponseEntity.ok(ApiResponse.ok(response));
+                                                            HttpServletRequest httpRequest) {
+        return ResponseEntity.ok(ApiResponse.ok(authService.login(request, httpRequest)));
     }
 
     @Override
     public ResponseEntity<ApiResponse<LogoutResponse>> logout(HttpServletRequest request) {
-        String authHeader = request.getHeader("Authorization");
-        String accessToken = null;
-
-        if (StringUtils.hasText(authHeader) && authHeader.startsWith("Bearer ")) {
-            accessToken = authHeader.substring(7);
-        }
-
-        LogoutResponse response = authService.logout(accessToken);
-        return ResponseEntity.ok(ApiResponse.ok(response));
+        return ResponseEntity.ok(ApiResponse.ok(authService.logout(request)));
     }
 
     @Override
     public ResponseEntity<ApiResponse<AuthResponse>> refreshToken(TokenRefreshRequest request) {
-        AuthResponse response = authService.refreshToken(request);
-        return ResponseEntity.ok(ApiResponse.ok(response));
+        return ResponseEntity.ok(ApiResponse.ok(authService.refreshToken(request)));
     }
 
     @Override
     public ResponseEntity<ApiResponse<AuthResponse>> verifyEmail(VerifyEmailRequest request, HttpServletRequest httpRequest) {
-        AuthResponse response = emailVerificationService.verifyEmail(request, httpRequest);
-        return ResponseEntity.ok(ApiResponse.ok(response));
+        return ResponseEntity.ok(ApiResponse.ok(emailVerificationService.verifyEmail(request, httpRequest)));
     }
 
     @Override
@@ -90,5 +75,10 @@ public class AuthApiController implements AuthApi {
     public ResponseEntity<ApiResponse<Void>> resetPassword(ResetPasswordRequest request) {
         passwordResetService.resetPassword(request.token(), request.newPassword());
         return ResponseEntity.ok(ApiResponse.ok());
+    }
+
+    @Override
+    public ResponseEntity<ApiResponse<AuthResponse>> exchange(@RequestBody Map<String, String> body) {
+        return ResponseEntity.ok(ApiResponse.ok(authService.exchange(body.get("code"))));
     }
 }

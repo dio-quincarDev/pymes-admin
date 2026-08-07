@@ -14,11 +14,13 @@ import io.jsonwebtoken.Jwts;
 import io.jsonwebtoken.MalformedJwtException;
 import io.jsonwebtoken.security.Keys;
 import io.jsonwebtoken.security.SignatureException;
+import jakarta.annotation.PostConstruct;
 import lombok.RequiredArgsConstructor;
 import lombok.extern.slf4j.Slf4j;
 import org.springframework.beans.factory.annotation.Value;
 import org.springframework.stereotype.Service;
 import org.springframework.transaction.annotation.Transactional;
+import org.springframework.transaction.support.TransactionTemplate;
 
 import javax.crypto.SecretKey;
 import java.nio.charset.StandardCharsets;
@@ -47,8 +49,21 @@ public class JwtServiceImpl implements JwtService {
     @Value("${jwt.refresh-expiration}")
     private long refreshTokenExpiration;
 
+    private SecretKey key;
+
+    @PostConstruct
+    public void init() {
+        byte[] keyBytes = secretKey.getBytes(StandardCharsets.UTF_8);
+        if (keyBytes.length < 32) {
+            log.error("JWT secret must be at least 256 bits (32 bytes), got {} bits", keyBytes.length * 8);
+            throw new IllegalArgumentException("JWT secret must be at least 256 bits (32 bytes)");
+        }
+        this.key = Keys.hmacShaKeyFor(keyBytes);
+    }
+
     private final TokenBlacklistService tokenBlacklistService;
     private final RefreshTokenRepository refreshTokenRepository;
+    private final TransactionTemplate txTemplate;
 
     @Override
     public String generateAccessToken(UserEntity user, UUID tenantId, String role, String plan) {
@@ -83,8 +98,7 @@ public class JwtServiceImpl implements JwtService {
     }
 
     private SecretKey getSigningKey() {
-        byte[] keyBytes = secretKey.getBytes(StandardCharsets.UTF_8);
-        return Keys.hmacShaKeyFor(keyBytes);
+        return key;
     }
 
     @Override
@@ -193,8 +207,9 @@ public class JwtServiceImpl implements JwtService {
 
         if (Boolean.TRUE.equals(entity.getRevoked())) {
             log.error("¡REUSO DETECTADO para el usuario {}! Revocando toda la familia de tokens.", entity.getUserId());
-            // Estrategia de seguridad: revocar todos los tokens del usuario si hay reuso sospechoso
-            refreshTokenRepository.deleteByUserId(entity.getUserId());
+            // ponytail: REQUIRES_NEW para que el delete no se revierta con el rollback de la excepción
+            UUID userId = entity.getUserId();
+            txTemplate.executeWithoutResult(status -> refreshTokenRepository.deleteByUserId(userId));
             throw new TokenRevokedException("Refresh token has already been used (REUSE DETECTED)");
         }
 

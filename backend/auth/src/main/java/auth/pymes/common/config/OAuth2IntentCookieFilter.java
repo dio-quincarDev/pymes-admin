@@ -39,6 +39,7 @@ public class OAuth2IntentCookieFilter extends OncePerRequestFilter {
                 Cookie cookie = new Cookie(COOKIE_NAME, intentId);
                 cookie.setMaxAge(COOKIE_MAX_AGE);
                 cookie.setHttpOnly(true);
+                cookie.setSecure(request.isSecure());
                 cookie.setPath("/");
                 cookie.setAttribute("SameSite", "Lax");
                 response.addCookie(cookie);

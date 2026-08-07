@@ -31,6 +31,7 @@ import auth.pymes.utils.exception.custom.ResourceNotFoundException;
 import jakarta.servlet.http.HttpServletRequest;
 import lombok.RequiredArgsConstructor;
 import lombok.extern.slf4j.Slf4j;
+import org.springframework.data.redis.core.RedisTemplate;
 import org.springframework.security.authentication.AuthenticationManager;
 import org.springframework.security.authentication.UsernamePasswordAuthenticationToken;
 import org.springframework.security.crypto.password.PasswordEncoder;
@@ -40,6 +41,7 @@ import org.springframework.transaction.annotation.Transactional;
 import java.time.Instant;
 import java.time.ZonedDateTime;
 import java.util.List;
+import java.util.Map;
 import java.util.UUID;
 
 import static auth.pymes.utils.exception.CodigoError.*;
@@ -61,6 +63,7 @@ public class AuthServiceImpl implements AuthService {
     private final UserMapper userMapper;
     private final TenantMapper tenantMapper;
     private final EmailVerificationService emailVerificationService;
+    private final RedisTemplate<String, Object> redisTemplate;
 
     // ==================== LOCAL AUTH ====================
 
@@ -94,10 +97,10 @@ public class AuthServiceImpl implements AuthService {
 
         UserEntity user = UserEntity.builder()
                 .name(request.name())
-                .email(request.email())
+                .email(request.email().toLowerCase())
                 .password(passwordEncoder.encode(request.password()))
                 .provider(AuthProvider.LOCAL)
-                .providerId(request.email())
+                .providerId(request.email().toLowerCase())
                 .isActive(true)
                 .emailVerifiedAt(ZonedDateTime.now()) // Ya viene verificado de Redis
                 .build();
@@ -194,16 +197,18 @@ public class AuthServiceImpl implements AuthService {
 
     @Override
     @Transactional
-    public LogoutResponse logout(String accessToken) {
+    public LogoutResponse logout(HttpServletRequest request) {
+        String authHeader = request.getHeader("Authorization");
+        String accessToken = null;
+        if (authHeader != null && authHeader.startsWith("Bearer ")) {
+            accessToken = authHeader.substring(7);
+        }
         boolean sessionsRevoked = false;
         if (accessToken != null && !accessToken.isBlank()) {
+            UUID userId = jwtService.extractUserId(accessToken);
             try {
-                // 1. Invalidar access token (blacklist)
                 jwtService.revokeToken(accessToken);
                 log.info("Access token revocado");
-
-                // 2. Eliminar TODOS los refresh tokens del usuario (Logout Global)
-                UUID userId = jwtService.extractUserId(accessToken);
                 if (userId != null) {
                     refreshTokenRepository.deleteByUserId(userId);
                     sessionsRevoked = true;
@@ -271,6 +276,22 @@ public class AuthServiceImpl implements AuthService {
                 newRefreshToken,
                 userMapper.toResponse(user),
                 activeTenant != null ? tenantMapper.toResponse(activeTenant) : null
+        );
+    }
+
+    @Override
+    public AuthResponse exchange(String code) {
+        @SuppressWarnings("unchecked")
+        Map<String, String> tokenData = (Map<String, String>) redisTemplate.opsForValue().get("oauth:code:" + code);
+        if (tokenData == null) {
+            throw new InvalidInputException(INVALID_INPUT, "Invalid or expired exchange code");
+        }
+        redisTemplate.delete("oauth:code:" + code);
+        return new AuthResponse(
+                tokenData.get("accessToken"),
+                tokenData.get("refreshToken"),
+                null,
+                null
         );
     }
 

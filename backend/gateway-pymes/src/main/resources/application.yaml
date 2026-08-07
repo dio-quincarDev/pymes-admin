@@ -15,6 +15,15 @@ spring:
   cloud:
     gateway:
       routes:
+        # Core Service Route — requiere autenticación
+        - id: core-service-api
+          uri: http://${CORE_SERVICE_HOST:localhost}:8082
+          predicates:
+            - Path=/api/v1/core/**
+          filters:
+            - PreserveHostHeader
+            - AuthenticationFilter
+
         # Auth Service Route (API v1) — requiere autenticación
         - id: auth-service-api
           uri: http://${AUTH_SERVICE_HOST}:8081
@@ -33,18 +42,23 @@ spring:
             - PreserveHostHeader
             # Sin AuthenticationFilter — son rutas públicas de entrada/login
       globalcors:
-        add-to-simple-url-handler-mapping: true
         cors-configurations:
           '[/**]':
-            allowed-origin-patterns: "${CORS_ALLOWED_ORIGINS}"
-            allowed-methods: "*"
+            allowed-origins: "${CORS_ALLOWED_ORIGINS}"
+            allowed-methods: "GET,POST,PUT,PATCH,DELETE,OPTIONS"
             allowed-headers: "*"
             allow-credentials: true
       default-filters:
+        # CORS deduplication — gateway globalcors + auth service ambos agregan ACAO
         - DedupeResponseHeader=Access-Control-Allow-Origin Access-Control-Allow-Credentials, RETAIN_FIRST
+        # Security headers
+        - AddResponseHeader=Strict-Transport-Security, "max-age=31536000; includeSubDomains"
+        - AddResponseHeader=X-Frame-Options, DENY
+        - AddResponseHeader=X-Content-Type-Options, nosniff
+        - AddResponseHeader=Referrer-Policy, strict-origin-when-cross-origin
 
 jwt:
-  secret: ${jwt.secret:change-this-secret-key-in-production-minimum-256-bits}
+  secret: ${jwt.secret}
 
 # ==================== SWAGGER AGGREGATION ====================
 # Each service's API docs are exposed via Gateway with named paths.

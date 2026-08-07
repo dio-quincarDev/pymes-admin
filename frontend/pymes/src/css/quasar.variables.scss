@@ -1,26 +1,23 @@
 // Quasar SCSS Variables
-// --------------------------------------------------
-// Fintech Design System: Deep Forest & Copper
+// PYMEQ Design System — Swiss / Grid + Institutional Warmth
+// See .ulpi/design/DESIGN.md for full spec.
 
-// Paleta de Colores (60/30/10 Rule)
-$primary   : #A3785E; // Brand Copper (Acento 10%)
-$secondary : #E2E8E4; // Parchment (Texto/Valores)
-$accent    : #71837F; // Sage Muted (Soporte/Hover)
+// Paleta de Colores
+$primary   : #C8963E; // Bronze Amber (acento)
+$secondary : #F5F3EF; // Warm white (texto)
+$accent    : #9B9790; // Muted warm grey (soporte)
 
-$dark      : #1B2624; // Surface Pine (Tarjetas/Sidebar)
-$dark-page : #0B1210; // Forest Deep (Fondo Base)
+$dark      : #12141A; // Surface (tarjetas/sidebar)
+$dark-page : #08090D; // Background (fondo base)
 
-$positive  : #2D5A27; // Sage Darker
-$negative  : #8B4513; // Saddle Brown (Copper Muted)
-$info      : #71837F; // Sage Muted
-$warning   : #C5A059; // Gold/Copper Muted
+$positive  : #3D7A5A; // Success
+$negative  : #A04038; // Danger
+$info      : #6E8BB8; // Info
+$warning   : #C8A042; // Warning
 
-// Custom Spacing & Gutter
 $grid-gutter: 40px;
 
-// --------------------------------------------------
-// Design Tokens: Spacing System (8px base) - Prefixed to avoid collision
-// --------------------------------------------------
+// Spacing (4px base)
 $pq-space-4xs: 4px;
 $pq-space-3xs: 6px;
 $pq-space-2xs: 8px;
@@ -32,39 +29,28 @@ $pq-space-xl: 40px;
 $pq-space-2xl: 48px;
 $pq-space-3xl: 64px;
 
-// --------------------------------------------------
-// Design Tokens: Border Radius
-// --------------------------------------------------
-$pq-radius-2xs: 2px;
-$pq-radius-xs: 4px;
-$pq-radius-sm: 6px;
-$pq-radius-md: 8px;
-$pq-radius-lg: 12px;
-$pq-radius-xl: 16px;
-$pq-radius-2xl: 20px;
+// Border Radius (precise, not rounded)
+$pq-radius-xs: 2px;
+$pq-radius-sm: 4px;
+$pq-radius-md: 6px;
+$pq-radius-lg: 8px;
+$pq-radius-xl: 12px;
+$pq-radius-2xl: 16px;
 $pq-radius-full: 9999px;
 
-// --------------------------------------------------
-// Design Tokens: Shadows
-// --------------------------------------------------
-$shadow-subtle: 0 2px 8px rgba(0, 0, 0, 0.15);
+// Shadows (elevation only, no glow)
+$shadow-subtle: 0 1px 3px rgba(0, 0, 0, 0.3);
 $shadow-sm: 0 4px 10px rgba(0, 0, 0, 0.3);
-$shadow-md: 0 10px 30px rgba(0, 0, 0, 0.2);
-$shadow-lg: 0 20px 50px rgba(0, 0, 0, 0.25);
-$shadow-brand: 0 0 15px rgba(163, 120, 94, 0.3);
-$shadow-brand-hover: 0 0 20px rgba(163, 120, 94, 0.5);
+$shadow-md: 0 8px 24px rgba(0, 0, 0, 0.25);
+$shadow-lg: 0 16px 48px rgba(0, 0, 0, 0.3);
 
-// --------------------------------------------------
-// Design Tokens: Transitions
-// --------------------------------------------------
-$transition-fast: 0.15s ease;
-$transition-base: 0.2s cubic-bezier(0.4, 0, 0.2, 1);
-$transition-smooth: 0.3s cubic-bezier(0.4, 0, 0.2, 1);
-$transition-slow: 0.4s ease;
+// Transitions
+$transition-fast: 80ms ease;
+$transition-base: 160ms cubic-bezier(0.4, 0, 0.2, 1);
+$transition-smooth: 240ms cubic-bezier(0.16, 1, 0.3, 1);
+$transition-slow: 320ms ease;
 
-// --------------------------------------------------
-// Design Tokens: Z-Index Scale
-// --------------------------------------------------
+// Z-Index Scale
 $z-base: 1;
 $z-dropdown: 100;
 $z-sticky: 200;

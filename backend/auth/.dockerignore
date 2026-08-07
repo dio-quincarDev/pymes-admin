@@ -1,0 +1,14 @@
+.mvn/
+target/
+*.iml
+.idea/
+.classpath
+.factorypath
+.project
+.settings/
+HELP.md
+docs/
+README.md
+.env*
+.git/
+.gitignore

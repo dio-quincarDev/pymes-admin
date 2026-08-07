@@ -52,8 +52,8 @@ class PasswordResetIntegrationTest extends AbstractIntegrationTest {
         if (pendingKeys != null) redisTemplate.delete(pendingKeys);
 
         // Limpiar usuario de prueba
-        jdbcTemplate.execute("DELETE FROM user_tenants WHERE user_id IN (SELECT id FROM users WHERE email = '" + testEmail + "')");
-        jdbcTemplate.execute("DELETE FROM users WHERE email = '" + testEmail + "'");
+        jdbcTemplate.update("DELETE FROM user_tenants WHERE user_id IN (SELECT id FROM users WHERE email = ?)", testEmail);
+        jdbcTemplate.update("DELETE FROM users WHERE email = ?", testEmail);
 
         RegisterRequest registerRequest = new RegisterRequest(
                 "Reset User", testEmail, testPassword, "Test Corp", "reset-corp-" + System.currentTimeMillis());

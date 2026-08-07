@@ -1,5 +1,5 @@
 # =============================================================================
-# PyMes Admin - Frontend Dockerfile (Quasar PWA)
+# PymeQ- Frontend Dockerfile (Quasar PWA)
 # =============================================================================
 
 # 1. Build stage with Node 20 Alpine
@@ -13,7 +13,7 @@ ENV API_URL=${API_URL}
 
 # Install dependencies (including devDependencies for build)
 COPY package*.json ./
-RUN npm install --legacy-peer-deps --ignore-scripts
+RUN npm ci --legacy-peer-deps --ignore-scripts
 
 # Copy source code
 COPY . .
@@ -30,8 +30,8 @@ COPY nginx.conf /etc/nginx/conf.d/default.conf
 # Copy built files from build stage
 COPY --from=build /app/dist/pwa /usr/share/nginx/html
 
-# Expose port 9000
-EXPOSE 9000
+# Expose port 9200
+EXPOSE 9200
 
 # Run Nginx in foreground
 CMD ["nginx", "-g", "daemon off;"]

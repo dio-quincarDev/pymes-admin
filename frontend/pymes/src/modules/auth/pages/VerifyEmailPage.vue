@@ -2,10 +2,27 @@
   <div class="verify-page-wrapper">
     <SkeletonLoader :is-loading="loading" layout="card">
       <BaseCard variant="elevated" class="q-pa-lg text-center">
-        <div v-if="success" class="verify-success fade-in-up">
-          <q-icon name="check_circle" color="positive" size="5em" class="q-mb-md brand-glow" />
+        <div v-if="pending" class="verify-pending fade-in-up">
+          <q-icon name="mark_email_unread" color="primary" size="5em" class="q-mb-md" />
+          <div class="text-h6 text-primary text-weight-bold">Revisa tu correo electrónico</div>
+          <p class="text-body2 q-mt-sm q-mb-lg" style="color: var(--pq-text-muted);">
+            Te enviamos un enlace para verificar tu cuenta.
+            <br>Si no lo encuentras, revisa tu bandeja de spam.
+          </p>
+          <BaseButton
+            label="IR AL LOGIN"
+            class="full-width"
+            size="lg"
+            @click="router.push('/login')"
+          >
+            IR AL LOGIN
+          </BaseButton>
+        </div>
+
+        <div v-else-if="success" class="verify-success fade-in-up">
+          <q-icon name="check_circle" color="positive" size="5em" class="q-mb-md" />
           <div class="text-h6 text-primary text-weight-bold">¡Acceso Verificado!</div>
-          <p class="text-body2 text-accent q-mt-sm">
+          <p class="text-body2 q-mt-sm" style="color: var(--pq-text-muted);">
             Tu cuenta ha sido activada correctamente en el sistema de auditoría.
           </p>
           <div class="q-mt-xl">
@@ -13,7 +30,7 @@
               label="IR AL DASHBOARD"
               class="full-width"
               size="lg"
-              @click="router.push('/dashboard')"
+              @click="goToDashboard"
             >
               IR AL DASHBOARD
             </BaseButton>
@@ -23,7 +40,7 @@
         <div v-else-if="error" class="verify-error fade-in-up">
           <q-icon name="error" color="negative" size="5em" class="q-mb-md" />
           <div class="text-h6 text-negative text-weight-bold">Error de Verificación</div>
-          <p class="text-body2 text-accent q-mt-sm">{{ errorMessage }}</p>
+          <p class="text-body2 q-mt-sm" style="color: var(--pq-text-muted);">{{ errorMessage }}</p>
 
           <div class="q-mt-xl">
             <div v-if="errorType === 'expired'" class="full-width">
@@ -62,6 +79,9 @@
 
 <script setup lang="ts">
 import { ref, onMounted } from 'vue';
+import { useMeta } from 'quasar';
+
+useMeta({ title: 'Verificar Email — PYMEQ' });
 import { useRoute, useRouter } from 'vue-router';
 import { authService } from '../services/auth.service';
 import { useAuthStore } from '../store';
@@ -69,6 +89,7 @@ import { useQuasar } from 'quasar';
 import BaseCard from 'src/components/base/BaseCard.vue';
 import BaseButton from 'src/components/base/BaseButton.vue';
 import SkeletonLoader from 'src/components/ui/SkeletonLoader.vue';
+import { setupService } from 'src/modules/core/services/setup.service';
 
 const route = useRoute();
 const router = useRouter();
@@ -76,6 +97,7 @@ const $q = useQuasar();
 const authStore = useAuthStore();
 
 const loading = ref(true);
+const pending = ref(false);
 const success = ref(false);
 const error = ref(false);
 const errorMessage = ref('');
@@ -88,16 +110,34 @@ const email = ref(route.query.email as string);
 const verifyEmail = async (verificationToken: string, userEmail: string) => {
   try {
     const response = await authStore.verifyEmail(verificationToken, userEmail);
-    success.value = true;
-    
-    if (response && response.accessToken) {
+
+    if (response?.accessToken) {
+      localStorage.setItem('pymeq_email_verified', 'true');
+      new BroadcastChannel('pymeq-auth').postMessage({ type: 'email-verified' });
+
       $q.notify({
         type: 'positive',
         message: '¡Bienvenido a Pymeq!',
         caption: 'Tu cuenta ha sido creada y verificada.',
         position: 'top-right'
       });
+
+      const tenantId = authStore.user?.tenantId;
+      if (tenantId) {
+        try {
+          const { data: setup } = await setupService.get(tenantId);
+          if (!setup.onboardingCompleted) {
+            void router.push('/onboarding');
+            return;
+          }
+        } catch { /* ponytail: ir al dashboard igual */ }
+      }
+
+      void router.push('/dashboard');
+      return;
     }
+
+    success.value = true;
   } catch (err: unknown) {
     error.value = true;
     const response = (err as { response?: { status?: number; data?: { codigo?: string; mensaje?: string } } })?.response;
@@ -111,7 +151,6 @@ const verifyEmail = async (verificationToken: string, userEmail: string) => {
       errorMessage.value = errorData?.mensaje || 'No se pudo verificar la identidad. El token puede ser inválido.';
     }
   } finally {
-    // Retraso artificial para suavizar la transición del skeleton
     setTimeout(() => {
       loading.value = false;
     }, 600);
@@ -147,13 +186,27 @@ const handleResend = async () => {
   }
 };
 
+async function goToDashboard() {
+  const tenantId = authStore.user?.tenantId;
+  if (tenantId) {
+    try {
+      const { data: setup } = await setupService.get(tenantId);
+      if (!setup.onboardingCompleted) {
+        void router.push('/onboarding');
+        return;
+      }
+    } catch { /* ponytail: si falla, ir al dashboard igual */ }
+  }
+  void router.push('/dashboard');
+}
+
 onMounted(() => {
   if (!token.value) {
     loading.value = false;
-    error.value = true;
-    errorMessage.value = 'Token de verificación ausente.';
+    pending.value = true;
     return;
   }
+  window.history.replaceState({}, '', window.location.pathname + window.location.hash.replace(/\?.*$/, ''));
   void verifyEmail(token.value, email.value);
 });
 </script>

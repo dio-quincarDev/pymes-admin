@@ -1,18 +1,26 @@
 package auth.pymes.unit;
 
 import auth.pymes.common.models.dto.request.CreateInvitationRequest;
+import auth.pymes.common.models.dto.request.InvitationRegisterRequest;
+import auth.pymes.common.models.dto.response.AuthResponse;
+import auth.pymes.common.models.dto.response.InvitationInfoResponse;
 import auth.pymes.common.models.dto.response.InvitationResponse;
+import auth.pymes.common.models.dto.response.UserEntityResponse;
+import auth.pymes.common.models.dto.response.TenantResponse;
 import auth.pymes.common.models.entities.Invitation;
 import auth.pymes.common.models.entities.Tenant;
 import auth.pymes.common.models.entities.UserEntity;
 import auth.pymes.common.models.entities.UserTenant;
 import auth.pymes.common.models.enums.RoleName;
 import auth.pymes.common.models.mappers.InvitationMapper;
+import auth.pymes.common.models.mappers.TenantMapper;
+import auth.pymes.common.models.mappers.UserMapper;
 import auth.pymes.repositories.InvitationRepository;
 import auth.pymes.repositories.TenantRepository;
 import auth.pymes.repositories.UserEntityRepository;
 import auth.pymes.repositories.UserTenantRepository;
 import auth.pymes.service.EmailService;
+import auth.pymes.service.JwtService;
 import auth.pymes.service.impl.InvitationServiceImpl;
 import auth.pymes.utils.exception.auth.AuthorizationException;
 import auth.pymes.utils.exception.custom.DuplicateResourceException;
@@ -30,9 +38,9 @@ import org.springframework.data.domain.Page;
 import org.springframework.data.domain.PageImpl;
 import org.springframework.data.domain.PageRequest;
 import org.springframework.data.domain.Pageable;
-import auth.pymes.service.EmailService;
 import org.springframework.security.core.userdetails.UserDetails;
 import org.springframework.security.oauth2.core.user.OAuth2User;
+import org.springframework.security.crypto.password.PasswordEncoder;
 import org.springframework.test.util.ReflectionTestUtils;
 
 import java.time.ZonedDateTime;
@@ -40,6 +48,7 @@ import java.util.List;
 import java.util.Optional;
 import java.util.UUID;
 
+import static org.assertj.core.api.Assertions.assertThat;
 import static org.assertj.core.api.AssertionsForClassTypes.assertThatThrownBy;
 import static org.mockito.ArgumentMatchers.any;
 import static org.mockito.Mockito.*;
@@ -61,6 +70,14 @@ public class InvitationServiceImplTest {
 
     @Mock
     private EmailService emailService;
+    @Mock
+    private PasswordEncoder passwordEncoder;
+    @Mock
+    private JwtService jwtService;
+    @Mock
+    private UserMapper userMapper;
+    @Mock
+    private TenantMapper tenantMapper;
 
     @InjectMocks
     private InvitationServiceImpl invitationService;
@@ -561,6 +578,208 @@ public class InvitationServiceImplTest {
 
             assertThatThrownBy(() -> invitationService.cancelInvitation(invitationId, outsiderEmail))
                     .isInstanceOf(AuthorizationException.class);
+        }
+    }
+
+    @Nested
+    @DisplayName("getInvitationInfo")
+    class GetInvitationInfoTests {
+
+        @Test
+        @DisplayName("Valid token → returns email + tenant name")
+        void getInvitationInfo_Success() {
+            String token = "valid-token";
+            UUID tenantId = UUID.randomUUID();
+            Invitation invitation = Invitation.builder()
+                    .token(token)
+                    .email("guest@example.com")
+                    .tenantId(tenantId)
+                    .expiresAt(ZonedDateTime.now().plusDays(3))
+                    .build();
+            Tenant tenant = Tenant.builder().id(tenantId).name("Acme Corp").build();
+
+            when(invitationRepository.findByTokenAndAcceptedAtIsNull(token)).thenReturn(Optional.of(invitation));
+            when(tenantRepository.findById(tenantId)).thenReturn(Optional.of(tenant));
+
+            InvitationInfoResponse response = invitationService.getInvitationInfo(token);
+
+            assertThat(response.email()).isEqualTo("guest@example.com");
+            assertThat(response.tenantName()).isEqualTo("Acme Corp");
+        }
+
+        @Test
+        @DisplayName("Token not found → throws INV001")
+        void getInvitationInfo_TokenNotFound() {
+            when(invitationRepository.findByTokenAndAcceptedAtIsNull("bad-token")).thenReturn(Optional.empty());
+
+            assertThatThrownBy(() -> invitationService.getInvitationInfo("bad-token"))
+                    .isInstanceOf(ResourceNotFoundException.class)
+                    .hasMessageContaining("does not exist");
+        }
+
+        @Test
+        @DisplayName("Expired token → throws INV002")
+        void getInvitationInfo_Expired() {
+            Invitation invitation = Invitation.builder()
+                    .token("expired")
+                    .email("guest@example.com")
+                    .tenantId(UUID.randomUUID())
+                    .expiresAt(ZonedDateTime.now().minusDays(1))
+                    .build();
+
+            when(invitationRepository.findByTokenAndAcceptedAtIsNull("expired")).thenReturn(Optional.of(invitation));
+
+            assertThatThrownBy(() -> invitationService.getInvitationInfo("expired"))
+                    .isInstanceOf(InvalidInputException.class)
+                    .hasMessageContaining("Invitation has expired");
+        }
+
+        @Test
+        @DisplayName("Tenant not found after valid token → throws TNT001")
+        void getInvitationInfo_TenantNotFound() {
+            UUID tenantId = UUID.randomUUID();
+            Invitation invitation = Invitation.builder()
+                    .token("valid")
+                    .email("guest@example.com")
+                    .tenantId(tenantId)
+                    .expiresAt(ZonedDateTime.now().plusDays(3))
+                    .build();
+
+            when(invitationRepository.findByTokenAndAcceptedAtIsNull("valid")).thenReturn(Optional.of(invitation));
+            when(tenantRepository.findById(tenantId)).thenReturn(Optional.empty());
+
+            assertThatThrownBy(() -> invitationService.getInvitationInfo("valid"))
+                    .isInstanceOf(ResourceNotFoundException.class)
+                    .hasMessageContaining("does not exist");
+        }
+    }
+
+    @Nested
+    @DisplayName("registerAndAccept")
+    class RegisterAndAcceptTests {
+
+        private InvitationRegisterRequest buildRequest() {
+            return new InvitationRegisterRequest("New User", "new@example.com", "SecurePass123!");
+        }
+
+        private Invitation buildInvitation(String email) {
+            return Invitation.builder()
+                    .token("valid-token")
+                    .email(email)
+                    .tenantId(UUID.randomUUID())
+                    .invitedBy(UUID.randomUUID())
+                    .role(RoleName.CONTABLE)
+                    .expiresAt(ZonedDateTime.now().plusDays(7))
+                    .build();
+        }
+
+        @Test
+        @DisplayName("Happy path → creates user, UserTenant, marks invitation, returns JWT")
+        void registerAndAccept_Success() {
+            Invitation invitation = buildInvitation("new@example.com");
+            Tenant tenant = Tenant.builder().id(invitation.getTenantId()).name("Acme").plan(auth.pymes.common.models.enums.PlanName.FREE).build();
+            UserEntity savedUser = UserEntity.builder().id(UUID.randomUUID()).email("new@example.com").name("New User").build();
+
+            when(invitationRepository.findByTokenAndAcceptedAtIsNull("valid-token")).thenReturn(Optional.of(invitation));
+            when(userRepository.existsByEmail("new@example.com")).thenReturn(false);
+            when(tenantRepository.findById(invitation.getTenantId())).thenReturn(Optional.of(tenant));
+            when(passwordEncoder.encode("SecurePass123!")).thenReturn("hashed");
+            when(userRepository.save(any())).thenReturn(savedUser);
+            when(userTenantRepository.save(any())).thenReturn(UserTenant.builder().build());
+            when(invitationRepository.save(any())).thenReturn(invitation);
+            when(jwtService.generateAccessToken(any(), any(), any(), any())).thenReturn("access-token");
+            when(jwtService.generateRefreshToken(any())).thenReturn("refresh-token");
+            when(userMapper.toResponse(any())).thenReturn(mock(UserEntityResponse.class));
+            when(tenantMapper.toResponse(any())).thenReturn(mock(TenantResponse.class));
+
+            AuthResponse response = invitationService.registerAndAccept("valid-token", buildRequest());
+
+            assertThat(response.accessToken()).isEqualTo("access-token");
+            assertThat(response.refreshToken()).isEqualTo("refresh-token");
+            verify(userRepository).save(any(UserEntity.class));
+            verify(userTenantRepository).save(any(UserTenant.class));
+            assertThat(invitation.getAcceptedAt()).isNotNull();
+        }
+
+        @Test
+        @DisplayName("Token not found → throws INV001")
+        void registerAndAccept_TokenNotFound() {
+            when(invitationRepository.findByTokenAndAcceptedAtIsNull("bad")).thenReturn(Optional.empty());
+
+            assertThatThrownBy(() -> invitationService.registerAndAccept("bad", buildRequest()))
+                    .isInstanceOf(ResourceNotFoundException.class)
+                    .hasMessageContaining("does not exist");
+        }
+
+        @Test
+        @DisplayName("Expired token → throws INV002")
+        void registerAndAccept_Expired() {
+            Invitation invitation = Invitation.builder()
+                    .token("expired")
+                    .email("new@example.com")
+                    .tenantId(UUID.randomUUID())
+                    .expiresAt(ZonedDateTime.now().minusDays(1))
+                    .build();
+
+            when(invitationRepository.findByTokenAndAcceptedAtIsNull("expired")).thenReturn(Optional.of(invitation));
+
+            assertThatThrownBy(() -> invitationService.registerAndAccept("expired", buildRequest()))
+                    .isInstanceOf(InvalidInputException.class)
+                    .hasMessageContaining("Invitation has expired");
+        }
+
+        @Test
+        @DisplayName("Email already exists → throws USR004")
+        void registerAndAccept_EmailExists() {
+            Invitation invitation = buildInvitation("existing@example.com");
+            invitation.setEmail("existing@example.com");
+
+            when(invitationRepository.findByTokenAndAcceptedAtIsNull("valid-token")).thenReturn(Optional.of(invitation));
+            when(userRepository.existsByEmail("existing@example.com")).thenReturn(true);
+
+            InvitationRegisterRequest req = new InvitationRegisterRequest("User", "existing@example.com", "SecurePass123!");
+            assertThatThrownBy(() -> invitationService.registerAndAccept("valid-token", req))
+                    .isInstanceOf(DuplicateResourceException.class)
+                    .hasMessageContaining("already registered");
+        }
+
+        @Test
+        @DisplayName("Tenant not found → throws TNT001")
+        void registerAndAccept_TenantNotFound() {
+            Invitation invitation = buildInvitation("new@example.com");
+
+            when(invitationRepository.findByTokenAndAcceptedAtIsNull("valid-token")).thenReturn(Optional.of(invitation));
+            when(userRepository.existsByEmail("new@example.com")).thenReturn(false);
+            when(tenantRepository.findById(invitation.getTenantId())).thenReturn(Optional.empty());
+
+            assertThatThrownBy(() -> invitationService.registerAndAccept("valid-token", buildRequest()))
+                    .isInstanceOf(ResourceNotFoundException.class)
+                    .hasMessageContaining("does not exist");
+        }
+
+        @Test
+        @DisplayName("Email is lowercased before persistence")
+        void registerAndAccept_EmailLowercased() {
+            Invitation invitation = buildInvitation("New@Example.COM");
+            Tenant tenant = Tenant.builder().id(invitation.getTenantId()).name("Acme").plan(auth.pymes.common.models.enums.PlanName.FREE).build();
+            UserEntity savedUser = UserEntity.builder().id(UUID.randomUUID()).email("new@example.com").build();
+
+            when(invitationRepository.findByTokenAndAcceptedAtIsNull("valid-token")).thenReturn(Optional.of(invitation));
+            when(userRepository.existsByEmail("New@Example.COM")).thenReturn(false);
+            when(tenantRepository.findById(invitation.getTenantId())).thenReturn(Optional.of(tenant));
+            when(passwordEncoder.encode(anyString())).thenReturn("hashed");
+            when(userRepository.save(any())).thenReturn(savedUser);
+            when(userTenantRepository.save(any())).thenReturn(UserTenant.builder().build());
+            when(invitationRepository.save(any())).thenReturn(invitation);
+            when(jwtService.generateAccessToken(any(), any(), any(), any())).thenReturn("token");
+            when(jwtService.generateRefreshToken(any())).thenReturn("refresh");
+            when(userMapper.toResponse(any())).thenReturn(mock(UserEntityResponse.class));
+            when(tenantMapper.toResponse(any())).thenReturn(mock(TenantResponse.class));
+
+            InvitationRegisterRequest req = new InvitationRegisterRequest("User", "New@Example.COM", "SecurePass123!");
+            invitationService.registerAndAccept("valid-token", req);
+
+            verify(userRepository).save(argThat(user -> user.getEmail().equals("new@example.com")));
         }
     }
 }

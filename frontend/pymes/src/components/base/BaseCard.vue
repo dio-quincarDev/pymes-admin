@@ -1,5 +1,5 @@
 <template>
-  <div class="base-card hover-lift" :class="[`variant-${variant}`, { 'no-padding': !padding }]">
+  <div class="base-card" :class="[`variant-${variant}`, { 'no-padding': !padding }]" role="group">
     <slot />
   </div>
 </template>
@@ -19,37 +19,29 @@ withDefaults(defineProps<Props>(), {
 <style lang="scss" scoped>
 .base-card {
   border-radius: 8px;
-  transition: all 0.2s cubic-bezier(0.4, 0, 0.2, 1);
+  transition: all 0.16s cubic-bezier(0.4, 0, 0.2, 1);
 
-  &.no-padding {
-    padding: 0;
-  }
+  &.no-padding { padding: 0; }
 
   &.variant-default {
-    background: rgba(27, 38, 36, 0.7);
-    backdrop-filter: blur(12px);
-    -webkit-backdrop-filter: blur(12px);
-    border: 1px solid rgba(113, 131, 127, 0.1);
+    background: #12141A;
+    border: 1px solid rgba(53, 57, 69, 0.3);
   }
 
   &.variant-elevated {
-    background: rgba(27, 38, 36, 0.85);
-    backdrop-filter: blur(8px);
-    -webkit-backdrop-filter: blur(8px);
-    border: 1px solid rgba(113, 131, 127, 0.05);
-    box-shadow: 0 10px 30px rgba(0, 0, 0, 0.2);
+    background: #12141A;
+    border: 1px solid rgba(53, 57, 69, 0.2);
+    box-shadow: 0 8px 24px rgba(0, 0, 0, 0.25);
   }
 
   &.variant-outlined {
     background: transparent;
-    backdrop-filter: none;
-    border: 1px solid rgba(113, 131, 127, 0.2);
+    border: 1px solid rgba(53, 57, 69, 0.5);
   }
 
   &.variant-ghost {
-    background: rgba(11, 18, 16, 0.5);
-    backdrop-filter: blur(4px);
-    border: 1px solid rgba(163, 120, 94, 0.1);
+    background: rgba(200, 150, 62, 0.03);
+    border: 1px solid rgba(200, 150, 62, 0.1);
   }
 }
 </style>

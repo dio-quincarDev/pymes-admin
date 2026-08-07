@@ -55,7 +55,6 @@ public class EmailVerificationServiceImpl implements EmailVerificationService {
     }
 
     @Override
-    @Transactional
     public void generateAndSendPendingRegistrationEmail(RegisterRequest request) {
         String token = generateSecureToken();
         String key = PENDING_REG_PREFIX + token;
@@ -64,7 +63,7 @@ public class EmailVerificationServiceImpl implements EmailVerificationService {
         redisTemplate.opsForValue().set(key, request, TOKEN_TTL);
         // Índice por email para detección rápida de duplicados
         redisTemplate.opsForValue().set(PENDING_REG_PREFIX + "email:" + request.email(), token, TOKEN_TTL);
-        log.info("Registro pendiente guardado en Redis para: {} (Token: {})", request.email(), token);
+        log.info("Registro pendiente guardado en Redis para: {}", request.email());
 
         sendVerificationEmail(request.name(), request.email(), token);
     }
@@ -76,7 +75,6 @@ public class EmailVerificationServiceImpl implements EmailVerificationService {
     }
 
     @Override
-    @Transactional
     public String generateVerificationToken(UserEntity user) {
         String token = generateSecureToken();
         String key = VERIFY_KEY_PREFIX + token;

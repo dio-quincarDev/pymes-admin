@@ -10,7 +10,6 @@ import org.springframework.data.domain.Pageable;
 import org.springframework.http.ResponseEntity;
 import org.springframework.security.access.prepost.PreAuthorize;
 import org.springframework.security.core.annotation.AuthenticationPrincipal;
-import org.springframework.security.oauth2.core.user.OAuth2User;
 import org.springframework.web.bind.annotation.*;
 
 import java.util.UUID;
@@ -25,7 +24,7 @@ public interface MemberApi {
     ResponseEntity<ApiResponse<Page<MemberResponse>>> getTenantUsers(
             @PathVariable UUID tenantId,
             Pageable pageable,
-            @AuthenticationPrincipal OAuth2User principal);
+            @AuthenticationPrincipal Object principal);
 
     @Operation(summary = "Cambiar rol de usuario", description = "Modifica el rol de un usuario en un tenant (requiere OWNER o ADMIN, validación de jerarquía)")
     @PreAuthorize("hasAnyAuthority('ROLE_OWNER', 'ROLE_ADMIN')")
@@ -34,7 +33,7 @@ public interface MemberApi {
             @PathVariable UUID tenantId,
             @PathVariable UUID userId,
             @RequestParam String role,
-            @AuthenticationPrincipal OAuth2User principal);
+            @AuthenticationPrincipal Object principal);
 
     @Operation(summary = "Desvincular usuario", description = "Elimina un usuario de un tenant (soft delete, solo OWNER)")
     @PreAuthorize("hasAuthority('ROLE_OWNER')")
@@ -42,5 +41,5 @@ public interface MemberApi {
     ResponseEntity<ApiResponse<Void>> deleteUserFromTenant(
             @PathVariable UUID tenantId,
             @PathVariable UUID userId,
-            @AuthenticationPrincipal OAuth2User principal);
+            @AuthenticationPrincipal Object principal);
 }

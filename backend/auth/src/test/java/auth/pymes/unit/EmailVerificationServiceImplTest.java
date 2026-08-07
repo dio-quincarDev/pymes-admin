@@ -92,7 +92,6 @@ class EmailVerificationServiceImplTest {
     @Test
     void generateAndSendPendingRegistrationEmail_StoresRequestInRedisAndSendsEmail() {
         RegisterRequest request = new RegisterRequest("New User", "new@example.com", "password", "New Company", "new-company");
-        when(redisTemplate.opsForValue()).thenReturn(valueOperations);
 
         emailVerificationService.generateAndSendPendingRegistrationEmail(request);
 
@@ -104,8 +103,6 @@ class EmailVerificationServiceImplTest {
 
     @Test
     void generateVerificationToken_ReturnsTokenAndStoresInRedis() {
-        when(redisTemplate.opsForValue()).thenReturn(valueOperations);
-
         String token = emailVerificationService.generateVerificationToken(unverifiedUser);
 
         assertThat(token).isNotBlank().hasSize(64);
@@ -122,7 +119,6 @@ class EmailVerificationServiceImplTest {
         HttpServletRequest httpRequest = mock(HttpServletRequest.class);
         AuthResponse authResponse = new AuthResponse("access", "refresh", null, null);
 
-        when(redisTemplate.opsForValue()).thenReturn(valueOperations);
         when(valueOperations.get("temp-register:" + token)).thenReturn(regRequest);
         when(authService.completeRegistration(any(), any())).thenReturn(authResponse);
 
@@ -138,7 +134,6 @@ class EmailVerificationServiceImplTest {
         RegisterRequest regRequest = new RegisterRequest("Test User", "test@example.com", "password", "Company", "company");
         HttpServletRequest httpRequest = mock(HttpServletRequest.class);
 
-        when(redisTemplate.opsForValue()).thenReturn(valueOperations);
         when(valueOperations.get("temp-register:" + token)).thenReturn(regRequest);
 
         assertThatThrownBy(() -> emailVerificationService.verifyEmail(new VerifyEmailRequest(token, "wrong@example.com"), httpRequest))
@@ -150,7 +145,6 @@ class EmailVerificationServiceImplTest {
         String token = "legacy-token";
         HttpServletRequest httpRequest = mock(HttpServletRequest.class);
 
-        when(redisTemplate.opsForValue()).thenReturn(valueOperations);
         when(valueOperations.get("temp-register:" + token)).thenReturn(null);
         when(valueOperations.get("email:verify:" + token)).thenReturn("test@example.com");
         when(userRepository.findByEmail("test@example.com")).thenReturn(Optional.of(unverifiedUser));
@@ -167,7 +161,6 @@ class EmailVerificationServiceImplTest {
     void verifyEmail_WithInvalidToken_ThrowsEmailVerificationTokenInvalidException() {
         HttpServletRequest httpRequest = mock(HttpServletRequest.class);
 
-        when(redisTemplate.opsForValue()).thenReturn(valueOperations);
         when(valueOperations.get("temp-register:" + "invalid")).thenReturn(null);
         when(valueOperations.get("email:verify:" + "invalid")).thenReturn(null);
 
@@ -180,7 +173,6 @@ class EmailVerificationServiceImplTest {
         String token = "legacy-token";
         HttpServletRequest httpRequest = mock(HttpServletRequest.class);
 
-        when(redisTemplate.opsForValue()).thenReturn(valueOperations);
         when(valueOperations.get("temp-register:" + token)).thenReturn(null);
         when(valueOperations.get("email:verify:" + token)).thenReturn("verified@example.com");
         when(userRepository.findByEmail("verified@example.com")).thenReturn(Optional.of(verifiedUser));
@@ -194,7 +186,6 @@ class EmailVerificationServiceImplTest {
         String token = "orphan-token";
         HttpServletRequest httpRequest = mock(HttpServletRequest.class);
 
-        when(redisTemplate.opsForValue()).thenReturn(valueOperations);
         when(valueOperations.get("temp-register:" + token)).thenReturn(null);
         when(valueOperations.get("email:verify:" + token)).thenReturn("deleted@example.com");
         when(userRepository.findByEmail("deleted@example.com")).thenReturn(Optional.empty());
@@ -208,7 +199,6 @@ class EmailVerificationServiceImplTest {
     @Test
     void resendVerificationToken_GeneratesNewTokenForUnverifiedUser() {
         when(userRepository.findByEmail("test@example.com")).thenReturn(Optional.of(unverifiedUser));
-        when(redisTemplate.opsForValue()).thenReturn(valueOperations);
 
         String token = emailVerificationService.resendVerificationToken("test@example.com");
 
@@ -236,7 +226,6 @@ class EmailVerificationServiceImplTest {
 
     @Test
     void createAndSendVerificationEmail_SendsEmailToUnverifiedUser() {
-        when(redisTemplate.opsForValue()).thenReturn(valueOperations);
 
         emailVerificationService.createAndSendVerificationEmail(unverifiedUser);
 

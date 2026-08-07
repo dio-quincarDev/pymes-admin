@@ -1,107 +1,336 @@
+<script setup lang="ts">
+import { computed } from 'vue';
+import { useMeta } from 'quasar';
+import { useAuthStore } from 'src/modules/auth/store';
+import { useFinancialDashboard } from 'src/modules/core/composables/useFinancialDashboard';
+import { useAnalytics } from 'src/modules/core/composables/useAnalytics';
+import { useNumberFormat } from 'src/modules/core/composables/useNumberFormat';
+import AnalyticsHeader from 'src/modules/core/components/analytics/AnalyticsHeader.vue';
+import KpiCard from 'src/modules/core/components/analytics/KpiCard.vue';
+import CategoryBreakdownChart from 'src/modules/core/components/analytics/CategoryBreakdownChart.vue';
+import RecentActivity from 'src/modules/core/components/dashboard/RecentActivity.vue';
+import PendingInvoices from 'src/modules/core/components/dashboard/PendingInvoices.vue';
+import QuickActions from 'src/modules/core/components/dashboard/QuickActions.vue';
+import FinancialHealthPanel from 'src/modules/core/components/dashboard/FinancialHealthPanel.vue';
+import BaseButton from 'src/components/base/BaseButton.vue';
+import { usePullToRefresh } from 'src/composables/usePullToRefresh';
+
+useMeta({ title: 'Dashboard — PYMEQ' });
+
+const authStore = useAuthStore();
+const hasTenant = computed(() => !!authStore.user?.tenantId);
+const { formatCurrency, formatPercent } = useNumberFormat();
+
+const {
+  metricas,
+  metricasPrev,
+  gastosPorCategoria,
+  gastosPorCategoriaPrev,
+  actividadReciente,
+  facturasPendientes,
+  costoDiario,
+  loading,
+  error,
+  periodo,
+  setPeriod,
+  fetch,
+  recalcular,
+} = useFinancialDashboard();
+
+const { financialHealth, loading: analyticsLoading } = useAnalytics();
+
+const { pullDistance, isRefreshing } = usePullToRefresh({ onRefresh: fetch });
+
+function deltaPct(current: number, previous: number): number | undefined {
+  if (!previous || previous === 0) return undefined;
+  return +((current - previous) / Math.abs(previous) * 100).toFixed(1);
+}
+
+function sparkline(prev: number, cur: number): number[] {
+  return [prev, cur];
+}
+
+interface KpiItem {
+  label: string;
+  value: string;
+  delta: number | undefined;
+  deltaLabel: string;
+  trend: number[] | undefined;
+  accent: 'gold' | 'green' | 'red' | 'blue';
+}
+
+const kpis = computed<KpiItem[]>(() => {
+  const m = metricas.value;
+  const p = metricasPrev.value;
+  if (!m) return [];
+  return [
+    {
+      label: 'Ingresos',
+      value: formatCurrency(m.totalIngresos),
+      delta: p ? deltaPct(m.totalIngresos, p.totalIngresos) : undefined,
+      deltaLabel: 'vs mes anterior',
+      trend: p ? sparkline(p.totalIngresos, m.totalIngresos) : undefined,
+      accent: 'gold' as const,
+    },
+    {
+      label: 'Costos',
+      value: formatCurrency(m.costoMercaderia),
+      delta: p ? deltaPct(m.costoMercaderia, p.costoMercaderia) : undefined,
+      deltaLabel: 'vs mes anterior',
+      trend: p ? sparkline(p.costoMercaderia, m.costoMercaderia) : undefined,
+      accent: 'red' as const,
+    },
+    {
+      label: 'Margen Bruto',
+      value: formatPercent(m.margenBrutoPct),
+      delta: p ? deltaPct(m.margenBrutoPct, p.margenBrutoPct) : undefined,
+      deltaLabel: 'vs mes anterior',
+      trend: p ? sparkline(p.margenBrutoPct, m.margenBrutoPct) : undefined,
+      accent: 'green' as const,
+    },
+    {
+      label: 'Gastos Operativos',
+      value: formatCurrency(m.gastosOperativos),
+      delta: p ? deltaPct(m.gastosOperativos, p.gastosOperativos) : undefined,
+      deltaLabel: 'vs mes anterior',
+      trend: p ? sparkline(p.gastosOperativos, m.gastosOperativos) : undefined,
+      accent: 'blue' as const,
+    },
+    {
+      label: 'Margen Operativo',
+      value: formatPercent(m.margenOperativoPct),
+      delta: p ? deltaPct(m.margenOperativoPct, p.margenOperativoPct) : undefined,
+      deltaLabel: 'vs mes anterior',
+      trend: p ? sparkline(p.margenOperativoPct, m.margenOperativoPct) : undefined,
+      accent: 'green' as const,
+    },
+    {
+      label: 'Margen Neto',
+      value: formatPercent(m.margenNetoPct),
+      delta: p ? deltaPct(m.margenNetoPct, p.margenNetoPct) : undefined,
+      deltaLabel: 'vs mes anterior',
+      trend: p ? sparkline(p.margenNetoPct, m.margenNetoPct) : undefined,
+      accent: m.margenNetoPct >= 0 ? 'green' as const : 'red' as const,
+    },
+    ...(costoKpi ? [costoKpi] : []),
+  ];
+});
+
+const costoKpi: KpiItem | null = costoDiario.value
+  ? {
+      label: 'Costo / Día',
+      value: formatCurrency(costoDiario.value.costoOperativoDiario),
+      delta:
+        costoDiario.value.costoOperativoDiario > 0
+          ? +(
+              ((costoDiario.value.ventasHoy - costoDiario.value.costoOperativoDiario) /
+                costoDiario.value.costoOperativoDiario) *
+              100
+            ).toFixed(1)
+          : undefined,
+      deltaLabel: 'vs costo diario',
+      trend: undefined,
+      accent:
+        costoDiario.value.ventasHoy >= costoDiario.value.costoOperativoDiario ? 'green' : 'red',
+    }
+  : null;
+
+const categoryItems = computed(() =>
+  gastosPorCategoria.value.map((g) => {
+    const prev = gastosPorCategoriaPrev.value.find((p) => p.categoria === g.categoria);
+    return {
+      category: g.categoria,
+      currentAmount: g.total,
+      previousAmount: prev?.total,
+      percentage: g.pct,
+    };
+  }),
+);
+</script>
+
 <template>
   <q-page class="dashboard-page">
-    <div class="row q-col-gutter-lg">
-      <!-- Welcome Header -->
-      <div class="col-12 q-mb-md fade-in-up">
-        <h1 class="text-h4 text-primary font-bold q-ma-none brand-glow-text">
-          Bienvenido, {{ authStore.user?.nombre || 'Auditor' }}
-        </h1>
-        <p class="text-subtitle1 text-accent q-mt-xs">Panel de control de auditoría inteligente</p>
+    <transition name="ptr">
+      <div
+        v-show="isRefreshing || pullDistance > 0"
+        class="ptr-indicator"
+        :style="{ height: `${isRefreshing ? 44 : pullDistance}px` }"
+        role="status"
+        aria-live="polite"
+      >
+        <q-spinner v-if="isRefreshing" size="20px" color="accent" />
+        <q-icon v-else name="arrow_downward" size="20px" color="accent" />
+      </div>
+    </transition>
+
+    <template v-if="!hasTenant">
+      <div class="no-tenant-state">
+        <q-icon name="domain_disabled" size="64px" style="color: var(--pq-text-subtle)" aria-hidden="true" />
+        <h1 class="no-tenant-headline">Tu negocio aún no está configurado</h1>
+        <p class="no-tenant-copy">Completá el onboarding para empezar a usar PymeQ.</p>
+        <BaseButton variant="primary" size="lg" @click="$router.push('/onboarding')">
+          COMPLETAR ONBOARDING
+        </BaseButton>
+        <p class="no-tenant-hint">¿Ya empezaste? Revisá tu correo para el enlace de verificación.</p>
+      </div>
+    </template>
+
+    <template v-else>
+      <AnalyticsHeader
+        title="Dashboard"
+        subtitle="Cómo está mi negocio hoy"
+        :period="periodo"
+        :loading="loading"
+        @update:period="setPeriod"
+        @recalculate="recalcular"
+      />
+
+      <div v-if="error && !loading" class="dashboard-error-banner">
+        <q-icon name="error_outline" size="18px" />
+        <span>{{ error }}</span>
+        <q-btn flat dense no-caps label="Reintentar" class="dashboard-error-banner__retry" @click="recalcular" />
       </div>
 
-      <!-- Stats Cards Row -->
-      <div class="col-12 col-sm-6 col-md-4 fade-in-up" style="animation-delay: 0.1s">
-        <BaseCard variant="elevated" class="q-pa-lg full-height">
-          <div class="row items-center justify-between q-mb-md">
-            <div class="text-overline text-accent">Auditorías Activas</div>
-            <q-icon name="security" color="primary" size="sm" />
-          </div>
-          <div class="text-h3 text-primary font-bold">12</div>
-          <div class="text-caption text-positive q-mt-sm">
-            <q-icon name="trending_up" /> +2 este mes
-          </div>
-        </BaseCard>
+      <div class="kpi-row stagger-children">
+        <KpiCard
+          v-for="kpi in kpis"
+          :key="kpi.label"
+          :label="kpi.label"
+          :value="kpi.value"
+          :delta="kpi.delta"
+          :delta-label="kpi.deltaLabel"
+          :accent="kpi.accent"
+          :trend="kpi.trend"
+          :loading="loading"
+        />
       </div>
 
-      <div class="col-12 col-sm-6 col-md-4 fade-in-up" style="animation-delay: 0.2s">
-        <BaseCard variant="elevated" class="q-pa-lg full-height">
-          <div class="row items-center justify-between q-mb-md">
-            <div class="text-overline text-accent">Riesgo Promedio</div>
-            <q-icon name="gpp_maybe" color="negative" size="sm" />
-          </div>
-          <div class="text-h3 text-negative font-bold">Bajo</div>
-          <div class="text-caption text-accent q-mt-sm">Basado en 45 controles</div>
-        </BaseCard>
+      <div class="dashboard-content">
+        <div class="dashboard-content__main">
+          <CategoryBreakdownChart
+            :items="categoryItems"
+            :loading="loading"
+            :empty="categoryItems.length === 0"
+          />
+          <RecentActivity :actividades="actividadReciente" :loading="loading" />
+        </div>
+        <div class="dashboard-content__side">
+          <PendingInvoices :facturas="facturasPendientes" :loading="loading" />
+          <FinancialHealthPanel :data="financialHealth" :loading="analyticsLoading" />
+          <QuickActions />
+        </div>
       </div>
-
-      <div class="col-12 col-md-4 fade-in-up" style="animation-delay: 0.3s">
-        <BaseCard variant="elevated" class="q-pa-lg full-height">
-          <div class="row items-center justify-between q-mb-md">
-            <div class="text-overline text-accent">Usuarios Activos</div>
-            <q-icon name="people" color="primary" size="sm" />
-          </div>
-          <div class="text-h3 text-primary font-bold">1</div>
-          <div class="text-caption text-accent q-mt-sm">Licencia: Business Core</div>
-        </BaseCard>
-      </div>
-
-      <!-- Secondary Row: Main Actions -->
-      <div class="col-12 col-md-8 fade-in-up" style="animation-delay: 0.4s">
-        <BaseCard class="q-pa-xl flex flex-center text-center">
-          <div style="max-width: 400px">
-            <q-icon name="analytics" size="6rem" color="primary" class="opacity-20 q-mb-lg" />
-            <div class="text-h5 font-bold q-mb-md">Inicia un nuevo análisis</div>
-            <p class="text-body2 text-accent q-mb-xl">
-              Selecciona una categoría para comenzar a auditar los movimientos de tu empresa.
-            </p>
-            <BaseButton size="lg">COMENZAR AUDITORÍA</BaseButton>
-          </div>
-        </BaseCard>
-      </div>
-
-      <div class="col-12 col-md-4 fade-in-up" style="animation-delay: 0.5s">
-        <BaseCard variant="ghost" class="q-pa-lg full-height">
-          <div class="text-subtitle2 font-bold q-mb-md">Actividad Reciente</div>
-          <q-list dark separator class="border-light radius-sm">
-            <q-item v-for="i in 3" :key="i" class="q-py-md">
-              <q-item-section avatar>
-                <q-icon name="history" color="accent" size="xs" />
-              </q-item-section>
-              <q-item-section>
-                <q-item-label class="text-body2">Inicio de sesión detectado</q-item-label>
-                <q-item-label caption>Hace {{ i * 2 }} horas</q-item-label>
-              </q-item-section>
-            </q-item>
-          </q-list>
-          <BaseButton variant="ghost" size="sm" class="full-width q-mt-md">Ver todo</BaseButton>
-        </BaseCard>
-      </div>
-    </div>
+    </template>
   </q-page>
 </template>
 
-<script setup lang="ts">
-import { useAuthStore } from 'src/modules/auth/store';
-import BaseCard from 'src/components/base/BaseCard.vue';
-import BaseButton from 'src/components/base/BaseButton.vue';
-
-const authStore = useAuthStore();
-</script>
-
-<style lang="scss" scoped>
+<style scoped lang="scss">
 .dashboard-page {
   width: 100%;
 }
 
-.brand-glow-text {
-  text-shadow: 0 0 20px rgba(163, 120, 94, 0.3);
+.ptr-indicator {
+  position: fixed;
+  top: 0;
+  left: 0;
+  right: 0;
+  z-index: 10;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  background: var(--pq-surface);
+  border-bottom: 1px solid var(--pq-border);
+  pointer-events: none;
 }
 
-.opacity-20 {
-  opacity: 0.2;
+.ptr-enter-active,
+.ptr-leave-active {
+  transition: opacity var(--pq-motion-fast);
 }
 
-.border-light {
-  border: 1px solid rgba(113, 131, 127, 0.1);
+.ptr-enter-from,
+.ptr-leave-to {
+  opacity: 0;
+}
+
+.dashboard-error-banner {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+  padding: 12px 16px;
+  margin-bottom: 24px;
+  background: rgba(160, 64, 56, 0.1);
+  border: 1px solid rgba(160, 64, 56, 0.2);
+  border-radius: 6px;
+  font-family: 'Satoshi', sans-serif;
+  font-size: 13px;
+  color: var(--pq-danger);
+
+  &__retry {
+    margin-left: auto;
+    color: var(--pq-danger);
+    font-weight: 500;
+  }
+}
+
+.kpi-row {
+  display: grid;
+  grid-template-columns: repeat(auto-fit, minmax(200px, 1fr));
+  gap: 16px;
+  margin-bottom: 24px;
+}
+
+.dashboard-content {
+  display: grid;
+  grid-template-columns: 1fr 1fr;
+  gap: 24px;
+
+  @media (max-width: 768px) {
+    grid-template-columns: 1fr;
+  }
+
+  &__main,
+  &__side {
+    display: flex;
+    flex-direction: column;
+    gap: 24px;
+  }
+}
+
+.no-tenant-state {
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  justify-content: center;
+  text-align: center;
+  min-height: 60vh;
+  gap: 20px;
+  max-width: 480px;
+  margin: 0 auto;
+}
+
+.no-tenant-headline {
+  font-family: 'Geist', sans-serif;
+  font-size: 24px;
+  font-weight: 700;
+  color: var(--pq-text);
+  margin: 0;
+}
+
+.no-tenant-copy {
+  font-family: 'Satoshi', sans-serif;
+  font-size: 16px;
+  font-weight: 400;
+  color: var(--pq-text-muted);
+  margin: 0;
+  max-width: 35ch;
+}
+
+.no-tenant-hint {
+  font-family: 'Satoshi', sans-serif;
+  font-size: 13px;
+  font-weight: 400;
+  color: var(--pq-text-subtle);
+  margin: 8px 0 0;
 }
 </style>

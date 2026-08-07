@@ -1,0 +1,385 @@
+Motor Analítico — Guía para Profesionales Financieros
+=====================================================
+
+Arquitectura del Sistema
+------------------------
+
+El motor consta de dos subsistemas independientes que se ejecutan sobre los
+mismos datos transaccionales (facturas, ventas, gastos, préstamos):
+
+  Subsistema              Output                                Actualización
+  ──────────              ──────                                ─────────────
+  Métricas Contables      7 variables financieras + 3 márgenes  Auto 30s post-evento
+                           ($ y %)                               / Manual
+  Analítica Avanzada      9 motores: Pareto, tendencias,        Auto 30s post-factura
+                          márgenes x producto, opEx,            / Manual
+                          proyecciones, alertas, proveedores,
+                          predicciones
+
+Ambos subsistemas persisten sus resultados en base de datos por período
+(YYYY-MM) y se consultan sin necesidad de recalcular.
+
+
+1. Métricas Contables — Los 3 Márgenes
+=======================================
+
+Variables del sistema
+---------------------
+
+  Variable  Fuente                      Descripción
+  ────────  ─────                       ───────────
+  I         SUM(ventas.bruto)           Ingresos totales del mes
+  COGS      SUM(facturas tipo COMPRA)   Costo de mercadería vendida
+                                        (compras del mes)
+  OPEX      SUM(facturas OPERATIVO) +   Gastos operativos (alquiler,
+            SUM(gastos.monto)           servicios, sueldos, etc.)
+  LOAN      SUM(pago_prestamos.monto)   Cuotas de préstamos pagadas
+                                        en el mes
+
+
+Fórmulas
+--------
+
+  Margen Bruto ($)       = I - COGS
+  Margen Bruto (%)       = (I - COGS) / I * 100
+
+  Margen Operativo ($)   = (I - COGS) - OPEX
+  Margen Operativo (%)   = ((I - COGS) - OPEX) / I * 100
+
+  Margen Neto ($)        = ((I - COGS) - OPEX) - LOAN
+  Margen Neto (%)        = (((I - COGS) - OPEX) - LOAN) / I * 100
+
+
+Ejemplo numérico
+----------------
+
+  Concepto                    Monto
+  ────────                    ─────
+  Ingresos (I)                $10,000
+  COGS (compras)              $4,000
+  OPEX                        $3,500
+  Prestamos                   $500
+
+  Margen Bruto   = 10,000 - 4,000         = $6,000  -> 60%
+  Margen Opera.  = 6,000 - 3,500          = $2,500  -> 25%
+  Margen Neto    = 2,500 - 500            = $2,000  -> 20%
+
+
+Casos borde
+-----------
+
+  * I = 0: todos los porcentajes se reportan como 0% (proteccion division
+    por cero implementada).
+
+  * Margenes negativos: se persisten y muestran en rojo en la interfaz. Un
+    Margen Bruto negativo implica venta por debajo del costo de compra.
+
+  * Sin prestamos: Margen Neto = Margen Operativo.
+
+
+Limitaciones contables
+----------------------
+
+  Aspecto             Sistema actual                     Contabilidad full
+  ───────             ──────────────                     ─────────────────
+  COGS                = compras del periodo              = inventario inicial +
+                                                           compras - inventario
+                                                           final
+  Prestamos           Cuota completa se resta como       Solo intereses son
+                      gasto                              gasto; amortizacion
+                                                         es balance
+  Devengo             Base caja (cuando se registra)     Devengo: ingreso cuando
+                                                         se factura, gasto
+                                                         cuando se incurre
+  Depreciacion        No considerada                     Se resta en EBIT
+
+  IMPORTANTE: El sistema esta disenado para PYMEs que operan en base caja
+  y no gestionan inventario fisico. Si el negocio tiene stock significativo,
+  el COGS reportado NO refleja el costo real de lo vendido sino el costo de
+  lo comprado en el periodo.
+
+
+2. Los 9 Motores Analiticos
+============================
+
+Todos los motores se ejecutan juntos en un solo proceso y sus resultados
+se almacenan como JSONB en tabla por (tenant, periodo).
+
+
+2.1 ABC de Gastos (Pareto)
+---------------------------
+
+Clasifica productos segun su participacion en el gasto total:
+
+  * A: acumulan el 80% del gasto (pocos productos, alto impacto)
+  * B: entre 80% y 95%
+  * C: ultimo 5% (muchos productos, bajo impacto)
+
+  Formula:
+    Participacion % = (gasto del producto / gasto total) * 100
+    Categoria A si la suma acumulada hasta este producto <= 80% del total
+    Categoria B si la suma acumulada <= 95%
+    Categoria C en cualquier otro caso
+
+  Utilidad: Identifica rapidamente que productos concentran el mayor gasto.
+  Una PYME que gasta el 80% en 3 productos sabe donde enfocar la negociacion
+  con proveedores.
+
+
+2.2 Tendencias de Precios
+--------------------------
+
+Compara el precio promedio actual de cada producto contra su promedio de
+los ultimos 90 dias:
+
+  DT = (PrecioActual - Media90d) / Media90d * 100
+
+  donde:
+    PrecioActual = precio promedio de los items facturados en el periodo
+                   actual
+    Media90d     = precio promedio de los items facturados en los ultimos
+                   90 dias (incluyendo el periodo actual)
+
+  Utilidad: Detecta si un producto esta subiendo o bajando de precio
+  sostenidamente. Sirve para decidir cuando comprar o si un proveedor esta
+  incrementando precios por encima de la tendencia del mercado.
+
+
+2.3 Impacto en Margenes (por producto)
+---------------------------------------
+
+Compara precio promedio de venta mes actual vs mes anterior por producto:
+
+  DT = (PrecioActual - PrecioAnterior) / PrecioAnterior * 100
+
+  Cuando PrecioAnterior = 0 (producto nuevo o sin ventas en el mes anterior),
+  la variacion se reporta como 0% para evitar division por cero.
+
+  Formula interna:
+    PrecioActual   = AVG(unit_price / conversion_factor) del mes actual
+    PrecioAnterior = AVG(unit_price / conversion_factor) del mes anterior
+
+  Nota sobre conversion_factor: Si un producto se vende en presentaciones
+  con factores de conversion (ej: 1 kg = 1000 g), el sistema normaliza los
+  precios a la unidad base antes de comparar.
+
+  Utilidad: Detecta presion bajista en precios de venta, productos con
+  margen deteriorado (suba de costos no trasladada a precios) o efectos
+  estacionales. Es un insumo para decisiones de pricing, no un calculo
+  contable directo del margen por producto (el sistema no conoce el costo
+  unitario de cada producto).
+
+
+2.4 Costo Operativo (Resumen del Periodo)
+------------------------------------------
+
+Consolida en un solo cuadro las metricas operativas del periodo:
+
+  Metrica                    Descripcion
+  ───────                    ───────────
+  Facturas emitidas          Cantidad de comprobantes en el periodo
+  Productos distintos        Variedad de insumos/servicios adquiridos
+  Proveedores activos        Cantidad de proveedores que facturaron
+  Gasto total                Suma de todos los subtotales
+  Gasto diario promedio      Total / cantidad de dias del mes
+  Proyeccion mensual         Gasto diario promedio * 30
+
+  Formula de proyeccion:
+    ProyeccionMensual = (GastoTotal / DiasDelMes) * 30
+
+  Utilidad: Vision rapida del volumen operativo. La proyeccion mensual
+  permite anticipar si se va a exceder el presupuesto antes de fin de mes
+  sin hacer cuentas manuales.
+
+
+2.5 Proyeccion de Gasto
+------------------------
+
+Extrapolacion lineal simple del gasto diario promedio hacia el futuro:
+
+  Proyeccion30d = GastoDiarioPromedio * 30
+  Proyeccion60d = GastoDiarioPromedio * 60
+  Proyeccion90d = GastoDiarioPromedio * 90
+
+  donde:
+    GastoDiarioPromedio = SUM(subtotal facturas) / COUNT(dias con facturas)
+
+  Utilidad: Presupuestacion y flujo de caja. Responde "si sigo gastando al
+  mismo ritmo, cuanto habre gastado en 1, 2 y 3 meses?".
+
+
+2.6 Alertas Automaticas
+------------------------
+
+El sistema genera dos tipos de alertas sin intervencion del usuario:
+
+a) Variacion de Precios (PRICE_VARIATION)
+   Se dispara cuando el coeficiente de variacion (CV) supera el 15%:
+
+     CV = DesviacionEstandar / PrecioPromedio
+
+   Interpretacion: CV > 15% indica que el precio del producto es inestable
+   a lo largo del mes. Distintas facturas muestran precios muy diferentes
+   para el mismo producto.
+
+b) Sobreprecio de Proveedor (SUPPLIER_PREMIUM)
+   Se dispara cuando un proveedor cobra mas del 15% por encima del precio
+   promedio del producto:
+
+     Prima % = (PrecioProveedor - PrecioPromedio) / PrecioPromedio * 100
+
+   Se compara el precio promedio de cada proveedor contra el precio promedio
+   del producto considerando todos los proveedores.
+
+  Utilidad: Permite identificar problemas de pricing sin revisar factura por
+  factura. Un producto con PRICE_VARIATION sugiere que el precio de compra
+  no esta estandarizado (distintos precios pagados por el mismo producto).
+  Un SUPPLIER_PREMIUM es una alerta directa de negociacion: cambiar de
+  proveedor podria ahorrar dinero.
+
+  Si no se detecta ninguna anomalia, el sistema reporta "No significant
+  anomalies detected".
+
+
+2.7 Comparativa de Proveedores
+-------------------------------
+
+Por cada par (producto, proveedor), muestra estadisticas completas:
+
+  Campo                    Descripcion
+  ─────                    ───────────
+  Precio promedio          Promedio historico pagado a ese proveedor
+  Precio minimo            Mejor precio registrado
+  Precio maximo            Peor precio registrado
+  Desviacion estandar      Consistencia/previsibilidad del precio
+  Compras realizadas       Cantidad de operaciones registradas
+
+  Fuente de datos: invoice_items con normalizacion por conversion_factor
+  para comparar precios en la misma unidad base.
+
+  Utilidad: Permite comparar objetivamente proveedores del mismo producto.
+  Un proveedor con alta desviacion estandar puede tener precios
+  inconsistentes (a veces caro, a veces barato), lo cual es riesgoso para
+  presupuestacion. Un proveedor con precio promedio mas alto pero
+  desviacion baja ofrece previsibilidad a cambio de un premium.
+
+
+2.8 Recomendacion de Proveedor
+-------------------------------
+
+Para cada producto con al menos 2 proveedores, el sistema calcula:
+
+  * Proveedor mas barato (precio promedio mas bajo)
+  * Precio recomendado vs precio actual promedio
+  * Ahorro por unidad en dolares
+  * Ahorro por unidad en porcentaje
+
+  Formula:
+    Ahorro$   = PrecioMasCaro - PrecioMasBarato
+    Ahorro%   = (PrecioMasCaro - PrecioMasBarato) / PrecioMasCaro * 100
+
+  Los resultados se ordenan de mayor a menor ahorro porcentual. Productos
+  con un solo proveedor no generan recomendacion.
+
+  Utilidad: Recomendacion ejecutable: "si compras el producto X, compraselo
+  al proveedor Y y ahorras Z% por unidad". Es una herramienta directa de
+  apoyo a la negociacion y decision de compra.
+
+
+2.9 Prediccion de Precios
+--------------------------
+
+Usa regresion lineal ordinaria (OLS) sobre el historico de precios de los
+ultimos 6 meses. Para cada producto:
+
+  * Requiere minimo 3 puntos de datos (3 fechas distintas con compras)
+  * Predice el precio del proximo mes
+  * Reporta nivel de confianza basado en R^2 (0-100%)
+  * Calcula la variacion porcentual esperada
+
+  Modelo matematico:
+    Precio(t) = pendiente * t + intercepto
+
+    donde:
+      pendiente   = (n * Sxy - Sx * Sy) / (n * Sxx - Sx^2)
+      intercepto  = (Sy - pendiente * Sx) / n
+      Confianza   = R^2 * 100
+
+    R^2 mide que tan bien se ajustan los datos historicos a la recta de
+    regresion. Un R^2 cercano a 1 indica tendencia clara; cercano a 0
+    indica precios erraticos.
+
+  Interpretacion de confianza:
+    >80%  : tendencia clara, la prediccion es confiable
+    50-80%: tendencia moderada, usar con cautela
+    <30%  : precio erratico, la prediccion no es informativa
+
+  Utilidad: Anticipa tendencias de precios. Una prediccion con confianza
+  >80% y variacion positiva sugiere comprar antes de que suba. Una con
+  baja confianza indica que el precio es erratico y la mejor estrategia
+  es monitorear o diversificar proveedores.
+
+
+3. Actualizacion Automatica (Eventos)
+======================================
+
+El sistema se mantiene actualizado sin intervencion del usuario gracias a
+un mecanismo basado en eventos y debounce con Redis:
+
+  Evento                           Que recalcula                 Demora
+  ─────                            ─────────────                 ─────
+  Se crea/edita una factura        Los 9 motores analiticos     ~30 segundos
+  Se registra un gasto operativo   Metricas contables           ~30 segundos
+                                   (3 margenes)
+  Se registra una venta            Metricas contables           ~30 segundos
+                                   (3 margenes)
+
+  Mecanismo de debounce:
+  1. El evento publica una marca en Redis con SETNX (set if not exists).
+  2. Un proceso programado cada 30 segundos revisa si hay marcas
+     pendientes.
+  3. Si hay marcas, ejecuta el recalculado correspondiente.
+  4. Si ocurren 5 eventos en 10 segundos, solo se ejecuta UN recalculo
+     al final de los 30 segundos.
+  5. Si el recalculado falla, la marca persiste en Redis para reintentar.
+
+  Tambien se puede forzar recalculado manual desde la interfaz de usuario
+  (boton "Recalcular").
+
+
+4. Resumen de Beneficios para el Profesional Financiero
+========================================================
+
+  Capacidad                      Problema que resuelve
+  ────────                       ─────────────────────
+  3 margenes en cascada          Separa rentabilidad bruta, operativa y
+                                 neta en un solo vistazo sin abrir Excel
+  ABC Pareto                     Identifica que productos concentran el
+                                 gasto sin revisar facturas una por una
+  Alertas automaticas            Detecta sobreprecios e inestabilidad de
+                                 precios sin monitoreo manual
+  Comparativa proveedores        Objetiviza decisiones de compra con datos,
+                                 no con percepciones o relaciones
+  Prediccion de precios          Anticipa subas antes de que impacten el
+                                 presupuesto (con nivel de confianza)
+  Proyeccion de gasto            Responde "cuanto voy a gastar si sigo asi?"
+                                 sin hacer cuentas en Excel
+  Actualizacion automatica       Los numeros siempre reflejan el ultimo
+                                 movimiento registrado
+
+
+5. Glosario de Terminos
+========================
+
+  COGS  Cost of Goods Sold (Costo de Mercaderia Vendida)
+  CTE   Common Table Expression (consulta SQL auxiliar utilizada internamente)
+  CV    Coeficiente de Variacion (desvio / promedio, mide dispersion relativa)
+  JSONB Formato de almacenamiento flexible en PostgreSQL (datos no
+        estructurados)
+  OLS   Ordinary Least Squares (regresion lineal, metodo de minimos cuadrados
+        ordinarios)
+  OPEX  Operational Expenditure (Gastos Operativos)
+  R^2   Coeficiente de determinacion (mide que tan bien se ajusta un modelo
+        a los datos observados, de 0 a 1)
+  SETNX  Comando de Redis: "SET if Not eXists", usado para el debounce
+  TTL   Time To Live (tiempo de expiracion automatico en Redis)

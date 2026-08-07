@@ -1,12 +1,12 @@
-/* Email Design System - PYMEQ */
-/* Fintech Deep Forest & Copper Palette */
+/* Email Design — PYMEQ */
+/* Palette from .ulpi/design/DESIGN.md (dark, bronze accent) */
 
 body {
     font-family: 'Inter', -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, sans-serif;
-    background-color: #0B1210; /* $dark-page */
+    background-color: #08090D;
     margin: 0;
     padding: 0;
-    color: #E2E8E4; /* $secondary */
+    color: #F5F3EF;
     -webkit-font-smoothing: antialiased;
     -moz-osx-font-smoothing: grayscale;
     text-rendering: optimizeLegibility;
@@ -15,7 +15,7 @@ body {
 .wrapper {
     width: 100%;
     table-layout: fixed;
-    background-color: #0B1210; /* $dark-page */
+    background-color: #08090D;
     padding-bottom: 40px;
     padding-top: 40px;
 }
@@ -23,16 +23,23 @@ body {
 .container {
     max-width: 600px;
     margin: 0 auto;
-    background-color: #1B2624; /* $dark */
-    border-radius: 8px;
+    background-color: #12141A;
+    border-radius: 6px;
     overflow: hidden;
-    box-shadow: 0 1px 3px rgba(0,0,0,0.1);
+    box-shadow: 0 1px 3px rgba(0,0,0,0.3);
 }
 
 .header {
     padding: 32px 40px;
     text-align: center;
-    border-bottom: 1px solid #71837F; /* $accent */
+    border-bottom: 1px solid #353945;
+}
+
+.logo {
+    font-size: 24px;
+    font-weight: 800;
+    color: #C8963E;
+    letter-spacing: -0.01em;
 }
 
 .content {
@@ -43,32 +50,37 @@ body {
 .footer {
     padding: 32px 40px;
     text-align: center;
-    background-color: #0B1210; /* $dark-page */
-    color: #71837F; /* $accent */
+    background-color: #08090D;
+    color: #6B6863;
     font-size: 14px;
 }
 
 .btn {
     display: inline-block;
-    background-color: #A3785E; /* $primary */
+    background-color: #C8963E;
     color: #ffffff !important;
     padding: 14px 28px;
     text-decoration: none;
-    border-radius: 6px;
+    border-radius: 4px;
     font-weight: 600;
     font-size: 16px;
     margin: 24px 0;
 }
 
+.divider {
+    border: none;
+    border-top: 1px solid #C8A042;
+    margin: 25px 0;
+}
+
 .text-muted {
-    color: #71837F; /* $accent */
+    color: #9B9790;
     font-size: 14px;
 }
 
-.warning-text {
+.text-subtle {
     font-size: 13px;
-    color: #71837F; /* $accent */
+    color: #6B6863;
     margin-top: 25px;
-    border-top: 1px solid #C5A059; /* $warning */
     padding-top: 20px;
 }

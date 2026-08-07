@@ -73,15 +73,15 @@ public class UserEntity implements UserDetails {
     @Builder.Default
     private Set<UserTenant> userTenants = new HashSet<>();
 
-    @OneToMany(mappedBy = "invitedBy", cascade = CascadeType.ALL, orphanRemoval = true)
+    @OneToMany(mappedBy = "invitedBy")
     @Builder.Default
     private Set<Invitation> sentInvitations = new HashSet<>();
 
-    @OneToMany(mappedBy = "user", cascade = CascadeType.ALL, orphanRemoval = true)
+    @OneToMany(mappedBy = "user")
     @Builder.Default
     private Set<RefreshToken> refreshTokens = new HashSet<>();
 
-    @OneToMany(mappedBy = "user", cascade = CascadeType.ALL, orphanRemoval = true)
+    @OneToMany(mappedBy = "user")
     @Builder.Default
     private Set<AuditLog> auditLogs = new HashSet<>();
 

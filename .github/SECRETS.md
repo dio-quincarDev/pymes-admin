@@ -169,7 +169,7 @@ git clone https://github.com/dio-quincarDev/pymes-admin.git ~/pymes-admin
 
 | Acción | Workflow que se ejecuta |
 |--------|------------------------|
-| Push a `feature/**` | CI (build + tests) |
+| Push a `feature/**` | CI (build + tests). Salta si solo cambian `**/*.md` |
 | Push a `develop` | CI + CD Staging |
 | Push a `main` | CI + CD Producción |
 

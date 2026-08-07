@@ -2,16 +2,16 @@
 
 ## Contexto
 
-Los microservicios del backend (auth, gateway-pymes) necesitan pruebas de integración contra servicios reales (PostgreSQL, Redis). Actualmente los tests del auth service usan H2, lo que no valida migraciones Flyway ni comportamiento real de PostgreSQL.
+Los microservicios del backend (auth, gateway-pymes) necesitan pruebas de integracion contra servicios reales (PostgreSQL, Redis). Los tests del auth service usan Testcontainers con PostgreSQL y Redis reales.
 
 ## Objetivo
 
-Usar Testcontainers para levantar PostgreSQL y Redis reales durante las pruebas de integración, garantizando que el código funciona contra los mismos servicios que se usan en producción.
+Usar Testcontainers para levantar PostgreSQL y Redis reales durante las pruebas de integracion, garantizando que el codigo funciona contra los mismos servicios que se usan en produccion.
 
-## Convención de nombres
+## Convencion de nombres
 
 - `*Test.java` → tests unitarios, sin containers
-- `*IT.java` → tests de integración, con containers
+- `*IntegrationTest.java` → tests de integracion, con containers
 
 ## Estructura de tests
 
@@ -20,43 +20,48 @@ src/test/java/
 ├── unit/                    # Tests existentes, no cambian
 │   └── *Test.java
 └── integration/
+    ├── AbstractIntegrationTest.java   # Clase base con containers
     ├── repository/
-    │   └── *IT.java         # Repositorios contra PostgreSQL real
+    │   └── *IntegrationTest.java      # Repositorios contra PostgreSQL real
     ├── service/
-    │   └── *IT.java         # Servicios con PostgreSQL + Redis
+    │   └── *IntegrationTest.java      # Servicios con PostgreSQL + Redis
     └── api/
-        └── *IT.java         # Endpoints completos con security
+        └── *IntegrationTest.java      # Endpoints completos con security
 ```
 
 ## Clase base reutilizable
 
-Una clase `AbstractIntegrationTest` levanta los containers e inyecta las propiedades:
+`AbstractIntegrationTest` levanta los containers e inyecta las propiedades:
 
 - PostgreSQL 15-alpine
 - Redis 7-alpine
-- Flyway habilitado
-- Propiedades dinámicas via `@DynamicPropertySource`
+- Flyway habilitado (schema: `auth`)
+- Propiedades dinamicas via `@DynamicPropertySource`
+- `@MockitoBean` para EmailService (evita enviar emails reales)
 
-Todos los `*IT.java` heredan de esta clase.
+Todos los `*IntegrationTest.java` heredan de esta clase.
 
-## Fase 1: Auth Service
+## Fase 1: Auth Service ✅ Completa
 
-1. Agregar dependencias al `pom.xml`:
+1. Dependencias en `pom.xml`:
    - `spring-boot-starter-testcontainers`
    - `testcontainers:junit-jupiter`
    - `postgresql`
-   - Eliminar H2
+   - H2 eliminado
 
-2. Crear `AbstractIntegrationTest`
+2. `AbstractIntegrationTest` creado en `auth.pymes.integration`
 
-3. Crear tests de integración por capa:
-   - Repositorios → validar queries y migraciones
-   - Servicios → validar lógica con datos reales
-   - API → validar endpoints con security chain
+3. Tests de integracion por capa:
+   - `AuthApiIntegrationTest` — endpoints con security chain
+   - `OAuth2LoginIntegrationTest` — flujo OAuth2
+   - `OAuth2IntentIntegrationTest` — intent cookies
+   - `InvitationServiceIntegrationTest` — invitaciones
+   - `PasswordResetIntegrationTest` — reset password
+   - `SecurityConstraintIntegrationTest` — restricciones de seguridad
 
-4. Configurar Maven Surefire:
-   - `mvn test` → solo `*Test.java`
-   - `mvn verify` → incluye `*IT.java`
+4. Maven configurado:
+   - `mvn test` → solo `*Test.java` (Surefire excluye `**/integration/**`)
+   - `mvn verify` → incluye `*IntegrationTest.java` (Failsafe)
 
 ## Fase 2: Gateway
 
@@ -68,13 +73,13 @@ Todos los `*IT.java` heredan de esta clase.
 
 - Job paralelo por microservicio en GitHub Actions
 - Cada job levanta solo los containers que necesita
-- Containers efímeros, sin reuse en CI
-- Limpiar recursos post-ejecución
+- Containers efimeros, sin reuse en CI
+- Limpiar recursos post-ejecucion
 
-## Gestión de recursos
+## Gestion de recursos
 
 | Entorno | Estrategia |
 |---|---|
 | Desarrollo | `reuse=true` en `~/.testcontainers.properties` para reutilizar containers entre ejecuciones |
-| CI/CD | Containers efímeros, se crean y destruyen por job |
-| Imágenes | Mismas tags que producción: `postgres:15-alpine`, `redis:7-alpine` |
+| CI/CD | Containers efimeros, se crean y destruyen por job |
+| Imagenes | Mismas tags que produccion: `postgres:15-alpine`, `redis:7-alpine` |

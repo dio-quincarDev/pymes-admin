@@ -1,6 +1,15 @@
 import { api } from 'src/boot/axios';
+import type { InvitationRegisterRequest } from '../types';
 
 export const invitationService = {
+  getInvitationInfo(token: string) {
+    return api.get(`/invitations/${token}/info`);
+  },
+
+  registerAndAccept(token: string, data: InvitationRegisterRequest) {
+    return api.post(`/invitations/${token}/register`, data);
+  },
+
   getPendingInvitations(page = 0, size = 10) {
     return api.get('/invitations', {
       params: { page, size }

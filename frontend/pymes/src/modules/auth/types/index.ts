@@ -1,15 +1,17 @@
 export interface User {
   id: string;
   email: string;
-  nombre: string;
-  role?: string;
-  tenantId?: string;
+  name: string;
+  role?: string | undefined;
+  tenantId?: string | undefined;
+  plan?: string | undefined;
 }
 
 export interface AuthResponse {
   accessToken: string;
   refreshToken: string;
   user: User;
+  activeTenant?: { id: string; name: string; slug: string; plan?: string };
 }
 
 export interface LoginRequest {
@@ -46,4 +48,27 @@ export interface InvitationResponse {
   tenant: {
     name: string;
   };
+}
+
+export interface InvitationInfo {
+  email: string;
+  tenantName: string;
+}
+
+export interface InvitationRegisterRequest {
+  name: string;
+  email: string;
+  password: string;
+}
+
+export interface MemberResponse {
+  user: {
+    id: string;
+    email: string;
+    name: string;
+    pictureUrl?: string;
+  };
+  role: string;
+  accepted: boolean;
+  joinedAt: string;
 }

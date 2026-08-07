@@ -6,6 +6,7 @@ import auth.pymes.common.models.dto.request.ResendVerificationRequest;
 import auth.pymes.common.models.dto.request.TokenRefreshRequest;
 import auth.pymes.common.models.dto.request.VerifyEmailRequest;
 import auth.pymes.common.models.dto.response.AuthResponse;
+import auth.pymes.common.models.dto.response.ApiResponse;
 import auth.pymes.integration.AbstractIntegrationTest;
 import auth.pymes.testutil.TestApiPaths;
 import auth.pymes.utils.exception.CodigoError;
@@ -22,8 +23,17 @@ import org.springframework.http.MediaType;
 import org.springframework.test.web.servlet.MockMvc;
 import org.springframework.test.web.servlet.MvcResult;
 
+import java.util.ArrayList;
+import java.util.Collections;
+import java.util.List;
 import java.util.UUID;
+import java.util.concurrent.CyclicBarrier;
+import java.util.concurrent.ExecutorService;
+import java.util.concurrent.Executors;
+import java.util.concurrent.Future;
+import java.util.concurrent.TimeUnit;
 
+import static org.assertj.core.api.Assertions.assertThat;
 import static org.springframework.test.web.servlet.request.MockMvcRequestBuilders.post;
 import static org.springframework.test.web.servlet.result.MockMvcResultMatchers.jsonPath;
 import static org.springframework.test.web.servlet.result.MockMvcResultMatchers.status;
@@ -156,26 +166,26 @@ class AuthApiIntegrationTest extends AbstractIntegrationTest {
     class LoginTests {
 
         @Test
-        @DisplayName("Email inexistente → 400 BAD_REQUEST (AUTH001)")
+        @DisplayName("Email inexistente → 401 UNAUTHORIZED (AUTH001)")
         void loginUserNotFound() throws Exception {
             LoginRequest loginRequest = new LoginRequest("nonexistent@example.com", "AnyPass123!");
 
             mockMvc.perform(post(TestApiPaths.AUTH_LOGIN)
                             .contentType(MediaType.APPLICATION_JSON)
                             .content(objectMapper.writeValueAsString(loginRequest)))
-                    .andExpect(status().isBadRequest())
+                    .andExpect(status().isUnauthorized())
                     .andExpect(jsonPath("$.codigo").value(CodigoError.INVALID_CREDENTIALS.getCodigo()));
         }
 
         @Test
-        @DisplayName("Credenciales inválidas → 400 BAD_REQUEST (AUTH001)")
+        @DisplayName("Credenciales inválidas → 401 UNAUTHORIZED (AUTH001)")
         void loginInvalidCredentials() throws Exception {
             LoginRequest loginRequest = new LoginRequest("nonexistent@example.com", "AnyPass123!");
 
             mockMvc.perform(post(TestApiPaths.AUTH_LOGIN)
                             .contentType(MediaType.APPLICATION_JSON)
                             .content(objectMapper.writeValueAsString(loginRequest)))
-                    .andExpect(status().isBadRequest())
+                    .andExpect(status().isUnauthorized())
                     .andExpect(jsonPath("$.codigo").value(CodigoError.INVALID_CREDENTIALS.getCodigo()));
         }
     }
@@ -228,6 +238,75 @@ class AuthApiIntegrationTest extends AbstractIntegrationTest {
                             .content(objectMapper.writeValueAsString(request)))
                     .andExpect(status().isUnauthorized())
                     .andExpect(jsonPath("$.codigo").value(CodigoError.TOKEN_EXPIRED.getCodigo()));
+        }
+
+        @Test
+        @DisplayName("Refresh concurrente con el mismo token → exactamente 1 rotación OK, 1 REUSE DETECTED, familia revocada")
+        void concurrentRefreshWithSameToken_OnlyOneRotationSucceedsAndFamilyRevoked() throws Exception {
+            // Arrange: register (Redis buffer) + verify-email materializa el usuario y devuelve tokens
+            mockMvc.perform(post(TestApiPaths.AUTH_REGISTER)
+                            .contentType(MediaType.APPLICATION_JSON)
+                            .content(objectMapper.writeValueAsString(validRegisterRequest)))
+                    .andExpect(status().isOk());
+
+            String token = redisTemplate.keys("temp-register:*").stream()
+                    .filter(k -> k.matches("temp-register:[0-9a-f]{64}"))
+                    .findFirst()
+                    .map(k -> k.replace("temp-register:", ""))
+                    .orElseThrow(() -> new IllegalStateException("No registration token found in Redis"));
+
+            MvcResult verifyResult = mockMvc.perform(post(TestApiPaths.AUTH_VERIFY_EMAIL)
+                            .contentType(MediaType.APPLICATION_JSON)
+                            .content(objectMapper.writeValueAsString(new VerifyEmailRequest(token, uniqueEmail))))
+                    .andExpect(status().isOk())
+                    .andReturn();
+
+            ApiResponse<AuthResponse> verifyResponse = objectMapper.readValue(
+                    verifyResult.getResponse().getContentAsString(),
+                    new TypeReference<ApiResponse<AuthResponse>>() {});
+            String refreshToken = verifyResponse.data().refreshToken();
+
+            TokenRefreshRequest request = new TokenRefreshRequest(refreshToken);
+            String body = objectMapper.writeValueAsString(request);
+
+            // Act: disparar 2 requests concurrentes con el MISMO refresh token
+            int n = 2;
+            CyclicBarrier barrier = new CyclicBarrier(n);
+            ExecutorService executor = Executors.newFixedThreadPool(n);
+            List<Integer> statuses = Collections.synchronizedList(new ArrayList<>());
+
+            try {
+                List<Future<?>> futures = new ArrayList<>();
+                for (int i = 0; i < n; i++) {
+                    futures.add(executor.submit(() -> {
+                        barrier.await();
+                        return mockMvc.perform(post(TestApiPaths.AUTH_REFRESH)
+                                        .contentType(MediaType.APPLICATION_JSON)
+                                        .content(body))
+                                .andReturn()
+                                .getResponse()
+                                .getStatus();
+                    }));
+                }
+                for (Future<?> future : futures) {
+                    statuses.add((Integer) future.get(10, TimeUnit.SECONDS));
+                }
+            } finally {
+                executor.shutdownNow();
+            }
+
+            // Assert: exactamente 1 rotación exitosa y 1 reuso detectado (TOCTOU cerrado)
+            assertThat(statuses).containsExactlyInAnyOrder(200, 401);
+
+            // Assert: el token viejo fue revocado (familia revocada)
+            byte[] hash = java.security.MessageDigest.getInstance("SHA-256")
+                    .digest(refreshToken.getBytes(java.nio.charset.StandardCharsets.UTF_8));
+            StringBuilder hex = new StringBuilder();
+            for (byte b : hash) { String h = Integer.toHexString(0xff & b); if (h.length() == 1) hex.append('0'); hex.append(h); }
+            Boolean oldTokenRevoked = jdbcTemplate.queryForObject(
+                    "SELECT revoked FROM refresh_tokens WHERE token_hash = ?",
+                    Boolean.class, hex.toString());
+            assertThat(oldTokenRevoked).isTrue();
         }
     }
 

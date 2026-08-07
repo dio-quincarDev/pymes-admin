@@ -47,11 +47,7 @@ import static org.assertj.core.api.Assertions.assertThat;
 import static org.assertj.core.api.AssertionsForClassTypes.assertThatThrownBy;
 import static org.mockito.ArgumentMatchers.any;
 import static org.mockito.Mockito.*;
-import org.mockito.junit.jupiter.MockitoSettings;
-import org.mockito.quality.Strictness;
-
 @ExtendWith(MockitoExtension.class)
-@MockitoSettings(strictness = Strictness.LENIENT)
 public class AuthServiceImplTest {
 
     @Mock
@@ -103,8 +99,6 @@ public class AuthServiceImplTest {
         );
 
         when(userRepository.existsByEmail(request.email())).thenReturn(false);
-        when(tenantRepository.existsBySlug(request.companySlug())).thenReturn(false);
-        when(httpRequest.getRemoteAddr()).thenReturn("127.0.0.1");
         doNothing().when(emailVerificationService).generateAndSendPendingRegistrationEmail(any());
 
         AuthResponse response = authService.register(request, httpRequest);
@@ -136,7 +130,7 @@ public class AuthServiceImplTest {
         when(passwordEncoder.encode(any())).thenReturn("encoded-password");
         when(userRepository.save(any())).thenReturn(user);
         when(tenantRepository.save(any())).thenReturn(tenant);
-        when(userMapper.toResponse(any())).thenReturn(new UserEntityResponse(user.getId(), user.getEmail(), user.getName(), null, AuthProvider.LOCAL));
+        when(userMapper.toResponse(any())).thenReturn(new UserEntityResponse(user.getId(), user.getEmail(), user.getName(), null, AuthProvider.LOCAL, null, null, null));
         when(tenantMapper.toResponse(any())).thenReturn(new TenantResponse(tenant.getId(), tenant.getName(), tenant.getSlug(), PlanName.FREE, null, null));
         
         String accessToken = "access-token";
@@ -180,7 +174,7 @@ public class AuthServiceImplTest {
         when(userTenantRepository.findByUserIdAndIsActiveTrue(user.getId())).thenReturn(List.of(userTenant));
         when(tenantRepository.findById(tenant.getId())).thenReturn(Optional.of(tenant));
 
-        when(userMapper.toResponse(any())).thenReturn(new UserEntityResponse(user.getId(), user.getEmail(), "Name", null, AuthProvider.LOCAL));
+        when(userMapper.toResponse(any())).thenReturn(new UserEntityResponse(user.getId(), user.getEmail(), "Name", null, AuthProvider.LOCAL, null, null, null));
         when(tenantMapper.toResponse(any())).thenReturn(new TenantResponse(tenant.getId(), tenant.getName(), "slug", PlanName.FREE, "TECH", null));
 
         String accessToken = "access-token";
@@ -199,18 +193,32 @@ public class AuthServiceImplTest {
     void logout_WithValidToken_ReturnsLogoutResponseAndRevokesAllSessions() {
         String accessToken = "valid-access-token";
         UUID userId = UUID.randomUUID();
-        
+
+        when(httpRequest.getHeader("Authorization")).thenReturn("Bearer " + accessToken);
         when(jwtService.extractUserId(accessToken)).thenReturn(userId);
         doNothing().when(jwtService).revokeToken(accessToken);
         doNothing().when(refreshTokenRepository).deleteByUserId(userId);
 
-        LogoutResponse response = authService.logout(accessToken);
+        LogoutResponse response = authService.logout(httpRequest);
 
         assertThat(response.success()).isTrue();
         assertThat(response.allSessionsRevoked()).isTrue();
         verify(jwtService).revokeToken(accessToken);
         verify(jwtService).extractUserId(accessToken);
         verify(refreshTokenRepository).deleteByUserId(userId);
+    }
+
+    @Test
+    void logout_whenExtractUserIdFails_PropagatesException() {
+        String accessToken = "malformed-token";
+        when(httpRequest.getHeader("Authorization")).thenReturn("Bearer " + accessToken);
+        when(jwtService.extractUserId(accessToken)).thenThrow(new RuntimeException("token parse error"));
+
+        assertThatThrownBy(() -> authService.logout(httpRequest))
+                .isInstanceOf(RuntimeException.class);
+
+        verify(jwtService, never()).revokeToken(any());
+        verify(refreshTokenRepository, never()).deleteByUserId(any());
     }
 
     @Test
@@ -232,7 +240,7 @@ public class AuthServiceImplTest {
         when(userTenantRepository.findByUserIdAndTenantId(userId, tenantId)).thenReturn(Optional.of(userTenant));
         when(tenantRepository.findById(tenantId)).thenReturn(Optional.of(tenant));
 
-        when(userMapper.toResponse(any())).thenReturn(new UserEntityResponse(user.getId(), user.getEmail(), "Name", null, AuthProvider.LOCAL));
+        when(userMapper.toResponse(any())).thenReturn(new UserEntityResponse(user.getId(), user.getEmail(), "Name", null, AuthProvider.LOCAL, null, null, null));
         when(tenantMapper.toResponse(any())).thenReturn(new TenantResponse(tenant.getId(), tenant.getName(), "slug", PlanName.FREE, "TECH", null));
 
         when(jwtService.generateAccessToken(any(), any(), any(), any())).thenReturn("new-access");
@@ -324,7 +332,7 @@ public class AuthServiceImplTest {
 
         when(authenticationManager.authenticate(any())).thenReturn(null);
         when(userTenantRepository.findByUserIdAndIsActiveTrue(any())).thenReturn(List.of());
-        when(userMapper.toResponse(any())).thenReturn(new UserEntityResponse(UUID.randomUUID(), "test", "test", null, AuthProvider.LOCAL));
+        when(userMapper.toResponse(any())).thenReturn(new UserEntityResponse(UUID.randomUUID(), "test", "test", null, AuthProvider.LOCAL, null, null, null));
 
         authService.login(request1, httpRequest);
         authService.login(request2, httpRequest);
