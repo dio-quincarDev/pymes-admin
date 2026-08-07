@@ -1,356 +1,230 @@
-# 📦 Guía de Deployment - PyMes Admin
+# Deployment Guide - PyMes Admin
 
-Esta guía documenta el proceso completo de deployment para staging y producción.
+## Architecture
+
+```
+Internet
+  │
+  ▼
+┌──────────────────────────────────────────────────┐
+│  Caddy (reverse proxy)                           │
+│  /api/* → pymes-gateway:8080                     │
+│  /*     → pymes-frontend:9200                    │
+└──────────────────────────────────────────────────┘
+         │ proxy-caddy-network (external)
+         │
+┌────────┴────────────────────────────────────────┐
+│  pymes-internal-network                          │
+│                                                  │
+│  gateway:8080 → auth:8081 + core:8082           │
+│  auth:8081    → postgres:5432 + redis:6379      │
+│  core:8082    → postgres:5432 + redis:6379      │
+└──────────────────────────────────────────────────┘
+```
+
+| Service | Port | Docker Image |
+|---------|------|-------------|
+| Frontend (Quasar PWA) | 9200 | `pymes-frontend` |
+| Gateway (Spring Cloud) | 8080 | `pymes-gateway` |
+| Auth (Spring Boot) | 8081 | `pymes-auth` |
+| Core (Spring Boot) | 8082 | `pymes-core` |
+| PostgreSQL | 5432 | `postgres:15-alpine` |
+| Redis | 6379 | `redis:7-alpine` |
 
 ---
 
-## 📋 Resumen de Arquitectura
+## CI/CD Flow
 
-| Componente | Puerto | Red | Docker Image |
-|------------|--------|-----|--------------|
-| Frontend (Quasar PWA) | 9000 | pymes-global-network | `pymes-frontend` |
-| Auth Service (Spring Boot) | 8081 | pymes-global-network + internal | `pymes-auth` |
-| PostgreSQL | 5432 | pymes-internal-network | `postgres:15-alpine` |
-| Redis | 6379 | pymes-internal-network | `redis:7-alpine` |
+### How it works
+
+```
+Push to develop/main
+  → CI runs (security + tests + build)
+    → CD triggers via workflow_run
+      → Builds multi-arch images (amd64 + arm64)
+        → Pushes to Docker Hub
+          → SCP docker-compose.yml to server
+            → SSH: pull + up + prune
+```
+
+**Key:** `workflow_run` only reads workflow definitions from the **default branch** (`main`). CD workflows must exist on `main` to trigger.
+
+### Branch strategy
+
+| Push to | CI | CD |
+|---------|----|----|
+| `feature/**` | Yes | No |
+| `develop` | Yes | Staging |
+| `main` | Yes | Production |
+
+CI skips if only `.md` files change (paths filter).
 
 ---
 
-## 🚀 Quick Deploy (Primera Vez)
+## Prerequisites
 
-### Paso 1: Configurar Secrets en GitHub
+### 1. GitHub Secrets
 
-Ve a **Settings → Secrets and variables → Actions** y agrega:
+| Secret | Purpose |
+|--------|---------|
+| `DOCKER_USERNAME` | Docker Hub username |
+| `DOCKER_PASSWORD` | Docker Hub access token |
+| `STAGING_HOST` | Staging server IP |
+| `STAGING_USER` | SSH user (usually `ubuntu`) |
+| `STAGING_SSH_KEY` | SSH private key |
+| `PROD_HOST` | Production server IP |
+| `PROD_USER` | SSH user |
+| `PROD_SSH_KEY` | SSH private key |
+| `DB_NAME` | PostgreSQL database name |
+| `DB_USERNAME` | PostgreSQL username |
+| `DB_PASSWORD` | PostgreSQL password |
+| `JWT_SECRET` | JWT signing key (>=256 bits) |
+| `JWT_ACCESS_EXPIRATION` | Access token TTL (ms) |
+| `JWT_REFRESH_EXPIRATION` | Refresh token TTL (ms) |
+| `CORS_ALLOWED_ORIGINS_STAGING` | CORS origins for staging |
+| `CORS_ALLOWED_ORIGINS_PROD` | CORS origins for production |
+| `GOOGLE_CLIENT_ID` | Google OAuth client ID |
+| `GOOGLE_CLIENT_SECRET` | Google OAuth client secret |
+| `SPRING_MAIL_USERNAME` | SMTP username |
+| `SPRING_MAIL_PASSWORD` | SMTP password |
+| `OAUTH2_REDIRECT_URI` | OAuth2 redirect URI |
 
-| Secret | Descripción |
-|--------|-------------|
-| `DOCKER_USERNAME` | Tu usuario de Docker Hub |
-| `DOCKER_PASSWORD` | Access Token de Docker Hub |
-| `STAGING_HOST` | IP pública de tu instancia OCI |
-| `STAGING_USER` | Usuario SSH (típicamente `ubuntu`) |
-| `STAGING_SSH_KEY` | Llave privada SSH completa |
+See [SECRETS.md](./SECRETS.md) for full details.
 
-### Paso 2: Setup del Servidor
+### 2. Server Setup (first time only)
 
 ```bash
-# Conectarse al servidor
-ssh -i ~/.ssh/<TU_LLAVE> ubuntu@<TU_IP>
+ssh -i ~/.ssh/<KEY> ubuntu@<SERVER_IP>
 
-# Clonar repositorio
+# Install Docker
+curl -fsSL https://get.docker.com | sudo sh
+sudo usermod -aG docker $USER
+newgrp docker
+sudo apt install -y docker-compose-plugin
+
+# Clone repo
 git clone https://github.com/dio-quincarDev/pymes-admin.git ~/pymes-admin
-cd ~/pymes-admin
 
-# Ejecutar setup inicial (SOLO LA PRIMERA VEZ)
-chmod +x scripts/setup-server.sh
-./scripts/setup-server.sh
+# Create Docker networks (Caddy uses external network)
+docker network create proxy-caddy-network || true
+docker network create pymes-internal-network || true
 ```
 
-### Paso 3: Configurar Variables de Entorno
+### 3. Caddy Reverse Proxy
 
 ```bash
-cd ~/pymes-admin
-nano backend/auth/.env
-```
-
-Valores mínimos requeridos:
-```env
-DB_NAME=pymes_auth
-DB_USERNAME=postgres
-DB_PASSWORD=<password-seguro>
-SERVER_PORT=8081
-```
-
-### Paso 4: Configurar Nginx Proxy Manager
-
-```bash
-# Instalar NPM (si no está instalado)
 docker run -d \
-  --name=nginx-proxy-manager \
+  --name=caddy \
   --restart=unless-stopped \
-  -p 80:80 -p 81:81 -p 443:443 \
-  -v /etc/nginx/proxy_host:/data/nginx/proxy_host \
-  -v /etc/nginx/letsencrypt:/etc/letsencrypt \
-  jc21/nginx-proxy-manager:latest
+  --network=proxy-caddy-network \
+  -p 80:80 -p 443:443 \
+  -v /etc/caddy:/etc/caddy \
+  -v caddy_data:/data \
+  caddy:latest
 ```
 
-Acceder a `http://<TU_IP>:81` y configurar:
+Caddyfile (`/etc/caddy/Caddyfile`):
+```
+pymes.dioquincar.dev {
+    handle /api/* {
+        reverse_proxy pymes-gateway:8080
+    }
+    handle {
+        reverse_proxy pymes-frontend:9200
+    }
+}
+```
 
-| Proxy | Domain | Forward Host | Forward Port | Network |
-|-------|--------|--------------|--------------|---------|
-| Frontend | `staging.pymes-admin.com` | `pymes-frontend` | 9000 | `pymes-global-network` |
-| Backend API | `staging-api.pymes-admin.com` | `pymes-auth-service` | 8081 | `pymes-global-network` |
+---
 
-### Paso 5: Primer Deploy
+## Deploy
+
+### Automatic (recommended)
 
 ```bash
-# Opción A: Automático (recomendado)
 git checkout develop
 git add .
-git commit -m "initial commit
-
-Co-authored-by: Qwen-Coder <qwen-coder@alibabacloud.com>"
+git commit -m "feat: description"
 git push origin develop
+```
 
-# Opción B: Manual
+GitHub Actions handles: CI → Docker build (multi-arch) → Push to Docker Hub → SCP compose → SSH deploy.
+
+### Manual (on server)
+
+```bash
+ssh -i ~/.ssh/<KEY> ubuntu@<SERVER_IP>
 cd ~/pymes-admin
-./scripts/deploy-staging.sh
+
+# Create .env with required values
+cat > .env <<EOF
+DOCKER_USERNAME=<your-docker-user>
+TAG=latest
+DB_NAME=<db-name>
+DB_USERNAME=<db-user>
+DB_PASSWORD=<db-password>
+JWT_SECRET=<jwt-secret>
+CORS_ALLOWED_ORIGINS=http://staging.pymes.dioquincar.dev
+EOF
+
+docker compose pull
+docker compose up -d --remove-orphans
+docker image prune -af
 ```
 
 ---
 
-## 🔄 Deploy Continuo (Después del Setup)
-
-### Flujo Automático (Recomendado)
+## Server Commands
 
 ```bash
-# 1. Desarrollar en rama feature
-git checkout -b feature/nueva-funcionalidad develop
-# ... hacer cambios ...
-git commit -m "feat: agregar nueva funcionalidad"
-git push origin feature/nueva-funcionalidad
+# Status
+docker compose ps
 
-# 2. Merge a develop (trigger deploy automático)
-git checkout develop
-git merge feature/nueva-funcionalidad
-git push origin develop
-```
+# Logs
+docker compose logs -f
+docker compose logs -f gateway
+docker compose logs -f auth-service
 
-GitHub Actions automáticamente:
-1. ✅ Build del backend (Java/Maven)
-2. ✅ Build del frontend (Node.js/Quasar)
-3. ✅ Tests y linting
-4. ✅ Build y push de imágenes Docker
-5. ✅ Deploy al servidor staging
+# Restart
+docker compose restart
 
-### Flujo Manual (En el Servidor)
+# Stop/Start
+docker compose down
+docker compose up -d
 
-```bash
-# Conectarse al servidor
-ssh -i ~/.ssh/<TU_LLAVE> ubuntu@<TU_IP>
-
-# Ejecutar deploy script
-cd ~/pymes-admin
-./scripts/deploy-staging.sh
-```
-
----
-
-## 🛠️ Comandos Útiles
-
-### En el Servidor
-
-```bash
-# Ver estado de servicios
-docker compose -f docker-compose.yml ps
-
-# Ver logs en tiempo real
-docker compose -f docker-compose.yml logs -f
-
-# Ver logs de un servicio específico
-docker compose -f docker-compose.yml logs -f frontend
-docker compose -f docker-compose.yml logs -f auth-service
-
-# Reiniciar servicios
-docker compose -f docker-compose.yml restart
-
-# Detener servicios
-docker compose -f docker-compose.yml down
-
-# Iniciar servicios
-docker compose -f docker-compose.yml up -d
-
-# Limpiar imágenes viejas
+# Cleanup
 docker image prune -f --filter "until=24h"
-
-# Ver redes Docker
-docker network ls
-
-# Ver volúmenes Docker
-docker volume ls
-```
-
-### En GitHub Actions
-
-```bash
-# Ver workflows corriendo
-https://github.com/dio-quincarDev/pymes-admin/actions
-
-# Re-run un workflow fallido
-https://github.com/dio-quincarDev/pymes-admin/actions/runs/<RUN_ID>
-
-# Trigger manual deploy (si configurado)
-https://github.com/dio-quincarDev/pymes-admin/actions/workflows/cd-staging.yml
 ```
 
 ---
 
-## 🐛 Troubleshooting
+## Troubleshooting
 
-### Problema: `network not found`
+| Problem | Solution |
+|---------|----------|
+| `no matching manifest for linux/arm64/v8` | Images not built for ARM64. Push to develop to rebuild multi-arch. |
+| `network not found` | Run `docker network create proxy-caddy-network` and `pymes-internal-network` |
+| `Permission denied (publickey)` | Verify SSH key in `STAGING_SSH_KEY` secret is complete |
+| CD not triggering after push | Check CI passed first. CD only runs after CI completes successfully. |
+| CD workflow not visible in Actions | Workflows only register from `main` branch. Ensure CD files are merged to `main`. |
 
-```bash
-# Solución: Recrear redes
-cd ~/pymes-admin
-./scripts/setup-server.sh
-```
+---
 
-### Problema: `Permission denied (publickey)`
+## Multi-Architecture Builds
 
-```bash
-# Verificar que la llave es correcta
-cat ~/.ssh/<TU_LLAVE>
+Server is Oracle Cloud Free Tier (ARM64/Ampere). All Docker images are built for `linux/amd64,linux/arm64` using QEMU + Buildx in CI/CD.
 
-# Debe incluir BEGIN y END
------BEGIN OPENSSH PRIVATE KEY-----
-...
------END OPENSSH PRIVATE KEY-----
-```
-
-### Problema: Contenedores no arrancan
-
-```bash
-# Ver logs detallados
-docker compose -f docker-compose.yml logs
-
-# Verificar variables de entorno
-cat backend/auth/.env
-
-# Reiniciar desde cero
-docker compose -f docker-compose.yml down -v
-docker compose -f docker-compose.yml up -d
-```
-
-### Problema: Healthcheck falla
-
-```bash
-# Verificar health de cada servicio
-docker inspect --format='{{.State.Health.Status}}' pymes-frontend
-docker inspect --format='{{.State.Health.Status}}' pymes-auth-service
-docker inspect --format='{{.State.Health.Status}}' pymes-postgres-auth
-docker inspect --format='{{.State.Health.Status}}' pymes-redis-auth
-```
-
-### Problema: `no matching manifest for linux/arm64/v8`
-
-**Síntoma:** El deploy falla con este error al hacer `docker compose pull` en el servidor.
-
-**Causa:** Las imágenes Docker se construyeron solo para AMD64 (GitHub Actions) pero tu servidor usa ARM64 (Oracle Cloud Free Tier).
-
-**Solución:** El workflow `cd-staging.yml` ahora construye imágenes multi-arquitectura (`linux/amd64,linux/arm64`). Si ves este error:
-
+If you see architecture errors, verify the workflow has:
 ```yaml
-# En .github/workflows/cd-staging.yml, verificar que cada build tenga:
 platforms: linux/amd64,linux/arm64
 ```
 
-Luego hacer push a `develop` para regenerar las imágenes.
-
 ---
 
-## 📝 Notas Técnicas del Pipeline (Troubleshooting)
+## Versioning
 
-### 1. Docker Buildx & Cache
-...
-...
-...
+CD generates version tags: `YYYYMMDD-<short-sha>` (e.g., `20260807-2567af2`).
 
-## 🛠️ Historial de Correcciones Críticas
-
-### ⚠️ Error de Arquitectura ARM64/AMD64 (Marzo 2026)
-**Problema:** El despliegue fallaba con `no matching manifest for linux/arm64/v8` al hacer pull de imágenes en el servidor staging.
-
-**Causa:** GitHub Actions construye imágenes solo para AMD64, pero Oracle Cloud Free Tier usa ARM64.
-
-**Solución:** Configurar Docker Buildx para construir imágenes multi-arquitectura agregando `platforms: linux/amd64,linux/arm64` en el workflow.
-
-### ⚠️ Error de Red y Re-compilación en el Servidor (Marzo 2026)
-**Problema:** El despliegue fallaba con el error `network pymes-internal-network exists but was not created by compose`. Además, el servidor intentaba compilar el código fuente (Maven/Node) en lugar de usar las imágenes de Docker Hub.
-
-**Causa:**
-1. La red fue creada manualmente por `setup-server.sh`, pero Docker Compose intentaba gestionarla por defecto.
-2. Faltaban las directivas `image` en el `docker-compose.yml`, por lo que `docker compose up` disparaba un `build` local.
-
-**Solución:**
-1. Se marcó `pymes-internal-network` como `external: true` en el `docker-compose.yml`.
-2. Se añadieron tags de imagen `${DOCKER_USERNAME}/pymes-auth:${TAG}` para forzar el uso de imágenes remotas.
-3. Se actualizaron los Workflows para exportar estas variables al servidor vía SSH.
-
----
-
-## 📊 Monitoreo
-
-### Ver Uso de Recursos
-
-```bash
-# Uso de CPU/memoria por contenedor
-docker stats
-
-# Uso de disco
-docker system df
-
-# Ver espacio en el servidor
-df -h
-```
-
-### Logs de Auditoría
-
-```bash
-# Ver todos los logs
-docker compose -f docker-compose.yml logs --tail=100
-
-# Exportar logs a archivo
-docker compose -f docker-compose.yml logs > logs-$(date +%Y%m%d).txt
-```
-
----
-
-## 🔐 Seguridad
-
-### Best Practices
-
-1. ✅ **Nunca** commitear archivos `.env`
-2. ✅ Usar secrets de GitHub para credenciales
-3. ✅ Rotar Docker Hub tokens periódicamente
-4. ✅ Mantener servidor actualizado: `sudo apt update && sudo apt upgrade -y`
-5. ✅ Usar HTTPS con Let's Encrypt en Nginx Proxy Manager
-6. ✅ Firewall UFW configurado (solo puertos 22, 80, 443)
-
-### Actualizar Credenciales
-
-```bash
-# En el servidor
-nano backend/auth/.env
-
-# Reiniciar servicios
-docker compose -f docker-compose.yml restart auth-service
-```
-
----
-
-## 📈 Escalabilidad
-
-### Próximos Pasos
-
-1. **Read Replicas**: Para reportes pesados
-2. **Redis Cluster**: Para sesiones distribuidas
-3. **Load Balancer**: Múltiples instancias de auth-service
-4. **CDN**: Para assets estáticos del frontend
-5. **Kubernetes**: Cuando necesites orquestación avanzada
-
----
-
-## 📞 Soporte
-
-| Recurso | URL |
-|---------|-----|
-| GitHub Actions | https://github.com/dio-quincarDev/pymes-admin/actions |
-| Docker Hub | https://hub.docker.com/r/dio-quincar/pymes-auth |
-| Oracle Cloud Console | https://cloud.oracle.com |
-| Nginx Proxy Manager Docs | https://nginxproxymanager.com/guide/ |
-
----
-
-<div align="center">
-
-**PyMes Admin** - Deployment Guide 📦
-
-</div>
+Images are tagged as:
+- `staging` / `prod` / `latest` (environment tag)
+- `YYYYMMDD-<sha>` (version tag)
