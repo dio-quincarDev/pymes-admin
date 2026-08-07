@@ -96,7 +96,7 @@ management:
 
 app:
   frontend:
-    url: ${APP_FRONTEND_URL:http://localhost:9000}
+    url: ${APP_FRONTEND_URL:http://localhost:9200}
 
 springdoc:
   swagger-ui:

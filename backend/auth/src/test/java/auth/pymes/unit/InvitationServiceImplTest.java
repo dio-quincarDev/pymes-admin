@@ -84,7 +84,7 @@ public class InvitationServiceImplTest {
 
     @BeforeEach
     void setUp() {
-        ReflectionTestUtils.setField(invitationService, "frontendUrl", "http://localhost:9000");
+        ReflectionTestUtils.setField(invitationService, "frontendUrl", "http://localhost:9200");
     }
 
     @Nested
