@@ -13,26 +13,20 @@ on:
       - feature/**
       - develop
       - main
-    paths-ignore:
-      - '**/*.md'
-      - 'docs/**'
-      - '.github/**'
+    paths:
+      - 'backend/**'
+      - 'frontend/**'
       - 'docker-compose*.yml'
-      - '.env*'
-      - 'AGENTS.md'
-      - 'README.md'
+      - '.github/workflows/ci.yml'
   pull_request:
     branches:
       - main
       - develop
-    paths-ignore:
-      - '**/*.md'
-      - 'docs/**'
-      - '.github/**'
+    paths:
+      - 'backend/**'
+      - 'frontend/**'
       - 'docker-compose*.yml'
-      - '.env*'
-      - 'AGENTS.md'
-      - 'README.md'
+      - '.github/workflows/ci.yml'
 
 jobs:
   # ==================== SECURITY CHECK ====================
