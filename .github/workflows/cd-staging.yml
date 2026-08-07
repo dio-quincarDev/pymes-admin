@@ -117,7 +117,7 @@ jobs:
           persist-credentials: false
 
       - name: Copy docker-compose.yml to server
-        uses: appleboy/scp-action@30ec43e49c4e8e4e2c0db70b7c4fb63c5f5f4c14 # v0.1.7
+        uses: appleboy/scp-action@ff85246acaad7bdce478db94a363cd2bf7c90345 # v1.0.0
         with:
           host: ${{ secrets.STAGING_HOST }}
           username: ${{ secrets.STAGING_USER }}
