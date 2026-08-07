@@ -75,53 +75,53 @@ jobs:
         uses: docker/build-push-action@ca052bb54ab0790a636c9b5f226502c73d547a25 # v5.4.0
         with:
           context: ./backend/auth
-          platforms: linux/amd64,linux/arm64
+          platforms: linux/amd64
           push: true
           tags: |
             ${{ secrets.DOCKER_USERNAME }}/pymes-auth:latest
             ${{ secrets.DOCKER_USERNAME }}/pymes-auth:prod
             ${{ secrets.DOCKER_USERNAME }}/pymes-auth:${{ needs.build-and-test.outputs.version }}
-          cache-from: type=registry,ref=${{ secrets.DOCKER_USERNAME }}/pymes-auth:buildcache
-          cache-to: type=registry,ref=${{ secrets.DOCKER_USERNAME }}/pymes-auth:buildcache,mode=max
+          cache-from: type=registry,ref=${{ secrets.DOCKER_USERNAME }}/pymes-auth:buildcache-v2
+          cache-to: type=registry,ref=${{ secrets.DOCKER_USERNAME }}/pymes-auth:buildcache-v2,mode=max
 
       - name: Build and push Core image (Production)
         uses: docker/build-push-action@ca052bb54ab0790a636c9b5f226502c73d547a25 # v5.4.0
         with:
           context: ./backend/core
-          platforms: linux/amd64,linux/arm64
+          platforms: linux/amd64
           push: true
           tags: |
             ${{ secrets.DOCKER_USERNAME }}/pymes-core:latest
             ${{ secrets.DOCKER_USERNAME }}/pymes-core:prod
             ${{ secrets.DOCKER_USERNAME }}/pymes-core:${{ needs.build-and-test.outputs.version }}
-          cache-from: type=registry,ref=${{ secrets.DOCKER_USERNAME }}/pymes-core:buildcache
-          cache-to: type=registry,ref=${{ secrets.DOCKER_USERNAME }}/pymes-core:buildcache,mode=max
+          cache-from: type=registry,ref=${{ secrets.DOCKER_USERNAME }}/pymes-core:buildcache-v2
+          cache-to: type=registry,ref=${{ secrets.DOCKER_USERNAME }}/pymes-core:buildcache-v2,mode=max
 
       - name: Build and push Gateway image (Production)
         uses: docker/build-push-action@ca052bb54ab0790a636c9b5f226502c73d547a25 # v5.4.0
         with:
           context: ./backend/gateway-pymes
-          platforms: linux/amd64,linux/arm64
+          platforms: linux/amd64
           push: true
           tags: |
             ${{ secrets.DOCKER_USERNAME }}/pymes-gateway:latest
             ${{ secrets.DOCKER_USERNAME }}/pymes-gateway:prod
             ${{ secrets.DOCKER_USERNAME }}/pymes-gateway:${{ needs.build-and-test.outputs.version }}
-          cache-from: type=registry,ref=${{ secrets.DOCKER_USERNAME }}/pymes-gateway:buildcache
-          cache-to: type=registry,ref=${{ secrets.DOCKER_USERNAME }}/pymes-gateway:buildcache,mode=max
+          cache-from: type=registry,ref=${{ secrets.DOCKER_USERNAME }}/pymes-gateway:buildcache-v2
+          cache-to: type=registry,ref=${{ secrets.DOCKER_USERNAME }}/pymes-gateway:buildcache-v2,mode=max
 
       - name: Build and push Frontend image (Production)
         uses: docker/build-push-action@ca052bb54ab0790a636c9b5f226502c73d547a25 # v5.4.0
         with:
           context: ./frontend/pymes
-          platforms: linux/amd64,linux/arm64
+          platforms: linux/amd64
           push: true
           tags: |
             ${{ secrets.DOCKER_USERNAME }}/pymes-frontend:latest
             ${{ secrets.DOCKER_USERNAME }}/pymes-frontend:prod
             ${{ secrets.DOCKER_USERNAME }}/pymes-frontend:${{ needs.build-and-test.outputs.version }}
-          cache-from: type=registry,ref=${{ secrets.DOCKER_USERNAME }}/pymes-frontend:buildcache
-          cache-to: type=registry,ref=${{ secrets.DOCKER_USERNAME }}/pymes-frontend:buildcache,mode=max
+          cache-from: type=registry,ref=${{ secrets.DOCKER_USERNAME }}/pymes-frontend:buildcache-v2
+          cache-to: type=registry,ref=${{ secrets.DOCKER_USERNAME }}/pymes-frontend:buildcache-v2,mode=max
 
   # ==================== DEPLOY TO PRODUCTION ====================
   deploy-production:
