@@ -167,11 +167,13 @@ git clone https://github.com/dio-quincarDev/pymes-admin.git ~/pymes-admin
 
 ## ✅ Verificar Configuración
 
-| Acción | Workflow que se ejecuta |
-|--------|------------------------|
+| Acción | Flujo |
+|--------|-------|
 | Push a `feature/**` | CI (build + tests). Salta si solo cambian `**/*.md` |
-| Push a `develop` | CI + CD Staging |
-| Push a `main` | CI + CD Producción |
+| Push a `develop` | CI → cuando completa, CD Staging se dispara via `workflow_run` |
+| Push a `main` | CI → cuando completa, CD Production se dispara via `workflow_run` |
+
+**Nota:** Los workflows CD (`cd-staging.yml`, `cd-prod.yml`) deben existir en la rama `main` para que GitHub los registre y los ejecute.
 
 ---
 
