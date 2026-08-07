@@ -4,13 +4,13 @@ const currencyFormatter = new Intl.NumberFormat('en-US', {
   minimumFractionDigits: 2,
 });
 
-const percentFormatter = new Intl.NumberFormat('es-PE', {
+const percentFormatter = new Intl.NumberFormat('en-US', {
   style: 'percent',
   minimumFractionDigits: 1,
   maximumFractionDigits: 1,
 });
 
-const numberFormatter = new Intl.NumberFormat('es-PE');
+const numberFormatter = new Intl.NumberFormat('en-US');
 
 export function useNumberFormat() {
   return {
@@ -18,7 +18,6 @@ export function useNumberFormat() {
       Number.isFinite(value) ? currencyFormatter.format(value) : '$0.00',
     formatPercent: (value: number) =>
       Number.isFinite(value) ? percentFormatter.format(value / 100) : '0.0%',
-    formatNumber: (value: number) =>
-      Number.isFinite(value) ? numberFormatter.format(value) : '0',
+    formatNumber: (value: number) => (Number.isFinite(value) ? numberFormatter.format(value) : '0'),
   };
 }
