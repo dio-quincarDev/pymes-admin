@@ -141,12 +141,13 @@ Factura/Gasto/Venta creado
 
 | Tipo | Tests | Tecnologia |
 |------|-------|------------|
-| Unit | 24 | Mockito, JUnit 5 |
-| JPA | 74 | @DataJpaTest + Testcontainers PostgreSQL |
-| Integration | 22 | @SpringBootTest + Testcontainers PG + Redis |
+| Unit | 60 | Mockito, JUnit 5 |
+| JPA | 88 | @DataJpaTest + Testcontainers PostgreSQL |
+| Integration | 45 | @SpringBootTest + Testcontainers PG + Redis |
 | Analytics | 5 | Mockito + JdbcTemplate mock |
 | Context | 1 | Application context load |
-| **Total** | **126** | |
+| Seed | 19 | Setup + Seed data integration |
+| **Total** | **218** | |
 
 ---
 
@@ -214,6 +215,18 @@ POST   /api/v1/core/analytics/recalcular?tenantId={uuid}&periodo=YYYY-MM
 ```
 
 > Todas las rutas pasan por el Gateway (puerto 8080) con autenticacion JWT.
+
+---
+
+## CI/CD
+
+GitHub Actions ejecuta `mvn verify` en cada PR a main/develop/feature/*. Docker images multi-arch (AMD64/ARM64) se buildean y pushean en CD.
+
+| Rama | Pipeline | Deploy |
+|------|----------|--------|
+| `feature/*` | CI (build + test) | Ninguno |
+| `develop` | CI + CD | Staging |
+| `main` | CI + CD | Produccion |
 
 ---
 
