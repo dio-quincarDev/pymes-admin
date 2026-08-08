@@ -37,8 +37,10 @@ tmp/
 temp/
 *.tmp
 
-# Playwright
+# Playwright (local-only)
 playwright-report/
+/package.json
+/package-lock.json
 
 # Agent instruction files (local-only)
 AGENTS.md
@@ -47,6 +49,7 @@ AGENTS.md
 opencode.json
 .ponytail
 agents/
+agent/
 scripts/
 
 # Agent skill locks (local-only)
