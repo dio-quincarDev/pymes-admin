@@ -1,6 +1,6 @@
 package auth.pymes.common.config;
 
-import org.springframework.boot.autoconfigure.condition.ConditionalOnProperty;
+import org.springframework.boot.autoconfigure.condition.ConditionalOnExpression;
 import org.springframework.context.annotation.Bean;
 import org.springframework.context.annotation.Configuration;
 import org.springframework.security.oauth2.client.registration.ClientRegistration;
@@ -13,7 +13,7 @@ import java.util.ArrayList;
 import java.util.List;
 
 @Configuration
-@ConditionalOnProperty(name = "FACEBOOK_CLIENT_ID")
+@ConditionalOnExpression("T(java.lang.System).getenv('FACEBOOK_CLIENT_ID') != null and !T(java.lang.System).getenv('FACEBOOK_CLIENT_ID').isEmpty()")
 public class FacebookOAuthConfig {
 
     @Bean
