@@ -46,6 +46,13 @@ AGENTS.md
 .agents/
 opencode.json
 .ponytail
+agents/
+scripts/
+
+# Agent skill locks (local-only)
+skills-lock.json
+agent/skills/**/package.json
+lock.json
 
 # Design specs (local-only)
 .ulpi/

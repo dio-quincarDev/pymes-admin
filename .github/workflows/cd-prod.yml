@@ -133,7 +133,7 @@ jobs:
       contents: read
     environment:
       name: production
-      url: https://pymes-admin.com
+      url: http://YOUR_PRODUCTION_DOMAIN
 
     steps:
       - name: Checkout code

@@ -11,7 +11,7 @@
 | Frontend | Quasar 2 + Vue 3 + TypeScript (PWA, hash routing) |
 | Auth Service | Spring Boot 3.4.3 — OAuth2 + JWT + RBAC + Thymeleaf email |
 | Gateway | Spring Cloud Gateway (WebFlux) — JWT validation + Swagger aggregation |
-| Core Service | Spring Boot 3.5+ — 5 modulos: setup, gastos, prestamos, ventas, accounting |
+| Core Service | Spring Boot 3.5.14 — 5 modulos: setup, gastos, prestamos, ventas, accounting |
 | Database | PostgreSQL 15 (single instance, multi-schema: `auth`, `core`) |
 | Cache | Redis 7 (blacklist, permissions, debounce, analytics cache) |
 | CI/CD | GitHub Actions + Docker (multi-arch AMD64/ARM64) |
@@ -50,10 +50,10 @@ docker compose up -d  # requiere .env en raiz
 
 | Servicio | Unit | Integration | Consistency | Total |
 |----------|------|-------------|-------------|-------|
-| Auth Service | 114 | 47 | 12 | 173 |
-| Core Service | 104 | — | — | 104 |
-| Gateway | 33 | — | — | 33 |
-| **Total** | **251** | **47** | **12** | **310** |
+| Auth Service | 140 | 55 | 12 | 207 |
+| Core Service | 173 | 45 | — | 218 |
+| Gateway | 37 | — | — | 37 |
+| **Total** | **350** | **100** | **12** | **462** |
 
 ### Ejecucion
 
@@ -106,8 +106,15 @@ PRs van a `develop`, nunca directamente a `main`.
 | `STAGING_HOST` | IP instancia OCI staging |
 | `STAGING_USER` | `ubuntu` |
 | `STAGING_SSH_KEY` | Llave privada SSH |
+| `CORS_ALLOWED_ORIGINS_STAGING` | Origenes CORS permitidos (staging) |
+| `GOOGLE_CLIENT_ID` | OAuth2 Google client ID |
+| `GOOGLE_CLIENT_SECRET` | OAuth2 Google client secret |
+| `FACEBOOK_CLIENT_ID` | OAuth2 Facebook client ID (condicional) |
+| `FACEBOOK_CLIENT_SECRET` | OAuth2 Facebook client secret (condicional) |
+| `OAUTH2_REDIRECT_URI` | URI base para redirect OAuth2 |
+| `APP_FRONTEND_URL` | URL del frontend para redirect post-OAuth2 |
 
-Produccion: `PROD_HOST`, `PROD_USER`, `PROD_SSH_KEY`.
+Produccion: `PROD_HOST`, `PROD_USER`, `PROD_SSH_KEY`, `CORS_ALLOWED_ORIGINS_PROD`.
 
 ---
 
@@ -122,8 +129,8 @@ Produccion: `PROD_HOST`, `PROD_USER`, `PROD_SSH_KEY`.
 | Puertos abiertos | 22 (SSH), 80 (HTTP), 443 (HTTPS) |
 
 **Redes Docker:**
-- `pymes-global-network` — Nginx Proxy Manager (externa)
 - `pymes-internal-network` — DB, Redis, backend (bridge)
+- `proxy-caddy-network` — Caddy reverse proxy (externa)
 
 ---
 
@@ -139,9 +146,10 @@ Produccion: `PROD_HOST`, `PROD_USER`, `PROD_SSH_KEY`.
 - [x] Core Auth (OAuth2, JWT, RBAC, invitaciones, password reset)
 - [x] Auth local (registro/login usuario+password)
 - [x] OAuth2 Google (intent cookie + code exchange)
+- [x] Facebook OAuth2 (condicional, pendiente verificacion Meta)
 - [x] Email system (Thymeleaf templates)
 - [x] API Gateway (JWT validation, Swagger aggregation)
-- [x] Test suite (310 tests, Testcontainers)
+- [x] Test suite (462 tests, Testcontainers)
 - [x] Core Business Service (gastos, prestamos, inversiones, ventas, accounting)
 - [ ] Escaneo QR facturas (PWA)
 - [ ] IA basica (deteccion de anomalias)

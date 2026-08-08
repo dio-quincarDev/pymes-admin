@@ -107,7 +107,7 @@ jobs:
       contents: read
     environment:
       name: staging
-      url: http://staging.pymes-admin.com
+      url: ${{ secrets.APP_FRONTEND_URL }}
 
     steps:
       - name: Checkout code
