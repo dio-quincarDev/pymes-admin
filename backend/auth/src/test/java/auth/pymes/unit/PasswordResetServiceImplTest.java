@@ -66,7 +66,7 @@ class PasswordResetServiceImplTest {
                 .password("oldHashedPassword")
                 .build();
 
-        ReflectionTestUtils.setField(passwordResetService, "frontendUrl", "http://localhost:9000");
+        ReflectionTestUtils.setField(passwordResetService, "frontendUrl", "http://localhost:9200");
     }
 
     // ==================== generateResetToken ====================

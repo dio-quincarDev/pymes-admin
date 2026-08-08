@@ -240,7 +240,7 @@ Copiar `.env.example` a `.env` para desarrollo local. El servicio usa `spring-do
 | DB_HOST / DB_PORT / DB_NAME / DB_USERNAME / DB_PASSWORD | PostgreSQL |
 | REDIS_HOST / REDIS_PORT | Redis (blacklist + cache) |
 | SPRING_MAIL_USERNAME / SPRING_MAIL_PASSWORD | SMTP para emails |
-| APP_FRONTEND_URL | Base URL para links de verificacion. Default en base YAML: `http://localhost:9000`. Dev CORS usa `http://localhost:9200`. Verificar coherencia entre perfiles. |
+| APP_FRONTEND_URL | Base URL para links de verificacion. Default en base YAML: `http://localhost:9200`. Dev CORS usa `http://localhost:9200`. Verificar coherencia entre perfiles. |
 | GOOGLE_CLIENT_ID / GOOGLE_CLIENT_SECRET | OAuth2 Google |
 
 ---
