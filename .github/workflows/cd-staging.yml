@@ -203,7 +203,7 @@ jobs:
       contents: read
     environment:
       name: staging
-      url: ${{ secrets.APP_FRONTEND_URL }}
+      url: ${{ vars.APP_FRONTEND_URL }}
 
     steps:
       - name: Checkout code
