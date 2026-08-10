@@ -28,6 +28,7 @@ A partir de 2026-07-16, CORS opera en **doble capa**:
 - **Defensa en profundidad + Code Exchange OAuth2** — ✅ completado (2026-06-19).
 
 ### ✅ Historial de Soluciones (Orden Cronológico Inverso)
+0. [2026-08-10 — Reconfig OAuth2 a pymeq.dioquincar.dev](#-2026-08-10--reconfig-oauth2-a-pymeqdioquincardev)
 0. [2026-07-30 — TOCTOU fix: @Lock(PESSIMISTIC_WRITE) en refresh token rotation](#-2026-07-30--toctou-fix-lockpessimistic_write-en-refresh-token-rotation)
 1. [2026-07-29 — Invitación: accept endpoint quitado de WHITE_LIST](#-2026-07-29--invitación-accept-endpoint-quitado-de-white_list)
 1. [2026-07-28 — Invitación MVP: email mismatch + TeamsPage fix](#-2026-07-28--invitación-mvp-email-mismatch--teamspage-fix)
@@ -63,6 +64,27 @@ A partir de 2026-07-16, CORS opera en **doble capa**:
 26. [2026-04-11 — Email Verification Logic](#-2026-04-11--email-verification-logic)
 27. [2026-04-11 — Password Reset Logic](#-2026-04-11--password-reset-logic)
 28. [2026-04-09 — Testcontainers Setup](#-2026-04-09--testcontainers-setup)
+
+---
+
+## 2026-08-10 — Reconfig OAuth2 a pymeq.dioquincar.dev
+
+### Contexto
+
+Migración del subdominio de `pymes.dioquincar.dev` a `pymeq.dioquincar.dev`. Cambio puramente de configuración/ops: sin cambios de código en auth.
+
+### Qué se hizo
+
+- **GCP**: en el OAuth Client de Google se agregó el Authorized redirect URI `https://pymeq.dioquincar.dev/login/oauth2/code/google` (+ JavaScript origins). Client ID/Secret sin cambios.
+- **Secrets de GitHub**: `OAUTH2_REDIRECT_URI`, `CORS_ALLOWED_ORIGINS_STAGING` y `APP_FRONTEND_URL` → `https://pymeq.dioquincar.dev`.
+
+### Notas técnicas
+
+- `application.yaml:56` arma el redirect como `${OAUTH2_REDIRECT_URI}/login/oauth2/code/google` → el secret no lleva el sufijo.
+- `OAuth2AuthenticationSuccessHandler` redirige post-login a `app.cors.allowed-origins` (no a `app.frontend.url`), por lo que `CORS_ALLOWED_ORIGINS_STAGING` debe ser **un solo origen**, sin comas.
+- Google no acepta URIs de redirect `http://` en dominios públicos → HTTPS obligatorio.
+
+**Estado:** ✅ COMPLETADO
 
 ---
 

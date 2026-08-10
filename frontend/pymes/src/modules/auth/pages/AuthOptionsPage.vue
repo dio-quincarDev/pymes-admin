@@ -52,7 +52,7 @@ const goToRegister = () => {
 
 const loginWithGoogle = () => {
   // El gateway maneja la redirección a OAuth2
-  window.location.href = 'http://localhost:8080/api/v1/oauth2/authorization/google';
+  window.location.href = `${window.location.origin}/oauth2/authorization/google`;
 };
 </script>
 

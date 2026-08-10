@@ -241,7 +241,7 @@ Copiar `.env.example` a `.env` para desarrollo local. El servicio usa `spring-do
 | REDIS_HOST / REDIS_PORT | Redis (blacklist + cache) |
 | SPRING_MAIL_USERNAME / SPRING_MAIL_PASSWORD | SMTP para emails |
 | APP_FRONTEND_URL | Base URL del frontend para redirect post-OAuth2. Default: `http://localhost:9200` |
-| OAUTH2_REDIRECT_URI | URI base para redirect de OAuth2. Default: `http://localhost:8080`. En server: `http://pymes.dioquincar.dev` |
+| OAUTH2_REDIRECT_URI | URI base para redirect de OAuth2. Default: `http://localhost:8080`. En server: `https://pymeq.dioquincar.dev` |
 | GOOGLE_CLIENT_ID / GOOGLE_CLIENT_SECRET | OAuth2 Google |
 | FACEBOOK_CLIENT_ID / FACEBOOK_CLIENT_SECRET | OAuth2 Facebook (condicional, vacio = deshabilitado) |
 
