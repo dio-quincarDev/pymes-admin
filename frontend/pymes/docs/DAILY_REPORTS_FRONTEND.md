@@ -4,6 +4,43 @@ Registro cronológico de decisiones, problemas resueltos y estado del frontend.
 
 ---
 
+## 2026-08-10 — OAuth2 URLs por origin + PWA install banner
+
+### Contexto
+
+Migración del subdominio a `pymeq.dioquincar.dev`. El flujo "Google register/login" apuntaba hardcodeado a `http://localhost:8080`, quebrado desde cualquier navegador remoto. Además, el banner de instalación PWA aparecía sin prompt real (botón "Instalar" muerto) y no existía soporte iOS.
+
+### Qué se hizo
+
+- **OAuth2 por origin**: `LoginPage.vue`, `RegisterPage.vue` y `AuthOptionsPage.vue` reemplazan `http://localhost:8080/oauth2/authorization/google` por `${window.location.origin}/oauth2/authorization/google`.
+- **AuthOptionsPage**: además se corrigió la ruta `/api/v1/oauth2/authorization/google` (inexistente en el gateway) por `/oauth2/authorization/google` (pública).
+- **PWA banner** (`MainLayout.vue`):
+  - Se muestra solo cuando hay `beforeinstallprompt` (Android) o es iOS.
+  - iOS: instrucciones "Compartir → Agregar a pantalla de inicio" (sin botón Instalar, que era muerto).
+  - Android: si toca "Instalar" sin prompt aún, notifica que aparecerá tras usar la app.
+
+### Archivos modificados
+
+```
+modules/auth/pages/LoginPage.vue       → oauth URL por window.location.origin
+modules/auth/pages/RegisterPage.vue    → oauth URL por window.location.origin
+modules/auth/pages/AuthOptionsPage.vue → oauth URL por origin + ruta corregida
+layouts/MainLayout.vue                 → banner PWA condicional (prompt/iOS) + feedback
+```
+
+### Verificación
+
+- Frontend lint: clean
+
+### Notas
+
+- El prompt nativo de Chrome requiere "engagement" del usuario (no aparece en la primera visita).
+- iOS no soporta `beforeinstallprompt`: se instala solo por Share → Add to Home Screen.
+
+**Estado:** ✅ COMPLETADO
+
+---
+
 ## 2026-08-05 — Cierre Fase 2 + Fase 3 + subtítulos descriptivos
 
 ### Contexto

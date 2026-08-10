@@ -125,8 +125,14 @@ docker run -d \
 
 Caddyfile (`/etc/caddy/Caddyfile`):
 ```
-pymes.dioquincar.dev {
+https://pymeq.dioquincar.dev {
     handle /api/* {
+        reverse_proxy pymes-gateway:8080
+    }
+    handle /oauth2/* {
+        reverse_proxy pymes-gateway:8080
+    }
+    handle /login/* {
         reverse_proxy pymes-gateway:8080
     }
     handle {
@@ -164,7 +170,7 @@ DB_NAME=<db-name>
 DB_USERNAME=<db-user>
 DB_PASSWORD=<db-password>
 JWT_SECRET=<jwt-secret>
-CORS_ALLOWED_ORIGINS=http://staging.pymes.dioquincar.dev
+CORS_ALLOWED_ORIGINS=https://pymeq.dioquincar.dev
 EOF
 
 docker compose pull

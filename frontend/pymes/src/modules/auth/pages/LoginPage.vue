@@ -203,7 +203,7 @@ const handleLoginClick = async () => {
 const loginWithSocial = async (provider: 'google') => {
   oauthLoading.value = true;
   try {
-    let url = `http://localhost:8080/oauth2/authorization/${provider}`;
+    let url = `${window.location.origin}/oauth2/authorization/${provider}`;
 
     if (authStore.pendingTenant?.name && authStore.pendingTenant?.slug) {
       $q.loading.show({ message: 'Preparando entorno de empresa...' });

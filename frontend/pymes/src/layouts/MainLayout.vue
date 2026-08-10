@@ -11,17 +11,27 @@
     </q-banner>
 
     <q-banner
-      v-if="showInstallBanner"
+      v-if="showInstallBanner && (deferredPrompt || isIOS)"
       class="install-banner text-center q-py-xs"
       role="alert"
     >
       <template v-slot:avatar>
         <q-icon name="download" />
       </template>
-      Instala PYMEQ para una experiencia más rápida
+      <template v-if="isIOS && !deferredPrompt">
+        Instala PYMEQ: tocá Compartir <q-icon name="ios_share" /> y luego "Agregar a pantalla de inicio"
+      </template>
+      <template v-else>
+        Instala PYMEQ para una experiencia más rápida
+      </template>
       <template v-slot:action>
-        <q-btn flat dense no-caps label="Instalar" class="install-banner__btn" @click="installApp" />
-        <q-btn flat dense no-caps label="Ahora no" class="install-banner__dismiss" @click="dismissInstall" />
+        <q-btn
+          v-if="!isIOS || deferredPrompt"
+          flat dense no-caps label="Instalar"
+          class="install-banner__btn"
+          @click="installApp"
+        />
+        <q-btn flat dense no-caps :label="isIOS && !deferredPrompt ? 'Listo' : 'Ahora no'" class="install-banner__dismiss" @click="dismissInstall" />
       </template>
     </q-banner>
 
@@ -180,6 +190,7 @@ const mobileTab = computed(() => {
 });
 const online = ref(navigator.onLine);
 const deferredPrompt = shallowRef<Event | null>(null);
+const isIOS = typeof window !== 'undefined' && /iphone|ipad|ipod/i.test(navigator.userAgent);
 const showInstallBanner = ref(
   typeof window !== 'undefined' && !window.matchMedia('(display-mode: standalone)').matches
     && !localStorage.getItem('pwa_install_dismissed'),
@@ -196,7 +207,14 @@ function onBeforeInstall(e: Event) {
 
 async function installApp() {
   const prompt = deferredPrompt.value as Event & { prompt: () => void; userChoice: Promise<{ outcome: string }> } | null;
-  if (!prompt) return;
+  if (!prompt) {
+    $q.notify({
+      type: 'info',
+      message: 'La opción de instalar aparecerá tras usar la app por un momento. Volvé a tocar Instalar en un rato.',
+      position: 'top-right'
+    });
+    return;
+  }
   prompt.prompt();
   const result = await prompt.userChoice;
   if (result.outcome === 'accepted') showInstallBanner.value = false;

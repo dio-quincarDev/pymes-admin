@@ -4,6 +4,24 @@ Registro cronológico de decisiones técnicas, refactors y post-mortems del proy
 
 ---
 
+## 2026-08-10 — Migración de dominio a pymeq.dioquincar.dev + PWA install
+
+### Contexto
+
+Subdominio migrado de `pymes.dioquincar.dev` a `pymeq.dioquincar.dev` con HTTPS, para habilitar el login/registro con Google (OAuth2).
+
+### Qué se hizo
+
+- **GCP**: nuevo Authorized redirect URI `https://pymeq.dioquincar.dev/login/oauth2/code/google`.
+- **Secrets GitHub**: `OAUTH2_REDIRECT_URI`, `CORS_ALLOWED_ORIGINS_STAGING`, `APP_FRONTEND_URL` → `https://pymeq.dioquincar.dev`.
+- **Caddy (instancia)**: bloques https del nuevo subdominio, rutas `/api/*`, `/oauth2/*`, `/login/*` → gateway.
+- **Frontend**: URLs de OAuth por `window.location.origin` (`LoginPage`, `RegisterPage`, `AuthOptionsPage`) + banner PWA corregido (prompt real en Android, instrucciones iOS).
+- **Docs**: `DEPLOYMENT.md`, `QUICK_START.md`, `auth/README.md` actualizados al nuevo dominio.
+
+**Estado:** ✅ COMPLETADO
+
+---
+
 ## 2026-08-05 — Consolidación de migraciones Core V1–V9 + Performance Indexes
 
 ### Contexto
