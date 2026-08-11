@@ -27,7 +27,7 @@ jobs:
     steps:
       - name: Generate version
         id: version
-        run: echo "version=$(date +%Y%m%d)-${GITHUB_SHA:0:7}" >> $GITHUB_OUTPUT
+        run: echo "version=$(date +%Y%m%d)-$(echo '${{ github.event.workflow_run.head_sha }}' | cut -c1-7)" >> $GITHUB_OUTPUT
 
   # ==================== DOCKER AUTH ====================
   docker-auth:
