@@ -4,6 +4,21 @@ Registro cronológico de problemas resueltos y decisiones de implementación en 
 
 ---
 
+## 2026-08-10 — Caddy: subdominio pymeq + HTTPS
+
+### Contexto
+
+Migración del subdominio a `pymeq.dioquincar.dev`. Cambio de infraestructura en la instancia, sin código.
+
+### Qué se hizo
+
+- Caddyfile: bloques `https://pymeq.dioquincar.dev` con `/api/*`, `/oauth2/*` y `/login/*` → `pymes-gateway:8080`; resto → `pymes-frontend:9200`.
+- HTTPS (Let's Encrypt automático) requerido por Google OAuth: no admite redirect `http://` en dominios públicos.
+
+**Estado:** ✅ COMPLETADO
+
+---
+
 ## 2026-07-28 — Sin cambios
 
 TeamsPage migration fue solo frontend/auth. Gateway no requiere modificaciones.

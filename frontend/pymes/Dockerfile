@@ -7,9 +7,9 @@ FROM node:20-slim AS build
 
 WORKDIR /app
 
-#ARG for API_URL
-ARG API_URL
-ENV API_URL=${API_URL}
+#ARG for VITE_API_URL
+ARG VITE_API_URL
+ENV VITE_API_URL=${VITE_API_URL}
 
 # Install dependencies (including devDependencies for build)
 COPY package*.json ./
