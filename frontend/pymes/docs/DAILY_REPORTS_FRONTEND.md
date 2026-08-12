@@ -4,6 +4,36 @@ Registro cronológico de decisiones, problemas resueltos y estado del frontend.
 
 ---
 
+## 2026-08-11 — Fix PWA: sw.js con cache immutable (actualizaciones invisibles)
+
+### Contexto
+
+En ventana normal la app servía el bundle viejo para siempre; solo el incógnito cargaba la versión nueva. Causa: `nginx.conf` servía `sw.js` con `cache-control: public, max-age=31536000, immutable` porque la regex `~* \.(js|css|...)$` con `expires 1y` capturaba el file name `sw.js`. El browser nunca re-fetch el SW → nunca detectaba el bundle nuevo → el flujo de update (dialog "Actualizar ahora") jamás se disparaba.
+
+Además, el `location /service-worker.js` apuntaba a un nombre inexistente (404 real); el SW de Quasar se llama `sw.js`. Y `index.html` no tenía `Cache-Control` (cache heurística → HTML viejo con hashes viejos).
+
+### Qué se hizo
+
+- `location ^~ /sw.js` → `Cache-Control: no-cache, no-store, must-revalidate` + `Service-Worker-Allowed: /`. El prefijo `^~` evita que la regex `.js` immutable lo capture.
+- `location /` → `add_header Cache-Control "no-cache"` (index.html revalida siempre).
+- Eliminado el bloque muerto `location /service-worker.js`.
+
+Los bundles hasheados (`index-*.js`) siguen con `immutable` — correcto, no se tocaron.
+
+### Archivos modificados
+
+```
+nginx.conf   → location ^~ /sw.js + Cache-Control no-cache en location /
+```
+
+### Verificación
+
+`nginx -t` OK. Tras deploy, `/sw.js` debe responder `no-cache, no-store, must-revalidate`. Los browsers existentes detectarán el SW nuevo en la próxima navegación → reload con bundle nuevo.
+
+**Estado:** ✅ COMPLETADO
+
+---
+
 ## 2026-08-10 — OAuth2 URLs por origin + PWA install banner
 
 ### Contexto

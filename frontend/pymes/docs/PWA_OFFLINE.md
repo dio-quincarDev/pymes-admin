@@ -11,7 +11,9 @@ Service Worker en modo `InjectManifest`. Archivos fuente en `src-pwa/`.
 | Banner offline | `MainLayout.vue` | `q-banner` con `navigator.onLine` listener |
 | Actualización disponible | `MainLayout.vue` + `register-service-worker.ts` | Dialog "Actualizar ahora" → `SKIP_WAITING` → `controllerchange` → reload |
 | Iconos + manifest | `src-pwa/manifest.json` + `public/icons/` | standalone, 5 tamaños, shortcuts |
-| Nginx SW header | `nginx.conf` | `Cache-Control: no-cache` para `service-worker.js` |
+| Nginx SW header | `nginx.conf` | `location ^~ /sw.js` → `Cache-Control: no-cache, no-store, must-revalidate` (excluido de la regex `.js` immutable con `^~`) |
+
+> **2026-08-11 — Fix de actualización PWA**: el SW se llamaba `sw.js`, no `service-worker.js`, y la regex `~* \.(js|css)$` con `expires 1y; immutable` lo servía con cache de 1 año → el browser nunca detectaba actualizaciones (solo se veía en incógnito). El `location /service-worker.js` era un bloque muerto (404). Ahora `sw.js` se sirve revalidable y `index.html` con `Cache-Control: no-cache`.
 
 ## Flujo offline
 

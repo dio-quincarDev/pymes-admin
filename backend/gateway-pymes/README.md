@@ -252,7 +252,7 @@ GitHub Actions ejecuta tests unitarios en cada PR a main/develop/feature/*. Dock
 
 ## Known Issues
 
-**CORS (Spring Cloud Gateway 3.2.0+)**: Bug conocido donde OPTIONS (preflight) funciona pero POST retorna 403 "Invalid CORS request". El procesador interno de CORS de Spring intercepta antes de que `globalcors` procese. Pendiente resolucion. Ver `gateway-pymes/docs/GATEWAY-DOC.md` seccion 9 para detalle de intentos.
+**CORS (Spring Cloud Gateway 3.2.0+)**: Bug conocido donde OPTIONS (preflight) funciona pero POST retorna 403 "Invalid CORS request". El procesador interno de CORS de Spring intercepta antes de que `globalcors` procese. **Resuelto 2026-08-11**: el 403 real venía del perfil Maven `dev` horneado en el auth-service (`allowed-origins: localhost`), no del gateway. El perfil de ejecución ahora se inyecta en runtime via `SPRING_PROFILES_ACTIVE`. Ver `docs/DAILY_REPORTS_GATEWAY_SOLUTIONS.md` — 2026-08-11.
 
 ---
 

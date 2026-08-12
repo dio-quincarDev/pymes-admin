@@ -21,6 +21,8 @@ A partir de 2026-07-16, CORS opera en **doble capa**:
 
 **Ver también**: `backend/gateway-pymes/docs/DAILY_REPORTS_GATEWAY_SOLUTIONS.md` — 2026-07-16
 
+> **2026-08-11 — Fix de raíz del 403 "Invalid CORS request"**: la imagen Docker del auth se buildeaba con perfil Maven `dev` (`activeByDefault`), que hardcodea `allowed-origins: http://localhost:9200`. El perfil `stg`/`prod` ahora lo inyecta el entorno (`SPRING_PROFILES_ACTIVE` → `application-stg.yaml` lee `CORS_ALLOWED_ORIGINS`). Ver entrada 2026-08-11 abajo.
+
 ### 🔲 Bugs Pendientes
 - **[P2] Facebook OAuth2** — *POSTERGADO* (Meta no aprobó la verificación de la empresa. Queda pendiente indefinidamente hasta obtener credenciales válidas en la consola de Meta Developer).
 
@@ -28,6 +30,7 @@ A partir de 2026-07-16, CORS opera en **doble capa**:
 - **Defensa en profundidad + Code Exchange OAuth2** — ✅ completado (2026-06-19).
 
 ### ✅ Historial de Soluciones (Orden Cronológico Inverso)
+0. [2026-08-11 — Fix de raíz: 403 Invalid CORS request (perfil stg/prod)](#-2026-08-11--fix-de-raíz-403-invalid-cors-request-perfil-stgprod)
 0. [2026-08-10 — Reconfig OAuth2 a pymeq.dioquincar.dev](#-2026-08-10--reconfig-oauth2-a-pymeqdioquincardev)
 0. [2026-07-30 — TOCTOU fix: @Lock(PESSIMISTIC_WRITE) en refresh token rotation](#-2026-07-30--toctou-fix-lockpessimistic_write-en-refresh-token-rotation)
 1. [2026-07-29 — Invitación: accept endpoint quitado de WHITE_LIST](#-2026-07-29--invitación-accept-endpoint-quitado-de-white_list)
@@ -64,6 +67,42 @@ A partir de 2026-07-16, CORS opera en **doble capa**:
 26. [2026-04-11 — Email Verification Logic](#-2026-04-11--email-verification-logic)
 27. [2026-04-11 — Password Reset Logic](#-2026-04-11--password-reset-logic)
 28. [2026-04-09 — Testcontainers Setup](#-2026-04-09--testcontainers-setup)
+
+---
+
+## 2026-08-11 — Fix de raíz: 403 Invalid CORS request (perfil stg/prod)
+
+### Problema
+
+POST reales desde `https://pymeq.dioquincar.dev` devolvían **403 "Invalid CORS request"** (el preflight OPTIONS pasaba, el request real no). La causa raíz era el **perfil Maven `dev` horneado en la imagen Docker**: `dev` es `activeByDefault`, y `mvn clean package` (sin `-P stg`) la buildeaba con `application-dev.yaml:29` → `allowed-origins: "http://localhost:9200"`. El 403 lo emitía Spring Security del auth (`SecurityConfig.java:83` `.cors(Customizer.withDefaults())` + `WebCorsConfig.java` leyendo `app.cors.allowed-origins`). Descartada la hipótesis de bloques `spring:`/`app:` duplicados — no existen; los perfiles YAML se fusionan.
+
+### Solución
+
+El perfil de ejecución ahora lo decide el entorno, no el build:
+
+- `docker-compose.yml` (auth + gateway): `- SPRING_PROFILES_ACTIVE=${SPRING_PROFILES_ACTIVE:-stg}`.
+- `application-stg.yaml:26`: `allowed-origins: "${CORS_ALLOWED_ORIGINS:http://localhost:9200}"`.
+- `cd-staging.yml` / `cd-prod.yml`: inyectan `SPRING_PROFILES_ACTIVE` (secret `..._STAGING`/`..._PROD`) en el `.env` del server, junto a `CORS_ALLOWED_ORIGINS`.
+
+### Verificación
+
+`curl` contra staging: OPTIONS → `200` + `access-control-allow-origin: https://pymeq.dioquincar.dev`; POST real → sin 403. CORS operativo.
+
+### Lecciones
+
+1. `activeByDefault` hace que un build sin `-P` cargue `dev` aunque el entorno pida `stg`/`prod`. El perfil debe inyectarse en runtime.
+2. `CORS_ALLOWED_ORIGINS_STAGING` debe ser **un solo origen** (el success handler OAuth2 redirige a `app.cors.allowed-origins`, sin soporte multi-origen).
+
+### Archivos modificados
+
+```
+docker-compose.yml                                      # SPRING_PROFILES_ACTIVE (auth + gateway)
+backend/auth/src/main/resources/application-stg.yaml    # allowed-origins ← CORS_ALLOWED_ORIGINS
+.github/workflows/cd-staging.yml                        # SPRING_PROFILES_ACTIVE en .env del server
+.github/workflows/cd-prod.yml                           # idem
+```
+
+**Estado:** ✅ COMPLETADO
 
 ---
 

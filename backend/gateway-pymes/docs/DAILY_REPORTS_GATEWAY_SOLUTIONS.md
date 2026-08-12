@@ -4,6 +4,29 @@ Registro cronológico de problemas resueltos y decisiones de implementación en 
 
 ---
 
+## 2026-08-11 — CORS follow-up: perfil de runtime (SPRING_PROFILES_ACTIVE)
+
+### Contexto
+
+Tras el fix de doble capa (2026-07-16), el preflight OPTIONS pasaba pero los POST reales devolvían **403 "Invalid CORS request"** en producción. El gateway no era el culpable: el auth-service se buildeaba con perfil Maven `dev` horneado (`allowed-origins: localhost`).
+
+### Solución
+
+- `docker-compose.yml`: gateway y auth ahora reciben `SPRING_PROFILES_ACTIVE=${SPRING_PROFILES_ACTIVE:-stg}`.
+- `cd-staging.yml` / `cd-prod.yml`: inyectan el secret en el `.env` del server.
+
+### Archivos modificados
+
+| Archivo | Cambio |
+|---------|--------|
+| `docker-compose.yml` | `SPRING_PROFILES_ACTIVE` en gateway + auth |
+| `.github/workflows/cd-staging.yml` / `cd-prod.yml` | Secret inyectado al `.env` del server |
+| `backend/auth/src/main/resources/application-stg.yaml` | `allowed-origins` ← `CORS_ALLOWED_ORIGINS` |
+
+**Estado:** ✅ COMPLETADO
+
+---
+
 ## 2026-08-10 — Caddy: subdominio pymeq + HTTPS
 
 ### Contexto
