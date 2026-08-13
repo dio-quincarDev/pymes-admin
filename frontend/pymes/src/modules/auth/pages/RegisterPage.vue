@@ -248,7 +248,7 @@ const onRegister = async () => {
 const loginWithGoogle = async () => {
   oauthLoading.value = true;
   try {
-    let url = `http://localhost:8080/oauth2/authorization/google`;
+    let url = `${window.location.origin}/oauth2/authorization/google`;
 
     if (pendingTenant.value?.name && pendingTenant.value?.slug) {
       $q.loading.show({ message: 'Sincronizando identidad empresarial...' });

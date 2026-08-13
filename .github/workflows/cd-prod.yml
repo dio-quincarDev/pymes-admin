@@ -111,6 +111,8 @@ jobs:
         uses: docker/build-push-action@ca052bb54ab0790a636c9b5f226502c73d547a25 # v5.4.0
         with:
           context: ./frontend/pymes
+          build-args: |
+            VITE_API_URL=/api/v1
           platforms: linux/amd64,linux/arm64
           push: true
           tags: |
@@ -133,7 +135,7 @@ jobs:
       contents: read
     environment:
       name: production
-      url: https://pymes-admin.com
+      url: http://YOUR_PRODUCTION_DOMAIN
 
     steps:
       - name: Checkout code
@@ -143,7 +145,6 @@ jobs:
           persist-credentials: false
 
       - name: Copy docker-compose.yml to server
-        if: secrets.PROD_HOST != '' && secrets.PROD_USER != '' && secrets.PROD_SSH_KEY != ''
         uses: appleboy/scp-action@ff85246acaad7bdce478db94a363cd2bf7c90345 # v1.0.0
         with:
           host: ${{ secrets.PROD_HOST }}
@@ -154,7 +155,6 @@ jobs:
           target: "~/pymes-admin"
 
       - name: Deploy via SSH
-        if: secrets.PROD_HOST != '' && secrets.PROD_USER != '' && secrets.PROD_SSH_KEY != ''
         uses: appleboy/ssh-action@0ff4204d59e8e51228ff73bce53f80d53301dee2 # v1.2.5
         with:
           host: ${{ secrets.PROD_HOST }}
@@ -196,7 +196,7 @@ jobs:
             echo "Deploy to Production completed successfully!"
 
       - name: Skip deployment (secrets not configured)
-        if: secrets.PROD_HOST == '' || secrets.PROD_USER == '' || secrets.PROD_SSH_KEY == ''
+        if: ${{ failure() }}
         run: |
           echo "Production server secrets not configured. Skipping SSH deployment."
           echo "Docker images were built and pushed successfully."

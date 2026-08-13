@@ -167,12 +167,52 @@ No instalar Prometheus/Grafana (consumen mucha RAM).
 
 ---
 
+## Produccion: Cloudflare + OCI Load Balancer + Caddy
+
+```
+Browser → Cloudflare (CDN, DNS, WAF) → OCI LB :80 HTTP → Caddy :80 → Gateway :8080 / Frontend :9200
+```
+
+- **Cloudflare**: DNS + CDN + SSL terminacion. SSL/TLS mode = **Full** (NO Flexible — OCI LB solo escucha HTTP:80, pero Cloudflare con Full conecta al origin en HTTPS:443 via red interna de Cloudflare).
+- **OCI Load Balancer**: HTTP:80 listener → forwards a vm2-test2.
+- **Caddy** (`~/caddy-proxy/Caddyfile`): reverse proxy en puerto 80, sirve HTTP puro. Bloque para `pymeq.dioquincar.dev` con handle `/api`, `/oauth2`, `/login` → gateway:8080, fallback → frontend:9200. Bloque para `dioquincar.dev` → portfolio-frontend:80.
+- **Frontend**: Quasar SPA servida por Caddy en puerto 9200 (nginx internamente). `VITE_API_URL=/api/v1` (URL relativa, same-origin).
+
+### Puertos expuestos (OCI Security List)
+
+| Puerto | Protocolo | Descripcion |
+|--------|-----------|-------------|
+| 22 | TCP | SSH |
+| 80 | TCP | HTTP (OCI LB → Caddy) |
+
+> Los puertos 443, 8080, 8081, 8082, 9200 **no** deben estar abiertos. TLS lo maneja Cloudflare.
+
+### Cloudflare: Gotchas
+
+| Setting | Valor correcto | Por que |
+|---------|---------------|---------|
+| SSL/TLS | **Full** | Flexible intenta HTTP:80 al origin, pero OCI LB + Cloudflare handshake requiere Full para que Cloudflare maneje TLS end-to-end correctamente. |
+| Bot Fight Mode | **Off** | Bloquea XHR POST desde browsers nuevos (retorna 403 + managed challenge). |
+| WAF Custom Rules | No disponibles en plan Free. | — |
+
+### PWA Cache (Firefox)
+
+El service worker de Quasar PWA retiene bundles viejos (`localhost:8080`). Si el browser sigue llamando a `localhost:8080` despues de un deploy:
+1. F12 → Storage → Clear All
+2. Cerrar y reabrir browser
+3. Recargar la pagina
+
+### Caddy (sin TLS)
+
+Caddy corre HTTP puro en :80 (sin TLS). TLS termina en Cloudflare. No usar `https://` en el Caddyfile.
+
+---
+
 ## Security List Oracle Cloud (Puertos minimos)
 
 | Puerto | Protocolo | Descripcion |
 |--------|-----------|-------------|
 | 22 | TCP | SSH |
-| 80 | TCP | HTTP (Nginx Proxy Manager) |
-| 443 | TCP | HTTPS (Nginx Proxy Manager) |
+| 80 | TCP | HTTP (OCI LB → Caddy) |
 
-> Los puertos 8080, 8081, 9200 **no** deben estar abiertos. Todo el trafico externo pasa por Nginx en 80/443.
+> Los puertos 443, 8080, 8081, 8082, 9200 **no** deben estar abiertos.

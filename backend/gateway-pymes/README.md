@@ -142,7 +142,7 @@ No requiere Docker. Todos los tests son unitarios con mocks.
 | `RouterValidatorTest` | 22 | Rutas publicas vs protegidas (15 open + 6 secured + 1 query string) |
 | `JwtUtilsTest` | 4 | JWT valido, expirado, firma invalida, malformado |
 | `GatewayPymesApplicationTests` | 1 | Context carga sin errores |
-| **Total** | **34** | — |
+| **Total** | **37** | — |
 
 ### Detalle de Tests
 
@@ -213,6 +213,18 @@ En WebFlux, `/swagger-ui/index.html` no funciona. Usar siempre `/swagger-ui.html
 1. En el servicio: definir `springdoc.api-docs.path: /v3/api-docs/{nombre}`
 2. En Gateway: agregar ruta en `application.yaml` y perfiles
 3. En `SwaggerAggregatorConfig.java`: agregar entrada al Set de URLs
+
+---
+
+## CI/CD
+
+GitHub Actions ejecuta tests unitarios en cada PR a main/develop/feature/*. Docker images multi-arch (AMD64/ARM64) se buildean y pushean en CD.
+
+| Rama | Pipeline | Deploy |
+|------|----------|--------|
+| `feature/*` | CI (build + test) | Ninguno |
+| `develop` | CI + CD | Staging |
+| `main` | CI + CD | Produccion |
 
 ---
 

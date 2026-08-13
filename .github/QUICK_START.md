@@ -41,8 +41,14 @@ Create Caddyfile:
 ```bash
 mkdir -p /etc/caddy
 cat > /etc/caddy/Caddyfile <<'EOF'
-pymes.dioquincar.dev {
+https://pymeq.dioquincar.dev {
     handle /api/* {
+        reverse_proxy pymes-gateway:8080
+    }
+    handle /oauth2/* {
+        reverse_proxy pymes-gateway:8080
+    }
+    handle /login/* {
         reverse_proxy pymes-gateway:8080
     }
     handle {
