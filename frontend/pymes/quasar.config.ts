@@ -126,6 +126,7 @@ export default defineConfig((ctx) => {
         'Notify',
         'Loading',
         'LoadingBar',
+        'Dialog',
       ],
     },
 

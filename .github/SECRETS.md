@@ -69,6 +69,8 @@ Todos los secrets deben configurarse en **GitHub → Settings → Secrets and va
 
 | Secret | Descripción | Ejemplo |
 |--------|-------------|---------|
+| `SPRING_MAIL_HOST` | Host SMTP (Gmail o OCI Email Delivery) | `smtp.gmail.com` |
+| `SPRING_MAIL_PORT` | Puerto SMTP | `587` |
 | `SPRING_MAIL_USERNAME` | Correo Gmail para envío de emails | `devpruebas.zar@gmail.com` |
 | `SPRING_MAIL_PASSWORD` | App Password de Gmail | *(16 caracteres)* |
 
@@ -85,12 +87,29 @@ Todos los secrets deben configurarse en **GitHub → Settings → Secrets and va
 
 | Secret | Descripción | Ejemplo |
 |--------|-------------|---------|
-| `CORS_ALLOWED_ORIGINS_STAGING` | Orígenes permitidos en staging | `http://staging.tudominio.com:9200` |
-| `CORS_ALLOWED_ORIGINS_PROD` | Orígenes permitidos en producción | `https://tudominio.com,https://app.tudominio.com` |
+| `CORS_ALLOWED_ORIGINS_STAGING` | Orígenes permitidos en staging | `https://pymeq.dioquincar.dev` |
+| `CORS_ALLOWED_ORIGINS_PROD` | Orígenes permitidos en producción | `https://pymeq.dioquincar.dev` |
 
 ---
 
-## 📝 Resumen completo (23 secrets)
+## 🚀 Spring Profiles
+
+| Secret | Descripción | Ejemplo |
+|--------|-------------|---------|
+| `SPRING_PROFILES_ACTIVE_STAGING` | Perfil Spring Boot para staging | `stg` |
+| `SPRING_PROFILES_ACTIVE_PROD` | Perfil Spring Boot para producción | `prod` |
+
+---
+
+## 🌐 App
+
+| Secret | Descripción | Ejemplo |
+|--------|-------------|---------|
+| `APP_FRONTEND_URL` | URL pública del frontend (OAuth2 redirect + links) | `https://pymeq.dioquincar.dev` |
+
+---
+
+## 📝 Resumen completo
 
 ```
 # Docker
@@ -125,12 +144,21 @@ FACEBOOK_CLIENT_SECRET
 OAUTH2_REDIRECT_URI
 
 # Email
+SPRING_MAIL_HOST
+SPRING_MAIL_PORT
 SPRING_MAIL_USERNAME
 SPRING_MAIL_PASSWORD
 
 # CORS
 CORS_ALLOWED_ORIGINS_STAGING
 CORS_ALLOWED_ORIGINS_PROD
+
+# Spring Profiles
+SPRING_PROFILES_ACTIVE_STAGING
+SPRING_PROFILES_ACTIVE_PROD
+
+# App
+APP_FRONTEND_URL
 ```
 
 ---
@@ -154,14 +182,13 @@ git clone https://github.com/dio-quincarDev/pymes-admin.git ~/pymes-admin
 
 ### Security List (Oracle Cloud)
 
+> Caddy (`proxy-caddy-network`) sirve frontend (9200) y gateway (8080). Los puertos de servicios (8080, 8081, 8082, 9200) no se exponen públicamente.
+
 | Puerto | Protocolo | Descripción |
 |--------|-----------|-------------|
 | 22 | TCP | SSH |
-| 8080 | TCP | Gateway Service |
-| 8081 | TCP | Auth Service |
-| 9200 | TCP | Frontend |
-| 80 | TCP | HTTP (opcional) |
-| 443 | TCP | HTTPS (opcional) |
+| 80 | TCP | HTTP (Caddy) |
+| 443 | TCP | HTTPS (Caddy — Let's Encrypt) |
 
 ---
 
