@@ -227,16 +227,10 @@ function dismissInstall() {
 }
 
 function onSwUpdate() {
-  $q.dialog({
-    title: 'Actualización disponible',
-    message: 'Hay una nueva versión. ¿Actualizar ahora?',
-    ok: 'Actualizar',
-    cancel: 'Después',
-    persistent: true,
-  }).onOk(() => {
-    void navigator.serviceWorker?.getRegistration().then(r => {
-      r?.waiting?.postMessage({ type: 'SKIP_WAITING' });
-    });
+  // Ponytail: skip the dialog — force update immediately. A blocking dialog
+  // that waits for user click keeps the old SW running with stale precache.
+  void navigator.serviceWorker?.getRegistration().then(r => {
+    r?.waiting?.postMessage({ type: 'SKIP_WAITING' });
   });
 }
 

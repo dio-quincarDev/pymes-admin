@@ -143,7 +143,7 @@ No depender de `.env` editados manualmente en el servidor.
 2. Variables vienen de GitHub Secrets (nunca del repositorio)
 3. El servidor nunca tiene credenciales hardcodeadas
 
-Secrets requeridos: `DOCKER_USERNAME`, `DOCKER_PASSWORD`, `STAGING_HOST`, `STAGING_USER`, `STAGING_SSH_KEY`, `DB_USERNAME`, `DB_PASSWORD`, `JWT_SECRET`, `CORS_ALLOWED_ORIGINS`. Ver `.github/SECRETS.md` para la lista completa.
+Secrets requeridos: `DOCKER_USERNAME`, `DOCKER_PASSWORD`, `STAGING_HOST`, `STAGING_USER`, `STAGING_SSH_KEY`, `DB_USERNAME`, `DB_PASSWORD`, `JWT_SECRET`, `CORS_ALLOWED_ORIGINS_STAGING`, `CORS_ALLOWED_ORIGINS_PROD`, `SPRING_PROFILES_ACTIVE_STAGING`, `SPRING_PROFILES_ACTIVE_PROD`, `APP_FRONTEND_URL`, `SPRING_MAIL_*`, `GOOGLE_*`, `FACEBOOK_*`, `OAUTH2_REDIRECT_URI`. Ver `.github/SECRETS.md` para la lista completa.
 
 ---
 
@@ -160,10 +160,48 @@ No instalar Prometheus/Grafana (consumen mucha RAM).
 
 | Red | Proposito | Tipo |
 |-----|-----------|------|
-| `pymes-global-network` | Nginx Proxy Manager ↔ servicios frontend/backend | Externa |
+| `proxy-caddy-network` | Caddy ↔ frontend + gateway (externa) | Bridge (external: true) |
 | `pymes-internal-network` | DB, Redis, comunicacion interna backend | Bridge (external: true) |
 
-> `pymes-internal-network` marcada como `external: true` en `docker-compose.yml` porque se crea con `setup-server.sh`. Sin esto: `network exists but was not created by compose`.
+> Ambas redes se crean una sola vez en el setup inicial (`docker network create`, ver `QUICK_START.md`). Estan marcadas como `external: true` en `docker-compose.yml` — sin esto: `network exists but was not created by compose`.
+
+---
+
+## Produccion: Caddy (HTTPS) + OCI
+
+```
+Browser → Caddy :80/:443 → Gateway :8080 / Frontend :9200
+```
+
+- **Caddy** (`proxy-caddy-network`, contenedor `caddy`): reverse proxy con HTTPS automático (Let's Encrypt). Bloque `https://pymeq.dioquincar.dev` con handle `/api/*`, `/oauth2/*`, `/login/*` → `pymes-gateway:8080`; resto → `pymes-frontend:9200`.
+- **HTTPS**: Let's Encrypt automático de Caddy — requerido por Google OAuth (no acepta redirect `http://` en dominios públicos).
+- **Frontend**: Quasar SPA servida por Caddy en puerto 9200 (nginx internamente). `VITE_API_URL=/api/v1` (URL relativa, same-origin).
+- **Nginx (frontend)**: bundles JS/CSS `immutable` (cache 1y); `sw.js` y `/` con `no-cache` para que el service worker y el HTML siempre se actualicen.
+
+### Puertos expuestos (OCI Security List)
+
+| Puerto | Protocolo | Descripcion |
+|--------|-----------|-------------|
+| 22 | TCP | SSH |
+| 80 | TCP | HTTP (Caddy) |
+| 443 | TCP | HTTPS (Caddy — Let's Encrypt) |
+
+> Los puertos 8080, 8081, 8082, 9200 **no** se exponen públicamente — Caddy enruta a los servicios por red interna.
+
+### Cloudflare: Gotchas (si se usa)
+
+| Setting | Valor correcto | Por que |
+|---------|---------------|---------|
+| SSL/TLS | **Full** | Flexible intenta HTTP:80 al origin y rompe el handshake TLS con el origin. |
+| Bot Fight Mode | **Off** | Bloquea XHR POST desde browsers nuevos (retorna 403 + managed challenge). |
+| WAF Custom Rules | No disponibles en plan Free. | — |
+
+### PWA Cache (Firefox)
+
+El service worker de Quasar PWA retiene bundles viejos. Si el browser sigue llamando a la URL antigua despues de un deploy:
+1. F12 → Storage → Clear All
+2. Cerrar y reabrir browser
+3. Recargar la pagina
 
 ---
 
@@ -213,6 +251,7 @@ Caddy corre HTTP puro en :80 (sin TLS). TLS termina en Cloudflare. No usar `http
 | Puerto | Protocolo | Descripcion |
 |--------|-----------|-------------|
 | 22 | TCP | SSH |
-| 80 | TCP | HTTP (OCI LB → Caddy) |
+| 80 | TCP | HTTP (Caddy) |
+| 443 | TCP | HTTPS (Caddy — Let's Encrypt) |
 
-> Los puertos 443, 8080, 8081, 8082, 9200 **no** deben estar abiertos.
+> Los puertos 8080, 8081, 8082, 9200 **no** se exponen públicamente.

@@ -120,24 +120,18 @@ class OAuth2AuthenticationSuccessHandlerTest {
     }
 
     @Test
-    void sinCookie_CreaTenantDefault() throws Exception {
+    void sinCookieYSinTenants_NoCreaWorkspace() throws Exception {
         when(authentication.getPrincipal()).thenReturn(createOAuth2User("test@gmail.com"));
         when(request.getCookies()).thenReturn(null);
-        
+
         when(userRepository.findByEmail("test@gmail.com")).thenReturn(Optional.of(mockUser));
         when(userTenantRepository.findByUserId(mockUser.getId())).thenReturn(List.of());
-        
-        Tenant savedTenant = Tenant.builder()
-                .id(UUID.randomUUID())
-                .name("Mi Empresa")
-                .build();
-        when(tenantRepository.save(any(Tenant.class))).thenReturn(savedTenant);
-        when(userTenantRepository.save(any(UserTenant.class))).thenReturn(null);
-        
+
         handler.onAuthenticationSuccess(request, response, authentication);
-        
+
         verify(oauth2IntentService, never()).getIntent(any());
-        verify(tenantRepository).save(argThat(t -> t.getName().equals("Mi Empresa")));
+        verify(tenantRepository, never()).save(any(Tenant.class));
+        verify(userTenantRepository, never()).save(any(UserTenant.class));
     }
 
     @Test

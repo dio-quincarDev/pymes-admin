@@ -4,6 +4,36 @@ Registro cronológico de decisiones técnicas, refactors y post-mortems del proy
 
 ---
 
+## 2026-08-13 — Sync feature/core ← develop + docs de infra al día
+
+### Contexto
+
+`feature/core` estaba desactualizado (8 commits atrás de `develop`). Se hizo `git merge develop` con resolución manual de conflictos y se pusieron al día los docs de infraestructura.
+
+### Qué se hizo
+
+**Merge develop → feature/core:**
+- Conflicto resuelto en `backend/auth/README.md` (env vars table): se fusionó la descripción detallada de `APP_FRONTEND_URL` de feature/core + filas nuevas de develop (`OAUTH2_REDIRECT_URI`, `FACEBOOK_*`).
+
+**Redes Docker renombradas:**
+- `pymes-global-network` (Nginx Proxy Manager) → **`proxy-caddy-network`** (Caddy). `setup-server.sh` y doc infra desactualizados corregidos en `.github/` + `docs/strategies/INFRA_STRATEGY.md`.
+
+**Docs actualizados:**
+- `docs/strategies/INFRA_STRATEGY.md`: sección producción alineada al deploy real (Caddy HTTPS + Let's Encrypt en 80/443, no Cloudflare HTTP-only), redes corregidas, lista de secrets completa.
+- `.github/SECRETS.md`: +`APP_FRONTEND_URL`, +`SPRING_MAIL_HOST/PORT`, +`SPRING_PROFILES_ACTIVE_STAGING/PROD`; CORS examples al dominio real; security list corregida (22/80/443).
+- Daily reports de servicios: entries de deploy agregados.
+
+### Deploy fixes documentados (de develop, 2026-08-10/11)
+
+- `workflow_run.head_sha` como base del version tag (antes `GITHUB_SHA=main` daba tags de rama equivocada).
+- `SPRING_PROFILES_ACTIVE` inyectado a staging/prod en CD.
+- `nginx.conf`: `sw.js` con `no-cache` (antes matcheaba la regla `immutable` de `.js`) + `/` con `no-cache`.
+- CORS con fallback `http://localhost:9200` en `application-stg.yaml`.
+
+**Estado:** ✅ COMPLETADO
+
+---
+
 ## 2026-08-10 — Migración de dominio a pymeq.dioquincar.dev + PWA install
 
 ### Contexto

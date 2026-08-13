@@ -87,7 +87,7 @@ POST /login
   1. SuccessHandler guarda `{accessToken, refreshToken}` en Redis (clave `oauth:code:{uuid}`, TTL 2 min)
   2. Redirige al frontend solo con `?code=<uuid>`
   3. Frontend llama `POST /auth/exchange` con `{code}` para obtener los tokens de forma segura
-- Facebook: Condicionado via `@ConditionalOnExpression` en `FacebookOAuthConfig.java`. Si `FACEBOOK_CLIENT_ID` esta vacio, el bean no se crea y Facebook no aparece en el login. Meta no aprobo la verificacion de la empresa — pendiente indefinidamente.
+- Facebook: POSTERGADO (Meta no aprobo la verificacion de la empresa. Pendiente indefinidamente hasta obtener credenciales validas).
 
 ### Email System
 
@@ -159,17 +159,17 @@ Maven Surefire ejecuta solo `**/integration/**` excluido. Failsafe ejecuta solo 
 | Dominio | Unit | Integration | Consistency |
 |---------|------|-------------|-------------|
 | Auth (login/register/refresh/logout) | 11 | 10 | — |
-| JWT (tokens/blacklist/validacion) | 27 | — | — |
+| JWT (tokens/blacklist/validacion) | 20 | — | — |
 | OAuth2 (intent/filter/handler/exchange) | 20 | 10 | — |
 | Email (verificacion/reset) | 12 | 4 | — |
 | Tenant (CRUD/select/shutdown) | 10 | — | — |
 | Member (roles/delete) | 3 | — | — |
 | Invitation (create/accept/cancel) | 23 | 2 | — |
-| Security (constraints/RBAC) | — | 24 | — |
+| Security (constraints/RBAC) | — | 16 | — |
 | User (profile) | 5 | — | — |
 | Password Reset (forgot/reset) | 5 | 4 | — |
 | API paths (constantes vs produccion) | — | — | 12 |
-| **Total** | **140** | **55** | **12** |
+| **Total** | **114** | **47** | **12** |
 
 ### Infraestructura de Test
 
@@ -188,22 +188,22 @@ src/test/java/auth/pymes/
 ├── integration/
 │   ├── AbstractIntegrationTest.java       # Base class (Testcontainers)
 │   └── api/
-│       ├── AuthApiIntegrationTest.java    # 16 tests: endpoints auth + concurrent refresh
+│       ├── AuthApiIntegrationTest.java    # 13 tests: endpoints auth
 │       ├── InvitationServiceIntegrationTest.java  # 2 tests
 │       ├── OAuth2IntentIntegrationTest.java       # 4 tests
 │       ├── OAuth2LoginIntegrationTest.java        # 8 tests
 │       ├── PasswordResetIntegrationTest.java      # 4 tests
-│       └── SecurityConstraintIntegrationTest.java  # 21 tests: 401/403 + RBAC
+│       └── SecurityConstraintIntegrationTest.java  # 16 tests: 401/403 + RBAC
 ├── testutil/
 │   └── TestApiPaths.java
 └── unit/
-    ├── AuthServiceImplTest.java           # 13 tests
+    ├── AuthServiceImplTest.java           # 11 tests
     ├── EmailVerificationServiceImplTest.java  # 12 tests
     ├── InvitationServiceImplTest.java     # 23 tests
-    ├── JwtServiceImplTest.java            # 27 tests
+    ├── JwtServiceImplTest.java            # 25 tests
     ├── MemberServiceImplTest.java         # 3 tests
     ├── OAuth2AuthenticationSuccessHandlerTest.java  # 4 tests
-    ├── OAuth2IntentCookieFilterTest.java  # 10 tests
+    ├── OAuth2IntentCookieFilterTest.java  # 7 tests
     ├── OAuth2IntentServiceImplTest.java   # 9 tests
     ├── PasswordResetServiceImplTest.java  # 5 tests
     ├── TenantServiceImplTest.java         # 10 tests
@@ -240,7 +240,7 @@ Copiar `.env.example` a `.env` para desarrollo local. El servicio usa `spring-do
 | DB_HOST / DB_PORT / DB_NAME / DB_USERNAME / DB_PASSWORD | PostgreSQL |
 | REDIS_HOST / REDIS_PORT | Redis (blacklist + cache) |
 | SPRING_MAIL_USERNAME / SPRING_MAIL_PASSWORD | SMTP para emails |
-| APP_FRONTEND_URL | Base URL del frontend para redirect post-OAuth2. Default: `http://localhost:9200` |
+| APP_FRONTEND_URL | Base URL para links de verificacion. Default en base YAML: `http://localhost:9200`. Dev CORS usa `http://localhost:9200`. Verificar coherencia entre perfiles. |
 | OAUTH2_REDIRECT_URI | URI base para redirect de OAuth2. Default: `http://localhost:8080`. En server: `https://pymeq.dioquincar.dev` |
 | GOOGLE_CLIENT_ID / GOOGLE_CLIENT_SECRET | OAuth2 Google |
 | FACEBOOK_CLIENT_ID / FACEBOOK_CLIENT_SECRET | OAuth2 Facebook (condicional, vacio = deshabilitado) |
@@ -263,7 +263,7 @@ GitHub Actions ejecuta `mvn verify` en cada PR a main/develop/feature/*.
 | 4 | Logout Global + Thymeleaf Email Templates | COMPLETADO |
 | 5 | Member Management (roles, invitaciones) | COMPLETADO |
 | 6 | Password Reset + Forgot Password | COMPLETADO |
-| 7 | Facebook OAuth2 | POSTERGADO (condicional,Meta no aprobo verificacion) |
+| 7 | Facebook OAuth2 | PENDIENTE |
 | 8 | MFA (TOTP), PKCE, Enterprise SSO | BACKLOG |
 
 ---
