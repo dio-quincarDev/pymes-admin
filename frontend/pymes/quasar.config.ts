@@ -49,7 +49,10 @@ export default defineConfig((ctx) => {
 
       // publicPath: '/',
       // analyze: true,
-      // env: {},
+      // ponytail: build-time SW cache-buster — computed here, no env/secret needed
+      env: {
+        SW_BUILD_TIME: String(Date.now()),
+      },
       // rawDefine: {}
       // ignorePublicFolder: true,
       // minify: false,
