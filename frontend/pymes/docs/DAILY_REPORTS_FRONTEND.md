@@ -4,6 +4,77 @@ Registro cronológico de decisiones, problemas resueltos y estado del frontend.
 
 ---
 
+## 2026-08-14 — Fix OAuth2 regresión (AuthCallback + store)
+
+### Contexto
+
+Fix de las 2 regresiones introducidas en `a0cc92d` (2026-08-13). El commit anterior rompió el flujo OAuth2 al agregar un `else` branch incorrecto y llamadas innecesarias a `fetchCurrentUser()`.
+
+### Qué se hizo
+
+- **`AuthCallback.vue`**: eliminado `else` branch (líneas 68-73) que forzaba redirect a `/onboarding` cuando `tenantId` era null. Usuarios con workspace existente ahora caen al dashboard correctamente.
+- **`store/index.ts`**: eliminado `await this.fetchCurrentUser()` de `login()` y `selectTenant()`. Solo se ejecuta en `handleOAuthCallback()`, que es el único camino OAuth2. Evita race condition donde `/users/me` sobreescribe `user` con `tenantId: null`.
+
+### Root cause
+
+`fetchCurrentUser()` llama `GET /users/me` y sobreescribe `this.user`. Si el JWT no tiene `tenantId` (OAuth2 directo sin intent), el user resultante tiene `tenantId: null` y todos los flujos dependientes silenciosamente fallan.
+
+### Archivos modificados
+
+```
+src/modules/auth/pages/AuthCallback.vue     — eliminado else branch
+src/modules/auth/store/index.ts            — eliminado fetchCurrentUser() de login() y selectTenant()
+```
+
+### Pendiente
+
+- TeamsPage: `isOwner` depende de `user.role`; verificar que `fetchCurrentUser()` en `handleOAuthCallback` devuelve el role correctamente.
+
+**Estado:** ✅ COMPLETADO
+
+---
+
+## 2026-08-13 — Regresiones, seguridad debilitada y pérdida de tiempo
+
+### Contexto
+
+Sesión de "fixes" que arregló 2 cosas, rompió el flujo OAuth2, debilitó una protección de seguridad existente y dejó pendiente el borrado de miembros. No se probó el flujo completo antes de commitear. No se revisó el diff propio antes de commitear. Se perdió tiempo buscando archivo por archivo en vez de hacer greps generalizados.
+
+### Qué se hizo
+
+- **PWA cache fix (nginx.conf + MainLayout.vue)** — ✅ funcionó. `sw.js` ahora se sirve con `no-cache` (`location ^~ /sw.js`) y el SW se actualiza sin dialog de bloqueo (`SKIP_WAITING` automático).
+- **Quasar Dialog plugin** — ✅ se agregó `'Dialog'` a `quasar.config.ts`. `TeamsPage` puede abrir dialogs de nuevo.
+- **fetchCurrentUser() en login() y selectTenant()** — 🟡 innecesario y contraproducente. `handleOAuthCallback()` ya lo tenía. Agregarlo en otros caminos crea ejecución extra y potenciales race conditions con `clearSession()`.
+- **OAuth2: se eliminó Prioridad 3 (auto-crear "Mi Empresa")** — 🔴 correcto en intención, pero se agregó un `else` en `AuthCallback.vue` que redirige a `/onboarding` cuando `tenantId` es null. **Esto rompió el flujo**: usuarios con intent que ya tenían workspace caen al onboarding en vez del dashboard.
+
+### Los problemas del usuario (estado actual)
+
+1. **El flujo OAuth2 ya no lleva al workspace** (invoice de industrias) — redirige a `/onboarding` / "main" y permite "terminar de registrarse". 🔴 REGRESIÓN de la sesión. Causa: `else` branch en `AuthCallback.vue` + posible timing en `fetchCurrentUser()`.
+
+2. **Miembro invitado no se puede borrar desde TeamsPage.vue** — el botón `person_remove` tiene `v-if="isOwner"`, y `isOwner` depende de `authStore.user?.role`. Si el role no llega (fallo de timing/token en `fetchCurrentUser()`), el botón no aparece. 🔴 Existía antes, pero la sesión no lo resolvió y pudo empeorarlo.
+
+3. **Tokens y UUIDs visibles en el navegador** — el usuario reportó que ya existía una "estrategia" para ocultarlos y volvió a encontrarlos visibles. ❓ NO SE RESOLVIÓ. No se localizó ni documentó dicha estrategia; se perdió tiempo buscando sin un plan claro.
+
+### Incompetencia de la sesión (honestidad brutal)
+
+- Cada fix generó un bug nuevo → el "loop" del usuario es real (arreglar A rompe B).
+- No se revisó el `git diff` propio antes de commitear. El usuario tuvo que señalarlo explícitamente.
+- Se buscaron archivos uno por uno en vez de usar grep/glob de forma eficiente. El usuario tuvo que reclamar el desperdicio de tiempo.
+- No se resolvió el borrado de miembros — solo se documentó.
+- No se resolvió la visibilidad de tokens/UUIDs — ni siquiera se identificó la estrategia previa.
+- Se commiteó (`a0cc92d`, 12 archivos) sin verificar el flujo completo (login OAuth2 → workspace).
+
+### Pendiente / próxima sesión
+
+1. Revertir el `else` branch de `AuthCallback.vue` (volver a caer al dashboard cuando no hay tenantId).
+2. Revertir `fetchCurrentUser()` de `login()` y `selectTenant()` en el store (era innecesario; solo vive en `handleOAuthCallback`).
+3. Investigar la "estrategia de ocultar tokens/UUIDs" preguntando al usuario qué era antes de tocar nada.
+4. Arreglar `isOwner` en TeamsPage: verificar que `fetchCurrentUser()` devuelve el role y que el botón de borrar aparece.
+5. **Regla de oro: NO commitear sin probar el flujo completo antes.**
+
+**Estado:** ❌ SESIÓN REGRESIVA — 2 fixes ok, 2 regresiones, 1 sin resolver.
+
+---
 ## 2026-08-10 — OAuth2 URLs por origin + PWA install banner
 
 ### Contexto
