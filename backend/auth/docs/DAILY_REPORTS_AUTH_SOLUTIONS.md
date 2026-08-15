@@ -28,6 +28,7 @@ A partir de 2026-07-16, CORS opera en **doble capa**:
 - **Defensa en profundidad + Code Exchange OAuth2** — ✅ completado (2026-06-19).
 
 ### ✅ Historial de Soluciones (Orden Cronológico Inverso)
+0. [2026-08-14 — OAuth2 slug duplicado fix (DuplicateResourceException)](#-2026-08-14--oauth2-slug-duplicado-fix-duplicateresourceexception)
 0. [2026-08-10 — Reconfig OAuth2 a pymeq.dioquincar.dev](#-2026-08-10--reconfig-oauth2-a-pymeqdioquincardev)
 0. [2026-07-30 — TOCTOU fix: @Lock(PESSIMISTIC_WRITE) en refresh token rotation](#-2026-07-30--toctou-fix-lockpessimistic_write-en-refresh-token-rotation)
 1. [2026-07-29 — Invitación: accept endpoint quitado de WHITE_LIST](#-2026-07-29--invitación-accept-endpoint-quitado-de-white_list)
@@ -64,6 +65,38 @@ A partir de 2026-07-16, CORS opera en **doble capa**:
 26. [2026-04-11 — Email Verification Logic](#-2026-04-11--email-verification-logic)
 27. [2026-04-11 — Password Reset Logic](#-2026-04-11--password-reset-logic)
 28. [2026-04-09 — Testcontainers Setup](#-2026-04-09--testcontainers-setup)
+
+---
+
+## 2026-08-14 — OAuth2 slug duplicado fix (DuplicateResourceException)
+
+### Contexto
+
+El OAuth2 callback (`OAuth2AuthenticationSuccessHandler`) intentaba crear un tenant con un slug que ya existía en la DB. El handler no verificaba unicidad antes de insertar. Resultado: `ConstraintViolationException` → 500 Internal Server Error. El `GlobalExceptionHandler` (`@RestControllerAdvice`) no atrapa excepciones del filtro de Spring Security.
+
+### Root cause
+
+`OAuth2AuthenticationSuccessHandler.java:87-93` ejecutaba `tenantRepository.save()` sin verificar `findBySlug()` previamente. Cuando un usuario con empresa existente hacía OAuth2 con un intent de la misma empresa, PostgreSQL lanzaba `duplicate key value violates unique constraint "tenants_slug_key"`.
+
+### Qué se hizo
+
+- **Handler fix**: antes de `tenantRepository.save()`, se verifica `tenantRepository.findBySlug(intent.companySlug())`. Si existe → `throw new DuplicateResourceException(CodigoError.TENANT_ALREADY_EXISTS, slug)` → 409 Conflict.
+- **Test unitario nuevo**: `conIntentId_SlugDuplicado_LanzaDuplicateResourceException` — verifica que el handler lanza `DuplicateResourceException` cuando el slug ya existe.
+- **Tests existentes editados**: 3 tests que usaban intent ahora mockean `findBySlug` retornando `Optional.empty()` (happy path).
+- **Suite completa**: 141 tests, 0 failures.
+
+### Archivos modificados
+
+```
+auth/pymes/common/config/OAuth2AuthenticationSuccessHandler.java  — +findBySlug check + imports
+auth/pymes/unit/OAuth2AuthenticationSuccessHandlerTest.java       — +findBySlug mocks, +test duplicado
+```
+
+### Frontend
+
+No requiere cambios. `types/error.ts` ya tiene `TENANT_ALREADY_EXISTS: 'TNT003'`. `utils/errors.ts` maneja 409 → "Conflicto de datos".
+
+**Estado:** ✅ COMPLETADO
 
 ---
 

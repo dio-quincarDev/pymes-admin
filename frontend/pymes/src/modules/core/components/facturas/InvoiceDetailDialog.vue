@@ -5,6 +5,7 @@ defineProps<{
   modelValue: boolean
   factura: Factura | null
   presentationNameMap: Map<string, string>
+  categoriaMap: Map<string, string>
 }>()
 
 const emit = defineEmits<{
@@ -55,7 +56,7 @@ const statusColor: Record<string, string> = { PAGADA: 'positive', REGISTRADA: 'w
         <div v-if="factura.type === 'GASTO_OPERATIVO' && factura.category" class="row">
           <div class="col-6">
             <div class="text-caption text-accent">Categoría</div>
-            <div class="text-secondary">{{ factura.category }}</div>
+            <div class="text-secondary">{{ factura.category === 'SALARIOS' ? 'Salarios' : factura.category === 'OTRO' ? 'Otro' : categoriaMap.get(factura.category) || factura.category }}</div>
           </div>
         </div>
         <div v-if="factura.paymentMethod" class="row">

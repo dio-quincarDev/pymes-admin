@@ -11,6 +11,8 @@ import auth.pymes.repositories.UserEntityRepository;
 import auth.pymes.repositories.UserTenantRepository;
 import auth.pymes.service.JwtService;
 import auth.pymes.service.OAuth2IntentService;
+import auth.pymes.utils.exception.CodigoError;
+import auth.pymes.utils.exception.custom.DuplicateResourceException;
 import auth.pymes.utils.exception.custom.ResourceNotFoundException;
 import jakarta.servlet.ServletException;
 import jakarta.servlet.http.Cookie;
@@ -83,6 +85,10 @@ public class OAuth2AuthenticationSuccessHandler extends SimpleUrlAuthenticationS
             if (intentOpt.isPresent()) {
                 OAuth2IntentRequest intent = intentOpt.get();
                 log.info("Procesando intent para empresa nueva: {}", intent.companyName());
+
+                if (tenantRepository.findBySlug(intent.companySlug()).isPresent()) {
+                    throw new DuplicateResourceException(CodigoError.TENANT_ALREADY_EXISTS, intent.companySlug());
+                }
 
                 Tenant tenant = Tenant.builder()
                         .name(intent.companyName())
