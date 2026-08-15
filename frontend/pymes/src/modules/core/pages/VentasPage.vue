@@ -1,170 +1,212 @@
 <script setup lang="ts">
-import { ref, shallowRef, computed, onMounted, onUnmounted } from 'vue'
-import { useQuasar, useMeta } from 'quasar'
-import { useAuthStore } from 'src/modules/auth/store'
-import { formatCurrency } from 'src/utils/format'
-import { ventaService } from '../services/venta.service'
-import type { VentaDiaria, VentaRequest } from '../types'
-import EmptyState from 'src/components/ui/EmptyState.vue'
+import { ref, shallowRef, computed, onMounted, onUnmounted } from 'vue';
+import { useQuasar, useMeta } from 'quasar';
+import { useAuthStore } from 'src/modules/auth/store';
+import { formatCurrency } from 'src/utils/format';
+import { ventaService } from '../services/venta.service';
+import type { VentaDiaria, VentaRequest } from '../types';
+import EmptyState from 'src/components/ui/EmptyState.vue';
 
 useMeta({ title: 'Ventas — PYMEQ' });
 
-const $q = useQuasar()
-const authStore = useAuthStore()
-const tenantId = authStore.user?.tenantId
+const $q = useQuasar();
+const authStore = useAuthStore();
+const tenantId = authStore.user?.tenantId;
 
-const rows = ref<VentaDiaria[]>([])
-const loading = shallowRef(false)
+const rows = ref<VentaDiaria[]>([]);
+const loading = shallowRef(false);
 
 const totalSemana = computed(() => {
-  const now = new Date()
-  const weekAgo = new Date(now.getTime() - 7 * 24 * 60 * 60 * 1000)
+  const now = new Date();
+  const weekAgo = new Date(now.getTime() - 7 * 24 * 60 * 60 * 1000);
   return rows.value
-    .filter(r => new Date(r.saleDate) >= weekAgo)
-    .reduce((s, r) => s + r.grossAmount, 0)
-})
+    .filter((r) => new Date(r.saleDate) >= weekAgo)
+    .reduce((s, r) => s + r.grossAmount, 0);
+});
 
 const totalMes = computed(() => {
-  const now = new Date()
-  const monthStart = new Date(now.getFullYear(), now.getMonth(), 1)
+  const now = new Date();
+  const monthStart = new Date(now.getFullYear(), now.getMonth(), 1);
   return rows.value
-    .filter(r => new Date(r.saleDate) >= monthStart)
-    .reduce((s, r) => s + r.grossAmount, 0)
-})
+    .filter((r) => new Date(r.saleDate) >= monthStart)
+    .reduce((s, r) => s + r.grossAmount, 0);
+});
 
 interface DayGroup {
-  date: string
-  label: string
-  items: VentaDiaria[]
-  total: number
+  date: string;
+  label: string;
+  items: VentaDiaria[];
+  total: number;
 }
 
 const dayGroups = computed(() => {
-  const groups = new Map<string, VentaDiaria[]>()
+  const groups = new Map<string, VentaDiaria[]>();
   for (const v of rows.value) {
-    if (!groups.has(v.saleDate)) groups.set(v.saleDate, [])
-    groups.get(v.saleDate)!.push(v)
+    if (!groups.has(v.saleDate)) groups.set(v.saleDate, []);
+    groups.get(v.saleDate)!.push(v);
   }
-  const result: DayGroup[] = []
+  const result: DayGroup[] = [];
   for (const [date, list] of groups) {
-    const d = new Date(date)
-    const label = d.toLocaleDateString('es-ES', { weekday: 'short', day: 'numeric', month: 'short' })
+    const d = new Date(date);
+    const label = d.toLocaleDateString('es-ES', {
+      weekday: 'short',
+      day: 'numeric',
+      month: 'short',
+    });
     result.push({
       date,
       label,
       items: list,
       total: list.reduce((s, v) => s + v.grossAmount, 0),
-    })
+    });
   }
-  result.sort((a, b) => b.date.localeCompare(a.date))
-  return result
-})
+  result.sort((a, b) => b.date.localeCompare(a.date));
+  return result;
+});
 
 async function load() {
-  if (!tenantId) return
-  loading.value = true
+  if (!tenantId) return;
+  loading.value = true;
   try {
-    const res = await ventaService.getAll(tenantId)
-    rows.value = res.data
-  } catch (err) { $q.notify({ type: 'negative', message: err instanceof Error ? err.message : 'Error al cargar ventas' })
-  } finally { loading.value = false }
+    const res = await ventaService.getAll(tenantId);
+    rows.value = res.data;
+  } catch (err) {
+    $q.notify({
+      type: 'negative',
+      message: err instanceof Error ? err.message : 'Error al cargar ventas',
+    });
+  } finally {
+    loading.value = false;
+  }
 }
 
-const dialogOpen = shallowRef(false)
-const editingId = shallowRef<string | null>(null)
-const saving = shallowRef(false)
-const formRef = ref<{ validate: () => Promise<boolean> } | null>(null)
-const form = ref<VentaRequest>({ tenantId: tenantId as string, saleDate: new Date().toISOString().slice(0, 10), grossAmount: 0 })
+const dialogOpen = shallowRef(false);
+const editingId = shallowRef<string | null>(null);
+const saving = shallowRef(false);
+const formRef = ref<{ validate: () => Promise<boolean> } | null>(null);
+const form = ref<VentaRequest>({
+  tenantId: tenantId as string,
+  saleDate: new Date().toISOString().slice(0, 10),
+  grossAmount: 0,
+});
 
-const grossAmountStr = ref('')
+const grossAmountStr = ref('');
 function onGrossAmountInput(val: string | number | null) {
-  grossAmountStr.value = String(val ?? '').replace(/[^0-9.]/g, '').replace(/(\..*)\./g, '$1')
+  grossAmountStr.value = String(val ?? '')
+    .replace(/[^0-9.]/g, '')
+    .replace(/(\..*)\./g, '$1');
 }
 function formatGrossAmount() {
-  const n = parseFloat(grossAmountStr.value)
+  const n = parseFloat(grossAmountStr.value);
   if (!isNaN(n) && grossAmountStr.value) {
-    grossAmountStr.value = n.toLocaleString('en-US', { minimumFractionDigits: 2, maximumFractionDigits: 2 })
-    form.value.grossAmount = n
+    grossAmountStr.value = n.toLocaleString('en-US', {
+      minimumFractionDigits: 2,
+      maximumFractionDigits: 2,
+    });
+    form.value.grossAmount = n;
   }
 }
 function rawAmount(val: number) {
-  return val ? val.toLocaleString('en-US', { minimumFractionDigits: 2, maximumFractionDigits: 2 }) : ''
+  return val
+    ? val.toLocaleString('en-US', { minimumFractionDigits: 2, maximumFractionDigits: 2 })
+    : '';
 }
 
 function openCreate() {
-  editingId.value = null
-  form.value = { tenantId: tenantId as string, saleDate: new Date().toISOString().slice(0, 10), grossAmount: 0 }
-  grossAmountStr.value = ''
-  dialogOpen.value = true
+  editingId.value = null;
+  form.value = {
+    tenantId: tenantId as string,
+    saleDate: new Date().toISOString().slice(0, 10),
+    grossAmount: 0,
+  };
+  grossAmountStr.value = '';
+  dialogOpen.value = true;
 }
 
 function openEdit(v: VentaDiaria) {
-  editingId.value = v.id
-  form.value = { tenantId: v.tenantId, saleDate: v.saleDate, grossAmount: v.grossAmount, description: v.description }
-  grossAmountStr.value = rawAmount(v.grossAmount)
-  dialogOpen.value = true
+  editingId.value = v.id;
+  form.value = {
+    tenantId: v.tenantId,
+    saleDate: v.saleDate,
+    grossAmount: v.grossAmount,
+    description: v.description,
+  };
+  grossAmountStr.value = rawAmount(v.grossAmount);
+  dialogOpen.value = true;
 }
 
 async function save() {
-  formatGrossAmount()
-  if (!(await formRef.value?.validate())) return
-  saving.value = true
+  formatGrossAmount();
+  if (!(await formRef.value?.validate())) return;
+  saving.value = true;
   try {
     if (editingId.value) {
-      const res = await ventaService.update(editingId.value, form.value)
-      const idx = rows.value.findIndex(r => r.id === editingId.value)
-      if (idx >= 0) rows.value[idx] = res.data
+      const res = await ventaService.update(editingId.value, form.value);
+      const idx = rows.value.findIndex((r) => r.id === editingId.value);
+      if (idx >= 0) rows.value[idx] = res.data;
     } else {
-      const res = await ventaService.create(form.value)
-      rows.value.unshift(res.data)
+      const res = await ventaService.create(form.value);
+      rows.value.unshift(res.data);
     }
-    dialogOpen.value = false
-    $q.notify({ type: 'positive', message: `Venta ${editingId.value ? 'actualizada' : 'registrada'}` })
-  } catch (err) { $q.notify({ type: 'negative', message: err instanceof Error ? err.message : 'Error al guardar venta' })
-  } finally { saving.value = false }
+    dialogOpen.value = false;
+    $q.notify({
+      type: 'positive',
+      message: `Venta ${editingId.value ? 'actualizada' : 'registrada'}`,
+    });
+  } catch (err) {
+    $q.notify({
+      type: 'negative',
+      message: err instanceof Error ? err.message : 'Error al guardar venta',
+    });
+  } finally {
+    saving.value = false;
+  }
 }
 
-const deleteDialog = shallowRef(false)
-const deletingItem = shallowRef<VentaDiaria | null>(null)
-const deleting = shallowRef(false)
+const deleteDialog = shallowRef(false);
+const deletingItem = shallowRef<VentaDiaria | null>(null);
+const deleting = shallowRef(false);
 
 function confirmDelete(v: VentaDiaria) {
-  deletingItem.value = v
-  deleteDialog.value = true
+  deletingItem.value = v;
+  deleteDialog.value = true;
 }
 
 async function remove() {
-  if (!deletingItem.value || !tenantId) return
-  deleting.value = true
+  if (!deletingItem.value || !tenantId) return;
+  deleting.value = true;
   try {
-    await ventaService.remove(deletingItem.value.id, tenantId)
-    rows.value = rows.value.filter(r => r.id !== deletingItem.value!.id)
-    deleteDialog.value = false
-    $q.notify({ type: 'positive', message: 'Venta eliminada' })
+    await ventaService.remove(deletingItem.value.id, tenantId);
+    rows.value = rows.value.filter((r) => r.id !== deletingItem.value!.id);
+    deleteDialog.value = false;
+    $q.notify({ type: 'positive', message: 'Venta eliminada' });
   } catch (err) {
-    $q.notify({ type: 'negative', message: err instanceof Error ? err.message : 'Error al eliminar venta' })
+    $q.notify({
+      type: 'negative',
+      message: err instanceof Error ? err.message : 'Error al eliminar venta',
+    });
   } finally {
-    deleting.value = false
-    deletingItem.value = null
+    deleting.value = false;
+    deletingItem.value = null;
   }
 }
 
 onMounted(() => {
   if (!tenantId) return;
-  void load()
-  window.addEventListener('keydown', handleKeydown)
-})
+  void load();
+  window.addEventListener('keydown', handleKeydown);
+});
 
-onUnmounted(() => window.removeEventListener('keydown', handleKeydown))
+onUnmounted(() => window.removeEventListener('keydown', handleKeydown));
 
 function handleKeydown(e: KeyboardEvent) {
   if ((e.ctrlKey || e.metaKey) && e.key === 'n') {
-    e.preventDefault()
-    openCreate()
+    e.preventDefault();
+    openCreate();
   }
   if ((e.ctrlKey || e.metaKey) && e.key === 's' && dialogOpen.value) {
-    e.preventDefault()
-    void save()
+    e.preventDefault();
+    void save();
   }
 }
 </script>
@@ -179,11 +221,21 @@ function handleKeydown(e: KeyboardEvent) {
     <q-card dark class="glass q-pa-sm q-mb-sm">
       <div class="row q-gutter-x-lg q-pa-xs">
         <div>
-          <div class="text-caption text-accent text-uppercase" style="font-size: 0.72rem; letter-spacing: 0.04em">Esta semana</div>
+          <div
+            class="text-caption text-accent text-uppercase"
+            style="font-size: 0.72rem; letter-spacing: 0.04em"
+          >
+            Esta semana
+          </div>
           <div class="font-mono text-weight-bold text-h6">{{ formatCurrency(totalSemana) }}</div>
         </div>
         <div>
-          <div class="text-caption text-accent text-uppercase" style="font-size: 0.72rem; letter-spacing: 0.04em">Este mes</div>
+          <div
+            class="text-caption text-accent text-uppercase"
+            style="font-size: 0.72rem; letter-spacing: 0.04em"
+          >
+            Este mes
+          </div>
           <div class="font-mono text-weight-bold text-h6">{{ formatCurrency(totalMes) }}</div>
         </div>
       </div>
@@ -198,7 +250,7 @@ function handleKeydown(e: KeyboardEvent) {
       <EmptyState
         icon="point_of_sale"
         title="Sin ventas registradas"
-        message="Registra tu primera venta del d\u00EDa para llevar el control."
+        message="Registra tu primera venta diaria para llevar el control."
       >
         <q-btn color="primary" icon="add" label="Nueva Venta" @click="openCreate" class="q-mt-sm" />
       </EmptyState>
@@ -217,24 +269,64 @@ function handleKeydown(e: KeyboardEvent) {
       </div>
 
       <div v-for="v in group.items" :key="v.id" class="sale-row">
-        <div class="sale-row__desc">{{ v.description || 'Sin descripci\u00F3n' }}</div>
+        <div class="sale-row__desc">{{ v.description || 'Sin descripción' }}</div>
         <div class="sale-row__amount">{{ formatCurrency(v.grossAmount) }}</div>
         <div class="sale-row__actions">
-          <q-btn flat dense round icon="edit" color="primary" size="sm" @click="openEdit(v)" aria-label="Editar" />
-          <q-btn flat dense round icon="delete" color="negative" size="sm" @click="confirmDelete(v)" aria-label="Eliminar" />
+          <q-btn
+            flat
+            dense
+            round
+            icon="edit"
+            color="primary"
+            size="sm"
+            @click="openEdit(v)"
+            aria-label="Editar"
+          />
+          <q-btn
+            flat
+            dense
+            round
+            icon="delete"
+            color="negative"
+            size="sm"
+            @click="confirmDelete(v)"
+            aria-label="Eliminar"
+          />
         </div>
       </div>
     </div>
 
     <q-dialog v-model="dialogOpen" dark>
       <q-card dark class="bg-surface-pine" style="width: 90vw; max-width: 460px">
-        <q-card-section><div class="text-h6 text-primary">{{ editingId ? 'Editar' : 'Nueva' }} Venta</div></q-card-section>
+        <q-card-section
+          ><div class="text-h6 text-primary">
+            {{ editingId ? 'Editar' : 'Nueva' }} Venta
+          </div></q-card-section
+        >
         <q-separator dark />
         <q-card-section>
           <q-form ref="formRef" @submit.prevent="save" class="q-gutter-y-md">
-            <q-input dark filled v-model="form.saleDate" label="Fecha" type="date" :rules="[v => !!v || 'Requerido']" />
-            <q-input dark filled :model-value="grossAmountStr" @update:model-value="onGrossAmountInput" @blur="formatGrossAmount" label="Monto Bruto" type="text" inputmode="decimal" prefix="$" :rules="[v => !!v || 'Requerido']" />
-            <q-input dark filled v-model="form.description" label="Descripci\u00F3n" />
+            <q-input
+              dark
+              filled
+              v-model="form.saleDate"
+              label="Fecha"
+              type="date"
+              :rules="[(v) => !!v || 'Requerido']"
+            />
+            <q-input
+              dark
+              filled
+              :model-value="grossAmountStr"
+              @update:model-value="onGrossAmountInput"
+              @blur="formatGrossAmount"
+              label="Monto Bruto"
+              type="text"
+              inputmode="decimal"
+              prefix="$"
+              :rules="[(v) => !!v || 'Requerido']"
+            />
+            <q-input dark filled v-model="form.description" label="Descripción" />
             <div class="row justify-end q-gutter-x-sm">
               <q-btn flat label="Cancelar" color="accent" v-close-popup />
               <q-btn type="submit" label="Guardar" color="primary" :loading="saving" />
@@ -248,7 +340,10 @@ function handleKeydown(e: KeyboardEvent) {
       <q-card dark class="bg-surface-pine">
         <q-card-section class="row items-center q-gutter-x-md">
           <q-icon name="warning" color="negative" size="md" />
-          <span>Eliminar venta del <strong>{{ deletingItem?.saleDate }}</strong>?</span>
+          <span
+            >Eliminar venta del <strong>{{ deletingItem?.saleDate }}</strong
+            >?</span
+          >
         </q-card-section>
         <q-card-actions align="right">
           <q-btn flat label="Cancelar" color="accent" v-close-popup />

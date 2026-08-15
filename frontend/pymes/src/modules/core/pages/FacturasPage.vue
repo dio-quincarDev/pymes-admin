@@ -203,7 +203,7 @@
       :loading="deleting" @confirm="remove"
     />
 
-    <InvoiceDetailDialog :factura="detailItem" v-model="detailDialog" :presentation-name-map="presentationNameMap" />
+    <InvoiceDetailDialog :factura="detailItem" v-model="detailDialog" :presentation-name-map="presentationNameMap" :categoria-map="categoriaMap" />
   </q-page>
 </template>
 
@@ -464,6 +464,8 @@ const categoriaOptions = computed(() => [
   ...gastoFijoCategorias.value,
   { label: 'Otro', value: CATEGORIA_OTRO },
 ])
+
+const categoriaMap = computed(() => new Map(gastosFijos.value.map(g => [g.id, g.categoria])))
 
 const selectedColaborador = computed(() =>
   colaboradores.value.find(c => c.id === form.value.colaboradorId) || null

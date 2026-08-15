@@ -1,89 +1,110 @@
 <script setup lang="ts">
-import { ref, onMounted } from 'vue'
-import { useQuasar, useMeta } from 'quasar'
-import { useAuthStore } from 'src/modules/auth/store'
-import { formatCurrency } from 'src/utils/format'
-import { patrimonioService } from '../services/patrimonio.service'
-import type { Patrimonio } from '../types'
+import { ref, onMounted } from 'vue';
+import { useQuasar, useMeta } from 'quasar';
+import { useAuthStore } from 'src/modules/auth/store';
+import { formatCurrency } from 'src/utils/format';
+import { patrimonioService } from '../services/patrimonio.service';
+import type { Patrimonio } from '../types';
 
-useMeta({ title: 'Patrimonio — PYMEQ' })
+useMeta({ title: 'Inversión — PYMEQ' });
 
-const $q = useQuasar()
-const authStore = useAuthStore()
-const tenantId = authStore.user?.tenantId
+const $q = useQuasar();
+const authStore = useAuthStore();
+const tenantId = authStore.user?.tenantId;
 
-const data = ref<Patrimonio | null>(null)
-const loading = ref(true)
-const saving = ref(false)
+const data = ref<Patrimonio | null>(null);
+const loading = ref(true);
+const saving = ref(false);
 
 async function load() {
-  if (!tenantId) return
-  loading.value = true
+  if (!tenantId) return;
+  loading.value = true;
   try {
-    const res = await patrimonioService.get(tenantId)
-    data.value = res.data
+    const res = await patrimonioService.get(tenantId);
+    data.value = res.data;
     form.value = {
       capitalInicial: res.data.capitalInicial,
       fechaInicio: res.data.fechaInicio,
-    }
-    capitalStr.value = rawCapital(res.data.capitalInicial)
-  } catch (err) { $q.notify({ type: 'negative', message: err instanceof Error ? err.message : 'Error al cargar patrimonio' })
-  } finally { loading.value = false }
+    };
+    capitalStr.value = rawCapital(res.data.capitalInicial);
+  } catch (err) {
+    $q.notify({
+      type: 'negative',
+      message: err instanceof Error ? err.message : 'Error al cargar patrimonio',
+    });
+  } finally {
+    loading.value = false;
+  }
 }
 
-const form = ref({ capitalInicial: 0, fechaInicio: null as string | null })
-const editing = ref(false)
+const form = ref({ capitalInicial: 0, fechaInicio: null as string | null });
+const editing = ref(false);
 
-const capitalStr = ref('')
+const capitalStr = ref('');
 function onCapitalInput(val: string | number | null) {
-  capitalStr.value = String(val ?? '').replace(/[^0-9.]/g, '').replace(/(\..*)\./g, '$1')
+  capitalStr.value = String(val ?? '')
+    .replace(/[^0-9.]/g, '')
+    .replace(/(\..*)\./g, '$1');
 }
 function formatCapitalInput() {
-  const n = parseFloat(capitalStr.value)
+  const n = parseFloat(capitalStr.value);
   if (!isNaN(n) && capitalStr.value) {
-    capitalStr.value = n.toLocaleString('en-US', { minimumFractionDigits: 2, maximumFractionDigits: 2 })
-    form.value.capitalInicial = n
+    capitalStr.value = n.toLocaleString('en-US', {
+      minimumFractionDigits: 2,
+      maximumFractionDigits: 2,
+    });
+    form.value.capitalInicial = n;
   }
 }
 function rawCapital(val: number) {
-  return val ? val.toLocaleString('en-US', { minimumFractionDigits: 2, maximumFractionDigits: 2 }) : ''
+  return val
+    ? val.toLocaleString('en-US', { minimumFractionDigits: 2, maximumFractionDigits: 2 })
+    : '';
 }
 
 function toggleEdit() {
   if (!editing.value) {
-    editing.value = true
+    editing.value = true;
   } else {
-    void save()
+    void save();
   }
 }
 
 async function save() {
-  if (!tenantId) return
+  if (!tenantId) return;
   if (form.value.capitalInicial <= 0) {
-    $q.notify({ type: 'warning', message: 'El capital inicial debe ser mayor a 0' })
-    return
+    $q.notify({ type: 'warning', message: 'El capital inicial debe ser mayor a 0' });
+    return;
   }
-  saving.value = true
+  saving.value = true;
   try {
     await patrimonioService.update(tenantId, {
       tenantId,
       capitalInicial: form.value.capitalInicial,
       fechaInicio: form.value.fechaInicio || null,
-    })
-    editing.value = false
-    $q.notify({ type: 'positive', message: 'Patrimonio actualizado' })
-    await load()
-  } catch (err) { $q.notify({ type: 'negative', message: err instanceof Error ? err.message : 'Error al guardar patrimonio' })
-  } finally { saving.value = false }
+    });
+    editing.value = false;
+    $q.notify({ type: 'positive', message: 'Patrimonio actualizado' });
+    await load();
+  } catch (err) {
+    $q.notify({
+      type: 'negative',
+      message: err instanceof Error ? err.message : 'Error al guardar patrimonio',
+    });
+  } finally {
+    saving.value = false;
+  }
 }
 
-onMounted(() => { if (tenantId) void load() })
+onMounted(() => {
+  if (tenantId) void load();
+});
 </script>
 
 <template>
   <q-page class="core-page">
     <div class="q-mb-lg fade-in-up">
-      <h1 class="text-h4 font-bold q-ma-none patrimonio-title">Patrimonio</h1>
+      <h1 class="text-h4 font-bold q-ma-none patrimonio-title">Inversión</h1>
       <p class="text-subtitle1 text-accent q-mt-xs">Capital inicial, inversión y ROI</p>
     </div>
 
@@ -112,7 +133,9 @@ onMounted(() => { if (tenantId) void load() })
         <div class="col-12 col-sm-4">
           <div class="metric-card metric-card--sage">
             <div class="metric-card__label">Fecha de Inicio</div>
-            <div class="metric-card__value metric-card__value--date">{{ data.fechaInicio || '—' }}</div>
+            <div class="metric-card__value metric-card__value--date">
+              {{ data.fechaInicio || '—' }}
+            </div>
             <div class="metric-card__bar" />
           </div>
         </div>
@@ -147,10 +170,28 @@ onMounted(() => { if (tenantId) void load() })
           <div class="config-card__body">
             <div class="row q-col-gutter-md">
               <div class="col-12 col-sm-6">
-                <q-input dark filled :disable="!editing" :model-value="capitalStr" @update:model-value="onCapitalInput" @blur="formatCapitalInput" label="Capital Inicial" type="text" inputmode="decimal" prefix="$" />
+                <q-input
+                  dark
+                  filled
+                  :disable="!editing"
+                  :model-value="capitalStr"
+                  @update:model-value="onCapitalInput"
+                  @blur="formatCapitalInput"
+                  label="Capital Inicial"
+                  type="text"
+                  inputmode="decimal"
+                  prefix="$"
+                />
               </div>
               <div class="col-12 col-sm-6">
-                <q-input dark filled :disable="!editing" v-model="form.fechaInicio" label="Fecha de Inicio" type="date" />
+                <q-input
+                  dark
+                  filled
+                  :disable="!editing"
+                  v-model="form.fechaInicio"
+                  label="Fecha de Inicio"
+                  type="date"
+                />
               </div>
             </div>
           </div>
@@ -163,7 +204,7 @@ onMounted(() => { if (tenantId) void load() })
 <style scoped lang="scss">
 .patrimonio-title {
   font-family: 'Outfit', sans-serif;
-  background: linear-gradient(135deg, #A3785E 0%, #C5A059 50%, #A3785E 100%);
+  background: linear-gradient(135deg, #a3785e 0%, #c5a059 50%, #a3785e 100%);
   -webkit-background-clip: text;
   -webkit-text-fill-color: transparent;
   background-clip: text;
@@ -207,14 +248,20 @@ onMounted(() => { if (tenantId) void load() })
     box-shadow: 0 10px 30px rgba(0, 0, 0, 0.2);
   }
 
-  &--copper::before { background: #A3785E; }
-  &--sage::before { background: #8A9E99; }
-  &--positive::before { background: #2D5A27; }
+  &--copper::before {
+    background: #a3785e;
+  }
+  &--sage::before {
+    background: #8a9e99;
+  }
+  &--positive::before {
+    background: #2d5a27;
+  }
 
   &__label {
     font-size: 0.72rem;
     font-weight: 500;
-    color: #8A9E99;
+    color: #8a9e99;
     text-transform: uppercase;
     letter-spacing: 0.06em;
     margin-bottom: 0.5rem;
@@ -224,7 +271,7 @@ onMounted(() => { if (tenantId) void load() })
     font-family: 'Outfit', sans-serif;
     font-size: 1.6rem;
     font-weight: 700;
-    color: #E2E8E4;
+    color: #e2e8e4;
     line-height: 1;
 
     &--date {
@@ -248,7 +295,7 @@ onMounted(() => { if (tenantId) void load() })
   display: inline-block;
   font-size: 0.8rem;
   font-weight: 600;
-  color: #2D5A27;
+  color: #2d5a27;
   background: rgba(45, 90, 39, 0.12);
   padding: 0.25rem 0.75rem;
   border-radius: 9999px;
