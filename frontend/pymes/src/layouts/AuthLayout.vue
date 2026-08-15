@@ -10,6 +10,7 @@
             @keydown.enter="$router.push('/')"
             @keydown.space.prevent="$router.push('/')"
           >
+            <img src="/icons/logo.svg" alt="" width="48" height="48" class="q-mb-sm" style="display: block; margin: 0 auto" />
             <div class="auth-logo">PYMEQ</div>
             <div class="auth-tagline">Finanzas inteligentes para tu PyME — by QCore System</div>
           </div>

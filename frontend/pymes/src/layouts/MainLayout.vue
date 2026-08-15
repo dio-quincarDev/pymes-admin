@@ -46,7 +46,8 @@
           @click="toggleLeftDrawer"
         />
 
-        <q-toolbar-title>
+        <q-toolbar-title class="row items-center no-wrap">
+          <img src="/icons/logo.svg" alt="" width="24" height="24" class="q-mr-sm" />
           <span class="logo-text">PYMEQ</span>
         </q-toolbar-title>
 

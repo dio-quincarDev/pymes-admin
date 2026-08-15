@@ -19,7 +19,8 @@ const scrollTo = (id: string) => {
     <!-- Header -->
     <q-header class="landing-header">
       <q-toolbar class="container-narrow mx-auto q-px-md">
-        <q-toolbar-title class="logo-text cursor-pointer" @click="router.push('/')">
+        <q-toolbar-title class="logo-text cursor-pointer row items-center no-wrap" @click="router.push('/')">
+          <img src="/icons/logo.svg" alt="" width="28" height="28" class="q-mr-sm" />
           PYMEQ
         </q-toolbar-title>
 
