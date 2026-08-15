@@ -109,8 +109,8 @@ const tableColumns = [
   { name: 'lastUnitPrice', label: 'Últ. Precio Unit.', field: 'lastUnitPrice', align: 'right' as const, sortable: true },
   { name: 'lastPurchaseDate', label: 'Últ. Compra', field: (r: Record<string, unknown>) => r.lastPurchaseDate ? new Date(r.lastPurchaseDate as string).toLocaleDateString() : '—', align: 'center' as const, sortable: true },
   { name: 'totalInvestment', label: 'Inversión Total', field: 'totalInvestment', align: 'right' as const, sortable: true },
-  { name: 'minQuantity', label: 'Min', field: 'minQuantity', align: 'right' as const, sortable: false },
-  { name: 'maxQuantity', label: 'Max', field: 'maxQuantity', align: 'right' as const, sortable: false },
+  { name: 'minQuantity', label: 'Min', field: 'minQuantity', align: 'right' as const, sortable: false, classes: 'hideOnMobile' },
+  { name: 'maxQuantity', label: 'Max', field: 'maxQuantity', align: 'right' as const, sortable: false, classes: 'hideOnMobile' },
 ]
 
 const filter = ref('')
