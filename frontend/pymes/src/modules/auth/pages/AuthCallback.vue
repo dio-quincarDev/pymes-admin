@@ -65,6 +65,11 @@ onMounted(async () => {
         } catch {
           // ponytail: si falla, ir al dashboard normalmente
         }
+      } else {
+        // Sin workspace (OAuth2 directo desde login, sin intent) → crear espacio de trabajo
+        clearInterval(rotateMessage);
+        void router.push('/onboarding');
+        return;
       }
 
       $q.notify({

@@ -52,6 +52,7 @@ export const useAuthStore = defineStore('auth', {
           ? { ...data.user, tenantId: data.activeTenant.id }
           : data.user;
         this.setSession(data.accessToken, data.refreshToken, user, data.activeTenant?.name);
+        await this.fetchCurrentUser();
         return data;
       } catch (err: unknown) {
         const errorMessage = err instanceof Error ? err.message : 'Error en la autenticación';
@@ -139,6 +140,7 @@ export const useAuthStore = defineStore('auth', {
           ? { ...data.user, tenantId: data.activeTenant.id }
           : data.user;
         this.setSession(data.accessToken, data.refreshToken, user, data.activeTenant?.name);
+        await this.fetchCurrentUser();
         return data;
       } catch (err: unknown) {
         const errorMessage = err instanceof Error ? err.message : 'Error al seleccionar tenant';
