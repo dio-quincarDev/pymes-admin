@@ -4,6 +4,7 @@ import { useQuasar, useMeta } from 'quasar';
 import { useAuthStore } from 'src/modules/auth/store';
 import { formatCurrency } from 'src/utils/format';
 import { prestamoService } from '../services/prestamo.service';
+import { cuotaMensual, totalConInteres } from '../utils/prestamo';
 import type { Prestamo, PrestamoRequest, PagoPrestamo, PagoPrestamoRequest } from '../types';
 import EmptyState from 'src/components/ui/EmptyState.vue';
 
@@ -187,6 +188,9 @@ const totalPagado = computed(() => pagos.value.reduce((sum, p) => sum + p.monto,
 
 const totalPrestado = computed(() => rows.value.reduce((s, p) => s + p.monto, 0));
 const totalSaldo = computed(() => rows.value.reduce((s, p) => s + p.saldoPendiente, 0));
+const totalAPagar = computed(() =>
+  rows.value.reduce((s, p) => s + totalConInteres(p.monto, p.tasaInteres, p.plazoMeses), 0),
+);
 
 onMounted(() => {
   if (!tenantId) return;
@@ -234,6 +238,15 @@ function handleKeydown(e: KeyboardEvent) {
             Saldo pendiente
           </div>
           <div class="font-mono text-weight-bold text-h6">{{ formatCurrency(totalSaldo) }}</div>
+        </div>
+        <div>
+          <div
+            class="text-caption text-accent text-uppercase"
+            style="font-size: 0.72rem; letter-spacing: 0.04em"
+          >
+            Total a pagar (con interés)
+          </div>
+          <div class="font-mono text-weight-bold text-h6">{{ formatCurrency(totalAPagar) }}</div>
         </div>
       </div>
     </q-card>
@@ -302,7 +315,10 @@ function handleKeydown(e: KeyboardEvent) {
           {{ p.prestamista }}
         </div>
 
-        <div v-if="p.plazoMeses" class="loan-card__term">{{ p.plazoMeses }} meses</div>
+        <div v-if="p.plazoMeses" class="loan-card__term">
+          {{ p.plazoMeses }} meses · Cuota estimada
+          {{ formatCurrency(cuotaMensual(p.monto, p.tasaInteres, p.plazoMeses)) }}/mes
+        </div>
 
         <div class="loan-card__actions">
           <q-btn

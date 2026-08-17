@@ -5,6 +5,8 @@ services:
     build:
       context: ./frontend/pymes
       dockerfile: Dockerfile
+      args:
+        VITE_API_URL: ${VITE_API_URL:-http://localhost:8080/api/v1}
     container_name: pymes-frontend
     restart: on-failure
     networks:

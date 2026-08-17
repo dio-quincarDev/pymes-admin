@@ -124,10 +124,49 @@
 | # | Gap | Documentación dice | Realidad es | Impacto | Prioridad |
 |---|-----|--------------------|-------------|---------|-----------|
 | — | *(sin gaps funcionales)* | — | — | — | — |
-| 1 | ConfiguracionPage read-only | UI muestra campos editables (categorías, unidades, ubicaciones) | No hay endpoints PUT ni diálogos de edición | Medio — usuario espera poder editar. Pendiente backend. | ⬜ Non-priority (ponytail: YAGNI para MVP) |
-| 2 | Frontend no usa búsqueda paginada | Backend tiene `GET /search` paginado desde 2026-07-12 | `ProductosPage.vue` usaba `getAll()` sin paginación; "Cargar más" reemplazaba filas en vez de apilar | Alto — degradación en catálogos grandes (>100 productos) | ✅ 2026-07-27 — fix: `load()` append en vez de replace, `totalElements` del server, condición de "load more" corregida |
+| 1 | ConfiguracionPage read-only | UI muestra campos editables (categorías, unidades, ubicaciones) | No hay endpoints PUT ni diálogos de edición | Medio — usuario espera poder editar. Pendiente backend. | ⬜ Non-priority → eliminar como ruta (Fase 4c) |
+| 2 | Frontend no usa búsqueda paginada | Backend tiene `GET /search` paginado desde 2026-07-12 | `ProductosPage.vue` usaba `getAll()` sin paginación; "Cargar más" reemplazaba filas en vez de apilar | Alto — degradación en catálogos grandes (>100 productos) | ✅ 2026-07-27 |
 | 3 | Descuento en Factura es monto fijo | UI muestra `prefix="$"` — usuario espera porcentaje (5%, 10%) | Input trata descuento como monto, no como porcentaje | Medio — UX confusa, usuario no puede poner descuentos promocionales | ⬜ Non-priority (ponytail: backend ya soporta %, cambio UI trivial) |
 | 4 | precioUnitario no usa conversión | Presentaciones tienen `conversion` factor | `precioUnitario` se auto-llena con `lastUnitPrice` sin dividir por conversión | Alto — precio unitario no refleja costo real por unidad base | ⬜ Non-priority (ponytail: requiere backend change, no es solo frontend) |
+
+### Workflow / UX Findings (audit 2026-08-14)
+
+#### 🔴 Cognitive overload — Dashboard
+
+| # | Gap | Realidad es | Impacto | Fix propuesto |
+|---|-----|-------------|---------|---------------|
+| 1 | **7 KPI cards** — Margen Bruto, Operativo, Neto son 3 derivados del mismo dato | Wall of numbers. Un PYME owner no procesa 7 métricas de un vistazo | Alto | Colapsar a 1 card "Ganancia del mes" (reduce 7→5) |
+| 2 | **QuickActions muerto** — 2 acciones duplican sidebar, emit `exportar` nadie lo escucha | Código muerto en dashboard. Confunde al usuario con opciones que no funcionan | Medio | Eliminar completamente |
+| 3 | **Sparklines de 2 puntos** — `sparkline()` produce `[prev, cur]`, renderiza SVG polygon | Ruido visual. Delta % ya comunica dirección + magnitud | Bajo | Eliminar sparklines |
+| 4 | **7 secciones apiladas antes del fold** — header + error + KPIs + chart + activity + pending + health + quickactions | El usuario no sabe dónde mirar | Alto | Reducir a 4-5 secciones (merge activity+pending, eliminar quickactions) |
+| 5 | **CSS duplicado 4 veces** — skeleton, section-title, empty-state, list-row en cada panel dashboard | ~200 líneas repetidas. Mantenibilidad | Bajo | Extraer a clases globales en app.scss |
+
+#### 🟡 Navigation overload
+
+| # | Gap | Realidad es | Impacto | Fix propuesto |
+|---|-----|-------------|---------|---------------|
+| 6 | **12 items en sidebar** — 3 grupos × 4-5 items | Un PYME owner no necesita rutas separadas para "Patrimonio", "Contabilidad", "Análisis de Gastos" | Alto | Reducir a ~7 items fusionando sub-vistas |
+| 7 | **Bottom nav: "More" circular** — 4 tabs + "More" que abre sidebar con 12 items | El "More" es un catch-all que revela que la nav está sobrecargada | Medio | Actualizar tabs: Dashboard, Productos, Facturas, Costos |
+
+#### 🟡 Jargon / copy
+
+| # | Gap | Realidad es | Impacto | Fix propuesto |
+|---|-----|-------------|---------|---------------|
+| 8 | **"GASTO_OPERATIVO" como label** — tipo de factura expone código interno | Usuario ve un término técnico en vez de "Gasto" | Alto | Renombrar a "Gasto" |
+| 9 | **"REGISTRADA" status** — factura pendiente de pago muestra estado de BD | No es natural. "Pendiente" comunica mejor | Medio | Renombrar a "Pendiente" |
+| 10 | **"Colaboradores"** — empleados del negocio | Término corporativo. "Equipo" o "Empleados" es más natural | Bajo | Renombrar |
+| 11 | **"Margen Operativo/Neto"** — jargon contable | Un PYME owner conoce "ganancia", no "margen" | Medio | Renombrar a "Ganancia bruta/neta" |
+| 12 | **"Inversion Total"** — total gastado en compras de producto | "Inversión" implica capital, no gasto corriente | Medio | Renombrar a "Total gastado" |
+| 13 | **"cross-supplier"** — inglés en UI en español | Inconsistente con el resto del idioma | Bajo | Traducir |
+
+#### 🟡 Page structure
+
+| # | Gap | Realidad es | Impacto | Fix propuesto |
+|---|-----|-------------|---------|---------------|
+| 14 | **FacturasPage 989 líneas** — 3 formularios en 1 diálogo (factura, gasto, salario) | Complejidad cognitiva extrema. Un usuario no debería distinguir 3 tipos de "crear" | Alto | Separar flujos: "Gasto rápido" vs "Factura con items" |
+| 15 | **AnalisisGastosPage: supplier analysis visible por defecto** — comparison + recommendations + predictions | Data science dashboard overwhelming para PYME owner que quiere "quién es más barato" | Alto | Sub-sección colapsable, mostrar solo inversión + alerts por defecto |
+| 16 | **CostosPage: Config tab con 1 input** — "días laborales" justifica un tab completo | Overkill | Bajo | Mover a inline o sección within page |
+| 17 | **ConfiguracionPage read-only** — 85 líneas, 3 cards, sin edición | Dead end. El usuario ve algo que no puede cambiar | Bajo | Eliminar ruta, mover a menú usuario |
 
 ### Code Review Findings (2026-07-15)
 

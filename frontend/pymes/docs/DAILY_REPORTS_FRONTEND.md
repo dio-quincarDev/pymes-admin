@@ -4,6 +4,63 @@ Registro cronológico de decisiones, problemas resueltos y estado del frontend.
 
 ---
 
+## 2026-08-16 — Fix OAuth2 redirect URL (local dev → gateway, staging → Caddy)
+
+### Contexto
+
+El flujo "Continuar con Google" fallaba en local: el browser navegaba a `localhost:9200/oauth2/authorization/google` (frontend), que servía el SPA (200 OK) en lugar de redirigir a Google. En staging funcionaba en incognito pero no en browser regular (Service Worker interceptaba navegación).
+
+### Root cause
+
+Commit `d2a06ae` (2026-08-10, "Feature/refactor #25") cambió la URL OAuth2 de:
+```js
+// ANTES (funcionaba)
+'http://localhost:8080/oauth2/authorization/google'
+
+// DESPUÉS (roto)
+`${window.location.origin}/oauth2/authorization/google`  // → localhost:9200 (frontend)
+```
+
+El gateway (puerto 8080) maneja `/oauth2/**`, NO el frontend (puerto 9200).
+
+### Qué se hizo
+
+1. **3 archivos frontend** (`LoginPage.vue`, `AuthOptionsPage.vue`, `RegisterPage.vue`):
+   - Usan `VITE_API_URL` (gateway) en vez de `window.location.origin`
+   - Local: `http://localhost:8080/api/v1` → strip `/api/v1` → `http://localhost:8080` ✓
+   - Staging: `/api/v1` → strip → `""` (falsy) → fallback a `window.location.origin` (dominio Caddy) ✓
+
+2. **Docker build arg** (`docker-compose.yml` + `.env`):
+   - `VITE_API_URL=http://localhost:8080/api/v1` inyectado al build
+   - Staging: workflow hardcodea `VITE_API_URL=/api/v1`
+
+### Archivos modificados
+
+```
+frontend/pymes/src/modules/auth/pages/LoginPage.vue       — gatewayBase via VITE_API_URL
+frontend/pymes/src/modules/auth/pages/AuthOptionsPage.vue — gatewayBase via VITE_API_URL
+frontend/pymes/src/modules/auth/pages/RegisterPage.vue    — gatewayBase via VITE_API_URL
+docker-compose.yml                                         — build arg VITE_API_URL
+.env                                                      — VITE_API_URL=http://localhost:8080/api/v1
+```
+
+### Verificación
+
+- Gateway `curl -v http://localhost:8080/oauth2/authorization/google` → 302 a Google ✓
+- Frontend build contiene `http://localhost:8080` en código OAuth2 ✓
+- `npm run lint`: clean
+- `npm run build`: clean
+
+### Notas
+
+- En staging, Service Worker puede interceptar `/oauth2/authorization/google` sirviendo SPA cacheado. Solución: limpiar cache del browser o usar incognito.
+- El fix maneja ambos escenarios: local (puerto explícito) y staging (dominio único via Caddy).
+- **Sin cambios en backend** — Préstamos, Patrimonio y demás servicios core no requirieron modificaciones. El fix fue 100% frontend + docker-compose build arg.
+
+**Estado:** ✅ COMPLETADO
+
+---
+
 ## 2026-08-14 — Fix OAuth2 regresión (AuthCallback + store)
 
 ### Contexto
@@ -29,6 +86,52 @@ src/modules/auth/store/index.ts            — eliminado fetchCurrentUser() de l
 ### Pendiente
 
 - TeamsPage: `isOwner` depende de `user.role`; verificar que `fetchCurrentUser()` en `handleOAuthCallback` devuelve el role correctamente.
+
+**Estado:** ✅ COMPLETADO
+
+---
+
+## 2026-08-14 — Fix Dashboard TypeError + Logout stuck + SVG logo + Responsive columns
+
+### Contexto
+
+Sesión de fixes UX/UI + PWA. Corrección de bugs latentes, mejora de identidad visual, y responsive en tabla de análisis de gastos.
+
+### Qué se hizo
+
+1. **Dashboard TypeError** (`FinancialHealthPanel.vue:18`) — `alert.code.includes()` crashea cuando `code` es `undefined`. Fix: optional chaining `alert.code?.includes()`. Bug latent desde la creación del archivo (commit `92bc5a7`).
+
+2. **Logout stuck en MainLayout** — `clearSession()` en el auth store hacía `window.location.href = '#/login'` Y `useLogout` hacía `router.push('/login')`. Doble navegación causaba router desync — el usuario quedaba atrapado en MainLayout después de re-login. Fix: `clearSession()` ya no navega; solo limpia estado. `fetchCurrentUser` failure handler y listener `auth:401` manejan la navegación. `useLogout` usa `router.push`.
+
+3. **SVG logo + apple-touch-icon** — Monograma "P" geométrico (stem + bowl + cutout) en Bronze `#C8963E` sobre transparente. Reemplaza texto en BrandSplash, MainLayout, LandingLayout, AuthLayout. `<link rel="apple-touch-icon">` agregado a `index.html`.
+
+4. **InvoiceDetailDialog categoría UUID → nombre** — `factura.category` guardaba UUID (commit `7943301` cambió `value: g.categoria` a `value: g.id`). Fix: prop `categoriaMap: Map<string, string>` construido desde `gastosFijos` en FacturasPage. Resuelve UUID a nombre con ternario para SALARIOS/OTRO.
+
+5. **Análisis de gastos: ocultar Min/Max en móvil** — 6 columnas en `AnalisisGastosPage` sin responsive hiding causaban scroll horizontal innecesario. Fix: `classes: 'hideOnMobile'` en columnas minQuantity/maxQuantity. `DataTable.vue` actualizado con `classes?: string` en interfaz Column.
+
+### Archivos modificados
+
+```
+src/modules/core/components/dashboard/FinancialHealthPanel.vue  — alert.code?.includes()
+src/modules/auth/store/index.ts                                 — clearSession() sin nav, fetchCurrentUser failure + auth:401 listener
+src/composables/useLogout.ts                                    — (sin cambios, ya usaba router.push)
+public/icons/logo.svg                                           — nuevo: monograma "P"
+src/components/ui/BrandSplash.vue                               — SVG img
+src/layouts/MainLayout.vue                                      — SVG logo 24x24 + text
+src/layouts/LandingLayout.vue                                   — SVG logo 28x28 + text
+src/layouts/AuthLayout.vue                                      — SVG logo 48x48
+index.html                                                      — apple-touch-icon
+src/modules/core/components/facturas/InvoiceDetailDialog.vue    — categoriaMap prop
+src/modules/core/pages/FacturasPage.vue                         — builds categoriaMap
+src/modules/core/components/analytics/DataTable.vue             — classes?: string en Column
+src/modules/core/pages/AnalisisGastosPage.vue                   — hideOnMobile en min/max
+```
+
+### Verificación
+
+- `npm run lint`: clean
+- `npm run build`: clean (vue-tsc + vite)
+- Auth unit tests: 6/6 pass
 
 **Estado:** ✅ COMPLETADO
 

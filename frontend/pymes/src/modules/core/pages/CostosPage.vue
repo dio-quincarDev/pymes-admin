@@ -6,6 +6,8 @@ import { useAuthStore } from 'src/modules/auth/store';
 import { formatCurrency } from 'src/utils/format';
 import { costoService } from '../services/costo.service';
 import { proveedorService } from '../services/proveedor.service';
+import { prestamoService } from '../services/prestamo.service';
+import { cuotaMensual } from '../utils/prestamo';
 import type {
   Collaborador,
   CollaboradorRequest,
@@ -13,6 +15,7 @@ import type {
   CostoDiario,
   GastoFijoRecurrente,
   GastoFijoRequest,
+  Prestamo,
   Proveedor,
 } from '../types';
 import EmptyState from 'src/components/ui/EmptyState.vue';
@@ -44,6 +47,7 @@ const loading = shallowRef(false);
 const colaboradores = ref<Collaborador[]>([]);
 const gastosFijos = ref<GastoFijoRecurrente[]>([]);
 const proveedores = ref<Proveedor[]>([]);
+const prestamos = ref<Prestamo[]>([]);
 const diario = ref<CostoDiario | null>(null);
 const configuracion = ref<ConfigLaboral | null>(null);
 
@@ -68,15 +72,17 @@ async function loadAll() {
   if (!tenantId) return;
   loading.value = true;
   try {
-    const [colabRes, gastosRes, configRes, provRes] = await Promise.all([
+    const [colabRes, gastosRes, configRes, provRes, prestamosRes] = await Promise.all([
       costoService.getAllCollaboradores(tenantId),
       costoService.getAllGastosFijos(tenantId),
       costoService.getConfiguracion(tenantId),
       proveedorService.getAll(tenantId),
+      prestamoService.getAll(tenantId),
     ]);
     colaboradores.value = colabRes.data;
     gastosFijos.value = gastosRes.data;
     proveedores.value = provRes.data;
+    prestamos.value = prestamosRes.data;
     configuracion.value = configRes.data;
     configForm.value = { tenantId, diasLaborales: configRes.data.diasLaborales };
   } catch (err) {
@@ -376,6 +382,18 @@ async function saveConfig() {
 
 const gananciaPositiva = computed(() => (diario.value?.gananciaRealEstimada ?? 0) >= 0);
 
+const dias = computed(() => diario.value?.diasLaborales || 1);
+const prestamosActivos = computed(() => prestamos.value.filter((p) => p.estado === 'ACTIVO'));
+const cuotaPrestamosMensual = computed(() =>
+  prestamosActivos.value.reduce((s, p) => s + cuotaMensual(p.monto, p.tasaInteres, p.plazoMeses), 0),
+);
+const costoFijoDiario = computed(() => (diario.value?.costoFijoMensual ?? 0) / dias.value);
+const costoSalariosDiario = computed(() => (diario.value?.costoSalariosMensual ?? 0) / dias.value);
+const costoPrestamosDiario = computed(() => cuotaPrestamosMensual.value / dias.value);
+const costoOperativoDiario = computed(
+  () => costoFijoDiario.value + costoSalariosDiario.value + costoPrestamosDiario.value,
+);
+
 onMounted(() => {
   const t = route.query.tab;
   if (t === 'gastosFijos' || t === 'configuracion' || t === 'colaboradores') tab.value = t;
@@ -412,9 +430,27 @@ function handleKeydown(e: KeyboardEvent) {
     <q-card dark class="glass cost-summary q-mb-md" role="status" aria-live="polite">
       <div class="row items-center q-gutter-x-md q-pa-sm wrap">
         <div class="col-auto summary-item">
-          <span class="summary-label">Costo / día</span>
+          <span class="summary-label">Costo fijo / día</span>
           <span class="summary-value font-mono">{{
-            diario ? formatCurrency(diario.costoOperativoDiario) : '—'
+            diario ? formatCurrency(costoFijoDiario) : '—'
+          }}</span>
+        </div>
+        <div class="col-auto summary-item">
+          <span class="summary-label">Salarios / día</span>
+          <span class="summary-value font-mono">{{
+            diario ? formatCurrency(costoSalariosDiario) : '—'
+          }}</span>
+        </div>
+        <div class="col-auto summary-item">
+          <span class="summary-label">Préstamos / día</span>
+          <span class="summary-value font-mono">{{
+            diario ? formatCurrency(costoPrestamosDiario) : '—'
+          }}</span>
+        </div>
+        <div class="col-auto summary-item">
+          <span class="summary-label">Total costo / día</span>
+          <span class="summary-value summary-value--total font-mono">{{
+            diario ? formatCurrency(costoOperativoDiario) : '—'
           }}</span>
         </div>
         <div class="col-auto summary-arrow" aria-hidden="true">
@@ -789,6 +825,10 @@ function handleKeydown(e: KeyboardEvent) {
   font-size: 1.1rem;
   font-weight: 700;
   font-variant-numeric: tabular-nums;
+}
+
+.summary-value--total {
+  color: rgba(163, 120, 94, 0.9);
 }
 
 .summary-arrow {

@@ -1,32 +1,44 @@
 <script setup lang="ts">
-import { ref, onMounted } from 'vue';
+import { ref, computed, onMounted } from 'vue';
 import { useQuasar, useMeta } from 'quasar';
 import { useAuthStore } from 'src/modules/auth/store';
 import { formatCurrency } from 'src/utils/format';
 import { patrimonioService } from '../services/patrimonio.service';
-import type { Patrimonio } from '../types';
+import { prestamoService } from '../services/prestamo.service';
+import { accountingService } from '../services/accounting.service';
+import { usePeriod } from '../composables/usePeriod';
+import type { Patrimonio, Prestamo, MetricasFinancieras } from '../types';
 
 useMeta({ title: 'Inversión — PYMEQ' });
 
 const $q = useQuasar();
 const authStore = useAuthStore();
 const tenantId = authStore.user?.tenantId;
+const { period } = usePeriod();
 
 const data = ref<Patrimonio | null>(null);
 const loading = ref(true);
 const saving = ref(false);
+const prestamos = ref<Prestamo[]>([]);
+const metricas = ref<MetricasFinancieras | null>(null);
 
 async function load() {
   if (!tenantId) return;
   loading.value = true;
   try {
-    const res = await patrimonioService.get(tenantId);
-    data.value = res.data;
+    const [patRes, prestRes, metRes] = await Promise.all([
+      patrimonioService.get(tenantId),
+      prestamoService.getAll(tenantId),
+      accountingService.consultar(tenantId, period.value),
+    ]);
+    data.value = patRes.data;
+    prestamos.value = prestRes.data;
+    metricas.value = metRes.data;
     form.value = {
-      capitalInicial: res.data.capitalInicial,
-      fechaInicio: res.data.fechaInicio,
+      capitalInicial: patRes.data.capitalInicial,
+      fechaInicio: patRes.data.fechaInicio,
     };
-    capitalStr.value = rawCapital(res.data.capitalInicial);
+    capitalStr.value = rawCapital(patRes.data.capitalInicial);
   } catch (err) {
     $q.notify({
       type: 'negative',
@@ -69,6 +81,24 @@ function toggleEdit() {
     void save();
   }
 }
+
+const plataARecuperar = computed(() => {
+  const capital = data.value?.capitalInicial ?? 0;
+  const deudaActiva = prestamos.value
+    .filter((p) => p.estado === 'ACTIVO')
+    .reduce((s, p) => s + p.saldoPendiente, 0);
+  return capital + deudaActiva;
+});
+
+const gananciaMensual = computed(() => {
+  const m = metricas.value;
+  return m ? (m.totalIngresos * m.margenNetoPct) / 100 : 0;
+});
+
+const mesesRecuperacion = computed(() => {
+  if (gananciaMensual.value <= 0) return null;
+  return Math.ceil(plataARecuperar.value / gananciaMensual.value);
+});
 
 async function save() {
   if (!tenantId) return;
@@ -144,6 +174,15 @@ onMounted(() => {
             <div class="metric-card__label">Estado</div>
             <div class="metric-card__value">
               <span class="status-badge">Activo</span>
+            </div>
+            <div class="metric-card__bar" />
+          </div>
+        </div>
+        <div class="col-12 col-sm-4">
+          <div class="metric-card metric-card--copper">
+            <div class="metric-card__label">Tiempo de recuperación</div>
+            <div class="metric-card__value metric-card__value--date">
+              {{ mesesRecuperacion === null ? '—' : `~${mesesRecuperacion} meses` }}
             </div>
             <div class="metric-card__bar" />
           </div>

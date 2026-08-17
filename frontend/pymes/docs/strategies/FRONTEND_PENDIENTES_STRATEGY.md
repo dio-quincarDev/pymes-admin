@@ -45,8 +45,43 @@ Backend 100% listo. Oportunidad de eliminar redundancia: Dashboard y Contabilida
 
 Ítems: **3** (Tour Driver.js — nueva dependencia, menor valor relativo) y **2** (Dashboard UI polish — sin spec concreta). Se ejecutan si queda tiempo tras las fases 1-3 o cuando haya spec.
 
+**ACTUALIZADO (2026-08-14):** Estos ítems se reemplazan por la **Fase 4 — Consolidación del Workflow** (ver TO_DO.md). El tutorial guiado y el dashboard polish se diseñan DESPUÉS de completar la Fase 4, ya que el workflow depurado define qué elementos quedan y cómo se presentan.
+
+## Fase 4 — Consolidación del Workflow (2026-08-14)
+
+Objetivo: depurar la info visual, quitar redundancias, dejarlo "casi para dummies". Secuencial: primero workflow, depués tutorial.
+
+### 4a — Dashboard: quitar ruido
+1. Eliminar QuickActions (acciones muertas, emit muerto)
+2. Colapsar 3 KPIs de margen → 1 "Ganancia del mes"
+3. Eliminar sparklines (2 puntos = ruido)
+4. Merge RecentActivity + PendingInvoices → 1 panel "Actividad"
+5. Extraer CSS duplicado → clases globales
+
+### 4b — Navegación: reducir 12 → ~7
+1. Fusionar sidebar: "Análisis" absorbe Ventas/Patrimonio, "Contabilidad" folded, "Configuración" → menú usuario
+2. Bottom nav: Dashboard, Productos, Facturas, Costos
+
+### 4c — Páginas: jargon + estructura
+1. Renombrar jargon (GASTO_OPERATIVO→"Gasto", REGISTRADA→"Pendiente", etc.)
+2. FacturasPage: separar flujos (gasto rápido vs factura con items)
+3. AnalisisGastosPage: supplier analysis → sub-sección colapsable
+4. CostosPage: Config tab → inline
+5. Eliminar ConfiguracionPage como ruta
+
+### 4d — Limpieza de código
+1. Dead code (mounted ref, compact variant, exportar emit, useAuthStore innecesario)
+2. Unificar formatadores
+
+### Post-Fase 4: Tutorial Guiado + Dashboard polish
+Diseñados SOBRE el resultado de Fase 4. El workflow depurado define:
+- Qué 3-4 elementos son esenciales para el tour
+- Dónde va el botón "Ayuda"
+- Qué hover states y empty states sobreviven la depuración
+
 ## Notas de viabilidad (ponytail)
 
 - Backend de los ítems 1, 4 y 5 ya está implementado — son pura orquestación frontend.
 - Ninguna fase exige migración de datos ni cambios de contrato API.
 - `usePullToRefresh` y el panel de alertas ya tienen el código/composables base escritos.
+- **Fase 4 es puramente frontend** — no toca backend, ni migraciones, ni contratos API.
