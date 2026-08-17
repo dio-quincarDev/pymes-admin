@@ -47,31 +47,36 @@ Backend 100% listo. Oportunidad de eliminar redundancia: Dashboard y Contabilida
 
 **ACTUALIZADO (2026-08-14):** Estos ítems se reemplazan por la **Fase 4 — Consolidación del Workflow** (ver TO_DO.md). El tutorial guiado y el dashboard polish se diseñan DESPUÉS de completar la Fase 4, ya que el workflow depurado define qué elementos quedan y cómo se presentan.
 
-## Fase 4 — Consolidación del Workflow (2026-08-14)
+## Fase 4 — Consolidación del Workflow (2026-08-17)
 
-Objetivo: depurar la info visual, quitar redundancias, dejarlo "casi para dummies". Secuencial: primero workflow, depués tutorial.
+Objetivo: depurar la info visual, quitar redundancias, dejarlo "casi para dummies". **Principio: una pantalla, una pregunta** — el dueño abre la app y responde en 5 segundos "¿estoy ganando? ¿qué tengo que pagar?". Todo lo demás es drill-down bajo demanda.
 
-### 4a — Dashboard: quitar ruido
-1. Eliminar QuickActions (acciones muertas, emit muerto)
-2. Colapsar 3 KPIs de margen → 1 "Ganancia del mes"
-3. Eliminar sparklines (2 puntos = ruido)
-4. Merge RecentActivity + PendingInvoices → 1 panel "Actividad"
-5. Extraer CSS duplicado → clases globales
+**Modelo de capas** (regla para todo lo que se agrega o mueve):
+- **Vital** (siempre visible) → lo que se decide/acciona a diario.
+- **Bajo demanda** (colapsado, 1 clic) → análisis útil pero no diario.
+- **Fuera de UI** → se elimina del frontend; la API sigue exponiéndolo.
 
-### 4b — Navegación: reducir 12 → ~7
-1. Fusionar sidebar: "Análisis" absorbe Ventas/Patrimonio, "Contabilidad" folded, "Configuración" → menú usuario
-2. Bottom nav: Dashboard, Productos, Facturas, Costos
+**Auditoría backend (2026-08-17):** el core computa 10 motores (9 CTE + financialHealth) pero la UI solo muestra 3 supplier + financialHealth. Los 6 restantes — **ABC (Pareto), tendencias precios (media 90d), impacto márgenes, gasto variable/opex, proyección 30/60/90 y el motor de alertas** — están calculados y tipados (`types/analytics.ts`) y expuestos en `useAnalytics`, pero nunca se renderizan: `AnalyticsDashboard.vue` + 6 hijos (`AbcGastosChart`, `PriceTrendSparkline`, `MarginImpactTable`, `OpexGauge`, `ProjectionTimeline`, `AlertsPanel`) son código huérfano. **Decisión: los 6 motores se conservan y todos quedan BAJO DEMANDA** (colapsados en AnalisisGastosPage) — ninguno se borra, ninguno es visible por defecto. Además AnalisisGastosPage usa alertas locales (inferiores) en vez del motor `alerts` del backend → reemplazar.
 
-### 4c — Páginas: jargon + estructura
-1. Renombrar jargon (GASTO_OPERATIVO→"Gasto", REGISTRADA→"Pendiente", etc.)
-2. FacturasPage: separar flujos (gasto rápido vs factura con items)
-3. AnalisisGastosPage: supplier analysis → sub-sección colapsable
-4. CostosPage: Config tab → inline
-5. Eliminar ConfiguracionPage como ruta
+**Ejecución por secciones (cada una cierra con `npm run lint` + `npm run build`):**
 
-### 4d — Limpieza de código
-1. Dead code (mounted ref, compact variant, exportar emit, useAuthStore innecesario)
-2. Unificar formatadores
+### Sección 0 — Spec de consolidación
+`docs/.ulpi/design/workflow-consolidation.md` (contrato, vincula a `.ulpi/design/DESIGN.md`): tabla de jargon (GASTO_OPERATIVO→"Gasto", REGISTRADA→"Pendiente", Colaboradores→"Equipo", Margen Operativo→"Ganancia bruta", costo operativo diario→"Costo del día"), specs de los componentes nuevos (ActivityPanel, KPI Ganancia del mes, secciones colapsables) y la decisión de navegación.
+
+### Sección 1 — Dashboard (4a)
+QuickActions fuera (borrar archivo) · 3 KPIs de margen → 1 "Ganancia del mes" = `formatCurrency(margenNeto)` con delta vs prev (KPI row 7→5: Ingresos, Costos, Gastos Operativos, Ganancia del mes, Costo/Día) · sparklines fuera (`sparkline()` y SVG en KpiCard) · merge RecentActivity+PendingInvoices → **ActivityPanel** (borrar PendingInvoices; formatDate pasa a `utils/format.ts`) · CSS duplicado → clases globales en `app.scss`.
+
+### Sección 2 — Navegación (4b)
+Sidebar 12→8 items (Operaciones: Dashboard, Productos, Proveedores, Facturas, Costos; Análisis: Análisis, Préstamos; Sistema: Equipo). Ventas/Patrimonio/Contabilidad conservan ruta+archivo pero salen del sidebar; **ConfiguracionPage se borra** (ruta + archivo, read-only). Bottom nav mobile: Dashboard, Productos, Facturas, Costos.
+
+### Sección 3 — AnalisisGastosPage: vital + todo bajo demanda (4c-3)
+Default visible: métricas de inversión + chart de categorías + top productos. **Colapsados por defecto** (`q-expansion-item`): ABC, Tendencias/Impacto márgenes (tabs), Costo Operativo, Proyección, Alertas (motor backend, reemplaza las locales), y supplier (comparativa/recomendaciones/predicciones). Refurbish de los 6 componentes huérfanos al design system actual.
+
+### Sección 4 — Páginas restantes (4c 1/2/4/5)
+Jargon aplicado en toda la UI · FacturasPage: dual-flow "Gasto rápido" vs "Factura con items" (sin select Tipo) · CostosPage: Config tab → inline · renombrar jargon en AccountingPage (Margen Operativo→"Ganancia bruta", etc.).
+
+### Sección 5 — Limpieza (4d)
+Dead code: `mounted` ref en KpiCard, `compact` variant, `handleExportar` emit, `useAuthStore` innecesario en AnalyticsHeader · unificar `formatDate` en `utils/format.ts`.
 
 ### Post-Fase 4: Tutorial Guiado + Dashboard polish
 Diseñados SOBRE el resultado de Fase 4. El workflow depurado define:

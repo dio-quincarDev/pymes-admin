@@ -4,6 +4,59 @@ Registro cronológico de decisiones, problemas resueltos y estado del frontend.
 
 ---
 
+## 2026-08-17 — Fase 4 Sección 1: Consolidación Dashboard
+
+### Contexto
+
+Arranque de la **Fase 4 — Consolidación del Workflow** (doctrina "para tontos": una pantalla, una pregunta; mostrar solo lo vital). Auditoría previa del backend confirmó que el core computa 10 motores de análisis pero la UI solo muestra 3 → decisión: **todo lo no-vital queda BAJO DEMANDA** (colapsado), nada se borra. Sección 1 = Dashboard.
+
+### Qué se hizo
+
+1. **`utils/format.ts`** — nuevo `formatDate(dateStr, withYear = false)` en es-PE (unifica formato de fechas en es-ES/MySQL vs `new Date().toLocaleDateString`).
+
+2. **`css/app.scss`** — variantes globales de skeleton: `.skeleton-text`, `.skeleton-value`, `.skeleton-circle` (antes existían como scoped duplicados en el dashboard viejo).
+
+3. **Dashboard limpio (objetivo: 5 KPIs, una pregunta "¿cómo está mi negocio hoy?"):**
+   - Borrados: `QuickActions.vue`, `PendingInvoices.vue`, `RecentActivity.vue` y todo `src/components/dashboard/` (DashboardActionCard, DashboardStats, RecentActivity — huérfanos del dashboard viejo).
+   - `DashboardPage.vue`: 7 → **5 KPIs** (Ingresos, Costos, Gastos Operativos, **Ganancia del mes** = `margenNeto`, **Costo/Día**). Eliminados `formatPercent`, `sparkline()` y los 3 componentes borrados.
+   - `KpiCard.vue`: removidos sparklines, props `trend`/`variant` muertas y ref `mounted` sin uso.
+
+4. **`ActivityPanel.vue` (nuevo)** — fusiona Facturas pendientes + Actividad reciente en un solo panel con **un único scroll** (los dos paneles viejos tenían cada uno su scrollbar = doble scroll, mismo tipo cognitivo). Badges de estado (`PENDIENTE`/`VENCIDA`/otro), `aria-label` descriptivos, estados loading/empty/vacio-total.
+
+5. **Fix bug preexistente:** `--pq-accent-green` nunca se definió en ningún token (solo se usaba en ActivityPanel/ActivityPanel) → reemplazado por `--pq-success`.
+
+6. **Fix bug latente de reactividad (review con skill `vue-best-practices`):** `costoKpi` era una asignación plana evaluada una vez en setup (`costoDiario.value` = `null` ahí) → el KPI **Costo/Día nunca se renderizaba**. Convertido a `computed<KpiItem | null>`.
+
+7. **Review con skill `quasar-skilld`:** cambios 100% compatibles Quasar 2.19 (solo `q-icon`; sin `v-model`/`QTable`/dialogs en el diff).
+
+### Archivos modificados
+
+```
+src/utils/format.ts                                             # +formatDate es-PE
+src/css/app.scss                                                # +skeleton-* globales
+src/pages/DashboardPage.vue                                     # 5 KPIs + ActivityPanel + fix costoKpi computed
+src/modules/core/components/dashboard/ActivityPanel.vue         # nuevo (merge facturas pendientes + actividad, 1 scroll)
+src/modules/core/components/analytics/KpiCard.vue               # -sparklines/-trend/-variant/-mounted
+src/modules/core/components/dashboard/QuickActions.vue          # borrado
+src/modules/core/components/dashboard/PendingInvoices.vue       # borrado
+src/modules/core/components/dashboard/RecentActivity.vue        # borrado
+src/components/dashboard/                                      # borrado (3 huérfanos del dashboard viejo)
+```
+
+### Verificación
+
+- `npm run lint`: ✅ clean
+- `npm run build`: ✅ Build succeeded (vue-tsc + vite)
+
+### Pendiente
+
+- Sección 2 (Navegación): sidebar 8 items, bottom nav 4, borrar ConfiguracionPage.
+- Sección 3 (AnalisisGastosPage): 6 motores invisibles (ABC, trend, margin, opexPct, projection, alerts) + supplier → colapsados bajo demanda; alertas locales → motor backend.
+
+**Estado:** ✅ SECCIÓN 1 COMPLETADA
+
+---
+
 ## 2026-08-16 — Fix OAuth2 redirect URL (local dev → gateway, staging → Caddy)
 
 ### Contexto

@@ -8,9 +8,7 @@ import { useNumberFormat } from 'src/modules/core/composables/useNumberFormat';
 import AnalyticsHeader from 'src/modules/core/components/analytics/AnalyticsHeader.vue';
 import KpiCard from 'src/modules/core/components/analytics/KpiCard.vue';
 import CategoryBreakdownChart from 'src/modules/core/components/analytics/CategoryBreakdownChart.vue';
-import RecentActivity from 'src/modules/core/components/dashboard/RecentActivity.vue';
-import PendingInvoices from 'src/modules/core/components/dashboard/PendingInvoices.vue';
-import QuickActions from 'src/modules/core/components/dashboard/QuickActions.vue';
+import ActivityPanel from 'src/modules/core/components/dashboard/ActivityPanel.vue';
 import FinancialHealthPanel from 'src/modules/core/components/dashboard/FinancialHealthPanel.vue';
 import BaseButton from 'src/components/base/BaseButton.vue';
 import { usePullToRefresh } from 'src/composables/usePullToRefresh';
@@ -19,7 +17,7 @@ useMeta({ title: 'Dashboard — PYMEQ' });
 
 const authStore = useAuthStore();
 const hasTenant = computed(() => !!authStore.user?.tenantId);
-const { formatCurrency, formatPercent } = useNumberFormat();
+const { formatCurrency } = useNumberFormat();
 
 const {
   metricas,
@@ -46,16 +44,11 @@ function deltaPct(current: number, previous: number): number | undefined {
   return +((current - previous) / Math.abs(previous) * 100).toFixed(1);
 }
 
-function sparkline(prev: number, cur: number): number[] {
-  return [prev, cur];
-}
-
 interface KpiItem {
   label: string;
   value: string;
   delta: number | undefined;
   deltaLabel: string;
-  trend: number[] | undefined;
   accent: 'gold' | 'green' | 'red' | 'blue';
 }
 
@@ -69,7 +62,6 @@ const kpis = computed<KpiItem[]>(() => {
       value: formatCurrency(m.totalIngresos),
       delta: p ? deltaPct(m.totalIngresos, p.totalIngresos) : undefined,
       deltaLabel: 'vs mes anterior',
-      trend: p ? sparkline(p.totalIngresos, m.totalIngresos) : undefined,
       accent: 'gold' as const,
     },
     {
@@ -77,63 +69,47 @@ const kpis = computed<KpiItem[]>(() => {
       value: formatCurrency(m.costoMercaderia),
       delta: p ? deltaPct(m.costoMercaderia, p.costoMercaderia) : undefined,
       deltaLabel: 'vs mes anterior',
-      trend: p ? sparkline(p.costoMercaderia, m.costoMercaderia) : undefined,
       accent: 'red' as const,
-    },
-    {
-      label: 'Margen Bruto',
-      value: formatPercent(m.margenBrutoPct),
-      delta: p ? deltaPct(m.margenBrutoPct, p.margenBrutoPct) : undefined,
-      deltaLabel: 'vs mes anterior',
-      trend: p ? sparkline(p.margenBrutoPct, m.margenBrutoPct) : undefined,
-      accent: 'green' as const,
     },
     {
       label: 'Gastos Operativos',
       value: formatCurrency(m.gastosOperativos),
       delta: p ? deltaPct(m.gastosOperativos, p.gastosOperativos) : undefined,
       deltaLabel: 'vs mes anterior',
-      trend: p ? sparkline(p.gastosOperativos, m.gastosOperativos) : undefined,
       accent: 'blue' as const,
     },
     {
-      label: 'Margen Operativo',
-      value: formatPercent(m.margenOperativoPct),
-      delta: p ? deltaPct(m.margenOperativoPct, p.margenOperativoPct) : undefined,
+      label: 'Ganancia del mes',
+      value: formatCurrency(m.margenNeto),
+      delta: p ? deltaPct(m.margenNeto, p.margenNeto) : undefined,
       deltaLabel: 'vs mes anterior',
-      trend: p ? sparkline(p.margenOperativoPct, m.margenOperativoPct) : undefined,
-      accent: 'green' as const,
+      accent: m.margenNeto >= 0 ? 'green' as const : 'red' as const,
     },
-    {
-      label: 'Margen Neto',
-      value: formatPercent(m.margenNetoPct),
-      delta: p ? deltaPct(m.margenNetoPct, p.margenNetoPct) : undefined,
-      deltaLabel: 'vs mes anterior',
-      trend: p ? sparkline(p.margenNetoPct, m.margenNetoPct) : undefined,
-      accent: m.margenNetoPct >= 0 ? 'green' as const : 'red' as const,
-    },
-    ...(costoKpi ? [costoKpi] : []),
+    ...(costoKpi.value ? [costoKpi.value] : []),
   ];
 });
 
-const costoKpi: KpiItem | null = costoDiario.value
-  ? {
-      label: 'Costo / Día',
-      value: formatCurrency(costoDiario.value.costoOperativoDiario),
-      delta:
-        costoDiario.value.costoOperativoDiario > 0
-          ? +(
-              ((costoDiario.value.ventasHoy - costoDiario.value.costoOperativoDiario) /
-                costoDiario.value.costoOperativoDiario) *
-              100
-            ).toFixed(1)
-          : undefined,
-      deltaLabel: 'vs costo diario',
-      trend: undefined,
-      accent:
-        costoDiario.value.ventasHoy >= costoDiario.value.costoOperativoDiario ? 'green' : 'red',
-    }
-  : null;
+const costoKpi = computed<KpiItem | null>(() =>
+  costoDiario.value
+    ? {
+        label: 'Costo / Día',
+        value: formatCurrency(costoDiario.value.costoOperativoDiario),
+        delta:
+          costoDiario.value.costoOperativoDiario > 0
+            ? +(
+                ((costoDiario.value.ventasHoy - costoDiario.value.costoOperativoDiario) /
+                  costoDiario.value.costoOperativoDiario) *
+                100
+              ).toFixed(1)
+            : undefined,
+        deltaLabel: 'vs costo diario',
+        accent:
+          costoDiario.value.ventasHoy >= costoDiario.value.costoOperativoDiario
+            ? ('green' as const)
+            : ('red' as const),
+      }
+    : null,
+);
 
 const categoryItems = computed(() =>
   gastosPorCategoria.value.map((g) => {
@@ -200,7 +176,6 @@ const categoryItems = computed(() =>
           :delta="kpi.delta"
           :delta-label="kpi.deltaLabel"
           :accent="kpi.accent"
-          :trend="kpi.trend"
           :loading="loading"
         />
       </div>
@@ -212,12 +187,14 @@ const categoryItems = computed(() =>
             :loading="loading"
             :empty="categoryItems.length === 0"
           />
-          <RecentActivity :actividades="actividadReciente" :loading="loading" />
+          <ActivityPanel
+            :actividades="actividadReciente"
+            :facturas="facturasPendientes"
+            :loading="loading"
+          />
         </div>
         <div class="dashboard-content__side">
-          <PendingInvoices :facturas="facturasPendientes" :loading="loading" />
           <FinancialHealthPanel :data="financialHealth" :loading="analyticsLoading" />
-          <QuickActions />
         </div>
       </div>
     </template>

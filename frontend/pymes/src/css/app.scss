@@ -140,6 +140,10 @@ body {
   background-size: 200% 100%;
   animation: shimmer 1.2s ease-in-out infinite;
   border-radius: $pq-radius-xs;
+
+  &-text { height: 12px; }
+  &-value { height: 28px; }
+  &-circle { width: 18px; height: 18px; border-radius: 50%; flex-shrink: 0; }
 }
 
 // --------------------------------------------------

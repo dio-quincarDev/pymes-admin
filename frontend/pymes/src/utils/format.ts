@@ -14,3 +14,13 @@ export const formatCurrency = (n: number) =>
   Number.isFinite(n) ? currencyFormatter.format(n) : '$0.00'
 export const formatPct = (n: number) =>
   Number.isFinite(n) ? pctFormatter.format(n / 100) : '0.0%'
+
+export const formatDate = (dateStr: string, withYear = false) => {
+  const d = new Date(dateStr)
+  if (Number.isNaN(d.getTime())) return ''
+  return d.toLocaleDateString('es-PE', {
+    day: 'numeric',
+    month: 'short',
+    ...(withYear ? { year: 'numeric' } : {}),
+  })
+}
