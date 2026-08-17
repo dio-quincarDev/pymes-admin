@@ -94,7 +94,7 @@ const tableColumns = [
   { name: 'name', label: 'Producto', field: 'name', align: 'left' as const, sortable: true },
   { name: 'lastUnitPrice', label: 'Últ. Precio Unit.', field: 'lastUnitPrice', align: 'right' as const, sortable: true },
   { name: 'lastPurchaseDate', label: 'Últ. Compra', field: (r: Record<string, unknown>) => r.lastPurchaseDate ? new Date(r.lastPurchaseDate as string).toLocaleDateString() : '—', align: 'center' as const, sortable: true },
-  { name: 'totalInvestment', label: 'Inversión Total', field: 'totalInvestment', align: 'right' as const, sortable: true },
+  { name: 'totalInvestment', label: 'Inversión en Productos', field: 'totalInvestment', align: 'right' as const, sortable: true },
 ]
 
 const filter = ref('')
@@ -138,7 +138,7 @@ onMounted(() => { if (tenantId) void load() })
     <!-- Vital: siempre visible -->
     <div class="metric-row stagger-children">
       <MetricCard
-        label="Inversión Total"
+        label="Inversión en Productos"
         :value="formatCurrency(totalInvestment)"
         accent="gold"
         :loading="loading"

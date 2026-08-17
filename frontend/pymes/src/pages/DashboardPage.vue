@@ -1,29 +1,37 @@
 <script setup lang="ts">
-import { computed } from 'vue';
+import { computed, ref, onMounted } from 'vue';
 import { useMeta } from 'quasar';
 import { useAuthStore } from 'src/modules/auth/store';
 import { useFinancialDashboard } from 'src/modules/core/composables/useFinancialDashboard';
 import { useAnalytics } from 'src/modules/core/composables/useAnalytics';
 import { useNumberFormat } from 'src/modules/core/composables/useNumberFormat';
 import AnalyticsHeader from 'src/modules/core/components/analytics/AnalyticsHeader.vue';
-import KpiCard from 'src/modules/core/components/analytics/KpiCard.vue';
 import CategoryBreakdownChart from 'src/modules/core/components/analytics/CategoryBreakdownChart.vue';
 import ActivityPanel from 'src/modules/core/components/dashboard/ActivityPanel.vue';
 import FinancialHealthPanel from 'src/modules/core/components/dashboard/FinancialHealthPanel.vue';
+import KpiStrip from 'src/modules/core/components/dashboard/KpiStrip.vue';
+import ResumenCard from 'src/modules/core/components/dashboard/ResumenCard.vue';
+import InversionCard from 'src/modules/core/components/dashboard/InversionCard.vue';
+import RegistrarVentaDialog from 'src/modules/core/components/dashboard/RegistrarVentaDialog.vue';
+import VentasVsCostosChart from 'src/modules/core/components/dashboard/VentasVsCostosChart.vue';
 import BaseButton from 'src/components/base/BaseButton.vue';
 import { usePullToRefresh } from 'src/composables/usePullToRefresh';
+import { patrimonioService } from 'src/modules/core/services/patrimonio.service';
+import { prestamoService } from 'src/modules/core/services/prestamo.service';
+import type { Patrimonio, Prestamo } from 'src/modules/core/types';
 
 useMeta({ title: 'Dashboard — PYMEQ' });
 
 const authStore = useAuthStore();
 const hasTenant = computed(() => !!authStore.user?.tenantId);
+const tenantId = computed(() => authStore.user?.tenantId ?? '');
 const { formatCurrency } = useNumberFormat();
 
 const {
   metricas,
-  metricasPrev,
   gastosPorCategoria,
   gastosPorCategoriaPrev,
+  ventas,
   actividadReciente,
   facturasPendientes,
   costoDiario,
@@ -36,81 +44,116 @@ const {
 } = useFinancialDashboard();
 
 const { financialHealth, loading: analyticsLoading } = useAnalytics();
-
 const { pullDistance, isRefreshing } = usePullToRefresh({ onRefresh: fetch });
 
-function deltaPct(current: number, previous: number): number | undefined {
-  if (!previous || previous === 0) return undefined;
-  return +((current - previous) / Math.abs(previous) * 100).toFixed(1);
+// Patrimonio
+const patrimonio = ref<Patrimonio | null>(null);
+const prestamos = ref<Prestamo[]>([]);
+
+async function loadPatrimonio() {
+  if (!tenantId.value) return;
+  try {
+    const [pRes, prRes] = await Promise.all([
+      patrimonioService.get(tenantId.value),
+      prestamoService.getAll(tenantId.value),
+    ]);
+    patrimonio.value = pRes.data;
+    prestamos.value = prRes.data;
+  } catch {
+    // ponytail: silent fail, card shows fallback
+  }
 }
 
-interface KpiItem {
-  label: string;
-  value: string;
-  delta: number | undefined;
-  deltaLabel: string;
-  accent: 'gold' | 'green' | 'red' | 'blue';
+onMounted(loadPatrimonio);
+
+// Dialog
+const showRegistrarVenta = ref(false);
+
+function onVentaCreada() {
+  void fetch();
+  void loadPatrimonio();
 }
 
-const kpis = computed<KpiItem[]>(() => {
+// KPIs for strip
+const stripKpis = computed(() => {
   const m = metricas.value;
-  const p = metricasPrev.value;
-  if (!m) return [];
-  return [
-    {
-      label: 'Ingresos',
-      value: formatCurrency(m.totalIngresos),
-      delta: p ? deltaPct(m.totalIngresos, p.totalIngresos) : undefined,
-      deltaLabel: 'vs mes anterior',
+  const cd = costoDiario.value;
+  if (!m && !cd) return [];
+
+  const items = [];
+
+  if (cd) {
+    const margen = cd.ventasHoy - cd.costoOperativoDiario;
+    items.push({
+      label: 'Ventas hoy',
+      value: formatCurrency(cd.ventasHoy),
       accent: 'gold' as const,
-    },
-    {
-      label: 'Costos',
-      value: formatCurrency(m.costoMercaderia),
-      delta: p ? deltaPct(m.costoMercaderia, p.costoMercaderia) : undefined,
-      deltaLabel: 'vs mes anterior',
+    });
+    items.push({
+      label: 'Costos día',
+      value: formatCurrency(cd.costoOperativoDiario),
       accent: 'red' as const,
-    },
-    {
-      label: 'Gastos Operativos',
-      value: formatCurrency(m.gastosOperativos),
-      delta: p ? deltaPct(m.gastosOperativos, p.gastosOperativos) : undefined,
-      deltaLabel: 'vs mes anterior',
-      accent: 'blue' as const,
-    },
-    {
-      label: 'Ganancia del mes',
-      value: formatCurrency(m.margenNeto),
-      delta: p ? deltaPct(m.margenNeto, p.margenNeto) : undefined,
-      deltaLabel: 'vs mes anterior',
-      accent: m.margenNeto >= 0 ? 'green' as const : 'red' as const,
-    },
-    ...(costoKpi.value ? [costoKpi.value] : []),
-  ];
+    });
+    items.push({
+      label: 'Margen',
+      value: formatCurrency(margen),
+      accent: margen >= 0 ? ('green' as const) : ('red' as const),
+    });
+  }
+
+  if (m) {
+    items.push({
+      label: 'ROI mes',
+      value: `${(m.margenNetoPct ?? 0).toFixed(1)}%`,
+      accent: m.margenNetoPct >= 0 ? ('green' as const) : ('red' as const),
+    });
+  }
+
+  return items;
 });
 
-const costoKpi = computed<KpiItem | null>(() =>
-  costoDiario.value
-    ? {
-        label: 'Costo / Día',
-        value: formatCurrency(costoDiario.value.costoOperativoDiario),
-        delta:
-          costoDiario.value.costoOperativoDiario > 0
-            ? +(
-                ((costoDiario.value.ventasHoy - costoDiario.value.costoOperativoDiario) /
-                  costoDiario.value.costoOperativoDiario) *
-                100
-              ).toFixed(1)
-            : undefined,
-        deltaLabel: 'vs costo del día',
-        accent:
-          costoDiario.value.ventasHoy >= costoDiario.value.costoOperativoDiario
-            ? ('green' as const)
-            : ('red' as const),
-      }
-    : null,
-);
+// Resumen data
+const resumenVentas = computed(() => costoDiario.value?.ventasHoy ?? 0);
+const resumenCostos = computed(() => costoDiario.value?.costoOperativoDiario ?? 0);
+const resumenMargen = computed(() => resumenVentas.value - resumenCostos.value);
+const resumenCantidadVentas = computed(() => {
+  const today = new Date().toISOString().slice(0, 10);
+  return ventas.value.filter(v => v.fecha === today).length;
+});
 
+// Inversión data
+const capitalInicial = computed(() => patrimonio.value?.capitalInicial ?? 0);
+const mesesRecuperacion = computed(() => {
+  if (!patrimonio.value) return null;
+  const capital = patrimonio.value.capitalInicial;
+  const deudaActiva = prestamos.value
+    .filter(p => p.estado === 'ACTIVO')
+    .reduce((s, p) => s + p.saldoPendiente, 0);
+  const total = capital + deudaActiva;
+  const m = metricas.value;
+  if (!m || m.margenNeto <= 0) return null;
+  return Math.ceil(total / ((m.totalIngresos * m.margenNetoPct) / 100));
+});
+
+// Chart data — últimos 7 días
+const chartData = computed(() => {
+  const days: { label: string; ventas: number; costos: number }[] = [];
+  const now = new Date();
+  for (let i = 6; i >= 0; i--) {
+    const d = new Date(now);
+    d.setDate(d.getDate() - i);
+    const dateStr = d.toISOString().slice(0, 10);
+    const dayLabel = d.toLocaleDateString('es-PE', { weekday: 'short' });
+    const ventasDia = ventas.value
+      .filter(v => v.fecha === dateStr)
+      .reduce((s, v) => s + v.montoBruto, 0);
+    const costosDia = costoDiario.value?.costoOperativoDiario ?? 0;
+    days.push({ label: dayLabel, ventas: ventasDia, costos: costosDia });
+  }
+  return days;
+});
+
+// Category items
 const categoryItems = computed(() =>
   gastosPorCategoria.value.map((g) => {
     const prev = gastosPorCategoriaPrev.value.find((p) => p.categoria === g.categoria);
@@ -167,36 +210,73 @@ const categoryItems = computed(() =>
         <q-btn flat dense no-caps label="Reintentar" class="dashboard-error-banner__retry" @click="recalcular" />
       </div>
 
-      <div class="kpi-row stagger-children">
-        <KpiCard
-          v-for="kpi in kpis"
-          :key="kpi.label"
-          :label="kpi.label"
-          :value="kpi.value"
-          :delta="kpi.delta"
-          :delta-label="kpi.deltaLabel"
-          :accent="kpi.accent"
+      <!-- Quick actions -->
+      <div class="dashboard-actions">
+        <q-btn
+          no-caps
+          icon="add"
+          label="Registrar venta"
+          color="positive"
+          class="dashboard-actions__btn"
+          @click="showRegistrarVenta = true"
+        />
+        <q-btn
+          no-caps
+          icon="analytics"
+          label="Análisis"
+          outline
+          class="dashboard-actions__btn"
+          @click="$router.push('/dashboard/analisis-gastos')"
+        />
+        <q-btn
+          no-caps
+          icon="account_balance"
+          label="Inversión"
+          outline
+          class="dashboard-actions__btn"
+          @click="$router.push('/dashboard/patrimonio')"
+        />
+      </div>
+
+      <!-- KPI Strip -->
+      <KpiStrip :kpis="stripKpis" :loading="loading" />
+
+      <!-- Main grid: Resumen + Inversión -->
+      <div class="dashboard-grid">
+        <ResumenCard
+          :ventas-hoy="resumenVentas"
+          :costos-dia="resumenCostos"
+          :margen="resumenMargen"
+          :cantidad-ventas="resumenCantidadVentas"
+          :loading="loading"
+        />
+        <InversionCard
+          :capital-inicial="capitalInicial"
+          :meses-recuperacion="mesesRecuperacion"
           :loading="loading"
         />
       </div>
 
-      <div class="dashboard-content">
-        <div class="dashboard-content__main">
-          <CategoryBreakdownChart
-            :items="categoryItems"
-            :loading="loading"
-            :empty="categoryItems.length === 0"
-          />
-          <ActivityPanel
-            :actividades="actividadReciente"
-            :facturas="facturasPendientes"
-            :loading="loading"
-          />
-        </div>
-        <div class="dashboard-content__side">
-          <FinancialHealthPanel :data="financialHealth" :loading="analyticsLoading" />
-        </div>
+      <!-- Chart -->
+      <VentasVsCostosChart :data="chartData" :loading="loading" />
+
+      <!-- Secondary section -->
+      <div class="dashboard-secondary">
+        <CategoryBreakdownChart
+          :items="categoryItems"
+          :loading="loading"
+          :empty="categoryItems.length === 0"
+        />
+        <ActivityPanel
+          :actividades="actividadReciente"
+          :facturas="facturasPendientes"
+          :loading="loading"
+        />
+        <FinancialHealthPanel :data="financialHealth" :loading="analyticsLoading" />
       </div>
+
+      <!-- Dialog -->
+      <RegistrarVentaDialog v-model="showRegistrarVenta" @created="onVentaCreada" />
     </template>
   </q-page>
 </template>
@@ -250,27 +330,38 @@ const categoryItems = computed(() =>
   }
 }
 
-.kpi-row {
-  display: grid;
-  grid-template-columns: repeat(auto-fit, minmax(200px, 1fr));
-  gap: 16px;
-  margin-bottom: 24px;
+.dashboard-actions {
+  display: flex;
+  gap: 10px;
+  margin-bottom: 20px;
+  flex-wrap: wrap;
+
+  &__btn {
+    font-family: 'Satoshi', sans-serif;
+    font-weight: 600;
+    border-radius: 6px;
+  }
 }
 
-.dashboard-content {
+.dashboard-grid {
   display: grid;
   grid-template-columns: 1fr 1fr;
-  gap: 24px;
+  gap: 16px;
+  margin-bottom: 20px;
 
   @media (max-width: 768px) {
     grid-template-columns: 1fr;
   }
+}
 
-  &__main,
-  &__side {
-    display: flex;
-    flex-direction: column;
-    gap: 24px;
+.dashboard-secondary {
+  display: grid;
+  grid-template-columns: 1fr 1fr;
+  gap: 20px;
+  margin-top: 24px;
+
+  @media (max-width: 768px) {
+    grid-template-columns: 1fr;
   }
 }
 

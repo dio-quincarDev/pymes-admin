@@ -238,6 +238,101 @@ src/modules/core/components/facturas/InvoiceDetailDialog.vue           # importa
 
 ---
 
+## 2026-08-17 — Fase 5a: Charts Design System (tokens + migración Chart.js)
+
+### Contexto
+
+Optimización de charts del Dashboard: research de 20+ apps fintech (Stripe, Square, Brex, Mercury, etc.) reveló que las mejores usan 5-6 bloques visuales (vs nuestros 9). Decisión: migrar CSS puro → Chart.js unificado con design tokens, eliminar dead weight (`vue-chartjs`), reducir de 9 a 6 secciones.
+
+### Qué se hizo
+
+1. **Chart tokens** — 13 variables CSS en `app.scss` (`--pq-chart-bar`, `--pq-chart-line`, `--pq-chart-area`, `--pq-chart-grid`, `--pq-chart-text`, `--pq-chart-tooltip-bg`, `--pq-chart-tooltip-border`, `--pq-chart-tooltip-text`, `--pq-chart-positive`, `--pq-chart-negative`, `--pq-chart-abc-a`, `--pq-chart-abc-b`, `--pq-chart-abc-c`).
+
+2. **Composable `useChartTheme.ts`** — nuevo composable que retorna `colors` + `defaults` de Chart.js desde tokens CSS. Centraliza colores de barras, líneas, áreas, grid, tooltips, positivo/negativo, ABC.
+
+3. **BaseChart.vue** — actualizado para usar `useChartTheme()` en vez de hardcoded hex values.
+
+4. **Migrados de CSS puro a Chart.js:**
+   - `VentasVsCostosChart.vue` — CSS divs → Chart.js bar (con line overlay de costos)
+   - `CategoryBreakdownChart.vue` — CSS divs → Chart.js horizontal bar
+   - `ExpenseBreakdown.vue` — CSS divs → Chart.js doughnut
+
+5. **Refactorizados con tokens:**
+   - `AbcGastosChart.vue` — tokens ABC (`--pq-chart-abc-a/b/c`) en vez de hardcoded
+   - `PriceTrendSparkline.vue` — tokens positive/negative
+   - `ProjectionTimeline.vue` — tokens area/bar
+   - `OpexGauge.vue` — tokens SVG + Geist/Satoshi/Geist Mono fonts
+   - `SupplierComparisonTable.vue` — tokens + Geist fonts
+   - `PricePredictionsTable.vue` — tokens + Geist fonts
+
+6. **Eliminado dead weight:** `vue-chartjs` eliminado de `package.json` (instalado pero nunca importado).
+
+7. **Secciones reducidas de 9 a 6:**
+   - ✅ Mantenidas: Alertas tempranas, ABC de gastos, Precios y tendencias, Comparativa proveedores, Proyección 90 días
+   - ✅ Nueva: Gasto vs Ingreso (reemplazó FinancialHealthPanel duplicado)
+   - ❌ Eliminadas: FinancialHealthPanel (duplicaba dashboard), PricePredictionsTable (demasiado avanzado), MarginImpactTable (muy específico)
+
+### Archivos modificados
+
+```
+src/css/app.scss                                                    # +13 chart tokens
+src/modules/core/composables/useChartTheme.ts                       # NUEVO composable
+src/modules/core/components/charts/BaseChart.vue                    # usa useChartTheme()
+src/modules/core/components/dashboard/VentasVsCostosChart.vue       # CSS → Chart.js bar
+src/modules/core/components/dashboard/AbcGastosChart.vue            # tokens ABC
+src/modules/core/components/dashboard/PriceTrendSparkline.vue       # tokens positive/negative
+src/modules/core/components/dashboard/ProjectionTimeline.vue        # tokens area/bar
+src/modules/core/components/dashboard/OpexGauge.vue                 # tokens SVG + fonts
+src/modules/core/components/dashboard/SupplierComparisonTable.vue   # tokens + fonts
+src/modules/core/components/dashboard/PricePredictionsTable.vue     # tokens + fonts
+src/modules/core/components/dashboard/ExpenseBreakdown.vue          # CSS → Chart.js doughnut
+src/modules/core/components/analytics/CategoryBreakdownChart.vue    # CSS → Chart.js horizontal bar
+package.json                                                        # -vue-chartjs (dead weight)
+```
+
+### Verificación
+
+- `npm run lint`: ✅ clean
+- `npm run build`: ✅ Build succeeded
+
+### Review skills aplicada
+
+- **vue-best-practices:** SFC structure, composables, refs/reactivity ✓
+- **quasar-skilld:** q-card/q-markup-table/q-tooltip ✓
+- **frontend-design-ui-ux:** Design system alignment, consistency across charts ✓
+
+### Decisión de diseño
+
+- **Chart tokens vs hardcoded:** Todos los charts ahora leen de CSS variables. Cambiar el tema = cambiar 13 valores en `app.scss`.
+- **CSS puro → Chart.js:** Los charts CSS (divs con widths) no soportan tooltips, legends interactivas, ni responsive. Chart.js cubre todo.
+- **Dead weight:** `vue-chartjs` estaba instalado pero nadie lo importaba. Eliminado.
+
+**Estado:** ✅ FASE 5a COMPLETADA — Charts Design System
+
+---
+
+## 2026-08-17 — Fase 5b: Botones/Iconos Plan (PENDIENTE)
+
+### Contexto
+
+Auditoría del sistema de botones e iconos reveló:
+- **Dos sistemas paralelos:** `BaseButton` (68 usos) + `q-btn` (81 usos). `BaseButton` hardcodea hex.
+- **Tres formas de colorear iconos:** Quasar prop (`color`), CSS class (`text-accent`), inline style (`style="color: var(--pq-accent)"`).
+- **Colores fuera de tema:** `color="red"`, `color="amber"` en vez de Quasar semantic tokens.
+
+### Plan aprobado (6 fases, ~25 archivos)
+
+1. **Global button overrides** en `app.scss` — `q-btn--primary`, `q-btn--positive`, etc. con tokens CSS.
+2. **Icon utility classes** en `app.scss` — `text-icon-accent`, `text-icon-danger`, etc.
+3. **Migrar `BaseButton` → `q-btn`** — 12 archivos, 68 instancias.
+4. **Reemplazar inline styles** — ~20 iconos (10 archivos).
+5. **Reemplazar CSS classes** — `text-accent` → `text-icon-accent` (6 archivos).
+6. **Fix non-theme colors** — `color="red"` → `color="negative"`, `color="amber"` → `color="warning"` (2 archivos).
+
+**Estado:** ⏳ PENDIENTE — Plan creado, no implementado
+
+---
+
 ## 2026-08-16 — Fix OAuth2 redirect URL (local dev → gateway, staging → Caddy)
 
 ### Contexto

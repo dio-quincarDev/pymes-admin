@@ -33,6 +33,21 @@
   --pq-font-display: 'Geist', -apple-system, BlinkMacSystemFont, sans-serif;
   --pq-font-body: 'Satoshi', -apple-system, BlinkMacSystemFont, sans-serif;
   --pq-font-utility: 'Geist Mono', ui-monospace, 'SF Mono', monospace;
+
+  // Chart tokens
+  --pq-chart-bar: #C8963E;
+  --pq-chart-bar-hover: #D4A552;
+  --pq-chart-line: #6E8BB8;
+  --pq-chart-area: rgba(110, 139, 184, 0.15);
+  --pq-chart-grid: rgba(138, 158, 153, 0.08);
+  --pq-chart-text: #8A9E99;
+  --pq-chart-tooltip-bg: #1B2624;
+  --pq-chart-tooltip-border: rgba(163, 120, 94, 0.3);
+  --pq-chart-positive: #3D7A5A;
+  --pq-chart-negative: #A04038;
+  --pq-chart-abc-a: #C8963E;
+  --pq-chart-abc-b: #6E8BB8;
+  --pq-chart-abc-c: #8A9E99;
 }
 
 body {

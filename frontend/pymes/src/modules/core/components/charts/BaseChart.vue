@@ -21,6 +21,7 @@ import {
   Legend,
   Filler,
 } from 'chart.js';
+import { useChartTheme } from '../../composables/useChartTheme';
 
 Chart.register(
   BarController,
@@ -52,6 +53,7 @@ const props = withDefaults(defineProps<Props>(), {
 const canvas = ref<HTMLCanvasElement>();
 const container = ref<HTMLDivElement>();
 const chart = shallowRef<Chart>();
+const { colors } = useChartTheme();
 
 function createChart() {
   if (!canvas.value) return;
@@ -60,12 +62,12 @@ function createChart() {
   const defaultScales = props.type !== 'doughnut'
     ? {
         x: {
-          ticks: { color: '#8A9E99', font: { size: 10 } },
-          grid: { color: 'rgba(138, 158, 153, 0.08)' },
+          ticks: { color: colors.value.text, font: { family: "'Geist Mono', monospace", size: 10 } },
+          grid: { color: colors.value.grid },
         },
         y: {
-          ticks: { color: '#8A9E99', font: { size: 10 } },
-          grid: { color: 'rgba(138, 158, 153, 0.08)' },
+          ticks: { color: colors.value.text, font: { family: "'Geist Mono', monospace", size: 10 } },
+          grid: { color: colors.value.grid },
         },
       }
     : {};
@@ -78,14 +80,18 @@ function createChart() {
       maintainAspectRatio: false,
       plugins: {
         legend: {
-          labels: { color: '#8A9E99', font: { size: 11 } },
+          labels: { color: colors.value.text, font: { family: "'Geist', sans-serif", size: 11 } },
         },
         tooltip: {
-          backgroundColor: '#1B2624',
-          titleColor: '#E2E8E4',
-          bodyColor: '#E2E8E4',
-          borderColor: 'rgba(163, 120, 94, 0.3)',
+          backgroundColor: colors.value.tooltipBg,
+          titleColor: getComputedStyle(document.documentElement).getPropertyValue('--pq-text').trim(),
+          bodyColor: getComputedStyle(document.documentElement).getPropertyValue('--pq-text').trim(),
+          borderColor: colors.value.tooltipBorder,
           borderWidth: 1,
+          titleFont: { family: "'Geist', sans-serif", weight: 600 },
+          bodyFont: { family: "'Satoshi', sans-serif" },
+          padding: 12,
+          cornerRadius: 6,
         },
       },
       scales: defaultScales,

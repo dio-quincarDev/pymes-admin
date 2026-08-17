@@ -160,7 +160,7 @@ const kpis = computed(() => [
   { label: 'Categorías', value: String(tree.value.length), icon: 'category', accent: 'sage' as const },
   { label: 'Proveedores', value: String(supplierCount.value), icon: 'people', accent: 'gold' as const },
   {
-    label: 'Inversión Total',
+    label: 'Inversión en Productos',
     value: formatCurrency(products.value.reduce((s, p) => s + (p.totalInvestment || 0), 0)),
     icon: 'payments',
     accent: 'copper' as const,

@@ -84,9 +84,38 @@ Diseñados SOBRE el resultado de Fase 4. El workflow depurado define:
 - Dónde va el botón "Ayuda"
 - Qué hover states y empty states sobreviven la depuración
 
+## Fase 5 — Design System de Charts + Botones/Iconos (2026-08-17)
+
+**Objetivo:** Unificar el sistema visual de charts, botones e iconos. Eliminar inconsistencias (dos sistemas de botones paralelos, tres formas de colorear iconos, hardcoded hex).
+
+### Fase 5a — Charts Design System ✅ COMPLETADA
+
+**Problema:** 3 enfoques coexisten para charts (Chart.js, CSS puro, SVG inline). Hardcoded hex en vez de tokens. `vue-chartjs` instalado pero nunca importado (dead weight).
+
+**Solución:**
+1. **Chart tokens** en `app.scss` (13 variables CSS: `--pq-chart-bar`, `--pq-chart-line`, `--pq-chart-area`, `--pq-chart-grid`, `--pq-chart-text`, `--pq-chart-tooltip-*`, `--pq-chart-positive/negative`, `--pq-chart-abc-a/b/c`).
+2. **Composable `useChartTheme.ts`** — retorna `colors` + `defaults` de Chart.js desde tokens CSS.
+3. **BaseChart.vue** actualizado para usar `useChartTheme()` en vez de hardcoded.
+4. **Migrados a Chart.js:** VentasVsCostosChart (CSS→bar), CategoryBreakdownChart (CSS→horizontal bar), ExpenseBreakdown (CSS→doughnut).
+5. **Refactorizados con tokens:** AbcGastosChart, PriceTrendSparkline, ProjectionTimeline, OpexGauge, SupplierComparisonTable, PricePredictionsTable.
+6. **Eliminado:** `vue-chartjs` de package.json (dead weight).
+
+### Fase 5b — Botones e Iconos (PENDIENTE)
+
+**Problema:** Dos sistemas paralelos (`BaseButton` 68 usos + `q-btn` 81 usos). Tres formas de colorear iconos (Quasar prop, CSS class, inline style). `BaseButton` hardcodea hex. Colores fuera de tema (`red`, `amber`).
+
+**Solución:**
+1. **Unificar en `q-btn`** — migrar 68 usos de `BaseButton` a `q-btn`, eliminar `BaseButton.vue`.
+2. **Icon utility classes** en `app.scss` — `text-icon-accent`, `text-icon-danger`, etc.
+3. **Global button overrides** en `app.scss` — `q-btn--primary`, `q-btn--positive`, etc. con tokens CSS.
+4. **Reemplazar inline styles** en ~20 iconos (10 archivos).
+5. **Fix non-theme colors** — `color="red"` → `color="negative"`, `color="amber"` → `color="warning"`.
+
 ## Notas de viabilidad (ponytail)
 
 - Backend de los ítems 1, 4 y 5 ya está implementado — son pura orquestación frontend.
 - Ninguna fase exige migración de datos ni cambios de contrato API.
 - `usePullToRefresh` y el panel de alertas ya tienen el código/composables base escritos.
 - **Fase 4 es puramente frontend** — no toca backend, ni migraciones, ni contratos API.
+- **Fase 5a completada** — chart tokens + migración CSS→Chart.js + eliminación vue-chartjs.
+- **Fase 5b pendiente** — unificación botones/iconos (~25 archivos, ~45 líneas nuevas, -200 líneas).

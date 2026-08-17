@@ -5,7 +5,7 @@
       <path
         :d="arcPath(1)"
         fill="none"
-        stroke="rgba(138, 158, 153, 0.1)"
+        stroke="var(--pq-chart-grid)"
         :stroke-width="strokeWidth"
         stroke-linecap="round"
       />
@@ -14,9 +14,10 @@
         v-if="normalizedValue < thresholds.critical"
         :d="arcPath(thresholds.warning / max)"
         fill="none"
-        stroke="rgba(197, 160, 89, 0.15)"
+        stroke="var(--pq-chart-warning)"
         :stroke-width="strokeWidth"
         stroke-linecap="round"
+        opacity="0.15"
       />
       <!-- Value arc -->
       <path
@@ -81,9 +82,9 @@ const warningPct = computed(() => (props.thresholds.warning / props.max) * 100);
 const criticalPct = computed(() => (props.thresholds.critical / props.max) * 100);
 
 const gaugeColor = computed(() => {
-  if (props.value >= props.thresholds.critical) return '#e94560';
-  if (props.value >= props.thresholds.warning) return '#C5A059';
-  return '#A3785E';
+  if (props.value >= props.thresholds.critical) return 'var(--pq-danger)';
+  if (props.value >= props.thresholds.warning) return 'var(--pq-warning)';
+  return 'var(--pq-chart-bar)';
 });
 
 function arcPath(ratio: number) {
@@ -113,15 +114,16 @@ function arcPath(ratio: number) {
   }
 
   &__value {
-    font-family: 'Outfit', sans-serif;
+    font-family: 'Geist', sans-serif;
     font-size: 28px;
     font-weight: 700;
-    fill: #E2E8E4;
+    fill: var(--pq-text);
   }
 
   &__label {
+    font-family: 'Satoshi', sans-serif;
     font-size: 11px;
-    fill: #8A9E99;
+    fill: var(--pq-text-muted);
   }
 
   &__markers {
@@ -134,12 +136,13 @@ function arcPath(ratio: number) {
 
   &__marker {
     position: absolute;
-    font-size: 0.6rem;
-    color: #8A9E99;
+    font-family: 'Geist Mono', monospace;
+    font-size: 10px;
+    color: var(--pq-text-muted);
     transform: translateX(-50%);
 
-    &--warning { color: #C5A059; }
-    &--critical { color: #e94560; }
+    &--warning { color: var(--pq-warning); }
+    &--critical { color: var(--pq-danger); }
   }
 }
 </style>
