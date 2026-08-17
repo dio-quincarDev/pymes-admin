@@ -57,6 +57,88 @@ src/components/dashboard/                                      # borrado (3 hué
 
 ---
 
+## 2026-08-17 — Fase 4 Sección 2: Navegación simplificada
+
+### Contexto
+
+Continuación de la Fase 4 — Consolidación del Workflow. Sección 2: simplificar la navegación. El sidebar tenía 12 items → 8. El bottom nav mobile tenía 5 tabs (incluyendo "Más") → 4 fijos. ConfiguracionPage era solo lectura (85 líneas, industria + datos del negocio) → se borra.
+
+### Qué se hizo
+
+1. **Sidebar 12 → 8 items:**
+   - Operaciones: Dashboard, Productos, Proveedores, Facturas, Costos
+   - Análisis: Análisis, Préstamos
+   - Sistema: Equipo (solo OWNER/ADMIN)
+   - **Fuera del sidebar:** Ventas, Patrimonio, Contabilidad (rutas + archivos conservados)
+
+2. **Bottom nav mobile:** Dashboard, Productos, Facturas, **Costos** (antes: Dashboard, Productos, Facturas, Préstamos, "Más"). Se eliminó "Más" (abrir sidebar) y Préstamos. Se agregó tab Costos con mapeo en `mobileTab` computed.
+
+3. **ConfiguracionPage eliminada** (ruta en `core/router/routes.ts` + archivo `ConfiguracionPage.vue`). Solo mostraba industria y datos del negocio en modo lectura.
+
+4. **Fix de revisión (vue-best-practices):** grupo "Sistema" podía quedar vacío si el usuario no era OWNER/ADMIN (solo tenía Equipo condicional). Agregado `.filter(group => group.items.length > 0)` para no renderizar secciones vacías.
+
+### Archivos modificados
+
+```
+src/layouts/MainLayout.vue                           # sidebar 8 items, bottom nav 4 tabs, mobileTab +costos, filter empty groups
+src/modules/core/router/routes.ts                    # eliminada ruta configuracion
+src/modules/core/pages/ConfiguracionPage.vue         # borrado
+```
+
+### Verificación
+
+- `npm run lint`: ✅ clean
+- `npm run build`: ✅ Build succeeded
+
+**Estado:** ✅ SECCIÓN 2 COMPLETADA
+
+---
+
+## 2026-08-17 — Fase 4 Sección 3: AnalisisGastosPage — vital + bajo demanda
+
+### Contexto
+
+Sección 3 de la Fase 4. El backend computa 10 motores de análisis pero la UI solo mostraba 3 (supplier) y uno local de alertas de productos. Los 6 motores restantes (ABC, tendencias, márgenes, opex, proyección, alertas backend) existían como componentes huérfanos en `components/dashboard/` — nunca se importaban. `AnalyticsDashboard.vue` duplicaba header/estructura.
+
+### Qué se hizo
+
+1. **AnalisisGastosPage reescrito** con dos capas:
+   - **Vital (siempre visible):** Métricas de inversión (3 MetricCards) + CategoryBreakdownChart + DataTable Top 10.
+   - **Bajo demanda (6 `q-expansion-item`, cerrados por defecto):**
+     1. "Alertas" → `AlertsPanel` con motor `alerts` del backend (reemplaza panel local de productos)
+     2. "Clasificación ABC" → `AbcGastosChart`
+     3. "Precios y márgenes" → tabs `PriceTrendSparkline` / `MarginImpactTable`
+     4. "Costo operativo" → `OpexGauge`
+     5. "Proyección 30/60/90" → `ProjectionTimeline`
+     6. "Proveedores" → `SupplierComparisonTable` + `SupplierRecommendationsCard` + `PricePredictionsTable`
+
+2. **Eliminado:** alertas locales de productos (computado manual con min/max/lastPurchaseDate). Reemplazado por motor `alerts` del backend.
+
+3. **Eliminado:** sección divider "Análisis de Proveedores" + layout 2 columnas. Los 3 componentes de supplier ahora viven dentro del expansion item "Proveedores".
+
+4. **`AnalyticsDashboard.vue` borrado** — huérfano (nunca importado), duplicaba header/estructura.
+
+### Archivos modificados
+
+```
+src/modules/core/pages/AnalisisGastosPage.vue                 # reescrito: vital + 6 q-expansion-item
+src/modules/core/components/dashboard/AnalyticsDashboard.vue  # borrado (huérfano)
+```
+
+### Verificación
+
+- `npm run lint`: ✅ clean
+- `npm run build`: ✅ Build succeeded
+
+### Review skills aplicada
+
+- **vue-best-practices:** route-view como composition surface, reactividad mínima, SFC script→template→style, sin v-html, props down ✓
+- **quasar-skilld:** q-expansion-item props válidas, q-tabs v-model correcto, useMeta ✓
+
+**Estado:** ✅ SECCIÓN 3 COMPLETADA
+
+---
+
 ## 2026-08-16 — Fix OAuth2 redirect URL (local dev → gateway, staging → Caddy)
 
 ### Contexto
