@@ -42,7 +42,7 @@
         text-anchor="middle"
         class="opex-gauge__label"
       >
-        Costo Operativo
+        Costo del día
       </text>
     </svg>
     <!-- Threshold markers -->

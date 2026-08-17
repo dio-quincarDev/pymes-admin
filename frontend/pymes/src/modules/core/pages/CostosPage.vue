@@ -41,7 +41,7 @@ const categoriaOptions = [
 const tipoPagoOptions = ['DIARIO', 'SEMANAL', 'QUINCENAL', 'MENSUAL'];
 const metodoPagoOptions = ['EFECTIVO', 'TRANSFERENCIA', 'TARJETA', 'CHEQUE'];
 
-const tab = shallowRef<'colaboradores' | 'gastosFijos' | 'configuracion'>('colaboradores');
+const tab = shallowRef<'colaboradores' | 'gastosFijos'>('colaboradores');
 const loading = shallowRef(false);
 
 const colaboradores = ref<Collaborador[]>([]);
@@ -63,7 +63,7 @@ async function loadDiario() {
   } catch (err) {
     $q.notify({
       type: 'negative',
-      message: err instanceof Error ? err.message : 'Error al calcular costo diario',
+      message: err instanceof Error ? err.message : 'Error al calcular costo del día',
     });
   }
 }
@@ -198,7 +198,7 @@ async function saveColab() {
       colaboradores.value.unshift(res.data);
     }
     colabDialog.value = false;
-    $q.notify({ type: 'positive', message: `Colaborador ${editingColabId.value ? 'actualizado' : 'creado'}` });
+    $q.notify({ type: 'positive', message: `Integrante ${editingColabId.value ? 'actualizado' : 'creado'}` });
     refresh();
   } catch (err) {
     $q.notify({
@@ -221,7 +221,7 @@ async function removeColab() {
     await costoService.removeCollaborador(deletingColab.value.id, tenantId);
     colaboradores.value = colaboradores.value.filter((r) => r.id !== deletingColab.value!.id);
     colabDelete.value = false;
-    $q.notify({ type: 'positive', message: 'Colaborador eliminado' });
+    $q.notify({ type: 'positive', message: 'Integrante eliminado' });
     refresh();
   } catch (err) {
     $q.notify({
@@ -396,7 +396,7 @@ const costoOperativoDiario = computed(
 
 onMounted(() => {
   const t = route.query.tab;
-  if (t === 'gastosFijos' || t === 'configuracion' || t === 'colaboradores') tab.value = t;
+  if (t === 'gastosFijos' || t === 'colaboradores') tab.value = t;
   if (!tenantId) return;
   void loadAll();
   window.addEventListener('keydown', handleKeydown);
@@ -423,7 +423,7 @@ function handleKeydown(e: KeyboardEvent) {
     <div class="q-mb-md">
       <h1 class="text-h4 text-primary font-bold q-ma-none">Estructura de Costos</h1>
       <p class="text-subtitle1 text-accent q-mt-xs">
-        Colaboradores, gastos fijos recurrentes y configuración laboral
+        Equipo, gastos fijos recurrentes y configuración laboral
       </p>
     </div>
 
@@ -448,7 +448,7 @@ function handleKeydown(e: KeyboardEvent) {
           }}</span>
         </div>
         <div class="col-auto summary-item">
-          <span class="summary-label">Total costo / día</span>
+          <span class="summary-label">Total costo del día</span>
           <span class="summary-value summary-value--total font-mono">{{
             diario ? formatCurrency(costoOperativoDiario) : '—'
           }}</span>
@@ -473,6 +473,23 @@ function handleKeydown(e: KeyboardEvent) {
             >{{ diario ? formatCurrency(diario.gananciaRealEstimada) : '—' }}</span
           >
         </div>
+        <q-separator vertical dark class="q-mx-sm" />
+        <div class="col-auto summary-item summary-item--config">
+          <span class="summary-label">Días laborales / mes</span>
+          <div class="row items-center q-gutter-x-xs">
+            <q-input
+              dark dense flat
+              type="number" min="1" max="31"
+              :model-value="configForm.diasLaborales"
+              @update:model-value="(v) => { configForm.diasLaborales = Number(v) }"
+              @blur="saveConfig"
+              inputmode="numeric"
+              style="max-width: 60px"
+              class="config-inline-input"
+            />
+            <q-btn flat dense round icon="save" color="primary" size="sm" @click="saveConfig" :loading="configSaving" />
+          </div>
+        </div>
       </div>
     </q-card>
 
@@ -484,9 +501,8 @@ function handleKeydown(e: KeyboardEvent) {
       active-color="primary"
       class="cost-tabs q-mb-md"
     >
-      <q-tab name="colaboradores" label="Colaboradores" icon="groups" />
+      <q-tab name="colaboradores" label="Equipo" icon="groups" />
       <q-tab name="gastosFijos" label="Gastos Fijos" icon="receipt" />
-      <q-tab name="configuracion" label="Configuración" icon="settings" />
     </q-tabs>
 
     <!-- Colaboradores -->
@@ -499,10 +515,10 @@ function handleKeydown(e: KeyboardEvent) {
       <div v-if="!loading && !colaboradores.length" class="q-mt-lg">
         <EmptyState
           icon="groups"
-          title="Sin colaboradores"
+          title="Sin equipo"
           message="Registra a tu equipo para calcular el costo de salarios."
         >
-          <q-btn color="primary" icon="add" label="Nuevo Colaborador" @click="openCreateColab" class="q-mt-sm" />
+          <q-btn color="primary" icon="add" label="Nuevo Integrante" @click="openCreateColab" class="q-mt-sm" />
         </EmptyState>
       </div>
 
@@ -580,37 +596,12 @@ function handleKeydown(e: KeyboardEvent) {
       </div>
     </div>
 
-    <!-- Configuración -->
-    <div v-show="tab === 'configuracion'" class="config-panel">
-      <q-card dark class="bg-surface-pine" style="max-width: 420px">
-        <q-card-section>
-          <div class="text-h6 text-primary">Configuración Laboral</div>
-          <p class="text-subtitle2 text-accent q-mt-xs q-mb-md">
-            Días laborables al mes. Se usan para convertir el costo mensual en costo diario.
-          </p>
-          <q-input
-            dark
-            filled
-            type="number"
-            min="1"
-            max="31"
-            v-model.number="configForm.diasLaborales"
-            label="Días laborales"
-            :rules="[(v) => (v >= 1 && v <= 31) || 'Entre 1 y 31']"
-          />
-        </q-card-section>
-        <q-card-actions align="right">
-          <q-btn label="Guardar" color="primary" :loading="configSaving" @click="saveConfig" />
-        </q-card-actions>
-      </q-card>
-    </div>
-
     <!-- Collaborador dialog -->
     <q-dialog v-model="colabDialog" dark>
       <q-card dark class="bg-surface-pine" style="width: 90vw; max-width: 480px">
         <q-card-section
-          ><div class="text-h6 text-primary">
-            {{ editingColabId ? 'Editar' : 'Nuevo' }} Colaborador
+          >          <div class="text-h6 text-primary">
+            {{ editingColabId ? 'Editar' : 'Nuevo' }} Integrante
           </div></q-card-section
         >
         <q-separator dark />
@@ -766,7 +757,7 @@ function handleKeydown(e: KeyboardEvent) {
       <q-card dark class="bg-surface-pine">
         <q-card-section class="row items-center q-gutter-x-md">
           <q-icon name="warning" color="negative" size="md" />
-          <span>Eliminar colaborador <strong>{{ deletingColab?.nombre }}</strong>?</span>
+          <span>Eliminar integrante <strong>{{ deletingColab?.nombre }}</strong>?</span>
         </q-card-section>
         <q-card-actions align="right">
           <q-btn flat label="Cancelar" color="accent" v-close-popup />
@@ -911,5 +902,14 @@ function handleKeydown(e: KeyboardEvent) {
 
 .config-panel {
   padding-top: 8px;
+}
+
+.config-inline-input :deep(.q-field__control) {
+  min-height: 28px;
+  padding: 0 4px;
+}
+
+.config-inline-input :deep(.q-field__native) {
+  font-size: 0.85rem;
 }
 </style>

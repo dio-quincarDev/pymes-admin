@@ -102,7 +102,7 @@ const costoKpi = computed<KpiItem | null>(() =>
                 100
               ).toFixed(1)
             : undefined,
-        deltaLabel: 'vs costo diario',
+        deltaLabel: 'vs costo del día',
         accent:
           costoDiario.value.ventasHoy >= costoDiario.value.costoOperativoDiario
             ? ('green' as const)

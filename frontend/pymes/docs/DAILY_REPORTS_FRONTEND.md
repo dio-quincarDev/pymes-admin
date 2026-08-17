@@ -139,6 +139,105 @@ src/modules/core/components/dashboard/AnalyticsDashboard.vue  # borrado (huérfa
 
 ---
 
+## 2026-08-17 — Fase 4 Sección 4: Facturas dual-flow + Costos inline + jargon UI
+
+### Contexto
+
+Sección 4 de la Fase 4. Aplica jargon simple en toda la UI, implementa dual-flow en Facturas (gasto rápido vs factura con items), y mueve la config de CostosPage a inline.
+
+### Qué se hizo
+
+1. **FacturasPage — dual-flow:**
+   - Botón "Nueva" reemplazado por dos: "Gasto rápido" (green, `payments` icon) y "Factura" (primary, `add` icon).
+   - `openCreate()` acepta parámetro `tipo` (`'FACTURA' | 'GASTO_OPERATIVO'`).
+   - Select de `Tipo` eliminado del dialog — el tipo se pre-establece según el botón.
+   - Badge de estado: `{{ inv.status }}` → `{{ statusLabel(inv.status) }}` (REGISTRADA → "Pendiente").
+   - `handleKeydown` Ctrl+N actualizado con tipo por defecto.
+
+2. **InvoiceDetailDialog — jargon:**
+   - `tipoLabel`: GASTO_OPERATIVO → "Gasto" (antes "Gasto Operativo").
+   - Badge de estado usa `statusLabel` (REGISTRADA → "Pendiente").
+   - "Colaborador" → "Equipo".
+
+3. **CostosPage — Config inline + jargon:**
+   - Tab "Configuración" eliminado del template.
+   - Input "Días laborales" movido al cost-summary card como sección inline (con `q-separator vertical`, input + botón save).
+   - Auto-save en `@blur`.
+   - Tab "Colaboradores" → "Equipo".
+   - Subtitle, empty state, dialog titles, toast messages: todos actualizados.
+   - Query param `configuracion` eliminado de `onMounted`.
+
+4. **Jargon UI en otros archivos:**
+   - `AnalisisGastosPage.vue`: "Costo operativo" → "Costo del día"
+   - `AccountingPage.vue`: "Margen Operativo" → "Ganancia bruta", "Gastos Operativos" → "Gastos operativos"
+   - `StatStrip.vue`: "Margen Operativo" → "Ganancia bruta"
+   - `DashboardPage.vue`: "vs costo diario" → "vs costo del día"
+   - `OpexGauge.vue`: "Costo Operativo" → "Costo del día"
+
+### Archivos modificados
+
+```
+src/modules/core/pages/FacturasPage.vue                              # dual-flow, statusLabel, remove tipo select
+src/modules/core/pages/CostosPage.vue                                # config inline, Colaboradores → Equipo
+src/modules/core/pages/AnalisisGastosPage.vue                        # jargon "Costo del día"
+src/modules/core/pages/AccountingPage.vue                            # jargon "Ganancia bruta"
+src/modules/core/components/facturas/InvoiceDetailDialog.vue         # jargon badges + tipo
+src/modules/core/components/dashboard/StatStrip.vue                  # jargon "Ganancia bruta"
+src/modules/core/components/dashboard/OpexGauge.vue                  # jargon "Costo del día"
+src/pages/DashboardPage.vue                                          # jargon "vs costo del día"
+```
+
+### Verificación
+
+- `npm run lint`: ✅ clean
+- `npm run build`: ✅ Build succeeded
+
+### Review skills aplicada
+
+- **vue-best-practices:** reactividad mínima, SFC script→template→style, sin v-html, props down ✓
+- **quasar-skilld:** q-input type="number" con min/max, @blur para auto-save, sin content-class, sin v-model en QRouteTab ✓
+
+**Estado:** ✅ SECCIÓN 4 COMPLETADA
+
+---
+
+## 2026-08-17 — Fase 4 Sección 5: Limpieza dead code + formatDate unificado
+
+### Contexto
+
+Última sección de la Fase 4. Limpieza de código muerto y unificación de `formatDate`.
+
+### Qué se hizo
+
+1. **KpiCard** — revisado, sin dead code (mounted/compact/handleExportar ya eliminados en sesión anterior).
+
+2. **AnalyticsHeader** — `useAuthStore` se mantiene: es funcional (`tenantName` se muestra en el título del header). La strategy doc estaba desactualizada.
+
+3. **`utils/format.ts`** — `formatDate` actualizado para manejar timezone: agrega `'T00:00:00'` si el string no contiene `'T'`, evitando shift de timezone en UTC-5.
+
+4. **InvoiceDetailDialog** — eliminadas funciones locales `formatCurrency` y `formatDate`. Ahora importa desde `utils/format.ts`. `formatDate` se llama con `withYear=true` para mantener el formato original.
+
+### Archivos modificados
+
+```
+src/utils/format.ts                                                    # timezone fix en formatDate
+src/modules/core/components/facturas/InvoiceDetailDialog.vue           # importar desde utils/format
+```
+
+### Verificación
+
+- `npm run lint`: ✅ clean
+- `npm run build`: ✅ Build succeeded
+
+### Review skills aplicada
+
+- **vue-best-practices:** SFC structure intacta, imports centralizados ✓
+- **quasar-skilld:** sin cambios Quasar ✓
+
+**Estado:** ✅ SECCIÓN 5 COMPLETADA — FASE 4 COMPLETA
+
+---
+
 ## 2026-08-16 — Fix OAuth2 redirect URL (local dev → gateway, staging → Caddy)
 
 ### Contexto
