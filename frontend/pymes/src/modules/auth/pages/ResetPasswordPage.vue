@@ -55,16 +55,14 @@
           </q-input>
 
           <div class="q-mt-xl">
-            <BaseButton
+            <q-btn
               label="CAMBIAR CONTRASEÑA"
               type="submit"
               class="full-width"
               size="lg"
               :loading="loading"
               :disabled="passwordMismatch || !passwordForm.password"
-            >
-              CAMBIAR CONTRASEÑA
-            </BaseButton>
+            />
           </div>
         </q-form>
       </BaseCard>
@@ -82,7 +80,6 @@ import { useQuasar } from 'quasar';
 import { authService } from '../services/auth.service';
 import { useAuthForm } from 'src/composables/useAuthForm';
 import BaseCard from 'src/components/base/BaseCard.vue';
-import BaseButton from 'src/components/base/BaseButton.vue';
 import SkeletonLoader from 'src/components/ui/SkeletonLoader.vue';
 
 const route = useRoute();

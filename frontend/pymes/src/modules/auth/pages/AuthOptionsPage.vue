@@ -31,7 +31,7 @@
       </div>
 
       <div class="q-mt-xl">
-        <q-btn flat label="Volver a editar empresa" color="accent" icon="arrow_back" @click="router.push('/')" no-caps />
+        <q-btn flat label="Volver a editar empresa" color="accent" icon="sym_r_arrow_back" @click="router.push('/')" no-caps />
       </div>
     </div>
   </q-page>

@@ -9,8 +9,9 @@
             <div class="text-caption q-mt-xs" style="color: var(--pq-text-muted);">Crea tu cuenta de administrador maestro</div>
           </div>
 
-          <BaseButton
-            variant="secondary"
+          <q-btn
+            color="dark"
+            text-color="secondary"
             class="full-width"
             size="lg"
             :loading="oauthLoading"
@@ -18,7 +19,7 @@
           >
             <q-icon name="img:https://cdn.cdnlogo.com/logos/g/35/google-icon.svg" size="xs" class="q-mr-sm" />
             Continuar con Google
-          </BaseButton>
+          </q-btn>
 
           <div class="text-center q-mt-lg">
             <button
@@ -123,23 +124,21 @@
             </q-input>
 
             <div class="q-mt-xl">
-              <BaseButton
+              <q-btn
                 label="FINALIZAR Y CREAR EMPRESA"
                 type="submit"
                 class="full-width"
                 size="lg"
                 :loading="loading"
-              >
-                FINALIZAR Y CREAR EMPRESA
-              </BaseButton>
+              />
             </div>
           </q-form>
         </template>
 
         <div class="text-center q-mt-lg">
-          <BaseButton variant="ghost" size="sm" @click="goBackToHome">
+          <q-btn flat color="accent" size="sm" @click="goBackToHome">
             Volver a cambiar nombre de empresa
-          </BaseButton>
+          </q-btn>
         </div>
       </BaseCard>
     </SkeletonLoader>
@@ -158,7 +157,6 @@ import { storeToRefs } from 'pinia';
 import { authService } from '../services/auth.service';
 import { useAuthForm } from 'src/composables/useAuthForm';
 import BaseCard from 'src/components/base/BaseCard.vue';
-import BaseButton from 'src/components/base/BaseButton.vue';
 import SkeletonLoader from 'src/components/ui/SkeletonLoader.vue';
 
 const authStore = useAuthStore();

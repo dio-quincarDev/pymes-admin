@@ -487,7 +487,7 @@ function handleKeydown(e: KeyboardEvent) {
               style="max-width: 60px"
               class="config-inline-input"
             />
-            <q-btn flat dense round icon="save" color="primary" size="sm" @click="saveConfig" :loading="configSaving" />
+            <q-btn flat dense round icon="sym_r_save" color="primary" size="sm" @click="saveConfig" :loading="configSaving" />
           </div>
         </div>
       </div>
@@ -501,24 +501,24 @@ function handleKeydown(e: KeyboardEvent) {
       active-color="primary"
       class="cost-tabs q-mb-md"
     >
-      <q-tab name="colaboradores" label="Equipo" icon="groups" />
-      <q-tab name="gastosFijos" label="Gastos Fijos" icon="receipt" />
+      <q-tab name="colaboradores" label="Equipo" icon="sym_r_groups" />
+      <q-tab name="gastosFijos" label="Gastos Fijos" icon="sym_r_receipt" />
     </q-tabs>
 
     <!-- Colaboradores -->
     <div v-show="tab === 'colaboradores'">
       <div class="toolbar">
         <q-space />
-        <q-btn v-if="colaboradores.length" color="primary" icon="add" label="Nuevo" @click="openCreateColab" />
+        <q-btn v-if="colaboradores.length" color="primary" icon="sym_r_add" label="Nuevo" @click="openCreateColab" />
       </div>
 
       <div v-if="!loading && !colaboradores.length" class="q-mt-lg">
         <EmptyState
-          icon="groups"
+          icon="sym_r_groups"
           title="Sin equipo"
           message="Registra a tu equipo para calcular el costo de salarios."
         >
-          <q-btn color="primary" icon="add" label="Nuevo Integrante" @click="openCreateColab" class="q-mt-sm" />
+          <q-btn color="primary" icon="sym_r_add" label="Nuevo Integrante" @click="openCreateColab" class="q-mt-sm" />
         </EmptyState>
       </div>
 
@@ -537,8 +537,8 @@ function handleKeydown(e: KeyboardEvent) {
         </div>
         <div class="row-item__amount">{{ formatCurrency(c.monto) }}</div>
         <div class="row-item__actions">
-          <q-btn flat dense round icon="edit" color="primary" size="sm" aria-label="Editar" @click="openEditColab(c)" />
-          <q-btn flat dense round icon="delete" color="negative" size="sm" aria-label="Eliminar" @click="colabDelete = true; deletingColab = c" />
+          <q-btn flat dense round icon="sym_r_edit" color="primary" size="sm" aria-label="Editar" @click="openEditColab(c)" />
+          <q-btn flat dense round icon="sym_r_delete" color="negative" size="sm" aria-label="Eliminar" @click="colabDelete = true; deletingColab = c" />
         </div>
       </div>
     </div>
@@ -547,16 +547,16 @@ function handleKeydown(e: KeyboardEvent) {
     <div v-show="tab === 'gastosFijos'">
       <div class="toolbar">
         <q-space />
-        <q-btn v-if="gastosFijos.length" color="primary" icon="add" label="Nuevo" @click="openCreateGasto" />
+        <q-btn v-if="gastosFijos.length" color="primary" icon="sym_r_add" label="Nuevo" @click="openCreateGasto" />
       </div>
 
       <div v-if="!loading && !gastosFijos.length" class="q-mt-lg">
         <EmptyState
-          icon="receipt"
+          icon="sym_r_receipt"
           title="Sin gastos fijos"
           message="Agrega alquiler, internet, luz y otros gastos recurrentes."
         >
-          <q-btn color="primary" icon="add" label="Nuevo Gasto Fijo" @click="openCreateGasto" class="q-mt-sm" />
+          <q-btn color="primary" icon="sym_r_add" label="Nuevo Gasto Fijo" @click="openCreateGasto" class="q-mt-sm" />
         </EmptyState>
       </div>
 
@@ -589,8 +589,8 @@ function handleKeydown(e: KeyboardEvent) {
           </div>
           <div class="row-item__amount">{{ formatCurrency(g.monto) }}</div>
           <div class="row-item__actions">
-            <q-btn flat dense round icon="edit" color="primary" size="sm" aria-label="Editar" @click="openEditGasto(g)" />
-            <q-btn flat dense round icon="delete" color="negative" size="sm" aria-label="Eliminar" @click="gastoDelete = true; deletingGasto = g" />
+            <q-btn flat dense round icon="sym_r_edit" color="primary" size="sm" aria-label="Editar" @click="openEditGasto(g)" />
+            <q-btn flat dense round icon="sym_r_delete" color="negative" size="sm" aria-label="Eliminar" @click="gastoDelete = true; deletingGasto = g" />
           </div>
         </div>
       </div>
@@ -717,7 +717,7 @@ function handleKeydown(e: KeyboardEvent) {
                 emit-value
                 class="col"
               />
-              <q-btn flat round icon="add" color="primary" type="button" @click="openNewProveedor" />
+              <q-btn flat round icon="sym_r_add" color="primary" type="button" @click="openNewProveedor" />
             </div>
             <div class="row justify-end q-gutter-x-sm">
               <q-btn flat label="Cancelar" color="accent" v-close-popup />

@@ -294,13 +294,51 @@ input[type="number"] {
 }
 
 // --------------------------------------------------
-// Global q-btn
+// Global q-btn — industrial control surface
+// Border: machined, precise. Text: weight 600, no caps (labels already state case).
+// Padding scales with `size` prop (em-based), fixing "text on the edge".
 // --------------------------------------------------
 .q-btn:not(.q-btn--round) {
   border-radius: $pq-radius-md;
-  &.q-btn--flat, &.q-btn--outline {
-    padding: 4px 12px;
+  font-family: var(--pq-font-body);
+  font-weight: 600;
+  text-transform: none;
+  letter-spacing: 0.01em;
+  padding: 6px 16px;
+  min-height: 36px;
+
+  .q-btn__content {
+    gap: 8px;
   }
+
+  &.q-btn--flat,
+  &.q-btn--outline {
+    min-height: 34px;
+  }
+
+  &.q-btn--dense {
+    min-height: 2em;
+  }
+
+  &:focus-visible {
+    outline: 2px solid $primary;
+    outline-offset: 2px;
+  }
+}
+
+// Signature: dark text on gold (matches skip-link, DESIGN.md accent rule).
+// Quasar defaults to white text on color — 2.1:1 on gold, illegible.
+.q-btn.bg-primary {
+  color: #08090D;
+}
+
+// --------------------------------------------------
+// Icons — Material Symbols Rounded (variable font)
+// Rounded terminals match the industrial radius; weight tuned up for presence.
+// --------------------------------------------------
+.material-symbols-rounded {
+  font-variation-settings: 'FILL' 0, 'wght' 400, 'opsz' 20;
+  font-size: 20px;
 }
 
 // --------------------------------------------------

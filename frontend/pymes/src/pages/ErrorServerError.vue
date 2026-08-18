@@ -13,7 +13,7 @@
           unelevated
           no-caps
           label="Reintentar"
-          icon="refresh"
+          icon="sym_r_refresh"
           @click="retry"
         />
         <q-btn
@@ -22,7 +22,7 @@
           no-caps
           :to="homeRoute"
           label="Volver al dashboard"
-          icon="arrow_back"
+          icon="sym_r_arrow_back"
         />
       </div>
     </div>

@@ -27,7 +27,7 @@ const statusLabel: Record<string, string> = { PAGADA: 'Pagada', REGISTRADA: 'Pen
           <div class="text-h6 text-primary">{{ factura.invoiceNumber }}</div>
           <div class="text-caption text-accent">{{ formatDate(factura.issueDate, true) }}</div>
         </div>
-        <q-btn flat round dense icon="close" color="accent" v-close-popup />
+        <q-btn flat round dense icon="sym_r_close" color="accent" v-close-popup />
       </q-card-section>
       <q-separator dark />
       <q-card-section class="q-gutter-y-sm">

@@ -20,7 +20,7 @@ export default defineConfig((ctx) => {
     // https://github.com/quasarframework/quasar/tree/dev/extras
     extras: [
       'ionicons-v4',
-      'material-icons',
+      'material-symbols-rounded',
 
       'roboto-font-latin-ext',
 
@@ -112,9 +112,7 @@ export default defineConfig((ctx) => {
 
     // https://v2.quasar.dev/quasar-cli-vite/quasar-config-file#framework
     framework: {
-      config: {},
-
-      // iconSet: 'material-icons', // Quasar icon set
+      iconSet: 'material-symbols-rounded',
       // lang: 'en-US', // Quasar language pack
 
       // For special cases outside of where the auto-import strategy can have an impact

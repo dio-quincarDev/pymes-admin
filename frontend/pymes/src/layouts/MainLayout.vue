@@ -38,9 +38,10 @@
     <!-- Header — minimal, institutional -->
     <q-header class="main-header">
       <q-toolbar class="q-px-lg">
-        <BaseButton
-          variant="ghost"
-          icon-left="menu"
+        <q-btn
+          flat
+          color="accent"
+          icon="sym_r_menu"
           class="q-mr-sm"
           aria-label="Abrir menú"
           @click="toggleLeftDrawer"
@@ -149,10 +150,10 @@
         align="justify"
         narrow-indicator
       >
-        <q-route-tab to="/dashboard" icon="dashboard" aria-label="Dashboard" />
-        <q-route-tab to="/dashboard/productos" icon="inventory_2" aria-label="Productos" />
-        <q-route-tab to="/dashboard/facturas" icon="receipt_long" aria-label="Facturas" />
-        <q-route-tab to="/dashboard/costos" icon="money_off" aria-label="Costos" />
+        <q-route-tab to="/dashboard" icon="sym_r_dashboard" aria-label="Dashboard" />
+        <q-route-tab to="/dashboard/productos" icon="sym_r_inventory_2" aria-label="Productos" />
+        <q-route-tab to="/dashboard/facturas" icon="sym_r_receipt_long" aria-label="Facturas" />
+        <q-route-tab to="/dashboard/costos" icon="sym_r_money_off" aria-label="Costos" />
       </q-tabs>
     </q-footer>
   </q-layout>
@@ -164,7 +165,6 @@ import { useQuasar } from 'quasar';
 import { useRoute, useRouter } from 'vue-router';
 import { useLogout } from 'src/composables/useLogout';
 import { useAuthStore } from 'src/modules/auth/store';
-import BaseButton from 'src/components/base/BaseButton.vue';
 
 const $q = useQuasar();
 const route = useRoute();

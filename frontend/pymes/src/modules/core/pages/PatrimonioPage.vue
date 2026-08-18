@@ -197,7 +197,7 @@ onMounted(() => {
               <span class="text-h6 text-primary">Configuración</span>
             </div>
             <q-btn
-              :icon="editing ? 'save' : 'edit'"
+              :icon="editing ? 'sym_r_save' : 'sym_r_edit'"
               :color="editing ? 'positive' : 'primary'"
               :label="editing ? 'Guardar' : 'Editar'"
               :loading="saving"

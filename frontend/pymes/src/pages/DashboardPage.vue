@@ -14,7 +14,6 @@ import ResumenCard from 'src/modules/core/components/dashboard/ResumenCard.vue';
 import InversionCard from 'src/modules/core/components/dashboard/InversionCard.vue';
 import RegistrarVentaDialog from 'src/modules/core/components/dashboard/RegistrarVentaDialog.vue';
 import VentasVsCostosChart from 'src/modules/core/components/dashboard/VentasVsCostosChart.vue';
-import BaseButton from 'src/components/base/BaseButton.vue';
 import { usePullToRefresh } from 'src/composables/usePullToRefresh';
 import { patrimonioService } from 'src/modules/core/services/patrimonio.service';
 import { prestamoService } from 'src/modules/core/services/prestamo.service';
@@ -187,9 +186,9 @@ const categoryItems = computed(() =>
         <q-icon name="domain_disabled" size="64px" style="color: var(--pq-text-subtle)" aria-hidden="true" />
         <h1 class="no-tenant-headline">Tu negocio aún no está configurado</h1>
         <p class="no-tenant-copy">Completá el onboarding para empezar a usar PymeQ.</p>
-        <BaseButton variant="primary" size="lg" @click="$router.push('/onboarding')">
+        <q-btn color="primary" size="lg" @click="$router.push('/onboarding')">
           COMPLETAR ONBOARDING
-        </BaseButton>
+        </q-btn>
         <p class="no-tenant-hint">¿Ya empezaste? Revisá tu correo para el enlace de verificación.</p>
       </div>
     </template>
@@ -214,7 +213,7 @@ const categoryItems = computed(() =>
       <div class="dashboard-actions">
         <q-btn
           no-caps
-          icon="add"
+          icon="sym_r_add"
           label="Registrar venta"
           color="positive"
           class="dashboard-actions__btn"
@@ -222,7 +221,7 @@ const categoryItems = computed(() =>
         />
         <q-btn
           no-caps
-          icon="analytics"
+          icon="sym_r_analytics"
           label="Análisis"
           outline
           class="dashboard-actions__btn"
@@ -230,7 +229,7 @@ const categoryItems = computed(() =>
         />
         <q-btn
           no-caps
-          icon="account_balance"
+          icon="sym_r_account_balance"
           label="Inversión"
           outline
           class="dashboard-actions__btn"

@@ -253,18 +253,18 @@ function handleKeydown(e: KeyboardEvent) {
 
     <div class="toolbar">
       <q-space />
-      <q-btn v-if="rows.length" color="primary" icon="add" label="Nuevo" @click="openCreate" />
+      <q-btn v-if="rows.length" color="primary" icon="sym_r_add" label="Nuevo" @click="openCreate" />
     </div>
 
     <div v-if="!loading && !rows.length" class="q-mt-lg">
       <EmptyState
-        icon="account_balance"
+        icon="sym_r_account_balance"
         title="Sin préstamos registrados"
         message="Registra un préstamo para hacer seguimiento de tus deudas."
       >
         <q-btn
           color="primary"
-          icon="add"
+          icon="sym_r_add"
           label="Nuevo Préstamo"
           @click="openCreate"
           class="q-mt-sm"
@@ -325,7 +325,7 @@ function handleKeydown(e: KeyboardEvent) {
             flat
             dense
             round
-            icon="payments"
+            icon="sym_r_payments"
             color="positive"
             size="sm"
             @click="openPagos(p)"
@@ -336,7 +336,7 @@ function handleKeydown(e: KeyboardEvent) {
             flat
             dense
             round
-            icon="edit"
+            icon="sym_r_edit"
             color="primary"
             size="sm"
             @click="openEdit(p)"
@@ -346,7 +346,7 @@ function handleKeydown(e: KeyboardEvent) {
             flat
             dense
             round
-            icon="delete"
+            icon="sym_r_delete"
             color="negative"
             size="sm"
             @click="confirmDelete(p)"

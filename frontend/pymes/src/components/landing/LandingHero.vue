@@ -35,13 +35,13 @@
               </template>
             </q-input>
 
-            <BaseButton
-              size="lg"
+            <q-btn
+              color="primary"
               class="onboarding-btn"
               @click="$emit('start', companyForm.name)"
             >
               CREAR MI ESPACIO
-            </BaseButton>
+            </q-btn>
           </div>
 
           <div class="hero-fine-print">
@@ -75,7 +75,6 @@
 
 <script setup lang="ts">
 import { reactive } from 'vue';
-import BaseButton from 'src/components/base/BaseButton.vue';
 
 defineEmits<{
   start: [name: string];

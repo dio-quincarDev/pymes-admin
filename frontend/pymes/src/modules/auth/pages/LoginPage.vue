@@ -8,8 +8,9 @@
             <div class="text-caption" style="color: var(--pq-text-muted);">Accede con tu cuenta institucional</div>
           </div>
 
-          <BaseButton
-            variant="secondary"
+          <q-btn
+            color="dark"
+            text-color="secondary"
             class="full-width"
             size="lg"
             :loading="oauthLoading"
@@ -17,7 +18,7 @@
           >
             <q-icon name="img:https://cdn.cdnlogo.com/logos/g/35/google-icon.svg" size="xs" class="q-mr-sm" />
             Continuar con Google
-          </BaseButton>
+          </q-btn>
 
           <div class="text-center q-mt-lg">
             <button
@@ -89,11 +90,11 @@
               <q-btn flat no-caps label="¿Olvidaste tu contraseña?" color="accent" size="sm" to="/forgot-password" class="radius-xs" />
             </div>
 
-            <BaseButton
+            <q-btn
               type="submit" class="full-width q-mt-lg" size="lg" :loading="loading"
             >
               INICIAR SESIÓN
-            </BaseButton>
+            </q-btn>
           </q-form>
         </template>
 
@@ -119,7 +120,6 @@ import { useRouter, useRoute } from 'vue-router';
 import { authService } from '../services/auth.service';
 import { useAuthForm } from 'src/composables/useAuthForm';
 import BaseCard from 'src/components/base/BaseCard.vue';
-import BaseButton from 'src/components/base/BaseButton.vue';
 import SkeletonLoader from 'src/components/ui/SkeletonLoader.vue';
 
 const authStore = useAuthStore();

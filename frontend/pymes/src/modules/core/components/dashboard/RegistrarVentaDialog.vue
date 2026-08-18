@@ -51,7 +51,7 @@ async function save() {
     <q-card class="venta-dialog">
       <q-card-section class="venta-dialog__header">
         <span class="venta-dialog__title">Registrar venta</span>
-        <q-btn flat dense round icon="close" size="sm" @click="emit('update:modelValue', false)" />
+        <q-btn flat dense round icon="sym_r_close" size="sm" @click="emit('update:modelValue', false)" />
       </q-card-section>
 
       <q-card-section class="venta-dialog__body">
