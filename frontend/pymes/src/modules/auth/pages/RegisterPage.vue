@@ -248,7 +248,9 @@ const onRegister = async () => {
 const loginWithGoogle = async () => {
   oauthLoading.value = true;
   try {
-    let url = `${window.location.origin}/oauth2/authorization/google`;
+    const apiUrl = import.meta.env.VITE_API_URL?.trim();
+    const gatewayBase = (apiUrl && apiUrl !== '') ? apiUrl.replace('/api/v1', '') : window.location.origin;
+    let url = `${gatewayBase}/oauth2/authorization/google`;
 
     if (pendingTenant.value?.name && pendingTenant.value?.slug) {
       $q.loading.show({ message: 'Sincronizando identidad empresarial...' });

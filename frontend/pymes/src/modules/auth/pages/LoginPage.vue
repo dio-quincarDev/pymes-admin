@@ -203,7 +203,9 @@ const handleLoginClick = async () => {
 const loginWithSocial = async (provider: 'google') => {
   oauthLoading.value = true;
   try {
-    let url = `${window.location.origin}/oauth2/authorization/${provider}`;
+    const apiUrl = import.meta.env.VITE_API_URL?.trim();
+    const gatewayBase = (apiUrl && apiUrl !== '') ? apiUrl.replace('/api/v1', '') : window.location.origin;
+    let url = `${gatewayBase}/oauth2/authorization/${provider}`;
 
     if (authStore.pendingTenant?.name && authStore.pendingTenant?.slug) {
       $q.loading.show({ message: 'Preparando entorno de empresa...' });
