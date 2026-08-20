@@ -22,7 +22,7 @@ public interface PatrimonioApi {
 
     @Operation(summary = "Update patrimony for a tenant")
     @PutMapping("/{tenantId}")
-    @PreAuthorize("hasAnyRole('OWNER', 'ADMIN')")
+    @PreAuthorize("hasRole('OWNER')")
     ResponseEntity<PatrimonioResponse> update(@PathVariable UUID tenantId,
                                                @Valid @RequestBody PatrimonioRequest request);
 }

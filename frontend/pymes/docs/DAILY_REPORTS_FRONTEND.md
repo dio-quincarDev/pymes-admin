@@ -4,6 +4,40 @@ Registro cronológico de decisiones, problemas resueltos y estado del frontend.
 
 ---
 
+## 2026-08-18 — Solución final de iconos via Google Fonts CDN y Mapeo CSS
+
+### Contexto
+
+Se requería migrar la UI para usar `material-symbols-rounded` (alineado a DESIGN.md) en lugar de las clásicas `material-icons`. Los intentos previos de empaquetar localmente el archivo de fuente (4.8MB) causaban 404 en el navegador e inconsistencias de rutas en el bundle de producción generado por Vite.
+
+### Qué se hizo
+
+1. **Vincular fuente por CDN en HTML**:
+   - En `index.html` se agregaron enlaces de pre-conexión y el link de Google Fonts para `Material Symbols Rounded` con soporte para variables de eje (`FILL`, `wght`, `GRAD`, `opsz`).
+2. **Deshabilitar bundle de fuente pesada en Vite**:
+   - En `quasar.config.ts` se removió `'material-symbols-rounded'` del arreglo `extras` para evitar que Vite intente empaquetar en local la tipografía de 4.8MB.
+3. **Mapeo global de clases en CSS**:
+   - En `src/css/app.scss` se modificó el bloque de iconos para aplicar la familia de fuente `'Material Symbols Rounded'` tanto a la clase `.material-symbols-rounded` como a `.material-icons` de forma global con `!important`.
+   - Esto resolvió al instante todos los iconos de plantillas que carecían del prefijo `sym_r_` (como `history_edu`, `smartphone`, `receipt_long`, `category`), renderizándolos como iconos redondeados correctos en vez de mostrar su texto crudo.
+
+### Archivos modificados
+
+```
+index.html                    # +preconnect y link CDN a Material Symbols Rounded
+quasar.config.ts              # -'material-symbols-rounded' de extras
+src/css/app.scss              # mapear .material-icons a la nueva fuente + propiedades de rendering
+```
+
+### Verificación
+
+- `npm run lint`: ✅ clean
+- `npm run build`: ✅ Build succeeded (el bundle de assets de producción ya no pesa 4.8MB en disco).
+- Navegador: los iconos se muestran correctamente renderizados en vez de mostrar texto.
+
+**Estado:** ✅ COMPLETADO Y SOLUCIONADO
+
+---
+
 ## 2026-08-17 — Fase 4 Sección 1: Consolidación Dashboard
 
 ### Contexto

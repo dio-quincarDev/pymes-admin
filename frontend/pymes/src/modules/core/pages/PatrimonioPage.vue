@@ -14,6 +14,7 @@ useMeta({ title: 'Inversión — PYMEQ' });
 const $q = useQuasar();
 const authStore = useAuthStore();
 const tenantId = authStore.user?.tenantId;
+const isOwner = computed(() => authStore.user?.role === 'OWNER');
 const { period } = usePeriod();
 
 const data = ref<Patrimonio | null>(null);
@@ -197,6 +198,7 @@ onMounted(() => {
               <span class="text-h6 text-primary">Configuración</span>
             </div>
             <q-btn
+              v-if="isOwner"
               :icon="editing ? 'sym_r_save' : 'sym_r_edit'"
               :color="editing ? 'positive' : 'primary'"
               :label="editing ? 'Guardar' : 'Editar'"

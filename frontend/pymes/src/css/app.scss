@@ -336,7 +336,23 @@ input[type="number"] {
 // Icons — Material Symbols Rounded (variable font)
 // Rounded terminals match the industrial radius; weight tuned up for presence.
 // --------------------------------------------------
-.material-symbols-rounded {
+.material-symbols-rounded,
+.material-icons {
+  font-family: 'Material Symbols Rounded' !important;
+  font-weight: normal;
+  font-style: normal;
+  display: inline-block;
+  line-height: 1;
+  text-transform: none;
+  letter-spacing: normal;
+  word-wrap: normal;
+  white-space: nowrap;
+  direction: ltr;
+  -webkit-font-smoothing: antialiased;
+  text-rendering: optimizeLegibility;
+  -moz-osx-font-smoothing: grayscale;
+  font-feature-settings: 'liga';
+
   font-variation-settings: 'FILL' 0, 'wght' 400, 'opsz' 20;
   font-size: 20px;
 }
