@@ -287,11 +287,21 @@ public class AuthServiceImpl implements AuthService {
             throw new InvalidInputException(INVALID_INPUT, "Invalid or expired exchange code");
         }
         redisTemplate.delete("oauth:code:" + code);
+
+        String accessToken = tokenData.get("accessToken");
+        UUID userId = jwtService.extractUserId(accessToken);
+        UUID tenantId = jwtService.extractTenantId(accessToken);
+
+        UserEntity user = userRepository.findById(userId)
+                .orElse(null);
+
+        Tenant tenant = tenantId != null ? tenantRepository.findById(tenantId).orElse(null) : null;
+
         return new AuthResponse(
-                tokenData.get("accessToken"),
+                accessToken,
                 tokenData.get("refreshToken"),
-                null,
-                null
+                user != null ? userMapper.toResponse(user) : null,
+                tenant != null ? tenantMapper.toResponse(tenant) : null
         );
     }
 

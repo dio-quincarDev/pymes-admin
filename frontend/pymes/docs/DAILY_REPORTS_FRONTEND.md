@@ -38,6 +38,44 @@ src/css/app.scss              # mapear .material-icons a la nueva fuente + propi
 
 ---
 
+## 2026-08-21 — OAuth2 re-login fix: clearSession + handleOAuthCallback
+
+### Contexto
+
+Después de logout + re-login vía OAuth2 en staging (PWA mobile), el usuario no entraba al tenant sino que se redirigía al MainLayout principal sin contexto de tenant. El fix requería borrar datos de la PWA para poder loguearse de nuevo.
+
+### Root cause
+
+Dos problemas encadenados:
+
+1. **`clearSession()` no limpiaba `pymeq_pending_tenant`** de localStorage. Si el usuario había completado un registro OAuth2 con intent, el `pendingTenant` quedaba persistido. En el segundo login, `loginWithSocial()` veía ese `pendingTenant` stale y creaba un nuevo intent con el mismo slug → `DuplicateResourceException` en el backend → callback OAuth2 fallaba silenciosamente.
+
+2. **`handleOAuthCallback()` no mergaba `tenantId`** en el user object. El exchange del backend devolvía `user: null, activeTenant: null`, y el frontend solo llamaba `fetchCurrentUser()` para obtener el tenant. Si ese call fallaba, el usuario quedaba sin contexto de tenant.
+
+### Qué se hizo
+
+1. **`clearSession()`** — ahora limpia `pymeq_pending_tenant` de localStorage y resetea `this.pendingTenant = null`.
+
+2. **`handleOAuthCallback()`** — ahora recibe `user` y `activeTenant` del exchange (que el backend ahora retorna) y merga `activeTenant.id` en `user.tenantId`, igual que hace `login()`.
+
+3. **`AuthCallback.vue`** — pasa `authData.user` y `authData.activeTenant` al callback en vez de solo `authData.activeTenant?.name`.
+
+### Archivos modificados
+
+```
+src/modules/auth/store/index.ts          # clearSession() + handleOAuthCallback()
+src/modules/auth/pages/AuthCallback.vue  # pasa user y activeTenant al callback
+```
+
+### Verificación
+
+- `npx vue-tsc --noEmit`: ✅ sin errores
+- Tests backend (auth/gateway/core): ✅ todos pasan
+
+**Estado:** ✅ COMPLETADO
+
+---
+
 ## 2026-08-17 — Fase 4 Sección 1: Consolidación Dashboard
 
 ### Contexto
