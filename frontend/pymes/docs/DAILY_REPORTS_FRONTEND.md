@@ -4,6 +4,55 @@ Registro cronológico de decisiones, problemas resueltos y estado del frontend.
 
 ---
 
+## 2026-08-22 — Logo + favicon: reemplazo del monograma "P" por "Q"
+
+### Contexto
+
+Se crearon 2 SVGs nuevos (`pymeq-app-icon.svg` y `pymeq-favicon.svg`) con el monograma "Q" (PYMEQ) y el accent bronze #C8963E. Se reemplazó el logo viejo "P" en todos los layouts y se actualizó el favicon + manifest para PWA.
+
+### Qué se hizo
+
+1. **`public/icons/logo.svg`** — reemplazado contenido:
+   - Viejo: monograma "P" geométrico (#C8963E sobre fondo #08090D)
+   - Nuevo: monograma "Q" con orbital frame segmentado + trend accent bronze
+   - Automaticamente actualiza los 4 layouts que lo referencian
+
+2. **`index.html`** — favicon SVG + theme-color:
+   - Agregado `<link rel="icon" type="image/svg+xml" href="icons/pymeq-favicon.svg">` antes de los PNGs
+   - `theme-color` actualizado de `#0B1210` → `#08090D` (consistente con DESIGN.md)
+
+3. **`src-pwa/manifest.json`** — icon SVG + colores:
+   - Agregado icon SVG entry: `{ "src": "icons/pymeq-app-icon.svg", "sizes": "any", "type": "image/svg+xml", "purpose": "any" }`
+   - `theme_color` actualizado de `#A3785E` → `#C8963E` (bronze accent)
+   - `background_color` actualizado de `#0B1210` → `#08090D`
+
+### Layouts afectados
+
+| Layout | Línea | Size | Resultado |
+|---|---|---|---|
+| `MainLayout.vue:51` | header logo | 24x24 | "Q" nuevo |
+| `AuthLayout.vue:13` | auth pages | 48x48 | "Q" nuevo |
+| `LandingLayout.vue:22` | navbar | 28x28 | "Q" nuevo |
+| `BrandSplash.vue:5` | splash screen | 72x72 | "Q" nuevo |
+
+### Notas
+
+- El `quasar-logo-vertical.svg` en `src/assets/` no se usa en ningún lado — se puede eliminar
+- Los PNGs se mantienen como fallback para PWA install prompts (compatibilidad)
+- El SVG favicon funciona en Chrome/Firefox/Edge; Safari cae al PNG
+
+### Archivos modificados
+
+```
+frontend/pymes/public/icons/logo.svg              # contenido reemplazado
+frontend/pymes/index.html                          # +SVG favicon + theme-color
+frontend/pymes/src-pwa/manifest.json               # +SVG icon + colores actualizados
+```
+
+**Estado:** ✅ COMPLETADO
+
+---
+
 ## 2026-08-22 — E2E tests + OAuth2 full flow validation
 
 ### Contexto
