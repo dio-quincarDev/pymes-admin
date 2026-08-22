@@ -13,6 +13,7 @@ useMeta({ title: 'Préstamos — PYMEQ' });
 const $q = useQuasar();
 const authStore = useAuthStore();
 const tenantId = authStore.user?.tenantId;
+const isOwner = computed(() => authStore.user?.role === 'OWNER');
 
 const rows = ref<Prestamo[]>([]);
 const loading = shallowRef(false);
@@ -253,18 +254,19 @@ function handleKeydown(e: KeyboardEvent) {
 
     <div class="toolbar">
       <q-space />
-      <q-btn v-if="rows.length" color="primary" icon="add" label="Nuevo" @click="openCreate" />
+      <q-btn v-if="isOwner" color="primary" icon="sym_r_add" label="Nuevo" @click="openCreate" />
     </div>
 
     <div v-if="!loading && !rows.length" class="q-mt-lg">
       <EmptyState
-        icon="account_balance"
+        icon="sym_r_account_balance"
         title="Sin préstamos registrados"
         message="Registra un préstamo para hacer seguimiento de tus deudas."
       >
         <q-btn
+          v-if="isOwner"
           color="primary"
-          icon="add"
+          icon="sym_r_add"
           label="Nuevo Préstamo"
           @click="openCreate"
           class="q-mt-sm"
@@ -325,28 +327,29 @@ function handleKeydown(e: KeyboardEvent) {
             flat
             dense
             round
-            icon="payments"
+            icon="sym_r_payments"
             color="positive"
             size="sm"
             @click="openPagos(p)"
             aria-label="Pagos"
           />
           <q-btn
-            v-if="p.estado === 'ACTIVO'"
+            v-if="isOwner && p.estado === 'ACTIVO'"
             flat
             dense
             round
-            icon="edit"
+            icon="sym_r_edit"
             color="primary"
             size="sm"
             @click="openEdit(p)"
             aria-label="Editar"
           />
           <q-btn
+            v-if="isOwner"
             flat
             dense
             round
-            icon="delete"
+            icon="sym_r_delete"
             color="negative"
             size="sm"
             @click="confirmDelete(p)"
@@ -466,37 +469,39 @@ function handleKeydown(e: KeyboardEvent) {
             <span class="text-accent text-caption">{{ p.metodoPago || '—' }}</span>
           </div>
         </q-card-section>
-        <q-separator dark />
-        <q-card-section>
-          <div class="text-subtitle2 text-primary q-mb-sm">Registrar pago</div>
-          <div class="row q-col-gutter-sm items-end">
-            <div class="col-4">
-              <q-input
-                dark
-                dense
-                filled
-                v-model.number="pagoForm.monto"
-                label="Monto"
-                type="number"
-                min="0"
-                step="0.01"
-                prefix="$"
-              />
+        <template v-if="isOwner">
+          <q-separator dark />
+          <q-card-section>
+            <div class="text-subtitle2 text-primary q-mb-sm">Registrar pago</div>
+            <div class="row q-col-gutter-sm items-end">
+              <div class="col-4">
+                <q-input
+                  dark
+                  dense
+                  filled
+                  v-model.number="pagoForm.monto"
+                  label="Monto"
+                  type="number"
+                  min="0"
+                  step="0.01"
+                  prefix="$"
+                />
+              </div>
+              <div class="col-4">
+                <q-input dark dense filled v-model="pagoForm.fechaPago" label="Fecha" type="date" />
+              </div>
+              <div class="col-4">
+                <q-btn
+                  label="Registrar"
+                  color="positive"
+                  :loading="savingPago"
+                  @click="savePago"
+                  class="full-width"
+                />
+              </div>
             </div>
-            <div class="col-4">
-              <q-input dark dense filled v-model="pagoForm.fechaPago" label="Fecha" type="date" />
-            </div>
-            <div class="col-4">
-              <q-btn
-                label="Registrar"
-                color="positive"
-                :loading="savingPago"
-                @click="savePago"
-                class="full-width"
-              />
-            </div>
-          </div>
-        </q-card-section>
+          </q-card-section>
+        </template>
       </q-card>
     </q-dialog>
 

@@ -8,7 +8,6 @@ useMeta({ title: 'Onboarding — PYMEQ' });
 import { setupService } from '../services/setup.service'
 import type { SetupInfo, SetupCategory } from '../types'
 import IndustryCard from 'src/components/onboarding/IndustryCard.vue'
-import BaseButton from 'src/components/base/BaseButton.vue'
 
 
 const router = useRouter()
@@ -17,14 +16,14 @@ const $q = useQuasar()
 const tenantId = authStore.user?.tenantId
 
 const industries = [
-  { code: 'restaurante', name: 'Restaurante', icon: 'restaurant', desc: 'Comida, bebidas, insumos de cocina' },
-  { code: 'bares', name: 'Bares y Cantinas', icon: 'local_bar', desc: 'Bebidas, cocteles, botanas' },
-  { code: 'salon_belleza', name: 'Salon de Belleza', icon: 'content_cut', desc: 'Corte, color, tratamientos' },
-  { code: 'ferreteria', name: 'Ferreteria', icon: 'hardware', desc: 'Herramientas, materiales' },
-  { code: 'mini_super', name: 'Mini Super', icon: 'store', desc: 'Abarrotes, vienes, productos basicos' },
-  { code: 'taller_mecanico', name: 'Taller Mecanico', icon: 'build', desc: 'Refacciones, servicio, mantenimiento' },
-  { code: 'farmacia', name: 'Farmacia', icon: 'local_pharmacy', desc: 'Medicamentos, salud, higiene' },
-  { code: 'default', name: 'General', icon: 'business', desc: 'Negocio general o multi-rubro' },
+  { code: 'restaurante', name: 'Restaurante', icon: 'sym_r_restaurant', desc: 'Comida, bebidas, insumos de cocina' },
+  { code: 'bares', name: 'Bares y Cantinas', icon: 'sym_r_local_bar', desc: 'Bebidas, cocteles, botanas' },
+  { code: 'salon_belleza', name: 'Salon de Belleza', icon: 'sym_r_content_cut', desc: 'Corte, color, tratamientos' },
+  { code: 'ferreteria', name: 'Ferreteria', icon: 'sym_r_hardware', desc: 'Herramientas, materiales' },
+  { code: 'mini_super', name: 'Mini Super', icon: 'sym_r_store', desc: 'Abarrotes, vienes, productos basicos' },
+  { code: 'taller_mecanico', name: 'Taller Mecanico', icon: 'sym_r_build', desc: 'Refacciones, servicio, mantenimiento' },
+  { code: 'farmacia', name: 'Farmacia', icon: 'sym_r_local_pharmacy', desc: 'Medicamentos, salud, higiene' },
+  { code: 'default', name: 'General', icon: 'sym_r_business', desc: 'Negocio general o multi-rubro' },
 ]
 
 const step = ref(1)
@@ -38,7 +37,7 @@ function countCategories(cats: SetupCategory[]): number {
 }
 
 const totalCategories = computed(() => previewData.value ? countCategories(previewData.value.categories) : 0)
-const fallbackIndustry = { code: '', name: '', icon: 'business', desc: '' }
+const fallbackIndustry = { code: '', name: '', icon: 'sym_r_business', desc: '' }
 const selectedIndustry = computed(() => industries.find(i => i.code === selected.value) || fallbackIndustry)
 
 function onSelect(code: string) {
@@ -165,21 +164,22 @@ async function confirm() {
       </div>
 
       <div class="onboarding-actions fade-in-up">
-        <BaseButton
+        <q-btn
           v-if="step === 2"
-          variant="ghost"
+          flat
+          color="accent"
           @click="goBack"
         >
           Volver
-        </BaseButton>
-        <BaseButton
+        </q-btn>
+        <q-btn
           v-if="step === 2"
-          variant="primary"
+          color="primary"
           :loading="saving"
           @click="confirm"
         >
           Comenzar
-        </BaseButton>
+        </q-btn>
       </div>
 
       <div v-if="loadingPreview" class="loading-overlay" role="status" aria-live="polite">

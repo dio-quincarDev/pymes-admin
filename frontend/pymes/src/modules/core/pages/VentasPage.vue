@@ -20,16 +20,16 @@ const totalSemana = computed(() => {
   const now = new Date();
   const weekAgo = new Date(now.getTime() - 7 * 24 * 60 * 60 * 1000);
   return rows.value
-    .filter((r) => new Date(r.saleDate) >= weekAgo)
-    .reduce((s, r) => s + r.grossAmount, 0);
+    .filter((r) => new Date(r.fecha) >= weekAgo)
+    .reduce((s, r) => s + r.montoBruto, 0);
 });
 
 const totalMes = computed(() => {
   const now = new Date();
   const monthStart = new Date(now.getFullYear(), now.getMonth(), 1);
   return rows.value
-    .filter((r) => new Date(r.saleDate) >= monthStart)
-    .reduce((s, r) => s + r.grossAmount, 0);
+    .filter((r) => new Date(r.fecha) >= monthStart)
+    .reduce((s, r) => s + r.montoBruto, 0);
 });
 
 interface DayGroup {
@@ -42,8 +42,8 @@ interface DayGroup {
 const dayGroups = computed(() => {
   const groups = new Map<string, VentaDiaria[]>();
   for (const v of rows.value) {
-    if (!groups.has(v.saleDate)) groups.set(v.saleDate, []);
-    groups.get(v.saleDate)!.push(v);
+    if (!groups.has(v.fecha)) groups.set(v.fecha, []);
+    groups.get(v.fecha)!.push(v);
   }
   const result: DayGroup[] = [];
   for (const [date, list] of groups) {
@@ -57,7 +57,7 @@ const dayGroups = computed(() => {
       date,
       label,
       items: list,
-      total: list.reduce((s, v) => s + v.grossAmount, 0),
+      total: list.reduce((s, v) => s + v.montoBruto, 0),
     });
   }
   result.sort((a, b) => b.date.localeCompare(a.date));
@@ -86,24 +86,24 @@ const saving = shallowRef(false);
 const formRef = ref<{ validate: () => Promise<boolean> } | null>(null);
 const form = ref<VentaRequest>({
   tenantId: tenantId as string,
-  saleDate: new Date().toISOString().slice(0, 10),
-  grossAmount: 0,
+  fecha: new Date().toISOString().slice(0, 10),
+  montoBruto: 0,
 });
 
-const grossAmountStr = ref('');
+const montoBrutoStr = ref('');
 function onGrossAmountInput(val: string | number | null) {
-  grossAmountStr.value = String(val ?? '')
+  montoBrutoStr.value = String(val ?? '')
     .replace(/[^0-9.]/g, '')
     .replace(/(\..*)\./g, '$1');
 }
 function formatGrossAmount() {
-  const n = parseFloat(grossAmountStr.value);
-  if (!isNaN(n) && grossAmountStr.value) {
-    grossAmountStr.value = n.toLocaleString('en-US', {
+  const n = parseFloat(montoBrutoStr.value);
+  if (!isNaN(n) && montoBrutoStr.value) {
+    montoBrutoStr.value = n.toLocaleString('en-US', {
       minimumFractionDigits: 2,
       maximumFractionDigits: 2,
     });
-    form.value.grossAmount = n;
+    form.value.montoBruto = n;
   }
 }
 function rawAmount(val: number) {
@@ -116,10 +116,10 @@ function openCreate() {
   editingId.value = null;
   form.value = {
     tenantId: tenantId as string,
-    saleDate: new Date().toISOString().slice(0, 10),
-    grossAmount: 0,
+    fecha: new Date().toISOString().slice(0, 10),
+    montoBruto: 0,
   };
-  grossAmountStr.value = '';
+  montoBrutoStr.value = '';
   dialogOpen.value = true;
 }
 
@@ -127,11 +127,11 @@ function openEdit(v: VentaDiaria) {
   editingId.value = v.id;
   form.value = {
     tenantId: v.tenantId,
-    saleDate: v.saleDate,
-    grossAmount: v.grossAmount,
-    description: v.description,
+    fecha: v.fecha,
+    montoBruto: v.montoBruto,
+    descripcion: v.descripcion,
   };
-  grossAmountStr.value = rawAmount(v.grossAmount);
+  montoBrutoStr.value = rawAmount(v.montoBruto);
   dialogOpen.value = true;
 }
 
@@ -243,16 +243,16 @@ function handleKeydown(e: KeyboardEvent) {
 
     <div class="toolbar">
       <q-space />
-      <q-btn v-if="rows.length" color="primary" icon="add" label="Nueva" @click="openCreate" />
+      <q-btn v-if="rows.length" color="primary" icon="sym_r_add" label="Nueva" @click="openCreate" />
     </div>
 
     <div v-if="!loading && !rows.length" class="q-mt-lg">
       <EmptyState
-        icon="point_of_sale"
+        icon="sym_r_point_of_sale"
         title="Sin ventas registradas"
         message="Registra tu primera venta diaria para llevar el control."
       >
-        <q-btn color="primary" icon="add" label="Nueva Venta" @click="openCreate" class="q-mt-sm" />
+        <q-btn color="primary" icon="sym_r_add" label="Nueva Venta" @click="openCreate" class="q-mt-sm" />
       </EmptyState>
     </div>
 
@@ -269,14 +269,14 @@ function handleKeydown(e: KeyboardEvent) {
       </div>
 
       <div v-for="v in group.items" :key="v.id" class="sale-row">
-        <div class="sale-row__desc">{{ v.description || 'Sin descripción' }}</div>
-        <div class="sale-row__amount">{{ formatCurrency(v.grossAmount) }}</div>
+        <div class="sale-row__desc">{{ v.descripcion || 'Sin descripción' }}</div>
+        <div class="sale-row__amount">{{ formatCurrency(v.montoBruto) }}</div>
         <div class="sale-row__actions">
           <q-btn
             flat
             dense
             round
-            icon="edit"
+            icon="sym_r_edit"
             color="primary"
             size="sm"
             @click="openEdit(v)"
@@ -286,7 +286,7 @@ function handleKeydown(e: KeyboardEvent) {
             flat
             dense
             round
-            icon="delete"
+            icon="sym_r_delete"
             color="negative"
             size="sm"
             @click="confirmDelete(v)"
@@ -309,7 +309,7 @@ function handleKeydown(e: KeyboardEvent) {
             <q-input
               dark
               filled
-              v-model="form.saleDate"
+              v-model="form.fecha"
               label="Fecha"
               type="date"
               :rules="[(v) => !!v || 'Requerido']"
@@ -317,7 +317,7 @@ function handleKeydown(e: KeyboardEvent) {
             <q-input
               dark
               filled
-              :model-value="grossAmountStr"
+              :model-value="montoBrutoStr"
               @update:model-value="onGrossAmountInput"
               @blur="formatGrossAmount"
               label="Monto Bruto"
@@ -326,7 +326,7 @@ function handleKeydown(e: KeyboardEvent) {
               prefix="$"
               :rules="[(v) => !!v || 'Requerido']"
             />
-            <q-input dark filled v-model="form.description" label="Descripción" />
+            <q-input dark filled v-model="form.descripcion" label="Descripción" />
             <div class="row justify-end q-gutter-x-sm">
               <q-btn flat label="Cancelar" color="accent" v-close-popup />
               <q-btn type="submit" label="Guardar" color="primary" :loading="saving" />
@@ -341,7 +341,7 @@ function handleKeydown(e: KeyboardEvent) {
         <q-card-section class="row items-center q-gutter-x-md">
           <q-icon name="warning" color="negative" size="md" />
           <span
-            >Eliminar venta del <strong>{{ deletingItem?.saleDate }}</strong
+            >Eliminar venta del <strong>{{ deletingItem?.fecha }}</strong
             >?</span
           >
         </q-card-section>

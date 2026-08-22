@@ -68,6 +68,43 @@ A partir de 2026-07-16, CORS opera en **doble capa**:
 
 ---
 
+## 2026-08-21 — OAuth2 exchange() devuelve user y activeTenant
+
+### Contexto
+
+Después de logout + re-login vía OAuth2 en staging (PWA mobile), el usuario no entraba al tenant sino que se redirigía al MainLayout principal sin contexto de tenant. El fix requería borrar datos de la PWA para poder loguearse again.
+
+### Root cause
+
+`AuthServiceImpl.exchange()` devolvía `AuthResponse(accessToken, refreshToken, null, null)` — sin `user` ni `activeTenant`. El frontend dependía enteramente de un call extra a `GET /users/me` (`fetchCurrentUser()`) para obtener el `tenantId`. Si ese call fallaba (401, CORS, timing), el usuario quedaba sin contexto de tenant y se redirigía al dashboard vacío.
+
+### Qué se hizo
+
+**`AuthServiceImpl.exchange()`** — ahora decodifica el JWT (que ya contiene `userId` y `tenantId` como claims) para buscar user y tenant en DB, y los devuelve en la response:
+
+```java
+UUID userId = jwtService.extractUserId(accessToken);
+UUID tenantId = jwtService.extractTenantId(accessToken);
+UserEntity user = userRepository.findById(userId).orElse(null);
+Tenant tenant = tenantId != null ? tenantRepository.findById(tenantId).orElse(null) : null;
+return new AuthResponse(accessToken, refreshToken, userMapper.toResponse(user), tenantMapper.toResponse(tenant));
+```
+
+### Archivos modificados
+
+```
+backend/auth/src/main/java/auth/pymes/service/impl/AuthServiceImpl.java  # exchange() ahora retorna user + activeTenant
+```
+
+### Verificación
+
+- `./mvnw test -B`: ✅ 141 tests, 0 failures
+- `./mvnw compile -B`: ✅ BUILD SUCCESS
+
+**Estado:** ✅ COMPLETADO
+
+---
+
 ## 2026-08-14 — OAuth2 slug duplicado fix (DuplicateResourceException)
 
 ### Contexto

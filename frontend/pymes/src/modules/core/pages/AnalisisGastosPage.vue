@@ -1,5 +1,5 @@
 <script setup lang="ts">
-import { ref, computed, onMounted } from 'vue'
+import { ref, shallowRef, computed, onMounted } from 'vue'
 import { useQuasar, useMeta } from 'quasar'
 import { useAuthStore } from 'src/modules/auth/store'
 import { useNumberFormat } from 'src/modules/core/composables/useNumberFormat'
@@ -10,6 +10,12 @@ import AnalyticsHeader from 'src/modules/core/components/analytics/AnalyticsHead
 import MetricCard from 'src/modules/core/components/analytics/MetricCard.vue'
 import CategoryBreakdownChart from 'src/modules/core/components/analytics/CategoryBreakdownChart.vue'
 import DataTable from 'src/modules/core/components/analytics/DataTable.vue'
+import AbcGastosChart from '../components/dashboard/AbcGastosChart.vue'
+import PriceTrendSparkline from '../components/dashboard/PriceTrendSparkline.vue'
+import MarginImpactTable from '../components/dashboard/MarginImpactTable.vue'
+import OpexGauge from '../components/dashboard/OpexGauge.vue'
+import ProjectionTimeline from '../components/dashboard/ProjectionTimeline.vue'
+import AlertsPanel from '../components/dashboard/AlertsPanel.vue'
 import SupplierComparisonTable from '../components/dashboard/SupplierComparisonTable.vue'
 import SupplierRecommendationsCard from '../components/dashboard/SupplierRecommendationsCard.vue'
 import PricePredictionsTable from '../components/dashboard/PricePredictionsTable.vue'
@@ -22,11 +28,17 @@ const authStore = useAuthStore()
 const tenantId = authStore.user?.tenantId
 const { formatCurrency } = useNumberFormat()
 
-const { period, setPeriod, recalcular: recalcularAnalytics, loading: analyticsLoading, supplierComparison, supplierRecommendations, pricePrediction } = useAnalytics()
+const {
+  period, setPeriod, recalcular: recalcularAnalytics,
+  loading: analyticsLoading,
+  abc, trend, margin, opexPct, projection, alerts,
+  supplierComparison, supplierRecommendations, pricePrediction,
+} = useAnalytics()
 
 const products = ref<Producto[]>([])
 const setupCategories = ref<SetupCategory[]>([])
 const loading = ref(false)
+const trendTab = shallowRef<'trend' | 'margin'>('trend')
 
 const totalInvestment = computed(() =>
   products.value.reduce((sum, p) => sum + (p.totalInvestment ?? 0), 0)
@@ -78,42 +90,22 @@ const categoryChartItems = computed(() =>
   }))
 )
 
-interface AlertInfo {
-  productName: string
-  type: 'OVER_MAX' | 'BELOW_MIN' | 'NO_PURCHASE'
-  message: string
-}
-
-const alerts = computed<AlertInfo[]>(() => {
-  const result: AlertInfo[] = []
-  const now = new Date()
-  for (const p of products.value) {
-    if (p.maxQuantity != null && (p.totalInvestment ?? 0) > p.maxQuantity) {
-      result.push({ productName: p.name, type: 'OVER_MAX', message: `Excedió presupuesto máximo de $${p.maxQuantity}` })
-    }
-    if (p.minQuantity != null && (p.totalInvestment ?? 0) < p.minQuantity && (p.totalInvestment ?? 0) > 0) {
-      result.push({ productName: p.name, type: 'BELOW_MIN', message: `Debajo del mínimo esperado de $${p.minQuantity}` })
-    }
-    if (p.lastPurchaseDate && (p.totalInvestment ?? 0) > 0) {
-      const days = Math.floor((now.getTime() - new Date(p.lastPurchaseDate).getTime()) / (1000 * 60 * 60 * 24))
-      if (days > 60) {
-        result.push({ productName: p.name, type: 'NO_PURCHASE', message: `Sin compras en los últimos ${days} días` })
-      }
-    }
-  }
-  return result
-})
-
 const tableColumns = [
   { name: 'name', label: 'Producto', field: 'name', align: 'left' as const, sortable: true },
   { name: 'lastUnitPrice', label: 'Últ. Precio Unit.', field: 'lastUnitPrice', align: 'right' as const, sortable: true },
   { name: 'lastPurchaseDate', label: 'Últ. Compra', field: (r: Record<string, unknown>) => r.lastPurchaseDate ? new Date(r.lastPurchaseDate as string).toLocaleDateString() : '—', align: 'center' as const, sortable: true },
-  { name: 'totalInvestment', label: 'Inversión Total', field: 'totalInvestment', align: 'right' as const, sortable: true },
-  { name: 'minQuantity', label: 'Min', field: 'minQuantity', align: 'right' as const, sortable: false, classes: 'hideOnMobile' },
-  { name: 'maxQuantity', label: 'Max', field: 'maxQuantity', align: 'right' as const, sortable: false, classes: 'hideOnMobile' },
+  { name: 'totalInvestment', label: 'Inversión en Productos', field: 'totalInvestment', align: 'right' as const, sortable: true },
 ]
 
 const filter = ref('')
+
+const opexValue = computed(() => {
+  const item = opexPct.value[0]
+  if (!item?.totalSpend) return 0
+  return (item.totalSpend / (item.projectedMonthly || 1)) * 100
+})
+
+const opexProjected = computed(() => opexPct.value[0]?.projectedMonthly ?? 0)
 
 async function load() {
   if (!tenantId) return
@@ -143,9 +135,10 @@ onMounted(() => { if (tenantId) void load() })
       @recalculate="recalcularAnalytics"
     />
 
+    <!-- Vital: siempre visible -->
     <div class="metric-row stagger-children">
       <MetricCard
-        label="Inversión Total"
+        label="Inversión en Productos"
         :value="formatCurrency(totalInvestment)"
         accent="gold"
         :loading="loading"
@@ -181,53 +174,101 @@ onMounted(() => { if (tenantId) void load() })
           title="Top 10 Inversión"
         />
       </div>
+    </div>
 
-      <div class="analysis-grid__side">
-        <div class="alerts-panel">
-          <div class="alerts-panel__header">
-            <div class="alerts-panel__accent" :class="{ 'alerts-panel__accent--danger': alerts.length > 0 }" />
-            <h3 class="alerts-panel__title">Alertas de Precio</h3>
+    <!-- Bajo demanda: 6 motores colapsados -->
+    <div class="expansion-section">
+      <q-expansion-item
+        header-class="expansion-header"
+        dense
+        toggle-class="expansion-toggle"
+        label="Alertas"
+        caption="Variaciones de precio significativas"
+      >
+        <div class="expansion-content">
+          <AlertsPanel :items="alerts" />
+        </div>
+      </q-expansion-item>
+
+      <q-expansion-item
+        header-class="expansion-header"
+        dense
+        toggle-class="expansion-toggle"
+        label="Clasificación ABC"
+        caption="Pareto de gastos por producto"
+      >
+        <div class="expansion-content">
+          <AbcGastosChart :data="abc" :height="300" />
+        </div>
+      </q-expansion-item>
+
+      <q-expansion-item
+        header-class="expansion-header"
+        dense
+        toggle-class="expansion-toggle"
+        label="Precios y márgenes"
+        caption="Tendencias de precio e impacto en márgenes"
+      >
+        <div class="expansion-content">
+          <q-tabs v-model="trendTab" class="q-mb-md" dense no-caps>
+            <q-tab name="trend" label="Tendencias" />
+            <q-tab name="margin" label="Impacto Márgenes" />
+          </q-tabs>
+          <PriceTrendSparkline v-if="trendTab === 'trend'" :items="trend" />
+          <MarginImpactTable v-else :items="margin" />
+        </div>
+      </q-expansion-item>
+
+      <q-expansion-item
+        header-class="expansion-header"
+        dense
+        toggle-class="expansion-toggle"
+        label="Costo del día"
+        caption="Gasto operativo vs proyectado"
+      >
+        <div class="expansion-content">
+          <OpexGauge
+            :value="opexValue"
+            :max="100"
+            :thresholds="{ warning: 70, critical: 85 }"
+          />
+          <div class="text-caption text-accent text-center q-mt-sm">
+            Proy. mensual: {{ formatCurrency(opexProjected) }}
           </div>
-          <div v-if="alerts.length === 0" class="alerts-panel__empty">
-            <q-icon name="check_circle" size="1.5rem" style="color: var(--pq-success)" />
-            Sin alertas activas
-          </div>
-          <div v-for="(a, i) in alerts" :key="i" class="alerts-panel__row">
-            <span class="alerts-panel__badge" :class="`alerts-panel__badge--${a.type.toLowerCase()}`">
-              {{ a.type === 'OVER_MAX' ? '!' : '⚡' }}
-            </span>
-            <div class="alerts-panel__body">
-              <span class="alerts-panel__product">{{ a.productName }}</span>
-              <span class="alerts-panel__message">{{ a.message }}</span>
+        </div>
+      </q-expansion-item>
+
+      <q-expansion-item
+        header-class="expansion-header"
+        dense
+        toggle-class="expansion-toggle"
+        label="Proyección 30/60/90"
+        caption="Tendencia de gastos a futuro"
+      >
+        <div class="expansion-content">
+          <ProjectionTimeline :items="projection" />
+        </div>
+      </q-expansion-item>
+
+      <q-expansion-item
+        header-class="expansion-header"
+        dense
+        toggle-class="expansion-toggle"
+        label="Proveedores"
+        caption="Comparativa, recomendaciones y predicciones"
+      >
+        <div class="expansion-content">
+          <div class="row q-col-gutter-md q-mb-md">
+            <div class="col-12 col-lg-7">
+              <SupplierComparisonTable :items="supplierComparison" :loading="analyticsLoading" />
+            </div>
+            <div class="col-12 col-lg-5">
+              <SupplierRecommendationsCard :items="supplierRecommendations" />
             </div>
           </div>
+          <PricePredictionsTable :items="pricePrediction" :loading="analyticsLoading" />
         </div>
-      </div>
-    </div>
-
-    <div class="section-divider fade-in-up">
-      <div class="section-divider__line" />
-      <div class="section-divider__content">
-        <q-icon name="analytics" size="1.2rem" class="section-divider__icon" />
-        <div>
-          <h2 class="section-divider__title">Análisis de Proveedores</h2>
-          <p class="section-divider__subtitle">Comparativa cross-supplier, recomendaciones y predicciones de precio</p>
-        </div>
-      </div>
-      <div class="section-divider__line" />
-    </div>
-
-    <div class="row q-col-gutter-md q-mb-lg stagger-children">
-      <div class="col-12 col-lg-7">
-        <SupplierComparisonTable :items="supplierComparison" :loading="analyticsLoading" />
-      </div>
-      <div class="col-12 col-lg-5">
-        <SupplierRecommendationsCard :items="supplierRecommendations" />
-      </div>
-    </div>
-
-    <div class="q-mb-lg fade-in-up">
-      <PricePredictionsTable :items="pricePrediction" :loading="analyticsLoading" />
+      </q-expansion-item>
     </div>
   </q-page>
 </template>
@@ -246,159 +287,41 @@ onMounted(() => { if (tenantId) void load() })
 
 .analysis-grid {
   display: grid;
-  grid-template-columns: 1fr 1fr;
+  grid-template-columns: 1fr;
   gap: 24px;
   margin-bottom: 24px;
 
-  @media (max-width: 768px) {
-    grid-template-columns: 1fr;
-  }
-
-  &__main,
-  &__side {
+  &__main {
     display: flex;
     flex-direction: column;
     gap: 24px;
   }
 }
 
-.alerts-panel {
-  background: var(--pq-surface);
+.expansion-section {
+  display: flex;
+  flex-direction: column;
+  gap: 2px;
   border: 1px solid var(--pq-border);
   border-radius: 6px;
-
-  &__header {
-    display: flex;
-    align-items: center;
-    gap: 12px;
-    padding: 16px;
-    border-bottom: 1px solid var(--pq-border);
-  }
-
-  &__accent {
-    width: 3px;
-    height: 16px;
-    border-radius: 2px;
-    background: var(--pq-accent);
-
-    &--danger {
-      background: var(--pq-danger);
-    }
-  }
-
-  &__title {
-    font-family: 'Geist', sans-serif;
-    font-size: 14px;
-    font-weight: 600;
-    color: var(--pq-text);
-    margin: 0;
-  }
-
-  &__empty {
-    display: flex;
-    align-items: center;
-    justify-content: center;
-    gap: 8px;
-    padding: 24px 16px;
-    font-family: 'Satoshi', sans-serif;
-    font-size: 13px;
-    color: var(--pq-success);
-  }
-
-  &__row {
-    display: flex;
-    align-items: flex-start;
-    gap: 10px;
-    padding: 10px 16px;
-    border-bottom: 1px solid rgba(107, 104, 99, 0.06);
-
-    &:last-child {
-      border-bottom: none;
-    }
-  }
-
-  &__badge {
-    display: flex;
-    align-items: center;
-    justify-content: center;
-    width: 20px;
-    height: 20px;
-    border-radius: 4px;
-    font-size: 10px;
-    font-weight: 700;
-    flex-shrink: 0;
-    margin-top: 2px;
-
-    &--over_max {
-      background: rgba(160, 64, 56, 0.15);
-      color: var(--pq-danger);
-    }
-
-    &--below_min,
-    &--no_purchase {
-      background: rgba(184, 134, 11, 0.15);
-      color: var(--pq-warning);
-    }
-  }
-
-  &__body {
-    display: flex;
-    flex-direction: column;
-    gap: 2px;
-    min-width: 0;
-  }
-
-  &__product {
-    font-family: 'Satoshi', sans-serif;
-    font-size: 13px;
-    font-weight: 600;
-    color: var(--pq-text);
-  }
-
-  &__message {
-    font-family: 'Satoshi', sans-serif;
-    font-size: 12px;
-    color: var(--pq-text-muted);
-  }
+  overflow: hidden;
+  background: var(--pq-surface);
 }
 
-.section-divider {
-  display: flex;
-  align-items: center;
-  gap: 16px;
-  margin: 32px 0 24px;
+.expansion-header {
+  font-family: 'Geist', sans-serif;
+  font-size: 14px;
+  font-weight: 600;
+  color: var(--pq-text);
+  min-height: 44px;
+}
 
-  &__line {
-    flex: 1;
-    height: 1px;
-    background: linear-gradient(90deg, transparent, rgba(200, 150, 62, 0.2), transparent);
-  }
+.expansion-toggle {
+  color: var(--pq-accent);
+}
 
-  &__content {
-    display: flex;
-    align-items: center;
-    gap: 10px;
-    flex-shrink: 0;
-  }
-
-  &__icon {
-    color: var(--pq-accent);
-  }
-
-  &__title {
-    font-family: 'Geist', sans-serif;
-    font-size: 18px;
-    font-weight: 700;
-    color: var(--pq-text);
-    margin: 0;
-    line-height: 1.2;
-  }
-
-  &__subtitle {
-    font-family: 'Satoshi', sans-serif;
-    font-size: 12px;
-    color: var(--pq-text-muted);
-    margin: 2px 0 0;
-  }
+.expansion-content {
+  padding: 16px;
+  border-top: 1px solid var(--pq-border);
 }
 </style>

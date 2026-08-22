@@ -160,18 +160,18 @@ function handleKeydown(e: KeyboardEvent) {
         <template v-slot:prepend><q-icon name="search" /></template>
       </q-input>
       <q-space />
-      <q-btn v-if="rows.length" color="primary" icon="add" label="Nuevo" @click="openCreate" />
+      <q-btn v-if="rows.length" color="primary" icon="sym_r_add" label="Nuevo" @click="openCreate" />
     </div>
 
     <div v-if="!loading && !filtrados.length" class="q-mt-lg">
       <EmptyState
-        icon="people"
+        icon="sym_r_people"
         title="Sin proveedores"
         message="Agrega tu primer proveedor para asociarlo a productos y facturas."
       >
         <q-btn
           color="primary"
-          icon="add"
+          icon="sym_r_add"
           label="Nuevo Proveedor"
           @click="openCreate"
           class="q-mt-sm"
@@ -206,7 +206,7 @@ function handleKeydown(e: KeyboardEvent) {
               flat
               dense
               round
-              icon="edit"
+              icon="sym_r_edit"
               color="primary"
               size="sm"
               @click="openEdit(p)"
@@ -216,7 +216,7 @@ function handleKeydown(e: KeyboardEvent) {
               flat
               dense
               round
-              icon="delete"
+              icon="sym_r_delete"
               color="negative"
               size="sm"
               @click="confirmDelete(p)"

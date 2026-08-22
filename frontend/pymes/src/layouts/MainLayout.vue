@@ -38,9 +38,10 @@
     <!-- Header — minimal, institutional -->
     <q-header class="main-header">
       <q-toolbar class="q-px-lg">
-        <BaseButton
-          variant="ghost"
-          icon-left="menu"
+        <q-btn
+          flat
+          color="accent"
+          icon="sym_r_menu"
           class="q-mr-sm"
           aria-label="Abrir menú"
           @click="toggleLeftDrawer"
@@ -149,11 +150,10 @@
         align="justify"
         narrow-indicator
       >
-        <q-route-tab to="/dashboard" icon="dashboard" aria-label="Dashboard" />
-        <q-route-tab to="/dashboard/productos" icon="inventory_2" aria-label="Productos" />
-        <q-route-tab to="/dashboard/facturas" icon="receipt_long" aria-label="Facturas" />
-        <q-route-tab to="/dashboard/prestamos" icon="account_balance" aria-label="Préstamos" />
-        <q-route-tab icon="more_horiz" aria-label="Más" @click="toggleLeftDrawer" />
+        <q-route-tab to="/dashboard" icon="sym_r_dashboard" aria-label="Dashboard" />
+        <q-route-tab to="/dashboard/productos" icon="sym_r_inventory_2" aria-label="Productos" />
+        <q-route-tab to="/dashboard/facturas" icon="sym_r_receipt_long" aria-label="Facturas" />
+        <q-route-tab to="/dashboard/costos" icon="sym_r_money_off" aria-label="Costos" />
       </q-tabs>
     </q-footer>
   </q-layout>
@@ -165,7 +165,6 @@ import { useQuasar } from 'quasar';
 import { useRoute, useRouter } from 'vue-router';
 import { useLogout } from 'src/composables/useLogout';
 import { useAuthStore } from 'src/modules/auth/store';
-import BaseButton from 'src/components/base/BaseButton.vue';
 
 const $q = useQuasar();
 const route = useRoute();
@@ -187,6 +186,7 @@ const mobileTab = computed(() => {
   if (p === '/dashboard') return '/dashboard';
   if (p.startsWith('/dashboard/productos')) return '/dashboard/productos';
   if (p.startsWith('/dashboard/facturas')) return '/dashboard/facturas';
+  if (p.startsWith('/dashboard/costos')) return '/dashboard/costos';
   return '';
 });
 const online = ref(navigator.onLine);
@@ -286,20 +286,16 @@ const navGroups = computed<NavGroup[]>(() => {
       label: 'Análisis',
       items: [
         { title: 'Análisis', icon: 'analytics', path: '/dashboard/analisis-gastos' },
-        { title: 'Ventas', icon: 'point_of_sale', path: '/dashboard/ventas' },
-        { title: 'Patrimonio', icon: 'savings', path: '/dashboard/patrimonio' },
         { title: 'Préstamos', icon: 'account_balance', path: '/dashboard/prestamos' },
       ],
     },
     {
       label: 'Sistema',
       items: [
-        { title: 'Contabilidad', icon: 'balance', path: '/dashboard/accounting' },
         ...(canSeeTeams ? [{ title: 'Equipo', icon: 'groups', path: '/dashboard/teams' }] : []),
-        { title: 'Configuración', icon: 'settings', path: '/dashboard/configuracion' },
       ],
     },
-  ];
+  ].filter(group => group.items.length > 0);
 });
 
 function toggleLeftDrawer() {

@@ -72,9 +72,9 @@ export function useFinancialDashboard() {
       }));
     const ventasItems: ActividadItem[] = ventas.value.map((v) => ({
       type: 'venta' as const,
-      description: v.description || 'Venta del día',
-      amount: v.grossAmount,
-      date: v.saleDate,
+      description: v.descripcion || 'Venta del día',
+      amount: v.montoBruto,
+      date: v.fecha,
     }));
     return [...gastosItems, ...ventasItems]
       .sort((a, b) => new Date(b.date).getTime() - new Date(a.date).getTime())

@@ -13,7 +13,7 @@
     />
     <q-btn
       color="primary"
-      icon="refresh"
+      icon="sym_r_refresh"
       label="Recalcular"
       no-caps
       size="sm"

@@ -13,6 +13,7 @@ import org.springframework.dao.DataIntegrityViolationException;
 import org.springframework.http.HttpStatus;
 import org.springframework.http.ResponseEntity;
 import org.springframework.http.converter.HttpMessageNotReadableException;
+import org.springframework.security.access.AccessDeniedException;
 import org.springframework.web.bind.MethodArgumentNotValidException;
 import org.springframework.web.bind.MissingServletRequestParameterException;
 import org.springframework.web.bind.annotation.ExceptionHandler;
@@ -101,6 +102,15 @@ public class GlobalExceptionHandler {
         }
         return ResponseEntity.status(HttpStatus.CONFLICT)
                 .body(new ErrorResponse(CodigoError.CONSTRAINT_VIOLATION.getCodigo(), userMsg, request.getRequestURI(), HttpStatus.CONFLICT.value()));
+    }
+
+    @ExceptionHandler(AccessDeniedException.class)
+    public ResponseEntity<ErrorResponse> handleAccessDenied(AccessDeniedException ex, HttpServletRequest request) {
+        log.warn("AccessDenied en {}: {}", request.getRequestURI(), ex.getMessage());
+        return ResponseEntity.status(HttpStatus.FORBIDDEN)
+                .body(new ErrorResponse(CodigoError.INSUFFICIENT_PERMISSIONS.getCodigo(),
+                        CodigoError.INSUFFICIENT_PERMISSIONS.getMensaje(),
+                        request.getRequestURI(), HttpStatus.FORBIDDEN.value()));
     }
 
     @ExceptionHandler(EntityNotFoundException.class)

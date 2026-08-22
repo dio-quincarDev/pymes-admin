@@ -47,9 +47,9 @@ Estrategia: eliminar redundancia entre Dashboard (4 KPIs duplicados) y Contabili
 - [x] [Media] **Helper "Pago de salario" en FacturasPage** — tipo `GASTO_OPERATIVO` + colaborador DIARIO + rango de días → total precargado `días × tarifa` (editable) + descripción "Salarios — {nombre}, {rango}". Requiere `FacturaRequest` +`total`/`items` opcional (backend ya lo acepta). → EXPENSES_MODEL_STRATEGY (paso 4) / FRONTEND_PENDIENTES_STRATEGY (Fase 3).
 - [x] [Media] **Dashboard: gastos desde facturas pagadas** — `useFinancialDashboard` lee facturas `GASTO_OPERATIVO` PAGADAS (por categoría) en vez de `operating_expenses`, para coincidir con el motor. Elimina `gastoService.getAll` duplicado. → EXPENSES_MODEL_STRATEGY (paso 6) / FRONTEND_PENDIENTES_STRATEGY (Fase 3). (2026-08-05)
 
-**Fase 4 — Consolidación del Workflow (2026-08-14)**
+**Fase 4 — Consolidación del Workflow (2026-08-17)**
 
-Objetivo: depurar la info visual, quitar redundancias, dejarlo "casi para dummies". Ejecución secuencial: primero workflow, depués tutorial guiado sobre el resultado.
+Objetivo: depurar la info visual, quitar redundancias, dejarlo "casi para dummies" (una pantalla, una pregunta). Ejecución secuencial: primero workflow, depués tutorial guiado sobre el resultado. **Modelo de capas:** Vital (visible) / Bajo demanda (colapsado) / Fuera de UI. Auditoría backend: 6 motores (ABC, tendencias, márgenes, opex, proyección, alertas) calculados pero invisibles → **todos conservados BAJO DEMANDA**. → [`FRONTEND_PENDIENTES_STRATEGY.md`](./frontend/pymes/docs/strategies/FRONTEND_PENDIENTES_STRATEGY.md) (Fase 4 actualizada 2026-08-17)
 
 Estrategia: → [`FRONTEND_PENDIENTES_STRATEGY.md`](./frontend/pymes/docs/strategies/FRONTEND_PENDIENTES_STRATEGY.md) (actualizado con Fase 4)
 
@@ -70,7 +70,7 @@ Estrategia: → [`FRONTEND_PENDIENTES_STRATEGY.md`](./frontend/pymes/docs/strate
 
 - [ ] [Alta] **Renombrar jargon** — GASTO_OPERATIVO→"Gasto", REGISTRADA→"Pendiente", Colaboradores→"Equipo", Margen Operativo→"Ganancia bruta", "costo operativo diario"→"Costo del día", etc.
 - [ ] [Alta] **FacturasPage: separar flujos** — "Gasto rápido" (monto + categoría) vs "Factura con items" (productos + cantidades). No 3 formularios en 1 diálogo de 989 líneas.
-- [ ] [Media] **AnalisisGastosPage: supplier analysis → sub-sección colapsable** — Comparison, recommendations, predictions visibles por defecto overwhelming. Colapsar, mostrar por defecto solo inversion + alerts.
+- [ ] [Media] **AnalisisGastosPage: todo lo no-vital colapsado** — Supplier (comparativa/recomendaciones/predicciones) + los 6 motores del backend (ABC, tendencias, impacto márgenes, costo operativo, proyección, alertas) quedan BAJO DEMANDA (`q-expansion-item`). Default solo inversión + categorías + top productos. Reemplazar alertas locales por el motor `alerts` del backend. → FRONTEND_PENDIENTES_STRATEGY (Fase 4, Sección 3).
 - [ ] [Media] **CostosPage: Config tab → inline** — 1 input ("días laborales") no justifica un tab completo. Mover a inline o sección dentro de la página.
 - [ ] [Baja] **Eliminar ConfiguracionPage como ruta** — Read-only, 85 líneas, sin edición. Mover a menú de usuario o sección del dashboard.
 
