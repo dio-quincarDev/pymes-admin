@@ -251,7 +251,6 @@ Caddy corre HTTP puro en :80 (sin TLS). TLS termina en Cloudflare. No usar `http
 | Puerto | Protocolo | Descripcion |
 |--------|-----------|-------------|
 | 22 | TCP | SSH |
-| 80 | TCP | HTTP (Caddy) |
-| 443 | TCP | HTTPS (Caddy — Let's Encrypt) |
+| 80 | TCP | HTTP (OCI LB → Caddy) |
 
-> Los puertos 8080, 8081, 8082, 9200 **no** se exponen públicamente.
+> Los puertos 443, 8080, 8081, 8082, 9200 **no** deben estar abiertos.

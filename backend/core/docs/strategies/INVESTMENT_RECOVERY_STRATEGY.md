@@ -66,7 +66,7 @@ meses             = plata a recuperar ÷ ganancia mensual
 3. ✅ **Tests**:
    - `AnalyticsServiceImplTest`: 4 casos (rojo → crítica, verde → expansión, amarillo → solo recomendación, deuda ACTIVA suma al tiempo).
    - `ModeloGastosIntegrationTest`: `paybackRecovery_perdidaSeActiva` (crítica con margen negativo) + `paybackRecovery_deudaActivaSumaAlTiempo` (deuda ACTIVA suma, `current=0.50`).
-4. ✅ **Docs**: actualizadas — TO_DO, esta estrategia, COSTOS_ENGINE.md changelog, DAYLY_REPORTS_CORE_SOLUTIONS.md, EXPENSES_MODEL_STRATEGY.md §7b.
+4. ✅ **Docs**: actualizadas — TO_DO, esta estrategia, COSTOS_ENGINE.md changelog, DAILY_REPORTS_CORE_SOLUTIONS.md, EXPENSES_MODEL_STRATEGY.md §7b.
 
 ## Fuera de alcance
 
@@ -81,4 +81,4 @@ meses             = plata a recuperar ÷ ganancia mensual
 - `backend/core/src/main/java/core_pymes/prestamo/repository/PrestamoRepository.java`
 - `backend/core/src/main/java/core_pymes/inversion/service/impl/PatrimonioServiceImpl.java` (solo lectura, ya existe)
 - Tests: `backend/core/src/test/java/core_pymes/analytics/service/impl/AnalyticsServiceImplTest.java`, `backend/core/src/test/java/core_pymes/integration/ModeloGastosIntegrationTest.java`
-- Docs: `DAYLY_REPORTS_CORE_SOLUTIONS.md`, `TO_DO.md`, `COSTOS_ENGINE.md`, `EXPENSES_MODEL_STRATEGY.md`
+- Docs: `DAILY_REPORTS_CORE_SOLUTIONS.md`, `TO_DO.md`, `COSTOS_ENGINE.md`, `EXPENSES_MODEL_STRATEGY.md`
