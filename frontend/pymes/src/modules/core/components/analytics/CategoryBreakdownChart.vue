@@ -1,6 +1,8 @@
 <script setup lang="ts">
 import { computed } from 'vue';
 import { useNumberFormat } from 'src/modules/core/composables/useNumberFormat';
+import { useChartTheme } from 'src/modules/core/composables/useChartTheme';
+import BaseChart from 'src/modules/core/components/charts/BaseChart.vue';
 
 interface CategoryBreakdownItem {
   category: string;
@@ -19,56 +21,77 @@ interface Props {
 const props = withDefaults(defineProps<Props>(), {
   loading: false,
   empty: false,
-  maxItems: 5,
+  maxItems: 8,
 });
 
 const { formatCurrency } = useNumberFormat();
+const { colors } = useChartTheme();
 
-const displayItems = computed(() => {
+const chartData = computed(() => {
   const items = props.items.slice(0, props.maxItems);
-  const othersTotal = props.items
-    .slice(props.maxItems)
-    .reduce((sum, item) => sum + item.currentAmount, 0);
-  if (othersTotal > 0) {
-    const othersPrevTotal = props.items
-      .slice(props.maxItems)
-      .reduce((sum, item) => sum + (item.previousAmount ?? 0), 0);
-    const totalCurrent = props.items.reduce((s, i) => s + i.currentAmount, 0);
-    items.push({
-      category: 'Otros',
-      currentAmount: othersTotal,
-      previousAmount: othersPrevTotal || undefined,
-      percentage: totalCurrent > 0 ? (othersTotal / totalCurrent) * 100 : 0,
-    });
-  }
-  return items;
+  return {
+    labels: items.map(i => i.category),
+    datasets: [
+      {
+        data: items.map(i => i.currentAmount),
+        backgroundColor: colors.value.bar,
+        borderColor: colors.value.bar,
+        borderWidth: 0,
+        borderRadius: 3,
+        barThickness: 16,
+      },
+    ],
+  };
 });
 
-const maxAmount = computed(() =>
-  Math.max(
-    ...displayItems.value.map((i) => Math.max(i.currentAmount, i.previousAmount ?? 0)),
-    1,
-  ),
-);
-
-function barWidth(amount: number) {
-  return `${(amount / maxAmount.value) * 100}%`;
-}
+const chartOptions = computed(() => ({
+  responsive: true,
+  maintainAspectRatio: false,
+  indexAxis: 'y' as const,
+  plugins: {
+    legend: { display: false },
+    tooltip: {
+      callbacks: {
+        // eslint-disable-next-line @typescript-eslint/no-explicit-any
+        label: (context: any) => {
+          const value = context.parsed?.x ?? 0;
+          const item = props.items[context.dataIndex];
+          const pct = item ? `${item.percentage.toFixed(1)}%` : '';
+          return `${formatCurrency(value)} (${pct})`;
+        },
+      },
+    },
+  },
+  scales: {
+    x: {
+      beginAtZero: true,
+      grid: { color: colors.value.grid },
+      ticks: {
+        callback: (value: number | string) => formatCurrency(Number(value)),
+      },
+    },
+    y: {
+      grid: { display: false },
+      ticks: {
+        font: { family: "'Satoshi', sans-serif", size: 12 },
+      },
+    },
+  },
+}));
 </script>
 
 <template>
   <div class="cat-chart">
     <template v-if="loading">
-      <div v-for="i in 5" :key="i" class="cat-chart__row">
-        <div class="skeleton skeleton-text" style="width: 80px; height: 12px" />
-        <div class="cat-chart__track">
+      <div class="cat-chart__skeleton">
+        <div v-for="i in 5" :key="i" class="cat-chart__skeleton-row">
+          <div class="skeleton" style="width: 80px; height: 12px" />
           <div class="skeleton" :style="{ width: `${60 - i * 8}%`, height: '6px' }" />
         </div>
-        <div class="skeleton skeleton-text" style="width: 60px; height: 12px" />
       </div>
     </template>
 
-    <template v-else-if="empty || displayItems.length === 0">
+    <template v-else-if="empty || items.length === 0">
       <div class="cat-chart__empty">
         <q-icon name="bar_chart" size="32px" style="color: var(--pq-text-subtle)" aria-hidden="true" />
         <p>No hay gastos en este período</p>
@@ -76,109 +99,33 @@ function barWidth(amount: number) {
     </template>
 
     <template v-else>
-      <div
-        v-for="item in displayItems"
-        :key="item.category"
-        class="cat-chart__row"
-        :aria-label="`${item.category}: ${formatCurrency(item.currentAmount)}, ${item.percentage.toFixed(1)}%`"
-      >
-        <span class="cat-chart__name">{{ item.category }}</span>
-        <div class="cat-chart__track">
-          <!-- Previous period overlay -->
-          <div
-            v-if="item.previousAmount"
-            class="cat-chart__bar cat-chart__bar--prev"
-            :style="{ width: barWidth(item.previousAmount) }"
-          />
-          <!-- Current period bar -->
-          <div
-            class="cat-chart__bar cat-chart__bar--current"
-            :style="{ width: barWidth(item.currentAmount) }"
-          />
-        </div>
-        <div class="cat-chart__meta">
-          <span class="cat-chart__amount">{{ formatCurrency(item.currentAmount) }}</span>
-          <span class="cat-chart__pct">{{ item.percentage.toFixed(0) }}%</span>
-        </div>
-      </div>
+      <BaseChart
+        type="bar"
+        :data="chartData"
+        :options="chartOptions"
+        :height="Math.max(200, items.length * 40)"
+      />
     </template>
   </div>
 </template>
 
 <style scoped lang="scss">
 .cat-chart {
-  display: flex;
-  flex-direction: column;
-  gap: 12px;
+  background: var(--pq-surface);
+  border: 1px solid var(--pq-border);
+  border-radius: 8px;
+  padding: 16px;
 
-  &__row {
+  &__skeleton {
     display: flex;
-    align-items: center;
+    flex-direction: column;
     gap: 12px;
   }
 
-  &__name {
-    font-family: 'Satoshi', sans-serif;
-    font-size: 13px;
-    font-weight: 500;
-    color: var(--pq-text);
-    width: 110px;
-    flex-shrink: 0;
-    white-space: nowrap;
-    overflow: hidden;
-    text-overflow: ellipsis;
-  }
-
-  &__track {
-    flex: 1;
-    height: 6px;
-    background: var(--pq-surface);
-    border-radius: 3px;
-    overflow: hidden;
-    position: relative;
-    max-width: 600px;
-  }
-
-  &__bar {
-    height: 100%;
-    border-radius: 3px;
-    position: absolute;
-    left: 0;
-    top: 0;
-    transition: width 300ms cubic-bezier(0.4, 0, 0.2, 1);
-
-    &--current {
-      background: var(--pq-accent);
-      z-index: 2;
-    }
-
-    &--prev {
-      background: var(--pq-text-muted);
-      opacity: 0.2;
-      z-index: 1;
-    }
-  }
-
-  &__meta {
+  &__skeleton-row {
     display: flex;
-    flex-direction: column;
-    align-items: flex-end;
-    width: 90px;
-    flex-shrink: 0;
-  }
-
-  &__amount {
-    font-family: 'Geist Mono', monospace;
-    font-size: 12px;
-    font-weight: 500;
-    color: var(--pq-text-muted);
-    font-variant-numeric: tabular-nums;
-  }
-
-  &__pct {
-    font-family: 'Geist Mono', monospace;
-    font-size: 11px;
-    color: var(--pq-text-subtle);
+    align-items: center;
+    gap: 12px;
   }
 
   &__empty {

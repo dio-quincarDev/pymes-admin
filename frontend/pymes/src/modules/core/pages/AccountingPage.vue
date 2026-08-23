@@ -44,7 +44,7 @@ const kpis = computed(() => {
   if (!m) return []
   return [
     {
-      label: 'Margen Operativo',
+      label: 'Ganancia bruta',
       value: formatPercent(m.margenOperativoPct),
       delta: p ? deltaPct(m.margenOperativoPct, p.margenOperativoPct) : undefined,
       deltaLabel: 'vs mes anterior',
@@ -148,7 +148,7 @@ onMounted(() => { if (tenantId) void load() })
           <span class="summary-card__item-value">-{{ formatCurrency(data.costoMercaderia) }}</span>
         </div>
         <div class="summary-card__item">
-          <span class="summary-card__item-label">Gastos Operativos</span>
+          <span class="summary-card__item-label">Gastos operativos</span>
           <span class="summary-card__item-value">-{{ formatCurrency(data.gastosOperativos) }}</span>
         </div>
         <div class="summary-card__item">

@@ -13,7 +13,7 @@
           <q-icon name="group_add" color="positive" size="4rem" class="q-mb-md" />
           <div class="text-h6" style="color: var(--pq-text);">¡Bienvenido al Equipo!</div>
           <p style="color: var(--pq-text-muted);" class="q-mt-sm">Ahora eres parte de <strong>{{ invitationInfo?.tenantName }}</strong>.</p>
-          <BaseButton
+          <q-btn
             label="IR AL PANEL DE CONTROL"
             class="full-width q-mt-md"
             size="lg"
@@ -25,9 +25,9 @@
           <q-icon name="error" color="negative" size="4rem" class="q-mb-md" />
           <div class="text-h6" style="color: var(--pq-danger);">Error de Invitación</div>
           <p style="color: var(--pq-text-muted);" class="q-mt-sm">{{ errorMessage }}</p>
-          <BaseButton variant="ghost" class="q-mt-md" @click="$router.push('/login')">
+          <q-btn flat color="accent" class="q-mt-md" @click="$router.push('/login')">
             Volver al Login
-          </BaseButton>
+          </q-btn>
         </div>
 
         <template v-else-if="invitationInfo">
@@ -38,7 +38,7 @@
               Esta invitación es para <strong>{{ invitationInfo.email }}</strong>,<br>
               pero estás logueado como <strong>{{ authStore.user?.email }}</strong>.
             </p>
-            <BaseButton
+            <q-btn
               label="CERRAR SESIÓN Y REGISTRARME"
               class="full-width q-mt-md"
               size="lg"
@@ -46,25 +46,25 @@
               :loading="loading"
               @click="onLogoutAndRegister"
             />
-            <BaseButton variant="ghost" class="q-mt-md" @click="$router.push('/')">
+            <q-btn flat color="accent" class="q-mt-md" @click="$router.push('/')">
               Cancelar
-            </BaseButton>
+            </q-btn>
           </div>
 
           <div v-else-if="authStore.isAuthenticated" class="text-center q-py-md">
             <p class="text-body2 q-mb-md" style="color: var(--pq-text-muted);">
               Invitado como <strong>{{ invitationInfo.email }}</strong>
             </p>
-            <BaseButton
+            <q-btn
               label="ACEPTAR Y UNIRME AL EQUIPO"
               class="full-width"
               size="lg"
               :loading="loading"
               @click="onAccept"
             />
-            <BaseButton variant="ghost" class="q-mt-md" @click="$router.push('/')">
+            <q-btn flat color="accent" class="q-mt-md" @click="$router.push('/')">
               Cancelar
-            </BaseButton>
+            </q-btn>
           </div>
 
           <div v-else class="q-py-md">
@@ -111,7 +111,7 @@
                 dense
                 :rules="[val => val === form.password || 'Las contraseñas no coinciden']"
               />
-              <BaseButton
+              <q-btn
                 label="CREAR CUENTA Y UNIRME"
                 class="full-width"
                 size="lg"
@@ -119,9 +119,9 @@
                 :loading="loading"
               />
             </q-form>
-            <BaseButton variant="ghost" class="q-mt-md full-width" @click="$router.push('/login')">
+            <q-btn flat color="accent" class="q-mt-md full-width" @click="$router.push('/login')">
               Ya tengo cuenta — Iniciar sesión
-            </BaseButton>
+            </q-btn>
           </div>
         </template>
       </BaseCard>
@@ -136,7 +136,6 @@ import { invitationService } from '../services/invitation.service';
 import { useAuthStore } from '../store';
 import { useQuasar } from 'quasar';
 import BaseCard from 'src/components/base/BaseCard.vue';
-import BaseButton from 'src/components/base/BaseButton.vue';
 import SkeletonLoader from 'src/components/ui/SkeletonLoader.vue';
 import type { ApiResponse, InvitationInfo, AuthResponse } from '../types';
 

@@ -4,38 +4,31 @@ Registro cronológico de decisiones técnicas, refactors y post-mortems del proy
 
 ---
 
-## 2026-08-11 — Fix 403 Invalid CORS request + fix de actualización PWA
+## 2026-08-13 — Sync feature/core ← develop + docs de infra al día
 
 ### Contexto
 
-Dos bugs en vivo en staging/prod `pymeq.dioquincar.dev`:
-
-1. **CORS**: POST reales devolvían 403 "Invalid CORS request" (preflight OPTIONS pasaba). Hipótesis previa de bloques YAML duplicados descartada.
-2. **PWA**: solo funcionaba la versión nueva en incógnito; en ventana normal se servía el bundle viejo para siempre.
+`feature/core` estaba desactualizado (8 commits atrás de `develop`). Se hizo `git merge develop` con resolución manual de conflictos y se pusieron al día los docs de infraestructura.
 
 ### Qué se hizo
 
-**CORS (causa raíz — perfil Maven `dev` horneado):**
-- `docker-compose.yml`: auth + gateway → `SPRING_PROFILES_ACTIVE=${SPRING_PROFILES_ACTIVE:-stg}`.
-- `application-stg.yaml:26`: `allowed-origins: "${CORS_ALLOWED_ORIGINS:http://localhost:9200}"`.
-- `cd-staging.yml` / `cd-prod.yml`: inyectan `SPRING_PROFILES_ACTIVE` (secret) al `.env` del server junto a `CORS_ALLOWED_ORIGINS`.
-- Verificado con curl: OPTIONS 200 + ACAO correcto, POST sin 403.
+**Merge develop → feature/core:**
+- Conflicto resuelto en `backend/auth/README.md` (env vars table): se fusionó la descripción detallada de `APP_FRONTEND_URL` de feature/core + filas nuevas de develop (`OAUTH2_REDIRECT_URI`, `FACEBOOK_*`).
 
-**PWA (cache immutable en `sw.js`):**
-- `nginx.conf`: la regex `\.(js)$` con `expires 1y; immutable` capturaba `sw.js` → 1 año de cache immutable → el browser nunca detectaba el SW nuevo.
-- Fix: `location ^~ /sw.js` con `no-cache, no-store, must-revalidate` (el `^~` lo excluye de la regex) + `Cache-Control: no-cache` en `location /` (index.html).
-- Eliminado el bloque muerto `location /service-worker.js` (el SW real es `sw.js`).
+**Redes Docker renombradas:**
+- `pymes-global-network` (Nginx Proxy Manager) → **`proxy-caddy-network`** (Caddy). `setup-server.sh` y doc infra desactualizados corregidos en `.github/` + `docs/strategies/INFRA_STRATEGY.md`.
 
-### Docs actualizados
+**Docs actualizados:**
+- `docs/strategies/INFRA_STRATEGY.md`: sección producción alineada al deploy real (Caddy HTTPS + Let's Encrypt en 80/443, no Cloudflare HTTP-only), redes corregidas, lista de secrets completa.
+- `.github/SECRETS.md`: +`APP_FRONTEND_URL`, +`SPRING_MAIL_HOST/PORT`, +`SPRING_PROFILES_ACTIVE_STAGING/PROD`; CORS examples al dominio real; security list corregida (22/80/443).
+- Daily reports de servicios: entries de deploy agregados.
 
-```
-backend/auth/docs/DAILY_REPORTS_AUTH_SOLUTIONS.md   → entrada 2026-08-11 + nota en Estrategia CORS
-backend/gateway-pymes/README.md                      → Known Issues: CORS resuelto (dead link GATEWAY-DOC.md eliminado)
-backend/gateway-pymes/docs/DAILY_REPORTS_GATEWAY_SOLUTIONS.md → entrada 2026-08-11
-frontend/pymes/docs/PWA_OFFLINE.md                   → fila nginx SW corregida + nota
-frontend/pymes/docs/DAILY_REPORTS_FRONTEND.md        → entrada 2026-08-11
-README.md                                            → Known Issues: CORS resuelto
-```
+### Deploy fixes documentados (de develop, 2026-08-10/11)
+
+- `workflow_run.head_sha` como base del version tag (antes `GITHUB_SHA=main` daba tags de rama equivocada).
+- `SPRING_PROFILES_ACTIVE` inyectado a staging/prod en CD.
+- `nginx.conf`: `sw.js` con `no-cache` (antes matcheaba la regla `immutable` de `.js`) + `/` con `no-cache`.
+- CORS con fallback `http://localhost:9200` en `application-stg.yaml`.
 
 **Estado:** ✅ COMPLETADO
 

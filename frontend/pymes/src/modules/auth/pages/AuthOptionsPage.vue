@@ -31,7 +31,7 @@
       </div>
 
       <div class="q-mt-xl">
-        <q-btn flat label="Volver a editar empresa" color="accent" icon="arrow_back" @click="router.push('/')" no-caps />
+        <q-btn flat label="Volver a editar empresa" color="accent" icon="sym_r_arrow_back" @click="router.push('/')" no-caps />
       </div>
     </div>
   </q-page>
@@ -52,7 +52,9 @@ const goToRegister = () => {
 
 const loginWithGoogle = () => {
   // El gateway maneja la redirección a OAuth2
-  window.location.href = `${window.location.origin}/oauth2/authorization/google`;
+  const apiUrl = import.meta.env.VITE_API_URL?.trim();
+  const gatewayBase = (apiUrl && apiUrl !== '') ? apiUrl.replace('/api/v1', '') : window.location.origin;
+  window.location.href = `${gatewayBase}/oauth2/authorization/google`;
 };
 </script>
 

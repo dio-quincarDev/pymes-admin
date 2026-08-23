@@ -20,7 +20,6 @@ export default defineConfig((ctx) => {
     // https://github.com/quasarframework/quasar/tree/dev/extras
     extras: [
       'ionicons-v4',
-      'material-icons',
 
       'roboto-font-latin-ext',
 
@@ -49,7 +48,10 @@ export default defineConfig((ctx) => {
 
       // publicPath: '/',
       // analyze: true,
-      // env: {},
+      // ponytail: build-time SW cache-buster — computed here, no env/secret needed
+      env: {
+        SW_BUILD_TIME: String(Date.now()),
+      },
       // rawDefine: {}
       // ignorePublicFolder: true,
       // minify: false,
@@ -109,9 +111,7 @@ export default defineConfig((ctx) => {
 
     // https://v2.quasar.dev/quasar-cli-vite/quasar-config-file#framework
     framework: {
-      config: {},
-
-      // iconSet: 'material-icons', // Quasar icon set
+      iconSet: 'material-symbols-rounded',
       // lang: 'en-US', // Quasar language pack
 
       // For special cases outside of where the auto-import strategy can have an impact
@@ -126,6 +126,7 @@ export default defineConfig((ctx) => {
         'Notify',
         'Loading',
         'LoadingBar',
+        'Dialog',
       ],
     },
 

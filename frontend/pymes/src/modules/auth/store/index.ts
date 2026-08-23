@@ -52,6 +52,7 @@ export const useAuthStore = defineStore('auth', {
           ? { ...data.user, tenantId: data.activeTenant.id }
           : data.user;
         this.setSession(data.accessToken, data.refreshToken, user, data.activeTenant?.name);
+        await this.fetchCurrentUser();
         return data;
       } catch (err: unknown) {
         const errorMessage = err instanceof Error ? err.message : 'Error en la autenticación';
@@ -109,12 +110,19 @@ export const useAuthStore = defineStore('auth', {
       }
     },
 
-    async handleOAuthCallback(token: string, refreshToken: string, tenantName?: string) {
-      this.accessToken = token;
-      this.tenantName = tenantName ?? null;
-      localStorage.setItem('pymeq_token', token);
-      localStorage.setItem('pymeq_refresh_token', refreshToken);
-      if (tenantName) localStorage.setItem('pymeq_tenant_name', tenantName);
+    async handleOAuthCallback(token: string, refreshToken: string, user?: User | null, activeTenant?: { id: string; name: string } | null) {
+      if (user) {
+        const resolvedUser = activeTenant?.id
+          ? { ...user, tenantId: activeTenant.id }
+          : user;
+        this.setSession(token, refreshToken, resolvedUser, activeTenant?.name);
+      } else {
+        this.accessToken = token;
+        this.tenantName = activeTenant?.name ?? null;
+        localStorage.setItem('pymeq_token', token);
+        localStorage.setItem('pymeq_refresh_token', refreshToken);
+        if (activeTenant?.name) localStorage.setItem('pymeq_tenant_name', activeTenant.name);
+      }
       await this.fetchCurrentUser();
     },
 
@@ -126,6 +134,7 @@ export const useAuthStore = defineStore('auth', {
         localStorage.setItem('pymeq_user', JSON.stringify(this.user));
       } catch {
         this.clearSession();
+        window.location.href = '#/login';
       }
     },
 
@@ -139,6 +148,7 @@ export const useAuthStore = defineStore('auth', {
           ? { ...data.user, tenantId: data.activeTenant.id }
           : data.user;
         this.setSession(data.accessToken, data.refreshToken, user, data.activeTenant?.name);
+        await this.fetchCurrentUser();
         return data;
       } catch (err: unknown) {
         const errorMessage = err instanceof Error ? err.message : 'Error al seleccionar tenant';
@@ -188,16 +198,20 @@ export const useAuthStore = defineStore('auth', {
       this.user = null;
       this.accessToken = null;
       this.tenantName = null;
+      this.pendingTenant = null;
       localStorage.removeItem('pymeq_token');
       localStorage.removeItem('pymeq_refresh_token');
       localStorage.removeItem('pymeq_user');
       localStorage.removeItem('pymeq_tenant_name');
+      localStorage.removeItem('pymeq_pending_tenant');
       delete api.defaults.headers.common['Authorization'];
-      window.location.href = '#/login';
     }
   },
 });
 
 if (typeof window !== 'undefined') {
-  window.addEventListener('auth:401', () => useAuthStore().clearSession());
+  window.addEventListener('auth:401', () => {
+    useAuthStore().clearSession();
+    window.location.href = '#/login';
+  });
 }

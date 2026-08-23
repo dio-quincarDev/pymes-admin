@@ -12,6 +12,19 @@
 
 Estrategia de cierre: → [`FRONTEND_PENDIENTES_STRATEGY.md`](./frontend/pymes/docs/strategies/FRONTEND_PENDIENTES_STRATEGY.md)
 
+**Fase 6 — Amortización de Préstamos** (pendiente)
+
+Estrategia completa: → [`AMORTIZACION_PRESTAMOS_STRATEGY.md`](./strategies/AMORTIZACION_PRESTAMOS_STRATEGY.md)
+
+- [ ] [Alta] **Amortización francesa en `utils/prestamo.ts`** — cuota constante con fórmula estándar. Skipped: `interesTotal`/`totalConInteres` se mantienen para display.
+- [ ] [Alta] **Backend: `registrarPago` con amortización automática** — interés primero sobre saldo, excedente a capital. Skipped: endpoint directo se mantiene por backward compat.
+- [ ] [Alta] **Migración V2: `loan_id` en invoices** — vínculo préstamo-factura. Skipped: tabla `loan_payments.invoice_id` innecesaria.
+- [ ] [Alta] **Tipo `PAGO_PRESTAMO` en facturas** — nueva categoría de factura sin items, ligada a préstamo. Listener amortiza al marcar PAGADA.
+- [ ] [Alta] **Métricas: `loan_pay` = `interest_paid`** — solo interés como gasto en `pagosPrestamos`.
+- [ ] [Media] **Frontend: PrestamosPage crea factura + paga** — flujo de pago vía factura PAGADA.
+- [ ] [Media] **Frontend: FacturasPage acepta `PAGO_PRESTAMO`** — nuevo tipo en select.
+- [ ] [Baja] **Tests: actualizar `FacturaServiceImplTest`** — 9 llamadas `FacturaRequest` con nuevo campo `null`.
+
 **Fase 1 — Quick wins (riesgo ~0)** ✅ CERRADO (2026-08-04)
 
 - [x] [Baja] **Deprecar GastosPage** — banner + enlace a CostosPage → Gastos Fijos + sacar de la bottom nav mobile. Ruta redirige a `/dashboard/costos?tab=gastosFijos`. → EXPENSES_MODEL_STRATEGY (paso 5) / FRONTEND_PENDIENTES_STRATEGY (Fase 1). (2026-08-04)
@@ -34,10 +47,42 @@ Estrategia: eliminar redundancia entre Dashboard (4 KPIs duplicados) y Contabili
 - [x] [Media] **Helper "Pago de salario" en FacturasPage** — tipo `GASTO_OPERATIVO` + colaborador DIARIO + rango de días → total precargado `días × tarifa` (editable) + descripción "Salarios — {nombre}, {rango}". Requiere `FacturaRequest` +`total`/`items` opcional (backend ya lo acepta). → EXPENSES_MODEL_STRATEGY (paso 4) / FRONTEND_PENDIENTES_STRATEGY (Fase 3).
 - [x] [Media] **Dashboard: gastos desde facturas pagadas** — `useFinancialDashboard` lee facturas `GASTO_OPERATIVO` PAGADAS (por categoría) en vez de `operating_expenses`, para coincidir con el motor. Elimina `gastoService.getAll` duplicado. → EXPENSES_MODEL_STRATEGY (paso 6) / FRONTEND_PENDIENTES_STRATEGY (Fase 3). (2026-08-05)
 
-**Diferido (post-MVP)**
+**Fase 4 — Consolidación del Workflow (2026-08-17)**
 
-- [ ] [Alta] **Tour guiado con Driver.js** — guía de bienvenida al dashboard post-onboarding (4-5 pasos: sidebar, período, métricas, quick actions, perfil). Disparo único vía localStorage. Botón "Ayuda" en header para reiniciar. (2026-07) → FRONTEND_PENDIENTES_STRATEGY (Diferido).
-- [ ] [Alta] **Dashboard UI polish** — animaciones de entrada más pulidas, hover states en stat strip, empty states más expresivos, responsive tuning. → FRONTEND_PENDIENTES_STRATEGY (Diferido).
+Objetivo: depurar la info visual, quitar redundancias, dejarlo "casi para dummies" (una pantalla, una pregunta). Ejecución secuencial: primero workflow, depués tutorial guiado sobre el resultado. **Modelo de capas:** Vital (visible) / Bajo demanda (colapsado) / Fuera de UI. Auditoría backend: 6 motores (ABC, tendencias, márgenes, opex, proyección, alertas) calculados pero invisibles → **todos conservados BAJO DEMANDA**. → [`FRONTEND_PENDIENTES_STRATEGY.md`](./frontend/pymes/docs/strategies/FRONTEND_PENDIENTES_STRATEGY.md) (Fase 4 actualizada 2026-08-17)
+
+Estrategia: → [`FRONTEND_PENDIENTES_STRATEGY.md`](./frontend/pymes/docs/strategies/FRONTEND_PENDIENTES_STRATEGY.md) (actualizado con Fase 4)
+
+**4a — Dashboard: quitar ruido**
+
+- [ ] [Alta] **Eliminar QuickActions** — 2 de 3 acciones duplican sidebar, emit `exportar` muerto (nadie lo escucha en DashboardPage). Código muerto total.
+- [ ] [Alta] **Colapsar 3 KPIs de margen → 1 "Ganancia del mes"** — Margen Bruto, Operativo y Neto son 3 derivados del mismo dato. Un solo número: ganancia neta con delta vs mes anterior. Reduce KPI row de 7 a 5 cards.
+- [ ] [Alta] **Eliminar sparklines** — `sparkline()` produce `[prev, cur]` (2 puntos). Línea entre 2 puntos no es trend, es ruido visual. El delta % ya comunica dirección + magnitud. Eliminar SVG rendering innecesario.
+- [ ] [Media] **Merge RecentActivity + PendingInvoices → 1 panel "Actividad"** — Mismo tipo de info (lista cronológica con montos y fechas). Dos paneles = doble scroll, mismo tipo cognitivo.
+- [ ] [Media] **Extraer CSS duplicado → clases globales** — skeleton, section-title, empty-state, list-row copiados 4 veces (~200 líneas). Mover a `app.scss`.
+
+**4b — Navegación: reducir 12 → ~7 items**
+
+- [ ] [Alta] **Fusionar sidebar** — "Análisis" absorbe "Ventas" y "Patrimonio" (ya son sub-secciones). "Contabilidad" → folded into Dashboard o Análisis. "Configuración" → accessible desde menú de usuario, no como ruta sidebar.
+- [ ] [Media] **Bottom nav mobile** — Actualizar items: Dashboard, Productos, Facturas, Costos (reemplaza Préstamos).
+
+**4c — Páginas: jargon + estructura**
+
+- [ ] [Alta] **Renombrar jargon** — GASTO_OPERATIVO→"Gasto", REGISTRADA→"Pendiente", Colaboradores→"Equipo", Margen Operativo→"Ganancia bruta", "costo operativo diario"→"Costo del día", etc.
+- [ ] [Alta] **FacturasPage: separar flujos** — "Gasto rápido" (monto + categoría) vs "Factura con items" (productos + cantidades). No 3 formularios en 1 diálogo de 989 líneas.
+- [ ] [Media] **AnalisisGastosPage: todo lo no-vital colapsado** — Supplier (comparativa/recomendaciones/predicciones) + los 6 motores del backend (ABC, tendencias, impacto márgenes, costo operativo, proyección, alertas) quedan BAJO DEMANDA (`q-expansion-item`). Default solo inversión + categorías + top productos. Reemplazar alertas locales por el motor `alerts` del backend. → FRONTEND_PENDIENTES_STRATEGY (Fase 4, Sección 3).
+- [ ] [Media] **CostosPage: Config tab → inline** — 1 input ("días laborales") no justifica un tab completo. Mover a inline o sección dentro de la página.
+- [ ] [Baja] **Eliminar ConfiguracionPage como ruta** — Read-only, 85 líneas, sin edición. Mover a menú de usuario o sección del dashboard.
+
+**4d — Limpieza de código**
+
+- [ ] [Baja] **Dead code** — `mounted` ref en KpiCard (nunca se lee), `compact` variant (nunca se pasa), `handleExportar` emit (nadie escucha), `useAuthStore` innecesario en AnalyticsHeader.
+- [ ] [Baja] **Unificar formatadores** — `formatDate` definido localmente en RecentActivity y PendingInvoices (formatos distintos). Shared composable.
+
+**Fase 5 — Tutorial Guiado (post-Fase 4)**
+
+- [ ] [Alta] **Tour guiado con Driver.js** — guía de bienvenida al dashboard post-Fase 4. 3-4 pasos sobre los elementos que queden. Disparo único vía localStorage. Botón "Ayuda" en header para reiniciar. → Se diseña DESPUÉS de completar Fase 4.
+- [ ] [Alta] **Dashboard UI polish** — hover states en stat strip, empty states más expresivos, responsive tuning. → POST-Fase 4 (solo lo que sobreviva la depuración).
 
 ### E2E Testing Suite
 

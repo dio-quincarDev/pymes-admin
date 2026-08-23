@@ -12,7 +12,7 @@
         no-caps
         :to="homeRoute"
         label="Volver al dashboard"
-        icon="arrow_back"
+        icon="sym_r_arrow_back"
       />
     </div>
   </div>

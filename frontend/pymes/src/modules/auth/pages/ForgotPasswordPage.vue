@@ -22,21 +22,19 @@
             </q-input>
 
             <div class="q-mt-xl">
-              <BaseButton
+              <q-btn
                 label="ENVIAR ENLACE"
                 type="submit"
                 class="full-width"
                 size="lg"
                 :loading="loading"
-              >
-                ENVIAR ENLACE
-              </BaseButton>
+              />
             </div>
 
             <div class="text-center q-mt-md">
-              <BaseButton variant="ghost" size="sm" @click="router.push('/login')">
+              <q-btn flat color="accent" size="sm" @click="router.push('/login')">
                 Volver al Login
-              </BaseButton>
+              </q-btn>
             </div>
           </q-form>
         </div>
@@ -48,14 +46,12 @@
             Si la cuenta <strong>{{ email }}</strong> existe, recibirás un enlace para cambiar tu contraseña en breve.
           </p>
           <div class="q-mt-xl">
-            <BaseButton
+            <q-btn
               label="VOLVER AL LOGIN"
               class="full-width"
               size="lg"
               @click="router.push('/login')"
-            >
-              VOLVER AL LOGIN
-            </BaseButton>
+            />
           </div>
         </div>
       </BaseCard>
@@ -73,7 +69,6 @@ import { useQuasar } from 'quasar';
 import { authService } from '../services/auth.service';
 import { useAuthForm } from 'src/composables/useAuthForm';
 import BaseCard from 'src/components/base/BaseCard.vue';
-import BaseButton from 'src/components/base/BaseButton.vue';
 import SkeletonLoader from 'src/components/ui/SkeletonLoader.vue';
 
 const router = useRouter();

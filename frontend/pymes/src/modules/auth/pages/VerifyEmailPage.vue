@@ -9,14 +9,12 @@
             Te enviamos un enlace para verificar tu cuenta.
             <br>Si no lo encuentras, revisa tu bandeja de spam.
           </p>
-          <BaseButton
+          <q-btn
             label="IR AL LOGIN"
             class="full-width"
             size="lg"
             @click="router.push('/login')"
-          >
-            IR AL LOGIN
-          </BaseButton>
+          />
         </div>
 
         <div v-else-if="success" class="verify-success fade-in-up">
@@ -26,14 +24,12 @@
             Tu cuenta ha sido activada correctamente en el sistema de auditoría.
           </p>
           <div class="q-mt-xl">
-            <BaseButton
+            <q-btn
               label="IR AL DASHBOARD"
               class="full-width"
               size="lg"
               @click="goToDashboard"
-            >
-              IR AL DASHBOARD
-            </BaseButton>
+            />
           </div>
         </div>
 
@@ -44,32 +40,29 @@
 
           <div class="q-mt-xl">
             <div v-if="errorType === 'expired'" class="full-width">
-              <BaseButton
+              <q-btn
                 label="REENVIAR ENLACE"
                 class="full-width q-mb-md"
                 size="lg"
                 :loading="resending"
                 @click="handleResend"
-              >
-                REENVIAR ENLACE
-              </BaseButton>
-              <BaseButton
-                variant="ghost"
+              />
+              <q-btn
+                flat
+                color="accent"
                 class="full-width"
                 @click="router.push('/login')"
               >
                 Volver al Login
-              </BaseButton>
+              </q-btn>
             </div>
-            <BaseButton
+            <q-btn
               v-else
               label="VOLVER AL LOGIN"
               class="full-width"
               size="lg"
               @click="router.push('/login')"
-            >
-              VOLVER AL LOGIN
-            </BaseButton>
+            />
           </div>
         </div>
       </BaseCard>
@@ -87,7 +80,6 @@ import { authService } from '../services/auth.service';
 import { useAuthStore } from '../store';
 import { useQuasar } from 'quasar';
 import BaseCard from 'src/components/base/BaseCard.vue';
-import BaseButton from 'src/components/base/BaseButton.vue';
 import SkeletonLoader from 'src/components/ui/SkeletonLoader.vue';
 import { setupService } from 'src/modules/core/services/setup.service';
 

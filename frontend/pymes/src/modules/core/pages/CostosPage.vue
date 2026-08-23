@@ -6,6 +6,8 @@ import { useAuthStore } from 'src/modules/auth/store';
 import { formatCurrency } from 'src/utils/format';
 import { costoService } from '../services/costo.service';
 import { proveedorService } from '../services/proveedor.service';
+import { prestamoService } from '../services/prestamo.service';
+import { cuotaMensual } from '../utils/prestamo';
 import type {
   Collaborador,
   CollaboradorRequest,
@@ -13,6 +15,7 @@ import type {
   CostoDiario,
   GastoFijoRecurrente,
   GastoFijoRequest,
+  Prestamo,
   Proveedor,
 } from '../types';
 import EmptyState from 'src/components/ui/EmptyState.vue';
@@ -38,12 +41,13 @@ const categoriaOptions = [
 const tipoPagoOptions = ['DIARIO', 'SEMANAL', 'QUINCENAL', 'MENSUAL'];
 const metodoPagoOptions = ['EFECTIVO', 'TRANSFERENCIA', 'TARJETA', 'CHEQUE'];
 
-const tab = shallowRef<'colaboradores' | 'gastosFijos' | 'configuracion'>('colaboradores');
+const tab = shallowRef<'colaboradores' | 'gastosFijos'>('colaboradores');
 const loading = shallowRef(false);
 
 const colaboradores = ref<Collaborador[]>([]);
 const gastosFijos = ref<GastoFijoRecurrente[]>([]);
 const proveedores = ref<Proveedor[]>([]);
+const prestamos = ref<Prestamo[]>([]);
 const diario = ref<CostoDiario | null>(null);
 const configuracion = ref<ConfigLaboral | null>(null);
 
@@ -59,7 +63,7 @@ async function loadDiario() {
   } catch (err) {
     $q.notify({
       type: 'negative',
-      message: err instanceof Error ? err.message : 'Error al calcular costo diario',
+      message: err instanceof Error ? err.message : 'Error al calcular costo del día',
     });
   }
 }
@@ -68,15 +72,17 @@ async function loadAll() {
   if (!tenantId) return;
   loading.value = true;
   try {
-    const [colabRes, gastosRes, configRes, provRes] = await Promise.all([
+    const [colabRes, gastosRes, configRes, provRes, prestamosRes] = await Promise.all([
       costoService.getAllCollaboradores(tenantId),
       costoService.getAllGastosFijos(tenantId),
       costoService.getConfiguracion(tenantId),
       proveedorService.getAll(tenantId),
+      prestamoService.getAll(tenantId),
     ]);
     colaboradores.value = colabRes.data;
     gastosFijos.value = gastosRes.data;
     proveedores.value = provRes.data;
+    prestamos.value = prestamosRes.data;
     configuracion.value = configRes.data;
     configForm.value = { tenantId, diasLaborales: configRes.data.diasLaborales };
   } catch (err) {
@@ -192,7 +198,7 @@ async function saveColab() {
       colaboradores.value.unshift(res.data);
     }
     colabDialog.value = false;
-    $q.notify({ type: 'positive', message: `Colaborador ${editingColabId.value ? 'actualizado' : 'creado'}` });
+    $q.notify({ type: 'positive', message: `Integrante ${editingColabId.value ? 'actualizado' : 'creado'}` });
     refresh();
   } catch (err) {
     $q.notify({
@@ -215,7 +221,7 @@ async function removeColab() {
     await costoService.removeCollaborador(deletingColab.value.id, tenantId);
     colaboradores.value = colaboradores.value.filter((r) => r.id !== deletingColab.value!.id);
     colabDelete.value = false;
-    $q.notify({ type: 'positive', message: 'Colaborador eliminado' });
+    $q.notify({ type: 'positive', message: 'Integrante eliminado' });
     refresh();
   } catch (err) {
     $q.notify({
@@ -376,9 +382,21 @@ async function saveConfig() {
 
 const gananciaPositiva = computed(() => (diario.value?.gananciaRealEstimada ?? 0) >= 0);
 
+const dias = computed(() => diario.value?.diasLaborales || 1);
+const prestamosActivos = computed(() => prestamos.value.filter((p) => p.estado === 'ACTIVO'));
+const cuotaPrestamosMensual = computed(() =>
+  prestamosActivos.value.reduce((s, p) => s + cuotaMensual(p.monto, p.tasaInteres, p.plazoMeses), 0),
+);
+const costoFijoDiario = computed(() => (diario.value?.costoFijoMensual ?? 0) / dias.value);
+const costoSalariosDiario = computed(() => (diario.value?.costoSalariosMensual ?? 0) / dias.value);
+const costoPrestamosDiario = computed(() => cuotaPrestamosMensual.value / dias.value);
+const costoOperativoDiario = computed(
+  () => costoFijoDiario.value + costoSalariosDiario.value + costoPrestamosDiario.value,
+);
+
 onMounted(() => {
   const t = route.query.tab;
-  if (t === 'gastosFijos' || t === 'configuracion' || t === 'colaboradores') tab.value = t;
+  if (t === 'gastosFijos' || t === 'colaboradores') tab.value = t;
   if (!tenantId) return;
   void loadAll();
   window.addEventListener('keydown', handleKeydown);
@@ -405,16 +423,34 @@ function handleKeydown(e: KeyboardEvent) {
     <div class="q-mb-md">
       <h1 class="text-h4 text-primary font-bold q-ma-none">Estructura de Costos</h1>
       <p class="text-subtitle1 text-accent q-mt-xs">
-        Colaboradores, gastos fijos recurrentes y configuración laboral
+        Equipo, gastos fijos recurrentes y configuración laboral
       </p>
     </div>
 
     <q-card dark class="glass cost-summary q-mb-md" role="status" aria-live="polite">
       <div class="row items-center q-gutter-x-md q-pa-sm wrap">
         <div class="col-auto summary-item">
-          <span class="summary-label">Costo / día</span>
+          <span class="summary-label">Costo fijo / día</span>
           <span class="summary-value font-mono">{{
-            diario ? formatCurrency(diario.costoOperativoDiario) : '—'
+            diario ? formatCurrency(costoFijoDiario) : '—'
+          }}</span>
+        </div>
+        <div class="col-auto summary-item">
+          <span class="summary-label">Salarios / día</span>
+          <span class="summary-value font-mono">{{
+            diario ? formatCurrency(costoSalariosDiario) : '—'
+          }}</span>
+        </div>
+        <div class="col-auto summary-item">
+          <span class="summary-label">Préstamos / día</span>
+          <span class="summary-value font-mono">{{
+            diario ? formatCurrency(costoPrestamosDiario) : '—'
+          }}</span>
+        </div>
+        <div class="col-auto summary-item">
+          <span class="summary-label">Total costo del día</span>
+          <span class="summary-value summary-value--total font-mono">{{
+            diario ? formatCurrency(costoOperativoDiario) : '—'
           }}</span>
         </div>
         <div class="col-auto summary-arrow" aria-hidden="true">
@@ -437,6 +473,23 @@ function handleKeydown(e: KeyboardEvent) {
             >{{ diario ? formatCurrency(diario.gananciaRealEstimada) : '—' }}</span
           >
         </div>
+        <q-separator vertical dark class="q-mx-sm" />
+        <div class="col-auto summary-item summary-item--config">
+          <span class="summary-label">Días laborales / mes</span>
+          <div class="row items-center q-gutter-x-xs">
+            <q-input
+              dark dense flat
+              type="number" min="1" max="31"
+              :model-value="configForm.diasLaborales"
+              @update:model-value="(v) => { configForm.diasLaborales = Number(v) }"
+              @blur="saveConfig"
+              inputmode="numeric"
+              style="max-width: 60px"
+              class="config-inline-input"
+            />
+            <q-btn flat dense round icon="sym_r_save" color="primary" size="sm" @click="saveConfig" :loading="configSaving" />
+          </div>
+        </div>
       </div>
     </q-card>
 
@@ -448,25 +501,24 @@ function handleKeydown(e: KeyboardEvent) {
       active-color="primary"
       class="cost-tabs q-mb-md"
     >
-      <q-tab name="colaboradores" label="Colaboradores" icon="groups" />
-      <q-tab name="gastosFijos" label="Gastos Fijos" icon="receipt" />
-      <q-tab name="configuracion" label="Configuración" icon="settings" />
+      <q-tab name="colaboradores" label="Equipo" icon="sym_r_groups" />
+      <q-tab name="gastosFijos" label="Gastos Fijos" icon="sym_r_receipt" />
     </q-tabs>
 
     <!-- Colaboradores -->
     <div v-show="tab === 'colaboradores'">
       <div class="toolbar">
         <q-space />
-        <q-btn v-if="colaboradores.length" color="primary" icon="add" label="Nuevo" @click="openCreateColab" />
+        <q-btn v-if="colaboradores.length" color="primary" icon="sym_r_add" label="Nuevo" @click="openCreateColab" />
       </div>
 
       <div v-if="!loading && !colaboradores.length" class="q-mt-lg">
         <EmptyState
-          icon="groups"
-          title="Sin colaboradores"
+          icon="sym_r_groups"
+          title="Sin equipo"
           message="Registra a tu equipo para calcular el costo de salarios."
         >
-          <q-btn color="primary" icon="add" label="Nuevo Colaborador" @click="openCreateColab" class="q-mt-sm" />
+          <q-btn color="primary" icon="sym_r_add" label="Nuevo Integrante" @click="openCreateColab" class="q-mt-sm" />
         </EmptyState>
       </div>
 
@@ -485,8 +537,8 @@ function handleKeydown(e: KeyboardEvent) {
         </div>
         <div class="row-item__amount">{{ formatCurrency(c.monto) }}</div>
         <div class="row-item__actions">
-          <q-btn flat dense round icon="edit" color="primary" size="sm" aria-label="Editar" @click="openEditColab(c)" />
-          <q-btn flat dense round icon="delete" color="negative" size="sm" aria-label="Eliminar" @click="colabDelete = true; deletingColab = c" />
+          <q-btn flat dense round icon="sym_r_edit" color="primary" size="sm" aria-label="Editar" @click="openEditColab(c)" />
+          <q-btn flat dense round icon="sym_r_delete" color="negative" size="sm" aria-label="Eliminar" @click="colabDelete = true; deletingColab = c" />
         </div>
       </div>
     </div>
@@ -495,16 +547,16 @@ function handleKeydown(e: KeyboardEvent) {
     <div v-show="tab === 'gastosFijos'">
       <div class="toolbar">
         <q-space />
-        <q-btn v-if="gastosFijos.length" color="primary" icon="add" label="Nuevo" @click="openCreateGasto" />
+        <q-btn v-if="gastosFijos.length" color="primary" icon="sym_r_add" label="Nuevo" @click="openCreateGasto" />
       </div>
 
       <div v-if="!loading && !gastosFijos.length" class="q-mt-lg">
         <EmptyState
-          icon="receipt"
+          icon="sym_r_receipt"
           title="Sin gastos fijos"
           message="Agrega alquiler, internet, luz y otros gastos recurrentes."
         >
-          <q-btn color="primary" icon="add" label="Nuevo Gasto Fijo" @click="openCreateGasto" class="q-mt-sm" />
+          <q-btn color="primary" icon="sym_r_add" label="Nuevo Gasto Fijo" @click="openCreateGasto" class="q-mt-sm" />
         </EmptyState>
       </div>
 
@@ -537,44 +589,19 @@ function handleKeydown(e: KeyboardEvent) {
           </div>
           <div class="row-item__amount">{{ formatCurrency(g.monto) }}</div>
           <div class="row-item__actions">
-            <q-btn flat dense round icon="edit" color="primary" size="sm" aria-label="Editar" @click="openEditGasto(g)" />
-            <q-btn flat dense round icon="delete" color="negative" size="sm" aria-label="Eliminar" @click="gastoDelete = true; deletingGasto = g" />
+            <q-btn flat dense round icon="sym_r_edit" color="primary" size="sm" aria-label="Editar" @click="openEditGasto(g)" />
+            <q-btn flat dense round icon="sym_r_delete" color="negative" size="sm" aria-label="Eliminar" @click="gastoDelete = true; deletingGasto = g" />
           </div>
         </div>
       </div>
-    </div>
-
-    <!-- Configuración -->
-    <div v-show="tab === 'configuracion'" class="config-panel">
-      <q-card dark class="bg-surface-pine" style="max-width: 420px">
-        <q-card-section>
-          <div class="text-h6 text-primary">Configuración Laboral</div>
-          <p class="text-subtitle2 text-accent q-mt-xs q-mb-md">
-            Días laborables al mes. Se usan para convertir el costo mensual en costo diario.
-          </p>
-          <q-input
-            dark
-            filled
-            type="number"
-            min="1"
-            max="31"
-            v-model.number="configForm.diasLaborales"
-            label="Días laborales"
-            :rules="[(v) => (v >= 1 && v <= 31) || 'Entre 1 y 31']"
-          />
-        </q-card-section>
-        <q-card-actions align="right">
-          <q-btn label="Guardar" color="primary" :loading="configSaving" @click="saveConfig" />
-        </q-card-actions>
-      </q-card>
     </div>
 
     <!-- Collaborador dialog -->
     <q-dialog v-model="colabDialog" dark>
       <q-card dark class="bg-surface-pine" style="width: 90vw; max-width: 480px">
         <q-card-section
-          ><div class="text-h6 text-primary">
-            {{ editingColabId ? 'Editar' : 'Nuevo' }} Colaborador
+          >          <div class="text-h6 text-primary">
+            {{ editingColabId ? 'Editar' : 'Nuevo' }} Integrante
           </div></q-card-section
         >
         <q-separator dark />
@@ -690,7 +717,7 @@ function handleKeydown(e: KeyboardEvent) {
                 emit-value
                 class="col"
               />
-              <q-btn flat round icon="add" color="primary" type="button" @click="openNewProveedor" />
+              <q-btn flat round icon="sym_r_add" color="primary" type="button" @click="openNewProveedor" />
             </div>
             <div class="row justify-end q-gutter-x-sm">
               <q-btn flat label="Cancelar" color="accent" v-close-popup />
@@ -730,7 +757,7 @@ function handleKeydown(e: KeyboardEvent) {
       <q-card dark class="bg-surface-pine">
         <q-card-section class="row items-center q-gutter-x-md">
           <q-icon name="warning" color="negative" size="md" />
-          <span>Eliminar colaborador <strong>{{ deletingColab?.nombre }}</strong>?</span>
+          <span>Eliminar integrante <strong>{{ deletingColab?.nombre }}</strong>?</span>
         </q-card-section>
         <q-card-actions align="right">
           <q-btn flat label="Cancelar" color="accent" v-close-popup />
@@ -789,6 +816,10 @@ function handleKeydown(e: KeyboardEvent) {
   font-size: 1.1rem;
   font-weight: 700;
   font-variant-numeric: tabular-nums;
+}
+
+.summary-value--total {
+  color: rgba(163, 120, 94, 0.9);
 }
 
 .summary-arrow {
@@ -871,5 +902,14 @@ function handleKeydown(e: KeyboardEvent) {
 
 .config-panel {
   padding-top: 8px;
+}
+
+.config-inline-input :deep(.q-field__control) {
+  min-height: 28px;
+  padding: 0 4px;
+}
+
+.config-inline-input :deep(.q-field__native) {
+  font-size: 0.85rem;
 }
 </style>

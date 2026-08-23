@@ -21,8 +21,6 @@ A partir de 2026-07-16, CORS opera en **doble capa**:
 
 **Ver también**: `backend/gateway-pymes/docs/DAILY_REPORTS_GATEWAY_SOLUTIONS.md` — 2026-07-16
 
-> **2026-08-11 — Fix de raíz del 403 "Invalid CORS request"**: la imagen Docker del auth se buildeaba con perfil Maven `dev` (`activeByDefault`), que hardcodea `allowed-origins: http://localhost:9200`. El perfil `stg`/`prod` ahora lo inyecta el entorno (`SPRING_PROFILES_ACTIVE` → `application-stg.yaml` lee `CORS_ALLOWED_ORIGINS`). Ver entrada 2026-08-11 abajo.
-
 ### 🔲 Bugs Pendientes
 - **[P2] Facebook OAuth2** — *POSTERGADO* (Meta no aprobó la verificación de la empresa. Queda pendiente indefinidamente hasta obtener credenciales válidas en la consola de Meta Developer).
 
@@ -30,7 +28,7 @@ A partir de 2026-07-16, CORS opera en **doble capa**:
 - **Defensa en profundidad + Code Exchange OAuth2** — ✅ completado (2026-06-19).
 
 ### ✅ Historial de Soluciones (Orden Cronológico Inverso)
-0. [2026-08-11 — Fix de raíz: 403 Invalid CORS request (perfil stg/prod)](#-2026-08-11--fix-de-raíz-403-invalid-cors-request-perfil-stgprod)
+0. [2026-08-14 — OAuth2 slug duplicado fix (DuplicateResourceException)](#-2026-08-14--oauth2-slug-duplicado-fix-duplicateresourceexception)
 0. [2026-08-10 — Reconfig OAuth2 a pymeq.dioquincar.dev](#-2026-08-10--reconfig-oauth2-a-pymeqdioquincardev)
 0. [2026-07-30 — TOCTOU fix: @Lock(PESSIMISTIC_WRITE) en refresh token rotation](#-2026-07-30--toctou-fix-lockpessimistic_write-en-refresh-token-rotation)
 1. [2026-07-29 — Invitación: accept endpoint quitado de WHITE_LIST](#-2026-07-29--invitación-accept-endpoint-quitado-de-white_list)
@@ -70,37 +68,70 @@ A partir de 2026-07-16, CORS opera en **doble capa**:
 
 ---
 
-## 2026-08-11 — Fix de raíz: 403 Invalid CORS request (perfil stg/prod)
+## 2026-08-21 — OAuth2 exchange() devuelve user y activeTenant
 
-### Problema
+### Contexto
 
-POST reales desde `https://pymeq.dioquincar.dev` devolvían **403 "Invalid CORS request"** (el preflight OPTIONS pasaba, el request real no). La causa raíz era el **perfil Maven `dev` horneado en la imagen Docker**: `dev` es `activeByDefault`, y `mvn clean package` (sin `-P stg`) la buildeaba con `application-dev.yaml:29` → `allowed-origins: "http://localhost:9200"`. El 403 lo emitía Spring Security del auth (`SecurityConfig.java:83` `.cors(Customizer.withDefaults())` + `WebCorsConfig.java` leyendo `app.cors.allowed-origins`). Descartada la hipótesis de bloques `spring:`/`app:` duplicados — no existen; los perfiles YAML se fusionan.
+Después de logout + re-login vía OAuth2 en staging (PWA mobile), el usuario no entraba al tenant sino que se redirigía al MainLayout principal sin contexto de tenant. El fix requería borrar datos de la PWA para poder loguearse again.
 
-### Solución
+### Root cause
 
-El perfil de ejecución ahora lo decide el entorno, no el build:
+`AuthServiceImpl.exchange()` devolvía `AuthResponse(accessToken, refreshToken, null, null)` — sin `user` ni `activeTenant`. El frontend dependía enteramente de un call extra a `GET /users/me` (`fetchCurrentUser()`) para obtener el `tenantId`. Si ese call fallaba (401, CORS, timing), el usuario quedaba sin contexto de tenant y se redirigía al dashboard vacío.
 
-- `docker-compose.yml` (auth + gateway): `- SPRING_PROFILES_ACTIVE=${SPRING_PROFILES_ACTIVE:-stg}`.
-- `application-stg.yaml:26`: `allowed-origins: "${CORS_ALLOWED_ORIGINS:http://localhost:9200}"`.
-- `cd-staging.yml` / `cd-prod.yml`: inyectan `SPRING_PROFILES_ACTIVE` (secret `..._STAGING`/`..._PROD`) en el `.env` del server, junto a `CORS_ALLOWED_ORIGINS`.
+### Qué se hizo
 
-### Verificación
+**`AuthServiceImpl.exchange()`** — ahora decodifica el JWT (que ya contiene `userId` y `tenantId` como claims) para buscar user y tenant en DB, y los devuelve en la response:
 
-`curl` contra staging: OPTIONS → `200` + `access-control-allow-origin: https://pymeq.dioquincar.dev`; POST real → sin 403. CORS operativo.
-
-### Lecciones
-
-1. `activeByDefault` hace que un build sin `-P` cargue `dev` aunque el entorno pida `stg`/`prod`. El perfil debe inyectarse en runtime.
-2. `CORS_ALLOWED_ORIGINS_STAGING` debe ser **un solo origen** (el success handler OAuth2 redirige a `app.cors.allowed-origins`, sin soporte multi-origen).
+```java
+UUID userId = jwtService.extractUserId(accessToken);
+UUID tenantId = jwtService.extractTenantId(accessToken);
+UserEntity user = userRepository.findById(userId).orElse(null);
+Tenant tenant = tenantId != null ? tenantRepository.findById(tenantId).orElse(null) : null;
+return new AuthResponse(accessToken, refreshToken, userMapper.toResponse(user), tenantMapper.toResponse(tenant));
+```
 
 ### Archivos modificados
 
 ```
-docker-compose.yml                                      # SPRING_PROFILES_ACTIVE (auth + gateway)
-backend/auth/src/main/resources/application-stg.yaml    # allowed-origins ← CORS_ALLOWED_ORIGINS
-.github/workflows/cd-staging.yml                        # SPRING_PROFILES_ACTIVE en .env del server
-.github/workflows/cd-prod.yml                           # idem
+backend/auth/src/main/java/auth/pymes/service/impl/AuthServiceImpl.java  # exchange() ahora retorna user + activeTenant
 ```
+
+### Verificación
+
+- `./mvnw test -B`: ✅ 141 tests, 0 failures
+- `./mvnw compile -B`: ✅ BUILD SUCCESS
+
+**Estado:** ✅ COMPLETADO
+
+---
+
+## 2026-08-14 — OAuth2 slug duplicado fix (DuplicateResourceException)
+
+### Contexto
+
+El OAuth2 callback (`OAuth2AuthenticationSuccessHandler`) intentaba crear un tenant con un slug que ya existía en la DB. El handler no verificaba unicidad antes de insertar. Resultado: `ConstraintViolationException` → 500 Internal Server Error. El `GlobalExceptionHandler` (`@RestControllerAdvice`) no atrapa excepciones del filtro de Spring Security.
+
+### Root cause
+
+`OAuth2AuthenticationSuccessHandler.java:87-93` ejecutaba `tenantRepository.save()` sin verificar `findBySlug()` previamente. Cuando un usuario con empresa existente hacía OAuth2 con un intent de la misma empresa, PostgreSQL lanzaba `duplicate key value violates unique constraint "tenants_slug_key"`.
+
+### Qué se hizo
+
+- **Handler fix**: antes de `tenantRepository.save()`, se verifica `tenantRepository.findBySlug(intent.companySlug())`. Si existe → `throw new DuplicateResourceException(CodigoError.TENANT_ALREADY_EXISTS, slug)` → 409 Conflict.
+- **Test unitario nuevo**: `conIntentId_SlugDuplicado_LanzaDuplicateResourceException` — verifica que el handler lanza `DuplicateResourceException` cuando el slug ya existe.
+- **Tests existentes editados**: 3 tests que usaban intent ahora mockean `findBySlug` retornando `Optional.empty()` (happy path).
+- **Suite completa**: 141 tests, 0 failures.
+
+### Archivos modificados
+
+```
+auth/pymes/common/config/OAuth2AuthenticationSuccessHandler.java  — +findBySlug check + imports
+auth/pymes/unit/OAuth2AuthenticationSuccessHandlerTest.java       — +findBySlug mocks, +test duplicado
+```
+
+### Frontend
+
+No requiere cambios. `types/error.ts` ya tiene `TENANT_ALREADY_EXISTS: 'TNT003'`. `utils/errors.ts` maneja 409 → "Conflicto de datos".
 
 **Estado:** ✅ COMPLETADO
 

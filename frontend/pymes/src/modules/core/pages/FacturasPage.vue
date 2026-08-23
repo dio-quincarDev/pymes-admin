@@ -10,12 +10,13 @@
         <template v-slot:prepend><q-icon name="search" /></template>
       </q-input>
       <q-space />
-      <q-btn color="primary" icon="add" label="Nueva" @click="openCreate" />
+      <q-btn color="positive" icon="sym_r_payments" label="Gasto rápido" @click="openCreate('GASTO_OPERATIVO')" no-caps />
+      <q-btn color="primary" icon="sym_r_add" label="Factura" @click="openCreate('FACTURA')" no-caps />
     </div>
 
     <div v-if="!loading && !filteredRows.length" class="q-my-lg">
       <EmptyState
-        icon="receipt_long"
+        icon="sym_r_receipt_long"
         title="Sin facturas"
         message="Registra tu primera factura de proveedor para comenzar."
       />
@@ -48,13 +49,13 @@
         <div class="invoice-row__date">{{ inv.issueDate }}</div>
         <div class="invoice-row__total">{{ formatCurrency(inv.total) }}</div>
         <div class="invoice-row__status">
-          <q-badge :color="statusColor(inv.status)" class="q-px-sm q-py-xs">{{ inv.status }}</q-badge>
+          <q-badge :color="statusColor(inv.status)" class="q-px-sm q-py-xs">{{ statusLabel(inv.status) }}</q-badge>
         </div>
         <div class="invoice-row__actions">
-          <q-btn flat dense round icon="visibility" color="accent" size="sm" @click="openDetail(inv)" aria-label="Ver detalles" />
-          <q-btn v-if="inv.status === 'REGISTRADA'" flat dense round icon="edit" color="primary" size="sm" @click="openEdit(inv)" aria-label="Editar" />
-          <q-btn v-if="inv.status === 'REGISTRADA'" flat dense round icon="paid" color="positive" size="sm" @click="confirmPay(inv)" aria-label="Marcar como pagada" />
-          <q-btn v-if="inv.status === 'REGISTRADA'" flat dense round icon="delete" color="negative" size="sm" @click="confirmDelete(inv)" aria-label="Eliminar" />
+          <q-btn flat dense round icon="sym_r_visibility" color="accent" size="sm" @click="openDetail(inv)" aria-label="Ver detalles" />
+          <q-btn v-if="inv.status === 'REGISTRADA'" flat dense round icon="sym_r_edit" color="primary" size="sm" @click="openEdit(inv)" aria-label="Editar" />
+          <q-btn v-if="inv.status === 'REGISTRADA'" flat dense round icon="sym_r_paid" color="positive" size="sm" @click="confirmPay(inv)" aria-label="Marcar como pagada" />
+          <q-btn v-if="inv.status === 'REGISTRADA'" flat dense round icon="sym_r_delete" color="negative" size="sm" @click="confirmDelete(inv)" aria-label="Eliminar" />
         </div>
       </div>
     </div>
@@ -67,9 +68,9 @@
           <div class="invoice-dialog__header">
             <div class="invoice-dialog__title">
               <q-icon name="receipt_long" size="1.2rem" class="text-primary" />
-              <span class="text-h6 text-primary q-ml-sm">{{ editingId ? 'Editar Factura' : 'Nueva Factura' }}</span>
+              <span class="text-h6 text-primary q-ml-sm">{{ editingId ? 'Editar' : form.tipo === 'GASTO_OPERATIVO' ? 'Gasto Rápido' : 'Nueva Factura' }}</span>
             </div>
-            <q-btn flat round icon="close" color="accent" v-close-popup size="sm" />
+            <q-btn flat round icon="sym_r_close" color="accent" v-close-popup size="sm" />
           </div>
 
           <q-separator dark class="opacity-20" />
@@ -85,9 +86,6 @@
               </div>
               <div class="col-12 col-sm-6">
                 <q-input dark dense v-model="form.fecha" label="Fecha" type="date" :rules="[v=>!!v||'Requerido']" />
-              </div>
-              <div class="col-12 col-sm-6">
-                <q-select dark dense v-model="form.tipo" :options="['FACTURA','GASTO_OPERATIVO']" label="Tipo" :rules="[v=>!!v||'Requerido']" />
               </div>
               <div class="col-12 col-sm-6">
                 <q-select dark dense v-model="form.metodoPago" :options="['EFECTIVO','TRANSFERENCIA','TARJETA','CHEQUE']" label="Método de pago" clearable />
@@ -123,7 +121,7 @@
             </div>
 
             <div v-if="form.tipo !== 'GASTO_OPERATIVO'" class="invoice-dialog__add">
-              <q-btn outline color="primary" icon="add" label="Agregar item" @click="addItem" no-caps size="sm" />
+              <q-btn outline color="primary" icon="sym_r_add" label="Agregar item" @click="addItem" no-caps size="sm" />
             </div>
 
             <!-- Gasto operativo: categoría desde CostosPage + monto -->
@@ -181,7 +179,7 @@
           <!-- Sticky footer -->
           <div class="invoice-dialog__footer">
             <q-btn flat label="Cancelar" color="accent" v-close-popup no-caps />
-            <q-btn type="submit" label="Guardar" color="primary" :loading="saving" no-caps icon="save" />
+            <q-btn type="submit" label="Guardar" color="primary" :loading="saving" no-caps icon="sym_r_save" />
           </div>
         </q-form>
       </q-card>
@@ -189,7 +187,7 @@
 
     <ConfirmDialog
       v-model="payDialog"
-      icon="paid" icon-color="positive"
+      icon="sym_r_paid" icon-color="positive"
       :message="`Marcar como pagada la factura <strong>${payingItem?.invoiceNumber}</strong>?`"
       confirm-label="Confirmar Pago" confirm-color="positive"
       :loading="paying" @confirm="pay"
@@ -197,13 +195,13 @@
 
     <ConfirmDialog
       v-model="deleteDialog"
-      icon="warning" icon-color="negative"
+      icon="sym_r_warning" icon-color="negative"
       :message="`¿Eliminar factura <strong>${deletingItem?.invoiceNumber}</strong>?`"
       confirm-label="Eliminar" confirm-color="negative"
       :loading="deleting" @confirm="remove"
     />
 
-    <InvoiceDetailDialog :factura="detailItem" v-model="detailDialog" :presentation-name-map="presentationNameMap" />
+    <InvoiceDetailDialog :factura="detailItem" v-model="detailDialog" :presentation-name-map="presentationNameMap" :categoria-map="categoriaMap" />
   </q-page>
 </template>
 
@@ -239,6 +237,9 @@ const editingId = shallowRef<string | null>(null)
 
 const statusColor = (s: string) =>
   s === 'PAGADA' ? 'positive' : s === 'REGISTRADA' ? 'warning' : 'grey'
+
+const statusLabel = (s: string) =>
+  s === 'REGISTRADA' ? 'Pendiente' : s === 'PAGADA' ? 'Pagada' : s
 
 const filteredRows = computed(() => {
   if (!filter.value) return rows.value
@@ -465,6 +466,8 @@ const categoriaOptions = computed(() => [
   { label: 'Otro', value: CATEGORIA_OTRO },
 ])
 
+const categoriaMap = computed(() => new Map(gastosFijos.value.map(g => [g.id, g.categoria])))
+
 const selectedColaborador = computed(() =>
   colaboradores.value.find(c => c.id === form.value.colaboradorId) || null
 )
@@ -526,11 +529,11 @@ function onProviderSelected(val: string | null) {
   })
 }
 
-async function openCreate() {
+async function openCreate(tipo: 'FACTURA' | 'GASTO_OPERATIVO' = 'FACTURA') {
   form.value = {
     proveedorId: null,
     fecha: new Date().toISOString().slice(0, 10),
-    tipo: 'FACTURA',
+    tipo,
     metodoPago: null,
     descuentoGlobal: 0,
     items: [],
@@ -784,7 +787,7 @@ watch(() => dialogOpen.value, (open) => {
 function handleKeydown(e: KeyboardEvent) {
   if ((e.ctrlKey || e.metaKey) && e.key === 'n') {
     e.preventDefault()
-    void openCreate()
+    void openCreate('FACTURA')
   }
   if ((e.ctrlKey || e.metaKey) && e.key === 's' && dialogOpen.value) {
     e.preventDefault()
