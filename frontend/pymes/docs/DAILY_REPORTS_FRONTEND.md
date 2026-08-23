@@ -4,6 +4,62 @@ Registro cronológico de decisiones, problemas resueltos y estado del frontend.
 
 ---
 
+## 2026-08-23 — Fix logos no se reflejan + PNG icons regenerados + manifest.json
+
+### Contexto
+
+Los logos no se actualizaban en la app (solo el favicon de la barra del navegador mostraba el nuevo "Q"). El favicon sí funcionaba porque es un archivo nuevo (`pymeq-favicon.svg`) nunca cacheado, pero `logo.svg` (usado en todos los layouts) tenía la versión vieja cacheada por nginx (1 año, `immutable`) y por el Service Worker precache. Además, los PNGs de iconos (`icon-*.png`, `favicon-*.png`, `apple-icon-*.png`) nunca se regeneraron desde el nuevo SVG — seguían con el monograma "P" del 17 de marzo.
+
+### Root cause
+
+1. **nginx.conf** cacheaba `.svg` con `expires 1y; Cache-Control: public, immutable`. El browser no re-descargaba `logo.svg` después de redeploy.
+2. **PNGs desactualizados**: Los 15 archivos PNG de iconos fueron generados el 17/03 (logo "P"). Nunca se regeneraron cuando `logo.svg` se cambió al "Q" (22/08).
+3. **manifest.json**: `screenshots: []` vacío — Chrome no muestra mini-infobar de install en mobile sin screenshots.
+
+### Qué se hizo
+
+1. **`nginx.conf`** — `.svg` removido de la regla immutable (1 año). Nuevo bloque específico para `.svg` con `expires 1h; Cache-Control: public` (suficiente para performance, corto para updates de branding).
+
+2. **Todos los PNGs regenerados** desde `pymeq-app-icon.svg` (nuevo logo "Q") usando `convert` (ImageMagick + librsvg2):
+   - `icon-{128,192,256,384,512}x{128,192,256,384,512}.png` (manifest PWA)
+   - `favicon-{16,32,96,128}x{16,32,96,128}.png`
+   - `apple-icon-{120,152,167,180}x{120,152,167,180}.png`
+   - `ms-icon-144x144.png`
+   - Nuevos: `icon-{16,32,96,144,152,167,180}x*.png` (no existían)
+
+3. **`favicon.ico`** regenerado (multi-size 16/32/48/64/128/256 px).
+
+4. **`manifest.json`**:
+   - Agregado `"id": "/"` (Chrome lo recomienda para installability)
+   - Eliminado `"screenshots": []` (array vacío causaba ruido en auditorías)
+
+### Archivos modificados
+
+```
+frontend/pymes/nginx.conf                              # .svg: 1y immutable → 1h public
+frontend/pymes/public/favicon.ico                      # regenerado desde nuevo SVG
+frontend/pymes/public/icons/icon-{128..512}.png       # regenerados desde pymeq-app-icon.svg
+frontend/pymes/public/icons/favicon-{16..128}.png     # regenerados
+frontend/pymes/public/icons/apple-icon-{120..180}.png # regenerados
+frontend/pymes/public/icons/ms-icon-144x144.png       # regenerado
+frontend/pymes/public/icons/icon-{16,32,96,144,152,167,180}.png  # nuevos (no existían)
+frontend/pymes/src-pwa/manifest.json                   # +id, -screenshots vacío
+```
+
+### Verificación
+
+- `npm run lint`: ✅ clean
+- `npm run build`: ✅ Build succeeded
+
+### Pendiente
+
+- Los screenshots del manifest (`"screenshots": []` eliminado) podrían agregarse después para mejorar el mini-infobar de install en Chrome mobile. Requieren imágenes 1280x720 o 720x1280.
+- La instalación PWA en mobile depende de los engagement heuristics de Chrome (múltiples visitas, tiempo de uso). `beforeinstallprompt` no se dispara en la primera visita.
+
+**Estado:** ✅ COMPLETADO
+
+---
+
 ## 2026-08-22 — Logo + favicon: reemplazo del monograma "P" por "Q"
 
 ### Contexto
