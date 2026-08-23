@@ -1,29 +1,22 @@
 <script setup lang="ts">
 import type { Factura, ItemFactura } from 'src/modules/core/types'
+import { formatDate, formatCurrency } from 'src/utils/format'
 
 defineProps<{
   modelValue: boolean
   factura: Factura | null
   presentationNameMap: Map<string, string>
+  categoriaMap: Map<string, string>
 }>()
 
 const emit = defineEmits<{
   'update:modelValue': [value: boolean]
 }>()
 
-const tipoLabel: Record<string, string> = { FACTURA: 'Factura', GASTO_OPERATIVO: 'Gasto Operativo' }
-
-function formatCurrency(n: number) {
-  return Number.isFinite(n)
-    ? new Intl.NumberFormat('en-US', { style: 'currency', currency: 'USD', minimumFractionDigits: 2 }).format(n)
-    : '$0.00'
-}
-
-function formatDate(s: string) {
-  return new Date(s + 'T00:00:00').toLocaleDateString('es-MX', { year: 'numeric', month: 'short', day: 'numeric' })
-}
+const tipoLabel: Record<string, string> = { FACTURA: 'Factura', GASTO_OPERATIVO: 'Gasto' }
 
 const statusColor: Record<string, string> = { PAGADA: 'positive', REGISTRADA: 'warning' }
+const statusLabel: Record<string, string> = { PAGADA: 'Pagada', REGISTRADA: 'Pendiente' }
 </script>
 
 <template>
@@ -32,15 +25,15 @@ const statusColor: Record<string, string> = { PAGADA: 'positive', REGISTRADA: 'w
       <q-card-section class="row items-center justify-between">
         <div>
           <div class="text-h6 text-primary">{{ factura.invoiceNumber }}</div>
-          <div class="text-caption text-accent">{{ formatDate(factura.issueDate) }}</div>
+          <div class="text-caption text-accent">{{ formatDate(factura.issueDate, true) }}</div>
         </div>
-        <q-btn flat round dense icon="close" color="accent" v-close-popup />
+        <q-btn flat round dense icon="sym_r_close" color="accent" v-close-popup />
       </q-card-section>
       <q-separator dark />
       <q-card-section class="q-gutter-y-sm">
         <div class="row q-col-gutter-md">
           <div class="col-6">
-            <div class="text-caption text-accent">{{ factura.category === 'SALARIOS' ? 'Colaborador' : 'Proveedor' }}</div>
+            <div class="text-caption text-accent">{{ factura.category === 'SALARIOS' ? 'Equipo' : 'Proveedor' }}</div>
             <div class="text-secondary text-weight-medium">{{ factura.category === 'SALARIOS' ? (factura.collaboradorName || '—') : (factura.providerName || '—') }}</div>
           </div>
           <div class="col-3">
@@ -49,13 +42,13 @@ const statusColor: Record<string, string> = { PAGADA: 'positive', REGISTRADA: 'w
           </div>
           <div class="col-3">
             <div class="text-caption text-accent">Estado</div>
-            <q-badge :color="statusColor[factura.status] || 'grey'" class="q-px-sm q-py-xs">{{ factura.status }}</q-badge>
+            <q-badge :color="statusColor[factura.status] || 'grey'" class="q-px-sm q-py-xs">{{ statusLabel[factura.status] || factura.status }}</q-badge>
           </div>
         </div>
         <div v-if="factura.type === 'GASTO_OPERATIVO' && factura.category" class="row">
           <div class="col-6">
             <div class="text-caption text-accent">Categoría</div>
-            <div class="text-secondary">{{ factura.category }}</div>
+            <div class="text-secondary">{{ factura.category === 'SALARIOS' ? 'Salarios' : factura.category === 'OTRO' ? 'Otro' : categoriaMap.get(factura.category) || factura.category }}</div>
           </div>
         </div>
         <div v-if="factura.paymentMethod" class="row">

@@ -232,16 +232,16 @@ function handleKeydown(e: KeyboardEvent) {
         <template v-slot:prepend><q-icon name="search" /></template>
       </q-input>
       <q-space />
-      <q-btn v-if="rows.length" color="primary" icon="add" label="Nuevo" @click="openCreate" />
+      <q-btn v-if="rows.length" color="primary" icon="sym_r_add" label="Nuevo" @click="openCreate" />
     </div>
 
     <div v-if="!loading && !filteredRows.length">
       <EmptyState
-        icon="inventory_2"
+        icon="sym_r_inventory_2"
         title="Sin productos"
         message="Agrega tu primer producto al catálogo para comenzar a facturar."
       >
-        <q-btn color="primary" icon="add" label="Nuevo Producto" @click="openCreate" class="q-mt-sm" />
+        <q-btn color="primary" icon="sym_r_add" label="Nuevo Producto" @click="openCreate" class="q-mt-sm" />
       </EmptyState>
     </div>
 
@@ -275,9 +275,9 @@ function handleKeydown(e: KeyboardEvent) {
           </q-card-section>
           <q-separator dark />
           <q-card-actions align="right" class="q-pa-xs">
-            <q-btn flat dense round icon="layers" color="info" size="sm" @click="openPresentaciones(item)" aria-label="Presentaciones" />
-            <q-btn flat dense round icon="edit" color="primary" size="sm" @click="openEdit(item)" aria-label="Editar" />
-            <q-btn flat dense round icon="delete" color="negative" size="sm" @click="confirmDelete(item)" aria-label="Eliminar" />
+            <q-btn flat dense round icon="sym_r_layers" color="info" size="sm" @click="openPresentaciones(item)" aria-label="Presentaciones" />
+            <q-btn flat dense round icon="sym_r_edit" color="primary" size="sm" @click="openEdit(item)" aria-label="Editar" />
+            <q-btn flat dense round icon="sym_r_delete" color="negative" size="sm" @click="confirmDelete(item)" aria-label="Eliminar" />
           </q-card-actions>
         </q-card>
       </div>

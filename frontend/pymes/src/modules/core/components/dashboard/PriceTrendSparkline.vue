@@ -24,11 +24,13 @@
 <script setup lang="ts">
 import type { TrendItem } from '../../types/analytics';
 import { useNumberFormat } from '../../composables/useNumberFormat';
+import { useChartTheme } from '../../composables/useChartTheme';
 import BaseChart from '../charts/BaseChart.vue';
 
 defineProps<{ items: TrendItem[] }>();
 
 const { formatCurrency } = useNumberFormat();
+const { colors } = useChartTheme();
 
 function miniChart(item: TrendItem) {
   const avg = item.movingAvg90d;
@@ -38,7 +40,7 @@ function miniChart(item: TrendItem) {
     datasets: [
       {
         data: [avg * 0.95, avg * 0.97, avg * 0.99, avg, current],
-        borderColor: current >= avg ? '#2D5A27' : '#e94560',
+        borderColor: current >= avg ? colors.value.positive : colors.value.negative,
         backgroundColor: 'transparent',
         pointRadius: 0,
         tension: 0.4,
@@ -67,7 +69,7 @@ const miniOptions = {
   align-items: center;
   gap: 1rem;
   padding: 0.5rem 0;
-  border-bottom: 1px solid rgba(138, 158, 153, 0.08);
+  border-bottom: 1px solid var(--pq-border);
 
   &:last-child { border-bottom: none; }
 
@@ -78,16 +80,18 @@ const miniOptions = {
 
   &__name {
     display: block;
-    font-size: 0.8rem;
-    color: #E2E8E4;
+    font-family: 'Satoshi', sans-serif;
+    font-size: 13px;
+    color: var(--pq-text);
     white-space: nowrap;
     overflow: hidden;
     text-overflow: ellipsis;
   }
 
   &__price {
-    font-size: 0.7rem;
-    color: #8A9E99;
+    font-family: 'Geist Mono', monospace;
+    font-size: 11px;
+    color: var(--pq-text-muted);
   }
 
   &__chart {
@@ -99,7 +103,8 @@ const miniOptions = {
   &__change {
     flex: 0 0 60px;
     text-align: right;
-    font-size: 0.75rem;
+    font-family: 'Geist Mono', monospace;
+    font-size: 12px;
     font-weight: 600;
   }
 }

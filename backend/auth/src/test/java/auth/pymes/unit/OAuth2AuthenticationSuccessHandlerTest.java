@@ -38,6 +38,7 @@ import java.util.UUID;
 import static org.assertj.core.api.Assertions.assertThat;
 import static org.mockito.ArgumentMatchers.*;
 import static org.mockito.Mockito.*;
+import static org.mockito.Mockito.lenient;
 
 @ExtendWith(MockitoExtension.class)
 class OAuth2AuthenticationSuccessHandlerTest {
@@ -87,9 +88,9 @@ class OAuth2AuthenticationSuccessHandlerTest {
                 .email("test@gmail.com")
                 .name("Test User")
                 .build();
-        when(redisTemplate.opsForValue()).thenReturn(valueOperations);
-        when(jwtService.generateAccessToken(any(), any(), any(), any())).thenReturn("access-token");
-        when(jwtService.generateRefreshToken(any())).thenReturn("refresh-token");
+        lenient().when(redisTemplate.opsForValue()).thenReturn(valueOperations);
+        lenient().when(jwtService.generateAccessToken(any(), any(), any(), any())).thenReturn("access-token");
+        lenient().when(jwtService.generateRefreshToken(any())).thenReturn("refresh-token");
     }
 
     @Test
@@ -100,6 +101,7 @@ class OAuth2AuthenticationSuccessHandlerTest {
         when(userRepository.findByEmail("test@gmail.com")).thenReturn(Optional.of(mockUser));
         when(oauth2IntentService.getIntent("intent-123"))
                 .thenReturn(Optional.of(new OAuth2IntentRequest("Test Corp", "test-corp")));
+        when(tenantRepository.findBySlug("test-corp")).thenReturn(Optional.empty());
         
         Tenant savedTenant = Tenant.builder()
                 .id(UUID.randomUUID())
@@ -120,24 +122,43 @@ class OAuth2AuthenticationSuccessHandlerTest {
     }
 
     @Test
-    void sinCookie_CreaTenantDefault() throws Exception {
+    @DisplayName("Intent con slug duplicado → DuplicateResourceException (409)")
+    void conIntentId_SlugDuplicado_LanzaDuplicateResourceException() throws Exception {
         when(authentication.getPrincipal()).thenReturn(createOAuth2User("test@gmail.com"));
-        when(request.getCookies()).thenReturn(null);
+        when(request.getCookies()).thenReturn(new Cookie[]{createCookie("oauth2_intent", "intent-123")});
         
         when(userRepository.findByEmail("test@gmail.com")).thenReturn(Optional.of(mockUser));
-        when(userTenantRepository.findByUserId(mockUser.getId())).thenReturn(List.of());
+        when(oauth2IntentService.getIntent("intent-123"))
+                .thenReturn(Optional.of(new OAuth2IntentRequest("Test Corp", "test-corp")));
         
-        Tenant savedTenant = Tenant.builder()
+        Tenant existingTenant = Tenant.builder()
                 .id(UUID.randomUUID())
-                .name("Mi Empresa")
+                .name("Test Corp")
+                .slug("test-corp")
                 .build();
-        when(tenantRepository.save(any(Tenant.class))).thenReturn(savedTenant);
-        when(userTenantRepository.save(any(UserTenant.class))).thenReturn(null);
+        when(tenantRepository.findBySlug("test-corp")).thenReturn(Optional.of(existingTenant));
         
+        org.junit.jupiter.api.Assertions.assertThrows(
+                auth.pymes.utils.exception.custom.DuplicateResourceException.class,
+                () -> handler.onAuthenticationSuccess(request, response, authentication));
+        
+        verify(tenantRepository, never()).save(any(Tenant.class));
+        verify(userTenantRepository, never()).save(any(UserTenant.class));
+    }
+
+    @Test
+    void sinCookieYSinTenants_NoCreaWorkspace() throws Exception {
+        when(authentication.getPrincipal()).thenReturn(createOAuth2User("test@gmail.com"));
+        when(request.getCookies()).thenReturn(null);
+
+        when(userRepository.findByEmail("test@gmail.com")).thenReturn(Optional.of(mockUser));
+        when(userTenantRepository.findByUserId(mockUser.getId())).thenReturn(List.of());
+
         handler.onAuthenticationSuccess(request, response, authentication);
-        
+
         verify(oauth2IntentService, never()).getIntent(any());
-        verify(tenantRepository).save(argThat(t -> t.getName().equals("Mi Empresa")));
+        verify(tenantRepository, never()).save(any(Tenant.class));
+        verify(userTenantRepository, never()).save(any(UserTenant.class));
     }
 
     @Test
@@ -149,6 +170,7 @@ class OAuth2AuthenticationSuccessHandlerTest {
         when(userRepository.findByEmail("test@gmail.com")).thenReturn(Optional.of(mockUser));
         when(oauth2IntentService.getIntent("intent-123"))
                 .thenReturn(Optional.of(new OAuth2IntentRequest("Test Corp", "test-corp")));
+        when(tenantRepository.findBySlug("test-corp")).thenReturn(Optional.empty());
 
         Tenant savedTenant = Tenant.builder()
                 .id(UUID.randomUUID())
@@ -179,6 +201,7 @@ class OAuth2AuthenticationSuccessHandlerTest {
         // El intent debe ser procesado
         when(oauth2IntentService.getIntent("intent-123"))
                 .thenReturn(Optional.of(new OAuth2IntentRequest("Nueva Corp", "nueva-corp")));
+        when(tenantRepository.findBySlug("nueva-corp")).thenReturn(Optional.empty());
         
         Tenant newTenant = Tenant.builder()
                 .id(UUID.randomUUID())

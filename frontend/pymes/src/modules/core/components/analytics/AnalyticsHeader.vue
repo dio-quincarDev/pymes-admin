@@ -54,7 +54,7 @@ const periodOptions = computed(() => {
         flat
         round
         dense
-        icon="refresh"
+        icon="sym_r_refresh"
         aria-label="Recalcular datos"
         :loading="loading"
         class="analytics-header__recalc"

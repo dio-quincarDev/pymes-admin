@@ -98,7 +98,7 @@ async function removePresentation(p: Presentacion) {
               </span>
             </div>
             <q-btn
-              flat dense round icon="delete_outline" color="negative" size="sm"
+              flat dense round icon="sym_r_delete_outline" color="negative" size="sm"
               @click="removePresentation(p)" :disable="removingPres"
               aria-label="Eliminar presentación"
               class="pres-row__remove"
@@ -125,7 +125,7 @@ async function removePresentation(p: Presentacion) {
             <q-btn
               label="Agregar" color="primary" no-caps
               :loading="addingPres" @click="addPresentation"
-              icon="add"
+              icon="sym_r_add"
               class="pres-add-btn"
             />
           </div>

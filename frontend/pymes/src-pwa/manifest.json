@@ -5,12 +5,18 @@
   "orientation": "portrait",
   "start_url": "/",
   "display": "standalone",
-  "background_color": "#0B1210",
-  "theme_color": "#A3785E",
+  "background_color": "#08090D",
+  "theme_color": "#C8963E",
   "scope": "/",
   "lang": "es-MX",
   "categories": ["business", "finance", "productivity"],
   "icons": [
+    {
+      "src": "icons/pymeq-app-icon.svg",
+      "sizes": "any",
+      "type": "image/svg+xml",
+      "purpose": "any"
+    },
     {
       "src": "icons/icon-128x128.png",
       "sizes": "128x128",

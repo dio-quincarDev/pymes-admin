@@ -250,16 +250,16 @@ function handleKeydown(e: KeyboardEvent) {
 
     <div class="toolbar">
       <q-space />
-      <q-btn v-if="rows.length" color="primary" icon="add" label="Nuevo" @click="openCreate" />
+      <q-btn v-if="rows.length" color="primary" icon="sym_r_add" label="Nuevo" @click="openCreate" />
     </div>
 
     <div v-if="!loading && !rows.length" class="q-mt-lg">
       <EmptyState
-        icon="money_off"
+        icon="sym_r_money_off"
         title="Sin gastos registrados"
         message="Registra tu primer gasto operativo del negocio."
       >
-        <q-btn color="primary" icon="add" label="Nuevo Gasto" @click="openCreate" class="q-mt-sm" />
+        <q-btn color="primary" icon="sym_r_add" label="Nuevo Gasto" @click="openCreate" class="q-mt-sm" />
       </EmptyState>
     </div>
 
@@ -294,7 +294,7 @@ function handleKeydown(e: KeyboardEvent) {
             flat
             dense
             round
-            icon="edit"
+            icon="sym_r_edit"
             color="primary"
             size="sm"
             @click="openEdit(g)"
@@ -304,7 +304,7 @@ function handleKeydown(e: KeyboardEvent) {
             flat
             dense
             round
-            icon="delete"
+            icon="sym_r_delete"
             color="negative"
             size="sm"
             @click="confirmDelete(g)"

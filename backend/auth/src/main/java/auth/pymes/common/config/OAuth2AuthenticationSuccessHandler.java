@@ -11,6 +11,8 @@ import auth.pymes.repositories.UserEntityRepository;
 import auth.pymes.repositories.UserTenantRepository;
 import auth.pymes.service.JwtService;
 import auth.pymes.service.OAuth2IntentService;
+import auth.pymes.utils.exception.CodigoError;
+import auth.pymes.utils.exception.custom.DuplicateResourceException;
 import auth.pymes.utils.exception.custom.ResourceNotFoundException;
 import jakarta.servlet.ServletException;
 import jakarta.servlet.http.Cookie;
@@ -25,19 +27,16 @@ import org.springframework.security.oauth2.core.user.OAuth2User;
 import org.springframework.security.web.authentication.SimpleUrlAuthenticationSuccessHandler;
 import org.springframework.stereotype.Component;
 import org.springframework.util.StringUtils;
-import org.springframework.web.util.UriComponentsBuilder;
 
 import java.io.IOException;
-import java.util.HashMap;
-import java.util.Map;
 import java.time.Duration;
 import java.time.ZonedDateTime;
 import java.util.Arrays;
+import java.util.HashMap;
 import java.util.List;
 import java.util.Map;
 import java.util.Optional;
 import java.util.UUID;
-import java.util.regex.Pattern;
 
 import static auth.pymes.utils.exception.CodigoError.USER_NOT_FOUND_BY_EMAIL;
 
@@ -87,6 +86,10 @@ public class OAuth2AuthenticationSuccessHandler extends SimpleUrlAuthenticationS
                 OAuth2IntentRequest intent = intentOpt.get();
                 log.info("Procesando intent para empresa nueva: {}", intent.companyName());
 
+                if (tenantRepository.findBySlug(intent.companySlug()).isPresent()) {
+                    throw new DuplicateResourceException(CodigoError.TENANT_ALREADY_EXISTS, intent.companySlug());
+                }
+
                 Tenant tenant = Tenant.builder()
                         .name(intent.companyName())
                         .slug(intent.companySlug())
@@ -132,33 +135,6 @@ public class OAuth2AuthenticationSuccessHandler extends SimpleUrlAuthenticationS
             }
         }
 
-        // 4. Prioridad 3: Solo si no hay intent Y no hay nada existente, crear "Mi Empresa"
-        if (activeTenantId == null) {
-            log.info("Usuario {} no tiene tenant ni intent, creando 'Mi Empresa' por defecto", email);
-
-            String slug = generateSlugFromEmail(email);
-            Tenant defaultTenant = Tenant.builder()
-                    .name("Mi Empresa")
-                    .slug(slug)
-                    .plan(PlanName.FREE)
-                    .isActive(true)
-                    .build();
-            defaultTenant = tenantRepository.save(defaultTenant);
-
-            UserTenant userTenant = UserTenant.builder()
-                    .userId(user.getId())
-                    .tenantId(defaultTenant.getId())
-                    .role(RoleName.OWNER)
-                    .isActive(true)
-                    .acceptedAt(ZonedDateTime.now())
-                    .build();
-            userTenantRepository.save(userTenant);
-
-            activeTenantId = defaultTenant.getId();
-            role = RoleName.OWNER.name();
-            plan = PlanName.FREE.name();
-        }
-
         // 5. Generar Tokens JWT
         String accessToken = jwtService.generateAccessToken(user, activeTenantId, role, plan);
         String refreshToken = jwtService.generateRefreshToken(user);
@@ -172,18 +148,6 @@ public class OAuth2AuthenticationSuccessHandler extends SimpleUrlAuthenticationS
         String targetUrl = frontendUrl + "/#/auth/callback?code=" + code;
 
         getRedirectStrategy().sendRedirect(request, response, targetUrl);
-    }
-
-    private String generateSlugFromEmail(String email) {
-        if (email == null || !email.contains("@")) {
-            return "mi-empresa-" + System.currentTimeMillis();
-        }
-        String localPart = email.split("@")[0];
-        return Pattern.compile("[^a-z0-9-]", Pattern.CASE_INSENSITIVE)
-                .matcher(localPart)
-                .replaceAll("")
-                .toLowerCase()
-                + "-" + System.currentTimeMillis();
     }
 
     private String extractIntentIdFromCookie(HttpServletRequest request) {

@@ -49,7 +49,7 @@ onMounted(async () => {
       if (!authData?.accessToken) {
         throw new Error('No se recibieron tokens');
       }
-      await authStore.handleOAuthCallback(authData.accessToken, authData.refreshToken, authData.activeTenant?.name);
+      await authStore.handleOAuthCallback(authData.accessToken, authData.refreshToken, authData.user, authData.activeTenant);
 
       authStore.clearPendingTenant();
 
@@ -65,6 +65,11 @@ onMounted(async () => {
         } catch {
           // ponytail: si falla, ir al dashboard normalmente
         }
+      } else {
+        // Sin workspace (OAuth2 directo desde login, sin intent) → crear espacio de trabajo
+        clearInterval(rotateMessage);
+        void router.push('/onboarding');
+        return;
       }
 
       $q.notify({

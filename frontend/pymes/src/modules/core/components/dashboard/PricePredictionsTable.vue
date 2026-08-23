@@ -14,7 +14,7 @@
           class="preds-card__search"
         >
           <template v-slot:prepend>
-            <q-icon name="search" size="1.1rem" class="text-accent" />
+            <q-icon name="search" size="1.1rem" style="color: var(--pq-accent)" />
           </template>
         </q-input>
       </div>
@@ -78,7 +78,7 @@
 
       <template v-slot:no-data>
         <div class="preds-card__empty">
-          <q-icon name="auto_graph" size="2.5rem" class="text-accent" />
+          <q-icon name="auto_graph" size="2.5rem" style="color: var(--pq-accent)" />
           <p class="preds-card__empty-text">Sin datos de predicción para este período</p>
         </div>
       </template>
@@ -120,10 +120,8 @@ function filterFn(rows: readonly any[], terms: any) {
 
 <style scoped lang="scss">
 .preds-card {
-  background: rgba(27, 38, 36, 0.7);
-  backdrop-filter: blur(12px);
-  -webkit-backdrop-filter: blur(12px);
-  border: 1px solid rgba(113, 131, 127, 0.1);
+  background: var(--pq-surface);
+  border: 1px solid var(--pq-border);
   border-radius: 8px;
   overflow: hidden;
 
@@ -138,7 +136,7 @@ function filterFn(rows: readonly any[], terms: any) {
     top: 0;
     bottom: 0;
     width: 3px;
-    background: #C5A059;
+    background: var(--pq-warning);
     border-radius: 0 2px 2px 0;
   }
 
@@ -150,17 +148,18 @@ function filterFn(rows: readonly any[], terms: any) {
   }
 
   &__title {
-    font-family: 'Outfit', sans-serif;
+    font-family: 'Geist', sans-serif;
     font-size: 1.1rem;
     font-weight: 600;
-    color: #E2E8E4;
+    color: var(--pq-text);
     margin: 0;
     line-height: 1.2;
   }
 
   &__subtitle {
+    font-family: 'Satoshi', sans-serif;
     font-size: 0.75rem;
-    color: #8A9E99;
+    color: var(--pq-text-muted);
     margin: 0.25rem 0 0;
   }
 
@@ -175,14 +174,15 @@ function filterFn(rows: readonly any[], terms: any) {
     transition: background 0.2s ease;
 
     &:hover {
-      background: rgba(163, 120, 94, 0.06) !important;
+      background: rgba(200, 150, 62, 0.06) !important;
     }
   }
 
   &__cell {
     padding: 0.75rem 1rem !important;
+    font-family: 'Satoshi', sans-serif;
     font-size: 0.85rem;
-    color: #E2E8E4;
+    color: var(--pq-text);
 
     &--right { text-align: right; }
     &--product { max-width: 200px; }
@@ -190,16 +190,16 @@ function filterFn(rows: readonly any[], terms: any) {
 
   &__product-name {
     font-weight: 600;
-    color: #E2E8E4;
+    color: var(--pq-text);
   }
 
   &__price {
-    font-family: 'Outfit', sans-serif;
+    font-family: 'Geist Mono', monospace;
     font-weight: 600;
     font-size: 0.9rem;
 
     &--predicted {
-      color: #C5A059;
+      color: var(--pq-warning);
     }
   }
 
@@ -207,20 +207,20 @@ function filterFn(rows: readonly any[], terms: any) {
     display: inline-flex;
     align-items: center;
     gap: 0.2rem;
-    font-family: 'Outfit', sans-serif;
+    font-family: 'Geist Mono', monospace;
     font-size: 0.8rem;
     font-weight: 600;
     padding: 0.15rem 0.5rem;
     border-radius: 9999px;
 
     &--up {
-      color: #8B4513;
-      background: rgba(139, 69, 19, 0.12);
+      color: var(--pq-danger);
+      background: rgba(160, 64, 56, 0.12);
     }
 
     &--down {
-      color: #2D5A27;
-      background: rgba(45, 90, 39, 0.12);
+      color: var(--pq-success);
+      background: rgba(61, 122, 90, 0.12);
     }
   }
 
@@ -234,7 +234,7 @@ function filterFn(rows: readonly any[], terms: any) {
   &__confidence-track {
     width: 60px;
     height: 5px;
-    background: rgba(113, 131, 127, 0.12);
+    background: var(--pq-chart-grid);
     border-radius: 3px;
     overflow: hidden;
   }
@@ -246,18 +246,18 @@ function filterFn(rows: readonly any[], terms: any) {
   }
 
   &__confidence-value {
-    font-family: 'Outfit', sans-serif;
+    font-family: 'Geist Mono', monospace;
     font-size: 0.8rem;
     font-weight: 500;
-    color: #8A9E99;
+    color: var(--pq-text-muted);
     min-width: 32px;
     text-align: right;
   }
 
   &__samples {
-    font-family: 'Outfit', sans-serif;
+    font-family: 'Geist Mono', monospace;
     font-size: 0.75rem;
-    color: #8A9E99;
+    color: var(--pq-text-muted);
   }
 
   &__empty {
@@ -269,22 +269,23 @@ function filterFn(rows: readonly any[], terms: any) {
   }
 
   &__empty-text {
+    font-family: 'Satoshi', sans-serif;
     font-size: 0.85rem;
-    color: #8A9E99;
+    color: var(--pq-text-muted);
     margin: 0;
   }
 }
 
 .confidence--high {
-  background: linear-gradient(90deg, #2D5A27, #4a8a42);
+  background: var(--pq-success);
 }
 
 .confidence--medium {
-  background: linear-gradient(90deg, #C5A059, #d4b56e);
+  background: var(--pq-warning);
 }
 
 .confidence--low {
-  background: linear-gradient(90deg, #8A9E99, #a0b4af);
+  background: var(--pq-text-muted);
 }
 
 @keyframes predRowIn {
@@ -303,26 +304,27 @@ function filterFn(rows: readonly any[], terms: any) {
 
   .q-table__top {
     padding: 0;
-    border-bottom: 1px solid rgba(113, 131, 127, 0.08);
+    border-bottom: 1px solid var(--pq-border);
   }
 
   .q-table__bottom {
-    border-top: 1px solid rgba(113, 131, 127, 0.08);
+    border-top: 1px solid var(--pq-border);
     padding: 0.5rem 1rem;
   }
 
   thead tr th {
+    font-family: 'Geist', sans-serif;
     font-size: 0.7rem;
     font-weight: 600;
     text-transform: uppercase;
     letter-spacing: 0.06em;
-    color: #8A9E99;
+    color: var(--pq-text-muted);
     padding: 0.75rem 1rem;
-    border-bottom: 1px solid rgba(113, 131, 127, 0.1);
+    border-bottom: 1px solid var(--pq-border);
   }
 
   tbody tr {
-    border-bottom: 1px solid rgba(113, 131, 127, 0.05);
+    border-bottom: 1px solid var(--pq-border);
   }
 }
 </style>

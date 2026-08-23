@@ -29,23 +29,23 @@ public interface PrestamoApi {
 
     @Operation(summary = "Create a loan")
     @PostMapping
-    @PreAuthorize("hasAnyRole('OWNER', 'ADMIN')")
+    @PreAuthorize("hasRole('OWNER')")
     ResponseEntity<PrestamoResponse> create(@Valid @RequestBody PrestamoRequest request);
 
     @Operation(summary = "Update a loan")
     @PutMapping("/{id}")
-    @PreAuthorize("hasAnyRole('OWNER', 'ADMIN')")
+    @PreAuthorize("hasRole('OWNER')")
     ResponseEntity<PrestamoResponse> update(@PathVariable UUID id, @RequestParam UUID tenantId,
                                              @Valid @RequestBody PrestamoRequest request);
 
     @Operation(summary = "Delete a loan")
     @DeleteMapping("/{id}")
-    @PreAuthorize("hasAnyRole('OWNER', 'ADMIN')")
+    @PreAuthorize("hasRole('OWNER')")
     ResponseEntity<Void> delete(@PathVariable UUID id, @RequestParam UUID tenantId);
 
     @Operation(summary = "Register a loan payment")
     @PostMapping("/{id}/pagos")
-    @PreAuthorize("hasAnyRole('OWNER', 'ADMIN')")
+    @PreAuthorize("hasRole('OWNER')")
     ResponseEntity<PagoPrestamoResponse> registrarPago(@PathVariable UUID id,
                                                        @RequestParam UUID tenantId,
                                                        @Valid @RequestBody PagoPrestamoRequest request);
