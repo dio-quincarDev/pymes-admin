@@ -123,9 +123,25 @@ docker run -d \
   caddy:latest
 ```
 
-Caddyfile (`/etc/caddy/Caddyfile`):
+Caddyfile (`~/caddy-proxy/Caddyfile`):
 ```
-https://pymeq.dioquincar.dev {
+#PORTFOLIO Static SPA
+http://dioquincar.dev {
+    reverse_proxy portfolio-frontend:80
+}
+
+#Pymeq PROYECTO FULLSATCK MICROSERVICIOS
+http://pymeq.dioquincar.dev {
+    @sw path /sw.js
+    handle @sw {
+        header Cache-Control "no-cache, no-store, must-revalidate"
+        reverse_proxy pymes-frontend:9200
+    }
+    @svg path *.svg
+    handle @svg {
+        header Cache-Control "no-cache, no-store, must-revalidate"
+        reverse_proxy pymes-frontend:9200
+    }
     handle /api/* {
         reverse_proxy pymes-gateway:8080
     }
@@ -136,6 +152,8 @@ https://pymeq.dioquincar.dev {
         reverse_proxy pymes-gateway:8080
     }
     handle {
+        @root path /
+        header @root Cache-Control "no-cache, no-store, must-revalidate"
         reverse_proxy pymes-frontend:9200
     }
 }

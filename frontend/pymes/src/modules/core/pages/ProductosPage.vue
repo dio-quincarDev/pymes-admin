@@ -214,20 +214,20 @@ function handleKeydown(e: KeyboardEvent) {
       <span class="text-accent text-caption">{{ totalCategories }} {{ totalCategories === 1 ? 'categoría' : 'categorías' }}</span>
     </div>
 
-    <div class="row items-center q-gutter-x-sm q-mb-md">
+    <div class="row items-center q-gutter-x-sm q-mb-md wrap">
       <q-select
         dark dense filled
         v-model="categoryFilter"
         :options="catOptions"
         label="Categoría"
         clearable emit-value map-options
-        style="min-width: 180px"
+        class="col-12 col-sm-auto"
         @update:model-value="load()"
       />
       <q-input
         dark dense filled v-model="search"
         placeholder="Buscar..."
-        style="max-width: 240px"
+        class="col col-sm-auto"
       >
         <template v-slot:prepend><q-icon name="search" /></template>
       </q-input>
