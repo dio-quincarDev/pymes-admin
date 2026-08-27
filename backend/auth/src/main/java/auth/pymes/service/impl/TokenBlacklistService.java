@@ -25,11 +25,11 @@ public class TokenBlacklistService {
     /**
      * Añade un token a la blacklist (logout).
      * @param token El token JWT a revocar
-     * @param expirationSeconds Tiempo de expiración del token (para que Redis lo elimine automáticamente)
+     * @param expirationMs Tiempo de expiración del token en milisegundos (para que Redis lo elimine automáticamente)
      */
-    public void revokeToken(String token, long expirationSeconds) {
+    public void revokeToken(String token, long expirationMs) {
         String key = BLACKLIST_PREFIX + token;
-        redisTemplate.opsForValue().set(key, REVOKED_VALUE, expirationSeconds, TimeUnit.SECONDS);
+        redisTemplate.opsForValue().set(key, REVOKED_VALUE, expirationMs, TimeUnit.MILLISECONDS);
         log.debug("Token revocado añadido a blacklist: {}", key);
     }
 

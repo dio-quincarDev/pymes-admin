@@ -74,8 +74,10 @@ test.describe('Full OAuth2 user flow', () => {
     const logoutBtn = page.locator('text=Cerrar Sesión');
     await logoutBtn.click();
 
-    // Should redirect to login
-    await page.waitForURL(/login/, { timeout: 10_000 });
+    // Should redirect to landing page (not login form)
+    await page.waitForURL(/\//, { timeout: 10_000 });
+    // Wait for auth:401 to fire and clearSession to run
+    await page.waitForTimeout(1_000);
 
     // Verify token is gone
     const tokenAfterLogout = await page.evaluate(() => localStorage.getItem('pymeq_token'));

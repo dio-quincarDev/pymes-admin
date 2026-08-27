@@ -209,13 +209,17 @@ public class AuthServiceImpl implements AuthService {
             try {
                 jwtService.revokeToken(accessToken);
                 log.info("Access token revocado");
-                if (userId != null) {
+            } catch (Exception e) {
+                log.warn("Error revocando access token (Redis puede estar caído): {}", e.getMessage());
+            }
+            if (userId != null) {
+                try {
                     refreshTokenRepository.deleteByUserId(userId);
                     sessionsRevoked = true;
                     log.info("Global Logout - Todas las sesiones del usuario {} revocadas", userId);
+                } catch (Exception e) {
+                    log.error("Error eliminando refresh tokens del usuario {}: {}", userId, e.getMessage());
                 }
-            } catch (Exception e) {
-                log.warn("Error durante el proceso de logout: {}", e.getMessage());
             }
         }
 

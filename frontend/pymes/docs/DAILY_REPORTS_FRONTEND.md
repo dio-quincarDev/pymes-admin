@@ -4,6 +4,109 @@ Registro cronológico de decisiones, problemas resueltos y estado del frontend.
 
 ---
 
+## 2026-08-27 — Fix logout: redirect a landing + race condition + cache limpieza
+
+### El problema
+
+Al hacer logout, la app quedaba en el form de login (`AuthLayout`) en vez de ir a la landing page. Además, si el usuario hacía logout mientras un refresh de token estaba en curso, los requests encolados reintentaban con tokens ya borrados, causando un loop de 401s antes de llegar a la página de login.
+
+### Por qué pasó
+
+**Redirect:** `useLogout.ts` hacía `router.push('/login')` — la ruta `/login` usa `AuthLayout` (centrado, sin sidebar). El usuario quería ir a la landing page (`/`).
+
+**Race condition:** En `src/boot/axios.ts`, el `clearSession()` local no reseteaba `isRefreshing` ni limpiaba `failedQueue`. Si un request 401a y el refresh está en curso, y el usuario hace logout al mismo tiempo:
+1. `clearSession()` borra el token de localStorage
+2. El refresh pendiente completa y escribe un token nuevo
+3. Los requests encolados reintentan → 401 otra vez → intentan refresh sin refresh token → loop
+
+**Cache:** El `core-api-cache` (StaleWhileRevalidate) sobrevivía el logout. Un usuario que hacía logout + login rápido podía ver datos del usuario anterior.
+
+### Fix
+
+| Archivo | Cambio |
+|---------|--------|
+| `src/composables/useLogout.ts` | `router.push('/login')` → `router.push('/')` |
+| `src/boot/axios.ts` | `clearSession()` ahora resetea `isRefreshing = false` y `failedQueue = []` |
+| `src/modules/auth/store/index.ts` | `clearSession()` ahora limpia `caches.delete('core-api-cache')` |
+| `src/modules/auth/store/index.ts` | `auth:401` listener redirige a `/#/` en vez de `/#/login` |
+| `src/boot/axios.ts` | AUTH005 redirect a `/#/?reason=session_revoked` en vez de `/#/login?reason=session_revoked` |
+| `src/modules/auth/store/index.ts` | `fetchCurrentUser` catch redirige a `/#/` en vez de `/#/login` |
+
+### E2E tests
+
+Nuevo archivo `e2e/tests/logout-cycle.spec.ts` con 2 tests:
+- `auth:401 event clears localStorage` — verifica que el evento `auth:401` limpia todas las keys de localStorage
+- `re-login after logout gets fresh tokens` — verifica que después de limpiar la sesión, no quedan tokens stale
+
+Test existente `e2e/tests/oauth2.spec.ts` actualizado: el logout ahora espera redirect a `/` en vez de `/login`.
+
+**Estado:** ✅ COMPLETADO — lint + typecheck + e2e tests pasan
+
+---
+
+## 2026-08-27 — Fix SVG cache: logos no se actualizan en staging
+
+### El problema
+
+Cambiaste el logo SVG pero en staging seguía mostrando el viejo. No importaba cuántas veces redeployaras — el browser siempre mostraba la versión anterior.
+
+### Por qué pasó
+
+Hay 3 capas entre el browser del usuario y el archivo SVG real. Las 3 estaban guardando copias de la versión vieja por distintas razones:
+
+**Capa 1 — nginx (dentro del container Docker):**
+nginx decía "guardá este SVG por 1 año". Aunque el archivo nuevo estaba en el container, nginx seguía entregando el viejo a cualquiera que lo pidiera.
+
+**Capa 2 — Caddy (reverse proxy frente a nginx):**
+Caddy tenía un filtro para detectar SVGs y decirle al browser "no guardes esto". Pero el filtro estaba escrito con una sintaxis que no funcionaba — nunca atrapaba los SVGs reales. Entonces el browser nunca recibía la instrucción de no cachear.
+
+**Capa 3 — Cloudflare (CDN que guarda copias para todo el mundo):**
+Cloudflare guardó una copia del SVG viejo hace 7 días con instrucciones de guardarlo por 1 año. Mientras esa copia existiera, Cloudflare la entregaba directamente sin preguntarle a nadie. El browser nunca llegaba al origin.
+
+### Cómo se arregló
+
+1. **nginx.conf** — Se le quitó el cache de 1 año a los SVGs. Ahora dice "no cacheés nunca".
+2. **Caddyfile en la instancia** — Se corrigió el filtro para que sí detecte los SVGs. El filtro viejo (`path *.svg`) no matcheaba `/icons/logo.svg` porque el `*` de Caddy no cruza `/`. Se cambió a `path_regexp \.svg$` que usa una expresión regular que sí funciona.
+3. **Cloudflare** — Se purgó el cache viejo desde el dashboard ("Purge Everything").
+
+### Lección importante
+
+Cloudflare es el punto más crítico. Aunque arregles nginx y Caddy, si Cloudflare tiene una copia vieja guardada con TTL largo, el browser nunca ve la nueva. Cada vez que cambies algo visible (logos, icons, SVGs), hay que purgar Cloudflare después del deploy.
+
+### Archivos modificados
+
+```
+frontend/pymes/nginx.conf    # SVGs: 1h public → no-cache, no-store, must-revalidate
+```
+
+### Cambio en la instancia (no en el repo)
+
+```
+~/caddy-proxy/Caddyfile       # @svg path *.svg → @svg path_regexp \.svg$
+docker restart caddy-proxy
+```
+
+### Verificación
+
+```bash
+# Directo al origin (sin Cloudflare):
+curl -sI http://localhost:9200/icons/logo.svg | grep Cache-Control
+# → Cache-Control: no-cache, no-store, must-revalidate ✅
+
+# A través de Caddy (con host header):
+curl -sI -H 'Host: pymeq.dioquincar.dev' http://localhost:80/icons/logo.svg | grep Cache-Control
+# → Cache-Control: no-cache, no-store, must-revalidate ✅
+
+# A través de Cloudflare:
+curl -sI https://pymeq.dioquincar.dev/icons/logo.svg | grep -E 'cf-cache|cache-control'
+# → cf-cache-status: BYPASS ✅
+# → cache-control: no-cache, no-store, must-revalidate ✅
+```
+
+**Estado:** ✅ COMPLETADO
+
+---
+
 ## 2026-08-23 — Fix logos no se reflejan + PNG icons regenerados + manifest.json
 
 ### Contexto

@@ -28,6 +28,7 @@ A partir de 2026-07-16, CORS opera en **doble capa**:
 - **Defensa en profundidad + Code Exchange OAuth2** — ✅ completado (2026-06-19).
 
 ### ✅ Historial de Soluciones (Orden Cronológico Inverso)
+0. [2026-08-27 — Redis fixes: TTL blacklist + logout error handling + fail-open](#-2026-08-27--redis-fixes-ttl-blacklist--logout-error-handling--fail-open)
 0. [2026-08-14 — OAuth2 slug duplicado fix (DuplicateResourceException)](#-2026-08-14--oauth2-slug-duplicado-fix-duplicateresourceexception)
 0. [2026-08-10 — Reconfig OAuth2 a pymeq.dioquincar.dev](#-2026-08-10--reconfig-oauth2-a-pymeqdioquincardev)
 0. [2026-07-30 — TOCTOU fix: @Lock(PESSIMISTIC_WRITE) en refresh token rotation](#-2026-07-30--toctou-fix-lockpessimistic_write-en-refresh-token-rotation)
@@ -65,6 +66,99 @@ A partir de 2026-07-16, CORS opera en **doble capa**:
 26. [2026-04-11 — Email Verification Logic](#-2026-04-11--email-verification-logic)
 27. [2026-04-11 — Password Reset Logic](#-2026-04-11--password-reset-logic)
 28. [2026-04-09 — Testcontainers Setup](#-2026-04-09--testcontainers-setup)
+
+---
+
+## 2026-08-27 — Redis fixes: TTL blacklist + logout error handling + fail-open
+
+### Problemas
+
+| # | Bug | Impacto |
+|---|-----|---------|
+| 1 | **TTL blacklist en milisegundos tratado como segundos** — `accessTokenExpiration` (3600000 ms) se pasaba a `revokeToken(token, expirationSeconds)` con `TimeUnit.SECONDS` | Tokens revocados quedaban 41.7 días en Redis en vez de 1 hora. Memory waste. |
+| 2 | **Logout silencia errores de Redis** — `revokeToken()` y `deleteByUserId()` estaban en el mismo `try/catch`. Si Redis fallaba, el catch atrapaba la excepción y `deleteByUserId` nunca se ejecutaba. | Sesión seguía activa después de "logout" exitoso. Refresh tokens no se borraban. |
+| 3 | **Sin fail-open en blacklist check** — `isTokenRevoked()` propagaba `RedisConnectionException`. `validateToken()` la envolvía como `TokenInvalidException` → 401. | Si Redis caía, todos los usuarios autenticados perdían sesión (fail-closed). |
+
+### Soluciones
+
+**1. TokenBlacklistService — TTL en milisegundos:**
+```java
+// ANTES (bug)
+public void revokeToken(String token, long expirationSeconds) {
+    redisTemplate.opsForValue().set(key, REVOKED_VALUE, expirationSeconds, TimeUnit.SECONDS);
+}
+
+// DESPUÉS (fix)
+public void revokeToken(String token, long expirationMs) {
+    redisTemplate.opsForValue().set(key, REVOKED_VALUE, expirationMs, TimeUnit.MILLISECONDS);
+}
+```
+
+**2. AuthServiceImpl.logout() — calls separados:**
+```java
+// ANTES (bug) — revokeToken + deleteByUserId en mismo try
+try {
+    jwtService.revokeToken(accessToken);
+    refreshTokenRepository.deleteByUserId(userId);  // nunca se ejecuta si Redis falla
+} catch (Exception e) {
+    log.warn("Error durante el proceso de logout: {}", e.getMessage());
+}
+
+// DESPUÉS (fix) — bloques separados
+try {
+    jwtService.revokeToken(accessToken);
+} catch (Exception e) {
+    log.warn("Error revocando access token (Redis puede estar caído): {}", e.getMessage());
+}
+if (userId != null) {
+    try {
+        refreshTokenRepository.deleteByUserId(userId);
+    } catch (Exception e) {
+        log.error("Error eliminando refresh tokens del usuario {}: {}", userId, e.getMessage());
+    }
+}
+```
+
+**3. JwtServiceImpl.isTokenRevoked() — fail-open:**
+```java
+// ANTES
+public boolean isTokenRevoked(String token) {
+    return tokenBlacklistService.isTokenRevoked(token);
+}
+
+// DESPUÉS
+public boolean isTokenRevoked(String token) {
+    try {
+        return tokenBlacklistService.isTokenRevoked(token);
+    } catch (Exception e) {
+        log.warn("Redis no disponible para verificar blacklist, permitiendo token: {}", e.getMessage());
+        return false;  // fail-open
+    }
+}
+```
+
+### Archivos modificados
+
+```
+backend/auth/src/main/java/auth/pymes/service/impl/TokenBlacklistService.java  # TimeUnit.SECONDS → MILLISECONDS
+backend/auth/src/main/java/auth/pymes/service/impl/AuthServiceImpl.java       # logout() calls separados
+backend/auth/src/main/java/auth/pymes/service/impl/JwtServiceImpl.java        # isTokenRevoked() fail-open
+```
+
+### Tests
+
+**Unitarios (146 pass):**
+- `AuthServiceImplTest.logout_whenRevokeTokenFails_deletesRefreshTokensAnyway` — Redis cae → refresh tokens se borran igual
+- `JwtServiceImplTest.isTokenRevoked_WhenRedisDown_ReturnsFalse` — Redis cae → token no se considera revoked
+- `TokenBlacklistServiceTest.revokeToken_UsesMillisecondsNotSeconds` — verifica `TimeUnit.MILLISECONDS`
+- `TokenBlacklistServiceTest.isTokenRevoked_WhenKeyExists_ReturnsTrue`
+- `TokenBlacklistServiceTest.isTokenRevoked_WhenKeyMissing_ReturnsFalse`
+
+**Integración (56 pass):**
+- `AuthApiIntegrationTest.logoutFullFlow_RevokesAccessTokenAndDeletesRefreshTokens` — register → login → logout → verify refresh tokens deleted from DB + access token revoked
+- `SecurityConstraintIntegrationTest.fullFlow_RegisterVerifyLoginAccessLogout` — actualizado para verificar refresh token deletion
+
+**Estado:** ✅ COMPLETADO
 
 ---
 

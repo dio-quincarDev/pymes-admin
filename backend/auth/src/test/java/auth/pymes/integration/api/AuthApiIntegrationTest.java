@@ -26,6 +26,7 @@ import org.springframework.test.web.servlet.MvcResult;
 import java.util.ArrayList;
 import java.util.Collections;
 import java.util.List;
+import java.util.Map;
 import java.util.UUID;
 import java.util.concurrent.CyclicBarrier;
 import java.util.concurrent.ExecutorService;
@@ -34,6 +35,7 @@ import java.util.concurrent.Future;
 import java.util.concurrent.TimeUnit;
 
 import static org.assertj.core.api.Assertions.assertThat;
+import static org.springframework.test.web.servlet.request.MockMvcRequestBuilders.get;
 import static org.springframework.test.web.servlet.request.MockMvcRequestBuilders.post;
 import static org.springframework.test.web.servlet.result.MockMvcResultMatchers.jsonPath;
 import static org.springframework.test.web.servlet.result.MockMvcResultMatchers.status;
@@ -70,6 +72,22 @@ class AuthApiIntegrationTest extends AbstractIntegrationTest {
 
     private void verifyUserEmail(String email) {
         jdbcTemplate.update("UPDATE users SET email_verified_at = CURRENT_TIMESTAMP WHERE email = ?", email);
+    }
+
+    private String hashToken(String token) {
+        try {
+            byte[] hash = java.security.MessageDigest.getInstance("SHA-256")
+                    .digest(token.getBytes(java.nio.charset.StandardCharsets.UTF_8));
+            StringBuilder hex = new StringBuilder();
+            for (byte b : hash) {
+                String h = Integer.toHexString(0xff & b);
+                if (h.length() == 1) hex.append('0');
+                hex.append(h);
+            }
+            return hex.toString();
+        } catch (java.security.NoSuchAlgorithmException e) {
+            throw new RuntimeException(e);
+        }
     }
 
     private AuthResponse performLogin(String email, String password) throws Exception {
@@ -220,6 +238,56 @@ class AuthApiIntegrationTest extends AbstractIntegrationTest {
                             .header("Authorization", "Bearer " + expiredToken))
                     .andExpect(status().isUnauthorized())
                     .andExpect(jsonPath("$.codigo").value(CodigoError.TOKEN_INVALID.getCodigo()));
+        }
+
+        @Test
+        @DisplayName("Logout completo → access token revocado + refresh tokens eliminados de DB")
+        void logoutFullFlow_RevokesAccessTokenAndDeletesRefreshTokens() throws Exception {
+            // 1. Register
+            mockMvc.perform(post(TestApiPaths.AUTH_REGISTER)
+                            .contentType(MediaType.APPLICATION_JSON)
+                            .content(objectMapper.writeValueAsString(validRegisterRequest)))
+                    .andExpect(status().isOk());
+
+            // 2. Verify email (materializa usuario en DB)
+            String verificationToken = redisTemplate.keys("temp-register:*").stream()
+                    .filter(k -> k.toString().matches("temp-register:[0-9a-f]{64}"))
+                    .findFirst()
+                    .map(k -> k.toString().replace("temp-register:", ""))
+                    .orElseThrow(() -> new IllegalStateException("No registration token in Redis"));
+
+            mockMvc.perform(post(TestApiPaths.AUTH_VERIFY_EMAIL)
+                            .contentType(MediaType.APPLICATION_JSON)
+                            .content(objectMapper.writeValueAsString(
+                                    new auth.pymes.common.models.dto.request.VerifyEmailRequest(verificationToken, uniqueEmail))))
+                    .andExpect(status().isOk());
+
+            // 3. Login → get tokens
+            AuthResponse authResponse = performLogin(uniqueEmail, "SecurePass123!");
+            assertThat(authResponse.accessToken()).isNotNull();
+            assertThat(authResponse.refreshToken()).isNotNull();
+
+            // 4. Verify refresh token exists in DB
+            String tokenHash = hashToken(authResponse.refreshToken());
+            Boolean tokenExists = jdbcTemplate.queryForObject(
+                    "SELECT EXISTS(SELECT 1 FROM refresh_tokens WHERE token_hash = ?)", Boolean.class, tokenHash);
+            assertThat(tokenExists).isTrue();
+
+            // 5. Logout
+            mockMvc.perform(post(TestApiPaths.AUTH_LOGOUT)
+                            .header("Authorization", "Bearer " + authResponse.accessToken()))
+                    .andExpect(status().isOk())
+                    .andExpect(jsonPath("$.data.success").value(true));
+
+            // 6. Verify refresh tokens deleted from DB
+            Boolean tokenAfterLogout = jdbcTemplate.queryForObject(
+                    "SELECT EXISTS(SELECT 1 FROM refresh_tokens WHERE token_hash = ?)", Boolean.class, tokenHash);
+            assertThat(tokenAfterLogout).isFalse();
+
+            // 7. Verify access token is revoked (should get 401)
+            mockMvc.perform(get(TestApiPaths.TENANTS + "?page=0&size=10")
+                            .header("Authorization", "Bearer " + authResponse.accessToken()))
+                    .andExpect(status().isUnauthorized());
         }
     }
 

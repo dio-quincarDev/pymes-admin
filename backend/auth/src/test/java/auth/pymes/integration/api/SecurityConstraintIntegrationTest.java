@@ -25,6 +25,7 @@ import java.util.List;
 import java.util.Map;
 import java.util.UUID;
 
+import static org.assertj.core.api.Assertions.assertThat;
 import static org.mockito.ArgumentMatchers.anyString;
 import static org.mockito.ArgumentMatchers.eq;
 import static org.mockito.Mockito.atLeastOnce;
@@ -361,7 +362,7 @@ class SecurityConstraintIntegrationTest extends AbstractIntegrationTest {
     class FullAuthFlowTests {
 
         @Test
-        @DisplayName("Register -> Verify -> Login -> Access protected -> Logout -> Verify token revoked")
+        @DisplayName("Register -> Verify -> Login -> Access protected -> Logout -> Verify token revoked + refresh tokens deleted")
         void fullFlow_RegisterVerifyLoginAccessLogout() throws Exception {
             String userEmail = "flow-" + uniqueId + "@security.test";
             String userPassword = "FlowPass123!";
@@ -385,7 +386,14 @@ class SecurityConstraintIntegrationTest extends AbstractIntegrationTest {
             // 3. Login
             String accessToken = loginAndGetToken(userEmail, userPassword);
 
-            // 4. Access protected endpoint (GET /tenants and GET /users/me work with JWT UserEntity)
+            // Get refresh token from DB to verify deletion later
+            UUID userId = jdbcTemplate.queryForObject(
+                    "SELECT id FROM users WHERE email = ?", UUID.class, userEmail);
+            List<Map<String, Object>> refreshTokensBefore = jdbcTemplate.queryForList(
+                    "SELECT token_hash FROM refresh_tokens WHERE user_id = ?", userId);
+            assertThat(refreshTokensBefore).isNotEmpty();
+
+            // 4. Access protected endpoint
             mockMvc.perform(get(TestApiPaths.TENANTS + "?page=0&size=10")
                             .header("Authorization", "Bearer " + accessToken))
                     .andExpect(status().isOk());
@@ -400,7 +408,12 @@ class SecurityConstraintIntegrationTest extends AbstractIntegrationTest {
                             .header("Authorization", "Bearer " + accessToken))
                     .andExpect(status().isOk());
 
-            // 6. Verify token is revoked - access should fail
+            // 6. Verify refresh tokens deleted from DB
+            List<Map<String, Object>> refreshTokensAfter = jdbcTemplate.queryForList(
+                    "SELECT token_hash FROM refresh_tokens WHERE user_id = ?", userId);
+            assertThat(refreshTokensAfter).isEmpty();
+
+            // 7. Verify access token is revoked
             mockMvc.perform(get(TestApiPaths.TENANTS + "?page=0&size=10")
                             .header("Authorization", "Bearer " + accessToken))
                     .andExpect(status().isUnauthorized());
