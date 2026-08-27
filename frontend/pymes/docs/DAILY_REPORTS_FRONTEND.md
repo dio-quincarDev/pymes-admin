@@ -2545,3 +2545,52 @@ modules/core/components/dashboard/StatStrip.vue → totalIngresos, totalGastos, 
 - Frontend vue-tsc: clean (sin errores de tipo)
 
 **Estado:** ✅ COMPLETADO
+
+---
+
+## 2026-08-24 — Fix responsive mobile: toolbars + Caddyfile SVG cache
+
+### Contexto
+
+Múltiples páginas tenían toolbars desalineados en mobile (select, search, botones se desbordan o no tienen mismo tamaño). Además, los SVGs (logos) no se actualizaban en staging porque el Caddyfile no tenía cache-control para SVGs.
+
+### Qué se hizo
+
+**Mobile responsive (toolbars):**
+
+1. **`ProductosPage.vue`** — Toolbar con Quasar grid: select `col-12 col-sm-auto`, search `col col-sm-auto`. Eliminado `min-width` / `max-width` hardcodeados.
+2. **`FacturasPage.vue`** — CSS Grid en mobile (`grid-template-columns: 1fr 1fr`). Search full-width (`grid-column: 1 / -1`), botones lado a lado en columnas iguales. `<q-space />` ocultado en mobile para que no ocupe celda en el grid.
+3. **`ProveedoresPage.vue`, `GastosPage.vue`, `PrestamosPage.vue`, `CostosPage.vue`** — `.toolbar` con `flex-wrap: wrap` para evitar overflow.
+
+**Caddyfile SVG cache (instancia):**
+
+4. Matcher `@svg path *.svg` con `Cache-Control: no-cache, no-store, must-revalidate` en `~/caddy-proxy/Caddyfile`. Caddy reload exitoso.
+
+**Docs actualizados:**
+
+5. `.github/DEPLOYMENT.md` — Caddyfile real con `http://` blocks, matchers `@sw`, `@svg`, `@root`.
+6. `.github/QUICK_START.md` — Mismo cambio.
+7. `docs/strategies/INFRA_STRATEGY.md` — Descripción Caddyfile actualizada.
+8. `AGENTS.md` — Gotcha #9: Caddy usa `http://`, no `https://`.
+
+### Archivos modificados
+
+```
+frontend/pymes/src/components/landing/LandingHero.vue
+frontend/pymes/src/modules/core/pages/ProductosPage.vue
+frontend/pymes/src/modules/core/pages/FacturasPage.vue
+frontend/pymes/src/modules/core/pages/ProveedoresPage.vue
+frontend/pymes/src/modules/core/pages/GastosPage.vue
+frontend/pymes/src/modules/core/pages/PrestamosPage.vue
+frontend/pymes/src/modules/core/pages/CostosPage.vue
+.github/DEPLOYMENT.md
+.github/QUICK_START.md
+docs/strategies/INFRA_STRATEGY.md
+AGENTS.md
+```
+
+### Verificación
+
+- Frontend lint: clean
+
+**Estado:** ✅ COMPLETADO
