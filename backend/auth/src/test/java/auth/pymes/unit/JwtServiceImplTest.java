@@ -383,6 +383,16 @@ class JwtServiceImplTest {
     }
 
     @Test
+    void isTokenRevoked_WhenRedisDown_ReturnsFalse() {
+        String token = "some-token";
+        when(tokenBlacklistService.isTokenRevoked(token)).thenThrow(new RuntimeException("Redis connection failed"));
+
+        boolean result = jwtService.isTokenRevoked(token);
+
+        assertThat(result).isFalse();
+    }
+
+    @Test
     void saveRefreshToken_SavesCorrectEntity() {
         // Act
         String refreshToken = "some-refresh-token";

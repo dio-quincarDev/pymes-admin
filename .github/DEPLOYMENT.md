@@ -137,7 +137,7 @@ http://pymeq.dioquincar.dev {
         header Cache-Control "no-cache, no-store, must-revalidate"
         reverse_proxy pymes-frontend:9200
     }
-    @svg path *.svg
+    @svg path_regexp \.svg$
     handle @svg {
         header Cache-Control "no-cache, no-store, must-revalidate"
         reverse_proxy pymes-frontend:9200

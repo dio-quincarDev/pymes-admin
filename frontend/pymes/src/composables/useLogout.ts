@@ -18,7 +18,7 @@ export function useLogout() {
         position: 'top-right',
       });
 
-      void router.push('/login');
+      void router.push('/');
     } catch (error) {
       console.error('Logout error', error);
     }

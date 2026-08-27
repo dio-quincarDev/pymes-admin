@@ -222,6 +222,22 @@ public class AuthServiceImplTest {
     }
 
     @Test
+    void logout_whenRevokeTokenFails_deletesRefreshTokensAnyway() {
+        String accessToken = "valid-access-token";
+        UUID userId = UUID.randomUUID();
+
+        when(httpRequest.getHeader("Authorization")).thenReturn("Bearer " + accessToken);
+        when(jwtService.extractUserId(accessToken)).thenReturn(userId);
+        doThrow(new RuntimeException("Redis caído")).when(jwtService).revokeToken(accessToken);
+
+        LogoutResponse response = authService.logout(httpRequest);
+
+        assertThat(response.success()).isTrue();
+        verify(jwtService).revokeToken(accessToken);
+        verify(refreshTokenRepository).deleteByUserId(userId);
+    }
+
+    @Test
     void refreshToken_WithValidRefreshToken_ReturnsNewAuthResponse() {
         String refreshToken = "valid-refresh-token";
         TokenRefreshRequest request = new TokenRefreshRequest(refreshToken);

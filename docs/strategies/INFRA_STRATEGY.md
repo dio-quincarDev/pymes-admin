@@ -173,10 +173,10 @@ No instalar Prometheus/Grafana (consumen mucha RAM).
 Browser → Caddy :80/:443 → Gateway :8080 / Frontend :9200
 ```
 
-- **Caddy** (`~/caddy-proxy/Caddyfile`, contenedor `caddy-proxy`): reverse proxy HTTP puro en puerto 80. TLS lo maneja Cloudflare. Bloque `http://pymeq.dioquincar.dev` con matchers `@sw` (`/sw.js`), `@svg` (`*.svg`), `@root` (`/`) con `Cache-Control: no-cache`; handles `/api/*`, `/oauth2/*`, `/login/*` → `pymes-gateway:8080`; fallback → `pymes-frontend:9200`. Bloque `http://dioquincar.dev` → `portfolio-frontend:80`.
+- **Caddy** (`~/caddy-proxy/Caddyfile`, contenedor `caddy-proxy`): reverse proxy HTTP puro en puerto 80. TLS lo maneja Cloudflare. Bloque `http://pymeq.dioquincar.dev` con matchers `@sw` (`/sw.js`), `@svg` (`path_regexp \.svg$`), `@root` (`/`) con `Cache-Control: no-cache`; handles `/api/*`, `/oauth2/*`, `/login/*` → `pymes-gateway:8080`; fallback → `pymes-frontend:9200`. Bloque `http://dioquincar.dev` → `portfolio-frontend:80`.
 - **HTTPS**: Let's Encrypt automático de Caddy — requerido por Google OAuth (no acepta redirect `http://` en dominios públicos).
 - **Frontend**: Quasar SPA servida por Caddy en puerto 9200 (nginx internamente). `VITE_API_URL=/api/v1` (URL relativa, same-origin).
-- **Nginx (frontend)**: bundles JS/CSS `immutable` (cache 1y); `sw.js` y `/` con `no-cache` para que el service worker y el HTML siempre se actualicen.
+- **Nginx (frontend)**: bundles JS/CSS `immutable` (cache 1y); SVGs, `sw.js` y `/` con `no-cache` para que los logos, el service worker y el HTML siempre se actualicen.
 
 ### Puertos expuestos (OCI Security List)
 
@@ -213,7 +213,7 @@ Browser → Cloudflare (CDN, DNS, WAF) → OCI LB :80 HTTP → Caddy :80 → Gat
 
 - **Cloudflare**: DNS + CDN + SSL terminacion. SSL/TLS mode = **Full** (NO Flexible — OCI LB solo escucha HTTP:80, pero Cloudflare con Full conecta al origin en HTTPS:443 via red interna de Cloudflare).
 - **OCI Load Balancer**: HTTP:80 listener → forwards a vm2-test2.
-- **Caddy** (`~/caddy-proxy/Caddyfile`): reverse proxy HTTP puro en puerto 80 (TLS lo maneja Cloudflare). Matchers `@sw`, `@svg`, `@root` con `Cache-Control: no-cache`. Handles `/api/*`, `/oauth2/*`, `/login/*` → gateway:8080; fallback → frontend:9200. Portfolio en `dioquincar.dev` → portfolio-frontend:80.
+- **Caddy** (`~/caddy-proxy/Caddyfile`): reverse proxy HTTP puro en puerto 80 (TLS lo maneja Cloudflare). Matchers `@sw`, `@svg` (`path_regexp \.svg$`), `@root` con `Cache-Control: no-cache`. Handles `/api/*`, `/oauth2/*`, `/login/*` → gateway:8080; fallback → frontend:9200. Portfolio en `dioquincar.dev` → portfolio-frontend:80.
 - **Frontend**: Quasar SPA servida por Caddy en puerto 9200 (nginx internamente). `VITE_API_URL=/api/v1` (URL relativa, same-origin).
 
 ### Puertos expuestos (OCI Security List)
@@ -232,6 +232,14 @@ Browser → Cloudflare (CDN, DNS, WAF) → OCI LB :80 HTTP → Caddy :80 → Gat
 | SSL/TLS | **Full** | Flexible intenta HTTP:80 al origin, pero OCI LB + Cloudflare handshake requiere Full para que Cloudflare maneje TLS end-to-end correctamente. |
 | Bot Fight Mode | **Off** | Bloquea XHR POST desde browsers nuevos (retorna 403 + managed challenge). |
 | WAF Custom Rules | No disponibles en plan Free. | — |
+
+### Cloudflare: SVG cache
+
+Cloudflare cachea archivos estáticos (SVGs, PNGs, etc.) con un TTL largo si el origin envía `Cache-Control: public` o `immutable`. Si cambiás un SVG y redeployás, Cloudflare sigue entregando la versión vieja hasta que el TTL expire (puede ser 1 año).
+
+**Después de cambiar logos o SVGs visibles:** purgar cache desde Cloudflare Dashboard → Caching → Configuration → "Purge Everything". Sin este paso, el browser nunca ve la versión nueva aunque el origin ya la sirva correctamente.
+
+**Caddy `path_regexp`:** El matcher `path *.svg` de Caddy NO matchea `/icons/logo.svg` porque `*` no cruza `/`. Usar `path_regexp \.svg$` que usa regex y sí funciona para cualquier path terminando en `.svg`.
 
 ### PWA Cache (Firefox)
 

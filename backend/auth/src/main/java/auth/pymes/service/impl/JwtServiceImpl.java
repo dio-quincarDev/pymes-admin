@@ -191,7 +191,12 @@ public class JwtServiceImpl implements JwtService {
 
     @Override
     public boolean isTokenRevoked(String token) {
-        return tokenBlacklistService.isTokenRevoked(token);
+        try {
+            return tokenBlacklistService.isTokenRevoked(token);
+        } catch (Exception e) {
+            log.warn("Redis no disponible para verificar blacklist, permitiendo token: {}", e.getMessage());
+            return false;
+        }
     }
 
     @Override
