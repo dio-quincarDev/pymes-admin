@@ -44,6 +44,45 @@ Test existente `e2e/tests/oauth2.spec.ts` actualizado: el logout ahora espera re
 
 ---
 
+## 2026-08-29 — PWA: SW cache fix + manifest icon cache-busting
+
+### Problema 1: SW cache no se limpiaba al logout
+
+`caches.delete('core-api-cache')` se ejecutaba desde el main thread, pero el Service Worker tiene su propio scope. El SW podía seguir sirviendo datos viejos de la sesión anterior aunque la app los hubiera borrado. Resultado: al hacer logout + login rápido, el usuario veía datos del usuario anterior.
+
+### Fix 1: postMessage al SW
+
+| Archivo | Cambio |
+|---------|--------|
+| `src-pwa/custom-service-worker.ts` | Nuevo listener `CLEAR_API_CACHE` que borra `core-api-cache` desde el scope del SW |
+| `src/modules/auth/store/index.ts` | `clearSession()` ahora envía `postMessage({ type: 'CLEAR_API_CACHE' })` al SW en vez de `caches.delete()` directo |
+
+**Flujo:**
+1. Usuario hace logout
+2. `clearSession()` envía mensaje al SW
+3. SW recibe `CLEAR_API_CACHE` y borra `core-api-cache` desde su propio scope
+4. Al hacer login, el SW no tiene datos viejos → va al servidor
+
+### Problema 2: PWA icon no se actualiza
+
+Los iconos de PWA se cachean a nivel de sistema operativo (Android/iOS). No hay forma programática de limpiar esa caché. Los iconos no tenían hash en el nombre ni query param, así que el navegador/SO servía el icono viejo indefinidamente.
+
+### Fix 2: extendManifestJson con versionado
+
+| Archivo | Cambio |
+|---------|--------|
+| `quasar.config.ts` | Nuevo `extendManifestJson` que agrega `?v=<Date.now()>` a cada URL de icono en el manifest |
+
+**Flujo:**
+1. Cada build genera un timestamp nuevo
+2. `extendManifestJson` lo inyecta a cada icono: `icon-192x192.png?v=1787971234567`
+3. El navegador ve URL nueva → descarga el icono de nuevo
+4. Limitación conocida: el SO puede tardar en actualizar iconos de PWA ya instaladas. Workaround: desinstalar y reinstallar la app.
+
+**Estado:** ✅ COMPLETADO — lint + typecheck pasan
+
+---
+
 ## 2026-08-27 — Fix SVG cache: logos no se actualizan en staging
 
 ### El problema
