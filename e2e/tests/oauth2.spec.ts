@@ -31,8 +31,8 @@ test.describe('Full OAuth2 user flow', () => {
     // CI-safe: skip gracefully if secrets not configured (no throw → no CI red)
     const e2eEmail = process.env.E2E_GOOGLE_EMAIL;
     const e2ePassword = process.env.E2E_GOOGLE_PASSWORD;
-    if (!e2eEmail || !e2ePassword) {
-      test.skip(true, 'Missing E2E_GOOGLE_EMAIL / E2E_GOOGLE_PASSWORD — set in e2e/.env or GitHub Secrets (see e2e/.env.example)');
+    if (!e2eEmail || !e2ePassword || e2ePassword.includes('changeme') || e2ePassword.includes('rotate-me')) {
+      test.skip(true, 'Missing/placeholder E2E_GOOGLE_EMAIL / E2E_GOOGLE_PASSWORD — set real creds in e2e/.env or GitHub Secrets (see e2e/.env.example)');
       return;
     }
     const emailInput = page.locator('input[type="email"], input#identifierId');
