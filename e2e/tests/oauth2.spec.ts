@@ -27,17 +27,20 @@ test.describe('Full OAuth2 user flow', () => {
     await page.waitForURL(/accounts\.google\.com/, { timeout: 15_000 });
     await page.waitForTimeout(2_000);
 
-    // Email
+    // Email — ponytail: creds via env, not hardcoded (prev leak b27872c)
+    const e2eEmail = process.env.E2E_GOOGLE_EMAIL;
+    const e2ePassword = process.env.E2E_GOOGLE_PASSWORD;
+    if (!e2eEmail || !e2ePassword) throw new Error('Missing E2E_GOOGLE_EMAIL / E2E_GOOGLE_PASSWORD env vars — see e2e/.env.example');
     const emailInput = page.locator('input[type="email"], input#identifierId');
     await emailInput.first().waitFor({ state: 'visible', timeout: 10_000 });
-    await emailInput.first().fill('devpruebas.zar@gmail.com');
+    await emailInput.first().fill(e2eEmail);
     await page.locator('#identifierNext').click();
 
     // Password
     await page.waitForTimeout(3_000);
     const passwordInput = page.locator('input[type="password"], input[name="Passwd"]');
     await passwordInput.first().waitFor({ state: 'visible', timeout: 10_000 });
-    await passwordInput.first().fill('springboot');
+    await passwordInput.first().fill(e2ePassword);
     await page.locator('#passwordNext').click();
 
     // Wait for 2FA + redirect back to app (may take a while)
@@ -97,13 +100,13 @@ test.describe('Full OAuth2 user flow', () => {
       await page.waitForTimeout(2_000);
       const emailInput2 = page.locator('input[type="email"], input#identifierId');
       await emailInput2.first().waitFor({ state: 'visible', timeout: 10_000 });
-      await emailInput2.first().fill('devpruebas.zar@gmail.com');
+      await emailInput2.first().fill(e2eEmail);
       await page.locator('#identifierNext').click();
 
       await page.waitForTimeout(3_000);
       const passwordInput2 = page.locator('input[type="password"], input[name="Passwd"]');
       await passwordInput2.first().waitFor({ state: 'visible', timeout: 10_000 });
-      await passwordInput2.first().fill('springboot');
+      await passwordInput2.first().fill(e2ePassword);
       await page.locator('#passwordNext').click();
 
       // Wait for 2FA + redirect
