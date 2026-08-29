@@ -23,10 +23,15 @@ precacheAndRoute(self.__WB_MANIFEST);
 
 cleanupOutdatedCaches();
 
-// ponytail: listen for skip-waiting from app dialog
+// ponytail: listen for app messages
 self.addEventListener('message', (event) => {
   if (event.data?.type === 'SKIP_WAITING') {
     void self.skipWaiting();
+  }
+  if (event.data?.type === 'CLEAR_API_CACHE') {
+    void caches.delete('core-api-cache').then(() => {
+      console.log('[SW] core-api-cache cleared');
+    });
   }
 });
 

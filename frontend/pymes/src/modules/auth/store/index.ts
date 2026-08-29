@@ -205,8 +205,8 @@ export const useAuthStore = defineStore('auth', {
       localStorage.removeItem('pymeq_tenant_name');
       localStorage.removeItem('pymeq_pending_tenant');
       delete api.defaults.headers.common['Authorization'];
-      if (typeof caches !== 'undefined') {
-        void caches.delete('core-api-cache');
+      if (typeof navigator !== 'undefined' && navigator.serviceWorker?.controller) {
+        navigator.serviceWorker.controller.postMessage({ type: 'CLEAR_API_CACHE' });
       }
     }
   },
