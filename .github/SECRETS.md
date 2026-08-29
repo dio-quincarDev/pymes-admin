@@ -109,6 +109,21 @@ Todos los secrets deben configurarse en **GitHub → Settings → Secrets and va
 
 ---
 
+## 🧪 E2E Tests (Playwright — opcional)
+
+> Estos secrets **solo** se usan si habilitas el test `e2e/tests/oauth2.spec.ts` (requiere credenciales reales de Google). Si no los configuras, el test hace `test.skip()` y CI queda verde.
+
+| Secret | Descripción | Ejemplo |
+|--------|-------------|---------|
+| `E2E_GOOGLE_EMAIL` | Cuenta Gmail de prueba para flujo OAuth2 E2E | `devpruebas.zar@gmail.com` |
+| `E2E_GOOGLE_PASSWORD` | Password de la cuenta de prueba | *(rotar si estuvo hardcodeada en b27872c)* |
+
+**Local:** `cp e2e/.env.example e2e/.env` y llena los valores. `e2e/.env` está gitignored (`e2e/.gitignore:4`). `playwright.config.ts` lo carga automáticamente si existe.
+
+**CI:** Si existen como GitHub Secrets, Playwright los lee vía `process.env`. Si no existen, `oauth2.spec.ts:33` hace `test.skip()` — no rompe CI.
+
+---
+
 ## 📝 Resumen completo
 
 ```
@@ -159,6 +174,10 @@ SPRING_PROFILES_ACTIVE_PROD
 
 # App
 APP_FRONTEND_URL
+
+# E2E (opcional — solo si usas oauth2.spec.ts)
+E2E_GOOGLE_EMAIL
+E2E_GOOGLE_PASSWORD
 ```
 
 ---
