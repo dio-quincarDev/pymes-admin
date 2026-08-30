@@ -4,6 +4,35 @@ Registro cronológico de decisiones, problemas resueltos y estado del frontend.
 
 ---
 
+## 2026-08-30 — OAuth2 PWA whitelabel: SW denylist + duplicate tenant
+
+### El problema
+
+`GET /oauth2/authorization/google?intentId=...` devolvía `200 0ms` (SW servía `index.html`) y `GET /login/oauth2/code/google` devolvía `500` Whitelabel (`DuplicateResourceException` en `SuccessHandler` no llegaba a `GlobalExceptionHandler`). Usuario veía página en blanco en vez de mensaje friendly.
+
+### Por qué pasó
+
+- **SW `NavigationRoute` (`src-pwa/custom-service-worker.ts:54`):** `denylist` solo contenía `sw.js|workbox-*.js`. Toda navegación same-origin (incluido `/oauth2/**`) era interceptada y respondía con `index.html` precacheado.
+- **FilterChain bypass (`OAuth2AuthenticationSuccessHandler.java:90`):** `throw TNT003` ocurre en `SecurityFilterChain` (`OAuth2LoginAuthenticationFilter`), antes de `DispatcherServlet`. `@RestControllerAdvice` (`GlobalExceptionHandler.java:276`) nunca lo atrapa → `ErrorReportValve` → `500` crudo.
+
+### Fix
+
+| Archivo | Cambio |
+|---------|--------|
+| `src-pwa/custom-service-worker.ts` | `denylist: [..., /^\/oauth2/, /^\/login/]` — deja pasar `/oauth2/**` y `/login/**` al server (Caddy → Gateway → Auth) |
+| `backend/.../OAuth2AuthenticationSuccessHandler.java` | En vez de `throw TNT003`, `deleteIntent` + `clearIntentCookie` + `sendRedirect(frontendUrl + "/#/auth/callback?error=TNT003")` + `return` — reuse `CodigoError.TNT003` existente |
+| `src/modules/auth/pages/AuthCallback.vue` | `showDuplicate` `q-card` whitelabel (`logo.svg` + "Este nombre ya está registrado" + `Elegir otro nombre` → `/` / `Iniciar sesión` → `/login`) + check `?error=TNT003` antes de `code` + `parseBackendError(e).code==='TNT003'` en catch de `POST /auth/exchange` |
+
+### Verificación
+
+- `npm run lint` clean, `OAuth2AuthenticationSuccessHandlerTest: 5/5`, `verify -Pintegration: 56/56 BUILD SUCCESS`
+- `gateway curl -v /oauth2/authorization/google →302` a Google, `Network` trace `oauth2/authorization/google →302` `login/oauth2/code/google →302` a `/#/auth/callback?error=TNT003` cuando slug duplicado
+- DB vacía tras limpieza (0 tenants) — próximo duplicado cae en whitelabel en vez de `500`
+
+**Estado:** ✅ COMPLETADO
+
+---
+
 ## 2026-08-27 — Fix logout: redirect a landing + race condition + cache limpieza
 
 ### El problema

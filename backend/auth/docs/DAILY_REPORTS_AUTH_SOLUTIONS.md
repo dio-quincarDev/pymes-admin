@@ -28,6 +28,7 @@ A partir de 2026-07-16, CORS opera en **doble capa**:
 - **Defensa en profundidad + Code Exchange OAuth2** — ✅ completado (2026-06-19).
 
 ### ✅ Historial de Soluciones (Orden Cronológico Inverso)
+0. [2026-08-30 — OAuth2 duplicate tenant → redirect whitelabel TNT003](#-2026-08-30--oauth2-duplicate-tenant--redirect-whitelabel-tnt003)
 0. [2026-08-27 — Redis fixes: TTL blacklist + logout error handling + fail-open](#-2026-08-27--redis-fixes-ttl-blacklist--logout-error-handling--fail-open)
 0. [2026-08-14 — OAuth2 slug duplicado fix (DuplicateResourceException)](#-2026-08-14--oauth2-slug-duplicado-fix-duplicateresourceexception)
 0. [2026-08-10 — Reconfig OAuth2 a pymeq.dioquincar.dev](#-2026-08-10--reconfig-oauth2-a-pymeqdioquincardev)
@@ -66,6 +67,37 @@ A partir de 2026-07-16, CORS opera en **doble capa**:
 26. [2026-04-11 — Email Verification Logic](#-2026-04-11--email-verification-logic)
 27. [2026-04-11 — Password Reset Logic](#-2026-04-11--password-reset-logic)
 28. [2026-04-09 — Testcontainers Setup](#-2026-04-09--testcontainers-setup)
+
+---
+
+## 2026-08-30 — OAuth2 duplicate tenant → redirect whitelabel TNT003
+
+### Contexto
+
+Duplicado de `2026-08-30` frontend: SW ya arreglado (`^/oauth2|^/login` denylist → `302`), pero `GET /login/oauth2/code/google` con slug existente (`qcore-system`) devolvía `500` Whitelabel en vez de mensaje friendly. Suite `CodigoError.TNT003` + `GlobalExceptionHandler:276` existe pero `@RestControllerAdvice` no atrapa excepciones en `SecurityFilterChain`.
+
+### Por qué fallaba
+
+`OAuth2AuthenticationSuccessHandler.java:90` `throw DuplicateResourceException(TNT003)` en `onAuthenticationSuccess()` (invocado por `OAuth2LoginAuthenticationFilter` antes de `DispatcherServlet`). Bypass de `@RestControllerAdvice` → `ErrorReportValve` → `500` crudo. `AuthCallback.vue` nunca se ejecutaba (navigation `302` fallida, no `POST /auth/exchange`).
+
+### Qué se hizo
+
+- **Handler fix (`OAuth2AuthenticationSuccessHandler.java:89`):** antes de `save()`, `if(findBySlug().isPresent()) { log.warn(...); deleteIntent(); clearIntentCookie(); sendRedirect(frontendUrl + "/#/auth/callback?error=TNT003"); return; }` — reuse `TNT003` sin nuevo `CodigoError`, no `ErrorResponse` JSON en navigation. Import `DuplicateResourceException` eliminado.
+- **Test (`OAuth2AuthenticationSuccessHandlerTest.java:124`):** `conIntentId_SlugDuplicado_LanzaDuplicateResourceException` → `conIntentId_SlugDuplicado_RedirigeWhitelabel` — verifica `never save`, `deleteIntent`, `never generateAccessToken`.
+- **Frontend (`AuthCallback.vue`):** whitelabel inline `q-card` (ponytail: 1 archivo vs `ErrorPage.vue` dedicada) — ver `DAILY_REPORTS_FRONTEND.md 2026-08-30`.
+
+### Archivos modificados
+
+```
+auth/pymes/common/config/OAuth2AuthenticationSuccessHandler.java  — throw → redirect ?error=TNT003
+auth/pymes/unit/OAuth2AuthenticationSuccessHandlerTest.java       — test duplicado actualizado
+```
+
+### Verificación
+
+`./mvnw test -Dtest=OAuth2AuthenticationSuccessHandlerTest →5/5`, `./mvnw verify -Pintegration →56/56 BUILD SUCCESS`.
+
+**Estado:** ✅ COMPLETADO
 
 ---
 
