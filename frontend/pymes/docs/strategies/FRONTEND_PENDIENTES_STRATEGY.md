@@ -100,16 +100,16 @@ Diseñados SOBRE el resultado de Fase 4. El workflow depurado define:
 5. **Refactorizados con tokens:** AbcGastosChart, PriceTrendSparkline, ProjectionTimeline, OpexGauge, SupplierComparisonTable, PricePredictionsTable.
 6. **Eliminado:** `vue-chartjs` de package.json (dead weight).
 
-### Fase 5b — Botones e Iconos (PENDIENTE)
+### Fase 5b — Botones e Iconos ✅ CERRADO (2026-08-18 `f31a561`)
 
 **Problema:** Dos sistemas paralelos (`BaseButton` 68 usos + `q-btn` 81 usos). Tres formas de colorear iconos (Quasar prop, CSS class, inline style). `BaseButton` hardcodea hex. Colores fuera de tema (`red`, `amber`).
 
 **Solución:**
-1. **Unificar en `q-btn`** — migrar 68 usos de `BaseButton` a `q-btn`, eliminar `BaseButton.vue`.
+1. **Unificar en `q-btn`** — migrar 68 usos de `BaseButton` a `q-btn`, eliminar `BaseButton.vue`. ✅ (`git show f31a561 --stat` -184, `grep BaseButton 0`, `grep q-btn 167`)
 2. **Icon utility classes** en `app.scss` — `text-icon-accent`, `text-icon-danger`, etc.
-3. **Global button overrides** en `app.scss` — `q-btn--primary`, `q-btn--positive`, etc. con tokens CSS.
+3. **Global button overrides** en `app.scss` — `q-btn--primary`, `q-btn--positive`, etc. con tokens CSS. ✅ (`app.scss` +44 en `f31a561`)
 4. **Reemplazar inline styles** en ~20 iconos (10 archivos).
-5. **Fix non-theme colors** — `color="red"` → `color="negative"`, `color="amber"` → `color="warning"`.
+5. **Fix non-theme colors** — `color="red"` → `color="negative"`, `color="amber"` → `color="warning"`. ⏳ residual: `AuthOptionsPage.vue:25 color="red"` + `AcceptInvitationPage.vue:35 color="amber"` (2 casos) + `text-icon-*` utils — polish bajo, no bloquea Fase 5b.
 
 ## Notas de viabilidad (ponytail)
 
@@ -118,4 +118,4 @@ Diseñados SOBRE el resultado de Fase 4. El workflow depurado define:
 - `usePullToRefresh` y el panel de alertas ya tienen el código/composables base escritos.
 - **Fase 4 es puramente frontend** — no toca backend, ni migraciones, ni contratos API.
 - **Fase 5a completada** — chart tokens + migración CSS→Chart.js + eliminación vue-chartjs.
-- **Fase 5b pendiente** — unificación botones/iconos (~25 archivos, ~45 líneas nuevas, -200 líneas).
+- **Fase 5b cerrada 2026-08-18 `f31a561`** — `BaseButton` eliminado, `167 q-btn`, polish residual 2 colores + icon utils.

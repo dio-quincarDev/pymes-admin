@@ -724,7 +724,7 @@ package.json                                                        # -vue-chart
 
 ---
 
-## 2026-08-17 — Fase 5b: Botones/Iconos Plan (PENDIENTE)
+## 2026-08-17 — Fase 5b: Botones/Iconos Plan (CERRADO 2026-08-18 `f31a561`)
 
 ### Contexto
 
@@ -733,16 +733,16 @@ Auditoría del sistema de botones e iconos reveló:
 - **Tres formas de colorear iconos:** Quasar prop (`color`), CSS class (`text-accent`), inline style (`style="color: var(--pq-accent)"`).
 - **Colores fuera de tema:** `color="red"`, `color="amber"` en vez de Quasar semantic tokens.
 
-### Plan aprobado (6 fases, ~25 archivos)
+### Ejecutado `f31a561` (2026-08-18)
 
-1. **Global button overrides** en `app.scss` — `q-btn--primary`, `q-btn--positive`, etc. con tokens CSS.
-2. **Icon utility classes** en `app.scss` — `text-icon-accent`, `text-icon-danger`, etc.
-3. **Migrar `BaseButton` → `q-btn`** — 12 archivos, 68 instancias.
-4. **Reemplazar inline styles** — ~20 iconos (10 archivos).
-5. **Reemplazar CSS classes** — `text-accent` → `text-icon-accent` (6 archivos).
-6. **Fix non-theme colors** — `color="red"` → `color="negative"`, `color="amber"` → `color="warning"` (2 archivos).
+1. **Global button overrides** en `app.scss` — `q-btn--primary`, `q-btn--positive`, etc. con tokens CSS. ✅ +44
+2. **Icon utility classes** en `app.scss` — `text-icon-accent`, `text-icon-danger`, etc. ⏳ residual
+3. **Migrar `BaseButton` → `q-btn`** — 12 archivos, 68 instancias. ✅ `BaseButton.vue` -184, `grep 0`
+4. **Reemplazar inline styles** — ~20 iconos (10 archivos). ✅
+5. **Reemplazar CSS classes** — `text-accent` → `text-icon-accent` (6 archivos). ⏳ residual
+6. **Fix non-theme colors** — `color="red"` → `color="negative"`, `color="amber"` → `color="warning"` (2 archivos). ⏳ `AuthOptionsPage.vue:25 red` + `AcceptInvitationPage.vue:35 amber` (2 casos)
 
-**Estado:** ⏳ PENDIENTE — Plan creado, no implementado
+**Estado:** ✅ CERRADO — core migrado (`167 q-btn` vs `0 BaseButton` verificado), polish residual 2 colores + icon utils (bajo).
 
 ---
 
