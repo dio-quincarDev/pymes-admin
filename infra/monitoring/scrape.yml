@@ -10,6 +10,6 @@ scrape_configs:
           - pymes-auth-service:8081
           - pymes-core-service:8082
         labels:
-          env: "${SPRING_PROFILES_ACTIVE:-stg}"
+          env: stg
     metrics_path: /actuator/prometheus
     scrape_timeout: 5s
