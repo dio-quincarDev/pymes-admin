@@ -173,11 +173,65 @@ services:
       retries: 3
       start_period: 5s
 
+  # ==================== OBSERVABILITY (VictoriaMetrics + Grafana) ====================
+  # ponytail: 2 contenedores livianos (~300MB). Logs/Tracing diferidos hasta que duela.
+  victoriametrics:
+    image: victoriametrics/victoria-metrics:v1.102.0
+    container_name: pymes-victoriametrics
+    restart: on-failure
+    networks:
+      - pymes-internal-network
+    volumes:
+      - ./infra/monitoring/scrape.yml:/etc/vm/scrape.yml:ro
+      - vm-data:/victoria-metrics-data
+    command:
+      - --promscrape.config=/etc/vm/scrape.yml
+      - --retentionPeriod=30d
+      - --storageDataPath=/victoria-metrics-data
+    ports:
+      - "${VM_PORT:-8428}:8428"
+    healthcheck:
+      test: ["CMD", "wget", "-qO-", "http://127.0.0.1:8428/health"]
+      interval: 15s
+      timeout: 5s
+      retries: 3
+
+  grafana:
+    image: grafana/grafana:11.2.0
+    container_name: pymes-grafana
+    restart: on-failure
+    networks:
+      - pymes-internal-network
+      - proxy-caddy-network
+    environment:
+      - GF_SECURITY_ADMIN_USER=${GRAFANA_USER:-admin}
+      - GF_SECURITY_ADMIN_PASSWORD=${GRAFANA_PASSWORD:-admin}
+      - GF_USERS_ALLOW_SIGN_UP=false
+    volumes:
+      - grafana-data:/var/lib/grafana
+      - ./infra/monitoring/grafana/datasources.yml:/etc/grafana/provisioning/datasources/datasources.yml:ro
+      - ./infra/monitoring/grafana/dashboards.yml:/etc/grafana/provisioning/dashboards/dashboards.yml:ro
+      - ./infra/monitoring/grafana/dashboards:/etc/grafana/dashboards:ro
+    ports:
+      - "${GRAFANA_PORT:-3001}:3000"
+    depends_on:
+      victoriametrics:
+        condition: service_healthy
+    healthcheck:
+      test: ["CMD-SHELL", "wget -qO- http://127.0.0.1:3000/api/health | grep -q ok"]
+      interval: 15s
+      timeout: 5s
+      retries: 5
+
 # ==================== VOLUMES ====================
 volumes:
   pymes-postgres-db-data:
     external: false
   pymes-redis-data:
+    external: false
+  vm-data:
+    external: false
+  grafana-data:
     external: false
 
 # ==================== NETWORKS ====================
