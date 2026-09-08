@@ -232,7 +232,7 @@ jobs:
           key: ${{ secrets.STAGING_SSH_KEY }}
           port: 22
           script: |
-            sudo rm -rf ~/pymes-admin/infra/monitoring/scrape.yml ~/pymes-admin/infra/monitoring/grafana
+            sudo rm -rf ~/pymes-admin/infra
             mkdir -p ~/pymes-admin/infra/monitoring
 
       - name: Copy monitoring configs to server
