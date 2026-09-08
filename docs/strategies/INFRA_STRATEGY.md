@@ -147,12 +147,83 @@ Secrets requeridos: `DOCKER_USERNAME`, `DOCKER_PASSWORD`, `STAGING_HOST`, `STAGI
 
 ---
 
-## Monitoreo Ligero
+## Monitoreo
 
-No instalar Prometheus/Grafana (consumen mucha RAM).
+VictoriaMetrics + Grafana para observabilidad de los 3 backends JVM.
 
-- `docker stats --no-stream` en el script de deploy para reporte post-actualizacion.
-- `GlobalExceptionHandler` puede enviar errores criticos a un canal Slack/Telegram via webhook.
+### Stack
+
+| Servicio | Imagen | RAM | Puerto |
+|----------|--------|-----|--------|
+| VictoriaMetrics | `victoriametrics/victoria-metrics:v1.102.0` | ~30MB | 8428 |
+| Grafana | `grafana/grafana:11.2.0` | ~250MB | 3001 (host) → 3000 (container) |
+
+Total: ~300MB. Logs y tracing diferidos hasta que duela.
+
+### Scraping
+
+`infra/monitoring/scrape.yml` — VictoriaMetrics scrape config:
+
+```yaml
+global:
+  scrape_interval: 15s
+
+scrape_configs:
+  - job_name: pymes
+    static_configs:
+      - targets:
+          - pymes-gateway:8080
+          - pymes-auth-service:8081
+          - pymes-core-service:8082
+        labels:
+          env: stg
+    metrics_path: /actuator/prometheus
+    scrape_timeout: 5s
+```
+
+- Solo backends JVM con Micrometer (gateway, auth, core).
+- El frontend (Quasar PWA) no tiene `/actuator/prometheus` — no se scraea.
+- `env: stg` hardcodeado. VictoriaMetrics usa `%{VAR}` para sustitución de variables de entorno, pero requiere `environment:` en `docker-compose.yml` para pasarlas al contenedor.
+
+### Dashboard
+
+`infra/monitoring/grafana/dashboards/pymes.json` — 6 paneles:
+
+1. Request rate (req/s)
+2. Response time p50/p95/p99
+3. Error rate (5xx)
+4. JVM memory (heap/non-heap)
+5. CPU usage
+6. Active threads
+
+Datasource: VictoriaMetrics (`/api/v1/query`).
+
+### Acceso
+
+- **URL:** `https://monitor-pymeq.dioquincar.dev`
+- **Creds:** `admin` / valor de `GRAFANA_PASSWORD` (GitHub Secret)
+- **DNS:** CNAME `monitor-pymeq` → `149.130.165.200` (Cloudflare proxy naranja)
+- **Caddy:** `http://monitor-pymeq.dioquincar.dev { reverse_proxy pymes-grafana:3000 }`
+- **Nota:** `*.dioquincar.dev` solo cubre un nivel de subdominio. Usar guion (`monitor-pymeq`), no punto (`monitor.pymeq`).
+
+### CI/CD: Cleanup de directorios root-owned
+
+Docker bind mount puede crear archivos/directorios como `root` en el host. El deploy user (`ubuntu`) no puede sobrescribirlos.
+
+**Cleanup step** (antes de `Copy monitoring configs`):
+```bash
+sudo rm -rf ~/pymes-admin/infra          # borra TODO, incluyendo monitoring/ root-owned
+mkdir -p ~/pymes-admin/infra/monitoring   # recrea como ubuntu
+```
+
+**Deploy step:**
+```bash
+docker compose pull
+docker compose up -d --force-recreate --remove-orphans
+docker image prune -af
+```
+
+`--force-recreate` es necesario para evitar conflictos de bind mount cuando containers previos quedaron en estado `Created`/`Exited(127)` por deploys fallidos anteriores.
 
 ---
 
