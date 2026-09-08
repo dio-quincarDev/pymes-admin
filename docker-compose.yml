@@ -174,7 +174,7 @@ services:
       start_period: 5s
 
   # ==================== OBSERVABILITY (VictoriaMetrics + Grafana) ====================
-  # ponytail: 2 contenedores livianos (~300MB). Logs/Tracing diferidos hasta que duela.
+  # ponytail: 2 contenedores livianos (~300MB). Logs/Tracing diferidos hasta que duela. Trigger CI→CD staging.
   victoriametrics:
     image: victoriametrics/victoria-metrics:v1.102.0
     container_name: pymes-victoriametrics
