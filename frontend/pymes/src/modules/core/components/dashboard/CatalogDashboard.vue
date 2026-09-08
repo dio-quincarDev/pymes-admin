@@ -160,7 +160,7 @@ const kpis = computed(() => [
   { label: 'Categorías', value: String(tree.value.length), icon: 'category', accent: 'sage' as const },
   { label: 'Proveedores', value: String(supplierCount.value), icon: 'people', accent: 'gold' as const },
   {
-    label: 'Inversión Total',
+    label: 'Inversión en Productos',
     value: formatCurrency(products.value.reduce((s, p) => s + (p.totalInvestment || 0), 0)),
     icon: 'payments',
     accent: 'copper' as const,
@@ -347,7 +347,7 @@ onMounted(loadData)
               <q-badge outline color="accent" class="q-px-xs">{{ row.sku }}</q-badge>
             </div>
             <div class="col-2 col-sm-2 text-caption text-accent">
-              <q-chip dense dark color="transparent" text-color="sage-muted" size="sm" icon="straighten" class="q-px-xs">
+              <q-chip dense dark color="transparent" text-color="sage-muted" size="sm" icon="sym_r_straighten" class="q-px-xs">
                 {{ row.unit }}
               </q-chip>
             </div>

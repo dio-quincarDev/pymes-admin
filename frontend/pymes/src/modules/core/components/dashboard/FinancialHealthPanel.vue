@@ -15,7 +15,7 @@ function healthColor(score: number): string {
 }
 
 function alertColor(alert: FinancialHealthAlert): string {
-  if (alert.code.includes('NEGATIVE') || alert.code.includes('OVER_LEVERAGED')) return 'var(--pq-danger)';
+  if (alert.code?.includes('NEGATIVE') || alert.code?.includes('OVER_LEVERAGED')) return 'var(--pq-danger)';
   return 'var(--pq-warning)';
 }
 </script>

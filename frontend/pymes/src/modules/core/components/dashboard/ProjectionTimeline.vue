@@ -11,10 +11,12 @@
 import { computed } from 'vue';
 import type { ProjectionItem } from '../../types/analytics';
 import { useNumberFormat } from '../../composables/useNumberFormat';
+import { useChartTheme } from '../../composables/useChartTheme';
 import BaseChart from '../charts/BaseChart.vue';
 
 const props = defineProps<{ items: ProjectionItem[] }>();
 const { formatCurrency } = useNumberFormat();
+const { colors } = useChartTheme();
 
 const chartData = computed(() => ({
   labels: props.items.map((d) => d.period),
@@ -22,18 +24,18 @@ const chartData = computed(() => ({
     {
       label: 'Proyectado',
       data: props.items.map((d) => d.projectedSpend),
-      borderColor: '#A3785E',
-      backgroundColor: 'rgba(163, 120, 94, 0.1)',
+      borderColor: colors.value.bar,
+      backgroundColor: colors.value.area,
       fill: true,
       tension: 0.3,
       pointRadius: 5,
-      pointBackgroundColor: '#A3785E',
+      pointBackgroundColor: colors.value.bar,
     },
     {
       label: 'Confianza inferior',
       data: props.items.map((d) => d.projectedSpend * (1 - d.confidence)),
       borderColor: 'transparent',
-      backgroundColor: 'rgba(163, 120, 94, 0.05)',
+      backgroundColor: colors.value.area.replace('0.15', '0.05'),
       fill: '+1',
       pointRadius: 0,
     },
@@ -41,7 +43,7 @@ const chartData = computed(() => ({
       label: 'Confianza superior',
       data: props.items.map((d) => d.projectedSpend * (1 + d.confidence)),
       borderColor: 'transparent',
-      backgroundColor: 'rgba(163, 120, 94, 0.05)',
+      backgroundColor: colors.value.area.replace('0.15', '0.05'),
       fill: false,
       pointRadius: 0,
     },

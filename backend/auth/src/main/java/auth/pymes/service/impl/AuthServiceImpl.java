@@ -209,13 +209,17 @@ public class AuthServiceImpl implements AuthService {
             try {
                 jwtService.revokeToken(accessToken);
                 log.info("Access token revocado");
-                if (userId != null) {
+            } catch (Exception e) {
+                log.warn("Error revocando access token (Redis puede estar caído): {}", e.getMessage());
+            }
+            if (userId != null) {
+                try {
                     refreshTokenRepository.deleteByUserId(userId);
                     sessionsRevoked = true;
                     log.info("Global Logout - Todas las sesiones del usuario {} revocadas", userId);
+                } catch (Exception e) {
+                    log.error("Error eliminando refresh tokens del usuario {}: {}", userId, e.getMessage());
                 }
-            } catch (Exception e) {
-                log.warn("Error durante el proceso de logout: {}", e.getMessage());
             }
         }
 
@@ -287,11 +291,21 @@ public class AuthServiceImpl implements AuthService {
             throw new InvalidInputException(INVALID_INPUT, "Invalid or expired exchange code");
         }
         redisTemplate.delete("oauth:code:" + code);
+
+        String accessToken = tokenData.get("accessToken");
+        UUID userId = jwtService.extractUserId(accessToken);
+        UUID tenantId = jwtService.extractTenantId(accessToken);
+
+        UserEntity user = userRepository.findById(userId)
+                .orElse(null);
+
+        Tenant tenant = tenantId != null ? tenantRepository.findById(tenantId).orElse(null) : null;
+
         return new AuthResponse(
-                tokenData.get("accessToken"),
+                accessToken,
                 tokenData.get("refreshToken"),
-                null,
-                null
+                user != null ? userMapper.toResponse(user) : null,
+                tenant != null ? tenantMapper.toResponse(tenant) : null
         );
     }
 

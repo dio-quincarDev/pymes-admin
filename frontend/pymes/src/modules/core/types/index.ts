@@ -179,17 +179,17 @@ export interface GastoRequest {
 export interface VentaDiaria {
   id: string
   tenantId: string
-  saleDate: string
-  grossAmount: number
-  description: string | null
+  fecha: string
+  montoBruto: number
+  descripcion: string | null
   isActive: boolean
 }
 
 export interface VentaRequest {
   tenantId: string
-  saleDate: string
-  grossAmount: number
-  description?: string | null
+  fecha: string
+  montoBruto: number
+  descripcion?: string | null
 }
 
 export interface Prestamo {

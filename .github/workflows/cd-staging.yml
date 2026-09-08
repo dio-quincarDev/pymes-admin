@@ -27,7 +27,7 @@ jobs:
     steps:
       - name: Generate version
         id: version
-        run: echo "version=$(date +%Y%m%d)-${GITHUB_SHA:0:7}" >> $GITHUB_OUTPUT
+        run: echo "version=$(date +%Y%m%d)-$(echo '${{ github.event.workflow_run.head_sha }}' | cut -c1-7)" >> $GITHUB_OUTPUT
 
   # ==================== DOCKER AUTH ====================
   docker-auth:
@@ -224,6 +224,17 @@ jobs:
           source: "docker-compose.yml"
           target: "~/pymes-admin"
 
+      - name: Copy monitoring configs to server
+        uses: appleboy/scp-action@ff85246acaad7bdce478db94a363cd2bf7c90345 # v1.0.0
+        with:
+          host: ${{ secrets.STAGING_HOST }}
+          username: ${{ secrets.STAGING_USER }}
+          key: ${{ secrets.STAGING_SSH_KEY }}
+          port: 22
+          source: "infra/monitoring/**"
+          target: "~/pymes-admin"
+          strip_components: 0
+
       - name: Deploy via SSH
         uses: appleboy/ssh-action@0ff4204d59e8e51228ff73bce53f80d53301dee2 # v1.2.5
         with:
@@ -247,6 +258,8 @@ jobs:
             JWT_ACCESS_EXPIRATION=${{ secrets.JWT_ACCESS_EXPIRATION }}
             JWT_REFRESH_EXPIRATION=${{ secrets.JWT_REFRESH_EXPIRATION }}
             CORS_ALLOWED_ORIGINS=${{ secrets.CORS_ALLOWED_ORIGINS_STAGING }}
+            SPRING_PROFILES_ACTIVE=${{ secrets.SPRING_PROFILES_ACTIVE_STAGING }}
+            GRAFANA_PASSWORD=${{ secrets.GRAFANA_PASSWORD }}
             GOOGLE_CLIENT_ID=${{ secrets.GOOGLE_CLIENT_ID }}
             GOOGLE_CLIENT_SECRET=${{ secrets.GOOGLE_CLIENT_SECRET }}
             FACEBOOK_CLIENT_ID=${{ secrets.FACEBOOK_CLIENT_ID }}

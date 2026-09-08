@@ -238,7 +238,7 @@ GitHub Actions ejecuta `mvn verify` en cada PR a main/develop/feature/*. Docker 
 | [docs/ANALYTICS.md](./docs/ANALYTICS.md) | 9 motores CTE + SQL + performance |
 | [docs/SEED_TEMPLATES.md](./docs/SEED_TEMPLATES.md) | Plantillas por industria |
 | [docs/FUTURE_MODULES.md](./docs/FUTURE_MODULES.md) | Blueprints originales (reportes pendiente) |
-| [docs/DAYLY_REPORTS_CORE_SOLUTIONS.md](./docs/DAYLY_REPORTS_CORE_SOLUTIONS.md) | Historial de desarrollo |
+| [docs/DAILY_REPORTS_CORE_SOLUTIONS.md](./docs/DAILY_REPORTS_CORE_SOLUTIONS.md) | Historial de desarrollo |
 
 ---
 

@@ -23,8 +23,9 @@ public class CoreApiException extends RuntimeException {
         return switch (codigo) {
             case RESOURCE_NOT_FOUND -> HttpStatus.NOT_FOUND;
             case INVALID_INPUT, VALIDATION_ERROR -> HttpStatus.BAD_REQUEST;
-            case DUPLICATE_RESOURCE, CONSTRAINT_VIOLATION -> HttpStatus.CONFLICT;
-            case SEC_AUTH -> HttpStatus.UNAUTHORIZED;
+case DUPLICATE_RESOURCE, CONSTRAINT_VIOLATION -> HttpStatus.CONFLICT;
+			case INSUFFICIENT_PERMISSIONS -> HttpStatus.FORBIDDEN;
+			case SEC_AUTH -> HttpStatus.UNAUTHORIZED;
             case SEC_FORBIDDEN -> HttpStatus.FORBIDDEN;
             case SEC_TOKEN_EXPIRED -> HttpStatus.UNAUTHORIZED;
             case INTERNAL_SERVER_ERROR -> HttpStatus.INTERNAL_SERVER_ERROR;

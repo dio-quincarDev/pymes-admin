@@ -15,7 +15,7 @@
           input-class="comparison-card__search-input"
         >
           <template v-slot:prepend>
-            <q-icon name="search" size="1.1rem" class="text-accent" />
+            <q-icon name="search" size="1.1rem" style="color: var(--pq-accent)" />
           </template>
         </q-input>
       </div>
@@ -77,7 +77,7 @@
 
       <template v-slot:no-data>
         <div class="comparison-card__empty">
-          <q-icon name="analytics" size="2.5rem" class="text-accent" />
+          <q-icon name="analytics" size="2.5rem" style="color: var(--pq-accent)" />
           <p class="comparison-card__empty-text">Sin datos de comparativa para este período</p>
         </div>
       </template>
@@ -127,10 +127,8 @@ function filterFn(rows: readonly any[], terms: any) {
 
 <style scoped lang="scss">
 .comparison-card {
-  background: rgba(27, 38, 36, 0.7);
-  backdrop-filter: blur(12px);
-  -webkit-backdrop-filter: blur(12px);
-  border: 1px solid rgba(113, 131, 127, 0.1);
+  background: var(--pq-surface);
+  border: 1px solid var(--pq-border);
   border-radius: 8px;
   overflow: hidden;
 
@@ -145,7 +143,7 @@ function filterFn(rows: readonly any[], terms: any) {
     top: 0;
     bottom: 0;
     width: 3px;
-    background: #A3785E;
+    background: var(--pq-accent);
     border-radius: 0 2px 2px 0;
   }
 
@@ -157,17 +155,18 @@ function filterFn(rows: readonly any[], terms: any) {
   }
 
   &__title {
-    font-family: 'Outfit', sans-serif;
+    font-family: 'Geist', sans-serif;
     font-size: 1.1rem;
     font-weight: 600;
-    color: #E2E8E4;
+    color: var(--pq-text);
     margin: 0;
     line-height: 1.2;
   }
 
   &__subtitle {
+    font-family: 'Satoshi', sans-serif;
     font-size: 0.75rem;
-    color: #8A9E99;
+    color: var(--pq-text-muted);
     margin: 0.25rem 0 0;
   }
 
@@ -180,14 +179,15 @@ function filterFn(rows: readonly any[], terms: any) {
     transition: background 0.2s ease;
 
     &:hover {
-      background: rgba(163, 120, 94, 0.06) !important;
+      background: rgba(200, 150, 62, 0.06) !important;
     }
   }
 
   &__cell {
     padding: 0.75rem 1rem !important;
+    font-family: 'Satoshi', sans-serif;
     font-size: 0.85rem;
-    color: #E2E8E4;
+    color: var(--pq-text);
 
     &--right {
       text-align: right;
@@ -204,7 +204,7 @@ function filterFn(rows: readonly any[], terms: any) {
 
   &__product-name {
     font-weight: 600;
-    color: #E2E8E4;
+    color: var(--pq-text);
   }
 
   &__supplier {
@@ -217,29 +217,29 @@ function filterFn(rows: readonly any[], terms: any) {
     width: 6px;
     height: 6px;
     border-radius: 50%;
-    background: #A3785E;
+    background: var(--pq-accent);
     flex-shrink: 0;
   }
 
   &__price {
-    font-family: 'Outfit', sans-serif;
+    font-family: 'Geist Mono', monospace;
     font-weight: 600;
     font-size: 0.9rem;
 
-    &--low { color: #2D5A27; }
-    &--high { color: #8B4513; }
+    &--low { color: var(--pq-success); }
+    &--high { color: var(--pq-danger); }
   }
 
   &__separator {
-    color: #8A9E99;
+    color: var(--pq-text-muted);
     margin: 0 0.35rem;
     font-size: 0.7rem;
   }
 
   &__count {
-    font-family: 'Outfit', sans-serif;
+    font-family: 'Geist Mono', monospace;
     font-weight: 500;
-    color: #8A9E99;
+    color: var(--pq-text-muted);
   }
 
   &__volatility {
@@ -252,7 +252,7 @@ function filterFn(rows: readonly any[], terms: any) {
   &__volatility-bar {
     width: 50px;
     height: 4px;
-    background: rgba(113, 131, 127, 0.15);
+    background: var(--pq-chart-grid);
     border-radius: 2px;
     overflow: hidden;
     flex-shrink: 0;
@@ -265,7 +265,7 @@ function filterFn(rows: readonly any[], terms: any) {
   }
 
   &__volatility-label {
-    font-family: 'Outfit', sans-serif;
+    font-family: 'Geist Mono', monospace;
     font-size: 0.8rem;
     font-weight: 500;
     min-width: 40px;
@@ -281,25 +281,26 @@ function filterFn(rows: readonly any[], terms: any) {
   }
 
   &__empty-text {
+    font-family: 'Satoshi', sans-serif;
     font-size: 0.85rem;
-    color: #8A9E99;
+    color: var(--pq-text-muted);
     margin: 0;
   }
 }
 
 .volatility--low {
-  background: #2D5A27;
-  color: #2D5A27;
+  background: var(--pq-success);
+  color: var(--pq-success);
 }
 
 .volatility--medium {
-  background: #C5A059;
-  color: #C5A059;
+  background: var(--pq-warning);
+  color: var(--pq-warning);
 }
 
 .volatility--high {
-  background: #8B4513;
-  color: #8B4513;
+  background: var(--pq-danger);
+  color: var(--pq-danger);
 }
 
 :deep(.q-table) {
@@ -307,26 +308,27 @@ function filterFn(rows: readonly any[], terms: any) {
 
   .q-table__top {
     padding: 0;
-    border-bottom: 1px solid rgba(113, 131, 127, 0.08);
+    border-bottom: 1px solid var(--pq-border);
   }
 
   .q-table__bottom {
-    border-top: 1px solid rgba(113, 131, 127, 0.08);
+    border-top: 1px solid var(--pq-border);
     padding: 0.5rem 1rem;
   }
 
   thead tr th {
+    font-family: 'Geist', sans-serif;
     font-size: 0.7rem;
     font-weight: 600;
     text-transform: uppercase;
     letter-spacing: 0.06em;
-    color: #8A9E99;
+    color: var(--pq-text-muted);
     padding: 0.75rem 1rem;
-    border-bottom: 1px solid rgba(113, 131, 127, 0.1);
+    border-bottom: 1px solid var(--pq-border);
   }
 
   tbody tr {
-    border-bottom: 1px solid rgba(113, 131, 127, 0.05);
+    border-bottom: 1px solid var(--pq-border);
   }
 }
 </style>

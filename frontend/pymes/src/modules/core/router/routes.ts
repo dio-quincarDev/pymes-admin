@@ -26,12 +26,6 @@ export const coreRoutes: RouteRecordRaw[] = [
     meta: { title: 'Análisis de Gastos' },
   },
   {
-    path: 'configuracion',
-    name: 'configuracion',
-    component: () => import('../pages/ConfiguracionPage.vue'),
-    meta: { title: 'Configuración' },
-  },
-  {
     path: 'gastos',
     redirect: () => ({ path: '/dashboard/costos', query: { tab: 'gastosFijos' } }),
   },

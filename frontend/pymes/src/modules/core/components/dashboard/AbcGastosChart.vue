@@ -10,6 +10,7 @@
 <script setup lang="ts">
 import { computed } from 'vue';
 import type { AbcItem } from '../../types/analytics';
+import { useChartTheme } from '../../composables/useChartTheme';
 import BaseChart from '../charts/BaseChart.vue';
 
 interface Props {
@@ -21,11 +22,7 @@ const props = withDefaults(defineProps<Props>(), {
   height: 300,
 });
 
-const COLORS = {
-  A: '#A3785E',
-  B: '#C5A059',
-  C: '#8A9E99',
-};
+const { colors } = useChartTheme();
 
 const chartData = computed(() => {
   if (!props.data.length) return null;
@@ -36,7 +33,11 @@ const chartData = computed(() => {
       {
         label: 'Gasto',
         data: sorted.map((d) => d.spend),
-        backgroundColor: sorted.map((d) => COLORS[d.category]),
+        backgroundColor: sorted.map((d) => {
+          if (d.category === 'A') return colors.value.abcA;
+          if (d.category === 'B') return colors.value.abcB;
+          return colors.value.abcC;
+        }),
         borderRadius: 4,
         yAxisID: 'y',
         order: 2,
@@ -45,10 +46,10 @@ const chartData = computed(() => {
         label: 'Acumulado %',
         data: sorted.map((d) => d.cumulativePct * 100),
         type: 'line' as const,
-        borderColor: '#e94560',
+        borderColor: colors.value.negative,
         backgroundColor: 'transparent',
         pointRadius: 3,
-        pointBackgroundColor: '#e94560',
+        pointBackgroundColor: colors.value.negative,
         tension: 0.3,
         yAxisID: 'y1',
         order: 1,
@@ -64,13 +65,13 @@ const chartOptions = computed(() => ({
   scales: {
     y: {
       position: 'left' as const,
-      title: { display: true, text: 'Gasto (S/)', color: '#8A9E99' },
+      title: { display: true, text: 'Gasto (S/)', color: colors.value.text },
     },
     y1: {
       position: 'right' as const,
       min: 0,
       max: 100,
-      title: { display: true, text: 'Acumulado %', color: '#8A9E99' },
+      title: { display: true, text: 'Acumulado %', color: colors.value.text },
       grid: { drawOnChartArea: false },
     },
   },

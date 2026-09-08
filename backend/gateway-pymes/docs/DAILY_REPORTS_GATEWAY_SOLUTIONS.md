@@ -4,6 +4,22 @@ Registro cronológico de problemas resueltos y decisiones de implementación en 
 
 ---
 
+## 2026-08-13 — Red Caddy renombrada + nginx cache fix (sw.js)
+
+### Contexto
+
+La red `pymes-global-network` (heredada de Nginx Proxy Manager) se renombra a `proxy-caddy-network` (Caddy es el reverse proxy actual). Además el cache estático de nginx rompía la actualización del service worker.
+
+### Qué se hizo
+
+- **`proxy-caddy-network`**: única red externa para `frontend` (9200) y `gateway` (8080). `pymes-internal-network` sigue para DB/Redis/auth/core. `setup-server.sh` y docs actualizados.
+- **nginx.conf — fix sw.js cache**: `location /service-worker.js` → `location ^~ /sw.js` con `no-cache, no-store` porque la regla previa `\.(js|...)` con `immutable` (1y) matcheaba el service worker y el browser no descargaba el bundle nuevo. `/` también pasa a `no-cache`.
+- Docs: `INFRA_STRATEGY.md`, `.github/SECRETS.md`, `.github/QUICK_START.md` alineados.
+
+**Estado:** ✅ COMPLETADO
+
+---
+
 ## 2026-08-10 — Caddy: subdominio pymeq + HTTPS
 
 ### Contexto

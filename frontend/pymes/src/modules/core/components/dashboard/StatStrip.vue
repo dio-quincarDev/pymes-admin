@@ -35,7 +35,7 @@ const stats = computed<StatItem[]>(() => {
     { label: 'Gastos Totales', value: formatCurrency(m.totalGastos), delta: null, deltaLabel: '—' },
     { label: 'Margen Neto', value: formatPercent(m.margenNetoPct), delta: null, deltaLabel: '—' },
     { label: 'Margen Bruto', value: formatPercent(m.margenBrutoPct), delta: null, deltaLabel: '—' },
-    { label: 'Margen Operativo', value: formatPercent(m.margenOperativoPct), delta: null, deltaLabel: '—' },
+    { label: 'Ganancia bruta', value: formatPercent(m.margenOperativoPct), delta: null, deltaLabel: '—' },
   ];
 });
 

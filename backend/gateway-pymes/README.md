@@ -120,7 +120,7 @@ Spring Cloud Gateway / WebFlux / Netty / ReactiveRedisTemplate / JJWT / Lombok /
 
 - Heap: 384MB (reactivo, no bloquea hilos)
 - Redis: ReactiveRedisTemplate (operaciones no bloqueantes)
-- Red: Solo Gateway expuesto externamente (via Nginx Proxy Manager). Comunicacion interna en `pymes-internal-network`.
+- Red: Solo Gateway expuesto externamente via Caddy (`proxy-caddy-network`). Comunicacion interna en `pymes-internal-network`.
 
 ---
 

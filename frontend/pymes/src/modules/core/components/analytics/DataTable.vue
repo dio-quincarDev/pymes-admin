@@ -9,6 +9,7 @@ interface Column {
   sortable?: boolean;
   format?: (val: unknown, row: Record<string, unknown>) => string;
   sort?: (a: unknown, b: unknown) => number;
+  classes?: string;
 }
 
 interface Props {

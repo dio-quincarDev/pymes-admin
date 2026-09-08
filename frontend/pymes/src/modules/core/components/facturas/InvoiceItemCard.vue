@@ -95,7 +95,7 @@ function fmt(n: number | null) {
         </template>
       </q-select>
       <q-btn
-        flat dense round icon="close" size="xs"
+        flat dense round icon="sym_r_close" size="xs"
         color="accent"
         @click="emit('remove')"
         aria-label="Eliminar item"

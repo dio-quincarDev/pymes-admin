@@ -64,7 +64,9 @@ Requiere `Authorization: Bearer <accessToken>`. Backend añade el token a la bla
 4. Auth Service recibe callback → emite código de un solo uso
 5. Frontend (AuthCallback.vue) recibe: /#/auth/callback?code=xxx
 6. Frontend: POST /api/v1/auth/exchange { code } → recibe { accessToken, refreshToken }
-7. Limpia ?code= de la URL (replaceState) → redirige al Dashboard
+7. Limpia ?code= de la URL (replaceState)
+8. Si tenantId existe → check onboarding → dashboard (o /onboarding si no completado)
+9. Si tenantId no existe → dashboard directo (sin workspace)
 ```
 
 > JWT nunca aparece en la URL. El `?code=` es de un solo uso y expira en segundos.
@@ -146,3 +148,4 @@ Lógica de logout extraída del store para reuso en navbar, menú de usuario, et
 | 2026-04-28 | `verifyEmail()` incluye email junto al token (fix token-email mismatch) |
 | 2026-06-19 | OAuth2 migrado a code exchange — JWT eliminado de URLs |
 | 2026-06-19 | `replaceState` usando `hash.replace(/\?.*$/, '')` para hash routing |
+| 2026-08-14 | `fetchCurrentUser()` solo en `handleOAuthCallback()` — eliminado de `login()` y `selectTenant()` para evitar race conditions con `tenantId` |

@@ -49,6 +49,8 @@ function processQueue(error: unknown, token: string | null) {
 }
 
 function clearSession() {
+  isRefreshing = false;
+  failedQueue = [];
   localStorage.removeItem('pymeq_token');
   localStorage.removeItem('pymeq_refresh_token');
   localStorage.removeItem('pymeq_user');
@@ -99,7 +101,7 @@ api.interceptors.response.use(
       if (isRefreshEndpoint || !shouldAttemptRefresh(backendData?.codigo ?? undefined)) {
         clearSession();
         if (backendData?.codigo === 'AUTH005') {
-          window.location.href = '#/login?reason=session_revoked';
+          window.location.href = '#/?reason=session_revoked';
         }
         const customError = new Error(parsedError.message);
         Object.assign(customError, { code: parsedError.code, status: parsedError.status, details: parsedError.details, isBackendError: parsedError.isBackendError });

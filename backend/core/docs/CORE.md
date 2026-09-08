@@ -1,7 +1,7 @@
 # Core Service — Estado Actual
 
 > **Estado (2026-07-09):** Todos los modulos de negocio implementados: `setup/`, `product/`, `invoice/`, `analytics/`, `gasto/`, `prestamo/`, `inversion/`, `venta/`, `accounting/`. Pendiente: `reportes/`.
-> Ver `FUTURE_MODULES.md` para blueprints originales y `DAYLY_REPORTS_CORE_SOLUTIONS.md` para historial.
+> Ver `FUTURE_MODULES.md` para blueprints originales y `DAILY_REPORTS_CORE_SOLUTIONS.md` para historial.
 
 ---
 

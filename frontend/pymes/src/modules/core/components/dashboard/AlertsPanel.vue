@@ -30,7 +30,7 @@
         <q-item-section side>
           <q-badge
             :color="alert.severity === 'critical' ? 'negative' : 'warning'"
-            :label="`${alert.variationPct > 0 ? '+' : ''}${alert.variationPct.toFixed(1)}%`"
+            :label="`${alert.variationPct > 0 ? '+' : ''}${alert.variationPct?.toFixed(1) ?? '0.0'}%`"
             rounded
           />
         </q-item-section>

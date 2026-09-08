@@ -33,6 +33,21 @@
   --pq-font-display: 'Geist', -apple-system, BlinkMacSystemFont, sans-serif;
   --pq-font-body: 'Satoshi', -apple-system, BlinkMacSystemFont, sans-serif;
   --pq-font-utility: 'Geist Mono', ui-monospace, 'SF Mono', monospace;
+
+  // Chart tokens
+  --pq-chart-bar: #C8963E;
+  --pq-chart-bar-hover: #D4A552;
+  --pq-chart-line: #6E8BB8;
+  --pq-chart-area: rgba(110, 139, 184, 0.15);
+  --pq-chart-grid: rgba(138, 158, 153, 0.08);
+  --pq-chart-text: #8A9E99;
+  --pq-chart-tooltip-bg: #1B2624;
+  --pq-chart-tooltip-border: rgba(163, 120, 94, 0.3);
+  --pq-chart-positive: #3D7A5A;
+  --pq-chart-negative: #A04038;
+  --pq-chart-abc-a: #C8963E;
+  --pq-chart-abc-b: #6E8BB8;
+  --pq-chart-abc-c: #8A9E99;
 }
 
 body {
@@ -140,6 +155,10 @@ body {
   background-size: 200% 100%;
   animation: shimmer 1.2s ease-in-out infinite;
   border-radius: $pq-radius-xs;
+
+  &-text { height: 12px; }
+  &-value { height: 28px; }
+  &-circle { width: 18px; height: 18px; border-radius: 50%; flex-shrink: 0; }
 }
 
 // --------------------------------------------------
@@ -275,13 +294,67 @@ input[type="number"] {
 }
 
 // --------------------------------------------------
-// Global q-btn
+// Global q-btn — industrial control surface
+// Border: machined, precise. Text: weight 600, no caps (labels already state case).
+// Padding scales with `size` prop (em-based), fixing "text on the edge".
 // --------------------------------------------------
 .q-btn:not(.q-btn--round) {
   border-radius: $pq-radius-md;
-  &.q-btn--flat, &.q-btn--outline {
-    padding: 4px 12px;
+  font-family: var(--pq-font-body);
+  font-weight: 600;
+  text-transform: none;
+  letter-spacing: 0.01em;
+  padding: 6px 16px;
+  min-height: 36px;
+
+  .q-btn__content {
+    gap: 8px;
   }
+
+  &.q-btn--flat,
+  &.q-btn--outline {
+    min-height: 34px;
+  }
+
+  &.q-btn--dense {
+    min-height: 2em;
+  }
+
+  &:focus-visible {
+    outline: 2px solid $primary;
+    outline-offset: 2px;
+  }
+}
+
+// Signature: dark text on gold (matches skip-link, DESIGN.md accent rule).
+// Quasar defaults to white text on color — 2.1:1 on gold, illegible.
+.q-btn.bg-primary {
+  color: #08090D;
+}
+
+// --------------------------------------------------
+// Icons — Material Symbols Rounded (variable font)
+// Rounded terminals match the industrial radius; weight tuned up for presence.
+// --------------------------------------------------
+.material-symbols-rounded,
+.material-icons {
+  font-family: 'Material Symbols Rounded' !important;
+  font-weight: normal;
+  font-style: normal;
+  display: inline-block;
+  line-height: 1;
+  text-transform: none;
+  letter-spacing: normal;
+  word-wrap: normal;
+  white-space: nowrap;
+  direction: ltr;
+  -webkit-font-smoothing: antialiased;
+  text-rendering: optimizeLegibility;
+  -moz-osx-font-smoothing: grayscale;
+  font-feature-settings: 'liga';
+
+  font-variation-settings: 'FILL' 0, 'wght' 400, 'opsz' 20;
+  font-size: 20px;
 }
 
 // --------------------------------------------------

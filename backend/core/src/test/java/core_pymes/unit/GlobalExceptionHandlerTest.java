@@ -18,6 +18,7 @@ import org.springframework.http.HttpStatus;
 import org.springframework.http.ResponseEntity;
 import org.springframework.http.converter.HttpMessageNotReadableException;
 import org.springframework.mock.web.MockHttpServletRequest;
+import org.springframework.security.access.AccessDeniedException;
 import org.springframework.validation.BindingResult;
 import org.springframework.validation.FieldError;
 import org.springframework.web.bind.MethodArgumentNotValidException;
@@ -137,6 +138,13 @@ class GlobalExceptionHandlerTest {
         var ex = new IllegalArgumentException("bad arg");
         var response = handler.handleBadRequest(ex, request);
         assertResponse(response, HttpStatus.BAD_REQUEST, "INV001", "bad arg", 400);
+    }
+
+    @Test
+    void accessDenied_returns403() {
+        var ex = new AccessDeniedException("Access is denied");
+        var response = handler.handleAccessDenied(ex, request);
+        assertResponse(response, HttpStatus.FORBIDDEN, "ROLE003", "User does not have permission to perform this action", 403);
     }
 
     @Test

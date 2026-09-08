@@ -2,7 +2,7 @@
   <Transition name="splash-fade">
     <div v-if="show" class="brand-splash" aria-hidden="true">
       <div class="splash-content">
-        <div class="splash-logo mesh-text-gradient">PYMEQ</div>
+        <img src="/icons/logo.svg" alt="" class="splash-logo" width="72" height="72" />
         <div class="splash-bar">
           <div class="splash-bar-fill" />
         </div>
@@ -38,10 +38,8 @@ watch(() => props.active, (val) => {
 }
 
 .splash-logo {
-  font-family: 'Outfit', sans-serif;
-  font-size: 48px;
-  font-weight: 800;
-  letter-spacing: 4px;
+  width: 72px;
+  height: 72px;
   animation: breathe 2s ease-in-out infinite;
 }
 

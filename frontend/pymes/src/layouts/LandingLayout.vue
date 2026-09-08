@@ -1,6 +1,5 @@
 <script setup lang="ts">
 import { useRouter } from 'vue-router';
-import BaseButton from 'src/components/base/BaseButton.vue';
 
 const router = useRouter();
 
@@ -19,24 +18,25 @@ const scrollTo = (id: string) => {
     <!-- Header -->
     <q-header class="landing-header">
       <q-toolbar class="container-narrow mx-auto q-px-md">
-        <q-toolbar-title class="logo-text cursor-pointer" @click="router.push('/')">
+        <q-toolbar-title class="logo-text cursor-pointer row items-center no-wrap" @click="router.push('/')">
+          <img src="/icons/logo.svg" alt="" width="28" height="28" class="q-mr-sm" />
           PYMEQ
         </q-toolbar-title>
 
         <q-space />
 
         <nav class="gt-xs row items-center q-mr-md" aria-label="Navegación principal">
-          <BaseButton variant="ghost" size="sm" @click="scrollTo('features')">Funciones</BaseButton>
-          <BaseButton variant="ghost" size="sm" @click="scrollTo('trust')">Sectores</BaseButton>
+          <q-btn flat color="accent" size="sm" @click="scrollTo('features')">Funciones</q-btn>
+          <q-btn flat color="accent" size="sm" @click="scrollTo('trust')">Sectores</q-btn>
         </nav>
 
-        <BaseButton
-          variant="primary"
+        <q-btn
+          color="primary"
           size="md"
           @click="router.push('/login')"
         >
           LOGIN
-        </BaseButton>
+        </q-btn>
       </q-toolbar>
     </q-header>
 
@@ -67,8 +67,8 @@ const scrollTo = (id: string) => {
           </div>
           <div class="col-12 col-md-4 text-center text-md-right">
              <div class="row justify-center justify-md-end gap-sm">
-                <BaseButton variant="ghost" size="xs" aria-disabled="true">Legal</BaseButton>
-                <BaseButton variant="ghost" size="xs" aria-disabled="true">Contacto</BaseButton>
+                <q-btn flat color="accent" size="xs" aria-disabled="true">Legal</q-btn>
+                <q-btn flat color="accent" size="xs" aria-disabled="true">Contacto</q-btn>
              </div>
           </div>
         </div>

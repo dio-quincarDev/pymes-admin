@@ -23,10 +23,15 @@ precacheAndRoute(self.__WB_MANIFEST);
 
 cleanupOutdatedCaches();
 
-// ponytail: listen for skip-waiting from app dialog
+// ponytail: listen for app messages
 self.addEventListener('message', (event) => {
   if (event.data?.type === 'SKIP_WAITING') {
     void self.skipWaiting();
+  }
+  if (event.data?.type === 'CLEAR_API_CACHE') {
+    void caches.delete('core-api-cache').then(() => {
+      console.log('[SW] core-api-cache cleared');
+    });
   }
 });
 
@@ -46,7 +51,12 @@ if (process.env.MODE !== 'ssr' || process.env.PROD) {
   registerRoute(
     new NavigationRoute(
       createHandlerBoundToURL(process.env.PWA_FALLBACK_HTML),
-      { denylist: [new RegExp(process.env.PWA_SERVICE_WORKER_REGEX), /workbox-(.)*\.js$/] }
+      { denylist: [
+        new RegExp(process.env.PWA_SERVICE_WORKER_REGEX),
+        /workbox-(.)*\.js$/,
+        /^\/oauth2/,
+        /^\/login/
+      ] }
     )
   );
 }

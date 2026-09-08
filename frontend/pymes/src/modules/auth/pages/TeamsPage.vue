@@ -5,9 +5,9 @@
         <h1 class="text-h5 text-weight-bold">Equipo</h1>
         <p class="text-body2" style="color: var(--pq-text-muted);">Gestiona los miembros de tu empresa</p>
       </div>
-      <BaseButton
+      <q-btn
         label="INVITAR MIEMBRO"
-        icon-left="person_add"
+        icon="sym_r_person_add"
         @click="showInviteDialog = true"
       />
     </div>
@@ -42,7 +42,7 @@
                 flat
                 round
                 dense
-                icon="edit"
+                icon="sym_r_edit"
                 size="sm"
                 @click="openRoleDialog(props.row)"
               >
@@ -53,7 +53,7 @@
                 flat
                 round
                 dense
-                icon="person_remove"
+                icon="sym_r_person_remove"
                 size="sm"
                 color="negative"
                 @click="confirmRemove(props.row)"
@@ -148,7 +148,6 @@ import { useAuthStore } from '../store';
 import { memberService } from '../services/member.service';
 import { invitationService } from '../services/invitation.service';
 import BaseCard from 'src/components/base/BaseCard.vue';
-import BaseButton from 'src/components/base/BaseButton.vue';
 import type { ApiResponse, MemberResponse } from '../types';
 
 useMeta({ title: 'Equipo — PYMEQ' });

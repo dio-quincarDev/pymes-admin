@@ -52,10 +52,9 @@ frontend/pymes/
 │   │   └── web-vitals.ts    # metricas de rendimiento
 │   ├── components/
 │   │   ├── base/            # BaseButton, BaseCard, BaseBadge, BaseSkeleton
-│   │   ├── dashboard/       # DashboardStats, DashboardActionCard, RecentActivity
 │   │   ├── landing/         # LandingHero, FeatureGrid, TrustSection
 │   │   └── ui/              # BrandSplash, EmptyState, SkeletonLoader
-│   ├── composables/         # useAuthForm, useLogout, useScrollReveal, useKeyboardShortcuts
+│   ├── composables/         # useAuthForm, useLogout, useScrollReveal, useKeyboardShortcuts, useChartTheme
 │   ├── design/              # tokens.ts (Swiss/Grid palette)
 │   ├── i18n/                # locale en-US (placeholder)
 │   ├── layouts/             # LandingLayout, AuthLayout, MainLayout
@@ -69,7 +68,7 @@ frontend/pymes/
 │   │   └── core/            # dashboard, productos, facturas, gastos, ventas, prestamos, patrimonio, costos, analisis, contabilidad
 │   │       ├── pages/       # OnboardingPage, CatalogDashboard, ProductosPage, etc.
 │   │       ├── components/  # dashboard/, facturas/, analytics/, onboarding/
-│   │       ├── composables/ # useAnalytics, usePeriod, useNumberFormat, useFinancialDashboard
+│   │       ├── composables/ # useAnalytics, usePeriod, useNumberFormat, useFinancialDashboard, useChartTheme
 │   │       ├── services/    # setup, producto, proveedor, factura, gasto, venta, prestamo, patrimonio, accounting, analytics
 │   │       ├── router/      # rutas hijas de dashboard
 │   │       └── types/       # Producto, Factura, SetupInfo, AnalyticsResponse, etc.
@@ -79,7 +78,7 @@ frontend/pymes/
 │   │   ├── variables.scss   # tokens: colores, spacing, radius, shadows
 │   │   └── app.scss         # estilos globales + Swiss/Grid + a11y utilities
 │   ├── types/               # BackendError, ApiError, ERROR_CODES
-│   └── utils/               # parseBackendError, isAuthError, formatCurrency, formatPct
+│   └── utils/               # parseBackendError, isAuthError, formatCurrency, formatPct, formatDate
 ├── src-capacitor/           # Capacitor (Android)
 ├── src-pwa/                 # PWA: manifest, service worker
 ├── public/                  # favicon, iconos
@@ -112,7 +111,6 @@ Modo `hash` (`/#/login`, `/#/dashboard`). Rutas definidas en `src/router/index.t
 | `/dashboard/prestamos`        | PrestamosPage     | CRUD prestamos + pagos               |
 | `/dashboard/patrimonio`       | PatrimonioPage    | Capital inicial (get-or-create)      |
 | `/dashboard/costos`           | CostosPage        | Gastos fijos recurrentes + auto-fill proveedor |
-| `/dashboard/configuracion`    | ConfiguracionPage | Categorias, unidades, ubicaciones    |
 | `/dashboard/accounting`       | AccountingPage    | Metricas financieras consolidadas    |
 | `/teams`                      | TeamsPage         | Gestion de miembros del equipo       |
 
@@ -205,7 +203,7 @@ Flujo 2 pasos post-registro:
 | `onboarding/`  | CategoryTree (arbol jerarquico), IndustryCard          |
 | `facturas/`    | InvoiceItemCard, InvoiceDetailDialog, CategoryTabs, ConfirmDialog |
 | `analytics/`   | AnalyticsHeader, KpiCard, MetricCard, CategoryBreakdownChart, DataTable |
-| `dashboard/`   | CatalogDashboard, FinancialHealthPanel, SupplierComparisonTable, SupplierRecommendationsCard, PricePredictionsTable, PeriodSelector, AbcGastosChart, AlertsPanel, MarginImpactTable, ExpenseBreakdown, OpexGauge, etc. |
+| `dashboard/`   | ActivityPanel, AbcGastosChart, AlertsPanel, ExpenseBreakdown, OpexGauge, PriceTrendSparkline, ProjectionTimeline, SupplierComparisonTable, PricePredictionsTable, PeriodSelector |
 | `charts/`      | BaseChart                                              |
 
 **Composables** (`src/modules/core/composables/`):
@@ -216,28 +214,30 @@ Flujo 2 pasos post-registro:
 | `usePeriod`         | Selector de periodo con persistencia localStorage |
 | `useNumberFormat`   | Formato moneda USD (en-US)                     |
 | `useFinancialDashboard` | KPIs consolidados, gastos por categoria, actividad reciente |
+| `useChartTheme`     | Design tokens de Chart.js desde CSS variables   |
 
 **Utils** (`src/utils/`):
 
 | Util     | Funcion                                      |
 |----------|----------------------------------------------|
-| `format.ts` | `formatCurrency()`, `formatPct()` (Intl.NumberFormat) |
+| `format.ts` | `formatCurrency()`, `formatPct()`, `formatDate()` (Intl.NumberFormat) |
 | `errors.ts` | `isAuthError`, `isTokenExpiredError`, `isTokenRevokedError`, `isValidationError` |
 
 ### Analytics
 
-9 motores CTE consumidos desde `GET /api/v1/core/analytics`:
+10 motores CTE consumidos desde `GET /api/v1/core/analytics` (6 visibles por defecto, 4 bajo demanda):
 
-| Motor             | Descripcion                                             |
-|-------------------|---------------------------------------------------------|
-| ABC de Gastos     | Pareto: categorias A/B/C por % acumulado de gasto       |
-| Tendencias        | % cambio vs media movil 90 dias                         |
-| Margenes          | Delta precio unitario periodo actual vs anterior         |
-| Costo Operativo   | Gasto operativo % ventas + proyeccion mensual           |
-| Proyeccion        | Forecast lineal 30/60/90 dias                           |
-| Alertas           | Variacion >15% (CV), primer registro proveedor          |
-| Supplier analytics| 3 motores: comparativa precios, recomendaciones, predicciones OLS |
-| Financial Health  | Score 0-100 con alertas criticas y recomendaciones      |
+| Motor             | Descripcion                                             | Visible |
+|-------------------|---------------------------------------------------------|---------|
+| Alertas           | Variacion >15% (CV), primer registro proveedor          | Siempre |
+| ABC de Gastos     | Pareto: categorias A/B/C por % acumulado de gasto       | Expansion |
+| Precios y Tendencias | % cambio vs media movil 90 dias                      | Expansion |
+| Margenes          | Delta precio unitario periodo actual vs anterior         | Expansion |
+| Costo Operativo   | Gasto operativo % ventas + proyeccion mensual           | Expansion |
+| Proyeccion        | Forecast lineal 30/60/90 dias                           | Expansion |
+| Gasto vs Ingreso  | Comparativa visual de ingresos vs gastos                 | Siempre |
+| Supplier analytics| 3 motores: comparativa precios, recomendaciones, predicciones OLS | Expansion |
+| Financial Health  | Score 0-100 con alertas criticas y recomendaciones      | Dashboard |
 
 ### SEO
 
@@ -254,7 +254,7 @@ Flujo 2 pasos post-registro:
 
 - **Service Worker:** InjectManifest con precaching de assets + `StaleWhileRevalidate` para `GET /api/v1/core/*`
 - **Banner offline:** `q-banner` amarillo en MainLayout con listener `navigator.onLine`
-- **Actualizacion disponible:** Dialog "Actualizar ahora" -> `SKIP_WAITING` -> reload
+- **Actualizacion disponible:** Auto-update silencioso via `SKIP_WAITING` (sin dialog de confirmacion)
 - **Cache API:** Redis en backend (core service, TTL 5min, `@Cacheable`/`@CacheEvict`)
 
 ### Keyboard Shortcuts
@@ -302,6 +302,19 @@ npm run build         # incluye lint + vue-tsc
 ```
 
 **Tests existentes**: 29 tests (errors 10 + store 6 + composables 3 + errors extendidos 10)
+
+### E2E (Playwright)
+
+```bash
+npx playwright install chromium
+npx playwright test                     # correr todos
+npx playwright test app.spec.ts         # solo tests de carga
+```
+
+- **`app.spec.ts`** — 2 tests: landing page carga, input de empresa visible. Corre en CI.
+- **`oauth2.spec.ts`** — test completo: registro → Google OAuth2 → onboarding → dashboard → logout → re-login. Requiere Chromium headed + 2FA manual. **No corre en CI.**
+
+> Chromium headless es bloqueado por Google. Para `oauth2.spec.ts` usar `--headed` y aprobar 2FA desde celular.
 
 ---
 

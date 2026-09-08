@@ -28,6 +28,9 @@ A partir de 2026-07-16, CORS opera en **doble capa**:
 - **Defensa en profundidad + Code Exchange OAuth2** — ✅ completado (2026-06-19).
 
 ### ✅ Historial de Soluciones (Orden Cronológico Inverso)
+0. [2026-08-30 — OAuth2 duplicate tenant → redirect whitelabel TNT003](#-2026-08-30--oauth2-duplicate-tenant--redirect-whitelabel-tnt003)
+0. [2026-08-27 — Redis fixes: TTL blacklist + logout error handling + fail-open](#-2026-08-27--redis-fixes-ttl-blacklist--logout-error-handling--fail-open)
+0. [2026-08-14 — OAuth2 slug duplicado fix (DuplicateResourceException)](#-2026-08-14--oauth2-slug-duplicado-fix-duplicateresourceexception)
 0. [2026-08-10 — Reconfig OAuth2 a pymeq.dioquincar.dev](#-2026-08-10--reconfig-oauth2-a-pymeqdioquincardev)
 0. [2026-07-30 — TOCTOU fix: @Lock(PESSIMISTIC_WRITE) en refresh token rotation](#-2026-07-30--toctou-fix-lockpessimistic_write-en-refresh-token-rotation)
 1. [2026-07-29 — Invitación: accept endpoint quitado de WHITE_LIST](#-2026-07-29--invitación-accept-endpoint-quitado-de-white_list)
@@ -64,6 +67,199 @@ A partir de 2026-07-16, CORS opera en **doble capa**:
 26. [2026-04-11 — Email Verification Logic](#-2026-04-11--email-verification-logic)
 27. [2026-04-11 — Password Reset Logic](#-2026-04-11--password-reset-logic)
 28. [2026-04-09 — Testcontainers Setup](#-2026-04-09--testcontainers-setup)
+
+---
+
+## 2026-08-30 — OAuth2 duplicate tenant → redirect whitelabel TNT003
+
+### Contexto
+
+Duplicado de `2026-08-30` frontend: SW ya arreglado (`^/oauth2|^/login` denylist → `302`), pero `GET /login/oauth2/code/google` con slug existente (`qcore-system`) devolvía `500` Whitelabel en vez de mensaje friendly. Suite `CodigoError.TNT003` + `GlobalExceptionHandler:276` existe pero `@RestControllerAdvice` no atrapa excepciones en `SecurityFilterChain`.
+
+### Por qué fallaba
+
+`OAuth2AuthenticationSuccessHandler.java:90` `throw DuplicateResourceException(TNT003)` en `onAuthenticationSuccess()` (invocado por `OAuth2LoginAuthenticationFilter` antes de `DispatcherServlet`). Bypass de `@RestControllerAdvice` → `ErrorReportValve` → `500` crudo. `AuthCallback.vue` nunca se ejecutaba (navigation `302` fallida, no `POST /auth/exchange`).
+
+### Qué se hizo
+
+- **Handler fix (`OAuth2AuthenticationSuccessHandler.java:89`):** antes de `save()`, `if(findBySlug().isPresent()) { log.warn(...); deleteIntent(); clearIntentCookie(); sendRedirect(frontendUrl + "/#/auth/callback?error=TNT003"); return; }` — reuse `TNT003` sin nuevo `CodigoError`, no `ErrorResponse` JSON en navigation. Import `DuplicateResourceException` eliminado.
+- **Test (`OAuth2AuthenticationSuccessHandlerTest.java:124`):** `conIntentId_SlugDuplicado_LanzaDuplicateResourceException` → `conIntentId_SlugDuplicado_RedirigeWhitelabel` — verifica `never save`, `deleteIntent`, `never generateAccessToken`.
+- **Frontend (`AuthCallback.vue`):** whitelabel inline `q-card` (ponytail: 1 archivo vs `ErrorPage.vue` dedicada) — ver `DAILY_REPORTS_FRONTEND.md 2026-08-30`.
+
+### Archivos modificados
+
+```
+auth/pymes/common/config/OAuth2AuthenticationSuccessHandler.java  — throw → redirect ?error=TNT003
+auth/pymes/unit/OAuth2AuthenticationSuccessHandlerTest.java       — test duplicado actualizado
+```
+
+### Verificación
+
+`./mvnw test -Dtest=OAuth2AuthenticationSuccessHandlerTest →5/5`, `./mvnw verify -Pintegration →56/56 BUILD SUCCESS`.
+
+**Estado:** ✅ COMPLETADO
+
+---
+
+## 2026-08-27 — Redis fixes: TTL blacklist + logout error handling + fail-open
+
+### Problemas
+
+| # | Bug | Impacto |
+|---|-----|---------|
+| 1 | **TTL blacklist en milisegundos tratado como segundos** — `accessTokenExpiration` (3600000 ms) se pasaba a `revokeToken(token, expirationSeconds)` con `TimeUnit.SECONDS` | Tokens revocados quedaban 41.7 días en Redis en vez de 1 hora. Memory waste. |
+| 2 | **Logout silencia errores de Redis** — `revokeToken()` y `deleteByUserId()` estaban en el mismo `try/catch`. Si Redis fallaba, el catch atrapaba la excepción y `deleteByUserId` nunca se ejecutaba. | Sesión seguía activa después de "logout" exitoso. Refresh tokens no se borraban. |
+| 3 | **Sin fail-open en blacklist check** — `isTokenRevoked()` propagaba `RedisConnectionException`. `validateToken()` la envolvía como `TokenInvalidException` → 401. | Si Redis caía, todos los usuarios autenticados perdían sesión (fail-closed). |
+
+### Soluciones
+
+**1. TokenBlacklistService — TTL en milisegundos:**
+```java
+// ANTES (bug)
+public void revokeToken(String token, long expirationSeconds) {
+    redisTemplate.opsForValue().set(key, REVOKED_VALUE, expirationSeconds, TimeUnit.SECONDS);
+}
+
+// DESPUÉS (fix)
+public void revokeToken(String token, long expirationMs) {
+    redisTemplate.opsForValue().set(key, REVOKED_VALUE, expirationMs, TimeUnit.MILLISECONDS);
+}
+```
+
+**2. AuthServiceImpl.logout() — calls separados:**
+```java
+// ANTES (bug) — revokeToken + deleteByUserId en mismo try
+try {
+    jwtService.revokeToken(accessToken);
+    refreshTokenRepository.deleteByUserId(userId);  // nunca se ejecuta si Redis falla
+} catch (Exception e) {
+    log.warn("Error durante el proceso de logout: {}", e.getMessage());
+}
+
+// DESPUÉS (fix) — bloques separados
+try {
+    jwtService.revokeToken(accessToken);
+} catch (Exception e) {
+    log.warn("Error revocando access token (Redis puede estar caído): {}", e.getMessage());
+}
+if (userId != null) {
+    try {
+        refreshTokenRepository.deleteByUserId(userId);
+    } catch (Exception e) {
+        log.error("Error eliminando refresh tokens del usuario {}: {}", userId, e.getMessage());
+    }
+}
+```
+
+**3. JwtServiceImpl.isTokenRevoked() — fail-open:**
+```java
+// ANTES
+public boolean isTokenRevoked(String token) {
+    return tokenBlacklistService.isTokenRevoked(token);
+}
+
+// DESPUÉS
+public boolean isTokenRevoked(String token) {
+    try {
+        return tokenBlacklistService.isTokenRevoked(token);
+    } catch (Exception e) {
+        log.warn("Redis no disponible para verificar blacklist, permitiendo token: {}", e.getMessage());
+        return false;  // fail-open
+    }
+}
+```
+
+### Archivos modificados
+
+```
+backend/auth/src/main/java/auth/pymes/service/impl/TokenBlacklistService.java  # TimeUnit.SECONDS → MILLISECONDS
+backend/auth/src/main/java/auth/pymes/service/impl/AuthServiceImpl.java       # logout() calls separados
+backend/auth/src/main/java/auth/pymes/service/impl/JwtServiceImpl.java        # isTokenRevoked() fail-open
+```
+
+### Tests
+
+**Unitarios (146 pass):**
+- `AuthServiceImplTest.logout_whenRevokeTokenFails_deletesRefreshTokensAnyway` — Redis cae → refresh tokens se borran igual
+- `JwtServiceImplTest.isTokenRevoked_WhenRedisDown_ReturnsFalse` — Redis cae → token no se considera revoked
+- `TokenBlacklistServiceTest.revokeToken_UsesMillisecondsNotSeconds` — verifica `TimeUnit.MILLISECONDS`
+- `TokenBlacklistServiceTest.isTokenRevoked_WhenKeyExists_ReturnsTrue`
+- `TokenBlacklistServiceTest.isTokenRevoked_WhenKeyMissing_ReturnsFalse`
+
+**Integración (56 pass):**
+- `AuthApiIntegrationTest.logoutFullFlow_RevokesAccessTokenAndDeletesRefreshTokens` — register → login → logout → verify refresh tokens deleted from DB + access token revoked
+- `SecurityConstraintIntegrationTest.fullFlow_RegisterVerifyLoginAccessLogout` — actualizado para verificar refresh token deletion
+
+**Estado:** ✅ COMPLETADO
+
+---
+
+## 2026-08-21 — OAuth2 exchange() devuelve user y activeTenant
+
+### Contexto
+
+Después de logout + re-login vía OAuth2 en staging (PWA mobile), el usuario no entraba al tenant sino que se redirigía al MainLayout principal sin contexto de tenant. El fix requería borrar datos de la PWA para poder loguearse again.
+
+### Root cause
+
+`AuthServiceImpl.exchange()` devolvía `AuthResponse(accessToken, refreshToken, null, null)` — sin `user` ni `activeTenant`. El frontend dependía enteramente de un call extra a `GET /users/me` (`fetchCurrentUser()`) para obtener el `tenantId`. Si ese call fallaba (401, CORS, timing), el usuario quedaba sin contexto de tenant y se redirigía al dashboard vacío.
+
+### Qué se hizo
+
+**`AuthServiceImpl.exchange()`** — ahora decodifica el JWT (que ya contiene `userId` y `tenantId` como claims) para buscar user y tenant en DB, y los devuelve en la response:
+
+```java
+UUID userId = jwtService.extractUserId(accessToken);
+UUID tenantId = jwtService.extractTenantId(accessToken);
+UserEntity user = userRepository.findById(userId).orElse(null);
+Tenant tenant = tenantId != null ? tenantRepository.findById(tenantId).orElse(null) : null;
+return new AuthResponse(accessToken, refreshToken, userMapper.toResponse(user), tenantMapper.toResponse(tenant));
+```
+
+### Archivos modificados
+
+```
+backend/auth/src/main/java/auth/pymes/service/impl/AuthServiceImpl.java  # exchange() ahora retorna user + activeTenant
+```
+
+### Verificación
+
+- `./mvnw test -B`: ✅ 141 tests, 0 failures
+- `./mvnw compile -B`: ✅ BUILD SUCCESS
+
+**Estado:** ✅ COMPLETADO
+
+---
+
+## 2026-08-14 — OAuth2 slug duplicado fix (DuplicateResourceException)
+
+### Contexto
+
+El OAuth2 callback (`OAuth2AuthenticationSuccessHandler`) intentaba crear un tenant con un slug que ya existía en la DB. El handler no verificaba unicidad antes de insertar. Resultado: `ConstraintViolationException` → 500 Internal Server Error. El `GlobalExceptionHandler` (`@RestControllerAdvice`) no atrapa excepciones del filtro de Spring Security.
+
+### Root cause
+
+`OAuth2AuthenticationSuccessHandler.java:87-93` ejecutaba `tenantRepository.save()` sin verificar `findBySlug()` previamente. Cuando un usuario con empresa existente hacía OAuth2 con un intent de la misma empresa, PostgreSQL lanzaba `duplicate key value violates unique constraint "tenants_slug_key"`.
+
+### Qué se hizo
+
+- **Handler fix**: antes de `tenantRepository.save()`, se verifica `tenantRepository.findBySlug(intent.companySlug())`. Si existe → `throw new DuplicateResourceException(CodigoError.TENANT_ALREADY_EXISTS, slug)` → 409 Conflict.
+- **Test unitario nuevo**: `conIntentId_SlugDuplicado_LanzaDuplicateResourceException` — verifica que el handler lanza `DuplicateResourceException` cuando el slug ya existe.
+- **Tests existentes editados**: 3 tests que usaban intent ahora mockean `findBySlug` retornando `Optional.empty()` (happy path).
+- **Suite completa**: 141 tests, 0 failures.
+
+### Archivos modificados
+
+```
+auth/pymes/common/config/OAuth2AuthenticationSuccessHandler.java  — +findBySlug check + imports
+auth/pymes/unit/OAuth2AuthenticationSuccessHandlerTest.java       — +findBySlug mocks, +test duplicado
+```
+
+### Frontend
+
+No requiere cambios. `types/error.ts` ya tiene `TENANT_ALREADY_EXISTS: 'TNT003'`. `utils/errors.ts` maneja 409 → "Conflicto de datos".
+
+**Estado:** ✅ COMPLETADO
 
 ---
 
