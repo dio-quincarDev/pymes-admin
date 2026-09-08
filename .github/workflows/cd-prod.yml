@@ -154,6 +154,17 @@ jobs:
           source: "docker-compose.yml"
           target: "~/pymes-admin"
 
+      - name: Cleanup stale monitoring directory (root-owned via Docker bind)
+        uses: appleboy/ssh-action@0ff4204d59e8e51228ff73bce53f80d53301dee2 # v1.2.5
+        with:
+          host: ${{ secrets.PROD_HOST }}
+          username: ${{ secrets.PROD_USER }}
+          key: ${{ secrets.PROD_SSH_KEY }}
+          port: 22
+          script: |
+            sudo rm -rf ~/pymes-admin/infra/monitoring/scrape.yml ~/pymes-admin/infra/monitoring/grafana
+            mkdir -p ~/pymes-admin/infra/monitoring
+
       - name: Copy monitoring configs to server
         uses: appleboy/scp-action@ff85246acaad7bdce478db94a363cd2bf7c90345 # v1.0.0
         with:
