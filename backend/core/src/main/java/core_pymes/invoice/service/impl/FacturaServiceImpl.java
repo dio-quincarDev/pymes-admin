@@ -400,9 +400,10 @@ public class FacturaServiceImpl implements FacturaService {
     @Override
     @Transactional
     @CacheEvict(cacheNames = "facturas", allEntries = true)
+    // ponytail: delete/anular cubre REGISTRADA|PAGADA via soft-delete (is_active=false) + reverseProductStats; si necesita auditoría → migrar a status ANULADA + evento
     public void deleteFactura(UUID id, UUID tenantId) {
         var factura = getFactura(id, tenantId);
-        if (!"REGISTRADA".equals(factura.getStatus())) {
+        if (!"REGISTRADA".equals(factura.getStatus()) && !"PAGADA".equals(factura.getStatus())) {
             throw new InvalidInputException("Cannot delete factura in status " + factura.getStatus());
         }
         reverseProductStats(factura.getItems(), tenantId, factura.getId());

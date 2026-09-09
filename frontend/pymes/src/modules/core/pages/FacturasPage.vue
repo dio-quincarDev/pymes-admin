@@ -39,8 +39,6 @@
       <div
         v-for="inv in group.items" :key="inv.id"
         class="invoice-row"
-        @mouseenter="($event.currentTarget as HTMLElement).style.background = 'color-mix(in srgb, var(--pq-surface) 60%, transparent)'"
-        @mouseleave="($event.currentTarget as HTMLElement).style.background = ''"
       >
         <div class="invoice-row__info">
           <div class="invoice-row__number">{{ inv.invoiceNumber }}</div>
@@ -55,7 +53,7 @@
           <q-btn flat dense round icon="sym_r_visibility" color="accent" size="sm" @click="openDetail(inv)" aria-label="Ver detalles" />
           <q-btn v-if="inv.status === 'REGISTRADA'" flat dense round icon="sym_r_edit" color="primary" size="sm" @click="openEdit(inv)" aria-label="Editar" />
           <q-btn v-if="inv.status === 'REGISTRADA'" flat dense round icon="sym_r_paid" color="positive" size="sm" @click="confirmPay(inv)" aria-label="Marcar como pagada" />
-          <q-btn v-if="inv.status === 'REGISTRADA'" flat dense round icon="sym_r_delete" color="negative" size="sm" @click="confirmDelete(inv)" aria-label="Eliminar" />
+          <q-btn v-if="isOwner && (inv.status === 'REGISTRADA' || inv.status === 'PAGADA')" flat dense round icon="sym_r_delete" color="negative" size="sm" @click="confirmDelete(inv)" :aria-label="inv.status === 'PAGADA' ? 'Anular factura pagada' : 'Eliminar'" />
         </div>
       </div>
     </div>
@@ -188,18 +186,26 @@
     <ConfirmDialog
       v-model="payDialog"
       icon="sym_r_paid" icon-color="positive"
-      :message="`Marcar como pagada la factura <strong>${payingItem?.invoiceNumber}</strong>?`"
       confirm-label="Confirmar Pago" confirm-color="positive"
       :loading="paying" @confirm="pay"
-    />
+    >
+      Marcar como pagada la factura <strong>{{ payingItem?.invoiceNumber }}</strong>?
+    </ConfirmDialog>
 
     <ConfirmDialog
       v-model="deleteDialog"
       icon="sym_r_warning" icon-color="negative"
-      :message="`¿Eliminar factura <strong>${deletingItem?.invoiceNumber}</strong>?`"
-      confirm-label="Eliminar" confirm-color="negative"
+      :confirm-label="deletingItem?.status === 'PAGADA' ? 'Anular' : 'Eliminar'"
+      confirm-color="negative"
       :loading="deleting" @confirm="remove"
-    />
+    >
+      <template v-if="deletingItem?.status === 'PAGADA'">
+        ¿Anular factura pagada <strong>{{ deletingItem?.invoiceNumber }}</strong>? Se revertirá el stock.
+      </template>
+      <template v-else>
+        ¿Eliminar factura <strong>{{ deletingItem?.invoiceNumber }}</strong>?
+      </template>
+    </ConfirmDialog>
 
     <InvoiceDetailDialog :factura="detailItem" v-model="detailDialog" :presentation-name-map="presentationNameMap" :categoria-map="categoriaMap" />
   </q-page>
@@ -227,6 +233,8 @@ useMeta({ title: 'Facturas — PYMEQ' })
 const $q = useQuasar()
 const authStore = useAuthStore()
 const tenantId = authStore.user?.tenantId
+// ponytail: delete solo OWNER; PAGADA anulable via mismo soft-delete
+const isOwner = computed(() => authStore.user?.role === 'OWNER')
 
 interface OptionItem { label: string; value: string; __isCreate?: boolean }
 
@@ -263,13 +271,14 @@ const monthGroups = computed(() => {
     if (!groups.has(key)) groups.set(key, [])
     groups.get(key)!.push(inv)
   }
-  const result: MonthGroup[] = []
-  for (const list of groups.values()) {
+  const result: (MonthGroup & { key: string })[] = []
+  for (const [key, list] of groups.entries()) {
     const date = new Date(list[0]!.issueDate)
     const label = date.toLocaleDateString('es-ES', { month: 'long', year: 'numeric' })
-    result.push({ label, items: list })
+    result.push({ key, label, items: list })
   }
-  result.sort((a, b) => b.label.localeCompare(a.label))
+  // sort by key YYYY-MM desc (estable, no depende de locale)
+  result.sort((a, b) => b.key.localeCompare(a.key))
   return result
 })
 

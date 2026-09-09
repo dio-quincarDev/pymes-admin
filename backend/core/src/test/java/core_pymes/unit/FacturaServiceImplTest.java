@@ -207,9 +207,31 @@ class FacturaServiceImplTest {
     }
 
     @Test
-    void deleteFactura_whenPaid_throws() {
+    void deleteFactura_whenPaid_succeeds() {
         var tenantId = UUID.randomUUID();
-        var factura = Factura.builder().id(UUID.randomUUID()).tenantId(tenantId).status("PAGADA").build();
+        var factura = Factura.builder().id(UUID.randomUUID()).tenantId(tenantId).status("PAGADA").items(List.of()).build();
+        when(facturaRepository.findById(factura.getId())).thenReturn(Optional.of(factura));
+
+        service.deleteFactura(factura.getId(), tenantId);
+
+        verify(facturaRepository).delete(factura);
+    }
+
+    @Test
+    void deleteFactura_whenRegistrada_succeeds() {
+        var tenantId = UUID.randomUUID();
+        var factura = Factura.builder().id(UUID.randomUUID()).tenantId(tenantId).status("REGISTRADA").items(List.of()).build();
+        when(facturaRepository.findById(factura.getId())).thenReturn(Optional.of(factura));
+
+        service.deleteFactura(factura.getId(), tenantId);
+
+        verify(facturaRepository).delete(factura);
+    }
+
+    @Test
+    void deleteFactura_whenAnulada_throws() {
+        var tenantId = UUID.randomUUID();
+        var factura = Factura.builder().id(UUID.randomUUID()).tenantId(tenantId).status("ANULADA").build();
         when(facturaRepository.findById(factura.getId())).thenReturn(Optional.of(factura));
 
         assertThatThrownBy(() -> service.deleteFactura(factura.getId(), tenantId))

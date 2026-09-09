@@ -24,6 +24,21 @@ Registro de lo implementado y lo pendiente.
 
 ---
 
+## 2026-09-08 — Factura: delete solo OWNER + anular PAGADA + precio typeado
+
+**Contexto:** `F-PROV-2026-0001` PAGADA mal gestionada no tenía forma de anularse; delete permitía ADMIN/CONTABLE. Detail mostraba `precioUnitario` base (0.27 en pack x12) en vez de lo typeado.
+
+**Qué se hizo:**
+- `FacturaApi.java:45` `@PreAuthorize("hasRole('OWNER')")` — delete/anular solo OWNER (antes `OWNER|ADMIN`).
+- `FacturaServiceImpl.java:404` guarda `REGISTRADA|PAGADA` via soft-delete `is_active=false` + `reverseProductStats`; ponytail: si auditoría → migrar a `ANULADA` + evento.
+- Tests: `FacturaServiceImplTest` 20 unit (REGISTRADA ok, PAGADA ok, ANULADA throws) + `FacturaIntegrationTest` 8 IT (OWNER 204, ADMIN 403) — 50/50 core ✅.
+
+```
+FacturaApi.java, FacturaServiceImpl.java (+ reverseProductStats idempotente)
+```
+
+---
+
 ## 2026-08-05 — Consolidación de migraciones Flyway V1–V9 + Performance Indexes
 
 ### Contexto
