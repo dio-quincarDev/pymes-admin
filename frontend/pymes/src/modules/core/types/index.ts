@@ -60,6 +60,8 @@ export interface ProveedorRequest {
   contactEmail?: string | null
 }
 
+export type EstadoFactura = 'REGISTRADA' | 'PAGADA' | 'ANULADA'
+
 export interface Factura {
   id: string
   tenantId: string
@@ -73,7 +75,7 @@ export interface Factura {
   paymentMethod: string | null
   category: string | null
   globalDiscount: number | null
-  status: string
+  status: EstadoFactura
   total: number
   items: ItemFactura[]
   createdAt: string | null

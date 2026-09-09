@@ -19,7 +19,7 @@ public record FacturaResponse(
         BigDecimal globalDiscount,
         String paymentMethod,
         String category,
-        String status,
+        core_pymes.invoice.domain.EstadoFactura status,
         BigDecimal total,
         List<ItemFacturaResponse> items,
         ZonedDateTime createdAt

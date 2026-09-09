@@ -24,17 +24,40 @@ Registro de lo implementado y lo pendiente.
 
 ---
 
-## 2026-09-08 — Factura: delete solo OWNER + anular PAGADA + precio typeado
+## 2026-09-08 — Factura: solo PAGADA alimenta analytics/métricas + filter DB + V4 CHECK
 
-**Contexto:** `F-PROV-2026-0001` PAGADA mal gestionada no tenía forma de anularse; delete permitía ADMIN/CONTABLE. Detail mostraba `precioUnitario` base (0.27 en pack x12) en vez de lo typeado.
+**Contexto:** `ANULADA` y `REGISTRADA` seguían inflando 10 motores (`ANALYTICS.md:31`) y `MetricasService` COGS silencioso. `findAllFacturas` filtraba `ANULADA` en memoria (N filas → Java) en vez de SQL.
+
+**Qué se hizo (hoy, solo PAGADA):**
+- `AnalyticsServiceImpl.java:101,138,181,219,285,314,396,459,776` 13 CTEs `WHERE i.status='PAGADA'` (ABC, Tendencia x2, Margen x2, GastoVariable, Proyección, Alertas x3, Comparativa, OLS, supplierSpend) + `MetricasServiceImpl.java:90` `invoices_cost ... AND status='PAGADA'` (opex ya PAGADA). `line: supplierSpend` también.
+- `FacturaRepository.java:16` `findByTenantIdAndStatusNotOrderByCreatedAtDesc` + `FacturaServiceImpl.java:106` push filter a DB (antes `.stream().filter()`).
+- `V4__invoice_status_checks.sql` `CHECK status IN (...)` + `CHECK type IN (...)` `NOT VALID→VALIDATE`.
+
+---
+
+## 2026-09-08 — Factura: ENUM `EstadoFactura` + ANULADA conserva items + delete OWNER
+
+**Contexto:** `F-PROV-2026-0001` PAGADA no tenía forma de anularse sin borrar items (cascada + `FacturaRepository:19 nativeQuery` bypass `@Where` perdía auditoría). Delete permitía `ADMIN/CONTABLE`. Detail mostraba `precioUnitario` base (0.27 en pack x12).
 
 **Qué se hizo:**
+- `invoice/domain/EstadoFactura.java` **NUEVO** enum `REGISTRADA | PAGADA | ANULADA` — `@Enumerated(EnumType.STRING) @Column(length=20) VARCHAR(20)` sin migración (DB ya `VARCHAR(20) DEFAULT 'REGISTRADA'`).
+- `Factura.java:20` `status String → EstadoFactura`, `FacturaResponse.java:14` `EstadoFactura status` (Jackson serializa como `"PAGADA"` sin romper `jsonPath($.status)`).
 - `FacturaApi.java:45` `@PreAuthorize("hasRole('OWNER')")` — delete/anular solo OWNER (antes `OWNER|ADMIN`).
-- `FacturaServiceImpl.java:404` guarda `REGISTRADA|PAGADA` via soft-delete `is_active=false` + `reverseProductStats`; ponytail: si auditoría → migrar a `ANULADA` + evento.
-- Tests: `FacturaServiceImplTest` 20 unit (REGISTRADA ok, PAGADA ok, ANULADA throws) + `FacturaIntegrationTest` 8 IT (OWNER 204, ADMIN 403) — 50/50 core ✅.
+- `FacturaServiceImpl.java:118` `status(EstadoFactura.REGISTRADA)` + `122,158 String.contains("REGISTRADA") → getStatus()!=REGISTRADA` + `404 deleteFactura`: `PAGADA → status=ANULADA save()` conserva `invoice_items` (auditoría), `REGISTRADA → delete()` (soft-delete `is_active=false` orphanRemoval), `ANULADA → throw Cannot delete` + `reverseProductStats` idempotente.
+- `FacturaServiceImpl.java:105 findAllFacturas` filtra `status != ANULADA` → ANULADA desaparece de `GET /facturas` pero sigue en DB con items (verificable `psql invoice_items count 2`).
+- `InvoiceDetailDialog.vue detailColumns computed` + frontend `EstadoFactura` type `REGISTRADA|PAGADA|ANULADA` + `productBaseUnitMap` para unidad base (`kg/u` vs presentación).
+- Tests: `FacturaServiceImplTest` 20 unit (`whenPaid_succeeds assert ANULADA + verify save never delete`, `whenAnulada_throws`) + `FacturaRepositoryTest` seds enum + `FacturaIntegrationTest` 8 IT (OWNER 204, ADMIN 403, PAGADA delete → lista 0 filtrada) — `verify -Pintegration 50/50` ✅ `mvnw test BUILD SUCCESS`.
 
 ```
-FacturaApi.java, FacturaServiceImpl.java (+ reverseProductStats idempotente)
+invoice/domain/EstadoFactura.java (NUEVO)
+core_pymes/invoice/domain/Factura.java                          # String → EstadoFactura
+core_pymes/invoice/dto/FacturaResponse.java                     # String → EstadoFactura
+core_pymes/invoice/service/impl/FacturaServiceImpl.java         # enum + ANULADA conserva items + filter ANULADA
+core_pymes/invoice/mapper/FacturaMapper.java                    # sin cambio (mapea enum)
+frontend/src/modules/core/types/index.ts                        # +type EstadoFactura
+frontend/src/modules/core/components/facturas/InvoiceDetailDialog.vue # valorPresentacion + status ANULADA + productBaseUnitMap
+frontend/src/modules/core/pages/FacturasPage.vue                # productBaseUnitMap + statusLabel ANULADA
+unit/FacturaServiceImplTest.java + jpa/FacturaRepositoryTest.java # seds enum
 ```
 
 ---

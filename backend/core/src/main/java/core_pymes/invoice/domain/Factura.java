@@ -64,8 +64,9 @@ public class Factura {
 
     private String category;
 
-    @Column(nullable = false)
-    private String status;
+    @Enumerated(EnumType.STRING)
+    @Column(nullable = false, length = 20)
+    private EstadoFactura status;
 
     @Column(nullable = false)
     private BigDecimal total;

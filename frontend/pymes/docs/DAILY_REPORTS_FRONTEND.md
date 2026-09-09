@@ -4,19 +4,21 @@ Registro cronológico de decisiones, problemas resueltos y estado del frontend.
 
 ---
 
-## 2026-09-08 — Facturas: precio typeado + XSS + hover Quasar 2.19
+## 2026-09-08 — Facturas: ENUM ANULADA + precio typeado + unidad base + XSS + hover Quasar 2.19
 
-**Contexto:** Detail de PAGADA mostraba `precioUnitario` base y `field:'cantidad'` undefined; `ConfirmDialog` usaba `v-html` con `invoiceNumber`; `invoice-row` tenía hover por JS.
+**Contexto:** Detail de PAGADA mostraba `precioUnitario` base (0.27 en pack x12) y `field:'cantidad'` undefined; `ConfirmDialog v-html` XSS con `invoiceNumber`; `invoice-row` hover por JS; delete permitía ADMIN y PAGADA borraba items (pérdida auditoría).
 
 **Qué se hizo:**
-- `InvoiceDetailDialog.vue` `detailColumns = computed(() => [...])` — `cantidad: cantidadPresentacion ?? quantity`, `precio: valorPresentacion ?? unitPrice` (fallback base), `unidad: —`, `TOTAL` label + `formatCurrency(total)`.
-- `ConfirmDialog.vue` `v-html` → `<slot>` seguro; `FacturasPage.vue` pasa `<strong>{{ invoiceNumber }}</strong>` vía slot + `confirmLabel Anular/Eliminar` según `status PAGADA`.
-- `FacturasPage.vue` elimina `@mouseenter/@mouseleave` JS → solo `:hover` CSS; `monthGroups` sort por `key YYYY-MM` desc (no `label.localeCompare`).
+- `types/index.ts:76` `type EstadoFactura = 'REGISTRADA' | 'PAGADA' | 'ANULADA'` + `Factura.status: EstadoFactura` → type-safe en todo el módulo.
+- `InvoiceDetailDialog.vue` `detailColumns = computed(() => [...])` ponytail evita recrear array — `cantidad: cantidadPresentacion ?? quantity`, `precio: valorPresentacion ?? unitPrice` fallback base, `unidad: presentacionId ? presentationNameMap.get(id) : productBaseUnitMap?.get(productId) || '—'` + `statusColor/Label` `ANULADA→grey/Anulada`, `TOTAL` label + `formatCurrency(total)`.
+- `FacturasPage.vue` `productBaseUnitMap = computed(()=>Map prodsData.id → unitNameMap.get(baseUnit)||baseUnit)` desde `setupUnits` + `prodsData` → resuelve `kg/u/l` base cuando `presentacionId` null; `statusColor/Label` incluye `ANULADA`; `isOwner = authStore.user?.role==='OWNER'` `v-if="isOwner && (REGISTRADA||PAGADA)"` + `confirmLabel Anular/Eliminar` según `PAGADA`; elimina `@mouseenter/@mouseleave` JS → solo `:hover` CSS `color-mix 30%`; `monthGroups` sort por `key YYYY-MM` desc (no `label.localeCompare`).
+- `ConfirmDialog.vue` `v-html` → `<slot>` seguro; caller pasa `<strong>{{ invoiceNumber }}</strong>` + `status PAGADA ? 'Anular' : 'Eliminar'`.
 
-Lint 0, build PWA ok. Verified con `F-PROV-2026-0001` (2×3.25, 5×0.95).
+Lint 0, build PWA ok. Verified con `F-PROV-2026-0001` (Arroz 2×3.25 `Bolsa 1Kg`, Frijoles 5×0.95 sin presentación → unidad `kg`/`u`).
 
 ```
-InvoiceDetailDialog.vue, ConfirmDialog.vue, FacturasPage.vue
+types/index.ts                                      # +EstadoFactura
+InvoiceDetailDialog.vue, ConfirmDialog.vue, FacturasPage.vue # valorPresentacion + ANULADA + productBaseUnitMap + hover CSS
 ```
 
 ---

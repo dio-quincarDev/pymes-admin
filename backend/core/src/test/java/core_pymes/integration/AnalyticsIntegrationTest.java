@@ -231,7 +231,7 @@ class AnalyticsIntegrationTest extends AbstractIntegrationTest {
         jdbcTemplate.update("""
                         INSERT INTO core.invoices
                         (id, tenant_id, provider_id, invoice_number, issue_date, type, total, status)
-                        VALUES (?, ?, ?, ?, ?, 'FACTURA', ?, 'REGISTRADA')
+                        VALUES (?, ?, ?, ?, ?, 'FACTURA', ?, 'PAGADA')
                         """,
                 invoiceId, tenantId, providerId, "INV-" + issueDate + "-" + invoiceId.toString().substring(0, 8),
                 issueDate, unitPrice);
