@@ -207,7 +207,7 @@
       </template>
     </ConfirmDialog>
 
-    <InvoiceDetailDialog :factura="detailItem" v-model="detailDialog" :presentation-name-map="presentationNameMap" :categoria-map="categoriaMap" />
+    <InvoiceDetailDialog :factura="detailItem" v-model="detailDialog" :presentation-name-map="presentationNameMap" :categoria-map="categoriaMap" :product-base-unit-map="productBaseUnitMap" />
   </q-page>
 </template>
 
@@ -329,6 +329,13 @@ function findCategoryInTree(cats: SetupCategory[], code: string): Set<string> {
 const unitNameMap = computed(() => {
   const map = new Map<string, string>()
   for (const u of setupUnits.value) map.set(u.code, u.name)
+  return map
+})
+
+// ponytail: deriva unidad base por producto para detail sin presentación (sin snapshot)
+const productBaseUnitMap = computed(() => {
+  const map = new Map<string, string>()
+  for (const p of prodsData.value) map.set(p.id, unitNameMap.value.get(p.baseUnit) || p.baseUnit)
   return map
 })
 

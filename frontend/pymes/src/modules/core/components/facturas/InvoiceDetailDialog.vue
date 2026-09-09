@@ -8,6 +8,7 @@ const props = defineProps<{
   factura: Factura | null
   presentationNameMap: Map<string, string>
   categoriaMap: Map<string, string>
+  productBaseUnitMap?: Map<string, string>
 }>()
 
 const emit = defineEmits<{
@@ -26,7 +27,10 @@ const detailColumns = computed(() => [
   {
     name: 'unidad',
     label: 'Unidad',
-    field: (row: ItemFactura) => (row.presentacionId ? props.presentationNameMap.get(row.presentacionId) || '—' : '—'),
+    field: (row: ItemFactura) =>
+      row.presentacionId
+        ? props.presentationNameMap.get(row.presentacionId) || '—'
+        : props.productBaseUnitMap?.get(row.productId) || '—',
     align: 'left' as const,
   },
   {
