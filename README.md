@@ -136,7 +136,7 @@ Produccion: `PROD_HOST`, `PROD_USER`, `PROD_SSH_KEY`, `CORS_ALLOWED_ORIGINS_PROD
 
 ## Known Issues
 
-- **CORS en Gateway** (Spring Cloud Gateway 3.2.0+): OPTIONS (preflight) funciona pero POST retorna 403 "Invalid CORS request". Ver `backend/gateway-pymes/docs/GATEWAY-DOC.md`.
+- ~~**CORS en Gateway** (403 "Invalid CORS request" en POST): **resuelto 2026-08-11**. La causa raíz era el perfil Maven `dev` horneado en el auth-service (`allowed-origins: localhost`); el perfil ahora se inyecta en runtime via `SPRING_PROFILES_ACTIVE`. Ver daily reports de gateway/auth — 2026-08-11.~~
 
 ---
 

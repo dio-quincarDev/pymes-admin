@@ -1004,5 +1004,34 @@ function handleKeydown(e: KeyboardEvent) {
 .invoice-row__actions {
   display: flex;
   gap: 2px;
+  flex-shrink: 0;
+}
+
+@media (max-width: 599px) {
+  .invoice-row {
+    flex-wrap: wrap;
+    gap: 4px;
+    padding: 8px 10px;
+  }
+
+  .invoice-row__date {
+    display: none;
+  }
+
+  .invoice-row__total {
+    margin-right: 8px;
+  }
+
+  .invoice-row__status {
+    margin-right: 0;
+    margin-left: auto;
+  }
+
+  .invoice-row__actions {
+    width: 100%;
+    justify-content: flex-end;
+    padding-top: 4px;
+    border-top: 1px solid color-mix(in srgb, var(--pq-border) 6%, transparent);
+  }
 }
 </style>

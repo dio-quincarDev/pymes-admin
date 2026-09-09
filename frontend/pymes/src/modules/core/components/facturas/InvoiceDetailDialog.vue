@@ -70,8 +70,8 @@ const statusLabel: Record<string, string> = { PAGADA: 'Pagada', REGISTRADA: 'Pen
           :rows="factura.items"
           :columns="[
             { name: 'product', label: 'Producto', field: 'productName', align: 'left' },
-            { name: 'unidad', label: 'Unidad', field: (row: ItemFactura) => row.presentacionId ? presentationNameMap.get(row.presentacionId) || '—' : 'Base', align: 'left' },
-            { name: 'cantidad', label: 'Cant.', field: 'cantidad', align: 'right' },
+            { name: 'unidad', label: 'Unidad', field: (row: ItemFactura) => row.presentacionId ? presentationNameMap.get(row.presentacionId) || '—' : 'Unidad base', align: 'left' },
+            { name: 'cantidad', label: 'Cant.', field: (row: ItemFactura) => row.cantidadPresentacion ?? row.quantity, align: 'right' },
             { name: 'precio', label: 'Precio', field: 'precioUnitario', align: 'right', format: (v: number) => formatCurrency(v) },
             { name: 'descuento', label: 'Desc.', field: 'descuento', align: 'right', format: (v: number | null) => v ? formatCurrency(v) : '—' },
             { name: 'subtotal', label: 'Subtotal', field: 'subtotal', align: 'right', format: (v: number) => formatCurrency(v) },
