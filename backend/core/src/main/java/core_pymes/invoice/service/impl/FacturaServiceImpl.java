@@ -1,5 +1,6 @@
 package core_pymes.invoice.service.impl;
 
+import core_pymes.invoice.domain.EstadoFactura;
 import core_pymes.invoice.domain.Factura;
 import core_pymes.invoice.domain.ItemFactura;
 import core_pymes.invoice.domain.Proveedor;
@@ -102,7 +103,7 @@ public class FacturaServiceImpl implements FacturaService {
     @Transactional(readOnly = true)
     @Cacheable(cacheNames = "facturas", key = "#tenantId")
     public List<FacturaResponse> findAllFacturas(UUID tenantId) {
-        return facturaRepository.findByTenantIdOrderByCreatedAtDesc(tenantId).stream()
+        return facturaRepository.findByTenantIdAndStatusNotOrderByCreatedAtDesc(tenantId, EstadoFactura.ANULADA).stream()
                 .map(f -> mapper.toResponse(f, mapper.toItemResponseList(f.getItems())))
                 .toList();
     }
@@ -137,7 +138,7 @@ public class FacturaServiceImpl implements FacturaService {
                 .globalDiscount(request.descuentoGlobal() != null ? request.descuentoGlobal() : BigDecimal.ZERO)
                 .paymentMethod(request.metodoPago())
                 .category(request.category())
-                .status("REGISTRADA")
+                .status(EstadoFactura.REGISTRADA)
                 .total(BigDecimal.ZERO)
                 .build();
 
@@ -204,7 +205,7 @@ public class FacturaServiceImpl implements FacturaService {
     @CacheEvict(cacheNames = "facturas", allEntries = true)
     public FacturaResponse updateFactura(UUID id, UUID tenantId, FacturaRequest request) {
         var factura = getFactura(id, tenantId);
-        if (!"REGISTRADA".equals(factura.getStatus())) {
+        if (factura.getStatus() != EstadoFactura.REGISTRADA) {
             throw new InvalidInputException("Solo facturas en estado REGISTRADA pueden editarse");
         }
 
@@ -359,14 +360,14 @@ public class FacturaServiceImpl implements FacturaService {
                 last_unit_price = (
                     SELECT ii.unit_price FROM core.invoice_items ii
                     JOIN core.invoices i ON i.id = ii.invoice_id
-                    WHERE ii.product_id = ? AND i.tenant_id = ? AND i.status != 'ELIMINADA' AND i.id != ?
+                    WHERE ii.product_id = ? AND i.tenant_id = ? AND i.status != 'ANULADA' AND i.id != ?
                     ORDER BY i.issue_date DESC, i.created_at DESC
                     LIMIT 1
                 ),
                 last_purchase_date = (
                     SELECT i.issue_date FROM core.invoices i
                     JOIN core.invoice_items ii ON ii.invoice_id = i.id
-                    WHERE ii.product_id = ? AND i.tenant_id = ? AND i.status != 'ELIMINADA' AND i.id != ?
+                    WHERE ii.product_id = ? AND i.tenant_id = ? AND i.status != 'ANULADA' AND i.id != ?
                     ORDER BY i.issue_date DESC, i.created_at DESC
                     LIMIT 1
                 )
@@ -388,10 +389,10 @@ public class FacturaServiceImpl implements FacturaService {
     @CacheEvict(cacheNames = "facturas", allEntries = true)
     public FacturaResponse pagarFactura(UUID id, UUID tenantId) {
         var factura = getFactura(id, tenantId);
-        if (!"REGISTRADA".equals(factura.getStatus())) {
+        if (factura.getStatus() != EstadoFactura.REGISTRADA) {
             throw new InvalidInputException("Factura already " + factura.getStatus());
         }
-        factura.setStatus("PAGADA");
+        factura.setStatus(EstadoFactura.PAGADA);
         factura = facturaRepository.save(factura);
         eventPublisher.publishEvent(new FacturaPagadaEvent(factura));
         return mapper.toResponse(factura, mapper.toItemResponseList(factura.getItems()));
@@ -400,14 +401,20 @@ public class FacturaServiceImpl implements FacturaService {
     @Override
     @Transactional
     @CacheEvict(cacheNames = "facturas", allEntries = true)
-    // ponytail: delete/anular cubre REGISTRADA|PAGADA via soft-delete (is_active=false) + reverseProductStats; si necesita auditoría → migrar a status ANULADA + evento
+    // ponytail: delete/anular cubre REGISTRADA|PAGADA via EstadoFactura enum (PAGADA->ANULADA conserva items, REGISTRADA borra)
     public void deleteFactura(UUID id, UUID tenantId) {
         var factura = getFactura(id, tenantId);
-        if (!"REGISTRADA".equals(factura.getStatus()) && !"PAGADA".equals(factura.getStatus())) {
+        if (factura.getStatus() == EstadoFactura.ANULADA) {
             throw new InvalidInputException("Cannot delete factura in status " + factura.getStatus());
         }
+        // ANULADA conserva items para auditoria (sin cascada); REGISTRADA/PAGADA -> ANULADA
         reverseProductStats(factura.getItems(), tenantId, factura.getId());
-        facturaRepository.delete(factura);
+        if (factura.getStatus() == EstadoFactura.PAGADA) {
+            factura.setStatus(EstadoFactura.ANULADA);
+            facturaRepository.save(factura);
+        } else {
+            facturaRepository.delete(factura);
+        }
     }
 
     // -- helpers --

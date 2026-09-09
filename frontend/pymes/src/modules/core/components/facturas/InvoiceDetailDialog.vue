@@ -17,8 +17,8 @@ const emit = defineEmits<{
 
 const tipoLabel: Record<string, string> = { FACTURA: 'Factura', GASTO_OPERATIVO: 'Gasto' }
 
-const statusColor: Record<string, string> = { PAGADA: 'positive', REGISTRADA: 'warning' }
-const statusLabel: Record<string, string> = { PAGADA: 'Pagada', REGISTRADA: 'Pendiente' }
+const statusColor: Record<string, string> = { PAGADA: 'positive', REGISTRADA: 'warning', ANULADA: 'grey' }
+const statusLabel: Record<string, string> = { PAGADA: 'Pagada', REGISTRADA: 'Pendiente', ANULADA: 'Anulada' }
 
 // ponytail: columnas derivadas como computed — evita recrear array + closures en cada render
 // precio muestra lo typeado (valorPresentacion) con fallback a unitPrice base

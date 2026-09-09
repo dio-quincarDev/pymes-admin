@@ -233,7 +233,7 @@ useMeta({ title: 'Facturas — PYMEQ' })
 const $q = useQuasar()
 const authStore = useAuthStore()
 const tenantId = authStore.user?.tenantId
-// ponytail: delete solo OWNER; PAGADA anulable via mismo soft-delete
+// ponytail: delete solo OWNER; PAGADA->ANULADA conserva items, REGISTRADA borra
 const isOwner = computed(() => authStore.user?.role === 'OWNER')
 
 interface OptionItem { label: string; value: string; __isCreate?: boolean }
@@ -244,10 +244,10 @@ const filter = shallowRef('')
 const editingId = shallowRef<string | null>(null)
 
 const statusColor = (s: string) =>
-  s === 'PAGADA' ? 'positive' : s === 'REGISTRADA' ? 'warning' : 'grey'
+  s === 'PAGADA' ? 'positive' : s === 'REGISTRADA' ? 'warning' : s === 'ANULADA' ? 'grey' : 'grey'
 
 const statusLabel = (s: string) =>
-  s === 'REGISTRADA' ? 'Pendiente' : s === 'PAGADA' ? 'Pagada' : s
+  s === 'REGISTRADA' ? 'Pendiente' : s === 'PAGADA' ? 'Pagada' : s === 'ANULADA' ? 'Anulada' : s
 
 const filteredRows = computed(() => {
   if (!filter.value) return rows.value
