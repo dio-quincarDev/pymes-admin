@@ -4,6 +4,23 @@ Registro cronológico de decisiones, problemas resueltos y estado del frontend.
 
 ---
 
+## 2026-09-08 — Facturas: precio typeado + XSS + hover Quasar 2.19
+
+**Contexto:** Detail de PAGADA mostraba `precioUnitario` base y `field:'cantidad'` undefined; `ConfirmDialog` usaba `v-html` con `invoiceNumber`; `invoice-row` tenía hover por JS.
+
+**Qué se hizo:**
+- `InvoiceDetailDialog.vue` `detailColumns = computed(() => [...])` — `cantidad: cantidadPresentacion ?? quantity`, `precio: valorPresentacion ?? unitPrice` (fallback base), `unidad: —`, `TOTAL` label + `formatCurrency(total)`.
+- `ConfirmDialog.vue` `v-html` → `<slot>` seguro; `FacturasPage.vue` pasa `<strong>{{ invoiceNumber }}</strong>` vía slot + `confirmLabel Anular/Eliminar` según `status PAGADA`.
+- `FacturasPage.vue` elimina `@mouseenter/@mouseleave` JS → solo `:hover` CSS; `monthGroups` sort por `key YYYY-MM` desc (no `label.localeCompare`).
+
+Lint 0, build PWA ok. Verified con `F-PROV-2026-0001` (2×3.25, 5×0.95).
+
+```
+InvoiceDetailDialog.vue, ConfirmDialog.vue, FacturasPage.vue
+```
+
+---
+
 ## 2026-08-30 — OAuth2 PWA whitelabel: SW denylist + duplicate tenant
 
 ### El problema

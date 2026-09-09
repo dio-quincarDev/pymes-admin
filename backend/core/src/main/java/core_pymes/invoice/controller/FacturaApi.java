@@ -42,6 +42,6 @@ public interface FacturaApi {
 
     @Operation(summary = "Delete an invoice")
     @DeleteMapping("/{id}")
-    @PreAuthorize("hasAnyRole('OWNER', 'ADMIN')")
+    @PreAuthorize("hasRole('OWNER')")
     ResponseEntity<Void> delete(@PathVariable UUID id, @RequestParam UUID tenantId);
 }
