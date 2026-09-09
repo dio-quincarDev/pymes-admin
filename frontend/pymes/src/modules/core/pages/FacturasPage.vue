@@ -902,12 +902,30 @@ function handleKeydown(e: KeyboardEvent) {
 .facturas-toolbar {
   display: flex;
   align-items: center;
+  flex-wrap: wrap;
   gap: 12px;
   margin-bottom: 16px;
 }
 
 .facturas-toolbar__search {
-  max-width: 320px;
+  flex: 1;
+  min-width: 0;
+}
+
+@media (max-width: 599px) {
+  .facturas-toolbar {
+    display: grid;
+    grid-template-columns: 1fr 1fr;
+    gap: 8px;
+  }
+
+  .facturas-toolbar__search {
+    grid-column: 1 / -1;
+  }
+
+  .facturas-toolbar :deep(.q-space) {
+    display: none;
+  }
 }
 
 .month-group-header {

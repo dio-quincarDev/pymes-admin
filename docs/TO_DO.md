@@ -12,7 +12,7 @@
 
 Estrategia de cierre: → [`FRONTEND_PENDIENTES_STRATEGY.md`](./frontend/pymes/docs/strategies/FRONTEND_PENDIENTES_STRATEGY.md)
 
-**Fase 6 — Amortización de Préstamos** (pendiente)
+**Fase 7 — Amortización de Préstamos** (pendiente)
 
 Estrategia completa: → [`AMORTIZACION_PRESTAMOS_STRATEGY.md`](./strategies/AMORTIZACION_PRESTAMOS_STRATEGY.md)
 
@@ -47,39 +47,47 @@ Estrategia: eliminar redundancia entre Dashboard (4 KPIs duplicados) y Contabili
 - [x] [Media] **Helper "Pago de salario" en FacturasPage** — tipo `GASTO_OPERATIVO` + colaborador DIARIO + rango de días → total precargado `días × tarifa` (editable) + descripción "Salarios — {nombre}, {rango}". Requiere `FacturaRequest` +`total`/`items` opcional (backend ya lo acepta). → EXPENSES_MODEL_STRATEGY (paso 4) / FRONTEND_PENDIENTES_STRATEGY (Fase 3).
 - [x] [Media] **Dashboard: gastos desde facturas pagadas** — `useFinancialDashboard` lee facturas `GASTO_OPERATIVO` PAGADAS (por categoría) en vez de `operating_expenses`, para coincidir con el motor. Elimina `gastoService.getAll` duplicado. → EXPENSES_MODEL_STRATEGY (paso 6) / FRONTEND_PENDIENTES_STRATEGY (Fase 3). (2026-08-05)
 
-**Fase 4 — Consolidación del Workflow (2026-08-17)**
+**Fase 4 — Consolidación del Workflow (2026-08-17)** ✅ CERRADO (2026-08-17)
 
-Objetivo: depurar la info visual, quitar redundancias, dejarlo "casi para dummies" (una pantalla, una pregunta). Ejecución secuencial: primero workflow, depués tutorial guiado sobre el resultado. **Modelo de capas:** Vital (visible) / Bajo demanda (colapsado) / Fuera de UI. Auditoría backend: 6 motores (ABC, tendencias, márgenes, opex, proyección, alertas) calculados pero invisibles → **todos conservados BAJO DEMANDA**. → [`FRONTEND_PENDIENTES_STRATEGY.md`](./frontend/pymes/docs/strategies/FRONTEND_PENDIENTES_STRATEGY.md) (Fase 4 actualizada 2026-08-17)
+Objetivo: depurar la info visual, quitar redundancias, dejarlo "casi para dummies" (una pantalla, una pregunta). Ejecución secuencial: primero workflow, depués tutorial guiado sobre el resultado. **Modelo de capas:** Vital (visible) / Bajo demanda (colapsado) / Fuera de UI. Auditoría backend: 6 motores (ABC, tendencias, márgenes, opex, proyección, alertas) calculados pero invisibles → **todos conservados BAJO DEMANDA**. → [`FRONTEND_PENDIENTES_STRATEGY.md`](./frontend/pymes/docs/strategies/FRONTEND_PENDIENTES_STRATEGY.md) (Fase 4 actualizada 2026-08-17) → `DAILY_REPORTS_FRONTEND.md` 2026-08-17 (5 secciones completadas)
 
 Estrategia: → [`FRONTEND_PENDIENTES_STRATEGY.md`](./frontend/pymes/docs/strategies/FRONTEND_PENDIENTES_STRATEGY.md) (actualizado con Fase 4)
 
-**4a — Dashboard: quitar ruido**
+**4a — Dashboard: quitar ruido** ✅
 
-- [ ] [Alta] **Eliminar QuickActions** — 2 de 3 acciones duplican sidebar, emit `exportar` muerto (nadie lo escucha en DashboardPage). Código muerto total.
-- [ ] [Alta] **Colapsar 3 KPIs de margen → 1 "Ganancia del mes"** — Margen Bruto, Operativo y Neto son 3 derivados del mismo dato. Un solo número: ganancia neta con delta vs mes anterior. Reduce KPI row de 7 a 5 cards.
-- [ ] [Alta] **Eliminar sparklines** — `sparkline()` produce `[prev, cur]` (2 puntos). Línea entre 2 puntos no es trend, es ruido visual. El delta % ya comunica dirección + magnitud. Eliminar SVG rendering innecesario.
-- [ ] [Media] **Merge RecentActivity + PendingInvoices → 1 panel "Actividad"** — Mismo tipo de info (lista cronológica con montos y fechas). Dos paneles = doble scroll, mismo tipo cognitivo.
-- [ ] [Media] **Extraer CSS duplicado → clases globales** — skeleton, section-title, empty-state, list-row copiados 4 veces (~200 líneas). Mover a `app.scss`.
+- [x] [Alta] **Eliminar QuickActions** — 2 de 3 acciones duplican sidebar, emit `exportar` muerto (nadie lo escucha en DashboardPage). Código muerto total. (2026-08-17)
+- [x] [Alta] **Colapsar 3 KPIs de margen → 1 "Ganancia del mes"** — Margen Bruto, Operativo y Neto son 3 derivados del mismo dato. Un solo número: ganancia neta con delta vs mes anterior. Reduce KPI row de 7 a 5 cards. (2026-08-17)
+- [x] [Alta] **Eliminar sparklines** — `sparkline()` produce `[prev, cur]` (2 puntos). Línea entre 2 puntos no es trend, es ruido visual. El delta % ya comunica dirección + magnitud. Eliminar SVG rendering innecesario. (2026-08-17)
+- [x] [Media] **Merge RecentActivity + PendingInvoices → 1 panel "Actividad"** — Mismo tipo de info (lista cronológica con montos y fechas). Dos paneles = doble scroll, mismo tipo cognitivo. → `ActivityPanel.vue` (2026-08-17)
+- [x] [Media] **Extraer CSS duplicado → clases globales** — skeleton, section-title, empty-state, list-row copiados 4 veces (~200 líneas). Mover a `app.scss`. (2026-08-17)
 
-**4b — Navegación: reducir 12 → ~7 items**
+**4b — Navegación: reducir 12 → ~7 items** ✅
 
-- [ ] [Alta] **Fusionar sidebar** — "Análisis" absorbe "Ventas" y "Patrimonio" (ya son sub-secciones). "Contabilidad" → folded into Dashboard o Análisis. "Configuración" → accessible desde menú de usuario, no como ruta sidebar.
-- [ ] [Media] **Bottom nav mobile** — Actualizar items: Dashboard, Productos, Facturas, Costos (reemplaza Préstamos).
+- [x] [Alta] **Fusionar sidebar** — "Análisis" absorbe "Ventas" y "Patrimonio" (ya son sub-secciones). "Contabilidad" → folded into Dashboard o Análisis. "Configuración" → accessible desde menú de usuario, no como ruta sidebar. → 12→8 items (2026-08-17)
+- [x] [Media] **Bottom nav mobile** — Actualizar items: Dashboard, Productos, Facturas, Costos (reemplaza Préstamos). (2026-08-17)
 
-**4c — Páginas: jargon + estructura**
+**4c — Páginas: jargon + estructura** ✅
 
-- [ ] [Alta] **Renombrar jargon** — GASTO_OPERATIVO→"Gasto", REGISTRADA→"Pendiente", Colaboradores→"Equipo", Margen Operativo→"Ganancia bruta", "costo operativo diario"→"Costo del día", etc.
-- [ ] [Alta] **FacturasPage: separar flujos** — "Gasto rápido" (monto + categoría) vs "Factura con items" (productos + cantidades). No 3 formularios en 1 diálogo de 989 líneas.
-- [ ] [Media] **AnalisisGastosPage: todo lo no-vital colapsado** — Supplier (comparativa/recomendaciones/predicciones) + los 6 motores del backend (ABC, tendencias, impacto márgenes, costo operativo, proyección, alertas) quedan BAJO DEMANDA (`q-expansion-item`). Default solo inversión + categorías + top productos. Reemplazar alertas locales por el motor `alerts` del backend. → FRONTEND_PENDIENTES_STRATEGY (Fase 4, Sección 3).
-- [ ] [Media] **CostosPage: Config tab → inline** — 1 input ("días laborales") no justifica un tab completo. Mover a inline o sección dentro de la página.
-- [ ] [Baja] **Eliminar ConfiguracionPage como ruta** — Read-only, 85 líneas, sin edición. Mover a menú de usuario o sección del dashboard.
+- [x] [Alta] **Renombrar jargon** — GASTO_OPERATIVO→"Gasto", REGISTRADA→"Pendiente", Colaboradores→"Equipo", Margen Operativo→"Ganancia bruta", "costo operativo diario"→"Costo del día", etc. (2026-08-17)
+- [x] [Alta] **FacturasPage: separar flujos** — "Gasto rápido" (monto + categoría) vs "Factura con items" (productos + cantidades). No 3 formularios en 1 diálogo de 989 líneas. (2026-08-17)
+- [x] [Media] **AnalisisGastosPage: todo lo no-vital colapsado** — Supplier (comparativa/recomendaciones/predicciones) + los 6 motores del backend (ABC, tendencias, impacto márgenes, costo operativo, proyección, alertas) quedan BAJO DEMANDA (`q-expansion-item`). Default solo inversión + categorías + top productos. Reemplazar alertas locales por el motor `alerts` del backend. → FRONTEND_PENDIENTES_STRATEGY (Fase 4, Sección 3). (2026-08-17)
+- [x] [Media] **CostosPage: Config tab → inline** — 1 input ("días laborales") no justifica un tab completo. Mover a inline o sección dentro de la página. (2026-08-17)
+- [x] [Baja] **Eliminar ConfiguracionPage como ruta** — Read-only, 85 líneas, sin edición. Mover a menú de usuario o sección del dashboard. (2026-08-17)
 
-**4d — Limpieza de código**
+**4d — Limpieza de código** ✅
 
-- [ ] [Baja] **Dead code** — `mounted` ref en KpiCard (nunca se lee), `compact` variant (nunca se pasa), `handleExportar` emit (nadie escucha), `useAuthStore` innecesario en AnalyticsHeader.
-- [ ] [Baja] **Unificar formatadores** — `formatDate` definido localmente en RecentActivity y PendingInvoices (formatos distintos). Shared composable.
+- [x] [Baja] **Dead code** — `mounted` ref en KpiCard (nunca se lee), `compact` variant (nunca se pasa), `handleExportar` emit (nadie escucha), `useAuthStore` innecesario en AnalyticsHeader. (2026-08-17)
+- [x] [Baja] **Unificar formatadores** — `formatDate` definido localmente en RecentActivity y PendingInvoices (formatos distintos). Shared composable → `utils/format.ts`. (2026-08-17)
 
-**Fase 5 — Tutorial Guiado (post-Fase 4)**
+**Fase 5a — Design System de Charts** ✅ CERRADO (2026-08-17)
+
+- [x] [Media] **Chart tokens + migración CSS→Chart.js** — 13 tokens `--pq-chart-*` en `app.scss`, `useChartTheme.ts`, `BaseChart.vue` con `useChartTheme()`, migrados `VentasVsCostosChart`/`CategoryBreakdownChart`/`ExpenseBreakdown` a Chart.js, refactorizados `AbcGastosChart`/`PriceTrendSparkline`/`ProjectionTimeline`/`OpexGauge` con tokens, eliminado `vue-chartjs`. → `DAILY_REPORTS_FRONTEND.md` 2026-08-17 Fase 5a. (2026-08-17)
+
+**Fase 5b — Botones e Iconos** ✅ CERRADO (2026-08-18 `f31a561`)
+
+- [x] [Media] **Unificar en `q-btn`** — migrar 68 usos de `BaseButton` a `q-btn`, eliminar `BaseButton.vue` (`git rm` `f31a561` -184 líneas), `app.scss` +44 global overrides, `167` `q-btn` vs `0` `BaseButton` verificado. Residual polish: `color="red"` (`AuthOptionsPage.vue:25`) y `color="amber"` (`AcceptInvitationPage.vue:35`) + icon utils `text-icon-*` pendientes (bajo). → `FRONTEND_PENDIENTES_STRATEGY.md` Fase 5b. `DAILY_REPORTS_FRONTEND.md` 2026-08-17 Fase 5b.
+
+**Fase 6 — Tutorial Guiado (post-Fase 4)** (pendiente — implementar ahora)
 
 - [ ] [Alta] **Tour guiado con Driver.js** — guía de bienvenida al dashboard post-Fase 4. 3-4 pasos sobre los elementos que queden. Disparo único vía localStorage. Botón "Ayuda" en header para reiniciar. → Se diseña DESPUÉS de completar Fase 4.
 - [ ] [Alta] **Dashboard UI polish** — hover states en stat strip, empty states más expresivos, responsive tuning. → POST-Fase 4 (solo lo que sobreviva la depuración).
@@ -277,6 +285,12 @@ Todos implementados inline en cada page (sin componentes separados).
 ### Frontend — Completado (Tenant/User display)
 
 - [x] [Media] **Mostrar tenantName y userName en layout** — `authStore` captura/persiste `tenantName` (`store/index.ts` + localStorage `pymeq_tenant_name`); `App.vue` restaura vía `ensureTenantName`; `MainLayout.vue` muestra nombre+email en el menú; `AnalyticsHeader.vue` muestra empresa. Falta el "sidebar strip" puntual (nombre/email en drawer, no en header). (2026-08-02)
+
+### Frontend — Completado (PWA + OAuth 2026-08-30)
+
+- [x] [Alta] **OAuth2 PWA whitelabel: SW denylist + duplicate tenant** — `custom-service-worker.ts:54` `NavigationRoute` `denylist: [/^\/oauth2/, /^\/login/]` deja pasar `GET /oauth2/authorization/google` y `GET /login/oauth2/code/google` al server (302, no `index.html`). `OAuth2AuthenticationSuccessHandler.java:89` duplicate slug `qcore-system` → redirect `frontendUrl + "/#/auth/callback?error=TNT003"` (reuse `CodigoError.TNT003`) en vez de `500` Whitelabel (FilterChain bypass). `AuthCallback.vue` whitelabel inline `q-card` + `parseBackendError` `TNT003`/`409`. Test `OAuth2AuthenticationSuccessHandlerTest:5/5` + `verify -Pintegration 56/56`. `develop:31b9b4a` PR #44 merge `2026-08-30T03:32:20Z` CI `33290494295` success. (2026-08-30)
+- [x] [Media] **PWA: SW cache fix + manifest cache-busting** — SW `postMessage CLEAR_API_CACHE` en logout + `quasar.config.ts` `manifest icons ?v=timestamp` + `core-api-cache` cleanup. (2026-08-29)
+- [x] [Baja] **SVG cache fix** — Caddy `path_regexp \.svg$` + `Cache-Control: no-cache` para SW/SVG/HTML, Cloudflare purge tras cambio logos. `path *.svg` no cruza `/`. (2026-08-27)
 
 ### Frontend — Completado (PWA)
 

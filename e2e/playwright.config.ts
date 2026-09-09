@@ -1,4 +1,16 @@
 import { defineConfig } from '@playwright/test';
+import * as fs from 'fs';
+import * as path from 'path';
+// ponytail: load e2e/.env locally if present — CI injects via secrets, local via file
+(() => {
+  const envPath = path.resolve(__dirname, '.env');
+  if (fs.existsSync(envPath)) {
+    for (const line of fs.readFileSync(envPath, 'utf8').split('\n')) {
+      const m = line.match(/^\s*([A-Za-z_][A-Za-z0-9_]*)\s*=\s*(.*)\s*$/);
+      if (m && !line.trim().startsWith('#') && !process.env[m[1]]) process.env[m[1]] = m[2];
+    }
+  }
+})();
 
 export default defineConfig({
   testDir: './tests',

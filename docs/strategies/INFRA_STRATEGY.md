@@ -147,12 +147,83 @@ Secrets requeridos: `DOCKER_USERNAME`, `DOCKER_PASSWORD`, `STAGING_HOST`, `STAGI
 
 ---
 
-## Monitoreo Ligero
+## Monitoreo
 
-No instalar Prometheus/Grafana (consumen mucha RAM).
+VictoriaMetrics + Grafana para observabilidad de los 3 backends JVM.
 
-- `docker stats --no-stream` en el script de deploy para reporte post-actualizacion.
-- `GlobalExceptionHandler` puede enviar errores criticos a un canal Slack/Telegram via webhook.
+### Stack
+
+| Servicio | Imagen | RAM | Puerto |
+|----------|--------|-----|--------|
+| VictoriaMetrics | `victoriametrics/victoria-metrics:v1.102.0` | ~30MB | 8428 |
+| Grafana | `grafana/grafana:11.2.0` | ~250MB | 3001 (host) → 3000 (container) |
+
+Total: ~300MB. Logs y tracing diferidos hasta que duela.
+
+### Scraping
+
+`infra/monitoring/scrape.yml` — VictoriaMetrics scrape config:
+
+```yaml
+global:
+  scrape_interval: 15s
+
+scrape_configs:
+  - job_name: pymes
+    static_configs:
+      - targets:
+          - pymes-gateway:8080
+          - pymes-auth-service:8081
+          - pymes-core-service:8082
+        labels:
+          env: stg
+    metrics_path: /actuator/prometheus
+    scrape_timeout: 5s
+```
+
+- Solo backends JVM con Micrometer (gateway, auth, core).
+- El frontend (Quasar PWA) no tiene `/actuator/prometheus` — no se scraea.
+- `env: stg` hardcodeado. VictoriaMetrics usa `%{VAR}` para sustitución de variables de entorno, pero requiere `environment:` en `docker-compose.yml` para pasarlas al contenedor.
+
+### Dashboard
+
+`infra/monitoring/grafana/dashboards/pymes.json` — 6 paneles:
+
+1. Request rate (req/s)
+2. Response time p50/p95/p99
+3. Error rate (5xx)
+4. JVM memory (heap/non-heap)
+5. CPU usage
+6. Active threads
+
+Datasource: VictoriaMetrics (`/api/v1/query`).
+
+### Acceso
+
+- **URL:** `https://monitor-pymeq.dioquincar.dev`
+- **Creds:** `admin` / valor de `GRAFANA_PASSWORD` (GitHub Secret)
+- **DNS:** CNAME `monitor-pymeq` → `149.130.165.200` (Cloudflare proxy naranja)
+- **Caddy:** `http://monitor-pymeq.dioquincar.dev { reverse_proxy pymes-grafana:3000 }`
+- **Nota:** `*.dioquincar.dev` solo cubre un nivel de subdominio. Usar guion (`monitor-pymeq`), no punto (`monitor.pymeq`).
+
+### CI/CD: Cleanup de directorios root-owned
+
+Docker bind mount puede crear archivos/directorios como `root` en el host. El deploy user (`ubuntu`) no puede sobrescribirlos.
+
+**Cleanup step** (antes de `Copy monitoring configs`):
+```bash
+sudo rm -rf ~/pymes-admin/infra          # borra TODO, incluyendo monitoring/ root-owned
+mkdir -p ~/pymes-admin/infra/monitoring   # recrea como ubuntu
+```
+
+**Deploy step:**
+```bash
+docker compose pull
+docker compose up -d --force-recreate --remove-orphans
+docker image prune -af
+```
+
+`--force-recreate` es necesario para evitar conflictos de bind mount cuando containers previos quedaron en estado `Created`/`Exited(127)` por deploys fallidos anteriores.
 
 ---
 
@@ -173,10 +244,10 @@ No instalar Prometheus/Grafana (consumen mucha RAM).
 Browser → Caddy :80/:443 → Gateway :8080 / Frontend :9200
 ```
 
-- **Caddy** (`proxy-caddy-network`, contenedor `caddy`): reverse proxy con HTTPS automático (Let's Encrypt). Bloque `https://pymeq.dioquincar.dev` con handle `/api/*`, `/oauth2/*`, `/login/*` → `pymes-gateway:8080`; resto → `pymes-frontend:9200`.
+- **Caddy** (`~/caddy-proxy/Caddyfile`, contenedor `caddy-proxy`): reverse proxy HTTP puro en puerto 80. TLS lo maneja Cloudflare. Bloque `http://pymeq.dioquincar.dev` con matchers `@sw` (`/sw.js`), `@svg` (`path_regexp \.svg$`), `@root` (`/`) con `Cache-Control: no-cache`; handles `/api/*`, `/oauth2/*`, `/login/*` → `pymes-gateway:8080`; fallback → `pymes-frontend:9200`. Bloque `http://dioquincar.dev` → `portfolio-frontend:80`.
 - **HTTPS**: Let's Encrypt automático de Caddy — requerido por Google OAuth (no acepta redirect `http://` en dominios públicos).
 - **Frontend**: Quasar SPA servida por Caddy en puerto 9200 (nginx internamente). `VITE_API_URL=/api/v1` (URL relativa, same-origin).
-- **Nginx (frontend)**: bundles JS/CSS `immutable` (cache 1y); `sw.js` y `/` con `no-cache` para que el service worker y el HTML siempre se actualicen.
+- **Nginx (frontend)**: bundles JS/CSS `immutable` (cache 1y); SVGs, `sw.js` y `/` con `no-cache` para que los logos, el service worker y el HTML siempre se actualicen.
 
 ### Puertos expuestos (OCI Security List)
 
@@ -213,7 +284,7 @@ Browser → Cloudflare (CDN, DNS, WAF) → OCI LB :80 HTTP → Caddy :80 → Gat
 
 - **Cloudflare**: DNS + CDN + SSL terminacion. SSL/TLS mode = **Full** (NO Flexible — OCI LB solo escucha HTTP:80, pero Cloudflare con Full conecta al origin en HTTPS:443 via red interna de Cloudflare).
 - **OCI Load Balancer**: HTTP:80 listener → forwards a vm2-test2.
-- **Caddy** (`~/caddy-proxy/Caddyfile`): reverse proxy en puerto 80, sirve HTTP puro. Bloque para `pymeq.dioquincar.dev` con handle `/api`, `/oauth2`, `/login` → gateway:8080, fallback → frontend:9200. Bloque para `dioquincar.dev` → portfolio-frontend:80.
+- **Caddy** (`~/caddy-proxy/Caddyfile`): reverse proxy HTTP puro en puerto 80 (TLS lo maneja Cloudflare). Matchers `@sw`, `@svg` (`path_regexp \.svg$`), `@root` con `Cache-Control: no-cache`. Handles `/api/*`, `/oauth2/*`, `/login/*` → gateway:8080; fallback → frontend:9200. Portfolio en `dioquincar.dev` → portfolio-frontend:80.
 - **Frontend**: Quasar SPA servida por Caddy en puerto 9200 (nginx internamente). `VITE_API_URL=/api/v1` (URL relativa, same-origin).
 
 ### Puertos expuestos (OCI Security List)
@@ -232,6 +303,14 @@ Browser → Cloudflare (CDN, DNS, WAF) → OCI LB :80 HTTP → Caddy :80 → Gat
 | SSL/TLS | **Full** | Flexible intenta HTTP:80 al origin, pero OCI LB + Cloudflare handshake requiere Full para que Cloudflare maneje TLS end-to-end correctamente. |
 | Bot Fight Mode | **Off** | Bloquea XHR POST desde browsers nuevos (retorna 403 + managed challenge). |
 | WAF Custom Rules | No disponibles en plan Free. | — |
+
+### Cloudflare: SVG cache
+
+Cloudflare cachea archivos estáticos (SVGs, PNGs, etc.) con un TTL largo si el origin envía `Cache-Control: public` o `immutable`. Si cambiás un SVG y redeployás, Cloudflare sigue entregando la versión vieja hasta que el TTL expire (puede ser 1 año).
+
+**Después de cambiar logos o SVGs visibles:** purgar cache desde Cloudflare Dashboard → Caching → Configuration → "Purge Everything". Sin este paso, el browser nunca ve la versión nueva aunque el origin ya la sirva correctamente.
+
+**Caddy `path_regexp`:** El matcher `path *.svg` de Caddy NO matchea `/icons/logo.svg` porque `*` no cruza `/`. Usar `path_regexp \.svg$` que usa regex y sí funciona para cualquier path terminando en `.svg`.
 
 ### PWA Cache (Firefox)
 

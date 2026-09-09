@@ -209,6 +209,10 @@ const companyForm = reactive({ name: '' });
   height: 56px;
   min-width: 180px;
   white-space: nowrap;
+
+  @media (max-width: 599px) {
+    width: 100%;
+  }
 }
 
 .hero-fine-print {

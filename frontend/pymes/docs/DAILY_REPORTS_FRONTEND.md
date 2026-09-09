@@ -4,6 +4,233 @@ Registro cronológico de decisiones, problemas resueltos y estado del frontend.
 
 ---
 
+## 2026-08-30 — OAuth2 PWA whitelabel: SW denylist + duplicate tenant
+
+### El problema
+
+`GET /oauth2/authorization/google?intentId=...` devolvía `200 0ms` (SW servía `index.html`) y `GET /login/oauth2/code/google` devolvía `500` Whitelabel (`DuplicateResourceException` en `SuccessHandler` no llegaba a `GlobalExceptionHandler`). Usuario veía página en blanco en vez de mensaje friendly.
+
+### Por qué pasó
+
+- **SW `NavigationRoute` (`src-pwa/custom-service-worker.ts:54`):** `denylist` solo contenía `sw.js|workbox-*.js`. Toda navegación same-origin (incluido `/oauth2/**`) era interceptada y respondía con `index.html` precacheado.
+- **FilterChain bypass (`OAuth2AuthenticationSuccessHandler.java:90`):** `throw TNT003` ocurre en `SecurityFilterChain` (`OAuth2LoginAuthenticationFilter`), antes de `DispatcherServlet`. `@RestControllerAdvice` (`GlobalExceptionHandler.java:276`) nunca lo atrapa → `ErrorReportValve` → `500` crudo.
+
+### Fix
+
+| Archivo | Cambio |
+|---------|--------|
+| `src-pwa/custom-service-worker.ts` | `denylist: [..., /^\/oauth2/, /^\/login/]` — deja pasar `/oauth2/**` y `/login/**` al server (Caddy → Gateway → Auth) |
+| `backend/.../OAuth2AuthenticationSuccessHandler.java` | En vez de `throw TNT003`, `deleteIntent` + `clearIntentCookie` + `sendRedirect(frontendUrl + "/#/auth/callback?error=TNT003")` + `return` — reuse `CodigoError.TNT003` existente |
+| `src/modules/auth/pages/AuthCallback.vue` | `showDuplicate` `q-card` whitelabel (`logo.svg` + "Este nombre ya está registrado" + `Elegir otro nombre` → `/` / `Iniciar sesión` → `/login`) + check `?error=TNT003` antes de `code` + `parseBackendError(e).code==='TNT003'` en catch de `POST /auth/exchange` |
+
+### Verificación
+
+- `npm run lint` clean, `OAuth2AuthenticationSuccessHandlerTest: 5/5`, `verify -Pintegration: 56/56 BUILD SUCCESS`
+- `gateway curl -v /oauth2/authorization/google →302` a Google, `Network` trace `oauth2/authorization/google →302` `login/oauth2/code/google →302` a `/#/auth/callback?error=TNT003` cuando slug duplicado
+- DB vacía tras limpieza (0 tenants) — próximo duplicado cae en whitelabel en vez de `500`
+
+**Estado:** ✅ COMPLETADO
+
+---
+
+## 2026-08-27 — Fix logout: redirect a landing + race condition + cache limpieza
+
+### El problema
+
+Al hacer logout, la app quedaba en el form de login (`AuthLayout`) en vez de ir a la landing page. Además, si el usuario hacía logout mientras un refresh de token estaba en curso, los requests encolados reintentaban con tokens ya borrados, causando un loop de 401s antes de llegar a la página de login.
+
+### Por qué pasó
+
+**Redirect:** `useLogout.ts` hacía `router.push('/login')` — la ruta `/login` usa `AuthLayout` (centrado, sin sidebar). El usuario quería ir a la landing page (`/`).
+
+**Race condition:** En `src/boot/axios.ts`, el `clearSession()` local no reseteaba `isRefreshing` ni limpiaba `failedQueue`. Si un request 401a y el refresh está en curso, y el usuario hace logout al mismo tiempo:
+1. `clearSession()` borra el token de localStorage
+2. El refresh pendiente completa y escribe un token nuevo
+3. Los requests encolados reintentan → 401 otra vez → intentan refresh sin refresh token → loop
+
+**Cache:** El `core-api-cache` (StaleWhileRevalidate) sobrevivía el logout. Un usuario que hacía logout + login rápido podía ver datos del usuario anterior.
+
+### Fix
+
+| Archivo | Cambio |
+|---------|--------|
+| `src/composables/useLogout.ts` | `router.push('/login')` → `router.push('/')` |
+| `src/boot/axios.ts` | `clearSession()` ahora resetea `isRefreshing = false` y `failedQueue = []` |
+| `src/modules/auth/store/index.ts` | `clearSession()` ahora limpia `caches.delete('core-api-cache')` |
+| `src/modules/auth/store/index.ts` | `auth:401` listener redirige a `/#/` en vez de `/#/login` |
+| `src/boot/axios.ts` | AUTH005 redirect a `/#/?reason=session_revoked` en vez de `/#/login?reason=session_revoked` |
+| `src/modules/auth/store/index.ts` | `fetchCurrentUser` catch redirige a `/#/` en vez de `/#/login` |
+
+### E2E tests
+
+Nuevo archivo `e2e/tests/logout-cycle.spec.ts` con 2 tests:
+- `auth:401 event clears localStorage` — verifica que el evento `auth:401` limpia todas las keys de localStorage
+- `re-login after logout gets fresh tokens` — verifica que después de limpiar la sesión, no quedan tokens stale
+
+Test existente `e2e/tests/oauth2.spec.ts` actualizado: el logout ahora espera redirect a `/` en vez de `/login`.
+
+**Estado:** ✅ COMPLETADO — lint + typecheck + e2e tests pasan
+
+---
+
+## 2026-08-29 — PWA: SW cache fix + manifest icon cache-busting
+
+### Problema 1: SW cache no se limpiaba al logout
+
+`caches.delete('core-api-cache')` se ejecutaba desde el main thread, pero el Service Worker tiene su propio scope. El SW podía seguir sirviendo datos viejos de la sesión anterior aunque la app los hubiera borrado. Resultado: al hacer logout + login rápido, el usuario veía datos del usuario anterior.
+
+### Fix 1: postMessage al SW
+
+| Archivo | Cambio |
+|---------|--------|
+| `src-pwa/custom-service-worker.ts` | Nuevo listener `CLEAR_API_CACHE` que borra `core-api-cache` desde el scope del SW |
+| `src/modules/auth/store/index.ts` | `clearSession()` ahora envía `postMessage({ type: 'CLEAR_API_CACHE' })` al SW en vez de `caches.delete()` directo |
+
+**Flujo:**
+1. Usuario hace logout
+2. `clearSession()` envía mensaje al SW
+3. SW recibe `CLEAR_API_CACHE` y borra `core-api-cache` desde su propio scope
+4. Al hacer login, el SW no tiene datos viejos → va al servidor
+
+### Problema 2: PWA icon no se actualiza
+
+Los iconos de PWA se cachean a nivel de sistema operativo (Android/iOS). No hay forma programática de limpiar esa caché. Los iconos no tenían hash en el nombre ni query param, así que el navegador/SO servía el icono viejo indefinidamente.
+
+### Fix 2: extendManifestJson con versionado
+
+| Archivo | Cambio |
+|---------|--------|
+| `quasar.config.ts` | Nuevo `extendManifestJson` que agrega `?v=<Date.now()>` a cada URL de icono en el manifest |
+
+**Flujo:**
+1. Cada build genera un timestamp nuevo
+2. `extendManifestJson` lo inyecta a cada icono: `icon-192x192.png?v=1787971234567`
+3. El navegador ve URL nueva → descarga el icono de nuevo
+4. Limitación conocida: el SO puede tardar en actualizar iconos de PWA ya instaladas. Workaround: desinstalar y reinstallar la app.
+
+**Estado:** ✅ COMPLETADO — lint + typecheck pasan
+
+---
+
+## 2026-08-27 — Fix SVG cache: logos no se actualizan en staging
+
+### El problema
+
+Cambiaste el logo SVG pero en staging seguía mostrando el viejo. No importaba cuántas veces redeployaras — el browser siempre mostraba la versión anterior.
+
+### Por qué pasó
+
+Hay 3 capas entre el browser del usuario y el archivo SVG real. Las 3 estaban guardando copias de la versión vieja por distintas razones:
+
+**Capa 1 — nginx (dentro del container Docker):**
+nginx decía "guardá este SVG por 1 año". Aunque el archivo nuevo estaba en el container, nginx seguía entregando el viejo a cualquiera que lo pidiera.
+
+**Capa 2 — Caddy (reverse proxy frente a nginx):**
+Caddy tenía un filtro para detectar SVGs y decirle al browser "no guardes esto". Pero el filtro estaba escrito con una sintaxis que no funcionaba — nunca atrapaba los SVGs reales. Entonces el browser nunca recibía la instrucción de no cachear.
+
+**Capa 3 — Cloudflare (CDN que guarda copias para todo el mundo):**
+Cloudflare guardó una copia del SVG viejo hace 7 días con instrucciones de guardarlo por 1 año. Mientras esa copia existiera, Cloudflare la entregaba directamente sin preguntarle a nadie. El browser nunca llegaba al origin.
+
+### Cómo se arregló
+
+1. **nginx.conf** — Se le quitó el cache de 1 año a los SVGs. Ahora dice "no cacheés nunca".
+2. **Caddyfile en la instancia** — Se corrigió el filtro para que sí detecte los SVGs. El filtro viejo (`path *.svg`) no matcheaba `/icons/logo.svg` porque el `*` de Caddy no cruza `/`. Se cambió a `path_regexp \.svg$` que usa una expresión regular que sí funciona.
+3. **Cloudflare** — Se purgó el cache viejo desde el dashboard ("Purge Everything").
+
+### Lección importante
+
+Cloudflare es el punto más crítico. Aunque arregles nginx y Caddy, si Cloudflare tiene una copia vieja guardada con TTL largo, el browser nunca ve la nueva. Cada vez que cambies algo visible (logos, icons, SVGs), hay que purgar Cloudflare después del deploy.
+
+### Archivos modificados
+
+```
+frontend/pymes/nginx.conf    # SVGs: 1h public → no-cache, no-store, must-revalidate
+```
+
+### Cambio en la instancia (no en el repo)
+
+```
+~/caddy-proxy/Caddyfile       # @svg path *.svg → @svg path_regexp \.svg$
+docker restart caddy-proxy
+```
+
+### Verificación
+
+```bash
+# Directo al origin (sin Cloudflare):
+curl -sI http://localhost:9200/icons/logo.svg | grep Cache-Control
+# → Cache-Control: no-cache, no-store, must-revalidate ✅
+
+# A través de Caddy (con host header):
+curl -sI -H 'Host: pymeq.dioquincar.dev' http://localhost:80/icons/logo.svg | grep Cache-Control
+# → Cache-Control: no-cache, no-store, must-revalidate ✅
+
+# A través de Cloudflare:
+curl -sI https://pymeq.dioquincar.dev/icons/logo.svg | grep -E 'cf-cache|cache-control'
+# → cf-cache-status: BYPASS ✅
+# → cache-control: no-cache, no-store, must-revalidate ✅
+```
+
+**Estado:** ✅ COMPLETADO
+
+---
+
+## 2026-08-23 — Fix logos no se reflejan + PNG icons regenerados + manifest.json
+
+### Contexto
+
+Los logos no se actualizaban en la app (solo el favicon de la barra del navegador mostraba el nuevo "Q"). El favicon sí funcionaba porque es un archivo nuevo (`pymeq-favicon.svg`) nunca cacheado, pero `logo.svg` (usado en todos los layouts) tenía la versión vieja cacheada por nginx (1 año, `immutable`) y por el Service Worker precache. Además, los PNGs de iconos (`icon-*.png`, `favicon-*.png`, `apple-icon-*.png`) nunca se regeneraron desde el nuevo SVG — seguían con el monograma "P" del 17 de marzo.
+
+### Root cause
+
+1. **nginx.conf** cacheaba `.svg` con `expires 1y; Cache-Control: public, immutable`. El browser no re-descargaba `logo.svg` después de redeploy.
+2. **PNGs desactualizados**: Los 15 archivos PNG de iconos fueron generados el 17/03 (logo "P"). Nunca se regeneraron cuando `logo.svg` se cambió al "Q" (22/08).
+3. **manifest.json**: `screenshots: []` vacío — Chrome no muestra mini-infobar de install en mobile sin screenshots.
+
+### Qué se hizo
+
+1. **`nginx.conf`** — `.svg` removido de la regla immutable (1 año). Nuevo bloque específico para `.svg` con `expires 1h; Cache-Control: public` (suficiente para performance, corto para updates de branding).
+
+2. **Todos los PNGs regenerados** desde `pymeq-app-icon.svg` (nuevo logo "Q") usando `convert` (ImageMagick + librsvg2):
+   - `icon-{128,192,256,384,512}x{128,192,256,384,512}.png` (manifest PWA)
+   - `favicon-{16,32,96,128}x{16,32,96,128}.png`
+   - `apple-icon-{120,152,167,180}x{120,152,167,180}.png`
+   - `ms-icon-144x144.png`
+   - Nuevos: `icon-{16,32,96,144,152,167,180}x*.png` (no existían)
+
+3. **`favicon.ico`** regenerado (multi-size 16/32/48/64/128/256 px).
+
+4. **`manifest.json`**:
+   - Agregado `"id": "/"` (Chrome lo recomienda para installability)
+   - Eliminado `"screenshots": []` (array vacío causaba ruido en auditorías)
+
+### Archivos modificados
+
+```
+frontend/pymes/nginx.conf                              # .svg: 1y immutable → 1h public
+frontend/pymes/public/favicon.ico                      # regenerado desde nuevo SVG
+frontend/pymes/public/icons/icon-{128..512}.png       # regenerados desde pymeq-app-icon.svg
+frontend/pymes/public/icons/favicon-{16..128}.png     # regenerados
+frontend/pymes/public/icons/apple-icon-{120..180}.png # regenerados
+frontend/pymes/public/icons/ms-icon-144x144.png       # regenerado
+frontend/pymes/public/icons/icon-{16,32,96,144,152,167,180}.png  # nuevos (no existían)
+frontend/pymes/src-pwa/manifest.json                   # +id, -screenshots vacío
+```
+
+### Verificación
+
+- `npm run lint`: ✅ clean
+- `npm run build`: ✅ Build succeeded
+
+### Pendiente
+
+- Los screenshots del manifest (`"screenshots": []` eliminado) podrían agregarse después para mejorar el mini-infobar de install en Chrome mobile. Requieren imágenes 1280x720 o 720x1280.
+- La instalación PWA en mobile depende de los engagement heuristics de Chrome (múltiples visitas, tiempo de uso). `beforeinstallprompt` no se dispara en la primera visita.
+
+**Estado:** ✅ COMPLETADO
+
+---
+
 ## 2026-08-22 — Logo + favicon: reemplazo del monograma "P" por "Q"
 
 ### Contexto
@@ -497,7 +724,7 @@ package.json                                                        # -vue-chart
 
 ---
 
-## 2026-08-17 — Fase 5b: Botones/Iconos Plan (PENDIENTE)
+## 2026-08-17 — Fase 5b: Botones/Iconos Plan (CERRADO 2026-08-18 `f31a561`)
 
 ### Contexto
 
@@ -506,16 +733,16 @@ Auditoría del sistema de botones e iconos reveló:
 - **Tres formas de colorear iconos:** Quasar prop (`color`), CSS class (`text-accent`), inline style (`style="color: var(--pq-accent)"`).
 - **Colores fuera de tema:** `color="red"`, `color="amber"` en vez de Quasar semantic tokens.
 
-### Plan aprobado (6 fases, ~25 archivos)
+### Ejecutado `f31a561` (2026-08-18)
 
-1. **Global button overrides** en `app.scss` — `q-btn--primary`, `q-btn--positive`, etc. con tokens CSS.
-2. **Icon utility classes** en `app.scss` — `text-icon-accent`, `text-icon-danger`, etc.
-3. **Migrar `BaseButton` → `q-btn`** — 12 archivos, 68 instancias.
-4. **Reemplazar inline styles** — ~20 iconos (10 archivos).
-5. **Reemplazar CSS classes** — `text-accent` → `text-icon-accent` (6 archivos).
-6. **Fix non-theme colors** — `color="red"` → `color="negative"`, `color="amber"` → `color="warning"` (2 archivos).
+1. **Global button overrides** en `app.scss` — `q-btn--primary`, `q-btn--positive`, etc. con tokens CSS. ✅ +44
+2. **Icon utility classes** en `app.scss` — `text-icon-accent`, `text-icon-danger`, etc. ⏳ residual
+3. **Migrar `BaseButton` → `q-btn`** — 12 archivos, 68 instancias. ✅ `BaseButton.vue` -184, `grep 0`
+4. **Reemplazar inline styles** — ~20 iconos (10 archivos). ✅
+5. **Reemplazar CSS classes** — `text-accent` → `text-icon-accent` (6 archivos). ⏳ residual
+6. **Fix non-theme colors** — `color="red"` → `color="negative"`, `color="amber"` → `color="warning"` (2 archivos). ⏳ `AuthOptionsPage.vue:25 red` + `AcceptInvitationPage.vue:35 amber` (2 casos)
 
-**Estado:** ⏳ PENDIENTE — Plan creado, no implementado
+**Estado:** ✅ CERRADO — core migrado (`167 q-btn` vs `0 BaseButton` verificado), polish residual 2 colores + icon utils (bajo).
 
 ---
 
@@ -2487,5 +2714,54 @@ modules/core/components/dashboard/StatStrip.vue → totalIngresos, totalGastos, 
 
 - Frontend lint: clean
 - Frontend vue-tsc: clean (sin errores de tipo)
+
+**Estado:** ✅ COMPLETADO
+
+---
+
+## 2026-08-24 — Fix responsive mobile: toolbars + Caddyfile SVG cache
+
+### Contexto
+
+Múltiples páginas tenían toolbars desalineados en mobile (select, search, botones se desbordan o no tienen mismo tamaño). Además, los SVGs (logos) no se actualizaban en staging porque el Caddyfile no tenía cache-control para SVGs.
+
+### Qué se hizo
+
+**Mobile responsive (toolbars):**
+
+1. **`ProductosPage.vue`** — Toolbar con Quasar grid: select `col-12 col-sm-auto`, search `col col-sm-auto`. Eliminado `min-width` / `max-width` hardcodeados.
+2. **`FacturasPage.vue`** — CSS Grid en mobile (`grid-template-columns: 1fr 1fr`). Search full-width (`grid-column: 1 / -1`), botones lado a lado en columnas iguales. `<q-space />` ocultado en mobile para que no ocupe celda en el grid.
+3. **`ProveedoresPage.vue`, `GastosPage.vue`, `PrestamosPage.vue`, `CostosPage.vue`** — `.toolbar` con `flex-wrap: wrap` para evitar overflow.
+
+**Caddyfile SVG cache (instancia):**
+
+4. Matcher `@svg path *.svg` con `Cache-Control: no-cache, no-store, must-revalidate` en `~/caddy-proxy/Caddyfile`. Caddy reload exitoso.
+
+**Docs actualizados:**
+
+5. `.github/DEPLOYMENT.md` — Caddyfile real con `http://` blocks, matchers `@sw`, `@svg`, `@root`.
+6. `.github/QUICK_START.md` — Mismo cambio.
+7. `docs/strategies/INFRA_STRATEGY.md` — Descripción Caddyfile actualizada.
+8. `AGENTS.md` — Gotcha #9: Caddy usa `http://`, no `https://`.
+
+### Archivos modificados
+
+```
+frontend/pymes/src/components/landing/LandingHero.vue
+frontend/pymes/src/modules/core/pages/ProductosPage.vue
+frontend/pymes/src/modules/core/pages/FacturasPage.vue
+frontend/pymes/src/modules/core/pages/ProveedoresPage.vue
+frontend/pymes/src/modules/core/pages/GastosPage.vue
+frontend/pymes/src/modules/core/pages/PrestamosPage.vue
+frontend/pymes/src/modules/core/pages/CostosPage.vue
+.github/DEPLOYMENT.md
+.github/QUICK_START.md
+docs/strategies/INFRA_STRATEGY.md
+AGENTS.md
+```
+
+### Verificación
+
+- Frontend lint: clean
 
 **Estado:** ✅ COMPLETADO

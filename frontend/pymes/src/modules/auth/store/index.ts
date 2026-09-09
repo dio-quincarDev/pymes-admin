@@ -134,7 +134,7 @@ export const useAuthStore = defineStore('auth', {
         localStorage.setItem('pymeq_user', JSON.stringify(this.user));
       } catch {
         this.clearSession();
-        window.location.href = '#/login';
+        window.location.href = '#/';
       }
     },
 
@@ -205,6 +205,9 @@ export const useAuthStore = defineStore('auth', {
       localStorage.removeItem('pymeq_tenant_name');
       localStorage.removeItem('pymeq_pending_tenant');
       delete api.defaults.headers.common['Authorization'];
+      if (typeof navigator !== 'undefined' && navigator.serviceWorker?.controller) {
+        navigator.serviceWorker.controller.postMessage({ type: 'CLEAR_API_CACHE' });
+      }
     }
   },
 });
@@ -212,6 +215,6 @@ export const useAuthStore = defineStore('auth', {
 if (typeof window !== 'undefined') {
   window.addEventListener('auth:401', () => {
     useAuthStore().clearSession();
-    window.location.href = '#/login';
+    window.location.href = '#/';
   });
 }

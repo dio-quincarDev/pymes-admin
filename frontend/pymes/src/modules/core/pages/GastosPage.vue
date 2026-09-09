@@ -325,7 +325,7 @@ function handleKeydown(e: KeyboardEvent) {
         <q-card-section>
           <q-form ref="formRef" @submit.prevent="save" class="q-gutter-y-md">
             <div class="row q-col-gutter-md">
-              <div class="col-6">
+              <div class="col-12 col-sm-6">
                 <q-input
                   dark
                   filled
@@ -335,7 +335,7 @@ function handleKeydown(e: KeyboardEvent) {
                   :rules="[(v) => !!v || 'Requerido']"
                 />
               </div>
-              <div class="col-6">
+              <div class="col-12 col-sm-6">
                 <q-select
                   dark
                   filled
@@ -410,6 +410,7 @@ function handleKeydown(e: KeyboardEvent) {
 .toolbar {
   display: flex;
   align-items: center;
+  flex-wrap: wrap;
   margin-bottom: 16px;
 }
 

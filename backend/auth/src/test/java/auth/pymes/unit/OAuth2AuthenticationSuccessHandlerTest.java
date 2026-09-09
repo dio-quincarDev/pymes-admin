@@ -122,28 +122,29 @@ class OAuth2AuthenticationSuccessHandlerTest {
     }
 
     @Test
-    @DisplayName("Intent con slug duplicado → DuplicateResourceException (409)")
-    void conIntentId_SlugDuplicado_LanzaDuplicateResourceException() throws Exception {
+    @DisplayName("Intent con slug duplicado → redirect whitelabel TNT003 (ponytail)")
+    void conIntentId_SlugDuplicado_RedirigeWhitelabel() throws Exception {
         when(authentication.getPrincipal()).thenReturn(createOAuth2User("test@gmail.com"));
         when(request.getCookies()).thenReturn(new Cookie[]{createCookie("oauth2_intent", "intent-123")});
-        
+
         when(userRepository.findByEmail("test@gmail.com")).thenReturn(Optional.of(mockUser));
         when(oauth2IntentService.getIntent("intent-123"))
                 .thenReturn(Optional.of(new OAuth2IntentRequest("Test Corp", "test-corp")));
-        
+
         Tenant existingTenant = Tenant.builder()
                 .id(UUID.randomUUID())
                 .name("Test Corp")
                 .slug("test-corp")
                 .build();
         when(tenantRepository.findBySlug("test-corp")).thenReturn(Optional.of(existingTenant));
-        
-        org.junit.jupiter.api.Assertions.assertThrows(
-                auth.pymes.utils.exception.custom.DuplicateResourceException.class,
-                () -> handler.onAuthenticationSuccess(request, response, authentication));
-        
+
+        handler.onAuthenticationSuccess(request, response, authentication);
+
         verify(tenantRepository, never()).save(any(Tenant.class));
         verify(userTenantRepository, never()).save(any(UserTenant.class));
+        verify(oauth2IntentService).deleteIntent("intent-123");
+        // ponytail: no JWT ni code cuando hay duplicado — solo redirect
+        verify(jwtService, never()).generateAccessToken(any(), any(), any(), any());
     }
 
     @Test

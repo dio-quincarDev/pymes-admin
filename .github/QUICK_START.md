@@ -39,9 +39,25 @@ docker run -d \
 
 Create Caddyfile:
 ```bash
-mkdir -p /etc/caddy
-cat > /etc/caddy/Caddyfile <<'EOF'
-https://pymeq.dioquincar.dev {
+mkdir -p ~/caddy-proxy
+cat > ~/caddy-proxy/Caddyfile <<'EOF'
+#PORTFOLIO Static SPA
+http://dioquincar.dev {
+    reverse_proxy portfolio-frontend:80
+}
+
+#Pymeq PROYECTO FULLSATCK MICROSERVICIOS
+http://pymeq.dioquincar.dev {
+    @sw path /sw.js
+    handle @sw {
+        header Cache-Control "no-cache, no-store, must-revalidate"
+        reverse_proxy pymes-frontend:9200
+    }
+    @svg path *.svg
+    handle @svg {
+        header Cache-Control "no-cache, no-store, must-revalidate"
+        reverse_proxy pymes-frontend:9200
+    }
     handle /api/* {
         reverse_proxy pymes-gateway:8080
     }
@@ -52,11 +68,13 @@ https://pymeq.dioquincar.dev {
         reverse_proxy pymes-gateway:8080
     }
     handle {
+        @root path /
+        header @root Cache-Control "no-cache, no-store, must-revalidate"
         reverse_proxy pymes-frontend:9200
     }
 }
 EOF
-docker restart caddy
+docker restart caddy-proxy
 ```
 
 ### Open ports (Oracle Cloud Security List)

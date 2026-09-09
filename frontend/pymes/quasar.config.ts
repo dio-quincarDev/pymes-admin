@@ -180,7 +180,19 @@ export default defineConfig((ctx) => {
       workboxMode: 'InjectManifest', // 'GenerateSW' or 'InjectManifest'
       // swFilename: 'sw.js',
       // manifestFilename: 'manifest.json',
-      // extendManifestJson (json) {},
+      // ponytail: cache-bust icons on every build — OS caches PWA icons aggressively,
+      // query param forces re-download. build version changes on each deploy.
+      extendManifestJson(json) {
+        const v = String(Date.now());
+        if (Array.isArray(json.icons)) {
+          json.icons = json.icons.map((icon) => ({
+            ...icon,
+            src: icon.src.includes('?') ? icon.src.split('?')[0] + '?v=' + v : icon.src + '?v=' + v,
+          }));
+        } else if (json.icons) {
+          json.icons = { ...json.icons, src: json.icons.src + '?v=' + v };
+        }
+      },
       // useCredentialsForManifestTag: true,
       // injectPwaMetaTags: false,
       // extendPWACustomSWConf (esbuildConf) {},
