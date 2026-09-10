@@ -4,6 +4,25 @@ Registro cronológico de decisiones técnicas, refactors y post-mortems del proy
 
 ---
 
+## 2026-09-11 — Facturas: producto flexible + búsqueda por fila + evict cache
+
+**Contexto:** Factura exige `proveedorId` obligatorio (`FacturasPage.vue:81` rule) pero `Producto.proveedorId` nullable es flexible (mayoría sin vínculo). `filteredByProvider` estricto escondía flexibles; `InvoiceItemCard` sin `@filter` no buscaba por sku/categoría por fila; `loadDependencies search size:100` truncaba y no usaba cache `productos` → "Arroz" no aparecía sin cambiar tab. Backend `FacturaServiceImpl` dejaba `last_unit_price` stale 5min.
+
+**Qué se hizo:**
+- **Core** `FacturaServiceImpl.java:23,121,203,404` `@Caching evict facturas+productos` al crear/actualizar/anular (fix stale `last_unit_price` vía jdbc). Sin migración — flexible `provider_id nullable` reutilizado (ponytail: `M:N product_providers` cuando mismo SKU varios proveedores).
+- **Frontend** `FacturasPage.vue:342 filteredByProvider !proveedorId || ===` + `632 getAll(tenantId)` cache-first (full list, no 100 truncation, `prodsData`/`allProducts` completo, categorías `CategoryTabs:103` + `findCategoryInTree:312` preservadas) + `InvoiceItemCard.vue:42 per-item @filter` `productName/sku/proveedorName/categoryName includes` sin BE, por fila, con `watch immediate:true` (`vue-best-practices`).
+- **Verificación:** `npm run lint` 0, `npm run build Build succeeded` (898KB), `vue-tsc` 0, manual 3 items con búsqueda por fila + flexibles visibles.
+
+```
+backend/core/src/main/java/core_pymes/invoice/service/impl/FacturaServiceImpl.java
+frontend/pymes/src/modules/core/pages/FacturasPage.vue
+frontend/pymes/src/modules/core/components/facturas/InvoiceItemCard.vue
+backend/core/docs/DAILY_REPORTS_CORE_SOLUTIONS.md 2026-09-11
+frontend/pymes/docs/DAILY_REPORTS_FRONTEND.md 2026-09-11
+```
+
+---
+
 ## 2026-09-10 — Móvil: paginación A-Z productos/proveedores + fix 409 SKU
 
 **Contexto:** Reporte `409 Conflicto de datos` al crear producto + UX móvil con scroll infinito en `ProductosPage`/`ProveedoresPage` (30 productos + `Cargar más`). Orden no determinista rompía paginación.

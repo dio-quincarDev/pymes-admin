@@ -342,7 +342,8 @@ const productBaseUnitMap = computed(() => {
 const filteredByProvider = computed(() => {
   const providerId = form.value.proveedorId
   if (!providerId) return allProducts.value
-  return allProducts.value.filter(p => p.proveedorId === providerId)
+  // ponytail: flexible product (proveedorId=null) visible for any provider
+  return allProducts.value.filter(p => !p.proveedorId || p.proveedorId === providerId)
 })
 
 const filteredByCategory = computed(() => {
@@ -635,7 +636,8 @@ async function loadDependencies() {
     const [provs, setupRes, prodsRes, colRes, gfRes] = await Promise.all([
       proveedorService.getAll(tenantId),
       api.get<SetupInfo>(`/core/setup/${tenantId}`),
-      productoService.search(tenantId, { page: 0, size: 100 }),
+      // ponytail: cache-first getAll (productos @Cacheable) — full list, no 100 truncation, category search stays client
+      productoService.getAll(tenantId),
       costoService.getAllCollaboradores(tenantId),
       costoService.getAllGastosFijos(tenantId),
     ])
@@ -646,12 +648,13 @@ async function loadDependencies() {
     const provOpts = provs.data.map(p => ({ label: p.name, value: p.id }))
     providerOptions.value = provOpts
     providerFilteredOptions.value = [...provOpts]
-    prodsData.value = prodsRes.data.content
-    allProducts.value = mapProductsToOptions(prodsRes.data.content)
+    const prods: Producto[] = Array.isArray(prodsRes.data) ? prodsRes.data : (prodsRes.data as unknown as { content: Producto[] }).content
+    prodsData.value = prods
+    allProducts.value = mapProductsToOptions(prods)
     const presMap = new Map<string, { label: string; value: string }[]>()
     const presNameMap = new Map<string, string>()
     const convMap = new Map<string, number>()
-    for (const p of prodsRes.data.content) {
+    for (const p of prods) {
       const baseUnitName = unitNameMap.value.get(p.baseUnit) || p.baseUnit
       const unitOpts: { label: string; value: string }[] = [{ label: baseUnitName, value: '' }]
       for (const pres of (p.presentaciones || [])) {

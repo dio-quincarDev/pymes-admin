@@ -370,6 +370,24 @@ input[type="number"] {
 }
 
 // --------------------------------------------------
+// Card Grid — CSS Grid enforces equal height per row
+// Replaces Quasar flex row (q-col-gutter) which doesn't enforce row height.
+// ponytail: simple grid, 3→2→1 responsive via CSS media queries.
+// --------------------------------------------------
+.card-grid {
+  display: grid;
+  grid-template-columns: repeat(3, 1fr);
+  gap: $pq-space-sm;
+
+  @media (max-width: 1023px) {
+    grid-template-columns: repeat(2, 1fr);
+  }
+  @media (max-width: 599px) {
+    grid-template-columns: 1fr;
+  }
+}
+
+// --------------------------------------------------
 // Selection Color
 // --------------------------------------------------
 ::selection { background: rgba(200, 150, 62, 0.25); color: inherit; }
