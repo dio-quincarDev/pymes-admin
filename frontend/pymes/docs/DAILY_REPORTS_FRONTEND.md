@@ -4,6 +4,69 @@ Registro cronológico de decisiones, problemas resueltos y estado del frontend.
 
 ---
 
+## 2026-09-11 — Card grid fix + Vue Best Practices audit
+
+### Contexto
+
+Cards de Productos y Proveedores usaban Quasar flex grid (`row q-col-gutter-x-sm q-col-gutter-y-sm` + `col-12 col-sm-6 col-md-4`). Quasar flex no fuerza altura igual por fila → cards con diferente contenido (chips, proveedor, presentaciones vs solo nombre) generaban filas dentadas visualmente feo. Además, `.glass` era una clase muerta (no existía en CSS). Auditoría con `vue-best-practices` skill encontró violaciones de reactividad y memory leak.
+
+### Qué se hizo
+
+1. **CSS Grid utility** (`app.scss:376-392`) — nueva clase `.card-grid`: `display: grid; grid-template-columns: repeat(3, 1fr)` con media queries `2→1` en breakpoints Quasar. CSS Grid fuerza `align-items: stretch` por defecto → todas las cards de una fila = misma altura.
+
+2. **ProductosPage.vue** — skeleton + card grid migrados de `row q-col-gutter` + `col-12 col-sm-6 col-md-4` a `.card-grid`. Quitado `.glass` muerto. Quitado wrapper `<div>` innecesario alrededor de cada `<q-card>`.
+
+3. **ProveedoresPage.vue** — mismo cambio. Quitado `.glass`. Scoped styles solo quedan con `.toolbar` y `.toolbar__search` (siguen siendo necesarios).
+
+4. **Vue Best Practices audit — fixes:**
+   - `ProductosPage.vue:27-30` — `catOptions`, `setupCategories`, `unitOptions`, `providerOptions` cambiados de `ref()` a `shallowRef()` (se reasignan completo, no mutan propiedades anidadas → `shallowRef` es correcto para performance).
+   - `ProductosPage.vue:192` — debounce `searchTimer` ahora se limpia en `onUnmounted` (antes era memory leak).
+   - `form` en ambos archivos se mantuvo como `ref()` (deliberado) — `v-model` en `q-input`/`q-select` muta propiedades anidadas (`form.value.name = 'x'`), `shallowRef` no trackearía eso → rompería reactividad.
+
+### Archivos modificados
+
+```
+frontend/pymes/src/css/app.scss                              # +card-grid utility (CSS Grid, 3→2→1 responsive)
+frontend/pymes/src/modules/core/pages/ProductosPage.vue       # row→card-grid, -glass, shallowRef arrays, debounce cleanup
+frontend/pymes/src/modules/core/pages/ProveedoresPage.vue     # row→card-grid, -glass, scoped styles intactos
+```
+
+### Verificación
+
+- `npm run lint`: ✅ 0 errores
+- `npm run build`: ✅ Build succeeded (898KB JS)
+
+### Skills aplicadas
+
+- **vue-best-practices:** reactivity (`shallowRef` para valores reasignados, `ref` para `v-model`), SFC structure, cleanup en `onUnmounted`
+- **quasar-skilld:** responsive CSS classes via media queries, sin Screen plugin
+
+### Pendiente
+
+- `ProductosPage` mega-componente (6+ UI sections) — acknowledged, deferred hasta que feature split sea prioridad.
+
+**Estado:** ✅ COMPLETADO
+
+---
+
+## 2026-09-11 — Facturas: producto flexible + búsqueda por fila + cache getAll
+
+**Contexto:** `FacturasPage.vue:342 filteredByProvider` era `===` estricto → productos flexibles (`proveedorId=null`, `Producto.java:62` nullable) desaparecían al elegir proveedor obligatorio de la factura (`vuelidate Requerido`). `InvoiceItemCard.vue:72 q-select use-input` sin `@filter` filtraba solo por `label` Quasar default (no sku/categoría) y `loadDependencies:638 search size:100` truncaba catálogo (>100 productos no aparecen) sin usar `ProductoServiceImpl.java:47 @Cacheable("productos")`.
+
+**Qué se hizo:**
+- `FacturasPage.vue:342` `filteredByProvider` → `!p.proveedorId || p.proveedorId===providerId` (ponytail: flexible visible para cualquier proveedor, estricto solo si `proveedorId` seteado). Mantiene `filteredByCategory:348 findCategoryInTree` (Categorías/Subcategorías `CategoryTabs.vue:103`).
+- `FacturasPage.vue:632 loadDependencies()` → `productoService.getAll(tenantId)` cache-first (`productos` Redis 5min) en vez de `search page:0 size:100`; soporta `Producto[]` directo o `Page.content` (compatibilidad), `prodsData` + `allProducts=mapProductsToOptions(prods)` completo sin 100 truncation.
+- `InvoiceItemCard.vue:1,42` per-item `@filter`: `filteredOptions=ref([]) watch(productOptions→[...v] immediate:true)` + `productFilter(val,update)` filtra `productOptions` (ya es `filteredByCategory`) por `productName/sku/proveedorName/categoryName includes lower(needle)` — sin hit BE, instantáneo por fila, categoría preservada cuando `val` vacío. Quasar `use-input input-debounce=0 @filter` imperative (skill `vue-best-practices` reactivity `immediate:true` + typed `defineProps<ProductOption[]>`).
+
+**Verificación:** `npm run lint` 0, `npm run build` `Build succeeded` (898KB JS), `vue-tsc` 0. Manual: crear factura `proveedor=Toledano`, agregar 3 items, en fila 2 escribir "Arroz" filtra solo esa fila por sku/proveedor/categoría dentro de la categoría activa; `filteredByProvider` muestra flexibles + del proveedor.
+
+```
+frontend/pymes/src/modules/core/pages/FacturasPage.vue           # flexible provider + getAll cache
+frontend/pymes/src/modules/core/components/facturas/InvoiceItemCard.vue # per-item @filter client
+```
+
+---
+
 ## 2026-09-10 — Productos/Proveedores: paginación A-Z + fix scroll infinito móvil
 
 **Contexto:** `ProductosPage.vue:84` `size:30` + `Cargar más` + `filteredRows` cliente y `ProveedoresPage.vue:30` `getAll()` sin paginación causaban scroll infinito en móvil (barra de scroll larga). `ProductosPage.vue:81` sin `sort` → `Pageable` no determinista (duplicados entre páginas). Usuario pidió orden alfabético.

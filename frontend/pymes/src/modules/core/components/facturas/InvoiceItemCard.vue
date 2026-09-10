@@ -1,5 +1,5 @@
 <script setup lang="ts">
-import { computed } from 'vue'
+import { computed, ref, watch } from 'vue'
 
 export interface ProductOption {
   label: string
@@ -39,6 +39,26 @@ const emit = defineEmits<{
   remove: []
 }>()
 
+// ponytail: per-item client filter — category via parent prop, text filters locally (no BE hit)
+const filteredOptions = ref<ProductOption[]>([])
+watch(() => props.productOptions, v => { filteredOptions.value = [...v] }, { immediate: true })
+
+function productFilter(val: string, update: (fn: () => void) => void) {
+  update(() => {
+    if (!val) {
+      filteredOptions.value = [...props.productOptions]
+      return
+    }
+    const needle = val.toLowerCase()
+    filteredOptions.value = props.productOptions.filter(o =>
+      o.productName.toLowerCase().includes(needle) ||
+      (o.sku ?? '').toLowerCase().includes(needle) ||
+      (o.proveedorName ?? '').toLowerCase().includes(needle) ||
+      (o.categoryName ?? '').toLowerCase().includes(needle)
+    )
+  })
+}
+
 const conversion = computed(() => {
   if (!props.item.presentacionId) return 1
   return props.presentationConversionMap.get(props.item.presentacionId) || 1
@@ -73,9 +93,10 @@ function fmt(n: number | null) {
         dark dense
         :model-value="item.productoId"
         @update:model-value="emit('update:productoId', $event)"
-        :options="productOptions"
+        :options="filteredOptions"
         placeholder="Buscar producto..."
         map-options emit-value use-input input-debounce="0"
+        @filter="productFilter"
         class="item-card__product"
         popup-content-class="item-dropdown"
       >

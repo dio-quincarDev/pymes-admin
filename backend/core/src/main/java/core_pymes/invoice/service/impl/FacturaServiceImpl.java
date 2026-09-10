@@ -21,6 +21,7 @@ import core_pymes.product.repository.PresentacionRepository;
 import lombok.RequiredArgsConstructor;
 import lombok.extern.slf4j.Slf4j;
 import org.springframework.cache.annotation.CacheEvict;
+import org.springframework.cache.annotation.Caching;
 import org.springframework.cache.annotation.Cacheable;
 import org.springframework.context.ApplicationEventPublisher;
 import org.springframework.jdbc.core.JdbcTemplate;
@@ -118,7 +119,10 @@ public class FacturaServiceImpl implements FacturaService {
 
     @Override
     @Transactional
-    @CacheEvict(cacheNames = "facturas", allEntries = true)
+    @Caching(evict = {
+        @CacheEvict(cacheNames = "facturas", allEntries = true),
+        @CacheEvict(cacheNames = "productos", allEntries = true)
+    })
     public FacturaResponse createFactura(FacturaRequest request) {
         Proveedor proveedor = null;
         if (request.proveedorId() != null) {
@@ -202,7 +206,10 @@ public class FacturaServiceImpl implements FacturaService {
 
     @Override
     @Transactional
-    @CacheEvict(cacheNames = "facturas", allEntries = true)
+    @Caching(evict = {
+        @CacheEvict(cacheNames = "facturas", allEntries = true),
+        @CacheEvict(cacheNames = "productos", allEntries = true)
+    })
     public FacturaResponse updateFactura(UUID id, UUID tenantId, FacturaRequest request) {
         var factura = getFactura(id, tenantId);
         if (factura.getStatus() != EstadoFactura.REGISTRADA) {
@@ -400,7 +407,10 @@ public class FacturaServiceImpl implements FacturaService {
 
     @Override
     @Transactional
-    @CacheEvict(cacheNames = "facturas", allEntries = true)
+    @Caching(evict = {
+        @CacheEvict(cacheNames = "facturas", allEntries = true),
+        @CacheEvict(cacheNames = "productos", allEntries = true)
+    })
     // ponytail: delete/anular cubre REGISTRADA|PAGADA via EstadoFactura enum (PAGADA->ANULADA conserva items, REGISTRADA borra)
     public void deleteFactura(UUID id, UUID tenantId) {
         var factura = getFactura(id, tenantId);

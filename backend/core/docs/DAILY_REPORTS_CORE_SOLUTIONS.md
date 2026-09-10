@@ -6,6 +6,22 @@ Registro de lo implementado y lo pendiente.
 
 ---
 
+## 2026-09-11 — Facturas: evict cache productos al crear/actualizar/anular
+
+**Contexto:** `ProductoServiceImpl.java:47 @Cacheable("productos") findAll/findById` + `CacheConfig.java 5min TTL` pero `FacturaServiceImpl.java:342 createFactura/updateFactura` tocaba `core.products.last_unit_price/total_investment` vía `jdbc.update` sin invalidar `productos` → `lastUnitPrice` stale hasta TTL. Frontend cambió a `factura getAll()` cache-first, el stale se volvía visible.
+
+**Qué se hizo:**
+- `FacturaServiceImpl.java:23` `+import Caching` + `createFactura:121 @Caching(evict={@CacheEvict("facturas",allEntries=true), @CacheEvict("productos",allEntries=true)})`, `updateFactura:203` mismo, `deleteFactura:404` mismo (ANULADA conserva items). Coarse `allEntries=true` consistente con `ProductoServiceImpl` evicts.
+- Sin migración DB. Skipped: `product_providers M:N` (ponytail: 1 SKU por producto con `proveedorId nullable` cubre case flexible actual; M:N cuando mismo producto varios proveedores a precio distinto).
+
+```
+backend/core/src/main/java/core_pymes/invoice/service/impl/FacturaServiceImpl.java # @Caching evict facturas+productos
+frontend/pymes/src/modules/core/pages/FacturasPage.vue                          # getAll cache (ver FRONTEND 2026-09-11)
+frontend/pymes/src/modules/core/components/facturas/InvoiceItemCard.vue         # per-item filter (ver FRONTEND)
+```
+
+---
+
 ## Estado Rapido
 
 | Modulo | Estado | Tests |

@@ -24,10 +24,10 @@ const totalElements = shallowRef(0)
 const totalPages = computed(() => Math.max(1, Math.ceil(totalElements.value / PAGE_SIZE)))
 const categoryFilter = shallowRef('')
 
-const catOptions = ref<{ label: string; value: string }[]>([])
-const setupCategories = ref<SetupCategory[]>([])
-const unitOptions = ref<{ label: string; value: string }[]>([])
-const providerOptions = ref<{ label: string; value: string }[]>([])
+const catOptions = shallowRef<{ label: string; value: string }[]>([])
+const setupCategories = shallowRef<SetupCategory[]>([])
+const unitOptions = shallowRef<{ label: string; value: string }[]>([])
+const providerOptions = shallowRef<{ label: string; value: string }[]>([])
 
 function flattenCategories(cats: SetupCategory[], prefix = ''): { label: string; value: string }[] {
   const result: { label: string; value: string }[] = []
@@ -189,7 +189,10 @@ onMounted(async () => {
   window.addEventListener('keydown', handleKeydown)
 })
 
-onUnmounted(() => window.removeEventListener('keydown', handleKeydown))
+onUnmounted(() => {
+  if (searchTimer) clearTimeout(searchTimer)
+  window.removeEventListener('keydown', handleKeydown)
+})
 
 function handleKeydown(e: KeyboardEvent) {
   if ((e.ctrlKey || e.metaKey) && e.key === 'n') {
@@ -247,42 +250,40 @@ function handleKeydown(e: KeyboardEvent) {
       </EmptyState>
     </div>
 
-    <div v-if="loading" class="row q-col-gutter-x-sm q-col-gutter-y-md">
-      <div v-for="n in 6" :key="n" class="col-12 col-sm-6 col-md-4">
+    <div v-if="loading" class="card-grid">
+      <div v-for="n in 6" :key="n">
         <q-skeleton type="rect" dark animation="pulse" class="full-width" height="140px" />
       </div>
     </div>
 
-    <div v-if="!loading && rows.length" class="row q-col-gutter-x-sm q-col-gutter-y-sm">
-      <div v-for="item in rows" :key="item.id" class="col-12 col-sm-6 col-md-4">
-        <q-card dark class="glass hover-lift">
-          <q-card-section class="q-pa-md">
-            <div class="text-weight-bold q-mb-xs">{{ item.name }}</div>
-            <div v-if="item.sku" class="text-caption text-accent q-mb-sm">{{ item.sku }}</div>
-            <div class="row q-gutter-x-xs">
-              <q-chip v-if="item.category" dense dark size="sm" color="accent" text-color="dark">
-                {{ categoryNameMap.get(item.category) || item.category }}
-              </q-chip>
-              <q-chip v-if="item.baseUnit" dense dark size="sm" outline color="accent">
-                {{ unitNameMap.get(item.baseUnit) || item.baseUnit }}
-              </q-chip>
-            </div>
-            <div v-if="item.proveedorName" class="text-caption text-accent q-mt-sm">
-              <q-icon name="store" size="0.85rem" class="q-mr-xs" />
-              {{ item.proveedorName }}
-            </div>
-            <div v-if="item.presentaciones?.length" class="text-caption text-accent q-mt-xs">
-              {{ item.presentaciones.length }} {{ item.presentaciones.length === 1 ? 'presentación' : 'presentaciones' }}
-            </div>
-          </q-card-section>
-          <q-separator dark />
-          <q-card-actions align="right" class="q-pa-xs">
-            <q-btn flat dense round icon="sym_r_layers" color="info" size="sm" @click="openPresentaciones(item)" aria-label="Presentaciones" />
-            <q-btn flat dense round icon="sym_r_edit" color="primary" size="sm" @click="openEdit(item)" aria-label="Editar" />
-            <q-btn flat dense round icon="sym_r_delete" color="negative" size="sm" @click="confirmDelete(item)" aria-label="Eliminar" />
-          </q-card-actions>
-        </q-card>
-      </div>
+    <div v-if="!loading && rows.length" class="card-grid">
+      <q-card v-for="item in rows" :key="item.id" dark class="hover-lift">
+        <q-card-section class="q-pa-md">
+          <div class="text-weight-bold q-mb-xs">{{ item.name }}</div>
+          <div v-if="item.sku" class="text-caption text-accent q-mb-sm">{{ item.sku }}</div>
+          <div class="row q-gutter-x-xs">
+            <q-chip v-if="item.category" dense dark size="sm" color="accent" text-color="dark">
+              {{ categoryNameMap.get(item.category) || item.category }}
+            </q-chip>
+            <q-chip v-if="item.baseUnit" dense dark size="sm" outline color="accent">
+              {{ unitNameMap.get(item.baseUnit) || item.baseUnit }}
+            </q-chip>
+          </div>
+          <div v-if="item.proveedorName" class="text-caption text-accent q-mt-sm">
+            <q-icon name="store" size="0.85rem" class="q-mr-xs" />
+            {{ item.proveedorName }}
+          </div>
+          <div v-if="item.presentaciones?.length" class="text-caption text-accent q-mt-xs">
+            {{ item.presentaciones.length }} {{ item.presentaciones.length === 1 ? 'presentación' : 'presentaciones' }}
+          </div>
+        </q-card-section>
+        <q-separator dark />
+        <q-card-actions align="right" class="q-pa-xs">
+          <q-btn flat dense round icon="sym_r_layers" color="info" size="sm" @click="openPresentaciones(item)" aria-label="Presentaciones" />
+          <q-btn flat dense round icon="sym_r_edit" color="primary" size="sm" @click="openEdit(item)" aria-label="Editar" />
+          <q-btn flat dense round icon="sym_r_delete" color="negative" size="sm" @click="confirmDelete(item)" aria-label="Eliminar" />
+        </q-card-actions>
+      </q-card>
     </div>
 
     <div class="q-mt-md flex justify-center" v-if="totalPages > 1">

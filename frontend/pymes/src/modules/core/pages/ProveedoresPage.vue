@@ -200,52 +200,50 @@ function handleKeydown(e: KeyboardEvent) {
       </EmptyState>
     </div>
 
-    <div v-if="loading" class="row q-col-gutter-x-sm q-col-gutter-y-sm">
-      <div v-for="n in 6" :key="n" class="col-12 col-sm-6 col-md-4">
+    <div v-if="loading" class="card-grid">
+      <div v-for="n in 6" :key="n">
         <q-skeleton type="rect" dark animation="pulse" height="100px" />
       </div>
     </div>
 
-    <div v-if="!loading && paginated.length" class="row q-col-gutter-x-sm q-col-gutter-y-sm">
-      <div v-for="p in paginated" :key="p.id" class="col-12 col-sm-6 col-md-4">
-        <q-card dark class="glass hover-lift q-pa-md">
-          <div class="text-weight-bold q-mb-xs">{{ p.name }}</div>
-          <div v-if="p.contactName" class="text-caption text-accent q-mb-sm">
-            {{ p.contactName }}
-          </div>
-          <div v-if="p.contactPhone" class="text-caption">
-            <q-icon name="phone" size="0.8rem" class="text-accent q-mr-xs" />
-            {{ p.contactPhone }}
-          </div>
-          <div v-if="p.contactEmail" class="text-caption">
-            <q-icon name="mail" size="0.8rem" class="text-accent q-mr-xs" />
-            {{ p.contactEmail }}
-          </div>
-          <q-separator dark class="q-mt-sm q-mb-xs" />
-          <div class="row justify-end q-gutter-x-xs">
-            <q-btn
-              flat
-              dense
-              round
-              icon="sym_r_edit"
-              color="primary"
-              size="sm"
-              @click="openEdit(p)"
-              aria-label="Editar"
-            />
-            <q-btn
-              flat
-              dense
-              round
-              icon="sym_r_delete"
-              color="negative"
-              size="sm"
-              @click="confirmDelete(p)"
-              aria-label="Eliminar"
-            />
-          </div>
-        </q-card>
-      </div>
+    <div v-if="!loading && paginated.length" class="card-grid">
+      <q-card v-for="p in paginated" :key="p.id" dark class="hover-lift q-pa-md">
+        <div class="text-weight-bold q-mb-xs">{{ p.name }}</div>
+        <div v-if="p.contactName" class="text-caption text-accent q-mb-sm">
+          {{ p.contactName }}
+        </div>
+        <div v-if="p.contactPhone" class="text-caption">
+          <q-icon name="phone" size="0.8rem" class="text-accent q-mr-xs" />
+          {{ p.contactPhone }}
+        </div>
+        <div v-if="p.contactEmail" class="text-caption">
+          <q-icon name="mail" size="0.8rem" class="text-accent q-mr-xs" />
+          {{ p.contactEmail }}
+        </div>
+        <q-separator dark class="q-mt-sm q-mb-xs" />
+        <div class="row justify-end q-gutter-x-xs">
+          <q-btn
+            flat
+            dense
+            round
+            icon="sym_r_edit"
+            color="primary"
+            size="sm"
+            @click="openEdit(p)"
+            aria-label="Editar"
+          />
+          <q-btn
+            flat
+            dense
+            round
+            icon="sym_r_delete"
+            color="negative"
+            size="sm"
+            @click="confirmDelete(p)"
+            aria-label="Eliminar"
+          />
+        </div>
+      </q-card>
     </div>
 
     <div class="q-mt-md flex justify-center" v-if="!loading && totalPages > 1">
