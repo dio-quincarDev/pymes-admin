@@ -4,6 +4,28 @@ Registro cronológico de decisiones técnicas, refactors y post-mortems del proy
 
 ---
 
+## 2026-09-10 — Móvil: paginación A-Z productos/proveedores + fix 409 SKU
+
+**Contexto:** Reporte `409 Conflicto de datos` al crear producto + UX móvil con scroll infinito en `ProductosPage`/`ProveedoresPage` (30 productos + `Cargar más`). Orden no determinista rompía paginación.
+
+**Qué se hizo:**
+- **Core `V5__pagination_alphabetical.sql`**: `idx_products_tenant_name` + `idx_providers_tenant_name` (`lower(name)`) para `ORDER BY name ASC` sin `Sort`. Fix `409` en `ProductoRepository.java:34`/`ProductoServiceImpl.java:86`/`SetupServiceImpl.java:77` (`LIKE 'P-%' ORDER BY sku DESC LIMIT 1` + retry 5x, `DUP001→409`) — ver `backend/core/docs/DAILY_REPORTS_CORE_SOLUTIONS.md 2026-09-10`.
+- **Frontend**: `ProductosPage.vue` server `12/page sort=name,asc` + `q-pagination` (watch search 300ms), `ProveedoresPage.vue` client `9/page A-Z localeCompare` + `q-pagination` — ver `frontend/pymes/docs/DAILY_REPORTS_FRONTEND.md 2026-09-10`.
+- **Tests**: `193/193` unit + `30/30` ProductoRepository + `56/56` integration (`verify -Pintegration` Flyway `Validated 6 migrations` v5) + `npm run build` `Build succeeded` `QPagination-CAOmfjCy.js`.
+
+```
+backend/core/src/main/java/core_pymes/product/repository/ProductoRepository.java
+backend/core/src/main/java/core_pymes/product/service/impl/ProductoServiceImpl.java
+backend/core/src/main/java/core_pymes/setup/service/impl/SetupServiceImpl.java
+backend/core/src/main/resources/db/migration/V5__pagination_alphabetical.sql
+frontend/pymes/src/modules/core/pages/ProductosPage.vue
+frontend/pymes/src/modules/core/pages/ProveedoresPage.vue
+frontend/pymes/src/modules/core/services/producto.service.ts
+docs/DAILY_REPORTS_PROJECT.md
+```
+
+---
+
 ## 2026-08-13 — Sync feature/core ← develop + docs de infra al día
 
 ### Contexto

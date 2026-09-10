@@ -11,7 +11,7 @@ Registro de lo implementado y lo pendiente.
 | Modulo | Estado | Tests |
 |--------|--------|-------|
 | Setup | Implementado | 13 unit + 10 integration |
-| Product | Implementado | 11 unit + 30 JPA edge cases |
+| Product | Implementado | 17 unit + 30 JPA + 6 integration (SKU) |
 | Invoice | Implementado | 18 unit + 11 integration |
 | Analytics | Implementado | 6 unit + 6 integration |
 | Modelo de Gastos | Implementado (backend) | 4 integration (ModeloGastosIntegrationTest) |
@@ -21,6 +21,34 @@ Registro de lo implementado y lo pendiente.
 | Venta | Implementado | 13 JPA |
 | Accounting | Implementado | MetricasFinanciera + CTE consolidado |
 | Reportes | Pendiente | Ver FUTURE_MODULES.md |
+
+---
+
+## 2026-09-10 — Productos: paginación A-Z + índices + fix SKU 409
+
+**Contexto:** Crear producto nuevo devolvía `409 Conflicto de datos` (VPS `ubuntu@149.130.165.200`) por `ProductoServiceImpl.java:87` `P-%04d` con `countByTenantId()+1` que colisiona con SKUs soft-deleted (`Producto.java:22 @SQLDelete/@Where is_active=true`, índice `idx_products_tenant_sku WHERE sku IS NOT NULL` `V1__core_schema.sql:70`). Móvil mostraba scroll infinito (30 productos con `Cargar más` + `filteredRows` cliente).
+
+**Qué se hizo:**
+- `ProductoRepository.java:34` `@Query native SELECT sku FROM core.products WHERE tenant_id=:tenantId AND sku LIKE 'P-%' ORDER BY sku DESC LIMIT 1` `Optional<String> findTopSkuByTenantId` — index-friendly (`LIKE 'P-%'` usa `idx_products_tenant_sku`, `ORDER BY sku DESC LIMIT 1` → `Index Scan Backward`).
+- `ProductoServiceImpl.java:86` `create()` valida `existsByTenantIdAndSku` → `DuplicateResourceException("SKU already exists")` (`CodigoError.java: DUP001→409` en `GlobalExceptionHandler.java:43`), `resolveMaxSkuSeq()` parsea `sku.substring(2)` + retry loop 5x `DataIntegrityViolationException` (`// ponytail: index-friendly`).
+- `SetupServiceImpl.java:77` onboarding usa mismo `SELECT sku ORDER BY sku DESC LIMIT 1` (antes empezaba en `1`).
+- `V5__pagination_alphabetical.sql` (NUEVO): `CREATE INDEX IF NOT EXISTS idx_products_tenant_name ON core.products(tenant_id, lower(name))` + `idx_providers_tenant_name` — evita `Sort` para `ORDER BY lower(name) ASC` paginado.
+- `ProductoServiceImpl.java:56` `search()` ya delega `Pageable` con `sort=name,asc` a `ProductoRepository` (4 paths `findByTenantId*`).
+
+**Tests:**
+- `ProductoServiceImplTest.java:242` +6 unit (`P-0001` vacío, `P-0006` tras `P-0005`, retry colisión, duplicado `CUSTOM-1→409`, zero-pad `P-0010`, `P-XYZ` fallback) → `193/193 mvn test BUILD SUCCESS`.
+- `ProductoSkuIntegrationTest.java` (NUEVO) 6 IT edge (soft-delete no recicla `P-0004`, onboarding con previos, tenant isolation, `409` duplicado, `CUSTOM-1` ignorado, secuencial 5) → `56/56 verify -Pintegration BUILD SUCCESS` (Flyway `Validated 6 migrations`, `Schema core version 5`).
+- `ProductoRepositoryTest 20/30` + `verify -Pintegration` confirma `V5` no rompe esquema.
+
+```
+backend/core/src/main/java/core_pymes/product/repository/ProductoRepository.java # +findTopSkuByTenantId
+backend/core/src/main/java/core_pymes/product/service/impl/ProductoServiceImpl.java # fix 409 + paginación A-Z
+backend/core/src/main/java/core_pymes/setup/service/impl/SetupServiceImpl.java  # max+1
+backend/core/src/main/resources/db/migration/V5__pagination_alphabetical.sql     # NUEVO (2 índices)
+backend/core/src/main/java/core_pymes/common/exception/custom/DuplicateResourceException.java # reutilizada (DUP001)
+backend/core/src/test/java/core_pymes/unit/ProductoServiceImplTest.java         # +6 tests
+backend/core/src/test/java/core_pymes/integration/ProductoSkuIntegrationTest.java # NUEVO 6 ITs
+```
 
 ---
 

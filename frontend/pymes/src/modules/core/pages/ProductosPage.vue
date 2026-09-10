@@ -1,5 +1,5 @@
 <script setup lang="ts">
-import { ref, shallowRef, computed, onMounted, onUnmounted } from 'vue'
+import { ref, shallowRef, computed, watch, onMounted, onUnmounted } from 'vue'
 import { useQuasar, useMeta } from 'quasar'
 import { useAuthStore } from 'src/modules/auth/store'
 import { api } from 'src/boot/axios'
@@ -15,11 +15,13 @@ const $q = useQuasar()
 const authStore = useAuthStore()
 const tenantId = authStore.user?.tenantId
 
+const PAGE_SIZE = 12
 const rows = ref<Producto[]>([])
 const loading = shallowRef(false)
 const search = shallowRef('')
-const page = shallowRef(0)
+const page = shallowRef(1)
 const totalElements = shallowRef(0)
+const totalPages = computed(() => Math.max(1, Math.ceil(totalElements.value / PAGE_SIZE)))
 const categoryFilter = shallowRef('')
 
 const catOptions = ref<{ label: string; value: string }[]>([])
@@ -56,7 +58,7 @@ const unitNameMap = computed(() => {
 })
 
 const totalCategories = computed(() => {
-  const seen = new Set(filteredRows.value.map(p => p.category))
+  const seen = new Set(rows.value.map(p => p.category))
   return seen.size
 })
 
@@ -74,14 +76,16 @@ async function loadSetup() {
   } catch { /* non-critical */ }
 }
 
-async function load(p = 0) {
+async function load(p = 1) {
   if (!tenantId) return
   loading.value = true
   try {
-    const params: { category?: string; page: number; size?: number } = { page: p, size: 30 }
+    // ponytail: server-side A-Z + search, page is 1-based for q-pagination → 0-based for API
+    const params: { category?: string; search?: string; page: number; size: number; sort: string } = { page: p - 1, size: PAGE_SIZE, sort: 'name,asc' }
     if (categoryFilter.value) params.category = categoryFilter.value
+    if (search.value.trim()) params.search = search.value.trim()
     const res = await productoService.search(tenantId, params)
-    rows.value = p === 0 ? res.data.content : [...rows.value, ...res.data.content]
+    rows.value = res.data.content
     totalElements.value = res.data.totalElements
     page.value = p
   } catch (err) {
@@ -91,15 +95,13 @@ async function load(p = 0) {
   }
 }
 
-const filteredRows = computed(() => {
-  if (!search.value) return rows.value
-  const q = search.value.toLowerCase()
-  return rows.value.filter(r =>
-    r.name.toLowerCase().includes(q) ||
-    r.sku?.toLowerCase().includes(q) ||
-    r.proveedorName?.toLowerCase().includes(q)
-  )
+// debounce search 300ms
+let searchTimer: ReturnType<typeof setTimeout> | null = null
+watch(search, () => {
+  if (searchTimer) clearTimeout(searchTimer)
+  searchTimer = setTimeout(() => void load(1), 300)
 })
+watch(categoryFilter, () => void load(1))
 
 const dialogOpen = shallowRef(false)
 const editingId = shallowRef<string | null>(null)
@@ -140,15 +142,13 @@ async function save() {
   saving.value = true
   try {
     if (editingId.value) {
-      const res = await productoService.update(editingId.value, form.value)
-      const idx = rows.value.findIndex(r => r.id === editingId.value)
-      if (idx >= 0) rows.value[idx] = res.data
+      await productoService.update(editingId.value, form.value)
     } else {
-      const res = await productoService.create(form.value)
-      rows.value.unshift(res.data)
+      await productoService.create(form.value)
     }
     dialogOpen.value = false
     $q.notify({ type: 'positive', message: `Producto ${editingId.value ? 'actualizado' : 'creado'}` })
+    await load(page.value)
   } catch (err) {
     $q.notify({ type: 'negative', message: err instanceof Error ? err.message : 'Error al guardar producto' })
   } finally {
@@ -170,9 +170,11 @@ async function remove() {
   deleting.value = true
   try {
     await productoService.remove(deletingItem.value.id, tenantId)
-    rows.value = rows.value.filter(r => r.id !== deletingItem.value!.id)
     deleteDialog.value = false
     $q.notify({ type: 'positive', message: 'Producto eliminado' })
+    // if last item on page, go back one page
+    const isLastOnPage = rows.value.length === 1 && page.value > 1
+    await load(isLastOnPage ? page.value - 1 : page.value)
   } catch (err) {
     $q.notify({ type: 'negative', message: err instanceof Error ? err.message : 'Error al eliminar producto' })
   } finally {
@@ -183,7 +185,7 @@ async function remove() {
 
 onMounted(async () => {
   await loadSetup()
-  await load()
+  await load(1)
   window.addEventListener('keydown', handleKeydown)
 })
 
@@ -222,20 +224,20 @@ function handleKeydown(e: KeyboardEvent) {
         label="Categoría"
         clearable emit-value map-options
         class="col-12 col-sm-auto"
-        @update:model-value="load()"
       />
       <q-input
         dark dense filled v-model="search"
         placeholder="Buscar..."
         class="col col-sm-auto"
+        clearable
       >
         <template v-slot:prepend><q-icon name="search" /></template>
       </q-input>
       <q-space />
-      <q-btn v-if="rows.length" color="primary" icon="sym_r_add" label="Nuevo" @click="openCreate" />
+      <q-btn v-if="rows.length || totalElements > 0" color="primary" icon="sym_r_add" label="Nuevo" @click="openCreate" />
     </div>
 
-    <div v-if="!loading && !filteredRows.length">
+    <div v-if="!loading && !rows.length">
       <EmptyState
         icon="sym_r_inventory_2"
         title="Sin productos"
@@ -251,8 +253,8 @@ function handleKeydown(e: KeyboardEvent) {
       </div>
     </div>
 
-    <div v-if="!loading && filteredRows.length" class="row q-col-gutter-x-sm q-col-gutter-y-sm">
-      <div v-for="item in filteredRows" :key="item.id" class="col-12 col-sm-6 col-md-4">
+    <div v-if="!loading && rows.length" class="row q-col-gutter-x-sm q-col-gutter-y-sm">
+      <div v-for="item in rows" :key="item.id" class="col-12 col-sm-6 col-md-4">
         <q-card dark class="glass hover-lift">
           <q-card-section class="q-pa-md">
             <div class="text-weight-bold q-mb-xs">{{ item.name }}</div>
@@ -283,8 +285,18 @@ function handleKeydown(e: KeyboardEvent) {
       </div>
     </div>
 
-    <div class="q-mt-md flex justify-center" v-if="totalElements > rows.length && !search && !categoryFilter">
-      <q-btn flat color="primary" label="Cargar más" @click="load(page + 1)" :loading="loading" />
+    <div class="q-mt-md flex justify-center" v-if="totalPages > 1">
+      <q-pagination
+        v-model="page"
+        :max="totalPages"
+        :max-pages="5"
+        boundary-numbers
+        direction-links
+        color="primary"
+        text-color="accent"
+        active-color="primary"
+        @update:model-value="load"
+      />
     </div>
 
     <q-dialog v-model="dialogOpen" dark>
@@ -312,7 +324,7 @@ function handleKeydown(e: KeyboardEvent) {
       v-model="presDialog"
       :product="presProduct"
       :unit-label="unitLabel"
-      @updated="load()"
+      @updated="load(page)"
     />
 
     <q-dialog v-model="deleteDialog" dark>

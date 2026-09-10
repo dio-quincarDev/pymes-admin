@@ -1,5 +1,5 @@
 <script setup lang="ts">
-import { ref, shallowRef, computed, onMounted, onUnmounted } from 'vue';
+import { ref, shallowRef, computed, watch, onMounted, onUnmounted } from 'vue';
 import { useQuasar, useMeta } from 'quasar';
 import { useAuthStore } from 'src/modules/auth/store';
 import { proveedorService } from '../services/proveedor.service';
@@ -12,9 +12,11 @@ const $q = useQuasar();
 const authStore = useAuthStore();
 const tenantId = authStore.user?.tenantId;
 
+const PAGE_SIZE = 9
 const rows = ref<Proveedor[]>([]);
 const loading = shallowRef(false);
 const search = shallowRef('');
+const page = shallowRef(1)
 
 const filtrados = computed(() => {
   if (!search.value) return rows.value;
@@ -27,12 +29,23 @@ const filtrados = computed(() => {
   );
 });
 
+// ponytail: A-Z client sort (stable) + slice, no BE pagination needed for <150 rows
+const sortedFiltrados = computed(() =>
+  [...filtrados.value].sort((a, b) => a.name.toLowerCase().localeCompare(b.name.toLowerCase())),
+)
+const totalPages = computed(() => Math.max(1, Math.ceil(sortedFiltrados.value.length / PAGE_SIZE)))
+const paginated = computed(() =>
+  sortedFiltrados.value.slice((page.value - 1) * PAGE_SIZE, page.value * PAGE_SIZE),
+)
+
 async function load() {
   if (!tenantId) return
   loading.value = true;
   try {
     const res = await proveedorService.getAll(tenantId);
     rows.value = res.data;
+    // keep page in bounds after reload
+    if (page.value > totalPages.value) page.value = totalPages.value
   } catch (err) {
     $q.notify({
       type: 'negative',
@@ -42,6 +55,8 @@ async function load() {
     loading.value = false;
   }
 }
+
+watch(search, () => { page.value = 1 })
 
 const dialogOpen = shallowRef(false);
 const editingId = shallowRef<string | null>(null);
@@ -156,14 +171,20 @@ function handleKeydown(e: KeyboardEvent) {
     </div>
 
     <div class="toolbar">
-      <q-input dark dense filled v-model="search" placeholder="Buscar..." class="toolbar__search">
+      <q-input dark dense filled v-model="search" placeholder="Buscar..." class="toolbar__search" clearable>
         <template v-slot:prepend><q-icon name="search" /></template>
       </q-input>
       <q-space />
       <q-btn v-if="rows.length" color="primary" icon="sym_r_add" label="Nuevo" @click="openCreate" />
     </div>
 
-    <div v-if="!loading && !filtrados.length" class="q-mt-lg">
+    <div v-if="!loading && sortedFiltrados.length" class="row items-center q-gutter-x-xs q-mb-sm">
+      <span class="text-accent text-caption">{{ sortedFiltrados.length }} {{ sortedFiltrados.length === 1 ? 'proveedor' : 'proveedores' }}</span>
+      <q-icon v-if="totalPages > 1" name="circle" size="0.25rem" color="accent" />
+      <span v-if="totalPages > 1" class="text-accent text-caption">página {{ page }} de {{ totalPages }}</span>
+    </div>
+
+    <div v-if="!loading && !sortedFiltrados.length" class="q-mt-lg">
       <EmptyState
         icon="sym_r_people"
         title="Sin proveedores"
@@ -185,8 +206,8 @@ function handleKeydown(e: KeyboardEvent) {
       </div>
     </div>
 
-    <div v-if="!loading && filtrados.length" class="row q-col-gutter-x-sm q-col-gutter-y-sm">
-      <div v-for="p in filtrados" :key="p.id" class="col-12 col-sm-6 col-md-4">
+    <div v-if="!loading && paginated.length" class="row q-col-gutter-x-sm q-col-gutter-y-sm">
+      <div v-for="p in paginated" :key="p.id" class="col-12 col-sm-6 col-md-4">
         <q-card dark class="glass hover-lift q-pa-md">
           <div class="text-weight-bold q-mb-xs">{{ p.name }}</div>
           <div v-if="p.contactName" class="text-caption text-accent q-mb-sm">
@@ -225,6 +246,19 @@ function handleKeydown(e: KeyboardEvent) {
           </div>
         </q-card>
       </div>
+    </div>
+
+    <div class="q-mt-md flex justify-center" v-if="!loading && totalPages > 1">
+      <q-pagination
+        v-model="page"
+        :max="totalPages"
+        :max-pages="5"
+        boundary-numbers
+        direction-links
+        color="primary"
+        text-color="accent"
+        active-color="primary"
+      />
     </div>
 
     <q-dialog v-model="dialogOpen" dark>
