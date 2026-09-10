@@ -75,9 +75,20 @@ public class SetupServiceImpl implements SetupService {
             .collect(Collectors.groupingBy(pp -> pp.templateProductId));
 
         if (!templateProducts.isEmpty()) {
+            // ponytail: index-friendly max SKU via ORDER BY sku DESC LIMIT 1 (uses idx_products_tenant_sku WHERE sku IS NOT NULL), covers soft-deleted
+            String topSku = null;
+            try {
+                topSku = jdbc.queryForObject(
+                        "SELECT sku FROM core.products WHERE tenant_id = ? AND sku LIKE 'P-%' ORDER BY sku DESC LIMIT 1",
+                        String.class, tenantId);
+            } catch (org.springframework.dao.EmptyResultDataAccessException ignored) { }
+            int maxSeq = 0;
+            if (topSku != null && topSku.length() > 2) {
+                try { maxSeq = Integer.parseInt(topSku.substring(2)); } catch (NumberFormatException ignored) { }
+            }
             var prodBatch = new ArrayList<Object[]>();
             var presBatch = new ArrayList<Object[]>();
-            int seq = 0;
+            int seq = maxSeq;
             for (var tp : templateProducts) {
                 seq++;
                 var newProdId = UUID.randomUUID();

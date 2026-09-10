@@ -4,6 +4,25 @@ Registro cronológico de decisiones, problemas resueltos y estado del frontend.
 
 ---
 
+## 2026-09-10 — Productos/Proveedores: paginación A-Z + fix scroll infinito móvil
+
+**Contexto:** `ProductosPage.vue:84` `size:30` + `Cargar más` + `filteredRows` cliente y `ProveedoresPage.vue:30` `getAll()` sin paginación causaban scroll infinito en móvil (barra de scroll larga). `ProductosPage.vue:81` sin `sort` → `Pageable` no determinista (duplicados entre páginas). Usuario pidió orden alfabético.
+
+**Qué se hizo:**
+- `ProductosPage.vue:1,22,79,288` server `A-Z` paginado: `PAGE_SIZE=12` (3 cols×4 filas desktop / 12 filas móvil), `page` 1-based para `q-pagination` → `page-1` en API, `totalPages=ceil(totalElements/12)`, `load(p)` manda `{page:p-1, size:12, sort:'name,asc', category?, search?}` (`producto.service.ts:8` ahora `search?:string; sort?:string`), reemplaza `rows` no concatena, `watch(search 300ms debounce)` + `watch(categoryFilter)→load(1)`, `q-pagination :max=totalPages :max-pages=5 boundary-numbers direction-links`, `save()/remove()` recargan `load(page)` (evita `unshift` desordenado), `clearable` en buscador.
+- `ProveedoresPage.vue:5,15,177` cliente `A-Z` paginado (ponytail: `9/page` sin BE para <150 rows): `PAGE_SIZE=9`, `sortedFiltrados=[...filtrados].sort(lower(localeCompare))`, `paginated=slice((page-1)*9)`, `totalPages=ceil(sortedFiltrados.length/9)`, `watch(search→page=1)`, contador `{{sortedFiltrados.length}} página {{page}} de {{totalPages}}`, `q-pagination` + `clearable`.
+- `producto.service.ts:8` `search(tenantId, params?: {category?, search?, name?, page?, size?, sort?})` — añade `search` (mapea a `ProductoApi.java:34 @RequestParam String search` → `findByTenantIdAndNameContainingIgnoreCase`) y `sort`.
+
+**Verificación:** `npm run build` → `Build succeeded` (`QPagination-CAOmfjCy.js 5.36KB`, `ProductosPage 2.69KB`), `vue-tsc` 0 errores, `q-pagination` nativo Quasar 2.19 sin libs nuevas. Skipped: selector `Recientes`, `pg_trgm` para `search='%a%'` (ponytail: 12/page barato).
+
+```
+frontend/pymes/src/modules/core/pages/ProductosPage.vue  # server paginación A-Z 12/page + q-pagination
+frontend/pymes/src/modules/core/pages/ProveedoresPage.vue # client paginación A-Z 9/page + q-pagination
+frontend/pymes/src/modules/core/services/producto.service.ts # +search/sort en search()
+```
+
+---
+
 ## 2026-09-08 — Facturas: ENUM ANULADA + precio typeado + unidad base + XSS + hover Quasar 2.19
 
 **Contexto:** Detail de PAGADA mostraba `precioUnitario` base (0.27 en pack x12) y `field:'cantidad'` undefined; `ConfirmDialog v-html` XSS con `invoiceNumber`; `invoice-row` hover por JS; delete permitía ADMIN y PAGADA borraba items (pérdida auditoría).
