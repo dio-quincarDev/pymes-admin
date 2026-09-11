@@ -71,7 +71,8 @@ public class MemberServiceImpl implements MemberService {
         UserTenant requesterRelation = userTenantRepository.findByUserIdAndTenantId(requester.getId(), tenantId)
                 .orElseThrow(() -> new AuthorizationException(USER_NOT_IN_TENANT, tenantId));
 
-        if (requesterRelation.getRole() != RoleName.OWNER && requesterRelation.getRole() != RoleName.ADMIN) {
+        // ponytail: solo OWNER puede editar roles — ADMIN queda lectura
+        if (requesterRelation.getRole() != RoleName.OWNER) {
             throw new AuthorizationException(INSUFFICIENT_PERMISSIONS);
         }
 
@@ -86,13 +87,13 @@ public class MemberServiceImpl implements MemberService {
             throw new InvalidInputException(INVALID_ROLE, newRole);
         }
 
-        if (!requesterRelation.getRole().hasMorePowerThan(targetRole)) {
-            throw new AuthorizationException(INSUFFICIENT_PERMISSIONS,
-                    "Cannot modify a user with role equal or higher than yours");
-        }
-
         if (targetRole == RoleName.OWNER) {
             throw new AuthorizationException(OWNER_CANNOT_BE_REMOVED);
+        }
+
+        // ponytail: bloquea crear segundo OWNER y escalada via newRole
+        if (newRoleEnum == RoleName.OWNER) {
+            throw new AuthorizationException(INSUFFICIENT_PERMISSIONS, "Cannot assign OWNER role");
         }
 
         targetRelation.setRole(newRoleEnum);

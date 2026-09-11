@@ -1,16 +1,19 @@
 <script setup lang="ts">
-import { onMounted } from 'vue';
+import { computed, ref, shallowRef, onMounted } from 'vue';
 import { useQuasar, useMeta } from 'quasar';
 import { useAuthStore } from 'src/modules/auth/store';
 import { useNumberFormat } from 'src/modules/core/composables/useNumberFormat';
+import { toLocalISODate } from 'src/utils/format';
 import { useAnalytics } from '../composables/useAnalytics';
 import { useAnalisisGastos } from '../composables/useAnalisisGastos';
+import { ventaService } from '../services/venta.service';
+import type { VentaDiaria } from '../types';
 import AnalyticsHeader from 'src/modules/core/components/analytics/AnalyticsHeader.vue';
 import MetricCard from 'src/modules/core/components/analytics/MetricCard.vue';
-import AbcGastosChart from 'src/modules/core/components/dashboard/AbcGastosChart.vue';
 import SupplierRecommendationsCard from 'src/modules/core/components/dashboard/SupplierRecommendationsCard.vue';
 import AlertsPanel from '../components/dashboard/AlertsPanel.vue';
 import FinancialHealthPanel from '../components/dashboard/FinancialHealthPanel.vue';
+import TopProductosDonut from '../components/analytics/TopProductosDonut.vue';
 
 useMeta({ title: 'Análisis de Gastos — PYMEQ' });
 
@@ -30,8 +33,30 @@ const {
   supplierRecommendations,
 } = useAnalytics();
 
-const { totalInvestment, productCount, byCategory, loading, load } =
+const { totalInvestment, productCount, loading, load } =
   useAnalisisGastos(tenantId);
+
+// ventas semanales lun-dom fija hasta lunes — ponytail: 1 fetch, filter local
+const ventas = ref<VentaDiaria[]>([]);
+const ventasLoading = shallowRef(false);
+function getMondayStr(d = new Date()): string {
+  const local = new Date(d);
+  const day = local.getDay(); // 0 dom, 1 lun
+  const diff = day === 0 ? -6 : 1 - day;
+  local.setDate(local.getDate() + diff);
+  return toLocalISODate(local);
+}
+const mondayStr = computed(() => getMondayStr());
+const ventasSemanales = computed(() =>
+  ventas.value
+    .filter(v => v.fecha >= mondayStr.value)
+    .reduce((s, v) => s + v.montoBruto, 0),
+);
+const ventasSemanalesRango = computed(() => {
+  const mon = mondayStr.value;
+  const sun = (() => { const d = new Date(mon + 'T00:00:00'); d.setDate(d.getDate()+6); return toLocalISODate(d); })();
+  return `${mon} → ${sun}`;
+});
 
 async function handleLoad() {
   try {
@@ -41,8 +66,21 @@ async function handleLoad() {
   }
 }
 
+async function loadVentas() {
+  if (!tenantId) return;
+  ventasLoading.value = true;
+  try {
+    const res = await ventaService.getAll(tenantId);
+    ventas.value = res.data;
+  } catch (err) {
+    $q.notify({ type: 'negative', message: err instanceof Error ? err.message : 'Error al cargar ventas' });
+  } finally {
+    ventasLoading.value = false;
+  }
+}
+
 onMounted(() => {
-  if (tenantId) void handleLoad();
+  if (tenantId) { void handleLoad(); void loadVentas(); }
 });
 </script>
 
@@ -71,20 +109,21 @@ onMounted(() => {
         :loading="loading"
       />
       <MetricCard
-        label="Categorías"
-        :value="String(byCategory.length)"
+        label="Ventas semanales"
+        :value="formatCurrency(ventasSemanales)"
         accent="green"
-        :loading="loading"
+        :loading="loading || ventasLoading"
       />
     </div>
+    <p class="text-caption q-mb-lg" style="color: var(--pq-text-muted)">{{ ventasSemanalesRango }} (lun-dom, se reinicia lunes)</p>
 
-    <!-- A) ABC Pareto — dónde se va el 80% -->
+    <!-- A) Top productos por gasto — donut 5+Otros -->
     <div class="analysis-card q-mb-lg">
       <div class="analysis-card__header">
-        <h3 class="analysis-card__title">Concentración del gasto (ABC)</h3>
-        <span class="analysis-card__hint">Pocos productos, mayor gasto</span>
+        <h3 class="analysis-card__title">Top productos por gasto</h3>
+        <span class="analysis-card__hint">Dónde se concentra el gasto</span>
       </div>
-      <AbcGastosChart :data="abc" :height="300" />
+      <TopProductosDonut :items="abc" :loading="analyticsLoading" :empty="abc.length===0" />
     </div>
 
     <!-- B) Ahorro por proveedor — cuánto te ahorras -->
