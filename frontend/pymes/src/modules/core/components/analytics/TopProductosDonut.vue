@@ -14,27 +14,15 @@ const props = withDefaults(defineProps<Props>(), { loading: false, empty: false 
 const { formatCurrency } = useNumberFormat();
 const { colors } = useChartTheme();
 
-// ponytail: frontend tolera backend (totalSpend/pct); 0 si falta — sin tocar servidor
-function getSpend(item: AbcItem): number {
-  const raw = item as unknown as Record<string, unknown>;
-  const v = (raw.spend ?? raw.totalSpend) as unknown;
-  if (typeof v === 'number' && Number.isFinite(v)) return v;
-  if (typeof v === 'string') {
-    const n = Number(v);
-    return Number.isFinite(n) ? n : 0;
-  }
-  return 0;
-}
-
 const chartData = computed(() => {
-  const sorted = [...props.items].sort((a, b) => getSpend(b) - getSpend(a));
+  const sorted = [...props.items].sort((a, b) => b.spend - a.spend);
   const top = sorted.slice(0, 5);
   const rest = sorted.slice(5);
   const labels = top.map(i => i.productName);
-  const data = top.map(i => getSpend(i));
+  const data = top.map((i) => i.spend);
   if (rest.length) {
     labels.push('Otros');
-    data.push(rest.reduce((s, i) => s + getSpend(i), 0));
+    data.push(rest.reduce((s, i) => s + i.spend, 0));
   }
   return {
     labels,

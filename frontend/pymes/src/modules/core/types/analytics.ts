@@ -7,6 +7,13 @@ export interface AbcItem {
   category: 'A' | 'B' | 'C';
 }
 
+// Wire compat: backend envía totalSpend/pct (ver AnalyticsServiceImpl.java:121)
+// Este tipo representa lo que realmente llega por la red antes de normalizar.
+export type AbcItemWire = AbcItem & {
+  totalSpend?: number | string;
+  pct?: number | string;
+};
+
 export interface TrendItem {
   productId: string;
   productName: string;
@@ -134,3 +141,8 @@ export interface AnalyticsResponse {
   pricePrediction: PricePredictionItem[];
   financialHealth?: FinancialHealth;
 }
+
+// Respuesta cruda del backend antes de normalizar (usa AbcItemWire)
+export type AnalyticsResponseWire = Omit<AnalyticsResponse, 'abc'> & {
+  abc: AbcItemWire[];
+};
