@@ -99,6 +99,11 @@ function alertColor(alert: FinancialHealthAlert): string {
 .fh-panel {
   display: flex;
   flex-direction: column;
+  background: var(--pq-surface);
+  border: 1px solid var(--pq-border);
+  border-radius: 8px;
+  padding: 16px;
+  height: 100%;
 
   &__title {
     font-family: 'Satoshi', sans-serif;

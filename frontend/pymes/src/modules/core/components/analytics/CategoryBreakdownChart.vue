@@ -141,6 +141,9 @@ const chartOptions = computed(() => ({
   border: 1px solid var(--pq-border);
   border-radius: 8px;
   padding: 16px;
+  min-width: 0;
+  max-width: 100%;
+  overflow: hidden;
 
   &__skeleton {
     padding: 8px 0;

@@ -19,7 +19,7 @@ const chartData = computed(() => {
   const top = sorted.slice(0, 5);
   const rest = sorted.slice(5);
   const labels = top.map(i => i.productName);
-  const data = top.map(i => i.spend);
+  const data = top.map((i) => i.spend);
   if (rest.length) {
     labels.push('Otros');
     data.push(rest.reduce((s, i) => s + i.spend, 0));
@@ -53,9 +53,17 @@ const chartOptions = computed(() => ({
 </script>
 
 <template>
-  <div>
+  <div class="top-productos-donut">
     <div v-if="loading" class="flex flex-center q-pa-md"><q-spinner color="primary" size="24px" /></div>
     <div v-else-if="empty || items.length===0" class="flex flex-center column q-pa-md" style="color: var(--pq-text-muted)"><q-icon name="donut_large" size="28px" /><span class="text-caption">Sin datos</span></div>
     <BaseChart v-else type="doughnut" :data="chartData" :options="chartOptions" :height="260" />
   </div>
 </template>
+
+<style scoped lang="scss">
+.top-productos-donut {
+  min-width: 0;
+  max-width: 100%;
+  overflow: hidden;
+}
+</style>

@@ -2,7 +2,9 @@ import { ref, computed, watch } from 'vue';
 import { analyticsService } from '../services/analytics.service';
 import type {
   AnalyticsResponse,
+  AnalyticsResponseWire,
   AbcItem,
+  AbcItemWire,
   TrendItem,
   MarginItem,
   OpexItem,
@@ -24,6 +26,26 @@ export function useAnalytics() {
   const loading = ref(false);
   const error = ref<string | null>(null);
 
+  function toNumber(v: unknown, fallback = 0): number {
+    if (typeof v === 'number' && Number.isFinite(v)) return v;
+    if (typeof v === 'string') {
+      const n = Number(v);
+      return Number.isFinite(n) ? n : fallback;
+    }
+    return fallback;
+  }
+
+  function normalizeAbc(items: AbcItemWire[]): AbcItem[] {
+    return items.map((i) => ({
+      productId: i.productId,
+      productName: i.productName,
+      spend: toNumber(i.spend ?? i.totalSpend),
+      pctTotal: toNumber(i.pctTotal ?? i.pct),
+      cumulativePct: toNumber(i.cumulativePct),
+      category: i.category,
+    }));
+  }
+
   async function fetch() {
     if (!authStore.user?.tenantId) return;
     loading.value = true;
@@ -33,7 +55,11 @@ export function useAnalytics() {
         authStore.user.tenantId,
         period.value,
       );
-      data.value = res.data;
+      const wire = res.data as unknown as AnalyticsResponseWire;
+      data.value = {
+        ...wire,
+        abc: normalizeAbc(wire.abc ?? []),
+      } as AnalyticsResponse;
     } catch (e: unknown) {
       error.value = e instanceof Error ? e.message : 'Error cargando analytics';
     } finally {
@@ -49,7 +75,11 @@ export function useAnalytics() {
         authStore.user.tenantId,
         period.value,
       );
-      data.value = res.data;
+      const wire = res.data as unknown as AnalyticsResponseWire;
+      data.value = {
+        ...wire,
+        abc: normalizeAbc(wire.abc ?? []),
+      } as AnalyticsResponse;
     } catch (e: unknown) {
       error.value = e instanceof Error ? e.message : 'Error recalculando';
     } finally {
