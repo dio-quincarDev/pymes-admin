@@ -58,11 +58,6 @@ const stripKpis = computed(() => {
   if (cd) {
     const margen = cd.ventasHoy - cd.costoOperativoDiario;
     items.push({
-      label: 'Ventas hoy',
-      value: formatCurrency(cd.ventasHoy),
-      accent: 'gold' as const,
-    });
-    items.push({
       label: 'Costos día',
       value: formatCurrency(cd.costoOperativoDiario),
       accent: 'red' as const,

@@ -4,6 +4,31 @@ Registro cronológico de decisiones, problemas resueltos y estado del frontend.
 
 ---
 
+## 2026-09-11 — AnalisisPage Donut Top5 + Ventas semanales + Dashboard quita Ventas hoy
+
+### Contexto
+Usuario pidió: quitar `Ventas hoy` del Dashboard (margen/costo ya cubren), quitar `Categorías` de AnalisisPage y aclarar ABC (confuso) → reemplazar por donut simple; agregar `Ventas semanales lun-dom fija hasta lunes` en AnalisisPage (dato de `ventaService.getAll` / `core.daily_sales.fecha`). Donut Dashboard se deja con `GAS/LUZ/etc.` (5+Otros) tal cual.
+
+### Qué se hizo
+- **Dashboard `DashboardPage.vue:58`** borrado `items.push Ventas hoy` del `stripKpis` (quedan `Costos día + Margen + ROI mes`).
+- **AnalisisPage `AnalisisGastosPage.vue:1,33`** — `byCategory` ya no se usa para card; `MetricCard Categorías` borrada, entra `MetricCard Ventas semanales = sum(ventas.filter(fecha >= lunes))` con `ventasLoading`, rango `{{monday}} → {{sunday}} lun-dom` vía `toLocalISODate`/`getMondayStr()` (Panamá). 1 fetch `ventaService.getAll(tenantId)` + `computed ventasSemanales`.
+- **AnalisisPage `AnalisisGastosPage.vue:82`** — `AbcGastosChart` → `TopProductosDonut.vue` nuevo `doughnut cutout 62%` top5 `abc.spend` + `Otros`, reusa `BaseChart`/`useChartTheme` (colores `abcA/B/positive/negative/info/text`), height 260, tooltip `formatCurrency`.
+- **Nuevo `TopProductosDonut.vue:1`** 45 líneas, ponytail sin nueva dep.
+
+### Verificación
+- `npm run lint` 0, `npm run build` Build succeeded PWA 872KB
+
+### Archivos
+```
+frontend/pymes/src/pages/DashboardPage.vue
+frontend/pymes/src/modules/core/pages/AnalisisGastosPage.vue
+frontend/pymes/src/modules/core/components/analytics/TopProductosDonut.vue # nuevo
+```
+
+**Estado:** ✅ COMPLETADO
+
+---
+
 ## 2026-09-11 — Teams RBAC solo OWNER + Charts Panama + Paginación
 
 ### Contexto
