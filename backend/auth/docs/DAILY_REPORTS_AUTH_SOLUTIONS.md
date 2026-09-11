@@ -4,6 +4,39 @@ Este documento registra de manera cronológica el historial de decisiones técni
 
 ---
 
+## 2026-09-11 — Teams RBAC solo OWNER + anti-escalada OWNER
+
+### Contexto
+`MemberApi.java:30` `PUT /{tenantId}/members/{userId}/role` con `@PreAuthorize("hasAnyAuthority('ROLE_OWNER','ROLE_ADMIN')")` + `MemberServiceImpl.java:74` `OWNER||ADMIN` permitía a ADMIN editar roles. `TeamsPage.vue:41` mostraba lápiz a ADMIN y `roleOptions` incluía `OWNER`. Un ADMIN podía `PUT /members/{viewer}/role?role=OWNER` → `hasMorePowerThan(VIEWER)` true + sin validar `newRole`, creaba 2º OWNER (escalada). `deleteUserFromTenant` ya era solo OWNER (`MemberApi.java:39`), pero `updateUserRole` no. Causa: `hasMorePowerThan(targetRole)` solo validaba target, no `newRole`.
+
+### Qué se hizo
+- **MemberApi.java:30** `@PreAuthorize` → `hasAuthority('ROLE_OWNER')` (solo OWNER pasa filtro, fail-fast, descripción actualizada).
+- **MemberServiceImpl.java:74** `if !=OWNER && !=ADMIN` → `if !=OWNER throw INSUFFICIENT_PERMISSIONS` // ponytail: solo OWNER edita, ADMIN lectura.
+- **MemberServiceImpl.java:95** nuevo `if (newRoleEnum == RoleName.OWNER) throw INSUFFICIENT_PERMISSIONS "Cannot assign OWNER role"` — bloquea crear 2º OWNER incluso si OWNER intenta promover a VIEWER→OWNER. `targetRole==OWNER` ya existente se mantiene.
+- **Frontend `TeamsPage.vue:8,41,170`** `INVITAR` y lápiz `v-if="isOwner"`, `canManage` eliminado (ver `DAILY_REPORTS_FRONTEND.md 2026-09-11`).
+- **Tests `MemberServiceImplNewLogicTest.java:1` 4 casos** — `adminCannotUpdateRole` (ADMIN→VIEWER 403), `ownerCannotAssignOwnerRole` (OWNER→VIEWER a OWNER bloqueado), `ownerCannotModifyOwnerTarget` (OWNER→OWNER), `ownerCanDemoteAdminToViewer` (único OK). `MemberServiceImplTest` 3 existentes siguen verde.
+
+### Verificación
+- `./mvnw test -B -Dtest=MemberServiceImplTest` → 3/3 PASS
+- `./mvnw test -B -Dtest=MemberServiceImplNewLogicTest` → 4/4 PASS
+- `./mvnw test -B` → 150 tests 0 failures BUILD SUCCESS
+
+### Archivos modificados
+```
+backend/auth/src/main/java/auth/pymes/controller/MemberApi.java          # hasAnyAuthority → hasAuthority ROLE_OWNER
+backend/auth/src/main/java/auth/pymes/service/impl/MemberServiceImpl.java # solo OWNER + bloquea newRole OWNER
+backend/auth/src/test/java/auth/pymes/unit/MemberServiceImplNewLogicTest.java # 4 tests RBAC
+frontend/pymes/src/modules/auth/pages/TeamsPage.vue                      # isOwner-only (dual doc)
+```
+
+### Pendiente
+- Si se quiere ADMIN limitado a `CONTABLE/VIEWER` (B), cambiar `hasAuthority`→`hasAnyAuthority` + `if !hasMorePowerThan(newRole) throw` en vez de bloquear ADMIN total. Defer ponytail hasta que OWNER sea cuello de botella.
+- Transfer ownership endpoint para que OWNER pueda auto-removerse (`OWNER_CANNOT_BE_REMOVED`).
+
+**Estado:** ✅ COMPLETADO — pendiente commit/push `develop`
+
+---
+
 ## 📋 ÍNDICE DE ROADMAP Y ESTADO
 
 ### 📌 Whitelist unificada

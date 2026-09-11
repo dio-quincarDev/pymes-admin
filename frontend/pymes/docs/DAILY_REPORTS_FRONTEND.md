@@ -4,6 +4,44 @@ Registro cronológico de decisiones, problemas resueltos y estado del frontend.
 
 ---
 
+## 2026-09-11 — Teams RBAC solo OWNER + Charts Panama + Paginación
+
+### Contexto
+5 gaps en revisión pre-cierre: `TeamsPage.vue:41` `canManage=OWNER||ADMIN` mostraba lápiz "Cambiar rol" y `roleOptions=['OWNER','ADMIN',...]` a ADMIN (podía intentar promover VIEWER→OWNER); `ProveedoresPage.vue:249-273` doble `q-pagination` idéntico copia/pega; `CategoryBreakdownChart` `indexAxis:'y' barThickness:16 height:items*40` generaba scroll-x móvil; `AnalisisGastosPage.vue:72` solo mostraba breakdown descriptivo sin valor accionable; `VentasVsCostosChart` fantasma domingo 2026-09-06 (venta del 05 movida a 06 por `toISOString` UTC a las 19:00 Panamá UTC-5). Verificación en `vm2-test2` (`core.daily_sales` sin fila 06) confirmó bug frontend no backend (`VentaRequest.fecha LocalDate` directo a `sale_date DATE`).
+
+### Qué se hizo
+1. **TeamsPage RBAC (`TeamsPage.vue:8,41,170`)** — `INVITAR MIEMBRO` `v-if="isOwner"`, lápiz `v-if="canManage"`→`isOwner` (solo OWNER ve/edita), `canManage` eliminado, `isOwner=role==='OWNER'` se mantiene. ADMIN queda lectura. Ponytail: 3 líneas, sin nuevo servicio.
+2. **ProveedoresPage paginación (`ProveedoresPage.vue:249-273`)** — borrado 2º bloque `q-pagination` duplicado, queda 1 footer `v-if="totalPages>1"`. `ProductosPage.vue:289` ya OK con 1.
+3. **CategoryBreakdownChart donut (`CategoryBreakdownChart.vue:1-115`)** — `bar indexAxis:'y'` → `doughnut cutout:'62%'` `MAX_SLICES=5 +Otros`, `height:260` fijo (no `items*40`), `colors=[abcA,abcB,positive,negative,info,text]`, legend `bottom` con `pointStyle circle`, tooltip `formatCurrency + %`. Reusa `DoughnutController` ya registrado en `BaseChart.vue:26`. Ponytail: evita `chartjs-chart-treemap` nueva dep.
+4. **AnalisisGastosPage valor accionable (`AnalisisGastosPage.vue:1,72`)** — eliminado `CategoryBreakdownChart` descriptivo, ahora `AbcGastosChart :data="abc"` (Pareto 80% `useAnalytics.ts:60`) + `SupplierRecommendationsCard :items="supplierRecommendations"` (ahorro por proveedor `useAnalytics.ts:71`). `MetricCard` se mantiene.
+5. **Fix fecha Panamá (`utils/format.ts:18`, `DashboardPage.vue:9,90-104`, `VentasPage.vue:5,19-31,50,89`, `RegistrarVentaDialog.vue:4,19,40`)** — nuevo `toLocalISODate(d)` con `getFullYear/Month/Date padStart` (local `America/Panama` UTC-5 sin DST) en vez de `toISOString().slice(0,10)` UTC. `DashboardPage.chartData` ahora `toLocalISODate + label es-PA dom 06`, `VentasPage totalSemana/totalMes` compara `YYYY-MM-DD` string + `new Date(date+'T00:00:00') es-PA`.
+
+### Verificación
+- `npm run lint` → 0 errores
+- `npm run build` → Build succeeded (PWA 872KB JS)
+- `vm2-test2` `select sale_date from core.daily_sales` → `2026-09-05 Sat 364.45`, `2026-09-07 Mon 369.55`, `2026-09-06 Sun` 0 filas ✅ fantasma confirmado frontend
+- Manual 375px: `CategoryBreakdownChart` sin scroll-x, `ProveedoresPage` 1 pager, `TeamsPage` como ADMIN no ve lápiz/INVITAR
+
+### Archivos modificados
+```
+frontend/pymes/src/utils/format.ts                                         # +toLocalISODate America/Panama
+frontend/pymes/src/pages/DashboardPage.vue                                  # chartData toLocalISODate + es-PA
+frontend/pymes/src/modules/core/pages/VentasPage.vue                        # totalSemana/Mes + dayGroups + defaults toLocalISODate
+frontend/pymes/src/modules/core/components/dashboard/RegistrarVentaDialog.vue # fecha toLocalISODate
+frontend/pymes/src/modules/core/components/analytics/CategoryBreakdownChart.vue # bar→doughnut 5+Otros 260
+frontend/pymes/src/modules/core/pages/AnalisisGastosPage.vue                # -CategoryBreakdown +Abc +SupplierRecommendations
+frontend/pymes/src/modules/core/pages/ProveedoresPage.vue                   # -duplicado q-pagination
+frontend/pymes/src/modules/auth/pages/TeamsPage.vue                         # isOwner-only INVITAR/editar, -canManage
+```
+
+### Pendiente
+- `InvitationService` aún permite ADMIN invitar CONTABLE/VIEWER (backend `hasMorePowerThan` OK) — si se quiere estricto solo OWNER invitar, tocar `InvitationServiceImpl.java:154`.
+- Transfer ownership flow para OWNER auto-remove (ya bloqueado `OWNER_CANNOT_BE_REMOVED`).
+
+**Estado:** ✅ COMPLETADO — pendiente commit/push `develop` → CI → staging `vm2-test2`
+
+---
+
 ## 2026-09-11 — Card grid fix + Vue Best Practices audit
 
 ### Contexto

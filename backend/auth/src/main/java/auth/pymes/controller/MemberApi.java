@@ -26,8 +26,8 @@ public interface MemberApi {
             Pageable pageable,
             @AuthenticationPrincipal Object principal);
 
-    @Operation(summary = "Cambiar rol de usuario", description = "Modifica el rol de un usuario en un tenant (requiere OWNER o ADMIN, validación de jerarquía)")
-    @PreAuthorize("hasAnyAuthority('ROLE_OWNER', 'ROLE_ADMIN')")
+    @Operation(summary = "Cambiar rol de usuario", description = "Modifica el rol de un usuario en un tenant (requiere OWNER, validación de jerarquía)")
+    @PreAuthorize("hasAuthority('ROLE_OWNER')")
     @PutMapping("/{userId}/role")
     ResponseEntity<ApiResponse<MemberResponse>> updateUserRole(
             @PathVariable UUID tenantId,
