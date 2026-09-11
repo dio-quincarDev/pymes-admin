@@ -1,13 +1,11 @@
 <script setup lang="ts">
-import { computed, ref, shallowRef, onMounted } from 'vue';
+import { onMounted } from 'vue';
 import { useQuasar, useMeta } from 'quasar';
 import { useAuthStore } from 'src/modules/auth/store';
 import { useNumberFormat } from 'src/modules/core/composables/useNumberFormat';
-import { toLocalISODate } from 'src/utils/format';
 import { useAnalytics } from '../composables/useAnalytics';
 import { useAnalisisGastos } from '../composables/useAnalisisGastos';
-import { ventaService } from '../services/venta.service';
-import type { VentaDiaria } from '../types';
+import { useVentasSemanales } from '../composables/useVentasSemanales';
 import AnalyticsHeader from 'src/modules/core/components/analytics/AnalyticsHeader.vue';
 import MetricCard from 'src/modules/core/components/analytics/MetricCard.vue';
 import SupplierRecommendationsCard from 'src/modules/core/components/dashboard/SupplierRecommendationsCard.vue';
@@ -36,27 +34,12 @@ const {
 const { totalInvestment, productCount, loading, load } =
   useAnalisisGastos(tenantId);
 
-// ventas semanales lun-dom fija hasta lunes — ponytail: 1 fetch, filter local
-const ventas = ref<VentaDiaria[]>([]);
-const ventasLoading = shallowRef(false);
-function getMondayStr(d = new Date()): string {
-  const local = new Date(d);
-  const day = local.getDay(); // 0 dom, 1 lun
-  const diff = day === 0 ? -6 : 1 - day;
-  local.setDate(local.getDate() + diff);
-  return toLocalISODate(local);
-}
-const mondayStr = computed(() => getMondayStr());
-const ventasSemanales = computed(() =>
-  ventas.value
-    .filter(v => v.fecha >= mondayStr.value)
-    .reduce((s, v) => s + v.montoBruto, 0),
-);
-const ventasSemanalesRango = computed(() => {
-  const mon = mondayStr.value;
-  const sun = (() => { const d = new Date(mon + 'T00:00:00'); d.setDate(d.getDate()+6); return toLocalISODate(d); })();
-  return `${mon} → ${sun}`;
-});
+const {
+  ventasSemanales,
+  ventasSemanalesRango,
+  loading: ventasLoading,
+  fetchVentas,
+} = useVentasSemanales(tenantId);
 
 async function handleLoad() {
   try {
@@ -66,21 +49,8 @@ async function handleLoad() {
   }
 }
 
-async function loadVentas() {
-  if (!tenantId) return;
-  ventasLoading.value = true;
-  try {
-    const res = await ventaService.getAll(tenantId);
-    ventas.value = res.data;
-  } catch (err) {
-    $q.notify({ type: 'negative', message: err instanceof Error ? err.message : 'Error al cargar ventas' });
-  } finally {
-    ventasLoading.value = false;
-  }
-}
-
 onMounted(() => {
-  if (tenantId) { void handleLoad(); void loadVentas(); }
+  if (tenantId) { void handleLoad(); void fetchVentas(); }
 });
 </script>
 

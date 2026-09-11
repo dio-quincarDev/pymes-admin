@@ -4,6 +4,32 @@ Registro cronológico de decisiones, problemas resueltos y estado del frontend.
 
 ---
 
+## 2026-09-11 — Cards sizing Dashboard + Vue Best Practices (useVentasSemanales)
+
+### Contexto
+Cards Dashboard desajustados vs Analisis (grid 4col vacía, `dashboard-secondary 1fr 1fr` con 3 hijos huérfano, `FinancialHealthPanel`/`ActivityPanel` sin chrome). Además audit Vue Best Practices: `mondayStr` cacheado sin deps + lógica ventas en view violaba `composables.md`.
+
+### Qué se hizo
+- **KpiStrip `KpiStrip.vue:38`** `repeat(4,1fr) gap12` → `repeat(3,1fr) gap16` `@768 1fr` (3 KPIs llenan, igual que `metric-row` Analisis).
+- **Dashboard `DashboardPage.vue:277`** `1fr 1fr gap20` → `repeat(3,1fr) gap16 align-items:stretch >*{height:100%}` (3 cards sin huérfana).
+- **Panels `FinancialHealthPanel.vue:99` + `ActivityPanel.vue:98`** `+ background var(--pq-surface) border var(--pq-border) radius8 padding16 height:100%` (igual que `analysis-card`/`cat-chart`).
+- **Best Practices `AnalisisGastosPage.vue:1`** extrae ventas semanales a `useVentasSemanales.ts:1` (ref/set + computed puro sin side effects, readonly, shallowRef para loading, `getMondayStr()` llamado dentro de computed para evitar cache stale). View queda composition surface (props down/events up). Lint/build verde.
+
+### Verificación
+- `npm run lint` 0, `npm run build` Build succeeded
+
+### Archivos
+```
+frontend/pymes/src/modules/core/components/dashboard/KpiStrip.vue
+frontend/pymes/src/pages/DashboardPage.vue
+frontend/pymes/src/modules/core/components/dashboard/FinancialHealthPanel.vue
+frontend/pymes/src/modules/core/components/dashboard/ActivityPanel.vue
+frontend/pymes/src/modules/core/composables/useVentasSemanales.ts # nuevo
+frontend/pymes/src/modules/core/pages/AnalisisGastosPage.vue # refactorizado a composable
+```
+
+---
+
 ## 2026-09-11 — AnalisisPage Donut Top5 + Ventas semanales + Dashboard quita Ventas hoy
 
 ### Contexto
