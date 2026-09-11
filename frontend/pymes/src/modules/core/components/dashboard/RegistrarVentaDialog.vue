@@ -2,6 +2,7 @@
 import { ref, computed } from 'vue';
 import { useQuasar } from 'quasar';
 import { useAuthStore } from 'src/modules/auth/store';
+import { toLocalISODate } from 'src/utils/format';
 import { ventaService } from '../../services/venta.service';
 
 defineProps<{ modelValue: boolean }>();
@@ -16,7 +17,7 @@ const saving = ref(false);
 
 const amount = ref<number | null>(null);
 const descripcion = ref('');
-const fecha = ref(new Date().toISOString().slice(0, 10));
+const fecha = ref(toLocalISODate(new Date()));
 
 const isValid = computed(() => amount.value !== null && amount.value > 0);
 
@@ -37,7 +38,7 @@ async function save() {
     emit('update:modelValue', false);
     amount.value = null;
     descripcion.value = '';
-    fecha.value = new Date().toISOString().slice(0, 10);
+    fecha.value = toLocalISODate(new Date());
   } catch {
     $q.notify({ type: 'negative', message: 'Error al registrar venta' });
   } finally {

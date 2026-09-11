@@ -2,7 +2,7 @@
 import { ref, shallowRef, computed, onMounted, onUnmounted } from 'vue';
 import { useQuasar, useMeta } from 'quasar';
 import { useAuthStore } from 'src/modules/auth/store';
-import { formatCurrency } from 'src/utils/format';
+import { formatCurrency, toLocalISODate } from 'src/utils/format';
 import { ventaService } from '../services/venta.service';
 import type { VentaDiaria, VentaRequest } from '../types';
 import EmptyState from 'src/components/ui/EmptyState.vue';
@@ -17,18 +17,17 @@ const rows = ref<VentaDiaria[]>([]);
 const loading = shallowRef(false);
 
 const totalSemana = computed(() => {
-  const now = new Date();
-  const weekAgo = new Date(now.getTime() - 7 * 24 * 60 * 60 * 1000);
+  const weekAgoStr = toLocalISODate(new Date(Date.now() - 7 * 24 * 60 * 60 * 1000));
   return rows.value
-    .filter((r) => new Date(r.fecha) >= weekAgo)
+    .filter((r) => r.fecha >= weekAgoStr)
     .reduce((s, r) => s + r.montoBruto, 0);
 });
 
 const totalMes = computed(() => {
   const now = new Date();
-  const monthStart = new Date(now.getFullYear(), now.getMonth(), 1);
+  const monthStartStr = `${now.getFullYear()}-${String(now.getMonth() + 1).padStart(2, '0')}-01`;
   return rows.value
-    .filter((r) => new Date(r.fecha) >= monthStart)
+    .filter((r) => r.fecha >= monthStartStr)
     .reduce((s, r) => s + r.montoBruto, 0);
 });
 
@@ -47,8 +46,8 @@ const dayGroups = computed(() => {
   }
   const result: DayGroup[] = [];
   for (const [date, list] of groups) {
-    const d = new Date(date);
-    const label = d.toLocaleDateString('es-ES', {
+    const d = new Date(date + 'T00:00:00');
+    const label = d.toLocaleDateString('es-PA', {
       weekday: 'short',
       day: 'numeric',
       month: 'short',
@@ -86,7 +85,7 @@ const saving = shallowRef(false);
 const formRef = ref<{ validate: () => Promise<boolean> } | null>(null);
 const form = ref<VentaRequest>({
   tenantId: tenantId as string,
-  fecha: new Date().toISOString().slice(0, 10),
+  fecha: toLocalISODate(new Date()),
   montoBruto: 0,
 });
 
@@ -116,7 +115,7 @@ function openCreate() {
   editingId.value = null;
   form.value = {
     tenantId: tenantId as string,
-    fecha: new Date().toISOString().slice(0, 10),
+    fecha: toLocalISODate(new Date()),
     montoBruto: 0,
   };
   montoBrutoStr.value = '';
