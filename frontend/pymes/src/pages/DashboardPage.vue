@@ -5,6 +5,7 @@ import { useAuthStore } from 'src/modules/auth/store';
 import { useFinancialDashboard } from 'src/modules/core/composables/useFinancialDashboard';
 import { useAnalytics } from 'src/modules/core/composables/useAnalytics';
 import { useNumberFormat } from 'src/modules/core/composables/useNumberFormat';
+import { toLocalISODate } from 'src/utils/format';
 import AnalyticsHeader from 'src/modules/core/components/analytics/AnalyticsHeader.vue';
 import CategoryBreakdownChart from 'src/modules/core/components/analytics/CategoryBreakdownChart.vue';
 import ActivityPanel from 'src/modules/core/components/dashboard/ActivityPanel.vue';
@@ -86,15 +87,15 @@ const stripKpis = computed(() => {
 
 
 
-// Chart data — últimos 7 días
+// Chart data — últimos 7 días (Panamá UTC-5 local, no UTC)
 const chartData = computed(() => {
   const days: { label: string; ventas: number; costos: number }[] = [];
   const now = new Date();
   for (let i = 6; i >= 0; i--) {
     const d = new Date(now);
     d.setDate(d.getDate() - i);
-    const dateStr = d.toISOString().slice(0, 10);
-    const dayLabel = d.toLocaleDateString('es-PE', { weekday: 'short' });
+    const dateStr = toLocalISODate(d);
+    const dayLabel = d.toLocaleDateString('es-PA', { weekday: 'short', day: 'numeric' });
     const ventasDia = ventas.value
       .filter(v => v.fecha === dateStr)
       .reduce((s, v) => s + v.montoBruto, 0);

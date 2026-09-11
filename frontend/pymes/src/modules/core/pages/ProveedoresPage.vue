@@ -259,19 +259,6 @@ function handleKeydown(e: KeyboardEvent) {
       />
     </div>
 
-    <div class="q-mt-md flex justify-center" v-if="!loading && totalPages > 1">
-      <q-pagination
-        v-model="page"
-        :max="totalPages"
-        :max-pages="5"
-        boundary-numbers
-        direction-links
-        color="primary"
-        text-color="accent"
-        active-color="primary"
-      />
-    </div>
-
     <q-dialog v-model="dialogOpen" dark>
       <q-card dark class="bg-surface-pine" style="min-width: 400px">
         <q-card-section>

@@ -21,24 +21,51 @@ interface Props {
 const props = withDefaults(defineProps<Props>(), {
   loading: false,
   empty: false,
-  maxItems: 8,
+  maxItems: 5,
 });
 
 const { formatCurrency } = useNumberFormat();
 const { colors } = useChartTheme();
 
+// ponytail: donut 5+Otros — evita barras horizontales y scroll-x en móvil (Panamá UTC-5)
+const MAX_SLICES = 5;
+
 const chartData = computed(() => {
-  const items = props.items.slice(0, props.maxItems);
+  const sorted = [...props.items].sort((a, b) => b.currentAmount - a.currentAmount);
+  const top = sorted.slice(0, MAX_SLICES);
+  const rest = sorted.slice(MAX_SLICES);
+  const othersTotal = rest.reduce((s, i) => s + i.currentAmount, 0);
+  const othersPct = rest.reduce((s, i) => s + i.percentage, 0);
+
+  const labels = top.map(i => i.category);
+  const data = top.map(i => i.currentAmount);
+  const pcts = top.map(i => i.percentage);
+
+  if (rest.length) {
+    labels.push('Otros');
+    data.push(othersTotal);
+    pcts.push(othersPct);
+  }
+
+  // store pcts for tooltip
+  ;(chartData as unknown as { _pcts: number[] })._pcts = pcts;
+
   return {
-    labels: items.map(i => i.category),
+    labels,
     datasets: [
       {
-        data: items.map(i => i.currentAmount),
-        backgroundColor: colors.value.bar,
-        borderColor: colors.value.bar,
+        data,
+        backgroundColor: [
+          colors.value.abcA,
+          colors.value.abcB,
+          colors.value.positive,
+          colors.value.negative,
+          colors.value.info,
+          colors.value.text,
+        ].slice(0, data.length),
+        borderColor: 'transparent',
         borderWidth: 0,
-        borderRadius: 3,
-        barThickness: 16,
+        hoverOffset: 4,
       },
     ],
   };
@@ -47,41 +74,34 @@ const chartData = computed(() => {
 const chartOptions = computed(() => ({
   responsive: true,
   maintainAspectRatio: false,
-  indexAxis: 'y' as const,
+  cutout: '62%',
   plugins: {
-    legend: { display: false },
+    legend: {
+      display: true,
+      position: 'bottom' as const,
+      labels: {
+        boxWidth: 10,
+        boxHeight: 10,
+        usePointStyle: true,
+        pointStyle: 'circle',
+        padding: 14,
+        font: { family: "'Satoshi', sans-serif", size: 11 },
+      },
+    },
     tooltip: {
       callbacks: {
         // eslint-disable-next-line @typescript-eslint/no-explicit-any
         label: (context: any) => {
-          const value = context.parsed?.x ?? 0;
-          const item = props.items[context.dataIndex];
-          const pct = item ? `${item.percentage.toFixed(1)}%` : '';
-          return `${formatCurrency(value)} (${pct})`;
-        },
-      },
-    },
-  },
-  scales: {
-    x: {
-      beginAtZero: true,
-      grid: { color: colors.value.grid },
-      ticks: {
-        // ponytail: compact for thousands — S/ 12.5k not S/ 12,500.00 on axis
-        callback: (value: number | string) => {
-          const n = Number(value)
-          if (Math.abs(n) >= 1000) return `S/ ${(n / 1000).toFixed(n % 1000 === 0 ? 0 : 1)}k`
-          return formatCurrency(n)
-        },
-      },
-    },
-    y: {
-      grid: { display: false },
-      ticks: {
-        font: { family: "'Satoshi', sans-serif", size: 12 },
-        callback: function(this: unknown, val: string | number) {
-          const s = String(val)
-          return s.length > 18 ? s.slice(0, 18) + '…' : s
+          const value = context.parsed ?? 0;
+          const idx = context.dataIndex as number;
+          // pct from sorted slice
+          const sorted = [...props.items].sort((a, b) => b.currentAmount - a.currentAmount);
+          const top = sorted.slice(0, MAX_SLICES);
+          const rest = sorted.slice(MAX_SLICES);
+          let pct: number;
+          if (idx < top.length) pct = top[idx]?.percentage ?? 0;
+          else pct = rest.reduce((s, i) => s + i.percentage, 0);
+          return `${context.label}: ${formatCurrency(value)} (${pct.toFixed(1)}%)`;
         },
       },
     },
@@ -93,27 +113,24 @@ const chartOptions = computed(() => ({
   <div class="cat-chart">
     <template v-if="loading">
       <div class="cat-chart__skeleton">
-        <div v-for="i in 5" :key="i" class="cat-chart__skeleton-row">
-          <div class="skeleton" style="width: 80px; height: 12px" />
-          <div class="skeleton" :style="{ width: `${60 - i * 8}%`, height: '6px' }" />
+        <div class="cat-chart__skeleton-donut">
+          <div class="skeleton" style="width: 120px; height: 120px; border-radius: 50%" />
+          <div class="cat-chart__skeleton-legend">
+            <div v-for="i in 4" :key="i" class="skeleton" style="width: 80px; height: 12px" />
+          </div>
         </div>
       </div>
     </template>
 
     <template v-else-if="empty || items.length === 0">
       <div class="cat-chart__empty">
-        <q-icon name="bar_chart" size="32px" style="color: var(--pq-text-subtle)" aria-hidden="true" />
+        <q-icon name="donut_large" size="32px" style="color: var(--pq-text-subtle)" aria-hidden="true" />
         <p>No hay gastos en este período</p>
       </div>
     </template>
 
     <template v-else>
-      <BaseChart
-        type="bar"
-        :data="chartData"
-        :options="chartOptions"
-        :height="Math.max(200, items.length * 40)"
-      />
+      <BaseChart type="doughnut" :data="chartData" :options="chartOptions" :height="260" />
     </template>
   </div>
 </template>
@@ -126,15 +143,21 @@ const chartOptions = computed(() => ({
   padding: 16px;
 
   &__skeleton {
-    display: flex;
-    flex-direction: column;
-    gap: 12px;
+    padding: 8px 0;
   }
 
-  &__skeleton-row {
+  &__skeleton-donut {
     display: flex;
     align-items: center;
-    gap: 12px;
+    gap: 20px;
+    justify-content: center;
+    flex-wrap: wrap;
+  }
+
+  &__skeleton-legend {
+    display: flex;
+    flex-direction: column;
+    gap: 8px;
   }
 
   &__empty {
