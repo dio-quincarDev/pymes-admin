@@ -215,6 +215,9 @@ const categoryItems = computed(() =>
 <style scoped lang="scss">
 .dashboard-page {
   width: 100%;
+  max-width: 100%;
+  min-width: 0;
+  overflow-x: hidden;
 }
 
 .ptr-indicator {
@@ -280,9 +283,14 @@ const categoryItems = computed(() =>
   gap: 16px;
   margin-top: 24px;
   align-items: stretch;
+  min-width: 0;
+  max-width: 100%;
 
   > * {
     height: 100%;
+    min-width: 0;
+    max-width: 100%;
+    overflow: hidden;
   }
 
   @media (max-width: 768px) {

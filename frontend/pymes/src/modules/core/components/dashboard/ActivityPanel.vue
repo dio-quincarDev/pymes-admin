@@ -103,6 +103,9 @@ function statusClass(status: string) {
   border-radius: 8px;
   padding: 16px;
   height: 100%;
+  min-width: 0;
+  max-width: 100%;
+  overflow: hidden;
 
   &__title {
     font-family: 'Satoshi', sans-serif;
@@ -117,6 +120,8 @@ function statusClass(status: string) {
   &__scroll {
     max-height: 320px;
     overflow-y: auto;
+    overflow-x: hidden;
+    min-width: 0;
   }
 
   &__list {
@@ -128,13 +133,19 @@ function statusClass(status: string) {
   &__row {
     display: flex;
     align-items: center;
-    gap: 12px;
+    gap: 8px;
     padding: 10px 0;
     border-bottom: 1px solid var(--pq-border);
     transition: background var(--pq-motion-fast);
+    min-width: 0;
+    max-width: 100%;
 
     &:last-child { border-bottom: none; }
     &:hover { background: rgba(255, 255, 255, 0.02); }
+
+    @media (max-width: 480px) {
+      gap: 6px;
+    }
   }
 
   &__icon {
@@ -172,13 +183,18 @@ function statusClass(status: string) {
 
   &__amount {
     font-family: 'Geist Mono', monospace;
-    font-size: 14px;
+    font-size: 13px;
     font-weight: 500;
     font-variant-numeric: tabular-nums;
     flex-shrink: 0;
+    white-space: nowrap;
 
     &--gasto { color: var(--pq-danger); }
     &--venta { color: var(--pq-success); }
+
+    @media (max-width: 480px) {
+      font-size: 12px;
+    }
   }
 
   &__badge {
