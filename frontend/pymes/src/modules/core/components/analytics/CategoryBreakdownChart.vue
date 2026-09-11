@@ -67,13 +67,22 @@ const chartOptions = computed(() => ({
       beginAtZero: true,
       grid: { color: colors.value.grid },
       ticks: {
-        callback: (value: number | string) => formatCurrency(Number(value)),
+        // ponytail: compact for thousands — S/ 12.5k not S/ 12,500.00 on axis
+        callback: (value: number | string) => {
+          const n = Number(value)
+          if (Math.abs(n) >= 1000) return `S/ ${(n / 1000).toFixed(n % 1000 === 0 ? 0 : 1)}k`
+          return formatCurrency(n)
+        },
       },
     },
     y: {
       grid: { display: false },
       ticks: {
         font: { family: "'Satoshi', sans-serif", size: 12 },
+        callback: function(this: unknown, val: string | number) {
+          const s = String(val)
+          return s.length > 18 ? s.slice(0, 18) + '…' : s
+        },
       },
     },
   },

@@ -22,22 +22,27 @@ interface ItemForm {
   descuento: number
 }
 
-const props = defineProps<{
+interface Props {
   item: ItemForm
   index: number
   productOptions: ProductOption[]
   unitOptions: { label: string; value: string }[]
   presentationConversionMap: Map<string, number>
-}>()
+}
 
-const emit = defineEmits<{
+interface Emits {
   'update:productoId': [value: string | null]
   'update:presentacionId': [value: string | null]
   'update:cantidad': [value: number | null]
   'update:valor': [value: number | null]
   'update:descuento': [value: number]
   remove: []
-}>()
+}
+
+const props = defineProps<Props>()
+const emit = defineEmits<Emits>()
+
+const selectedLabel = computed(() => props.productOptions.find(o => o.value === props.item.productoId)?.label ?? '')
 
 // ponytail: per-item client filter — category via parent prop, text filters locally (no BE hit)
 const filteredOptions = ref<ProductOption[]>([])
@@ -94,12 +99,17 @@ function fmt(n: number | null) {
         :model-value="item.productoId"
         @update:model-value="emit('update:productoId', $event)"
         :options="filteredOptions"
-        placeholder="Buscar producto..."
+        :placeholder="item.productoId ? '' : 'Buscar producto...'"
+        :display-value="selectedLabel || undefined"
         map-options emit-value use-input input-debounce="0"
         @filter="productFilter"
         class="item-card__product"
         popup-content-class="item-dropdown"
       >
+        <template v-slot:selected>
+          <span v-if="selectedLabel" class="item-card__selected">{{ selectedLabel }}</span>
+          <span v-else class="item-card__placeholder">Buscar producto...</span>
+        </template>
         <template v-slot:option="{ itemProps, opt }">
           <q-item v-bind="itemProps" class="item-dropdown__opt">
             <q-item-section>
@@ -246,6 +256,18 @@ function fmt(n: number | null) {
 
 .item-card__product :deep(.q-field__native) {
   padding: 0 4px !important;
+}
+
+.item-card__selected {
+  font-size: 0.85rem;
+  white-space: nowrap;
+  overflow: hidden;
+  text-overflow: ellipsis;
+}
+
+.item-card__placeholder {
+  color: color-mix(in srgb, var(--pq-accent) 35%, transparent);
+  font-size: 0.85rem;
 }
 
 .item-card__remove {

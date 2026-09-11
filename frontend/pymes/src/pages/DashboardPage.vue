@@ -1,5 +1,5 @@
 <script setup lang="ts">
-import { computed, ref, onMounted } from 'vue';
+import { computed, shallowRef } from 'vue';
 import { useMeta } from 'quasar';
 import { useAuthStore } from 'src/modules/auth/store';
 import { useFinancialDashboard } from 'src/modules/core/composables/useFinancialDashboard';
@@ -10,20 +10,14 @@ import CategoryBreakdownChart from 'src/modules/core/components/analytics/Catego
 import ActivityPanel from 'src/modules/core/components/dashboard/ActivityPanel.vue';
 import FinancialHealthPanel from 'src/modules/core/components/dashboard/FinancialHealthPanel.vue';
 import KpiStrip from 'src/modules/core/components/dashboard/KpiStrip.vue';
-import ResumenCard from 'src/modules/core/components/dashboard/ResumenCard.vue';
-import InversionCard from 'src/modules/core/components/dashboard/InversionCard.vue';
 import RegistrarVentaDialog from 'src/modules/core/components/dashboard/RegistrarVentaDialog.vue';
 import VentasVsCostosChart from 'src/modules/core/components/dashboard/VentasVsCostosChart.vue';
 import { usePullToRefresh } from 'src/composables/usePullToRefresh';
-import { patrimonioService } from 'src/modules/core/services/patrimonio.service';
-import { prestamoService } from 'src/modules/core/services/prestamo.service';
-import type { Patrimonio, Prestamo } from 'src/modules/core/types';
 
 useMeta({ title: 'Dashboard — PYMEQ' });
 
 const authStore = useAuthStore();
 const hasTenant = computed(() => !!authStore.user?.tenantId);
-const tenantId = computed(() => authStore.user?.tenantId ?? '');
 const { formatCurrency } = useNumberFormat();
 
 const {
@@ -45,32 +39,11 @@ const {
 const { financialHealth, loading: analyticsLoading } = useAnalytics();
 const { pullDistance, isRefreshing } = usePullToRefresh({ onRefresh: fetch });
 
-// Patrimonio
-const patrimonio = ref<Patrimonio | null>(null);
-const prestamos = ref<Prestamo[]>([]);
-
-async function loadPatrimonio() {
-  if (!tenantId.value) return;
-  try {
-    const [pRes, prRes] = await Promise.all([
-      patrimonioService.get(tenantId.value),
-      prestamoService.getAll(tenantId.value),
-    ]);
-    patrimonio.value = pRes.data;
-    prestamos.value = prRes.data;
-  } catch {
-    // ponytail: silent fail, card shows fallback
-  }
-}
-
-onMounted(loadPatrimonio);
-
-// Dialog
-const showRegistrarVenta = ref(false);
+// Dialog — shallowRef per reactivity.md (primitive)
+const showRegistrarVenta = shallowRef(false);
 
 function onVentaCreada() {
   void fetch();
-  void loadPatrimonio();
 }
 
 // KPIs for strip
@@ -111,28 +84,7 @@ const stripKpis = computed(() => {
   return items;
 });
 
-// Resumen data
-const resumenVentas = computed(() => costoDiario.value?.ventasHoy ?? 0);
-const resumenCostos = computed(() => costoDiario.value?.costoOperativoDiario ?? 0);
-const resumenMargen = computed(() => resumenVentas.value - resumenCostos.value);
-const resumenCantidadVentas = computed(() => {
-  const today = new Date().toISOString().slice(0, 10);
-  return ventas.value.filter(v => v.fecha === today).length;
-});
 
-// Inversión data
-const capitalInicial = computed(() => patrimonio.value?.capitalInicial ?? 0);
-const mesesRecuperacion = computed(() => {
-  if (!patrimonio.value) return null;
-  const capital = patrimonio.value.capitalInicial;
-  const deudaActiva = prestamos.value
-    .filter(p => p.estado === 'ACTIVO')
-    .reduce((s, p) => s + p.saldoPendiente, 0);
-  const total = capital + deudaActiva;
-  const m = metricas.value;
-  if (!m || m.margenNeto <= 0) return null;
-  return Math.ceil(total / ((m.totalIngresos * m.margenNetoPct) / 100));
-});
 
 // Chart data — últimos 7 días
 const chartData = computed(() => {
@@ -240,22 +192,6 @@ const categoryItems = computed(() =>
       <!-- KPI Strip -->
       <KpiStrip :kpis="stripKpis" :loading="loading" />
 
-      <!-- Main grid: Resumen + Inversión -->
-      <div class="dashboard-grid">
-        <ResumenCard
-          :ventas-hoy="resumenVentas"
-          :costos-dia="resumenCostos"
-          :margen="resumenMargen"
-          :cantidad-ventas="resumenCantidadVentas"
-          :loading="loading"
-        />
-        <InversionCard
-          :capital-inicial="capitalInicial"
-          :meses-recuperacion="mesesRecuperacion"
-          :loading="loading"
-        />
-      </div>
-
       <!-- Chart -->
       <VentasVsCostosChart :data="chartData" :loading="loading" />
 
@@ -339,17 +275,6 @@ const categoryItems = computed(() =>
     font-family: 'Satoshi', sans-serif;
     font-weight: 600;
     border-radius: 6px;
-  }
-}
-
-.dashboard-grid {
-  display: grid;
-  grid-template-columns: 1fr 1fr;
-  gap: 16px;
-  margin-bottom: 20px;
-
-  @media (max-width: 768px) {
-    grid-template-columns: 1fr;
   }
 }
 
