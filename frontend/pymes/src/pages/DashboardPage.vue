@@ -56,22 +56,22 @@ const stripKpis = computed(() => {
   const items = [];
 
   if (cd) {
-    const margen = cd.ventasHoy - cd.costoOperativoDiario;
     items.push({
       label: 'Costos día',
       value: formatCurrency(cd.costoOperativoDiario),
       accent: 'red' as const,
     });
+    const pendientes = facturasPendientes.value.length;
     items.push({
-      label: 'Margen',
-      value: formatCurrency(margen),
-      accent: margen >= 0 ? ('green' as const) : ('red' as const),
+      label: 'Facturas pendientes',
+      value: String(pendientes),
+      accent: pendientes > 0 ? ('red' as const) : ('green' as const),
     });
   }
 
   if (m) {
     items.push({
-      label: 'ROI mes',
+      label: 'Rentabilidad',
       value: `${(m.margenNetoPct ?? 0).toFixed(1)}%`,
       accent: m.margenNetoPct >= 0 ? ('green' as const) : ('red' as const),
     });

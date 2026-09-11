@@ -18,11 +18,31 @@ Usuario pidió: quitar `Ventas hoy` del Dashboard (margen/costo ya cubren), quit
 ### Verificación
 - `npm run lint` 0, `npm run build` Build succeeded PWA 872KB
 
-### Archivos
+### Archivos (previo)
 ```
 frontend/pymes/src/pages/DashboardPage.vue
 frontend/pymes/src/modules/core/pages/AnalisisGastosPage.vue
 frontend/pymes/src/modules/core/components/analytics/TopProductosDonut.vue # nuevo
+```
+
+---
+
+## 2026-09-11 — Dashboard Facturas pendientes + Rentabilidad
+
+### Contexto
+`Margen` (`ventasHoy - costoOperativoDiario`) duplicaba `CostoDiario.gananciaRealEstimada` ya visible en `Costos diarios`; `ROI mes` confuso.
+
+### Qué se hizo
+- **Dashboard `DashboardPage.vue:51`** `stripKpis`: `Margen` → `Facturas pendientes` (`facturasPendientes.value.length` de `useFinancialDashboard.ts:84` `filter status !== PAGADA`, de `facturaService.getAll`), rojo si >0 verde si 0. `ROI mes` → `Rentabilidad` (mismo `margenNetoPct`).
+- Quedan `Costos día | Facturas pendientes | Rentabilidad`.
+
+### Verificación
+- `npm run lint` 0, `npm run build` Build succeeded
+
+### Archivos
+```
+frontend/pymes/src/pages/DashboardPage.vue
+```
 ```
 
 **Estado:** ✅ COMPLETADO
