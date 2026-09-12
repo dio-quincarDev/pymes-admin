@@ -14,12 +14,13 @@ interface Props {
   amount: number;
   breakdown: Breakdown;
   periodo: string;
+  loading?: boolean;
 }
 
-const props = defineProps<Props>();
+const props = withDefaults(defineProps<Props>(), { loading: false });
 const { formatCurrency } = useNumberFormat();
 
-const formatted = computed(() => formatCurrency(props.amount));
+const formatted = computed(() => (props.loading ? '—' : formatCurrency(props.amount)));
 
 const detail = computed(() => {
   if (props.breakdown.total === 0) return `Sin movimientos en ${props.periodo}`;
