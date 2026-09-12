@@ -4,6 +4,33 @@ Registro cronológico de decisiones, problemas resueltos y estado del frontend.
 
 ---
 
+## 2026-09-12 — AnalisisPage mensual desglose + CostosPage composition surface + responsive
+
+**Contexto:** `AnalisisGastosPage` mostraba `Inversión en Productos` all-time `totalInvestment` (histórico) en vez de mensual; `CatalogDashboard` contenía `MonthlyInvestmentKpi` huérfano (no ruteado) por lo que nunca se veía en `/dashboard`. `CostosPage.vue:916` mega-componente (8 secciones, 6 dialogs) violaba `vue-best-practices` (view no era composition surface, estado acoplado, `ref` vs `shallowRef`, `computed` impuro). Mobile `cost-summary` sticky 8 items + `row-item grid 1fr auto auto` desbordaba en 375px.
+
+**Qué se hizo:**
+- **AnalisisPage mensual** `AnalisisGastosPage.vue:6,34,74` reemplaza `MetricCard totalInvestment` por `MonthlyInvestmentKpi :amount monthlyInvestment :breakdown :periodo periodoMensual :loading monthlyLoading` desde `useMonthlyInvestment` (reuse sin endpoint, `watch period+tenantId abort`, `readonly`). `MonthlyInvestmentKpi.vue:14` añade `loading?:boolean` (`withDefaults false`, `formatted → —`).
+- **CostosPage refactor** `CostoPage` → composition surface + `composables/useCostos.ts` **NUEVO** estado `readonly` + acciones explícitas (`loadAll/loadDiario/saveConfig/createProveedor/upsert/remove`) + `computed catGroups/costoFijoDiario/...` (`shallowRef` primitivos, `computed` puro, `readonly`). Split en `components/costos/CostSummaryBar.vue` + `CollaboratorList.vue` + `GastoFijoGroupedList.vue` (props down/events up, PascalCase, scoped class selectors, `script→template→style`). Page queda `~220` líneas vs 916.
+- **Responsive mobile** `CostSummaryBar.vue` `cost-summary__grid` media `≤600px grid 2 cols hide arrows/separator top 48`, `CostosPage.vue` `.cost-tabs overflow-x:auto`, `CollaboratorList/GastoFijoGroupedList` `row-item 1fr 44px touch` (quasar-skilld: responsive CSS classes > Screen plugin, `class` no `content-class`, `v-model` model-value).
+- Ponytail: sin lib nueva, sin endpoint, reuse `facturaService.getAll+costoService.getDiario+usePeriod`.
+
+**Verificación:** `npm run lint` 0, `npm run build` Build succeeded PWA 882KB, `vue-tsc` 0 (fix `readonly[]` props), Quasar 2.19.3 API check OK.
+
+```
+frontend/pymes/src/modules/core/pages/AnalisisGastosPage.vue # MetricCard→MonthlyInvestmentKpi
+frontend/pymes/src/modules/core/components/dashboard/MonthlyInvestmentKpi.vue # +loading
+frontend/pymes/src/modules/core/composables/useCostos.ts # NUEVO readonly composable
+frontend/pymes/src/modules/core/components/costos/CostSummaryBar.vue # NUEVO summary responsive
+frontend/pymes/src/modules/core/components/costos/CollaboratorList.vue # NUEVO list
+frontend/pymes/src/modules/core/components/costos/GastoFijoGroupedList.vue # NUEVO grouped list
+frontend/pymes/src/modules/core/pages/CostosPage.vue # refactor composition surface 916→220
+frontend/pymes/docs/DAILY_REPORTS_FRONTEND.md # 2026-09-12
+```
+
+**Estado:** ✅ COMPLETADO — pendiente commit/push `feature/refactor` → `develop` PR
+
+---
+
 ## 2026-09-11 — Inversión mensual frontend-only + Charts mixed + Idempotencia header
 
 **Contexto:** KPI `Inversión en Productos` mostraba all-time `sum totalInvestment` sin ventana mensual; `VentasVsCostosChart` grouped bar para costo plano duplicaba 14 rects; POST sin `Idempotency-Key` duplicaba facturas en retry.

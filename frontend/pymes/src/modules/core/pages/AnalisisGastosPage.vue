@@ -6,12 +6,14 @@ import { useNumberFormat } from 'src/modules/core/composables/useNumberFormat';
 import { useAnalytics } from '../composables/useAnalytics';
 import { useAnalisisGastos } from '../composables/useAnalisisGastos';
 import { useVentasSemanales } from '../composables/useVentasSemanales';
+import { useMonthlyInvestment } from '../composables/useMonthlyInvestment';
 import AnalyticsHeader from 'src/modules/core/components/analytics/AnalyticsHeader.vue';
 import MetricCard from 'src/modules/core/components/analytics/MetricCard.vue';
 import SupplierRecommendationsCard from 'src/modules/core/components/dashboard/SupplierRecommendationsCard.vue';
 import AlertsPanel from '../components/dashboard/AlertsPanel.vue';
 import FinancialHealthPanel from '../components/dashboard/FinancialHealthPanel.vue';
 import TopProductosDonut from '../components/analytics/TopProductosDonut.vue';
+import MonthlyInvestmentKpi from '../components/dashboard/MonthlyInvestmentKpi.vue';
 
 useMeta({ title: 'Análisis de Gastos — PYMEQ' });
 
@@ -31,8 +33,7 @@ const {
   supplierRecommendations,
 } = useAnalytics();
 
-const { totalInvestment, productCount, loading, load } =
-  useAnalisisGastos(tenantId);
+const { productCount, loading, load } = useAnalisisGastos(tenantId);
 
 const {
   ventasSemanales,
@@ -40,6 +41,13 @@ const {
   loading: ventasLoading,
   fetchVentas,
 } = useVentasSemanales(tenantId);
+
+const {
+  monthlyInvestment,
+  breakdown,
+  periodo: periodoMensual,
+  loading: monthlyLoading,
+} = useMonthlyInvestment();
 
 async function handleLoad() {
   try {
@@ -66,11 +74,11 @@ onMounted(() => {
     />
 
     <div class="metric-row stagger-children">
-      <MetricCard
-        label="Inversión en Productos"
-        :value="formatCurrency(totalInvestment)"
-        accent="gold"
-        :loading="loading"
+      <MonthlyInvestmentKpi
+        :amount="monthlyInvestment"
+        :breakdown="breakdown"
+        :periodo="periodoMensual"
+        :loading="monthlyLoading"
       />
       <MetricCard
         label="Productos"
