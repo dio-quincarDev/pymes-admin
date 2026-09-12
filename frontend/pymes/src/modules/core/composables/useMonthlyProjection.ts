@@ -10,11 +10,12 @@ export function useMonthlyProjection() {
 
   const projectedMonthly = shallowRef(0);
   const avgDailySpend = shallowRef(0);
+  const invoiceCount = shallowRef(0);
   const loading = shallowRef(false);
   const error = shallowRef<string | null>(null);
 
-  // ponytail: con <3 meses de datos el promedio no es fiable
-  const confianzaBaja = computed(() => projectedMonthly.value === 0);
+  // ponytail: <3 facturas PAGADA en el mes → muestra insuficiente → baja confianza; 0 = sin datos
+  const confianzaBaja = computed(() => projectedMonthly.value === 0 || invoiceCount.value < 3);
 
   const proyeccionMensual = computed(() => projectedMonthly.value);
 
@@ -40,6 +41,7 @@ export function useMonthlyProjection() {
         0;
       projectedMonthly.value = Number(projected) || 0;
       avgDailySpend.value = opex?.avgDailySpend ?? 0;
+      invoiceCount.value = opex?.invoiceCount ?? 0;
     } catch (e: unknown) {
       if (signal?.aborted) return;
       error.value = e instanceof Error ? e.message : 'Error cargando proyección';

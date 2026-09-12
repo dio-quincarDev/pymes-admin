@@ -4,6 +4,26 @@ Registro cronológico de decisiones, problemas resueltos y estado del frontend.
 
 ---
 
+## 2026-09-12 (tarde) — Proyección mensual solo PAGADA sin duplicar fijo + baja confianza heurística
+
+**Contexto:** `useMonthlyProjection` sumaba `costoOperativoMensual (3415 fijo config)` + `opex.projectedMonthly (avg PAGADA * diasMes)` duplicando factor; `3415` era fantasma (activo sin PAGADA). `confianzaBaja` solo `===0` no marcaba 1 mes (340).
+
+**Qué se hizo:**
+- `useMonthlyProjection.ts` elimina `costoService.getDiario`, solo `analyticsService.consultar`. `proyeccionMensual = opex.projectedMonthly` (solo PAGADA, `avgDailySpend*diasMes` `AnalyticsServiceImpl:275`). `invoiceCount` + heurística `confianzaBaja = 0 || <3` facturas PAGADA del mes. `breakdown {promedioDiario,total}`.
+- `MonthlyProjectionKpi.vue` props `Breakdown {promedioDiario,total}`, tooltip `Promedio pagado X/día proyectado a YYYY-MM · baja confianza (pocos datos)` cuando `<3` facturas. Funcional desde 1 mes (baja), fiable 60d (3 meses).
+- Ponytail: fijo fuera hasta PAGADA real (`invoice GASTO_OPERATIVO PAGADA`), sin duplicar. Sin endpoint nuevo.
+
+**Verificación:** lint 0 build PWA 888KB
+
+```
+frontend/pymes/src/modules/core/composables/useMonthlyProjection.ts # solo PAGADA + invoiceCount<3
+frontend/pymes/src/modules/core/components/dashboard/MonthlyProjectionKpi.vue # Breakdown promedioDiario
+```
+
+**Estado:** ✅ COMPLETADO
+
+---
+
 ## 2026-09-12 — AnalisisPage mensual desglose + CostosPage composition surface + responsive
 
 **Contexto:** `AnalisisGastosPage` mostraba `Inversión en Productos` all-time `totalInvestment` (histórico) en vez de mensual; `CatalogDashboard` contenía `MonthlyInvestmentKpi` huérfano (no ruteado) por lo que nunca se veía en `/dashboard`. `CostosPage.vue:916` mega-componente (8 secciones, 6 dialogs) violaba `vue-best-practices` (view no era composition surface, estado acoplado, `ref` vs `shallowRef`, `computed` impuro). Mobile `cost-summary` sticky 8 items + `row-item grid 1fr auto auto` desbordaba en 375px.
