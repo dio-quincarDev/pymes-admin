@@ -21,32 +21,32 @@ const color = computed(() => {
   if (clamped.value < 70) return 'var(--pq-warning)';
   return 'var(--pq-success)';
 });
+
+const containerStyle = computed(() => ({ width: props.size + 'px' }));
+const arcStyle = computed(() => ({ width: props.size + 'px', height: props.size / 2 + 'px' }));
+const innerStyle = computed(() => ({ width: props.size - 12 + 'px', height: (props.size - 12) / 2 + 'px' }));
+const fillStyle = computed(() => ({
+  background: `conic-gradient(from 270deg at 50% 100%, ${color.value} 0deg, ${color.value} ${clamped.value * 1.8}deg, var(--pq-elevated) ${clamped.value * 1.8}deg, var(--pq-elevated) 180deg)`,
+}));
+const needleStyle = computed(() => ({ transform: `translateX(-50%) rotate(${rotation.value}deg)` }));
+const valueStyle = computed(() => ({ color: color.value }));
 </script>
 
 <template>
   <div
     class="trader-gauge"
-    :style="{ width: size + 'px' }"
+    :style="containerStyle"
     role="img"
     :aria-label="`${label} ${clamped} de 100`"
   >
-    <div class="trader-gauge__arc" :style="{ width: size + 'px', height: size / 2 + 'px' }">
+    <div class="trader-gauge__arc" :style="arcStyle">
       <div class="trader-gauge__bg" />
-      <div
-        class="trader-gauge__fill"
-        :style="{
-          background: `conic-gradient(from 270deg at 50% 100%, ${color} 0deg, ${color} ${clamped * 1.8}deg, var(--pq-elevated) ${clamped * 1.8}deg, var(--pq-elevated) 180deg)`,
-        }"
-      />
-      <div class="trader-gauge__inner" :style="{ width: size - 12 + 'px', height: (size - 12) / 2 + 'px' }" />
-      <div
-        class="trader-gauge__needle"
-        :style="{ transform: `translateX(-50%) rotate(${rotation}deg)` }"
-        aria-hidden="true"
-      />
+      <div class="trader-gauge__fill" :style="fillStyle" />
+      <div class="trader-gauge__inner" :style="innerStyle" />
+      <div class="trader-gauge__needle" :style="needleStyle" aria-hidden="true" />
       <div class="trader-gauge__center-dot" aria-hidden="true" />
     </div>
-    <div v-if="showValue" class="trader-gauge__value" :style="{ color: color }">{{ clamped }}</div>
+    <div v-if="showValue" class="trader-gauge__value" :style="valueStyle">{{ clamped }}</div>
     <div v-if="label" class="trader-gauge__label">{{ label }}</div>
   </div>
 </template>

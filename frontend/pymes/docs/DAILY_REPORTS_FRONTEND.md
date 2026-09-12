@@ -4,6 +4,28 @@ Registro cronológico de decisiones, problemas resueltos y estado del frontend.
 
 ---
 
+## 2026-09-11 — Inversión mensual frontend-only + Charts mixed + Idempotencia header
+
+**Contexto:** KPI `Inversión en Productos` mostraba all-time `sum totalInvestment` sin ventana mensual; `VentasVsCostosChart` grouped bar para costo plano duplicaba 14 rects; POST sin `Idempotency-Key` duplicaba facturas en retry.
+
+**Qué se hizo:**
+- **Mensual** `composables/useMonthlyInvestment.ts` **NUEVO** `ref facturas` + `shallowRef costo 6h` + `computed insumosMensual (type!=GASTO_OPERATIVO PAGADA issueDate startsWith period) / gastoVariableMensual (GASTO_OPERATIVO) / runningMensual (CostoDiario.costoOperativoMensual) / monthlyInvestment` `watch([period, tenantId] immediate + Abort)` `readonly`. `components/dashboard/MonthlyInvestmentKpi.vue` **NUEVO** props tipadas `amount/breakdown/periodo` → `KpiCard` + `q-tooltip` desglose `Insumos X + variable Y + fijo Z`. `CatalogDashboard.vue` composition surface 3 KPIs estáticos + 1 mensual derivado.
+- **Charts** `VentasVsCostosChart.vue:17` Costos `type:'line' tension 0.3` vs Ventas `bar`, leyenda `bottom center circle` (unifica donas), `scales.x/y title Día/USD`.
+- **Idempotencia** `boot/axios.ts:17` interceptor `POST → Idempotency-Key: crypto.randomUUID()` (fallback `Date.now()+random`) — usa `crypto` nativo sin lib, TTL 6h en `IdempotencyFilter` core.
+- Ponytail: sin endpoint mensual, sin lib chart nueva, reuse `facturaService.getAll` + `costoService.getDiario` + `usePeriod` + `BaseChart`.
+
+```
+frontend/pymes/src/modules/core/composables/useMonthlyInvestment.ts # NUEVO monthly 6h
+frontend/pymes/src/modules/core/components/dashboard/MonthlyInvestmentKpi.vue # NUEVO
+frontend/pymes/src/modules/core/components/dashboard/CatalogDashboard.vue # 3+1 KPIs + periodoMensual
+frontend/pymes/src/modules/core/components/dashboard/VentasVsCostosChart.vue # line vs bar + bottom legend + titles
+frontend/pymes/src/boot/axios.ts # Idempotency-Key per POST
+```
+
+**Verificación:** `npm run lint` 0, `npm run build Build succeeded` (898KB), `vue-tsc` 0. Chart audit `Chart Designer` skill: Donut 5+Otros OK, gauge OK, trend bar→line fix data-ink.
+
+---
+
 ## 2026-09-11 — Cards sizing Dashboard + Vue Best Practices (useVentasSemanales)
 
 ### Contexto

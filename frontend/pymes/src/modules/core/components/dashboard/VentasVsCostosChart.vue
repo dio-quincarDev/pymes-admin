@@ -19,6 +19,7 @@ const chartData = computed(() => ({
   datasets: [
     {
       label: 'Ventas',
+      type: 'bar' as const,
       data: props.data.map(d => d.ventas),
       backgroundColor: colors.value.bar,
       borderColor: colors.value.bar,
@@ -29,13 +30,15 @@ const chartData = computed(() => ({
     },
     {
       label: 'Costos',
+      type: 'line' as const,
       data: props.data.map(d => d.costos),
-      backgroundColor: colors.value.negative,
       borderColor: colors.value.negative,
-      borderWidth: 0,
-      borderRadius: 3,
-      barPercentage: 0.8,
-      categoryPercentage: 0.7,
+      backgroundColor: 'transparent',
+      borderWidth: 2,
+      tension: 0.3,
+      pointRadius: 2,
+      pointBackgroundColor: colors.value.negative,
+      fill: false,
     },
   ],
 }));
@@ -46,14 +49,15 @@ const chartOptions = computed(() => ({
   plugins: {
     legend: {
       display: true,
-      position: 'top' as const,
-      align: 'end' as const,
+      position: 'bottom' as const,
+      align: 'center' as const,
       labels: {
         boxWidth: 10,
         boxHeight: 10,
         usePointStyle: true,
-        pointStyle: 'rectRounded',
+        pointStyle: 'circle',
         padding: 16,
+        font: { family: "'Satoshi', sans-serif", size: 11 },
       },
     },
     tooltip: {
@@ -70,9 +74,11 @@ const chartOptions = computed(() => ({
   scales: {
     x: {
       grid: { display: false },
+      title: { display: true, text: 'Día', font: { family: "'Satoshi', sans-serif", size: 11 } },
     },
     y: {
       beginAtZero: true,
+      title: { display: true, text: 'USD', font: { family: "'Satoshi', sans-serif", size: 11 } },
       ticks: {
         callback: (value: number | string) => formatCurrency(Number(value)),
       },

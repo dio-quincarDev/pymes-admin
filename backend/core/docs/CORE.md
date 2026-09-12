@@ -327,6 +327,17 @@ TTL: 1 hora. Retry: key se conserva si falla (reintenta en proximo ciclo).
 3. Listeners procesan async (pueden fallar sin afectar persistencia)
 4. Idempotencia: debounce Redis deduplica por (tipo, tenant, periodo)
 
+### Idempotencia (POST seguros, 6h)
+
+> **Problema:** Factura `MAX+1` con carrera + reintento de red duplicaba gasto e inversión.
+
+**Solución ponytail — reuse Redis + PG advisory lock, sin tabla/lib nueva:**
+* `IdempotencyFilter.java` (`@Order(0)`): solo `POST`, si trae `Idempotency-Key` hace `SET NX idempotency:{tenant}:{key} → status|contentType|body EX 6h`; si existe, replay directo sin `save()`. Solo cachea `2xx`.
+* `FacturaServiceImpl.java:459 generateInvoiceNumber`: `SELECT pg_advisory_xact_lock(hashtext(tenantId))` antes de `MAX`, evita colisión sin secuencia nueva. Error único aún → `409 CON001`.
+* Frontend `boot/axios.ts`: interceptor añade `Idempotency-Key: crypto.randomUUID()` a cada `POST` (6h TTL en Redis).
+* **Omitido:** tabla `idempotency_keys`, secuencia `tenant_invoice_seq FOR UPDATE`. Añadir si necesitas replay >6h o auditoría.
+* **TTL:** 6h (no 24h) por petición, reusa `StringRedisTemplate` de `RecomputeDebounceService`.
+
 ### Cache
 
 | Aspecto | Detalle |

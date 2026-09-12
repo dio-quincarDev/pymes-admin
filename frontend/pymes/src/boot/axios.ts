@@ -19,6 +19,14 @@ api.interceptors.request.use((config) => {
   if (token) {
     config.headers.Authorization = `Bearer ${token}`;
   }
+  // ponytail: idempotencia 6h — POST lleva Idempotency-Key UUID, reuse crypto nativo sin lib nueva
+  if (config.method?.toLowerCase() === 'post' && !config.headers['Idempotency-Key']) {
+    try {
+      config.headers['Idempotency-Key'] = crypto.randomUUID();
+    } catch {
+      config.headers['Idempotency-Key'] = `${Date.now()}-${Math.random().toString(36).slice(2)}`;
+    }
+  }
   return config;
 }, (error) => {
   return Promise.reject(new Error(error instanceof Error ? error.message : String(error)));

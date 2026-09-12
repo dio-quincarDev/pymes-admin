@@ -457,6 +457,8 @@ public class FacturaServiceImpl implements FacturaService {
     }
 
     private String generateInvoiceNumber(UUID tenantId, int year) {
+        // ponytail: global lock por tenant, per-tenant lock si throughput lo pide. Evita MAX+1 carrera sin secuencia nueva.
+        jdbc.queryForObject("SELECT pg_advisory_xact_lock(hashtext(?))", Void.class, tenantId.toString());
         var prefix = "F-PROV-" + year + "-";
         var max = facturaRepository.findMaxInvoiceNumber(tenantId, prefix + "%");
         var next = max.map(s -> Integer.parseInt(s.substring(prefix.length())) + 1).orElse(1);

@@ -6,6 +6,27 @@ Registro de lo implementado y lo pendiente.
 
 ---
 
+## 2026-09-11 — Idempotencia POST 6h + lock Factura (ponytail)
+
+**Contexto:** `FacturaServiceImpl.java:459 generateInvoiceNumber` usaba `MAX+1` sin lock → 2 POST concurrentes generaban `F-PROV-2026-0004` duplicado o hueco; retry de red (doble click) duplicaba `total_investment` y `factura` sin deduplicación. Solo `sku` tenía `idx_products_tenant_sku:70` + retry.
+
+**Qué se hizo:**
+- `common/config/IdempotencyFilter.java` **NUEVO** `@Order(0) @ConditionalOnBean(StringRedisTemplate)` — solo `POST` con `Idempotency-Key`. `GET idempotency:{tenant}:{key}` → replay (`status|contentType|body`), `ContentCachingResponseWrapper` + `SET NX EX 6h` solo `2xx`. Reusa `StringRedisTemplate` de `RecomputeDebounceService` (sin tabla/lib nueva). TTL 6h por petición del usuario (no 24h). Cel: migrar a `idempotency_keys` PG si necesitas 30d audit.
+- `invoice/service/impl/FacturaServiceImpl.java:459` `SELECT pg_advisory_xact_lock(hashtext(tenantId))` antes de `MAX` — lock transaccional por tenant (ponytail: global lock, per-tenant-year si throughput importa). Evita carrera sin secuencia.
+- `CORE.md:323` `### Idempotencia (POST seguros, 6h)` documentado. `boot/axios.ts` interceptor `crypto.randomUUID()` para cada `POST`.
+- Sin migración Flyway. Skipped: `idempotency_keys` tabla, `tenant_invoice_seq`.
+
+```
+backend/core/src/main/java/core_pymes/common/config/IdempotencyFilter.java # NUEVO 6h SET NX
+backend/core/src/main/java/core_pymes/invoice/service/impl/FacturaServiceImpl.java # +advisory lock
+backend/core/docs/CORE.md # +Idempotencia 6h
+frontend/pymes/src/boot/axios.ts # Idempotency-Key per POST
+```
+
+**Tests:** `193` core unit `BUILD SUCCESS` tras `clean` (antes `FacturaMapperImpl.java:97` stale), `150` auth, `37` gateway. Principio aplicado: mejorar lógica antes que forzar test.
+
+---
+
 ## 2026-09-11 — Facturas: evict cache productos al crear/actualizar/anular
 
 **Contexto:** `ProductoServiceImpl.java:47 @Cacheable("productos") findAll/findById` + `CacheConfig.java 5min TTL` pero `FacturaServiceImpl.java:342 createFactura/updateFactura` tocaba `core.products.last_unit_price/total_investment` vía `jdbc.update` sin invalidar `productos` → `lastUnitPrice` stale hasta TTL. Frontend cambió a `factura getAll()` cache-first, el stale se volvía visible.
