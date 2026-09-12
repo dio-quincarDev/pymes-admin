@@ -24,7 +24,7 @@ const formatted = computed(() => (props.loading ? '—' : formatCurrency(props.a
 
 const detail = computed(() => {
   if (props.breakdown.total === 0) return `Sin movimientos en ${props.periodo}`;
-  return `Insumos ${formatCurrency(props.breakdown.insumos)} + variable ${formatCurrency(props.breakdown.variable)} + fijo ${formatCurrency(props.breakdown.fijo)} · ${props.periodo}`;
+  return `Insumos ${formatCurrency(props.breakdown.insumos)} + variable ${formatCurrency(props.breakdown.variable)} pagado · ${props.periodo}`;
 });
 </script>
 
