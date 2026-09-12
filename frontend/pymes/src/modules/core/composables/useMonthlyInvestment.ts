@@ -5,7 +5,7 @@ import { facturaService } from '../services/factura.service';
 import { costoService } from '../services/costo.service';
 import type { Factura } from '../types';
 
-// ponytail: frontend-only mensual — suma facturas PAGADAS del periodo + costo operativo mensual ya calculado en servidor. Sin endpoint nuevo, sin duplicar lógica de negocio.
+// ponytail: solo PAGADO mes calendario — insumos+variable pagado real, sin fantasma estimado. Fase 2 proyección separada.
 export function useMonthlyInvestment() {
   const authStore = useAuthStore();
   const { period } = usePeriod();
@@ -22,7 +22,7 @@ export function useMonthlyInvestment() {
     ),
   );
 
-  // ponytail: GASTO_OPERATIVO = gasto variable rápido (factura), resto = insumos/compra. costoOperativoMensual = fijo+salarios (colaboradores+gastos fijos) ya mensualizado en /costos/diario.
+  // ponytail: GASTO_OPERATIVO = gasto variable pagado, resto = insumos pagado. Sin fantasma.
   const insumosMensual = computed(() =>
     facturasDelPeriodo.value
       .filter((f) => f.type !== 'GASTO_OPERATIVO')
@@ -35,16 +35,17 @@ export function useMonthlyInvestment() {
       .reduce((s, f) => s + (f.total ?? 0), 0),
   );
 
+  // estimado informativo para fase 2, no suma en card
   const runningMensual = computed(() => costoOperativoMensual.value);
 
   const monthlyInvestment = computed(
-    () => insumosMensual.value + gastoVariableMensual.value + runningMensual.value,
+    () => insumosMensual.value + gastoVariableMensual.value,
   );
 
   const breakdown = computed(() => ({
     insumos: insumosMensual.value,
     variable: gastoVariableMensual.value,
-    fijo: runningMensual.value,
+    fijo: 0,
     total: monthlyInvestment.value,
   }));
 
