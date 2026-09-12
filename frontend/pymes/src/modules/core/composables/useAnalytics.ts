@@ -1,10 +1,9 @@
-import { ref, computed, watch } from 'vue';
+import { ref, shallowRef, computed, watch, readonly } from 'vue';
 import { analyticsService } from '../services/analytics.service';
 import type {
   AnalyticsResponse,
   AnalyticsResponseWire,
   AbcItem,
-  AbcItemWire,
   TrendItem,
   MarginItem,
   OpexItem,
@@ -15,7 +14,9 @@ import type {
   PricePredictionItem,
   FinancialHealth,
   FinancialHealthAlert,
+  FinancialHealthWire,
 } from '../types/analytics';
+import { normalizeAbc, normalizeFinancialHealth } from '../utils/analyticsNormalize';
 import { useAuthStore } from 'src/modules/auth/store';
 import { usePeriod } from './usePeriod';
 
@@ -23,28 +24,8 @@ export function useAnalytics() {
   const authStore = useAuthStore();
   const { period, setPeriod } = usePeriod();
   const data = ref<AnalyticsResponse | null>(null);
-  const loading = ref(false);
-  const error = ref<string | null>(null);
-
-  function toNumber(v: unknown, fallback = 0): number {
-    if (typeof v === 'number' && Number.isFinite(v)) return v;
-    if (typeof v === 'string') {
-      const n = Number(v);
-      return Number.isFinite(n) ? n : fallback;
-    }
-    return fallback;
-  }
-
-  function normalizeAbc(items: AbcItemWire[]): AbcItem[] {
-    return items.map((i) => ({
-      productId: i.productId,
-      productName: i.productName,
-      spend: toNumber(i.spend ?? i.totalSpend),
-      pctTotal: toNumber(i.pctTotal ?? i.pct),
-      cumulativePct: toNumber(i.cumulativePct),
-      category: i.category,
-    }));
-  }
+  const loading = shallowRef(false);
+  const error = shallowRef<string | null>(null);
 
   async function fetch() {
     if (!authStore.user?.tenantId) return;
@@ -59,6 +40,7 @@ export function useAnalytics() {
       data.value = {
         ...wire,
         abc: normalizeAbc(wire.abc ?? []),
+        financialHealth: normalizeFinancialHealth(wire.financialHealth as FinancialHealthWire),
       } as AnalyticsResponse;
     } catch (e: unknown) {
       error.value = e instanceof Error ? e.message : 'Error cargando analytics';
@@ -79,6 +61,7 @@ export function useAnalytics() {
       data.value = {
         ...wire,
         abc: normalizeAbc(wire.abc ?? []),
+        financialHealth: normalizeFinancialHealth(wire.financialHealth as FinancialHealthWire),
       } as AnalyticsResponse;
     } catch (e: unknown) {
       error.value = e instanceof Error ? e.message : 'Error recalculando';
@@ -117,9 +100,9 @@ export function useAnalytics() {
   watch(period, fetch, { immediate: true });
 
   return {
-    data,
-    loading,
-    error,
+    data: readonly(data),
+    loading: readonly(loading),
+    error: readonly(error),
     period,
     setPeriod,
     fetch,

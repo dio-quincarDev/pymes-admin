@@ -4,6 +4,28 @@ Registro cronológico de decisiones técnicas, refactors y post-mortems del proy
 
 ---
 
+## 2026-09-11 — Idempotencia 6h + Inversión mensual + Charts mixed
+
+**Contexto:** `MAX+1` de factura con carrera + retry duplicaba gasto; KPI all-time sin mensual; `VentasVsCostosChart` barras duplicadas para costo plano.
+
+**Qué se hizo:**
+- **Core** `IdempotencyFilter 6h SET NX` + `pg_advisory_xact_lock(tenant)` en `FacturaServiceImpl:459` (sin Flyway).
+- **Frontend** `useMonthlyInvestment` frontend-only mensual `insumos+variable+fijo` + `MonthlyInvestmentKpi` con tooltip + `axios Idempotency-Key per POST` + `VentasVsCostosChart` costo `line tension 0.3` leyenda bottom + títulos Día/USD.
+- **Tests:** `193` core + `150` auth + `37` gateway `BUILD SUCCESS` (`clean` fix MapStruct stale). `lint 0` `build PWA` OK.
+
+```
+backend/core/src/main/java/core_pymes/common/config/IdempotencyFilter.java
+backend/core/src/main/java/core_pymes/invoice/service/impl/FacturaServiceImpl.java
+backend/core/docs/CORE.md + DAILY_REPORTS_CORE_SOLUTIONS.md 2026-09-11
+frontend/pymes/src/boot/axios.ts
+frontend/pymes/src/modules/core/composables/useMonthlyInvestment.ts
+frontend/pymes/src/modules/core/components/dashboard/MonthlyInvestmentKpi.vue
+frontend/pymes/src/modules/core/components/dashboard/VentasVsCostosChart.vue
+frontend/pymes/docs/DAILY_REPORTS_FRONTEND.md 2026-09-11
+```
+
+---
+
 ## 2026-09-11 — Facturas: producto flexible + búsqueda por fila + evict cache
 
 **Contexto:** Factura exige `proveedorId` obligatorio (`FacturasPage.vue:81` rule) pero `Producto.proveedorId` nullable es flexible (mayoría sin vínculo). `filteredByProvider` estricto escondía flexibles; `InvoiceItemCard` sin `@filter` no buscaba por sku/categoría por fila; `loadDependencies search size:100` truncaba y no usaba cache `productos` → "Arroz" no aparecía sin cambiar tab. Backend `FacturaServiceImpl` dejaba `last_unit_price` stale 5min.
