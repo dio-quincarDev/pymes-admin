@@ -15,6 +15,8 @@ import type {
   PricePredictionItem,
   FinancialHealth,
   FinancialHealthAlert,
+  FinancialHealthWire,
+  FinancialHealthAlertWire,
 } from '../types/analytics';
 import { useAuthStore } from 'src/modules/auth/store';
 import { usePeriod } from './usePeriod';
@@ -46,6 +48,27 @@ export function useAnalytics() {
     }));
   }
 
+  function normalizeFinancialHealth(wire: FinancialHealthWire | FinancialHealth | undefined): FinancialHealth | null {
+    if (!wire) return null;
+    const w = wire as FinancialHealthWire;
+    const alerts: FinancialHealthAlert[] = (w.criticalAlerts ?? []).map((a: FinancialHealthAlertWire) => ({
+      code: a.code ?? a.type ?? '',
+      title: a.title ?? '',
+      description: a.description ?? a.message ?? '',
+      current: toNumber(a.current ?? a.metric),
+      threshold: toNumber(a.threshold),
+      action: a.action ?? '',
+    }));
+    return {
+      overallHealth: toNumber(w.overallHealth),
+      breakdown: w.breakdown ?? {},
+      criticalAlerts: alerts,
+      investmentSignals: w.investmentSignals ?? [],
+      expansionReadiness: w.expansionReadiness ?? { score: 0, status: 'SIN_DATOS', requirements: [] },
+      recommendations: w.recommendations ?? [],
+    };
+  }
+
   async function fetch() {
     if (!authStore.user?.tenantId) return;
     loading.value = true;
@@ -59,6 +82,7 @@ export function useAnalytics() {
       data.value = {
         ...wire,
         abc: normalizeAbc(wire.abc ?? []),
+        financialHealth: normalizeFinancialHealth(wire.financialHealth as FinancialHealthWire),
       } as AnalyticsResponse;
     } catch (e: unknown) {
       error.value = e instanceof Error ? e.message : 'Error cargando analytics';
@@ -79,6 +103,7 @@ export function useAnalytics() {
       data.value = {
         ...wire,
         abc: normalizeAbc(wire.abc ?? []),
+        financialHealth: normalizeFinancialHealth(wire.financialHealth as FinancialHealthWire),
       } as AnalyticsResponse;
     } catch (e: unknown) {
       error.value = e instanceof Error ? e.message : 'Error recalculando';

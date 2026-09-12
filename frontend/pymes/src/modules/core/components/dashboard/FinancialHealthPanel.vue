@@ -1,23 +1,38 @@
 <script setup lang="ts">
+import { computed } from 'vue';
 import type { FinancialHealth, FinancialHealthAlert } from 'src/modules/core/types/analytics';
+import TraderGauge from './TraderGauge.vue';
 
 interface Props {
   data: FinancialHealth | null;
   loading?: boolean;
 }
 
-withDefaults(defineProps<Props>(), { loading: false });
-
-function healthColor(score: number): string {
-  if (score < 40) return 'var(--pq-danger)';
-  if (score < 70) return 'var(--pq-warning)';
-  return 'var(--pq-success)';
-}
+const props = withDefaults(defineProps<Props>(), { loading: false });
 
 function alertColor(alert: FinancialHealthAlert): string {
   if (alert.code?.includes('NEGATIVE') || alert.code?.includes('OVER_LEVERAGED')) return 'var(--pq-danger)';
   return 'var(--pq-warning)';
 }
+
+const breakdownItems = computed(() => {
+  const b = props.data?.breakdown;
+  if (!b) return [];
+  const order = ['profitability', 'efficiency', 'stability', 'growth'];
+  const labels: Record<string, string> = {
+    profitability: 'Rentabilidad',
+    efficiency: 'Eficiencia',
+    stability: 'Estabilidad',
+    growth: 'Crecimiento',
+  };
+  return order
+    .filter((k) => k in b)
+    .map((k) => ({
+      key: k,
+      label: labels[k] ?? k,
+      score: b[k]?.score ?? 0,
+    }));
+});
 </script>
 
 <template>
@@ -25,9 +40,12 @@ function alertColor(alert: FinancialHealthAlert): string {
     <h3 class="fh-panel__title">Salud Financiera</h3>
 
     <template v-if="loading">
-      <div class="fh-panel__score-row">
-        <div class="skeleton" style="width: 64px; height: 64px; border-radius: 50%" />
-        <div class="skeleton" style="width: 120px; height: 12px" />
+      <div class="fh-panel__trader">
+        <div class="skeleton" style="width: 180px; height: 90px; border-radius: 90px 90px 0 0" />
+        <div class="skeleton" style="width: 80px; height: 12px; margin-top: 8px" />
+      </div>
+      <div class="fh-panel__breakdown">
+        <div v-for="i in 4" :key="i" class="skeleton" style="height: 70px; border-radius: 8px" />
       </div>
     </template>
 
@@ -39,23 +57,21 @@ function alertColor(alert: FinancialHealthAlert): string {
     </template>
 
     <template v-else>
-      <div class="fh-panel__score-row">
-        <div
-          class="fh-panel__score"
-          :style="{ borderColor: healthColor(data.overallHealth) }"
-        >
-          <span
-            class="fh-panel__score-value"
-            :style="{ color: healthColor(data.overallHealth) }"
-          >{{ data.overallHealth }}</span>
-          <span class="fh-panel__score-label">/ 100</span>
-        </div>
-        <div class="fh-panel__score-meta">
-          <span class="fh-panel__score-title">Índice General</span>
-          <span class="fh-panel__score-sub">
-            {{ data.overallHealth >= 70 ? 'Saludable' : data.overallHealth >= 40 ? 'En desarrollo' : 'Crítico' }}
-          </span>
-        </div>
+      <div class="fh-panel__trader">
+        <TraderGauge :score="data.overallHealth" label="Índice General" :size="180" />
+        <span class="fh-panel__trader-sub">
+          {{ data.overallHealth >= 70 ? 'Saludable' : data.overallHealth >= 40 ? 'En desarrollo' : 'Crítico' }}
+        </span>
+      </div>
+
+      <div v-if="breakdownItems.length" class="fh-panel__breakdown" role="group" aria-label="Desglose por pilar">
+        <TraderGauge
+          v-for="item in breakdownItems"
+          :key="item.key"
+          :score="item.score"
+          :label="item.label"
+          :size="78"
+        />
       </div>
 
       <div v-if="data.criticalAlerts.length" class="fh-panel__section">
@@ -104,6 +120,9 @@ function alertColor(alert: FinancialHealthAlert): string {
   border-radius: 8px;
   padding: 16px;
   height: 100%;
+  min-width: 0;
+  max-width: 100%;
+  overflow: hidden;
 
   &__title {
     font-family: 'Satoshi', sans-serif;
@@ -115,56 +134,27 @@ function alertColor(alert: FinancialHealthAlert): string {
     margin: 0 0 16px;
   }
 
-  &__score-row {
-    display: flex;
-    align-items: center;
-    gap: 16px;
-    margin-bottom: 20px;
-  }
-
-  &__score {
-    width: 64px;
-    height: 64px;
-    border-radius: 50%;
-    border: 3px solid;
+  &__trader {
     display: flex;
     flex-direction: column;
     align-items: center;
-    justify-content: center;
-    flex-shrink: 0;
+    gap: 4px;
+    margin-bottom: 16px;
+    min-width: 0;
   }
 
-  &__score-value {
-    font-family: 'Geist Mono', monospace;
-    font-size: 20px;
-    font-weight: 600;
-    line-height: 1;
-  }
-
-  &__score-label {
-    font-family: 'Satoshi', sans-serif;
-    font-size: 9px;
-    color: var(--pq-text-muted);
-    line-height: 1;
-  }
-
-  &__score-meta {
-    display: flex;
-    flex-direction: column;
-    gap: 2px;
-  }
-
-  &__score-title {
-    font-family: 'Satoshi', sans-serif;
-    font-size: 14px;
-    font-weight: 500;
-    color: var(--pq-text);
-  }
-
-  &__score-sub {
+  &__trader-sub {
     font-family: 'Satoshi', sans-serif;
     font-size: 12px;
     color: var(--pq-text-muted);
+  }
+
+  &__breakdown {
+    display: grid;
+    grid-template-columns: repeat(2, 1fr);
+    gap: 12px;
+    margin-bottom: 20px;
+    min-width: 0;
   }
 
   &__section {
