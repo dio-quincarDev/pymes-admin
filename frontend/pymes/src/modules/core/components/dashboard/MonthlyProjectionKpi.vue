@@ -4,8 +4,7 @@ import { useNumberFormat } from '../../composables/useNumberFormat';
 import KpiCard from './KpiCard.vue';
 
 interface Breakdown {
-  fijo: number;
-  variable: number;
+  promedioDiario: number;
   total: number;
 }
 
@@ -24,7 +23,7 @@ const formatted = computed(() => (props.loading ? '—' : formatCurrency(props.a
 
 const detail = computed(() => {
   if (props.breakdown.total === 0) return `Sin proyección en ${props.periodo}`;
-  const base = `Fijo ${formatCurrency(props.breakdown.fijo)} + variable proyectado ${formatCurrency(props.breakdown.variable)} · ${props.periodo}`;
+  const base = `Promedio pagado ${formatCurrency(props.breakdown.promedioDiario)}/día proyectado a ${props.periodo}`;
   return props.bajaConfianza ? `${base} · baja confianza (pocos datos)` : base;
 });
 </script>
