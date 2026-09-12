@@ -7,6 +7,7 @@ import { useAnalytics } from '../composables/useAnalytics';
 import { useAnalisisGastos } from '../composables/useAnalisisGastos';
 import { useVentasSemanales } from '../composables/useVentasSemanales';
 import { useMonthlyInvestment } from '../composables/useMonthlyInvestment';
+import { useMonthlyProjection } from '../composables/useMonthlyProjection';
 import AnalyticsHeader from 'src/modules/core/components/analytics/AnalyticsHeader.vue';
 import MetricCard from 'src/modules/core/components/analytics/MetricCard.vue';
 import SupplierRecommendationsCard from 'src/modules/core/components/dashboard/SupplierRecommendationsCard.vue';
@@ -14,6 +15,7 @@ import AlertsPanel from '../components/dashboard/AlertsPanel.vue';
 import FinancialHealthPanel from '../components/dashboard/FinancialHealthPanel.vue';
 import TopProductosDonut from '../components/analytics/TopProductosDonut.vue';
 import MonthlyInvestmentKpi from '../components/dashboard/MonthlyInvestmentKpi.vue';
+import MonthlyProjectionKpi from '../components/dashboard/MonthlyProjectionKpi.vue';
 
 useMeta({ title: 'Análisis de Gastos — PYMEQ' });
 
@@ -49,6 +51,14 @@ const {
   loading: monthlyLoading,
 } = useMonthlyInvestment();
 
+const {
+  proyeccionMensual,
+  breakdown: proyeccionBreakdown,
+  confianzaBaja: bajaConfianza,
+  loading: proyeccionLoading,
+  periodo: periodoProyeccion,
+} = useMonthlyProjection();
+
 async function handleLoad() {
   try {
     await load();
@@ -79,6 +89,13 @@ onMounted(() => {
         :breakdown="breakdown"
         :periodo="periodoMensual"
         :loading="monthlyLoading"
+      />
+      <MonthlyProjectionKpi
+        :amount="proyeccionMensual"
+        :breakdown="proyeccionBreakdown"
+        :periodo="periodoProyeccion"
+        :baja-confianza="bajaConfianza"
+        :loading="proyeccionLoading"
       />
       <MetricCard
         label="Productos"
@@ -117,11 +134,15 @@ onMounted(() => {
 <style scoped lang="scss">
 .metric-row {
   display: grid;
-  grid-template-columns: repeat(3, 1fr);
+  grid-template-columns: repeat(4, 1fr);
   gap: 16px;
   margin-bottom: 24px;
 
-  @media (max-width: 768px) {
+  @media (max-width: 1024px) {
+    grid-template-columns: repeat(2, 1fr);
+  }
+
+  @media (max-width: 600px) {
     grid-template-columns: 1fr;
   }
 }
