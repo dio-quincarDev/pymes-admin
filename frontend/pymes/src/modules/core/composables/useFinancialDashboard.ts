@@ -5,7 +5,7 @@ import { accountingService } from '../services/accounting.service';
 import { ventaService } from '../services/venta.service';
 import { facturaService } from '../services/factura.service';
 import { costoService } from '../services/costo.service';
-import type { MetricasFinancieras, VentaDiaria, Factura, CostoDiario } from '../types';
+import type { GastoFijoRecurrente, MetricasFinancieras, VentaDiaria, Factura, CostoDiario } from '../types';
 
 export interface GastoPorCategoria {
   categoria: string;
@@ -37,8 +37,18 @@ export function useFinancialDashboard() {
   const ventas = ref<VentaDiaria[]>([]);
   const facturas = ref<Factura[]>([]);
   const costoDiario = ref<CostoDiario | null>(null);
+  const gastosFijos = ref<GastoFijoRecurrente[]>([]);
   const loading = ref(false);
   const error = ref<string | null>(null);
+
+  // ponytail: map id→categoria reutiliza misma fuente que FacturasPage.categoriaMap — sin migración
+  const categoriaLabelMap = computed(() => new Map(gastosFijos.value.map((g) => [g.id, g.categoria])));
+
+  function resolveCategoria(raw: string | null): string {
+    if (!raw) return 'Sin categoría';
+    // Si es UUID viejo, traduce; si es enum ya guardado, lo deja
+    return categoriaLabelMap.value.get(raw) ?? raw;
+  }
 
   const gastosPorCategoria = computed<GastoPorCategoria[]>(() => {
     const gastosFacturas = facturas.value.filter(
@@ -48,7 +58,7 @@ export function useFinancialDashboard() {
     const totals = new Map<string, number>();
     let grandTotal = 0;
     for (const f of gastosFacturas) {
-      const cat = f.category || 'Sin categoría';
+      const cat = resolveCategoria(f.category);
       totals.set(cat, (totals.get(cat) ?? 0) + f.total);
       grandTotal += f.total;
     }
@@ -66,7 +76,7 @@ export function useFinancialDashboard() {
       .filter((f) => f.type === 'GASTO_OPERATIVO' && f.status === 'PAGADA')
       .map((f) => ({
         type: 'gasto' as const,
-        description: f.category || 'Gasto',
+        description: resolveCategoria(f.category) || 'Gasto',
         amount: f.total,
         date: f.issueDate,
       }));
@@ -92,18 +102,20 @@ export function useFinancialDashboard() {
     error.value = null;
     try {
       const prev = getPreviousPeriod(period.value);
-      const [metricasRes, metricasPrevRes, ventasRes, facturasRes, costoRes] = await Promise.all([
+      const [metricasRes, metricasPrevRes, ventasRes, facturasRes, costoRes, gastosFijosRes] = await Promise.all([
         accountingService.consultar(tenantId, period.value),
         accountingService.consultar(tenantId, prev),
         ventaService.getAll(tenantId),
         facturaService.getAll(tenantId),
         costoService.getDiario(tenantId),
+        costoService.getAllGastosFijos(tenantId),
       ]);
       metricas.value = metricasRes.data;
       metricasPrev.value = metricasPrevRes.data;
       ventas.value = ventasRes.data;
       facturas.value = facturasRes.data;
       costoDiario.value = costoRes.data;
+      gastosFijos.value = gastosFijosRes.data;
     } catch (e: unknown) {
       error.value = e instanceof Error ? e.message : 'Error cargando datos financieros';
     } finally {

@@ -107,6 +107,7 @@
                 v-for="(item, i) in form.items" :key="item._key"
                 :item="item" :index="i"
                 :product-options="filteredByCategory"
+                :all-product-options="allProducts"
                 :unit-options="unitOptions(item.productoId)"
               :presentation-conversion-map="presentationConversionMap"
               @update:productoId="onProductoChange(item, $event)"
@@ -682,6 +683,9 @@ async function save() {
   }
   saving.value = true
   try {
+    const resolvedCategoria = gastoOperativo
+      ? (form.value.categoria ? (categoriaMap.value.get(form.value.categoria) ?? form.value.categoria) : null)
+      : null;
     const payload: FacturaRequest = {
       tenantId,
       proveedorId: form.value.proveedorId,
@@ -689,7 +693,7 @@ async function save() {
       fecha: form.value.fecha,
       tipo: form.value.tipo,
       metodoPago: form.value.metodoPago,
-      category: gastoOperativo ? form.value.categoria : null,
+      category: resolvedCategoria,
       descuentoGlobal: form.value.descuentoGlobal || 0,
       total: gastoOperativo ? form.value.total : null,
       items: gastoOperativo ? [] : form.value.items.map(item => {
