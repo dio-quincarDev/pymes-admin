@@ -1,5 +1,5 @@
 <script setup lang="ts">
-import { computed, ref, watch } from 'vue'
+import { computed, ref, shallowRef, watch } from 'vue'
 
 export interface ProductOption {
   label: string
@@ -26,6 +26,8 @@ interface Props {
   item: ItemForm
   index: number
   productOptions: ProductOption[]
+  /** catálogo completo para resolver label aunque el filtro de categoría oculte el producto */
+  allProductOptions?: ProductOption[]
   unitOptions: { label: string; value: string }[]
   presentationConversionMap: Map<string, number>
 }
@@ -42,25 +44,32 @@ interface Emits {
 const props = defineProps<Props>()
 const emit = defineEmits<Emits>()
 
-const selectedLabel = computed(() => props.productOptions.find(o => o.value === props.item.productoId)?.label ?? '')
+const selectedLabel = computed(() => {
+  const catalog = props.allProductOptions ?? props.productOptions
+  return catalog.find(o => o.value === props.item.productoId)?.label ?? ''
+})
 
-// ponytail: per-item client filter — category via parent prop, text filters locally (no BE hit)
+// ponytail: 3 filtros independientes AND — FacturasPage ya entrega productOptions = proveedor AND categoría; acá texto filtra ENCIMA de esa base y se preserva al cambiar proveedor/categoría
+const searchNeedle = shallowRef('')
 const filteredOptions = ref<ProductOption[]>([])
-watch(() => props.productOptions, v => { filteredOptions.value = [...v] }, { immediate: true })
+
+function getFiltered(list: ProductOption[], needle: string) {
+  if (!needle) return [...list]
+  const n = needle.toLowerCase()
+  return list.filter(o =>
+    o.productName.toLowerCase().includes(n) ||
+    (o.sku ?? '').toLowerCase().includes(n) ||
+    (o.proveedorName ?? '').toLowerCase().includes(n) ||
+    (o.categoryName ?? '').toLowerCase().includes(n)
+  )
+}
+
+watch(() => props.productOptions, v => { filteredOptions.value = getFiltered(v, searchNeedle.value) }, { immediate: true })
 
 function productFilter(val: string, update: (fn: () => void) => void) {
   update(() => {
-    if (!val) {
-      filteredOptions.value = [...props.productOptions]
-      return
-    }
-    const needle = val.toLowerCase()
-    filteredOptions.value = props.productOptions.filter(o =>
-      o.productName.toLowerCase().includes(needle) ||
-      (o.sku ?? '').toLowerCase().includes(needle) ||
-      (o.proveedorName ?? '').toLowerCase().includes(needle) ||
-      (o.categoryName ?? '').toLowerCase().includes(needle)
-    )
+    searchNeedle.value = val ?? ''
+    filteredOptions.value = getFiltered(props.productOptions, searchNeedle.value)
   })
 }
 
@@ -99,8 +108,8 @@ function fmt(n: number | null) {
         :model-value="item.productoId"
         @update:model-value="emit('update:productoId', $event)"
         :options="filteredOptions"
-        :placeholder="item.productoId ? '' : 'Buscar producto...'"
-        :display-value="selectedLabel || undefined"
+        :placeholder="selectedLabel ? '' : 'Buscar producto...'"
+        hide-selected
         map-options emit-value use-input input-debounce="0"
         @filter="productFilter"
         class="item-card__product"
@@ -108,7 +117,6 @@ function fmt(n: number | null) {
       >
         <template v-slot:selected>
           <span v-if="selectedLabel" class="item-card__selected">{{ selectedLabel }}</span>
-          <span v-else class="item-card__placeholder">Buscar producto...</span>
         </template>
         <template v-slot:option="{ itemProps, opt }">
           <q-item v-bind="itemProps" class="item-dropdown__opt">

@@ -1,3 +1,21 @@
+<script setup lang="ts">
+import { shallowRef, computed } from 'vue';
+
+const emit = defineEmits<{
+  start: [name: string];
+}>();
+
+// ponytail: primitive as shallowRef per reactivity.md — avoids deep proxy overhead
+const companyName = shallowRef('');
+
+const trimmedName = computed(() => companyName.value.trim());
+
+function handleSubmit() {
+  if (!trimmedName.value) return;
+  emit('start', trimmedName.value);
+}
+</script>
+
 <template>
   <section class="hero-section q-px-md">
     <div class="q-monogram" aria-hidden="true">Q</div>
@@ -19,16 +37,15 @@
             de dinero y te dice si tu negocio está saludable.
           </p>
 
-          <div class="onboarding-row">
+          <form class="onboarding-row" @submit.prevent="handleSubmit" novalidate>
             <q-input
-              v-model="companyForm.name"
+              v-model="companyName"
               placeholder="Nombre de tu negocio"
               aria-label="Nombre de tu negocio"
               dark
               filled
               color="primary"
               class="company-input focus-ring"
-              @keyup.enter="$emit('start', companyForm.name)"
             >
               <template v-slot:prepend>
                 <q-icon name="store" style="color: var(--pq-accent)" aria-hidden="true" />
@@ -37,12 +54,13 @@
 
             <q-btn
               color="primary"
+              type="submit"
               class="onboarding-btn"
-              @click="$emit('start', companyForm.name)"
+              :disable="!trimmedName"
             >
               CREAR MI ESPACIO
             </q-btn>
-          </div>
+          </form>
 
           <div class="hero-fine-print">
             Sin complicaciones · Diseñado para la realidad de LATAM
@@ -72,16 +90,6 @@
     </div>
   </section>
 </template>
-
-<script setup lang="ts">
-import { reactive } from 'vue';
-
-defineEmits<{
-  start: [name: string];
-}>();
-
-const companyForm = reactive({ name: '' });
-</script>
 
 <style lang="scss" scoped>
 .hero-section {
@@ -180,19 +188,33 @@ const companyForm = reactive({ name: '' });
   display: flex;
   flex-direction: column;
   gap: 12px;
+  width: 100%;
+  max-width: 480px;
+  // ponytail: shared container — fixes asymmetric widths on mobile (320 vs 100%)
 
   @media (min-width: 600px) {
     flex-direction: row;
-    align-items: center;
+    align-items: stretch;
+    max-width: none;
   }
 }
 
 .company-input {
   width: 100%;
-  max-width: 320px;
+  flex: 1 1 auto;
+
+  @media (min-width: 600px) {
+    max-width: 320px;
+  }
+
+  @media (max-width: 599px) {
+    max-width: none;
+  }
 
   :deep(.q-field__control) {
+    min-height: 56px;
     height: 56px;
+    box-sizing: border-box;
     border-radius: var(--pq-radius-sm);
     background: rgba(255, 255, 255, 0.04);
     border: 1px solid var(--pq-border);
@@ -206,12 +228,18 @@ const companyForm = reactive({ name: '' });
 }
 
 .onboarding-btn {
+  min-height: 56px;
   height: 56px;
+  box-sizing: border-box;
   min-width: 180px;
   white-space: nowrap;
 
   @media (max-width: 599px) {
     width: 100%;
+  }
+
+  @media (min-width: 600px) {
+    flex: 0 0 180px;
   }
 }
 

@@ -4,6 +4,50 @@ Registro cronológico de decisiones, problemas resueltos y estado del frontend.
 
 ---
 
+## 2026-09-14 — Facturas: búsqueda indexada + proveedor + categoría (3 independientes) + fix móvil
+
+**Contexto:** `InvoiceItemCard.vue:52` `productFilter` per-item filtraba por `productName/sku/proveedorName/categoryName` sin BE (rápido, `use-input`), pero `watch(productOptions→[...v])` borraba el `needle` al cambiar proveedor/categoría — por eso proveedor/categoría parecían no filtrar cuando había texto. Además `FacturasPage.vue:343` `filteredByProvider` (`!proveedorId || flexible`) + `filteredByCategory:350` (`findCategoryInTree` con hijas) estaban bien pero no se notaban en móvil por doble `Buscar producto...`.
+
+**Qué se hizo:**
+- `InvoiceItemCard.vue:1,52` — `shallowRef searchNeedle` + `getFiltered(list, needle)` + `watch(productOptions → getFiltered(v, needle) immediate:true)` + `productFilter` guarda `needle` y filtra **sobre** `productOptions` (ya es `proveedor AND categoría`). Así texto, proveedor y categoría funcionan solos o juntos (AND si usas varios). Ej: `Toledano` con 2 insumos → al abrir `Buscar producto...` ves 2, escribes `aceite` queda 1.
+- `InvoiceItemCard.vue:7,27,44` — `allProductOptions?: ProductOption[]` + `selectedLabel = (allProductOptions ?? productOptions).find(...)` + `FacturasPage.vue:107 :all-product-options="allProducts"` para no perder el nombre al cambiar de pestaña.
+- `InvoiceItemCard.vue:106` — `q-select` `hide-selected` + `:placeholder="selectedLabel ? '' : 'Buscar producto...'"` + quitado `<span v-else>Buscar...</span>` del slot — queda 1 sola fuente, sin doble en 375px. `display-value` eliminado (duplicaba con slot).
+- Ponytail: sin BE, sin migración, reuse `filteredByCategory` y `productoService.getAll` cache.
+
+**Verificación:** `npm run lint` 0, `npx vue-tsc --noEmit` 0, `npm run build` PWA OK (889KB). Manual 375px: vacío 1x `Buscar...`, elegido muestra label, cambiar proveedor/categoría preserva texto.
+
+```
+frontend/pymes/src/modules/core/components/facturas/InvoiceItemCard.vue # searchNeedle + hide-selected + allProductOptions
+frontend/pymes/src/modules/core/pages/FacturasPage.vue # :all-product-options + filteredByCategory base
+```
+
+**Estado:** ✅ COMPLETADO
+
+---
+
+## 2026-09-14 — Facturas: fix móvil doble Buscar + Dashboard pie sin UUID
+
+**Contexto:** Móvil <599px `InvoiceItemCard` mostraba `Buscar producto...` doble (placeholder nativo + `v-slot:selected` placeholder). Tras elegir seguía viendo `Buscar...` si la categoría cambiaba (`selectedLabel` buscaba solo en `filteredByCategory`). Dashboard `ExpenseBreakdown`/`CategoryBreakdownChart` mostraba UUID en Mantenimiento porque `FacturaRequest.category` String aceptaba `g.id` (`gastoFijoCategorias value=g.id`) y `useFinancialDashboard` sumaba `category` crudo.
+
+**Qué se hizo:**
+- `InvoiceItemCard.vue:106-115` fix doble + fantasma (ver entry anterior, `hide-selected` + `allProductOptions`).
+- `FacturasPage.vue:685` `resolvedCategoria = categoriaMap.get(categoria) ?? categoria` antes de `payload.category` — nuevos `MANTENIMIENTO` se guardan como nombre, no UUID. `useFinancialDashboard.ts:12,38,85` `gastosFijos ref` + `categoriaLabelMap computed` + `resolveCategoria` traduce UUID viejos a nombre en `gastosPorCategoria` y `actividadReciente` (solo visual, sin migración). `CategoryBreakdownChart.vue`/`ExpenseBreakdown.vue:2,74` tipado `TooltipItem<'doughnut'>` y quitado `eslint-disable @typescript-eslint/no-explicit-any` + `as unknown as number[]` para total (lint 0).
+- `LandingHero.vue` (2026-09-14 tarde) — `onboarding-row max-width 480px` compartido + `company-input flex:1` + `media max-width:none` en móvil para simetría 320 vs 100% (fix asimetría `Buscar producto...` landing).
+
+**Verificación:** `npm run lint` 0 (`no-unnecessary-type-assertion` fix), `npx vue-tsc --noEmit` 0, `npm run build` PWA OK. Manual: crear gasto `MANTENIMIENTO` → pie muestra `MANTENIMIENTO`, viejos UUID se ven como nombre.
+
+```
+frontend/pymes/src/modules/core/pages/FacturasPage.vue # resolvedCategoria
+frontend/pymes/src/modules/core/composables/useFinancialDashboard.ts # categoriaLabelMap + resolveCategoria
+frontend/pymes/src/modules/core/components/analytics/CategoryBreakdownChart.vue # TooltipItem tipado
+frontend/pymes/src/modules/core/components/dashboard/ExpenseBreakdown.vue # TooltipItem tipado
+frontend/pymes/src/components/landing/LandingHero.vue # responsive fix
+```
+
+**Estado:** ✅ COMPLETADO
+
+---
+
 ## 2026-09-12 (tarde) — Proyección mensual solo PAGADA sin duplicar fijo + baja confianza heurística
 
 **Contexto:** `useMonthlyProjection` sumaba `costoOperativoMensual (3415 fijo config)` + `opex.projectedMonthly (avg PAGADA * diasMes)` duplicando factor; `3415` era fantasma (activo sin PAGADA). `confianzaBaja` solo `===0` no marcaba 1 mes (340).

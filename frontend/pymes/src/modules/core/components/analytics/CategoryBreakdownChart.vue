@@ -1,5 +1,6 @@
 <script setup lang="ts">
 import { computed } from 'vue';
+import type { TooltipItem } from 'chart.js';
 import { useNumberFormat } from 'src/modules/core/composables/useNumberFormat';
 import { useChartTheme } from 'src/modules/core/composables/useChartTheme';
 import BaseChart from 'src/modules/core/components/charts/BaseChart.vue';
@@ -90,11 +91,9 @@ const chartOptions = computed(() => ({
     },
     tooltip: {
       callbacks: {
-        // eslint-disable-next-line @typescript-eslint/no-explicit-any
-        label: (context: any) => {
-          const value = context.parsed ?? 0;
-          const idx = context.dataIndex as number;
-          // pct from sorted slice
+        label: (context: TooltipItem<'doughnut'>) => {
+          const value = typeof context.parsed === 'number' ? context.parsed : 0;
+          const idx = context.dataIndex;
           const sorted = [...props.items].sort((a, b) => b.currentAmount - a.currentAmount);
           const top = sorted.slice(0, MAX_SLICES);
           const rest = sorted.slice(MAX_SLICES);

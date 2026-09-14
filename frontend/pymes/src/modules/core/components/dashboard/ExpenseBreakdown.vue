@@ -1,5 +1,6 @@
 <script setup lang="ts">
 import { computed } from 'vue';
+import type { TooltipItem } from 'chart.js';
 import type { GastoPorCategoria } from 'src/modules/core/composables/useFinancialDashboard';
 import { useNumberFormat } from 'src/modules/core/composables/useNumberFormat';
 import { useChartTheme } from 'src/modules/core/composables/useChartTheme';
@@ -71,10 +72,9 @@ const chartOptions = computed(() => ({
     },
     tooltip: {
       callbacks: {
-        // eslint-disable-next-line @typescript-eslint/no-explicit-any
-        label: (context: any) => {
-          const value = context.parsed ?? 0;
-          const total = (context.dataset.data as number[]).reduce((a: number, b: number) => a + b, 0);
+        label: (context: TooltipItem<'doughnut'>) => {
+          const value = typeof context.parsed === 'number' ? context.parsed : 0;
+          const total = (context.dataset.data as unknown as number[]).reduce((a: number, b: number) => a + b, 0);
           const pct = total > 0 ? ((value / total) * 100).toFixed(1) : '0';
           return `${context.label}: ${formatCurrency(value)} (${pct}%)`;
         },
