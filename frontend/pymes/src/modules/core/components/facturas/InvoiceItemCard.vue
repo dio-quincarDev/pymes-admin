@@ -131,7 +131,6 @@ function fmt(n: number | null) {
       >
         <template v-slot:selected>
           <span v-if="selectedLabel" class="item-card__selected">{{ selectedLabel }}</span>
-          <span v-else class="item-card__placeholder">Buscar producto...</span>
         </template>
         <template v-slot:option="{ itemProps, opt }">
           <q-item v-bind="itemProps" class="item-dropdown__opt">
