@@ -64,25 +64,30 @@ function getFiltered(list: ProductOption[], needle: string) {
   )
 }
 
-// ponytail: ensure selected stays visible even if filtered out by proveedor/categoría chip — quasar needs option present to resolve display-value
-function withSelectedVisible(list: ProductOption[], needle: string) {
-  const filtered = getFiltered(list, needle)
+// ponytail: single source — text filters on top of proveedor+categoría base from parent; selected only prepended when needle empty so user sees filter working
+function getFilteredWithSelected(list: ProductOption[], needle: string) {
+  const base = getFiltered(list, needle)
   const sel = props.item.productoId
-  if (!sel) return filtered
-  if (filtered.some(o => o.value === sel)) return filtered
-  const catalog = props.allProductOptions ?? props.productOptions
+  if (!sel || needle) return base
+  if (base.some(o => o.value === sel)) return base
+  const catalog = props.allProductOptions?.length ? props.allProductOptions : list
   const found = catalog.find(o => o.value === sel)
-  return found ? [found, ...filtered] : filtered
+  return found ? [found, ...base] : base
 }
 
-watch(() => props.productOptions, v => { filteredOptions.value = withSelectedVisible(v, searchNeedle.value) }, { immediate: true })
-watch(() => props.item.productoId, () => { filteredOptions.value = withSelectedVisible(props.productOptions, searchNeedle.value) })
+watch(() => props.productOptions, v => { filteredOptions.value = getFilteredWithSelected(v, searchNeedle.value) }, { immediate: true })
+watch(() => props.item.productoId, () => { filteredOptions.value = getFilteredWithSelected(props.productOptions, searchNeedle.value) })
 
 function productFilter(val: string, update: (fn: () => void) => void) {
   update(() => {
     searchNeedle.value = val ?? ''
-    filteredOptions.value = withSelectedVisible(props.productOptions, searchNeedle.value)
+    filteredOptions.value = getFilteredWithSelected(props.productOptions, searchNeedle.value)
   })
+}
+
+function onClear() {
+  searchNeedle.value = ''
+  filteredOptions.value = getFilteredWithSelected(props.productOptions, '')
 }
 
 const conversion = computed(() => {
@@ -122,10 +127,11 @@ function fmt(n: number | null) {
         :options="filteredOptions"
         option-value="value"
         option-label="label"
-        placeholder="Buscar producto..."
-        :display-value="selectedLabel || undefined"
+        :placeholder="selectedLabel ? '' : 'Buscar producto...'"
         map-options emit-value use-input input-debounce="0"
+        clearable
         @filter="productFilter"
+        @clear="onClear"
         class="item-card__product"
         popup-content-class="item-dropdown"
       >
