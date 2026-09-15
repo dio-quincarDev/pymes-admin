@@ -64,12 +64,24 @@ function getFiltered(list: ProductOption[], needle: string) {
   )
 }
 
-watch(() => props.productOptions, v => { filteredOptions.value = getFiltered(v, searchNeedle.value) }, { immediate: true })
+// ponytail: ensure selected stays visible even if filtered out by proveedor/categoría chip — quasar needs option present to resolve display-value
+function withSelectedVisible(list: ProductOption[], needle: string) {
+  const filtered = getFiltered(list, needle)
+  const sel = props.item.productoId
+  if (!sel) return filtered
+  if (filtered.some(o => o.value === sel)) return filtered
+  const catalog = props.allProductOptions ?? props.productOptions
+  const found = catalog.find(o => o.value === sel)
+  return found ? [found, ...filtered] : filtered
+}
+
+watch(() => props.productOptions, v => { filteredOptions.value = withSelectedVisible(v, searchNeedle.value) }, { immediate: true })
+watch(() => props.item.productoId, () => { filteredOptions.value = withSelectedVisible(props.productOptions, searchNeedle.value) })
 
 function productFilter(val: string, update: (fn: () => void) => void) {
   update(() => {
     searchNeedle.value = val ?? ''
-    filteredOptions.value = getFiltered(props.productOptions, searchNeedle.value)
+    filteredOptions.value = withSelectedVisible(props.productOptions, searchNeedle.value)
   })
 }
 
@@ -108,8 +120,10 @@ function fmt(n: number | null) {
         :model-value="item.productoId"
         @update:model-value="emit('update:productoId', $event)"
         :options="filteredOptions"
-        :placeholder="selectedLabel ? '' : 'Buscar producto...'"
-        hide-selected
+        option-value="value"
+        option-label="label"
+        placeholder="Buscar producto..."
+        :display-value="selectedLabel || undefined"
         map-options emit-value use-input input-debounce="0"
         @filter="productFilter"
         class="item-card__product"
@@ -117,6 +131,7 @@ function fmt(n: number | null) {
       >
         <template v-slot:selected>
           <span v-if="selectedLabel" class="item-card__selected">{{ selectedLabel }}</span>
+          <span v-else class="item-card__placeholder">Buscar producto...</span>
         </template>
         <template v-slot:option="{ itemProps, opt }">
           <q-item v-bind="itemProps" class="item-dropdown__opt">
