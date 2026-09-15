@@ -107,9 +107,9 @@ public final class InvoiceCalculator {
             discount = req.descuento();
         }
 
-        // 7) Final subtotal (net)
+        // 7) Final subtotal (net) — round per-item HALF_UP 2 so sum(items)==header total (fixes 0.01 diff like 2.27*5.80)
         BigDecimal gross = quantity.multiply(unitPrice);
-        BigDecimal netSubtotal = gross.subtract(discount);
+        BigDecimal netSubtotal = gross.subtract(discount).setScale(2, RoundingMode.HALF_UP);
 
         // 8) ITBMS per item: 0, 7, 10 — default 7, descuento before impuesto
         Integer tasa = req.itbmsTasa();

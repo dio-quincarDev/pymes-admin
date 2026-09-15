@@ -1,10 +1,10 @@
-// ponytail: pure invoice math — same rule as InvoiceCalculator.java: discount before ITBMS, HALF_UP to 2 decimals
+// ponytail: pure invoice math — same rule as InvoiceCalculator.java: discount before ITBMS, HALF_UP to 2 decimals per-item so sum(filas)==total
 export function calcNeto(cantidad: number | null, valor: number | null, descuentoPct: number | null): number {
   const q = cantidad || 0
   const v = valor || 0
   const d = descuentoPct || 0
   if (!q || !v) return 0
-  return q * v * (1 - d / 100)
+  return Math.round(q * v * (1 - d / 100) * 100) / 100
 }
 
 export function calcItbms(neto: number, tasa: number | null | undefined): number {
