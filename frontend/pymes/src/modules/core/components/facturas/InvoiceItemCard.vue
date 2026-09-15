@@ -141,6 +141,11 @@ function fmt(n: number | null) {
         class="item-card__product"
         popup-content-class="item-dropdown"
       >
+        <template v-slot:no-option>
+          <q-item>
+            <q-item-section class="text-caption text-accent">Sin productos — limpia el filtro de categoría o cambia de proveedor</q-item-section>
+          </q-item>
+        </template>
         <template v-slot:selected>
           <span v-if="selectedLabel" class="item-card__selected">{{ selectedLabel }}</span>
         </template>

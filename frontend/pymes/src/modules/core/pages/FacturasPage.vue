@@ -349,9 +349,9 @@ const productBaseUnitMap = computed(() => {
 
 const filteredByProvider = computed(() => {
   const providerId = form.value.proveedorId
-  if (!providerId) return allProducts.value
-  // ponytail: strict provider filter — only products with exact proveedorId (flexibles hidden when provider selected)
-  return allProducts.value.filter(p => p.proveedorId === providerId)
+  if (!providerId) return [...allProducts.value].sort((a, b) => a.productName.localeCompare(b.productName, 'es', { sensitivity: 'base' }))
+  // ponytail: flexible + específico — genéricos (proveedorId=null) visibles en todos los items; sort O(n log n) para <500, BE pg_trgm si escala
+  return allProducts.value.filter(p => !p.proveedorId || p.proveedorId === providerId).sort((a, b) => a.productName.localeCompare(b.productName, 'es', { sensitivity: 'base' }))
 })
 
 const filteredByCategory = computed(() => {
