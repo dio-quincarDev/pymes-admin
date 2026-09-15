@@ -77,6 +77,9 @@ export interface Factura {
   globalDiscount: number | null
   status: EstadoFactura
   total: number
+  subtotalExento?: number
+  subtotalGravado?: number
+  itbmsTotal?: number
   items: ItemFactura[]
   createdAt: string | null
 }
@@ -96,6 +99,8 @@ export interface ItemFactura {
   precioUnitarioInput?: number
   descuentoInput?: number
   descuentoEsPorcentaje?: boolean
+  itbmsTasa?: number
+  itbmsMonto?: number
 }
 
 export interface ItemFacturaRequest {
@@ -109,6 +114,7 @@ export interface ItemFacturaRequest {
   precioUnitarioInput?: number
   descuentoInput?: number
   descuentoEsPorcentaje?: boolean
+  itbmsTasa?: number | null
 }
 
 export interface FacturaRequest {

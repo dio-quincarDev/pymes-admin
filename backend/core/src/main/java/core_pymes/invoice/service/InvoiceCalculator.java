@@ -19,7 +19,9 @@ public final class InvoiceCalculator {
             BigDecimal valorPresentacionOriginal,
             BigDecimal precioUnitarioInputOriginal,
             BigDecimal descuentoInputOriginal,
-            Boolean descuentoEsPorcentajeOriginal
+            Boolean descuentoEsPorcentajeOriginal,
+            Integer itbmsTasa,
+            BigDecimal itbmsMonto
     ) {}
 
     public record ResolveRequest(
@@ -31,7 +33,8 @@ public final class InvoiceCalculator {
             BigDecimal precioUnitarioInput,
             BigDecimal descuentoInput,
             Boolean descuentoEsPorcentaje,
-            int conversionFactor
+            int conversionFactor,
+            Integer itbmsTasa
     ) {}
 
     public static CalculatedItem resolve(ResolveRequest req) {
@@ -108,9 +111,27 @@ public final class InvoiceCalculator {
         BigDecimal gross = quantity.multiply(unitPrice);
         BigDecimal netSubtotal = gross.subtract(discount);
 
+        // 8) ITBMS per item: 0, 7, 10 — default 7, descuento before impuesto
+        Integer tasa = req.itbmsTasa();
+        if (tasa == null) tasa = 7;
+        if (tasa != 0 && tasa != 7 && tasa != 10) {
+            throw new InvalidInputException("ITBMS no permitido: " + tasa + " (use 0, 7 o 10)");
+        }
+        BigDecimal itbmsMonto = BigDecimal.ZERO;
+        if (tasa != 0) {
+            itbmsMonto = netSubtotal.multiply(BigDecimal.valueOf(tasa))
+                    .divide(BigDecimal.valueOf(100), 2, RoundingMode.HALF_UP);
+        }
+
         return new CalculatedItem(
                 quantity, unitPrice, discount, netSubtotal,
-                cantPresOrig, valPresOrig, puInputOrig, descInputOrig, descEsPctOrig
+                cantPresOrig, valPresOrig, puInputOrig, descInputOrig, descEsPctOrig,
+                tasa, itbmsMonto
         );
+    }
+
+    /** Helper for totals */
+    public static BigDecimal sumItbms(List<CalculatedItem> items) {
+        return items.stream().map(CalculatedItem::itbmsMonto).reduce(BigDecimal.ZERO, BigDecimal::add);
     }
 }

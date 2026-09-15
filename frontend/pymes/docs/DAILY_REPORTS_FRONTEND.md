@@ -4,6 +4,30 @@ Registro cronológico de decisiones, problemas resueltos y estado del frontend.
 
 ---
 
+## 2026-09-15 — Facturas: ITBMS por ítem 0/7/10 + Sin/Con ITBMS + default 0 + provider strict
+
+**Contexto:** Usuario no entiende `Gravado` (jerga contador). DGI Panamá ITBMS 0% exento / 7% general / 10% alcohol; `Valor $` sin impuesto, descuento antes de impuesto. Decisión: selector por **ítem en factura** `0/7/10` (`Sin ITBMS (0%)` default opt-in), desglose `Sin ITBMS / Con ITBMS / ITBMS` — no tocar producto. Además `FacturaPage filteredByProvider` flexible `!proveedorId || ===` escondía productos de otros proveedores; usuario pidió **estricto puro** `proveedorId===providerId` (vacío=todos).
+
+**Qué se hizo:**
+- **Tipos** `types/index.ts` `ItemFactura itbmsTasa/itbmsMonto` + `Factura subtotalExento/Gravado/itbmsTotal`.
+- **Util** `utils/invoiceMath.ts` **NUEVO** `calcNeto(q,val,disc%)` + `calcItbms(net,tasa??0)` + `calcBreakdown(items) HALF_UP` → `{exento,gravado,itbms,total}` para breakdown y `InvoiceItemCard` reutiliza misma fórmula que backend.
+- **Item card** `InvoiceItemCard.vue` `+itbmsTasa` + `itbmsOptions [{Sin ITBMS (0%),0},{7%,7},{10%,10}]` + `q-select ITBMS` + fila `Subtotal +X ITBMS` (`itbmsMonto calcItbms`), fix móvil doble Buscar ya en `3ddabb5`.
+- **Factura page** `FacturasPage.vue` `ItemForm itbmsTasa=0` default (`addItem/openEdit/save ??0`), `computedTotal calcBreakdown().total` + `computedBreakdown` + breakdown `Sin ITBMS / Con ITBMS / ITBMS` (antes `Exento/Gravado`), `filteredByProvider` → `p.proveedorId===providerId` estricto (ponytail: sin `M:N product_providers`).
+- **Detalle** `InvoiceDetailDialog.vue` columna `ITBMS` (`itbmsMonto` o `—` si 0) + desglose `Sin ITBMS: / Con ITBMS: / ITBMS:`.
+- **Ponytail:** sin lib, sin endpoint nuevo, `proposal from stage` + `q-select model-value/@update:model-value` Quasar 2.19 `popup-content-class` solo `QSelect`.
+
+```
+frontend/pymes/src/modules/core/types/index.ts                     # +itbmsTasa/Monto subtotalExento/Gravado
+frontend/pymes/src/modules/core/utils/invoiceMath.ts               # NUEVO calcNeto/calcItbms/calcBreakdown
+frontend/pymes/src/modules/core/components/facturas/InvoiceItemCard.vue # +itbms select + subtotal+ITBMS
+frontend/pymes/src/modules/core/pages/FacturasPage.vue             # default 0 Sin/Con ITBMS + provider strict
+frontend/pymes/src/modules/core/components/facturas/InvoiceDetailDialog.vue # col ITBMS + Sin/Con
+```
+
+**Verificación:** `npm run lint` 0, `vue-tsc` 0, `npm run build` PWA 886KB. Manual: crear `2×50 Sin ITBMS + 1×100 7% → Sin 100 Con 100 ITBMS 7 Total 207`.
+
+---
+
 ## 2026-09-14 — Facturas: búsqueda indexada + proveedor + categoría (3 independientes) + fix móvil
 
 **Contexto:** `InvoiceItemCard.vue:52` `productFilter` per-item filtraba por `productName/sku/proveedorName/categoryName` sin BE (rápido, `use-input`), pero `watch(productOptions→[...v])` borraba el `needle` al cambiar proveedor/categoría — por eso proveedor/categoría parecían no filtrar cuando había texto. Además `FacturasPage.vue:343` `filteredByProvider` (`!proveedorId || flexible`) + `filteredByCategory:350` (`findCategoryInTree` con hijas) estaban bien pero no se notaban en móvil por doble `Buscar producto...`.

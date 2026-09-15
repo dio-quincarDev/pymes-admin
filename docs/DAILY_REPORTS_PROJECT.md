@@ -4,6 +4,22 @@ Registro cronológico de decisiones técnicas, refactors y post-mortems del proy
 
 ---
 
+## 2026-09-15 — Factura: ITBMS DGI 0/7/10 por ítem (Sin/Con ITBMS, default 0)
+
+**Contexto:** `Valor $` sin impuesto + descuento antes de impuesto. Mezcla exento (leche 0%) y gravado (jabón 7% / cerveza 10%) por ítem DGI. `Gravado` no lo entiende el tendero → lenguaje `Sin ITBMS / Con ITBMS`.
+
+**Qué se hizo:**
+- **Core V6** `itbms_tasa DEFAULT 0 + itbms_monto + subtotal_exento/gravado/itbms_total`, `InvoiceCalculator tasa null→0 valida 0/7/10 HALF_UP`, `FacturaServiceImpl` desglose + `total=subtotalNet+itbmsTotal`. 8 unit `InvoiceCalculatorItbmsTest` + 5 IT `ItbmsIntegrationTest`. `201 unit + 61 integration BUILD SUCCESS`.
+- **Frontend** `InvoiceItemCard` selector `Sin ITBMS (0%) | 7% | 10%` + `invoiceMath.calcBreakdown`, `FacturasPage` default `0` + breakdown `Sin ITBMS / Con ITBMS / ITBMS` + provider filter estricto `proveedorId===providerId`, `InvoiceDetailDialog` col `ITBMS`. `lint 0 build PWA 886KB vue-tsc 0`.
+- **Docs** `backend/core/docs/DAILY_REPORTS_CORE_SOLUTIONS.md 2026-09-15` + `frontend/pymes/docs/DAILY_REPORTS_FRONTEND.md 2026-09-15`.
+
+```
+backend/core V6__itbms_per_item.sql + InvoiceCalculator + FacturaServiceImpl + FacturaMapper + ItemFactura/Factura + tests 8+5
+frontend invoiceMath + InvoiceItemCard + FacturasPage + InvoiceDetailDialog + types
+```
+
+---
+
 ## 2026-09-11 — Idempotencia 6h + Inversión mensual + Charts mixed
 
 **Contexto:** `MAX+1` de factura con carrera + retry duplicaba gasto; KPI all-time sin mensual; `VentasVsCostosChart` barras duplicadas para costo plano.

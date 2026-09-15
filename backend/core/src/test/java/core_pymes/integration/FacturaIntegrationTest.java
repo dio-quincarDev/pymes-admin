@@ -106,10 +106,14 @@ class FacturaIntegrationTest extends AbstractIntegrationTest {
                         .content(invoiceBody))
                 .andExpect(status().isOk())
                 .andExpect(jsonPath("$.invoiceNumber").value("F-PROV-2026-0001"))
-                .andExpect(jsonPath("$.total").value(55.0))
+                .andExpect(jsonPath("$.total").value(58.85))
+                .andExpect(jsonPath("$.itbmsTotal").value(3.85))
+                .andExpect(jsonPath("$.subtotalGravado").value(55.0))
                 .andExpect(jsonPath("$.status").value("REGISTRADA"))
                 .andExpect(jsonPath("$.items[0].productName").value("Arroz"))
-                .andExpect(jsonPath("$.items[0].subtotal").value(55.0));
+                .andExpect(jsonPath("$.items[0].subtotal").value(55.0))
+                .andExpect(jsonPath("$.items[0].itbmsTasa").value(7))
+                .andExpect(jsonPath("$.items[0].itbmsMonto").value(3.85));
     }
 
     @Test
