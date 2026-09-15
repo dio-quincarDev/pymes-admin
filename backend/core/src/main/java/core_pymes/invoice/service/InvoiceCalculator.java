@@ -111,9 +111,9 @@ public final class InvoiceCalculator {
         BigDecimal gross = quantity.multiply(unitPrice);
         BigDecimal netSubtotal = gross.subtract(discount);
 
-        // 8) ITBMS per item: 0, 7, 10 — default 0, descuento before impuesto
+        // 8) ITBMS per item: 0, 7, 10 — default 7, descuento before impuesto
         Integer tasa = req.itbmsTasa();
-        if (tasa == null) tasa = 0;
+        if (tasa == null) tasa = 7;
         if (tasa != 0 && tasa != 7 && tasa != 10) {
             throw new InvalidInputException("ITBMS no permitido: " + tasa + " (use 0, 7 o 10)");
         }

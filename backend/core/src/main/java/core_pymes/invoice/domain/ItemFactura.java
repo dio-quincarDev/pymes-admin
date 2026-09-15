@@ -66,7 +66,7 @@ public class ItemFactura {
 
     @Builder.Default
     @Column(name = "itbms_tasa", nullable = false)
-    private Integer itbmsTasa = 0;
+    private Integer itbmsTasa = 7;
 
     @Builder.Default
     @Column(name = "itbms_monto", nullable = false)
