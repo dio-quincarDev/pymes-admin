@@ -220,7 +220,8 @@ class FacturaRepositoryTest extends AbstractJpaTest {
                     .factura(invoice).productId(product.getId()).productName("Arroz")
                     .presentacionId(presentacion.getId()).conversionFactor(1)
                     .quantity(new BigDecimal("10")).unitPrice(new BigDecimal("5.50"))
-                    .discount(BigDecimal.ZERO).subtotal(new BigDecimal("55.00")).build());
+                    .discount(BigDecimal.ZERO).subtotal(new BigDecimal("55.00"))
+                    .itbmsTasa(7).itbmsMonto(new BigDecimal("3.85")).build());
 
             em.persistAndFlush(invoice);
             em.clear();

@@ -115,6 +115,7 @@
                 @update:cantidad="item.cantidad = $event"
                 @update:valor="item.valor = $event"
                 @update:descuento="item.descuento = $event"
+                @update:itbmsTasa="item.itbmsTasa = $event"
                 @remove="removeItem(i)"
               />
             </div>
@@ -167,6 +168,11 @@
             </div>
 
             <q-separator dark class="opacity-10 q-mt-sm" />
+            <div v-if="form.items.length" class="invoice-dialog__breakdown">
+              <div class="invoice-dialog__breakdown-row"><span>Sin ITBMS</span><span>{{ formatCurrency(computedBreakdown.exento) }}</span></div>
+              <div class="invoice-dialog__breakdown-row"><span>Con ITBMS</span><span>{{ formatCurrency(computedBreakdown.gravado) }}</span></div>
+              <div class="invoice-dialog__breakdown-row invoice-dialog__breakdown-row--itbms"><span>ITBMS</span><span>{{ formatCurrency(computedBreakdown.itbms) }}</span></div>
+            </div>
             <div v-if="form.items.length || form.tipo === 'GASTO_OPERATIVO'" class="invoice-dialog__total">
               <span class="invoice-dialog__total-label">Total factura</span>
               <span class="invoice-dialog__total-val">{{ formatCurrency(computedTotal) }}</span>
@@ -217,6 +223,7 @@ import { ref, shallowRef, computed, watch, onMounted, onUnmounted, nextTick } fr
 import { useQuasar, useMeta } from 'quasar'
 import { useAuthStore } from 'src/modules/auth/store'
 import { formatCurrency } from 'src/utils/format'
+import { calcBreakdown } from '../utils/invoiceMath'
 import { facturaService } from '../services/factura.service'
 import { productoService } from '../services/producto.service'
 import { proveedorService } from '../services/proveedor.service'
@@ -343,8 +350,8 @@ const productBaseUnitMap = computed(() => {
 const filteredByProvider = computed(() => {
   const providerId = form.value.proveedorId
   if (!providerId) return allProducts.value
-  // ponytail: flexible product (proveedorId=null) visible for any provider
-  return allProducts.value.filter(p => !p.proveedorId || p.proveedorId === providerId)
+  // ponytail: strict provider filter — only products with exact proveedorId (flexibles hidden when provider selected)
+  return allProducts.value.filter(p => p.proveedorId === providerId)
 })
 
 const filteredByCategory = computed(() => {
@@ -370,6 +377,7 @@ interface ItemForm {
   cantidad: number | null
   valor: number | null
   descuento: number
+  itbmsTasa: number
 }
 
 const CATEGORIA_SALARIOS = 'SALARIOS'
@@ -411,6 +419,7 @@ function addItem() {
     cantidad: null,
     valor: null,
     descuento: 0,
+    itbmsTasa: 0,
   })
 }
 
@@ -431,13 +440,11 @@ function removeItem(i: number) {
 
 const computedTotal = computed(() => {
   if (form.value.tipo === 'GASTO_OPERATIVO') return form.value.total || 0
-  return form.value.items.reduce((sum, item) => {
-    const qty = item.cantidad || 0
-    const val = item.valor || 0
-    const disc = item.descuento || 0
-    return sum + (qty * val * (1 - disc / 100))
-  }, 0)
+  // ponytail: derived — single source form.items, no watcher-assigned ref (reactivity.md)
+  return calcBreakdown(form.value.items).total
 })
+
+const computedBreakdown = computed(() => calcBreakdown(form.value.items))
 
 const totalStr = ref('')
 
@@ -590,6 +597,7 @@ async function openEdit(factura: Factura) {
         cantidad: item.cantidadPresentacion ? Number(item.cantidadPresentacion) : (item.conversionFactor && item.conversionFactor > 1 ? Number(item.quantity) / item.conversionFactor : Number(item.quantity)),
         valor: item.valorPresentacion ? Number(item.valorPresentacion) : (item.conversionFactor && item.conversionFactor > 1 ? Number(item.unitPrice) * item.conversionFactor : Number(item.unitPrice)),
         descuento: item.descuentoEsPorcentaje && item.descuentoInput ? Number(item.descuentoInput) : (item.discount && item.quantity ? Number(item.discount) / Number(item.quantity) * 100 : 0),
+        itbmsTasa: item.itbmsTasa ?? 0,
       })),
       total: gastoOperativo ? Number(f.total || 0) : null,
       categoria: gastoOperativo ? CATEGORIA_OTRO : null,
@@ -710,6 +718,7 @@ async function save() {
           descuento: (item.cantidad || 0) * val * ((item.descuento || 0) / 100),
           descuentoInput: item.descuento || 0,
           descuentoEsPorcentaje: true,
+          itbmsTasa: item.itbmsTasa ?? 0,
         }
       }),
     }
@@ -888,6 +897,27 @@ function handleKeydown(e: KeyboardEvent) {
   opacity: 1;
 }
 
+.invoice-dialog__breakdown {
+  display: flex;
+  flex-direction: column;
+  align-items: flex-end;
+  gap: 2px;
+  padding: 8px 0 0;
+  font-family: var(--pq-font-utility);
+  font-variant-numeric: tabular-nums;
+  font-size: 0.78rem;
+  color: var(--pq-text-muted);
+}
+.invoice-dialog__breakdown-row {
+  display: flex;
+  gap: 12px;
+  justify-content: space-between;
+  min-width: 160px;
+}
+.invoice-dialog__breakdown-row--itbms {
+  font-weight: 600;
+  color: var(--pq-accent);
+}
 .invoice-dialog__total {
   display: flex;
   align-items: baseline;

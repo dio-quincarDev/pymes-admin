@@ -21,6 +21,9 @@ public record FacturaResponse(
         String category,
         core_pymes.invoice.domain.EstadoFactura status,
         BigDecimal total,
+        BigDecimal subtotalExento,
+        BigDecimal subtotalGravado,
+        BigDecimal itbmsTotal,
         List<ItemFacturaResponse> items,
         ZonedDateTime createdAt
 ) {}

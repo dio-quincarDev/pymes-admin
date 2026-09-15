@@ -6,6 +6,40 @@ Registro de lo implementado y lo pendiente.
 
 ---
 
+## 2026-09-15 — Factura: ITBMS DGI 0/7/10 por ítem + desglose + default 0 opt-in
+
+**Contexto:** DGI Panamá exige ITBMS 7% general, 10% alcohol/hospedaje, 0% exento (DGI Generalidades). `Valor $` del usuario es sin impuesto, descuento antes de impuesto. Antes ITBMS no existía a nivel ítem; `total=subtotal-discount` perdía `ITBMS`. Decisión producto: selector por **ítem en factura** (no en producto), `default 0% Sin ITBMS` opt-in para no cobrar de más a exentos (leche) mezclados con gravados (jabón 7% / cerveza 10%).
+
+**Qué se hizo:**
+- **Migración** `V6__itbms_per_item.sql` **NUEVO** — `invoice_items.itbms_tasa SMALLINT NOT NULL DEFAULT 0 CHECK (0,7,10)` + `itbms_monto NUMERIC(12,2) DEFAULT 0` + `invoices.subtotal_exento/gravado/itbms_total NUMERIC(12,2) DEFAULT 0` + `idx_invoice_items_itbms`.
+- **Dominio** `ItemFactura.java @Builder.Default itbmsTasa=0 itbmsMonto=0` + `Factura.java subtotalExento/Gravado/itbmsTotal 0`.
+- **DTOs** `ItemFacturaRequest itbmsTasa Integer (null→0 exento)` + `ItemFacturaResponse itbmsTasa/itbmsMonto` + `FacturaResponse subtotalExento/Gravado/itbmsTotal`; `FacturaMapper.java` mapea exento/gravado/itbms.
+- **Cálculo** `InvoiceCalculator.java ResolveRequest(itbmsTasa) → CalculatedItem(itbmsTasa,itbmsMonto)` valida `0/7/10` (`InvalidInputException`), `net=gross-discount`, `itbmsMonto=net*tasa/100 HALF_UP (0 si tasa=0)`; `FacturaServiceImpl.buildItem() exento/gravado/itbmsTotal + total=subtotalNet+itbmsTotal-globalDisc`; `isGastoSinItems` totales 0.
+- **Default 0** — `InvoiceCalculator null→0` + `ItemFactura @Builder.Default 0` + `V6 DEFAULT 0`. Facturas existentes no migradas (ITBMS 0 hasta editar).
+- **Skipped:** `Producto.itbmsTasa` (dejar en factura, producto queda sin impuesto), `15% tabaco` reservado, `V7 DEFAULT 0` solo si se necesita `SET DEFAULT` explícito.
+- **Ponytail:** `InvoiceCalculator` stateless sin lib, reutiliza `HALF_UP` ya usado en `gross/discount`.
+
+```
+backend/core/src/main/resources/db/migration/V6__itbms_per_item.sql     # NUEVO
+backend/core/src/main/java/core_pymes/invoice/domain/ItemFactura.java   # +itbmsTasa/itbmsMonto default 0
+backend/core/src/main/java/core_pymes/invoice/domain/Factura.java       # +subtotalExento/Gravado/itbmsTotal
+backend/core/src/main/java/core_pymes/invoice/dto/ItemFacturaRequest.java
+backend/core/src/main/java/core_pymes/invoice/dto/ItemFacturaResponse.java
+backend/core/src/main/java/core_pymes/invoice/dto/FacturaResponse.java
+backend/core/src/main/java/core_pymes/invoice/mapper/FacturaMapper.java
+backend/core/src/main/java/core_pymes/invoice/service/InvoiceCalculator.java # +itbmsMonto HALF_UP
+backend/core/src/main/java/core_pymes/invoice/service/impl/FacturaServiceImpl.java # +exento/gravado/itbms
+```
+
+**Tests:**
+- `FacturaRepositoryTest` — guarda `itbmsTasa 0 / itbmsMonto 0`.
+- `FacturaServiceImplTest` — actualizado a `ItemFacturaRequest` 11 args `itbmsTasa`, asserts `exento/gravado/itbms`.
+- `InvoiceCalculatorItbmsTest.java` **NUEVO** 8 unit: default 0 exento, 0 exento explícito, 7% 3.85, 10% 6.00, descuento antes ITBMS 6.30, invalid 5/15 →400, HALF_UP 0.70, mixta 100@0+200@7→exento100/gravado200/itbms14/total314.
+- `ItbmsIntegrationTest.java` **NUEVO** 5 IT: mixta 0/7/10 → total 317/itbms17/exento100/gravado200, default 0 →100/0/0, con descuento 96.3/total9.63, 15→400, gasto operativo 0.
+- `FacturaIntegrationTest` ajustado a `total 58.85 itbms 3.85 gravado 55`; `mvn test -DskipIntegrationTests 201/0` + `verify -Pintegration 61/61 BUILD SUCCESS`.
+
+---
+
 ## 2026-09-11 — Idempotencia POST 6h + lock Factura (ponytail)
 
 **Contexto:** `FacturaServiceImpl.java:459 generateInvoiceNumber` usaba `MAX+1` sin lock → 2 POST concurrentes generaban `F-PROV-2026-0004` duplicado o hueco; retry de red (doble click) duplicaba `total_investment` y `factura` sin deduplicación. Solo `sku` tenía `idx_products_tenant_sku:70` + retry.

@@ -64,6 +64,14 @@ public class ItemFactura {
     @Column(name = "descuento_es_porcentaje")
     private Boolean descuentoEsPorcentaje;
 
+    @Builder.Default
+    @Column(name = "itbms_tasa", nullable = false)
+    private Integer itbmsTasa = 0;
+
+    @Builder.Default
+    @Column(name = "itbms_monto", nullable = false)
+    private BigDecimal itbmsMonto = BigDecimal.ZERO;
+
     @CreationTimestamp
     @Column(name = "created_at", nullable = false, updatable = false)
     private ZonedDateTime createdAt;

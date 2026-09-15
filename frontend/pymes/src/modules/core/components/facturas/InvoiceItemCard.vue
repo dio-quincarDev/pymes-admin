@@ -1,5 +1,6 @@
 <script setup lang="ts">
 import { computed, ref, shallowRef, watch } from 'vue'
+import { calcItbms, calcNeto } from 'src/modules/core/utils/invoiceMath'
 
 export interface ProductOption {
   label: string
@@ -20,6 +21,7 @@ interface ItemForm {
   cantidad: number | null
   valor: number | null
   descuento: number
+  itbmsTasa: number
 }
 
 interface Props {
@@ -38,6 +40,7 @@ interface Emits {
   'update:cantidad': [value: number | null]
   'update:valor': [value: number | null]
   'update:descuento': [value: number]
+  'update:itbmsTasa': [value: number]
   remove: []
 }
 
@@ -102,12 +105,15 @@ const precioUnitario = computed(() => {
   return conv > 0 ? val / conv : val
 })
 
-const subtotal = computed(() => {
-  const qty = props.item.cantidad || 0
-  const val = props.item.valor || 0
-  const disc = props.item.descuento || 0
-  return val && qty ? qty * val * (1 - disc / 100) : 0
-})
+const subtotal = computed(() => calcNeto(props.item.cantidad, props.item.valor, props.item.descuento))
+
+const itbmsMonto = computed(() => calcItbms(subtotal.value, props.item.itbmsTasa))
+
+const itbmsOptions = [
+  { label: 'Sin ITBMS (0%)', value: 0 },
+  { label: '7%', value: 7 },
+  { label: '10%', value: 10 },
+]
 
 function fmt(n: number | null) {
   if (n == null || !Number.isFinite(n)) return '—'
@@ -221,11 +227,26 @@ function fmt(n: number | null) {
         />
       </div>
 
+      <div class="item-card__field item-card__field--itbms">
+        <span class="item-card__label">ITBMS</span>
+        <q-select
+          dark dense outlined
+          :model-value="item.itbmsTasa"
+          @update:model-value="emit('update:itbmsTasa', Number($event) ?? 0)"
+          :options="itbmsOptions"
+          map-options emit-value
+          class="item-card__itbms"
+        />
+      </div>
+
       <div class="item-card__field item-card__field--subtotal">
         <span class="item-card__label">Subtotal</span>
-        <span class="item-card__subtotal" :class="{ 'item-card__subtotal--disc': item.descuento > 0 }">
-          {{ fmt(subtotal) }}
-        </span>
+        <div class="item-card__subtotal-wrap">
+          <span class="item-card__subtotal" :class="{ 'item-card__subtotal--disc': item.descuento > 0 }">
+            {{ fmt(subtotal) }}
+          </span>
+          <span v-if="itbmsMonto" class="item-card__itbms-val">+{{ fmt(itbmsMonto) }} ITBMS</span>
+        </div>
       </div>
     </div>
   </div>
@@ -345,7 +366,8 @@ function fmt(n: number | null) {
 .item-card__field--valor { width: 96px; }
 .item-card__field--calc { width: 88px; }
 .item-card__field--disc { width: 54px; }
-.item-card__field--subtotal { width: 105px; }
+.item-card__field--itbms { width: 92px; }
+.item-card__field--subtotal { width: 115px; }
 
 .item-card__field :deep(.q-field__control) {
   min-height: 30px !important;
@@ -379,8 +401,19 @@ function fmt(n: number | null) {
   color: color-mix(in srgb, var(--pq-accent) 25%, transparent);
 }
 
-.item-card__subtotal {
+.item-card__itbms :deep(.q-field__control) { font-size: 0.78rem; }
+
+.item-card__subtotal-wrap {
   height: 30px;
+  display: flex;
+  flex-direction: column;
+  align-items: flex-end;
+  justify-content: center;
+  gap: 0;
+  line-height: 1;
+}
+
+.item-card__subtotal {
   display: flex;
   align-items: center;
   justify-content: flex-end;
@@ -390,6 +423,13 @@ function fmt(n: number | null) {
   font-weight: 700;
   font-variant-numeric: tabular-nums;
   color: var(--pq-accent);
+}
+
+.item-card__itbms-val {
+  font-family: var(--pq-font-utility);
+  font-size: 0.62rem;
+  font-weight: 600;
+  color: color-mix(in srgb, var(--pq-accent) 55%, transparent);
 }
 
 .item-card__subtotal--disc {
@@ -410,6 +450,7 @@ function fmt(n: number | null) {
   .item-card__field--valor { width: 80px; }
   .item-card__field--calc { width: 76px; }
   .item-card__field--disc { width: 46px; }
+  .item-card__field--itbms { width: 80px; }
   .item-card__field--subtotal { width: 88px; }
 }
 

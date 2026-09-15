@@ -158,6 +158,9 @@ public class FacturaServiceImpl implements FacturaService {
             }
             factura.setColaboradorId(request.colaboradorId());
             factura.setColaborador(colaborador);
+            factura.setSubtotalExento(BigDecimal.ZERO);
+            factura.setSubtotalGravado(BigDecimal.ZERO);
+            factura.setItbmsTotal(BigDecimal.ZERO);
             factura.setTotal(nz(request.total()).subtract(factura.getGlobalDiscount()));
             factura = facturaRepository.save(factura);
             eventPublisher.publishEvent(new FacturaCreadaEvent(factura));
@@ -189,13 +192,21 @@ public class FacturaServiceImpl implements FacturaService {
                     .collect(Collectors.toMap(Presentacion::getId, p -> p));
         }
 
-        BigDecimal total = BigDecimal.ZERO;
+        BigDecimal subtotalNet = BigDecimal.ZERO;
+        BigDecimal itbmsTotal = BigDecimal.ZERO;
+        BigDecimal exento = BigDecimal.ZERO;
+        BigDecimal gravado = BigDecimal.ZERO;
         for (var itemReq : request.items()) {
             var calc = buildItem(itemReq, productNameMap, presentacionMap, factura, request.tenantId(), request.fecha());
-            total = total.add(calc.subtotal());
+            subtotalNet = subtotalNet.add(calc.subtotal());
+            itbmsTotal = itbmsTotal.add(calc.itbmsMonto());
+            if (calc.itbmsTasa() == 0) exento = exento.add(calc.subtotal());
+            else gravado = gravado.add(calc.subtotal());
         }
-
-        factura.setTotal(total.subtract(factura.getGlobalDiscount()));
+        factura.setSubtotalExento(exento);
+        factura.setSubtotalGravado(gravado);
+        factura.setItbmsTotal(itbmsTotal);
+        factura.setTotal(subtotalNet.add(itbmsTotal).subtract(factura.getGlobalDiscount()));
         factura = facturaRepository.save(factura);
 
         eventPublisher.publishEvent(new FacturaCreadaEvent(factura));
@@ -236,6 +247,9 @@ public class FacturaServiceImpl implements FacturaService {
             factura.setGlobalDiscount(request.descuentoGlobal() != null ? request.descuentoGlobal() : BigDecimal.ZERO);
             factura.setPaymentMethod(request.metodoPago());
             factura.setCategory(request.category());
+            factura.setSubtotalExento(BigDecimal.ZERO);
+            factura.setSubtotalGravado(BigDecimal.ZERO);
+            factura.setItbmsTotal(BigDecimal.ZERO);
             factura.setTotal(nz(request.total()).subtract(factura.getGlobalDiscount()));
             factura = facturaRepository.save(factura);
             return mapper.toResponse(factura, mapper.toItemResponseList(factura.getItems()));
@@ -270,10 +284,16 @@ public class FacturaServiceImpl implements FacturaService {
         }
 
         // 4. Create new items using InvoiceCalculator
-        BigDecimal total = BigDecimal.ZERO;
+        BigDecimal subtotalNet = BigDecimal.ZERO;
+        BigDecimal itbmsTotal = BigDecimal.ZERO;
+        BigDecimal exento = BigDecimal.ZERO;
+        BigDecimal gravado = BigDecimal.ZERO;
         for (var itemReq : request.items()) {
             var calc = buildItem(itemReq, productNameMap, presentacionMap, factura, tenantId, request.fecha());
-            total = total.add(calc.subtotal());
+            subtotalNet = subtotalNet.add(calc.subtotal());
+            itbmsTotal = itbmsTotal.add(calc.itbmsMonto());
+            if (calc.itbmsTasa() == 0) exento = exento.add(calc.subtotal());
+            else gravado = gravado.add(calc.subtotal());
         }
 
         // 5. Update header
@@ -283,7 +303,10 @@ public class FacturaServiceImpl implements FacturaService {
         factura.setGlobalDiscount(request.descuentoGlobal() != null ? request.descuentoGlobal() : BigDecimal.ZERO);
         factura.setPaymentMethod(request.metodoPago());
         factura.setCategory(request.category());
-        factura.setTotal(total.subtract(factura.getGlobalDiscount()));
+        factura.setSubtotalExento(exento);
+        factura.setSubtotalGravado(gravado);
+        factura.setItbmsTotal(itbmsTotal);
+        factura.setTotal(subtotalNet.add(itbmsTotal).subtract(factura.getGlobalDiscount()));
 
         factura = facturaRepository.save(factura);
         log.debug("Factura updated: {} for tenant {}", factura.getId(), factura.getTenantId());
@@ -322,7 +345,8 @@ public class FacturaServiceImpl implements FacturaService {
                 itemReq.precioUnitarioInput(),
                 itemReq.descuentoInput(),
                 itemReq.descuentoEsPorcentaje(),
-                conversionFactor
+                conversionFactor,
+                itemReq.itbmsTasa()
         );
 
         var calc = InvoiceCalculator.resolve(resolveReq);
@@ -342,6 +366,8 @@ public class FacturaServiceImpl implements FacturaService {
                 .precioUnitarioInput(calc.precioUnitarioInputOriginal())
                 .descuentoInput(calc.descuentoInputOriginal())
                 .descuentoEsPorcentaje(calc.descuentoEsPorcentajeOriginal())
+                .itbmsTasa(calc.itbmsTasa())
+                .itbmsMonto(calc.itbmsMonto())
                 .build();
         factura.getItems().add(item);
 

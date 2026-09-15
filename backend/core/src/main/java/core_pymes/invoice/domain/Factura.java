@@ -71,6 +71,18 @@ public class Factura {
     @Column(nullable = false)
     private BigDecimal total;
 
+    @Column(name = "subtotal_exento", nullable = false)
+    @Builder.Default
+    private BigDecimal subtotalExento = BigDecimal.ZERO;
+
+    @Column(name = "subtotal_gravado", nullable = false)
+    @Builder.Default
+    private BigDecimal subtotalGravado = BigDecimal.ZERO;
+
+    @Column(name = "itbms_total", nullable = false)
+    @Builder.Default
+    private BigDecimal itbmsTotal = BigDecimal.ZERO;
+
     @Builder.Default
     @Column(name = "is_active", nullable = false)
     private Boolean isActive = true;

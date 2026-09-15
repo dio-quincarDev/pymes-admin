@@ -60,6 +60,13 @@ const detailColumns = computed(() => [
     align: 'right' as const,
     format: (v: number) => formatCurrency(v),
   },
+  {
+    name: 'itbms',
+    label: 'ITBMS',
+    field: (row: ItemFactura) => row.itbmsMonto ?? 0,
+    align: 'right' as const,
+    format: (v: number, row: ItemFactura) => (row.itbmsTasa === 0 ? '0% —' : `${row.itbmsTasa ?? 7}% ${formatCurrency(v)}`),
+  },
 ])
 </script>
 
@@ -119,9 +126,16 @@ const detailColumns = computed(() => [
         />
       </q-card-section>
       <q-separator dark />
-      <q-card-section class="row items-center justify-between">
-        <div class="text-caption text-accent" style="letter-spacing:0.08em">TOTAL</div>
-        <div class="text-h6 text-primary" style="font-variant-numeric: tabular-nums">{{ formatCurrency(factura.total) }}</div>
+      <q-card-section class="column items-end q-gutter-y-xs">
+        <div v-if="factura.subtotalExento != null || factura.itbmsTotal != null" class="column items-end text-caption" style="font-variant-numeric: tabular-nums">
+          <div v-if="factura.subtotalExento" class="text-accent">Sin ITBMS: {{ formatCurrency(factura.subtotalExento) }}</div>
+          <div v-if="factura.subtotalGravado" class="text-accent">Con ITBMS: {{ formatCurrency(factura.subtotalGravado) }}</div>
+          <div v-if="factura.itbmsTotal" class="text-primary text-weight-medium">ITBMS: {{ formatCurrency(factura.itbmsTotal) }}</div>
+        </div>
+        <div class="row items-center justify-between full-width">
+          <div class="text-caption text-accent" style="letter-spacing:0.08em">TOTAL</div>
+          <div class="text-h6 text-primary" style="font-variant-numeric: tabular-nums">{{ formatCurrency(factura.total) }}</div>
+        </div>
       </q-card-section>
       <div v-if="factura.globalDiscount" class="text-caption text-accent text-right q-px-md q-pb-sm">Desc. global: -{{ formatCurrency(factura.globalDiscount) }}</div>
     </q-card>
