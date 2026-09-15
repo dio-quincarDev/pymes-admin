@@ -10,6 +10,8 @@
 
 ### Frontend
 
+- [ ] [Media] **Picker categorías sin scroll (40+ con subcategorías)** — `ProductosPage.vue:312` `flattenCategories()` → lista plana 40 items scrolleable; `InvoiceItemCard.vue` dropdown igual. Fix práctico sin BE/seed: `CategoryPicker.vue` agrupado (headers `BEBIDAS` no clicables + hijos indentados, `max-height 320px` virtual Quasar), `Recientes` 3 últimos vía `localStorage pq_recent_cats:{tenantId}` al guardar producto/factura, toggle `Solo usadas` (`Set(rows/productos.category)`), `use-input` typeahead preservado. Reuso `setupCategories` árbol + `allProducts`/`filteredByCategory`. Archivos: `CategoryPicker.vue` nuevo + `ProductosPage.vue` + `InvoiceItemCard.vue`. Visual terminal `#12141A` header `Geist Mono 12px` + selección borde `accent #C8963E`. Nota: `SeedDataRunner.java` queda intocable (solo INSERT arranque). → acordado 2026-09-14, doc en `DAILY_REPORTS_FRONTEND.md` tras implementar.
+
 Estrategia de cierre: → [`FRONTEND_PENDIENTES_STRATEGY.md`](./frontend/pymes/docs/strategies/FRONTEND_PENDIENTES_STRATEGY.md)
 
 **Fase 7 — Amortización de Préstamos** (pendiente)
