@@ -1,3 +1,32 @@
+<script setup lang="ts">
+import { computed, shallowRef } from 'vue';
+import { useNumberFormat } from '../../composables/useNumberFormat';
+import type { SupplierRecommendationItem } from '../../types/analytics';
+
+interface Props {
+  items: SupplierRecommendationItem[];
+}
+
+const props = defineProps<Props>();
+const { formatCurrency } = useNumberFormat();
+
+// ponytail: filtro UI puro — esconde recomendaciones engañosas por compra mínima (ej 1kg a 2.25 vs 10kg a 2.20 = 2% → oculto con >5%); sin backend
+const onlySignificant = shallowRef(false);
+const onlyMultiSupplier = shallowRef(false);
+
+const filteredItems = computed(() => {
+  let list = props.items;
+  if (onlySignificant.value) list = list.filter((r) => r.savingsPct > 5);
+  if (onlyMultiSupplier.value) list = list.filter((r) => r.supplierCount > 2);
+  return list;
+});
+
+function clearFilters() {
+  onlySignificant.value = false;
+  onlyMultiSupplier.value = false;
+}
+</script>
+
 <template>
   <div class="recs-panel">
     <div class="recs-panel__header">
@@ -11,15 +40,55 @@
       </q-badge>
     </div>
 
+    <div v-if="items.length" class="recs-panel__filters">
+      <q-chip
+        :color="onlySignificant ? 'positive' : 'dark'"
+        :text-color="onlySignificant ? 'white' : 'grey-5'"
+        clickable
+        dense
+        :outline="!onlySignificant"
+        icon="savings"
+        @click="onlySignificant = !onlySignificant"
+      >
+        Ahorro &gt;5%
+      </q-chip>
+      <q-chip
+        :color="onlyMultiSupplier ? 'positive' : 'dark'"
+        :text-color="onlyMultiSupplier ? 'white' : 'grey-5'"
+        clickable
+        dense
+        :outline="!onlyMultiSupplier"
+        icon="verified"
+        @click="onlyMultiSupplier = !onlyMultiSupplier"
+      >
+        Probados (3+ prov.)
+      </q-chip>
+      <q-btn
+        v-if="onlySignificant || onlyMultiSupplier"
+        flat
+        dense
+        size="sm"
+        label="Limpiar"
+        class="recs-panel__clear"
+        @click="clearFilters"
+      />
+    </div>
+
     <div v-if="!items.length" class="recs-panel__empty">
       <q-icon name="verified" size="2.5rem" class="recs-panel__empty-icon" />
       <p class="recs-panel__empty-text">Sin recomendaciones disponibles</p>
       <p class="recs-panel__empty-hint">Se necesitan datos de al menos 2 proveedores por producto</p>
     </div>
 
+    <div v-else-if="!filteredItems.length" class="recs-panel__empty">
+      <q-icon name="filter_alt_off" size="2rem" class="recs-panel__empty-icon" />
+      <p class="recs-panel__empty-text">Ninguna coincide con el filtro</p>
+      <q-btn flat dense size="sm" color="positive" label="Limpiar filtros" @click="clearFilters" />
+    </div>
+
     <div v-else class="recs-panel__list">
       <div
-        v-for="(rec, idx) in items"
+        v-for="(rec, idx) in filteredItems"
         :key="rec.productId"
         class="recs-panel__item"
         :style="{ animationDelay: `${idx * 50}ms` }"
@@ -57,15 +126,6 @@
   </div>
 </template>
 
-<script setup lang="ts">
-import { useNumberFormat } from '../../composables/useNumberFormat';
-import type { SupplierRecommendationItem } from '../../types/analytics';
-
-defineProps<{ items: SupplierRecommendationItem[] }>();
-
-const { formatCurrency } = useNumberFormat();
-</script>
-
 <style scoped lang="scss">
 .recs-panel {
   background: rgba(27, 38, 36, 0.7);
@@ -89,7 +149,7 @@ const { formatCurrency } = useNumberFormat();
     top: 0;
     bottom: 0;
     width: 3px;
-    background: #2D5A27;
+    background: #2d5a27;
     border-radius: 0 2px 2px 0;
   }
 
@@ -101,14 +161,14 @@ const { formatCurrency } = useNumberFormat();
     font-family: 'Outfit', sans-serif;
     font-size: 1.1rem;
     font-weight: 600;
-    color: #E2E8E4;
+    color: #e2e8e4;
     margin: 0;
     line-height: 1.2;
   }
 
   &__subtitle {
     font-size: 0.75rem;
-    color: #8A9E99;
+    color: #8a9e99;
     margin: 0.25rem 0 0;
   }
 
@@ -118,6 +178,19 @@ const { formatCurrency } = useNumberFormat();
     font-weight: 600;
     padding: 0.25rem 0.6rem;
     margin-top: 0.15rem;
+  }
+
+  &__filters {
+    display: flex;
+    align-items: center;
+    gap: 8px;
+    padding: 0 1.5rem 0.75rem;
+    flex-wrap: wrap;
+  }
+
+  &__clear {
+    color: #8a9e99;
+    font-size: 0.75rem;
   }
 
   &__empty {
@@ -135,14 +208,14 @@ const { formatCurrency } = useNumberFormat();
 
   &__empty-text {
     font-size: 0.9rem;
-    color: #E2E8E4;
+    color: #e2e8e4;
     font-weight: 500;
     margin: 0;
   }
 
   &__empty-hint {
     font-size: 0.75rem;
-    color: #8A9E99;
+    color: #8a9e99;
     margin: 0;
   }
 
@@ -189,7 +262,7 @@ const { formatCurrency } = useNumberFormat();
   }
 
   &__item:hover &__item-accent {
-    background: #2D5A27;
+    background: #2d5a27;
   }
 
   &__item-content {
@@ -207,7 +280,7 @@ const { formatCurrency } = useNumberFormat();
   &__product {
     font-size: 0.85rem;
     font-weight: 600;
-    color: #E2E8E4;
+    color: #e2e8e4;
   }
 
   &__badges {
@@ -232,12 +305,12 @@ const { formatCurrency } = useNumberFormat();
   }
 
   &__provider-icon {
-    color: #A3785E;
+    color: #a3785e;
   }
 
   &__provider-name {
     font-size: 0.75rem;
-    color: #8A9E99;
+    color: #8a9e99;
   }
 
   &__pricing {
@@ -250,12 +323,12 @@ const { formatCurrency } = useNumberFormat();
     font-family: 'Outfit', sans-serif;
     font-size: 0.95rem;
     font-weight: 700;
-    color: #E2E8E4;
+    color: #e2e8e4;
   }
 
   &__savings {
     font-size: 0.7rem;
-    color: #2D5A27;
+    color: #2d5a27;
     font-weight: 500;
   }
 }
@@ -272,7 +345,8 @@ const { formatCurrency } = useNumberFormat();
 }
 
 @keyframes badgePulse {
-  0%, 100% {
+  0%,
+  100% {
     box-shadow: 0 0 0 0 rgba(45, 90, 39, 0.4);
   }
   50% {

@@ -1,15 +1,30 @@
 <script setup lang="ts">
-import type { FinancialHealthAlert } from 'src/modules/core/types/analytics';
+import { computed } from 'vue';
+import type { FinancialHealthAlert, FinancialHealth, SupplierRecommendationItem } from 'src/modules/core/types/analytics';
+import { isGoodDependence } from 'src/modules/core/utils/financialGuide';
 
 interface Props {
   alerts: FinancialHealthAlert[];
+  health?: FinancialHealth | null;
+  recommendations?: SupplierRecommendationItem[];
 }
 
-defineProps<Props>();
+const props = withDefaults(defineProps<Props>(), { health: null, recommendations: () => [] });
+
+const goodDependence = computed(() => isGoodDependence(props.health ?? null, props.recommendations ?? []));
+
+const alertColors = computed(() => {
+  const map = new Map<string, string>();
+  for (const alert of props.alerts) {
+    if (alert.code?.includes('NEGATIVE') || alert.code?.includes('OVER_LEVERAGED')) map.set(alert.code, 'var(--pq-danger)');
+    else if (alert.code?.includes('SUPPLIER_CONCENTRATION')) map.set(alert.code, goodDependence.value ? 'var(--pq-warning)' : 'var(--pq-danger)');
+    else map.set(alert.code, 'var(--pq-warning)');
+  }
+  return map;
+});
 
 function alertColor(alert: FinancialHealthAlert): string {
-  if (alert.code?.includes('NEGATIVE') || alert.code?.includes('OVER_LEVERAGED')) return 'var(--pq-danger)';
-  return 'var(--pq-warning)';
+  return alertColors.value.get(alert.code) ?? 'var(--pq-warning)';
 }
 </script>
 
