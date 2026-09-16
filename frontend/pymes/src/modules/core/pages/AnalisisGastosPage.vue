@@ -125,7 +125,7 @@ onMounted(() => {
     <SupplierRecommendationsCard :items="supplierRecommendations" class="q-mb-lg" />
 
     <div class="analysis-vital">
-      <FinancialHealthPanel :data="financialHealth" :loading="analyticsLoading" />
+      <FinancialHealthPanel :data="financialHealth" :loading="analyticsLoading" :recommendations="supplierRecommendations" />
       <AlertsPanel :items="alerts" />
     </div>
   </q-page>

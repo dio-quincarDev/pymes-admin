@@ -37,7 +37,7 @@ const {
   recalcular,
 } = useFinancialDashboard();
 
-const { financialHealth, loading: analyticsLoading } = useAnalytics();
+const { financialHealth, supplierRecommendations, loading: analyticsLoading } = useAnalytics();
 const { pullDistance, isRefreshing } = usePullToRefresh({ onRefresh: fetch });
 
 // Dialog — shallowRef per reactivity.md (primitive)
@@ -203,7 +203,7 @@ const categoryItems = computed(() =>
           :facturas="facturasPendientes"
           :loading="loading"
         />
-        <FinancialHealthPanel :data="financialHealth" :loading="analyticsLoading" />
+        <FinancialHealthPanel :data="financialHealth" :loading="analyticsLoading" :recommendations="supplierRecommendations" />
       </div>
 
       <!-- Dialog -->
