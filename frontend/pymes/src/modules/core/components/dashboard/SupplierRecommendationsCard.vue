@@ -42,8 +42,8 @@ function clearFilters() {
 
     <div v-if="items.length" class="recs-panel__filters">
       <q-chip
-        :color="onlySignificant ? 'positive' : 'dark'"
-        :text-color="onlySignificant ? 'white' : 'grey-5'"
+        :color="onlySignificant ? 'positive' : 'grey-4'"
+        :text-color="onlySignificant ? 'white' : 'white'"
         clickable
         dense
         :outline="!onlySignificant"
@@ -53,8 +53,8 @@ function clearFilters() {
         Ahorro &gt;5%
       </q-chip>
       <q-chip
-        :color="onlyMultiSupplier ? 'positive' : 'dark'"
-        :text-color="onlyMultiSupplier ? 'white' : 'grey-5'"
+        :color="onlyMultiSupplier ? 'positive' : 'grey-4'"
+        :text-color="onlyMultiSupplier ? 'white' : 'white'"
         clickable
         dense
         :outline="!onlyMultiSupplier"
@@ -96,7 +96,12 @@ function clearFilters() {
         <div class="recs-panel__item-accent" />
         <div class="recs-panel__item-content">
           <div class="recs-panel__item-header">
-            <span class="recs-panel__product">{{ rec.productName }}</span>
+            <div class="recs-panel__provider-main">
+              <q-avatar size="28px" :style="{ background: '#2D5A27', color: '#fff' }" text-color="white">
+                {{ rec.recommendedProviderName?.[0]?.toUpperCase() ?? 'P' }}
+              </q-avatar>
+              <span class="recs-panel__provider-main-name">{{ rec.recommendedProviderName }}</span>
+            </div>
             <div class="recs-panel__badges">
               <q-badge
                 v-if="rec.supplierCount > 1"
@@ -109,10 +114,7 @@ function clearFilters() {
             </div>
           </div>
           <div class="recs-panel__item-body">
-            <div class="recs-panel__provider">
-              <q-icon name="local_shipping" size="0.85rem" class="recs-panel__provider-icon" />
-              <span class="recs-panel__provider-name">{{ rec.recommendedProviderName }}</span>
-            </div>
+            <span class="recs-panel__product-sub">{{ rec.productName }}</span>
             <div class="recs-panel__pricing">
               <span class="recs-panel__price">{{ formatCurrency(rec.recommendedPrice) }}</span>
               <span v-if="rec.supplierCount > 1" class="recs-panel__savings">
@@ -277,10 +279,32 @@ function clearFilters() {
     margin-bottom: 0.3rem;
   }
 
+  &__provider-main {
+    display: flex;
+    align-items: center;
+    gap: 0.6rem;
+  }
+
+  &__provider-main-name {
+    font-family: 'Outfit', sans-serif;
+    font-size: 0.95rem;
+    font-weight: 700;
+    color: #e2e8e4;
+    line-height: 1.1;
+  }
+
   &__product {
     font-size: 0.85rem;
     font-weight: 600;
     color: #e2e8e4;
+  }
+
+  &__product-sub {
+    font-size: 0.75rem;
+    font-weight: 500;
+    color: #8a9e99;
+    text-transform: uppercase;
+    letter-spacing: 0.03em;
   }
 
   &__badges {
