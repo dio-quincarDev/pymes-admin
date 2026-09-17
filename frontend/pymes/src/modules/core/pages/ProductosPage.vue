@@ -2,6 +2,7 @@
 import { ref, shallowRef, computed, watch, onMounted, onUnmounted } from 'vue'
 import { useQuasar, useMeta } from 'quasar'
 import { useAuthStore } from 'src/modules/auth/store'
+import { useTutorial } from 'src/composables/useTutorial'
 import { api } from 'src/boot/axios'
 import { productoService } from '../services/producto.service'
 import { proveedorService } from '../services/proveedor.service'
@@ -14,6 +15,7 @@ useMeta({ title: 'Productos — PYMEQ' })
 const $q = useQuasar()
 const authStore = useAuthStore()
 const tenantId = authStore.user?.tenantId
+const { showForCurrentRoute } = useTutorial()
 
 const PAGE_SIZE = 12
 const rows = ref<Producto[]>([])
@@ -186,6 +188,7 @@ async function remove() {
 onMounted(async () => {
   await loadSetup()
   await load(1)
+  void showForCurrentRoute()
   window.addEventListener('keydown', handleKeydown)
 })
 
@@ -208,7 +211,7 @@ function handleKeydown(e: KeyboardEvent) {
 
 <template>
   <q-page class="core-page">
-    <div class="q-mb-md">
+    <div class="q-mb-md" data-tour="productos">
       <h1 class="text-h4 text-primary font-bold q-ma-none">Productos</h1>
       <p class="text-subtitle1 text-accent q-mt-xs">Catálogo de productos y presentaciones</p>
     </div>

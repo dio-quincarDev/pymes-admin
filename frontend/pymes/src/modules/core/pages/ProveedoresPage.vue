@@ -2,6 +2,7 @@
 import { ref, shallowRef, computed, watch, onMounted, onUnmounted } from 'vue';
 import { useQuasar, useMeta } from 'quasar';
 import { useAuthStore } from 'src/modules/auth/store';
+import { useTutorial } from 'src/composables/useTutorial';
 import { proveedorService } from '../services/proveedor.service';
 import type { Proveedor, ProveedorRequest } from '../types';
 import EmptyState from 'src/components/ui/EmptyState.vue';
@@ -11,6 +12,7 @@ useMeta({ title: 'Proveedores — PYMEQ' });
 const $q = useQuasar();
 const authStore = useAuthStore();
 const tenantId = authStore.user?.tenantId;
+const { showForCurrentRoute } = useTutorial();
 
 const PAGE_SIZE = 9
 const rows = ref<Proveedor[]>([]);
@@ -144,8 +146,11 @@ async function remove() {
 }
 
 onMounted(() => {
-  if (!tenantId) return;
-  void load();
+  if (!tenantId) {
+    void showForCurrentRoute();
+    return;
+  }
+  void load().then(() => showForCurrentRoute());
   window.addEventListener('keydown', handleKeydown);
 });
 
@@ -165,7 +170,7 @@ function handleKeydown(e: KeyboardEvent) {
 
 <template>
   <q-page class="core-page">
-    <div class="q-mb-md">
+    <div class="q-mb-md" data-tour="proveedores">
       <h1 class="text-h4 text-primary font-bold q-ma-none">Proveedores</h1>
       <p class="text-subtitle1 text-accent q-mt-xs">Gestion de proveedores</p>
     </div>

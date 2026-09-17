@@ -1,6 +1,6 @@
 <template>
   <q-page class="core-page">
-    <div class="q-mb-md fade-in-up">
+    <div class="q-mb-md fade-in-up" data-tour="facturas">
       <h1 class="text-h4 text-primary font-bold q-ma-none">Facturas</h1>
       <p class="text-subtitle1 text-accent q-mt-xs">Registro de facturas de proveedores</p>
     </div>
@@ -222,6 +222,7 @@
 import { ref, shallowRef, computed, watch, onMounted, onUnmounted, nextTick } from 'vue'
 import { useQuasar, useMeta } from 'quasar'
 import { useAuthStore } from 'src/modules/auth/store'
+import { useTutorial } from 'src/composables/useTutorial'
 import { formatCurrency } from 'src/utils/format'
 import { calcBreakdown } from '../utils/invoiceMath'
 import { facturaService } from '../services/factura.service'
@@ -241,6 +242,7 @@ useMeta({ title: 'Facturas — PYMEQ' })
 const $q = useQuasar()
 const authStore = useAuthStore()
 const tenantId = authStore.user?.tenantId
+const { showForCurrentRoute } = useTutorial()
 // ponytail: delete solo OWNER; PAGADA->ANULADA conserva items, REGISTRADA borra
 const isOwner = computed(() => authStore.user?.role === 'OWNER')
 
@@ -803,8 +805,12 @@ async function load() {
 }
 
 onMounted(async () => {
-  if (!tenantId) return;
+  if (!tenantId) {
+    void showForCurrentRoute();
+    return;
+  }
   await Promise.all([load(), loadDependencies()])
+  void showForCurrentRoute();
   window.addEventListener('keydown', handleKeydown)
 })
 

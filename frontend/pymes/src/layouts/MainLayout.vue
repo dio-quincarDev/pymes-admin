@@ -52,6 +52,27 @@
           <span class="logo-text">PYMEQ</span>
         </q-toolbar-title>
 
+        <q-btn flat round icon="sym_r_help" aria-label="Ayuda — ver tutorial" class="q-mr-xs" @click="startTour(true)">
+          <q-tooltip>Ayuda — ver tutorial</q-tooltip>
+          <q-menu
+            v-model="showHint"
+            anchor="bottom middle"
+            self="top middle"
+            :offset="[8, 10]"
+            :auto-close="false"
+            class="tour-hint-menu"
+            style="background: transparent; box-shadow: none;"
+          >
+            <div class="tour-hint tour-hint--enter">
+              <div class="tour-hint__title">¿Primera vez acá?</div>
+              <div class="tour-hint__desc">Recorrido de 7 pasos (20 seg) — inversión → gastos → proveedores → productos → facturas → dashboard → análisis.</div>
+              <div class="tour-hint__actions">
+                <q-btn flat dense no-caps label="Ahora no" class="tour-hint__dismiss" @click="dismissHint" />
+                <q-btn unelevated dense no-caps label="Empezar tour →" color="primary" text-color="dark" @click="acceptHint" />
+              </div>
+            </div>
+          </q-menu>
+        </q-btn>
         <q-btn round flat aria-label="Menú de usuario" aria-haspopup="menu">
           <q-avatar size="32px" style="background: var(--pq-accent); color: var(--pq-background); font-family: 'Geist', sans-serif; font-weight: 700; font-size: 14px;">
             {{ userInitials }}
@@ -160,17 +181,33 @@
 </template>
 
 <script setup lang="ts">
-import { ref, shallowRef, onMounted, onUnmounted, computed } from 'vue';
+import { ref, shallowRef, onMounted, onUnmounted, computed, watch } from 'vue';
 import { useQuasar } from 'quasar';
 import { useRoute, useRouter } from 'vue-router';
 import { useLogout } from 'src/composables/useLogout';
 import { useAuthStore } from 'src/modules/auth/store';
+import { useTutorial } from 'src/composables/useTutorial';
 
 const $q = useQuasar();
 const route = useRoute();
 const router = useRouter();
 const { logout: handleLogout } = useLogout();
 const authStore = useAuthStore();
+const { startTour, showForCurrentRoute, hasSeen, isActive } = useTutorial();
+const HINT_SEEN_KEY = 'pymeq_hint_seen';
+const showHint = ref(false);
+let hintTimer: ReturnType<typeof setTimeout> | null = null;
+
+function dismissHint() {
+  showHint.value = false;
+  localStorage.setItem(HINT_SEEN_KEY, 'true');
+}
+
+function acceptHint() {
+  showHint.value = false;
+  localStorage.setItem(HINT_SEEN_KEY, 'true');
+  startTour(true);
+}
 
 const leftDrawerOpen = ref(false);
 const activeRoute = computed(() => route.path);
@@ -246,6 +283,18 @@ onMounted(() => {
   window.addEventListener('sw-update-ready', onSwUpdate);
   window.addEventListener('beforeinstallprompt', onBeforeInstall);
   navigator.serviceWorker?.addEventListener('controllerchange', onSwControllerChange);
+  // ponytail: tutorial triggers per-page; layout watches route for cross-navigation
+  void showForCurrentRoute();
+  // ponytail: mini popover hint — single-shot, on-demand via ? after dismiss
+  const hasTenant = !!authStore.user?.tenantId;
+  const hintSeen = typeof window !== 'undefined' && localStorage.getItem(HINT_SEEN_KEY) === 'true';
+  if (hasTenant && !hasSeen() && !isActive() && !hintSeen) {
+    hintTimer = setTimeout(() => { showHint.value = true; }, 800);
+  }
+});
+
+watch(() => route.path, () => {
+  void showForCurrentRoute();
 });
 
 onUnmounted(() => {
@@ -254,6 +303,7 @@ onUnmounted(() => {
   window.removeEventListener('sw-update-ready', onSwUpdate);
   window.removeEventListener('beforeinstallprompt', onBeforeInstall);
   navigator.serviceWorker?.removeEventListener('controllerchange', onSwControllerChange);
+  if (hintTimer) clearTimeout(hintTimer);
 });
 
 interface NavItem {

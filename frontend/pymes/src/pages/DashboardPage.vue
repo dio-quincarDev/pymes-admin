@@ -1,7 +1,8 @@
 <script setup lang="ts">
-import { computed, shallowRef } from 'vue';
+import { computed, shallowRef, onMounted } from 'vue';
 import { useMeta } from 'quasar';
 import { useAuthStore } from 'src/modules/auth/store';
+import { useTutorial } from 'src/composables/useTutorial';
 import { useFinancialDashboard } from 'src/modules/core/composables/useFinancialDashboard';
 import { useAnalytics } from 'src/modules/core/composables/useAnalytics';
 import { useNumberFormat } from 'src/modules/core/composables/useNumberFormat';
@@ -20,6 +21,11 @@ useMeta({ title: 'Dashboard — PYMEQ' });
 const authStore = useAuthStore();
 const hasTenant = computed(() => !!authStore.user?.tenantId);
 const { formatCurrency } = useNumberFormat();
+const { showForCurrentRoute } = useTutorial();
+
+onMounted(() => {
+  void showForCurrentRoute();
+});
 
 const {
   metricas,
@@ -47,37 +53,30 @@ function onVentaCreada() {
   void fetch();
 }
 
-// KPIs for strip
+// KPIs for strip — always 3 slots so layout doesn't jump when API is slow/empty (ponytail: derived, no extra state)
 const stripKpis = computed(() => {
   const m = metricas.value;
   const cd = costoDiario.value;
-  if (!m && !cd) return [];
 
-  const items = [];
+  const pendientes = facturasPendientes.value.length;
 
-  if (cd) {
-    items.push({
+  return [
+    {
       label: 'Costos día',
-      value: formatCurrency(cd.costoOperativoDiario),
+      value: cd ? formatCurrency(cd.costoOperativoDiario) : '—',
       accent: 'red' as const,
-    });
-    const pendientes = facturasPendientes.value.length;
-    items.push({
+    },
+    {
       label: 'Facturas pendientes',
       value: String(pendientes),
       accent: pendientes > 0 ? ('red' as const) : ('green' as const),
-    });
-  }
-
-  if (m) {
-    items.push({
+    },
+    {
       label: 'Rentabilidad',
-      value: `${(m.margenNetoPct ?? 0).toFixed(1)}%`,
-      accent: m.margenNetoPct >= 0 ? ('green' as const) : ('red' as const),
-    });
-  }
-
-  return items;
+      value: m ? `${(m.margenNetoPct ?? 0).toFixed(1)}%` : '—',
+      accent: !m ? ('gold' as const) : m.margenNetoPct >= 0 ? ('green' as const) : ('red' as const),
+    },
+  ];
 });
 
 
@@ -142,14 +141,16 @@ const categoryItems = computed(() =>
     </template>
 
     <template v-else>
-      <AnalyticsHeader
-        title="Dashboard"
-        subtitle="Cómo está mi negocio hoy"
-        :period="periodo"
-        :loading="loading"
-        @update:period="setPeriod"
-        @recalculate="recalcular"
-      />
+      <div data-tour="dashboard">
+        <AnalyticsHeader
+          title="Dashboard"
+          subtitle="Cómo está mi negocio hoy"
+          :period="periodo"
+          :loading="loading"
+          @update:period="setPeriod"
+          @recalculate="recalcular"
+        />
+      </div>
 
       <div v-if="error && !loading" class="dashboard-error-banner">
         <q-icon name="error_outline" size="18px" />
