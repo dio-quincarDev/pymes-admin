@@ -4,6 +4,37 @@ Registro cronológico de decisiones, problemas resueltos y estado del frontend.
 
 ---
 
+## 2026-09-16 — AnalisisPage: MetricCard fix + Salud Financiera criolla + filtros Proveedor/Alertas
+
+**Contexto:** `AnalisisGastosPage` kpiCards invertidos (`MetricCard.vue:31` valor arriba label abajo vs `KpiCard` label arriba), `Salud Financiera` con puntajes técnicos (66/100 30 rojo sin contexto), `Recomendaciones por Proveedor` generaba falsos positivos por compra mínima (1kg $2.25 vs 10kg $2.20), `Alertas` mostraba `Mayonesa 0.00 vs 3.88`, y `Recomendaciones` tenía jerarquía Producto>Proveedor y chips verdes ilegibles sobre fondo oscuro.
+
+**Qué se hizo:**
+- **MetricCard** `MetricCard.vue:31-48` swap `__label` arriba / `__value` abajo + skeletons + SCSS margin.
+- **Salud criolla dinámica** `utils/financialGuide.ts` **NUEVO** `guideForPillar/overallGuide/isGoodDependence` deriva `mantén` invirtiendo scoring desde `breakdown.drivers` (sin hardcode tabla). `FinancialHealthBreakdown.vue:12-26` subtítulos criollos + `q-tooltip`; `FinancialHealthPanel.vue:15-50` banda `0-39/40-69/70-84/85-100` + guide; `FinancialHealthAlerts.vue:1` color amarillo/rojo según `isGoodDependence`. Cableado `AnalisisGastosPage.vue:128` + `DashboardPage.vue:206` pasan `supplierRecommendations`.
+- **Filtros Proveedor** `SupplierRecommendationsCard.vue:1` `shallowRef onlySignificant/onlyMultiSupplier` + `computed filteredItems` (`savingsPct>5%` y `supplierCount>2`), chips `Ahorro >5%` / `Probados (3+ prov.)` + `Limpiar`, empty `Ninguna coincide`. SFC `script→template→style`.
+- **Fix jerarquía Proveedor** `SupplierRecommendationsCard.vue:30-65` chips `grey-4/white` para contraste + avatar 28px `#2D5A27` + `provider-main-name 0.95rem 700 #E2E8E4` protagonista, producto pasa a `product-sub 0.75rem #8A9E99 uppercase`.
+- **Alertas 0.00** `AlertsPanel.vue:1` `computed filteredAlerts filter(currentPrice>0 && avgPrice>0)` + `hasCritical` sobre filtradas, SFC reordenado.
+- **Ponytail:** sin backend, sin lib nueva, reuse `analyticsNormalize.toNumber` + `useAnalytics`.
+
+**Verificación:** `npm run lint` 0, `npm run build` PWA 891KB, manual 375/768/1440: MetricCard label arriba, breakdown muestra `Ganaste $8 de cada $100…`, filtros ocultan pollo 2%, alertas 0.00 no aparecen.
+
+**Archivos:**
+```
+frontend/pymes/src/modules/core/components/analytics/MetricCard.vue
+frontend/pymes/src/modules/core/utils/financialGuide.ts # NUEVO
+frontend/pymes/src/modules/core/components/dashboard/FinancialHealthBreakdown.vue
+frontend/pymes/src/modules/core/components/dashboard/FinancialHealthPanel.vue
+frontend/pymes/src/modules/core/components/dashboard/FinancialHealthAlerts.vue
+frontend/pymes/src/modules/core/components/dashboard/SupplierRecommendationsCard.vue
+frontend/pymes/src/modules/core/components/dashboard/AlertsPanel.vue
+frontend/pymes/src/modules/core/pages/AnalisisGastosPage.vue
+frontend/pymes/src/pages/DashboardPage.vue
+```
+
+**Estado:** ✅ COMPLETADO — commit `503fd87` + fix jerarquía pendiente commit `feature/refactor`
+
+---
+
 ## 2026-09-15 — Facturas: ITBMS por ítem 0/7/10 + Sin/Con ITBMS + default 0 + provider strict
 
 **Contexto:** Usuario no entiende `Gravado` (jerga contador). DGI Panamá ITBMS 0% exento / 7% general / 10% alcohol; `Valor $` sin impuesto, descuento antes de impuesto. Decisión: selector por **ítem en factura** `0/7/10` (`Sin ITBMS (0%)` default opt-in), desglose `Sin ITBMS / Con ITBMS / ITBMS` — no tocar producto. Además `FacturaPage filteredByProvider` flexible `!proveedorId || ===` escondía productos de otros proveedores; usuario pidió **estricto puro** `proveedorId===providerId` (vacío=todos).
