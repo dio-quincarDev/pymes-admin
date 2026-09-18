@@ -7,7 +7,11 @@
       <template v-slot:avatar>
         <q-icon name="wifi_off" />
       </template>
-      Sin conexión — los datos mostrados pueden no estar actualizados
+      Sin conexión — datos desactualizados
+      <template v-if="lastSyncLabel"> · última sync: {{ lastSyncLabel }}</template>
+      <template v-slot:action>
+        <q-chip dense size="sm" icon="cloud_off" label="cacheado" class="offline-chip q-ml-sm" />
+      </template>
     </q-banner>
 
     <q-banner
@@ -227,6 +231,14 @@ const mobileTab = computed(() => {
   return '';
 });
 const online = ref(navigator.onLine);
+const lastSync = ref<string | null>(typeof window !== 'undefined' ? localStorage.getItem('pymeq_last_sync') : null);
+const lastSyncLabel = computed(() => {
+  if (!lastSync.value) return '';
+  try {
+    const d = new Date(lastSync.value);
+    return d.toLocaleTimeString('es-PA', { hour: '2-digit', minute: '2-digit' });
+  } catch { return ''; }
+});
 const deferredPrompt = shallowRef<Event | null>(null);
 const isIOS = typeof window !== 'undefined' && /iphone|ipad|ipod/i.test(navigator.userAgent);
 const showInstallBanner = ref(
@@ -234,7 +246,15 @@ const showInstallBanner = ref(
     && !localStorage.getItem('pwa_install_dismissed'),
 );
 
-function onOnline() { online.value = true; }
+function onOnline() {
+  online.value = true;
+  try {
+    const now = new Date().toISOString();
+    localStorage.setItem('pymeq_last_sync', now);
+    lastSync.value = now;
+  } catch { /* ignore */ }
+  $q.notify({ type: 'positive', message: 'Conexión de vuelta — datos al día', position: 'top', timeout: 1800 });
+}
 function onOffline() { online.value = false; }
 
 function onBeforeInstall(e: Event) {
@@ -283,6 +303,13 @@ onMounted(() => {
   window.addEventListener('sw-update-ready', onSwUpdate);
   window.addEventListener('beforeinstallprompt', onBeforeInstall);
   navigator.serviceWorker?.addEventListener('controllerchange', onSwControllerChange);
+  // ponytail: keep lastSync label fresh from interceptor writes
+  setInterval(() => {
+    try {
+      const v = localStorage.getItem('pymeq_last_sync');
+      if (v !== lastSync.value) lastSync.value = v;
+    } catch { /* ignore */ }
+  }, 30000);
   // ponytail: tutorial triggers per-page; layout watches route for cross-navigation
   void showForCurrentRoute();
   // ponytail: mini popover hint — single-shot, on-demand via ? after dismiss
@@ -464,11 +491,17 @@ function navigateTo(path: string) {
 }
 
 /* --------------------------------------------------
-   Offline Banner
+    Offline Banner
 -------------------------------------------------- */
 .offline-banner {
   background: var(--pq-warning);
   color: var(--pq-background);
+}
+
+.offline-chip {
+  background: rgba(8, 9, 13, 0.15) !important;
+  color: var(--pq-background) !important;
+  font-weight: 700;
 }
 
 /* --------------------------------------------------

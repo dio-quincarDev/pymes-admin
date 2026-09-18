@@ -72,6 +72,8 @@ function shouldAttemptRefresh(code: string | undefined): boolean {
 }
 
 async function refreshTokens(): Promise<{ accessToken: string; refreshToken: string } | null> {
+  // ponytail: offline — do not hit /auth/refresh sin red, evita logout fantasma
+  if (typeof navigator !== 'undefined' && !navigator.onLine) return null;
   const storedRefreshToken = localStorage.getItem('pymeq_refresh_token');
   if (!storedRefreshToken) return null;
   try {
@@ -91,7 +93,11 @@ async function refreshTokens(): Promise<{ accessToken: string; refreshToken: str
 }
 
 api.interceptors.response.use(
-  (response) => response,
+  (response) => {
+    // ponytail: track last sync for offline indicator
+    try { localStorage.setItem('pymeq_last_sync', new Date().toISOString()); } catch { /* ignore */ }
+    return response;
+  },
   async (error) => {
     const parsedError = parseBackendError(error);
     const status = isAxiosError(error) ? error.response?.status : undefined;
@@ -99,12 +105,27 @@ api.interceptors.response.use(
     const isRefreshEndpoint = isAxiosError(error)
       ? error.config?.url?.includes('/auth/refresh')
       : false;
+    const isOffline = typeof navigator !== 'undefined' && !navigator.onLine;
+    const isNetworkError = !isAxiosError(error) || !error.response;
+
+    // ponytail: offline/network error — no intentes refresh ni borres sesión, deja cola para reintento manual
+    if (isNetworkError && isOffline) {
+      const offlineError = new Error('Sin conexión — se reintentará al volver');
+      Object.assign(offlineError, { code: 'OFFLINE', status: 0, isBackendError: false, isOffline: true });
+      return Promise.reject(offlineError);
+    }
 
     if (status === 403 && backendData?.codigo === 'VER001') {
       window.location.href = '#/login?verified=false';
     }
 
     if (status === 401) {
+      // ponytail: offline 401 no es revocado real — encola, no borres sesión
+      if (isOffline) {
+        const offlineError = new Error('Sin conexión — sesión en pausa hasta volver');
+        Object.assign(offlineError, { code: 'OFFLINE', status: 401, isOffline: true });
+        return Promise.reject(offlineError);
+      }
       // Never retry refresh endpoint itself, nor non-refreshable codes
       if (isRefreshEndpoint || !shouldAttemptRefresh(backendData?.codigo ?? undefined)) {
         clearSession();
@@ -125,6 +146,13 @@ api.interceptors.response.use(
           error.config!.headers!.Authorization = `Bearer ${result.accessToken}`;
           return api(error.config);
         } else {
+          // ponytail: si falló por offline, no borres sesión
+          if (isOffline) {
+            processQueue(new Error('Offline'), null);
+            const offlineError = new Error('Sin conexión — reintentará al volver');
+            Object.assign(offlineError, { code: 'OFFLINE', status: 401, isOffline: true });
+            return Promise.reject(offlineError);
+          }
           processQueue(new Error('Refresh failed'), null);
           clearSession();
           return Promise.reject(error instanceof Error ? error : new Error(String(error)));
