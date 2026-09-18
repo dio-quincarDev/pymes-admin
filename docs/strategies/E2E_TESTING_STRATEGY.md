@@ -2,15 +2,15 @@
 
 Estrategia global de testing para PYMEQ. Cubre 3 capas: unit tests (por servicio), backend integration tests (WebTestClient + Testcontainers), y E2E browser tests (Playwright).
 
-## State actual (2026-08-05)
+## State actual (2026-09-18)
 
 | Servicio | Unit tests | Integration tests | Gaps abiertos |
 |---|---|---|---|
-| Gateway | 37 | 0 | 0 integration, CORS, route ordering |
-| Auth | 138 | 47 | 5 endpoints sin integration, 4 services sin unit test |
-| Core | 173 | 45 | Pendiente lectura completa |
-| Frontend | 29 (vitest) | 0 | — |
-| **Total** | **377** | **92** | |
+| Gateway | 37 (9 unit RouterValidator +22 AuthenticationFilter +5 GlobalErrorHandler +1 SwaggerAggregator, 2026-09-17 `grep -c @Test`) | 0 | 0 integration, CORS, route ordering |
+| Auth | 207 (138 unit +56 integration +12 consistency +1 auth, 2026-09-17) | 56 | 5 endpoints sin integration, 4 services sin unit test |
+| Core | 263 (85 unit +11 analytics +104 JPA +62 integration +1, 2026-09-17, V6 ITBMS 0/7/10) | 62 | C-IT1..4 listos |
+| Frontend | 29 (vitest) + 7 pasos tour 924KB | 0 | Playwright 2+2 specs |
+| **Total** | **507 backend** (`536` con 29 fe) — `377/92` stale 2026-08-05 actualizado | **118** | |
 
 ---
 
@@ -49,9 +49,9 @@ Tests HTTP reales contra DB+Redis vía Testcontainers. Sin frontend.
 | A-UT3 | `CustomOAuth2UserService` | Find-or-create, JIT provisioning |
 | A-UT4 | `TokenBlacklistService` | Add/check/revoke, TTL |
 
-### Core — pendiente lectura completa
+### Core — V6 ITBMS + Costos engine (lectura 2026-09-15)
 
-Tests conocidos de sesiones anteriores:
+Tests reales:
 
 | # | Test | Qué valida |
 |---|---|---|

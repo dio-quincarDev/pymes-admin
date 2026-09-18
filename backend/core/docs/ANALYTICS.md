@@ -1,7 +1,6 @@
 # Analytics Module
 
-> **Estado (2026-07-31):** Implementado en produccion — 9 motores CTE + 1 motor compuesto (Financial Health), listener conectado a FacturaCreadaEvent via debounce Redis, tabla expense_analysis con 10 columnas JSONB.
-> Tests: 6 unitarios + 5 integration (AnalyticsServiceImplTest + AnalyticsIntegrationTest con Testcontainers PG15 + Redis7).
+> **Estado (2026-09-18):** 9 motores CTE + Financial Health + `DAILY_COST_CONTROL/COVERED` + `PAYBACK_RECOVERY` (costoDiario vs venta). Tests 11 unit + `V5/V6` (2026-09-15) `263 total core`. 10 columnas JSONB vigentes.
 
 ---
 

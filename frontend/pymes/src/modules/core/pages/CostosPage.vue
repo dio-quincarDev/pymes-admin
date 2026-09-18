@@ -3,6 +3,7 @@ import { ref, shallowRef, onMounted, onUnmounted } from 'vue';
 import { useRoute } from 'vue-router';
 import { useQuasar, useMeta } from 'quasar';
 import { useAuthStore } from 'src/modules/auth/store';
+import { useTutorial } from 'src/composables/useTutorial';
 import { costoService } from '../services/costo.service';
 import { useCostos } from '../composables/useCostos';
 import type { Collaborador, CollaboradorRequest, GastoFijoRecurrente, GastoFijoRequest } from '../types';
@@ -16,6 +17,7 @@ const $q = useQuasar();
 const route = useRoute();
 const authStore = useAuthStore();
 const tenantId = authStore.user?.tenantId as string;
+const { showForCurrentRoute } = useTutorial();
 
 // composable is single source of truth — page is composition surface (sfc.md + composables.md)
 const {
@@ -172,7 +174,7 @@ function handleKeydown(e: KeyboardEvent) {
 onMounted(() => {
   const t = route.query.tab;
   if (t === 'gastosFijos' || t === 'colaboradores') tab.value = t;
-  void loadAll();
+  void loadAll().then(() => showForCurrentRoute());
   window.addEventListener('keydown', handleKeydown);
 });
 onUnmounted(() => window.removeEventListener('keydown', handleKeydown));
@@ -180,7 +182,7 @@ onUnmounted(() => window.removeEventListener('keydown', handleKeydown));
 
 <template>
   <q-page class="core-page">
-    <div class="q-mb-md">
+    <div class="q-mb-md" data-tour="costos">
       <h1 class="text-h4 text-primary font-bold q-ma-none">Estructura de Costos</h1>
       <p class="text-subtitle1 text-accent q-mt-xs">Equipo, gastos fijos recurrentes y configuración laboral</p>
     </div>

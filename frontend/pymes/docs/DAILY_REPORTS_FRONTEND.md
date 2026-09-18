@@ -4,6 +4,38 @@ Registro cronológico de decisiones, problemas resueltos y estado del frontend.
 
 ---
 
+## 2026-09-18 — Tutorial guiado 7 pasos + mini popover on-demand + mobile viewport fix + Dashboard Rentabilidad fix
+
+**Contexto:** Usuario pidió tutorial cercano panameño en orden exacto 1 Inversión → 2 Gastos/Costos salarios → 3 Proveedores → 4 Productos (borrar/crear) → 5 Facturas (Sin/Con ITBMS 0/7/10) → 6 Dashboard → 7 Análisis (9 alertas). Tono simple dentro del tour ("arriba sin impuesto abajo con ITBMS…"). Además reportó bug `driver.js highlight` sin botón Siguiente, overlap mobile por `mobile-bottom-nav` + `CostSummaryBar sticky`, y Dashboard mostraba solo 2 KPIs por `stripKpis` condicional.
+
+**Qué se hizo:**
+- **driver.js** `useTutorial.ts` `TOUR_STEPS` 7 rutas `data-tour` inversion/costos/proveedores/productos/facturas/dashboard/analisis + `localStorage pymeq_tour_seen/active/step`. Fix `highlight()→setSteps+drive()` (highlight escondía next/prev) + poll 10×250ms para skeletons + `onNextClick→goNext`/`onPrevClick→goPrev` cross-route `router.push`. `showForCurrentRoute()` por página + `watch(route.path)` en `MainLayout`.
+- **Mini popover Opción B** `MainLayout.vue` `sym_r_help` `?` siempre `startTour(true)` forzado. `showHint` si `hasTenant && !hasSeen && !isActive && !hintSeen` → `q-menu anchor bottom middle offset 8,10` con texto `¿Primera vez acá? Recorrido de 7 pasos (20 seg) — inversión → … → análisis.` botones `[Empezar tour →]` (`hint_seen=true + startTour`) `[Ahora no]` (`hint_seen=true`). `pymeq_hint_seen` single-shot; `?` on-demand. Timer 800ms.
+- **Mobile viewport** `index.html` `viewport-fit=cover` siempre (antes solo Cordova) + `app.scss` `.pymeq-tour-popover max-width min(360px,calc(100vw-32px)) margin-bottom env(safe-area)` + `.driver-active .cost-summary{position:static}` (evita cover en Costos) + `.mobile-bottom-nav padding-bottom env(bottom)` + `stagePadding` consideración.
+- **Dashboard Rentabilidad** `DashboardPage.vue:50` `stripKpis` siempre 3 slots `Costos día —/Facturas pendientes/Rentabilidad —` (antes escondía si `!m`) con `accent gold` placeholder.
+- **Estilos** `app.scss` `.tour-hint` `::before` flecha + `hint-bounce` sutil `1.2s 2`.
+
+**Verificación:** `npm run lint` 0, `npm run build` PWA 924 KB (375 CSS), `vue-tsc` fix `!` TS18048, manual hint 800ms → Empezar 1/7 Patrimonio → Siguiente navega 7/7 Análisis → Ahora no guarda `hint_seen` + `?` reabre.
+
+```
+frontend/pymes/src/composables/useTutorial.ts              # TOUR_STEPS 7 + drive+poll + hint keys
+frontend/pymes/src/layouts/MainLayout.vue                  # ? help + q-menu hint + watch route
+frontend/pymes/src/modules/core/pages/PatrimonioPage.vue   # data-tour inversion
+frontend/pymes/src/modules/core/pages/CostosPage.vue       # data-tour costos
+frontend/pymes/src/modules/core/pages/ProveedoresPage.vue  # data-tour proveedores
+frontend/pymes/src/modules/core/pages/ProductosPage.vue    # data-tour productos
+frontend/pymes/src/modules/core/pages/FacturasPage.vue     # data-tour facturas
+frontend/pymes/src/pages/DashboardPage.vue                 # data-tour dashboard + stripKpis fix
+frontend/pymes/src/modules/core/pages/AnalisisGastosPage.vue # data-tour analisis
+frontend/pymes/src/css/app.scss                            # pymeq-tour-popover calc + tour-hint
+frontend/pymes/index.html                                  # viewport-fit=cover always
+frontend/pymes/package.json                                # driver.js 1.3.1
+```
+
+**Estado:** ✅ COMPLETADO — pendiente bases legales + offline PWA cierre MVP
+
+---
+
 ## 2026-09-16 — AnalisisPage: MetricCard fix + Salud Financiera criolla + filtros Proveedor/Alertas
 
 **Contexto:** `AnalisisGastosPage` kpiCards invertidos (`MetricCard.vue:31` valor arriba label abajo vs `KpiCard` label arriba), `Salud Financiera` con puntajes técnicos (66/100 30 rojo sin contexto), `Recomendaciones por Proveedor` generaba falsos positivos por compra mínima (1kg $2.25 vs 10kg $2.20), `Alertas` mostraba `Mayonesa 0.00 vs 3.88`, y `Recomendaciones` tenía jerarquía Producto>Proveedor y chips verdes ilegibles sobre fondo oscuro.

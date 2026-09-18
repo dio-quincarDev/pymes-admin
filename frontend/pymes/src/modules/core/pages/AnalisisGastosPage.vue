@@ -2,6 +2,7 @@
 import { onMounted } from 'vue';
 import { useQuasar, useMeta } from 'quasar';
 import { useAuthStore } from 'src/modules/auth/store';
+import { useTutorial } from 'src/composables/useTutorial';
 import { useNumberFormat } from 'src/modules/core/composables/useNumberFormat';
 import { useAnalytics } from '../composables/useAnalytics';
 import { useAnalisisGastos } from '../composables/useAnalisisGastos';
@@ -23,6 +24,7 @@ const $q = useQuasar();
 const authStore = useAuthStore();
 const tenantId = authStore.user?.tenantId;
 const { formatCurrency } = useNumberFormat();
+const { showForCurrentRoute } = useTutorial();
 
 const {
   period,
@@ -68,20 +70,23 @@ async function handleLoad() {
 }
 
 onMounted(() => {
-  if (tenantId) { void handleLoad(); void fetchVentas(); }
+  if (tenantId) { void handleLoad().then(() => showForCurrentRoute()); void fetchVentas(); }
+  else void showForCurrentRoute();
 });
 </script>
 
 <template>
   <q-page class="core-page">
-    <AnalyticsHeader
-      title="Análisis de Gastos"
-      subtitle="Dónde gasto y qué proveedores me convienen"
-      :period="period"
-      :loading="analyticsLoading || loading"
-      @update:period="setPeriod"
-      @recalculate="recalcularAnalytics"
-    />
+    <div data-tour="analisis">
+      <AnalyticsHeader
+        title="Análisis de Gastos"
+        subtitle="Dónde gasto y qué proveedores me convienen"
+        :period="period"
+        :loading="analyticsLoading || loading"
+        @update:period="setPeriod"
+        @recalculate="recalcularAnalytics"
+      />
+    </div>
 
     <div class="metric-row stagger-children">
       <MonthlyInvestmentKpi

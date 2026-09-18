@@ -63,6 +63,8 @@ Rutas que no requieren autenticacion JWT:
 | /api/v1/auth/reset-password | auth-service |
 | /api/v1/auth/exchange | auth-service |
 | /api/v1/auth/oauth2/** | auth-service |
+| /api/v1/invitations/*/info | auth-service |
+| /api/v1/invitations/*/register | auth-service |
 | /login/** | auth-service |
 | /oauth2/** | auth-service |
 | /v3/api-docs/** | Agregador |
@@ -80,6 +82,9 @@ Gateway -> Microservicio:
 | X-User-Email | String | Email (subject del JWT) |
 | X-Tenant-Id | Long | Tenant activo |
 | X-User-Role | String | Rol jerarquico |
+| X-User-Plan | String | Plan FREE/PRO del tenant activo |
+
+> Refresh tokens no tienen `role` → Gateway rechaza con `401 Access tokens only` (`AuthenticationFilter:66`). Evita usar refresh como access.
 
 Los microservicios internos deben rechazar trafico que no provenga del Gateway o que intente suplantar estos headers desde el exterior.
 
@@ -87,10 +92,10 @@ Los microservicios internos deben rechazar trafico que no provenga del Gateway o
 
 | Tipo | Prefijo | Seguridad | Destino |
 |------|---------|-----------|---------|
-| Core | /api/v1/core/** | JWT + Redis | core-service:8082 (44 endpoints) |
-| Publicas Auth | /api/v1/auth/register, /login, /refresh, /verify-email, /forgot-password, /reset-password | Ninguna | auth-service:8081 |
+| Core | /api/v1/core/** | JWT + Redis | core-service:8082 (~50 endpoints: setup + costos + analytics) |
+| Publicas Auth | /api/v1/auth/register, /login, /refresh, /verify-email, /resend-verification, /forgot-password, /reset-password, /exchange, /auth/oauth2/intent, /invitations/*/info, /invitations/*/register | Ninguna | auth-service:8081 |
 | Publicas OAuth2 | /oauth2/**, /login/oauth2/**, /login/** | Ninguna | auth-service:8081 |
-| Protegidas | /api/v1/auth/logout, /me, /tenants/**, /invitations/** | JWT + Redis | auth-service:8081 |
+| Protegidas | /api/v1/auth/logout, /me, /tenants/**, /invitations/** (excepto `*/info`/`*/register` públicas) | JWT + Redis | auth-service:8081 |
 | Swagger | /v3/api-docs/auth, /swagger-ui.html | Ninguna | Agregador |
 
 ### CORS
@@ -102,13 +107,15 @@ globalcors:
   add-to-simple-url-handler-mapping: true
   cors-configurations:
     '[/**]':
-      allowed-origin-patterns: ${CORS_ALLOWED_ORIGINS}
+      allowed-origins: "${CORS_ALLOWED_ORIGINS}" # exacto, no patterns (fix 2026-07-16)
       allowed-methods: [GET, POST, PUT, PATCH, DELETE, OPTIONS]
       allowed-headers: "*"
       allow-credentials: true
+default-filters:
+  - DedupeResponseHeader=Access-Control-Allow-Origin Access-Control-Allow-Credentials
 ```
 
-Nota: CORS en el Gateway es el punto principal. Auth-service tiene un `WebCorsConfig` de defensa en profundidad.
+Doble capa (fix 2026-07-16 / 2026-08-11): Gateway responde OPTIONS preflight `200 + ACAO`; auth-service (`WebCorsConfig` con `setAllowedOrigins` exacto) añade ACAO a requests reales `POST/GET`. `allowed-origin-patterns` + `allowCredentials(true)` no matchea — usar `allowed-origins` exacto. Ver `docs/DAILY_REPORTS_GATEWAY_SOLUTIONS.md`.
 
 ---
 
@@ -138,33 +145,36 @@ No requiere Docker. Todos los tests son unitarios con mocks.
 
 | Archivo | Tests | Que valida |
 |---------|-------|------------|
-| `AuthenticationFilterTest` | 7 | Whitelist, 401 en token faltante/invalido/expirado/revocado, inyeccion de headers |
-| `RouterValidatorTest` | 22 | Rutas publicas vs protegidas (15 open + 6 secured + 1 query string) |
-| `JwtUtilsTest` | 4 | JWT valido, expirado, firma invalida, malformado |
+| `AuthenticationFilterTest` | 9 | Whitelist, 401 en token faltante/invalido/expirado/revocado/refresh-rechazado, inyeccion de headers (incl. X-User-Plan) |
+| `RouterValidatorTest` | 22 | Rutas publicas vs protegidas (17 open = auth 8 + invitations 2 + oauth/login 2 + swagger 2 + actuator 1 + error 1 + 6 secured + 1 query string) |
+| `JwtUtilsTest` | 5 | JWT valido, expirado, firma invalida, malformado, isInvalid wrapper |
 | `GatewayPymesApplicationTests` | 1 | Context carga sin errores |
-| **Total** | **37** | — |
+| **Total** | **37** | — (9+22+5+1) |
 
 ### Detalle de Tests
 
-**AuthenticationFilterTest** (7 tests):
+**AuthenticationFilterTest** (9 tests):
 - `whitelistedPathSkipsAuth` - Ruta publica no ejecuta validacion JWT
 - `missingAuthHeaderReturns401` - Sin header Authorization retorna 401
 - `invalidBearerTokenReturns401` - Bearer con token vacio retorna 401
 - `expiredTokenReturns401` - Token expirado retorna 401
 - `revokedTokenReturns401` - Token valido pero en blacklist Redis retorna 401
 - `validTokenWithNullClaimsSetsNullHeaders` - Claims nulos setean headers nulos
-- `validTokenInjectsClaimHeaders` - Happy path: headers X-User-Id, X-User-Email, X-Tenant-Id, X-User-Role inyectados correctamente
+- `validTokenInjectsClaimHeaders` - Happy path: headers X-User-Id, X-User-Email, X-Tenant-Id, X-User-Role, X-User-Plan inyectados correctamente
+- `refreshTokenRejectedReturns401` - Token sin `role` (refresh) rechazado `401 Access tokens only`
+- `authorizationHeaderNullValueReturns401` - Header presente con valor null → 401
 
 **RouterValidatorTest** (22 cases parametrizados):
-- 15 rutas publicas verificadas (auth, OAuth2, exchange, Swagger, actuator, /error)
-- 6 rutas protegidas verificadas (companies, products, users/me, logout, change-password)
+- 17 rutas publicas verificadas (auth 8: register/login/refresh/verify-email/resend-verification/forgot/reset/exchange + oauth2/intent + invitations 2: */info|*/register + login/oauth2 + swagger 2 + actuator + error)
+- 6 rutas protegidas verificadas (core/**, users/me, logout, tenants/invitations protegidas)
 - 1 ruta con query string (`/verify-email?token=abc`)
 
-**JwtUtilsTest** (4 tests):
+**JwtUtilsTest** (5 tests):
 - Token con firma correcta y expiry futuro -> subject extraido
 - Token expirado -> excepcion
 - Firma con secret distinta -> excepcion
 - Token malformado -> excepcion
+- `isInvalid()` wrapper -> delegado a `getClaims()`
 
 ### Infraestructura
 
@@ -178,10 +188,10 @@ No requiere Docker. Todos los tests son unitarios con mocks.
 src/test/java/dev/dioquincar/gateway_pymes/
 ├── GatewayPymesApplicationTests.java       # Context load (1 test)
 ├── filter/
-│   ├── AuthenticationFilterTest.java       # 7 tests
-│   └── RouterValidatorTest.java            # 22 cases (parametrizados)
+│   ├── AuthenticationFilterTest.java       # 9 tests
+│   └── RouterValidatorTest.java            # 22 cases (parametrizados, 17 open)
 └── util/
-    └── JwtUtilsTest.java                   # 4 tests
+    └── JwtUtilsTest.java                   # 5 tests
 ```
 
 ### Gaps Conocidos

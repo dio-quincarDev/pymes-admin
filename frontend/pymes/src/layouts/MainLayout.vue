@@ -7,7 +7,11 @@
       <template v-slot:avatar>
         <q-icon name="wifi_off" />
       </template>
-      Sin conexión — los datos mostrados pueden no estar actualizados
+      Sin conexión — datos desactualizados
+      <template v-if="lastSyncLabel"> · última sync: {{ lastSyncLabel }}</template>
+      <template v-slot:action>
+        <q-chip dense size="sm" icon="cloud_off" label="cacheado" class="offline-chip q-ml-sm" />
+      </template>
     </q-banner>
 
     <q-banner
@@ -52,6 +56,27 @@
           <span class="logo-text">PYMEQ</span>
         </q-toolbar-title>
 
+        <q-btn flat round icon="sym_r_help" aria-label="Ayuda — ver tutorial" class="q-mr-xs" @click="startTour(true)">
+          <q-tooltip>Ayuda — ver tutorial</q-tooltip>
+          <q-menu
+            v-model="showHint"
+            anchor="bottom middle"
+            self="top middle"
+            :offset="[8, 10]"
+            :auto-close="false"
+            class="tour-hint-menu"
+            style="background: transparent; box-shadow: none;"
+          >
+            <div class="tour-hint tour-hint--enter">
+              <div class="tour-hint__title">¿Primera vez acá?</div>
+              <div class="tour-hint__desc">Recorrido de 7 pasos (20 seg) — inversión → gastos → proveedores → productos → facturas → dashboard → análisis.</div>
+              <div class="tour-hint__actions">
+                <q-btn flat dense no-caps label="Ahora no" class="tour-hint__dismiss" @click="dismissHint" />
+                <q-btn unelevated dense no-caps label="Empezar tour →" color="primary" text-color="dark" @click="acceptHint" />
+              </div>
+            </div>
+          </q-menu>
+        </q-btn>
         <q-btn round flat aria-label="Menú de usuario" aria-haspopup="menu">
           <q-avatar size="32px" style="background: var(--pq-accent); color: var(--pq-background); font-family: 'Geist', sans-serif; font-weight: 700; font-size: 14px;">
             {{ userInitials }}
@@ -160,17 +185,33 @@
 </template>
 
 <script setup lang="ts">
-import { ref, shallowRef, onMounted, onUnmounted, computed } from 'vue';
+import { ref, shallowRef, onMounted, onUnmounted, computed, watch } from 'vue';
 import { useQuasar } from 'quasar';
 import { useRoute, useRouter } from 'vue-router';
 import { useLogout } from 'src/composables/useLogout';
 import { useAuthStore } from 'src/modules/auth/store';
+import { useTutorial } from 'src/composables/useTutorial';
 
 const $q = useQuasar();
 const route = useRoute();
 const router = useRouter();
 const { logout: handleLogout } = useLogout();
 const authStore = useAuthStore();
+const { startTour, showForCurrentRoute, hasSeen, isActive } = useTutorial();
+const HINT_SEEN_KEY = 'pymeq_hint_seen';
+const showHint = ref(false);
+let hintTimer: ReturnType<typeof setTimeout> | null = null;
+
+function dismissHint() {
+  showHint.value = false;
+  localStorage.setItem(HINT_SEEN_KEY, 'true');
+}
+
+function acceptHint() {
+  showHint.value = false;
+  localStorage.setItem(HINT_SEEN_KEY, 'true');
+  startTour(true);
+}
 
 const leftDrawerOpen = ref(false);
 const activeRoute = computed(() => route.path);
@@ -190,6 +231,14 @@ const mobileTab = computed(() => {
   return '';
 });
 const online = ref(navigator.onLine);
+const lastSync = ref<string | null>(typeof window !== 'undefined' ? localStorage.getItem('pymeq_last_sync') : null);
+const lastSyncLabel = computed(() => {
+  if (!lastSync.value) return '';
+  try {
+    const d = new Date(lastSync.value);
+    return d.toLocaleTimeString('es-PA', { hour: '2-digit', minute: '2-digit' });
+  } catch { return ''; }
+});
 const deferredPrompt = shallowRef<Event | null>(null);
 const isIOS = typeof window !== 'undefined' && /iphone|ipad|ipod/i.test(navigator.userAgent);
 const showInstallBanner = ref(
@@ -197,7 +246,15 @@ const showInstallBanner = ref(
     && !localStorage.getItem('pwa_install_dismissed'),
 );
 
-function onOnline() { online.value = true; }
+function onOnline() {
+  online.value = true;
+  try {
+    const now = new Date().toISOString();
+    localStorage.setItem('pymeq_last_sync', now);
+    lastSync.value = now;
+  } catch { /* ignore */ }
+  $q.notify({ type: 'positive', message: 'Conexión de vuelta — datos al día', position: 'top', timeout: 1800 });
+}
 function onOffline() { online.value = false; }
 
 function onBeforeInstall(e: Event) {
@@ -246,6 +303,52 @@ onMounted(() => {
   window.addEventListener('sw-update-ready', onSwUpdate);
   window.addEventListener('beforeinstallprompt', onBeforeInstall);
   navigator.serviceWorker?.addEventListener('controllerchange', onSwControllerChange);
+  // ponytail: keep lastSync label fresh from interceptor writes
+  setInterval(() => {
+    try {
+      const v = localStorage.getItem('pymeq_last_sync');
+      if (v !== lastSync.value) lastSync.value = v;
+    } catch { /* ignore */ }
+  }, 30000);
+  // ponytail: hybrid auto-start — first time auto, after that hint/? on-demand
+  void showForCurrentRoute();
+  function maybeTutorial() {
+    const hasTenant = !!authStore.user?.tenantId;
+    const hintSeen = localStorage.getItem(HINT_SEEN_KEY) === 'true';
+    if (!hasTenant || hasSeen() || isActive() || hintSeen) return;
+    // only auto on dashboard routes (avoid interrupting deep links like /facturas)
+    const isDashboardRoute = route.path === '/dashboard' || route.path.startsWith('/dashboard/');
+    if (!isDashboardRoute) return;
+    // first time ever: auto-start; otherwise would be hint — but hintSeen already blocks, so here = auto
+    hintTimer = setTimeout(() => {
+      // re-check isActive at fire time (race: user may have clicked ?)
+      if (isActive() || hasSeen()) return;
+      // ponytail: auto-start only if never seen; no separate hint on first time
+      startTour();
+    }, 800);
+  }
+  // try auto; if not applicable, watcher on tenantId will retry when hydration arrives
+  maybeTutorial();
+});
+
+watch(() => route.path, () => {
+  void showForCurrentRoute();
+});
+
+// ponytail: react to tenant hydrating after login/onboarding (snapshot at mount was false)
+watch(() => authStore.user?.tenantId, (val) => {
+  if (!val) return;
+  if (hasSeen() || isActive()) return;
+  const hintSeen = localStorage.getItem(HINT_SEEN_KEY) === 'true';
+  if (hintSeen) return;
+  const isDashboardRoute = route.path === '/dashboard' || route.path.startsWith('/dashboard/');
+  if (!isDashboardRoute) return;
+  if (hintTimer) clearTimeout(hintTimer);
+  // hybrid: auto-start si nunca lo viste
+  hintTimer = setTimeout(() => {
+    if (isActive() || hasSeen()) return;
+    startTour();
+  }, 800);
 });
 
 onUnmounted(() => {
@@ -254,6 +357,7 @@ onUnmounted(() => {
   window.removeEventListener('sw-update-ready', onSwUpdate);
   window.removeEventListener('beforeinstallprompt', onBeforeInstall);
   navigator.serviceWorker?.removeEventListener('controllerchange', onSwControllerChange);
+  if (hintTimer) clearTimeout(hintTimer);
 });
 
 interface NavItem {
@@ -414,11 +518,17 @@ function navigateTo(path: string) {
 }
 
 /* --------------------------------------------------
-   Offline Banner
+    Offline Banner
 -------------------------------------------------- */
 .offline-banner {
   background: var(--pq-warning);
   color: var(--pq-background);
+}
+
+.offline-chip {
+  background: rgba(8, 9, 13, 0.15) !important;
+  color: var(--pq-background) !important;
+  font-weight: 700;
 }
 
 /* --------------------------------------------------

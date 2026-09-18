@@ -1,5 +1,7 @@
 # 📊 Daily Reports & Auth Solutions — Historial de Implementaciones
 
+> **Estado 2026-09-18:** 207 tests (138+56+12+1, 2026-09-17) · gateway 37 · core 263 (V6) · offline 1/2 · legales BETA — ver `docs/DAILY_REPORTS_PROJECT.md`.
+
 Este documento registra de manera cronológica el historial de decisiones técnicas, problemas resueltos y la evolución de la arquitectura del microservicio de autenticación (`auth`).
 
 ---

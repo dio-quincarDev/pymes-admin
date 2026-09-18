@@ -20,7 +20,7 @@ const scrollTo = (id: string) => {
       <q-toolbar class="container-narrow mx-auto q-px-md">
         <q-toolbar-title class="logo-text cursor-pointer row items-center no-wrap" @click="router.push('/')">
           <img src="/icons/logo.svg" alt="" width="28" height="28" class="q-mr-sm" />
-          PYMEQ
+          PYMEQ <q-badge color="accent" text-color="dark" label="BETA v0.1" class="q-ml-sm" style="font-size: 10px; font-weight: 700;" />
         </q-toolbar-title>
 
         <q-space />
@@ -62,13 +62,14 @@ const scrollTo = (id: string) => {
           </div>
           <div class="col-12 col-md-4 text-center">
             <div class="text-caption" style="color: var(--pq-text-subtle)">
-              &copy; 2026 PymeQ by QCore System. Hecho para crecer.
+              &copy; 2026 PymeQ by QCore System — BETA v0.1 · Hecho para crecer.
             </div>
           </div>
           <div class="col-12 col-md-4 text-center text-md-right">
              <div class="row justify-center justify-md-end gap-sm">
-                <q-btn flat color="accent" size="xs" aria-disabled="true">Legal</q-btn>
-                <q-btn flat color="accent" size="xs" aria-disabled="true">Contacto</q-btn>
+                <q-btn flat color="accent" size="xs" to="/terminos">Términos</q-btn>
+                <q-btn flat color="accent" size="xs" to="/privacidad">Privacidad</q-btn>
+                <q-btn flat color="accent" size="xs" href="mailto:dio-quincar@outlook.com">Contacto</q-btn>
              </div>
           </div>
         </div>
