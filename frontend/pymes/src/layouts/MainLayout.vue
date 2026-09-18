@@ -310,18 +310,45 @@ onMounted(() => {
       if (v !== lastSync.value) lastSync.value = v;
     } catch { /* ignore */ }
   }, 30000);
-  // ponytail: tutorial triggers per-page; layout watches route for cross-navigation
+  // ponytail: hybrid auto-start — first time auto, after that hint/? on-demand
   void showForCurrentRoute();
-  // ponytail: mini popover hint — single-shot, on-demand via ? after dismiss
-  const hasTenant = !!authStore.user?.tenantId;
-  const hintSeen = typeof window !== 'undefined' && localStorage.getItem(HINT_SEEN_KEY) === 'true';
-  if (hasTenant && !hasSeen() && !isActive() && !hintSeen) {
-    hintTimer = setTimeout(() => { showHint.value = true; }, 800);
+  function maybeTutorial() {
+    const hasTenant = !!authStore.user?.tenantId;
+    const hintSeen = localStorage.getItem(HINT_SEEN_KEY) === 'true';
+    if (!hasTenant || hasSeen() || isActive() || hintSeen) return;
+    // only auto on dashboard routes (avoid interrupting deep links like /facturas)
+    const isDashboardRoute = route.path === '/dashboard' || route.path.startsWith('/dashboard/');
+    if (!isDashboardRoute) return;
+    // first time ever: auto-start; otherwise would be hint — but hintSeen already blocks, so here = auto
+    hintTimer = setTimeout(() => {
+      // re-check isActive at fire time (race: user may have clicked ?)
+      if (isActive() || hasSeen()) return;
+      // ponytail: auto-start only if never seen; no separate hint on first time
+      startTour();
+    }, 800);
   }
+  // try auto; if not applicable, watcher on tenantId will retry when hydration arrives
+  maybeTutorial();
 });
 
 watch(() => route.path, () => {
   void showForCurrentRoute();
+});
+
+// ponytail: react to tenant hydrating after login/onboarding (snapshot at mount was false)
+watch(() => authStore.user?.tenantId, (val) => {
+  if (!val) return;
+  if (hasSeen() || isActive()) return;
+  const hintSeen = localStorage.getItem(HINT_SEEN_KEY) === 'true';
+  if (hintSeen) return;
+  const isDashboardRoute = route.path === '/dashboard' || route.path.startsWith('/dashboard/');
+  if (!isDashboardRoute) return;
+  if (hintTimer) clearTimeout(hintTimer);
+  // hybrid: auto-start si nunca lo viste
+  hintTimer = setTimeout(() => {
+    if (isActive() || hasSeen()) return;
+    startTour();
+  }, 800);
 });
 
 onUnmounted(() => {

@@ -1,6 +1,6 @@
 # FUTURE.md — Frontend: Modulos Core
 
-> **Fecha:** 2026-07-15
+> **Fecha:** 2026-09-18 (actualizado)
 > **Objetivo:** Documentar el estado de los modulos backend y frontend + design system actual.
 
 ---
@@ -9,13 +9,18 @@
 
 Backend y frontend de los 5 modulos core estan completos + modernización PWA aplicada.
 
-| Modulo backend | Ruta API | Pagina frontend | Service | Sidebar |
-|----------------|----------|-----------------|---------|---------|
-| Gastos | `/api/v1/core/gastos` | ✅ `GastosPage.vue` | ✅ `gasto.service.ts` | ✅ habilitado |
-| Ventas | `/api/v1/core/ventas` | ✅ `VentasPage.vue` | ✅ `venta.service.ts` | ✅ habilitado |
-| Prestamos | `/api/v1/core/prestamos` | ✅ `PrestamosPage.vue` | ✅ `prestamo.service.ts` | ✅ habilitado |
-| Patrimonio | `/api/v1/core/patrimonio/{tenantId}` | ✅ `PatrimonioPage.vue` | ✅ `patrimonio.service.ts` | ✅ habilitado |
-| Accounting | `/api/v1/core/accounting` | ✅ `AccountingPage.vue` | ✅ `accounting.service.ts` | ✅ habilitado |
+| Modulo backend | Ruta API | Pagina frontend | Service | Sidebar | Estado |
+|----------------|----------|-----------------|---------|---------|---------|
+| Gastos | `/api/v1/core/gastos` | ⚠️ `GastosPage.vue` deprecada 2026-08-04 → redirect `/dashboard/costos?tab=gastosFijos` | ✅ `gasto.service.ts` | ❌ fuera bottom nav | Deprecated |
+| Ventas | `/api/v1/core/ventas` | ✅ `VentasPage.vue` | ✅ `venta.service.ts` | ✅ habilitado | Activo |
+| Prestamos | `/api/v1/core/prestamos` | ✅ `PrestamosPage.vue` | ✅ `prestamo.service.ts` | ✅ habilitado | Activo |
+| Patrimonio | `/api/v1/core/patrimonio/{tenantId}` | ✅ `PatrimonioPage.vue` `data-tour=patrimonio` | ✅ `patrimonio.service.ts` | ✅ habilitado | Activo |
+| Costos | `/api/v1/core/costos/diario` | ✅ `CostosPage.vue` 220l composition + `useCostos` + `CostSummaryBar` `data-tour=costos` | ✅ `costo.service.ts` | ✅ `mobile-bottom-nav` | Activo 2026-09-12 |
+| Facturas | `/api/v1/core/facturas` | ✅ `FacturasPage.vue` `InvoiceItemCard` ITBMS 0/7/10 `data-tour=facturas` | ✅ `factura.service.ts` | ✅ | Activo V6 |
+| Analytics | `/api/v1/core/analytics` | ✅ `DashboardPage.vue` + `AnalisisGastosPage.vue` `data-tour=dashboard/analisis` + 10 motores | ✅ `analytics.service.ts` | ✅ Análisis/Dashboard | 924KB |
+| Tutorial | — | ✅ `useTutorial.ts` `driver.js` 7 pasos `data-tour` + `mini hint` | — | `?` header | 2026-09-18 |
+| Legales BETA | — | ✅ `pages/legal/TerminosPage.vue` `PrivacidadPage.vue` `BETA v0.1` | — | Footer | 2026-09-18 |
+| Monetización score 12m | `POST /core/analytics/share` (futuro) | `ConsentShareCard` opt-in red aliada | pendiente | FUTURO — 12m opt-in red aliada |
 
 ### Modernización PWA aplicada (2026-07-14)
 
@@ -107,11 +112,14 @@ Backend y frontend de los 5 modulos core estan completos + modernización PWA ap
 
 ---
 
-## Pendiente conocido
+## Pendiente conocido (2026-09-18)
 
-- ConfiguracionPage: CRUD edición (pendiente backend PUT endpoint)
-- Tests frontend
-- SEO: og:image, meta description, JSON-LD
+- ConfiguracionPage: CRUD edición (pendiente backend PUT `/setup/{tenantId}`) + Picker 40+ categorías
+- Fase 7 Amortización francesa (8 tasks Alta, ver TO_DO.md)
+- Tests frontend 29 vitest + E2E `377/92` stale → `536 (207/263/37+29)` actualizado
+- Offline PWA: 1/2 hecho (refresh no logout + banner lastSync), pendiente cola + borrador (defer hasta feedback real)
+- Legales BETA hecho (`dio-quincar@outlook.com` temporal), SEO og:image pendiente
+- **Monetización score 12m — red de financieras aliadas** (post-MVP, 12m comportamiento): individual identificado solo con consentimiento expreso separado “compartir mi score 68/100 con cualquier financiera aliada para evaluación crediticia”, a los 12 meses, revocable en Configuración, log consentId. Sin “sí” no se vende. Agregado anónimo: sin nombre/email/RUC, ≥10 PYMEs por celda → no es dato personal (Ley 81), vendible desde mes 1. Base legal Panamá: Ley 81 + Decreto 285, ANTAI. Para implementar: V7 `analytics_consent/share_log` + 3 endpoints + rewrite `PrivacidadPage.vue:32` + contrato red. Scope mínimo: `score 0-100 + drivers` (no facturas crudas).
 
 ### Completado (2026-07-14)
 

@@ -129,7 +129,7 @@
 | 3 | Descuento en Factura es monto fijo | UI muestra `prefix="$"` — usuario espera porcentaje (5%, 10%) | Input trata descuento como monto, no como porcentaje | Medio — UX confusa, usuario no puede poner descuentos promocionales | ⬜ Non-priority (ponytail: backend ya soporta %, cambio UI trivial) |
 | 4 | precioUnitario no usa conversión | Presentaciones tienen `conversion` factor | `precioUnitario` se auto-llena con `lastUnitPrice` sin dividir por conversión | Alto — precio unitario no refleja costo real por unidad base | ⬜ Non-priority (ponytail: requiere backend change, no es solo frontend) |
 
-### Workflow / UX Findings (audit 2026-08-14)
+### Workflow / UX Findings (audit 2026-08-14 → ✅ CERRADO 2026-08-17 Fase 4a-d, ver TO_DO Fase 4 + DAILY_REPORTS_FRONTEND 2026-08-17)
 
 #### 🔴 Cognitive overload — Dashboard
 

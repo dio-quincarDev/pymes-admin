@@ -228,6 +228,65 @@ class FacturaIntegrationTest extends AbstractIntegrationTest {
     }
 
     @Test
+    @DisplayName("Cross-tenant IDOR — factura/proveedor de otro tenant retorna 404")
+    void crossTenantIdorReturns404() throws Exception {
+        var tenantA = UUID.randomUUID();
+        var tenantB = UUID.randomUUID();
+
+        // Crear provider para tenant A
+        var provResult = mockMvc.perform(post("/api/v1/core/proveedores")
+                        .contentType(MediaType.APPLICATION_JSON)
+                        .content(objectMapper.writeValueAsString(Map.of(
+                                "tenantId", tenantA.toString(), "name", "Prov IDOR"))))
+                .andExpect(status().isOk()).andReturn();
+        var providerId = objectMapper.readTree(provResult.getResponse().getContentAsString()).get("id").asText();
+
+        // Tenant B intenta leer provider de A → 404
+        mockMvc.perform(get("/api/v1/core/proveedores/{id}?tenantId={tid}", providerId, tenantB))
+                .andExpect(status().isNotFound());
+
+        // Crear producto + presentacion + factura para tenant A
+        mockMvc.perform(post("/api/v1/core/productos")
+                        .contentType(MediaType.APPLICATION_JSON)
+                        .content(objectMapper.writeValueAsString(Map.of(
+                                "tenantId", tenantA.toString(), "name", "Prod IDOR", "sku", "IDOR-001"))))
+                .andExpect(status().isOk());
+        var productId = objectMapper.readTree(mockMvc.perform(get(
+                        "/api/v1/core/productos?tenantId={tid}", tenantA)).andReturn()
+                .getResponse().getContentAsString()).get(0).get("id").asText();
+        var presBody = objectMapper.writeValueAsString(Map.of("name", "Unidad", "conversion", 1));
+        var presResult = mockMvc.perform(post("/api/v1/core/productos/{id}/presentaciones?tenantId={tid}", productId, tenantA)
+                        .contentType(MediaType.APPLICATION_JSON).content(presBody))
+                .andExpect(status().isOk()).andReturn();
+        var presentacionId = objectMapper.readTree(presResult.getResponse().getContentAsString()).get("id").asText();
+        var invoiceBody = objectMapper.writeValueAsString(Map.of(
+                "tenantId", tenantA.toString(),
+                "proveedorId", providerId,
+                "fecha", "2026-06-15",
+                "tipo", "FACTURA",
+                "items", List.of(Map.of(
+                        "productoId", productId,
+                        "presentacionId", presentacionId,
+                        "cantidad", 1,
+                        "precioUnitario", 10,
+                        "descuento", 0))));
+        var invResult = mockMvc.perform(post("/api/v1/core/facturas")
+                        .contentType(MediaType.APPLICATION_JSON).content(invoiceBody))
+                .andExpect(status().isOk()).andReturn();
+        var invoiceId = objectMapper.readTree(invResult.getResponse().getContentAsString()).get("id").asText();
+
+        // Tenant B intenta leer factura de A → 404
+        mockMvc.perform(get("/api/v1/core/facturas/{id}?tenantId={tid}", invoiceId, tenantB))
+                .andExpect(status().isNotFound());
+        // Tenant B intenta pagar factura de A → 404
+        mockMvc.perform(post("/api/v1/core/facturas/{id}/pagar?tenantId={tid}", invoiceId, tenantB))
+                .andExpect(status().isNotFound());
+        // Tenant B intenta borrar factura de A → 404 (no 403, evita enumeración)
+        mockMvc.perform(delete("/api/v1/core/facturas/{id}?tenantId={tid}", invoiceId, tenantB))
+                .andExpect(status().isNotFound());
+    }
+
+    @Test
     @DisplayName("Delete REGISTRADA succeeds (OWNER soft-delete)")
     void deleteRegistradaSucceeds() throws Exception {
         var tenantId = UUID.randomUUID();

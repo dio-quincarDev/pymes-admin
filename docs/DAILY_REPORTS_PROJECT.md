@@ -4,6 +4,25 @@ Registro cronológico de decisiones técnicas, refactors y post-mortems del proy
 
 ---
 
+## 2026-09-18 — Tutorial 7 pasos + Offline 1/2 + Legales BETA v0.1 + Mobile fix
+
+**Qué se hizo:**
+- **Tutorial** `useTutorial.ts` 7 pasos inversión→análisis `driver.js 1.3.1` `drive()+poll 10×250ms` + mini `q-menu` Opción B `dio-quincar@outlook.com` + `?` on-demand + `viewport-fit=cover` + `pymeq_hint_seen` (924KB PWA, commit `5dc27b8`).
+- **Legales** `pages/legal/TerminosPage.vue` + `PrivacidadPage.vue` BETA v0.1 lenguaje simple 10 secciones + banner beta + `routes /terminos/privacidad` + footer `BETA` (commit `7aed42d`).
+- **Offline 1/2** `axios.ts` evita logout fantasma sin red (`!navigator.onLine` no borra sesión, OFFLINE reject + pymeq_last_sync) + `MainLayout` banner `datos desactualizados · última sync 12:34` + chip cacheado + notify al volver (commit `da482eb`).
+
+```
+frontend/pymes/src/composables/useTutorial.ts + MainLayout + app.scss + index.html + DashboardPage + 5 pages data-tour
+frontend/pymes/src/pages/legal/* + router/routes.ts + LandingLayout
+frontend/pymes/src/boot/axios.ts + MainLayout offline
+```
+
+## 2026-09-16 — Análisis: MetricCard fix + Salud Financiera criolla
+
+**Qué se hizo:** `MetricCard` label arriba + `financialGuide.ts` `guideForPillar/overallGuide` criollo desde `breakdown.drivers` + `SupplierRecommendationsCard` filtros `>5%` + `3+ prov` + `AlertsPanel` filtra `0.00` + skeletons. Ver `frontend/pymes/docs/DAILY_REPORTS_FRONTEND.md 2026-09-16`.
+
+---
+
 ## 2026-09-15 — Factura: ITBMS DGI 0/7/10 por ítem (Sin/Con ITBMS, default 0)
 
 **Contexto:** `Valor $` sin impuesto + descuento antes de impuesto. Mezcla exento (leche 0%) y gravado (jabón 7% / cerveza 10%) por ítem DGI. `Gravado` no lo entiende el tendero → lenguaje `Sin ITBMS / Con ITBMS`.

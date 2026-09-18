@@ -55,17 +55,21 @@ Modular y event-driven. Cada modulo vive en su propio paquete con controller/ser
 core_pymes/
 ├── common/
 │   ├── config/
-│   │   ├── EventConfig.java        # @EnableAsync + @EnableScheduling
-│   │   └── CacheConfig.java        # @EnableCaching + RedisCacheManager
-│   ├── constant/CorePath.java      # rutas API
-│   ├── exception/                  # GlobalExceptionHandler
-│   ├── seed/SeedDataRunner.java    # 8 industrias, 6 tablas template
+│   │   ├── EventConfig.java              # @EnableAsync + @EnableScheduling
+│   │   ├── CacheConfig.java              # @EnableCaching + RedisCacheManager (facturas+productos)
+│   │   ├── IdempotencyFilter.java        # POST Idempotency-Key 6h SET NX + replay
+│   │   ├── TenantValidationFilter.java   # 403 si X-Tenant-Id != ?tenantId
+│   │   ├── RoleHeaderFilter.java         # X-User-Role → SecurityContext
+│   │   └── SecurityConfig.java           # @EnableMethodSecurity, 18 WRITE @PreAuthorize OWNER|ADMIN
+│   ├── constant/CorePath.java            # rutas API
+│   ├── exception/                        # GlobalExceptionHandler 12 handlers + CodigoError
+│   ├── seed/SeedDataRunner.java          # 8 industrias, 6 tablas template
 │   └── service/
 │       └── RecomputeDebounceService.java  # Redis debounce
 │
 ├── setup/       configuracion/inventario inicial
 ├── product/     catalogo productos y presentaciones
-├── invoice/     facturas de compra y proveedores
+├── invoice/     facturas de compra y proveedores (V6 ITBMS, EstadoFactura, advisory_lock)
 ├── analytics/   9 motores CTE de analisis de gastos
 ├── gasto/       gastos operativos
 ├── prestamo/    prestamos y pagos
@@ -86,17 +90,17 @@ Ver [docs/CORE.md](./docs/CORE.md) para arquitectura completa.
 | Modulo | Endpoints | Descripcion |
 |--------|-----------|-------------|
 | setup | 3 | Onboarding lazy + plantillas por industria |
-| product | 8 | CRUD productos + presentaciones (soft-delete) |
-| invoice (facturas) | 5 | CRUD facturas + pagar |
+| product | 8 | CRUD productos + presentaciones (soft-delete) + SKU 409 fix `findTopSkuByTenantId` + paginación A-Z `V5 idx_products_tenant_name` |
+| invoice (facturas) | 5 | CRUD facturas + pagar + `PUT` editar REGISTRADA — ITBMS 0/7/10 por ítem `V6 itbms_tasa/itbms_monto` + `subtotalExento/Gravado/itbmsTotal`, delete solo OWNER `ANULADA` conserva items |
 | invoice (proveedores) | 5 | CRUD proveedores (soft-delete) |
-| gasto | 5 | Gastos operativos con categorias (soft-delete) |
+| gasto | 5 | Gastos operativos con categorias (soft-delete) + `GAS` enum |
 | prestamo | 7 | Prestamos + pagos + estados (soft-delete) |
 | inversion | 2 | Patrimonio por tenant (1 fila) |
 | venta | 5 | Ventas diarias (soft-delete) |
-| analytics | 2 | 9 motores CTE (ABC, tendencias, margenes, opex, proyeccion, alertas, supplier analytics) |
+| analytics | 2 | 9 motores CTE (ABC, tendencias, margenes, opex, proyeccion, alertas, supplier analytics) — solo `PAGADA` alimenta métricas |
 | accounting | 2 | Metricas financieras consolidadas (CTE 1 round-trip) |
 
-> **Total: 44 endpoints**
+> **Total: 44 endpoints** — Facturas ahora exponen `itbmsTasa/itbmsMonto` por ítem y `subtotalExento/Gravado/itbmsTotal` en header; `Idempotency-Key` header opcional en POST (replay 6h)
 
 ---
 
@@ -112,12 +116,28 @@ Factura/Gasto/Venta creado
   └── processPending() barre keys
   └── 1 recompute por (tipo, tenant, periodo) unico
   └── MetricasService.recalcular() o AnalyticsService.ejecutarCompleto()
+
+POST Factura (idempotencia 6h)
+  └── IdempotencyFilter @Order(0) Idempotency-Key header
+      └── Redis GET idempotency:{tenantId}:{key} → replay 2xx (status|contentType|body)
+      └── ContentCachingResponseWrapper + SET NX EX 6h solo 2xx
+FacturaServiceImpl.generateInvoiceNumber
+  └── SELECT pg_advisory_xact_lock(hashtext(tenantId)) → MAX+1 sin carrera
+
+Cache productos
+  └── ProductoServiceImpl @Cacheable("productos") 5min TTL
+  └── FacturaServiceImpl @Caching(evict facturas+productos allEntries=true) en create/update/delete
+
+Seguridad
+  └── TenantValidationFilter: X-Tenant-Id (gateway) vs ?tenantId → 403 si difieren
+  └── RoleHeaderFilter: X-User-Role → ROLE_OWNER|ADMIN + @PreAuthorize en 18 WRITE (CONTABLE/VIEWER solo GET)
 ```
 
 | Key pattern | Tipo | Service |
 |-------------|------|---------|
 | `recompute:metrics:{tenantId}:{period}` | gasto/venta | MetricasService |
-| `recompute:analytics:{tenantId}:{period}` | factura | AnalyticsService |
+| `recompute:analytics:{tenantId}:{period}` | factura PAGADA | AnalyticsService |
+| `idempotency:{tenantId}:{key}` | POST factura | IdempotencyFilter (TTL 6h) |
 
 ---
 
@@ -139,15 +159,16 @@ Factura/Gasto/Venta creado
 
 ### Cobertura por Tipo
 
+> Verificado `grep -c @Test` 2026-09-17 — total **263** (`85 unit + 11 analytics unit + 104 JPA + 62 integration + 1 context`).
+
 | Tipo | Tests | Tecnologia |
 |------|-------|------------|
-| Unit | 60 | Mockito, JUnit 5 |
-| JPA | 88 | @DataJpaTest + Testcontainers PostgreSQL |
-| Integration | 45 | @SpringBootTest + Testcontainers PG + Redis |
-| Analytics | 5 | Mockito + JdbcTemplate mock |
+| Unit | 85 | Mockito, JUnit 5 (incl. `InvoiceCalculatorItbmsTest` 8, `GlobalExceptionHandlerTest` 14) |
+| Analytics unit | 11 | Mockito + JdbcTemplate mock (`AnalyticsServiceImplTest`) |
+| JPA | 104 | @DataJpaTest + Testcontainers PostgreSQL (Producto 30, Factura 18, Gasto 10, Prestamo 12, Venta 11, etc.) |
+| Integration | 62 | @SpringBootTest + Testcontainers PG + Redis (Factura 9, Itbms 5, ProductoSku 6, FacturaColaborador 6, ModeloGastos 5, etc.) |
 | Context | 1 | Application context load |
-| Seed | 19 | Setup + Seed data integration |
-| **Total** | **218** | |
+| **Total** | **263** | `mvn test` 96 unit/analytics PASS + `verify -Pintegration` 167 JPA/integration PASS |
 
 ---
 
@@ -187,12 +208,14 @@ DELETE /api/v1/core/proveedores/{id}
 ### Facturas
 
 ```
-POST   /api/v1/core/facturas
-GET    /api/v1/core/facturas
+POST   /api/v1/core/facturas                          # Header opcional Idempotency-Key (replay 6h, SET NX solo 2xx)
+GET    /api/v1/core/facturas                          # filtra ANULADA en DB (WHERE status != 'ANULADA')
 GET    /api/v1/core/facturas/{id}
-DELETE /api/v1/core/facturas/{id}
-POST   /api/v1/core/facturas/{id}/pagar
+PUT    /api/v1/core/facturas/{id}?tenantId=...        # solo REGISTRADA, revierte product stats + rebuild items
+DELETE /api/v1/core/facturas/{id}?tenantId=...        # solo OWNER @PreAuthorize; PAGADA→ANULADA conserva items, REGISTRADA→soft-delete
+POST   /api/v1/core/facturas/{id}/pagar               # dispara FacturaPagadaEvent → metrics dirty
 ```
+> Item: `itbmsTasa 0|7|10 (null→0 exento) + itbmsMonto HALF_UP`; header: `subtotalExento/Gravado/itbmsTotal`, `total=subtotalNet+itbmsTotal-globalDiscount`. `GASTO_OPERATIVO` sin items usa `total` directo + `providerId` nullable + `colaboradorId` opcional. Solo `PAGADA` alimenta `analytics`/`metrics` (13 CTEs `WHERE status='PAGADA'`).
 
 ### Gastos / Prestamos / Ventas / Patrimonio
 

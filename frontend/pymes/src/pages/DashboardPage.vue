@@ -13,6 +13,7 @@ import ActivityPanel from 'src/modules/core/components/dashboard/ActivityPanel.v
 import FinancialHealthPanel from 'src/modules/core/components/dashboard/FinancialHealthPanel.vue';
 import KpiStrip from 'src/modules/core/components/dashboard/KpiStrip.vue';
 import RegistrarVentaDialog from 'src/modules/core/components/dashboard/RegistrarVentaDialog.vue';
+import RegistrarVentaInlineBar from 'src/modules/core/components/dashboard/RegistrarVentaInlineBar.vue';
 import VentasVsCostosChart from 'src/modules/core/components/dashboard/VentasVsCostosChart.vue';
 import { usePullToRefresh } from 'src/composables/usePullToRefresh';
 
@@ -20,6 +21,7 @@ useMeta({ title: 'Dashboard — PYMEQ' });
 
 const authStore = useAuthStore();
 const hasTenant = computed(() => !!authStore.user?.tenantId);
+const isWriter = computed(() => ['OWNER', 'ADMIN'].includes(authStore.user?.role ?? ''));
 const { formatCurrency } = useNumberFormat();
 const { showForCurrentRoute } = useTutorial();
 
@@ -46,7 +48,8 @@ const {
 const { financialHealth, supplierRecommendations, loading: analyticsLoading } = useAnalytics();
 const { pullDistance, isRefreshing } = usePullToRefresh({ onRefresh: fetch });
 
-// Dialog — shallowRef per reactivity.md (primitive)
+// Inline quick capture — composition surface only (logic lives in RegistrarVentaInlineBar + useRegistrarVenta)
+const showInline = shallowRef(false);
 const showRegistrarVenta = shallowRef(false);
 
 function onVentaCreada() {
@@ -158,33 +161,42 @@ const categoryItems = computed(() =>
         <q-btn flat dense no-caps label="Reintentar" class="dashboard-error-banner__retry" @click="recalcular" />
       </div>
 
-      <!-- Quick actions -->
+      <!-- Quick actions — hierarchy: 1 primary gold, 2 secondary -->
       <div class="dashboard-actions">
         <q-btn
           no-caps
           icon="sym_r_add"
           label="Registrar venta"
-          color="positive"
-          class="dashboard-actions__btn"
-          @click="showRegistrarVenta = true"
-        />
-        <q-btn
-          no-caps
-          icon="sym_r_analytics"
-          label="Análisis"
-          outline
-          class="dashboard-actions__btn"
-          @click="$router.push('/dashboard/analisis-gastos')"
-        />
-        <q-btn
-          no-caps
-          icon="sym_r_account_balance"
-          label="Inversión"
-          outline
-          class="dashboard-actions__btn"
-          @click="$router.push('/dashboard/patrimonio')"
-        />
+          color="primary"
+          text-color="dark"
+          class="dashboard-actions__btn dashboard-actions__btn--primary"
+          :disable="!isWriter"
+          @click="showInline = !showInline"
+        >
+          <q-tooltip v-if="!isWriter">Solo OWNER/ADMIN</q-tooltip>
+        </q-btn>
+        <div class="dashboard-actions__secondary">
+          <q-btn
+            no-caps
+            icon="sym_r_analytics"
+            label="Análisis"
+            outline
+            class="dashboard-actions__btn dashboard-actions__btn--secondary"
+            @click="$router.push('/dashboard/analisis-gastos')"
+          />
+          <q-btn
+            no-caps
+            icon="sym_r_account_balance"
+            label="Inversión"
+            outline
+            class="dashboard-actions__btn dashboard-actions__btn--secondary"
+            @click="$router.push('/dashboard/patrimonio')"
+          />
+        </div>
       </div>
+
+      <!-- Inline quick capture — extracted component (props down, events up) -->
+      <RegistrarVentaInlineBar v-if="hasTenant" v-model="showInline" @created="onVentaCreada" />
 
       <!-- KPI Strip -->
       <KpiStrip :kpis="stripKpis" :loading="loading" />
@@ -207,8 +219,15 @@ const categoryItems = computed(() =>
         <FinancialHealthPanel :data="financialHealth" :loading="analyticsLoading" :recommendations="supplierRecommendations" />
       </div>
 
-      <!-- Dialog -->
+      <!-- Dialog kept for mobile FAB bottom-sheet -->
       <RegistrarVentaDialog v-model="showRegistrarVenta" @created="onVentaCreada" />
+
+      <!-- Mobile FAB — thumb-reach, only writer, hidden when inline already open -->
+      <q-page-sticky v-if="hasTenant && isWriter && !showInline" position="bottom-right" :offset="[16, 20]" class="venta-fab">
+        <q-btn fab icon="sym_r_add" color="primary" text-color="dark" aria-label="Registrar venta" @click="showInline = true">
+          <q-tooltip>Registrar venta</q-tooltip>
+        </q-btn>
+      </q-page-sticky>
     </template>
   </q-page>
 </template>
@@ -266,15 +285,56 @@ const categoryItems = computed(() =>
 }
 
 .dashboard-actions {
-  display: flex;
-  gap: 10px;
+  display: grid;
+  grid-template-columns: auto 1fr;
+  gap: 12px;
   margin-bottom: 20px;
-  flex-wrap: wrap;
+  align-items: center;
 
   &__btn {
     font-family: 'Satoshi', sans-serif;
     font-weight: 600;
     border-radius: 6px;
+  }
+
+  &__btn--primary {
+    font-weight: 700;
+  }
+
+  &__btn--secondary {
+    opacity: 0.9;
+  }
+
+  &__secondary {
+    display: flex;
+    gap: 10px;
+    flex-wrap: wrap;
+    justify-content: flex-end;
+  }
+
+  @media (max-width: 600px) {
+    grid-template-columns: 1fr;
+
+    &__btn,
+    &__btn--primary,
+    &__btn--secondary {
+      width: 100%;
+    }
+
+    &__secondary {
+      flex-direction: column;
+      width: 100%;
+      justify-content: stretch;
+    }
+  }
+}
+
+.venta-fab {
+  // keep above mobile-bottom-nav (q-footer) — z 300
+  z-index: 310;
+
+  @media (min-width: 768px) {
+    display: none;
   }
 }
 

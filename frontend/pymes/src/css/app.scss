@@ -332,6 +332,12 @@ input[type="number"] {
   color: #08090D;
 }
 
+// Disabled CTA — differentiate grey disabled from primary gold (fixes “botón en gris” confusion)
+.q-btn.disabled {
+  opacity: 0.45 !important;
+  filter: saturate(0);
+}
+
 // --------------------------------------------------
 // Icons — Material Symbols Rounded (variable font)
 // Rounded terminals match the industrial radius; weight tuned up for presence.

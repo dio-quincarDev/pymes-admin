@@ -1,5 +1,7 @@
 # Daily Reports — Gateway Solutions
 
+> **Estado 2026-09-18:** 37 tests (9+22+5+1, 2026-09-17) · auth 207 · core 263 — ver `docs/DAILY_REPORTS_PROJECT.md`.
+
 Registro cronológico de problemas resueltos y decisiones de implementación en **gateway-pymes**.
 
 ---
