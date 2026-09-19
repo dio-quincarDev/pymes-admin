@@ -4,6 +4,31 @@ Registro cronológico de decisiones, problemas resueltos y estado del frontend.
 
 ---
 
+## 2026-09-19 — Fix registro manual: hint password + clearSession pendingTenant race
+
+**Contexto:** Beta reportó que en `/register` no se veían las reglas de contraseña (solo `Mínimo 8 caracteres` en placeholder). Backend exige `RegisterRequest.java:19` / `ResetPasswordRequest.java:13` `^(?=.*[A-Za-z])(?=.*\d).+$` (letra+número). Además, el registro manual se quedaba “estancado” sin `POST /auth/register` ni error en consola/Network — `OAuth2` funcionaba perfecto.
+
+**Causa raíz — race `pendingTenant`:**
+- `store/index.ts:197-206` `clearSession()` limpia `pymeq_pending_tenant` (fix `d866afa` para `OAuth2` stale `intent`). 
+- `RegisterPage.vue:207-219` hacía `clearSession()` y **después** leía `pendingTenant.value.name/slug` → `null` → `TypeError` capturado como `Error al registrar` genérico, sin `Network`. `curl POST /api/v1/auth/register` directo sí daba `200`/`400 VAL001`/`409 USR004/TNT003` — backend intacto. HAR sin `register` confirmó `q-form` no emitía `submit` (validación frenaba antes de red).
+
+**Qué se hizo:**
+- **UX hint A (mínimo):** `RegisterPage.vue:83` + `ResetPasswordPage.vue:16` `hint="Mínimo 8 caracteres, al menos 1 letra y 1 número"` + `:rules` con ` /^(?=.*[A-Za-z])(?=.*\d).+/.test(val) || 'Debe contener letra y número'` alineado a backend. Sin checklist/medidor (YAGNI, pedido A).
+- **Fix race:** `RegisterPage.vue:207-220` captura `const tenant = pendingTenant.value` antes de `clearSession()`, restaura `pendingTenant = tenant` + `localStorage pymeq_pending_tenant` para armar `payload {companyName, companySlug}`; tras éxito `clearPendingTenant()` + `router.push('/verify')`. `logout` sigue con `clearSession()` completo (`CLEAR_API_CACHE` al SW) — no se rompe `OAuth2`.
+- **Ponytail:** 5 líneas, sin nuevo composable ni lib; `OAuth2` (`LoginPage/RegisterPage` `createOAuth2Intent`) no usa `clearSession` antes de intent → intacto.
+
+**Verificación:** `npm run lint` 0, `npm run build` PWA 942KB (379KB CSS), `docker compose up -d --build frontend` healthy, `curl POST /auth/register` con `Pymeq20261` → `200` + `Redis temp-register:*` + `EmailService` log, con `contrasena` → `400 VAL001 detalles.password`. Manual `ivan20-21@outlook.com` ya envía.
+
+```
+frontend/pymes/src/modules/auth/pages/RegisterPage.vue      # hint + rules + capture tenant before clearSession
+frontend/pymes/src/modules/auth/pages/ResetPasswordPage.vue # hint + rules
+frontend/pymes/src/modules/auth/store/index.ts              # clearSession limpia pendingTenant (logout)
+```
+
+**Estado:** ✅ COMPLETADO — pendiente commit/push `feature/refactor`
+
+---
+
 ## 2026-09-18 — Tutorial guiado 7 pasos + mini popover on-demand + mobile viewport fix + Dashboard Rentabilidad fix
 
 **Contexto:** Usuario pidió tutorial cercano panameño en orden exacto 1 Inversión → 2 Gastos/Costos salarios → 3 Proveedores → 4 Productos (borrar/crear) → 5 Facturas (Sin/Con ITBMS 0/7/10) → 6 Dashboard → 7 Análisis (9 alertas). Tono simple dentro del tour ("arriba sin impuesto abajo con ITBMS…"). Además reportó bug `driver.js highlight` sin botón Siguiente, overlap mobile por `mobile-bottom-nav` + `CostSummaryBar sticky`, y Dashboard mostraba solo 2 KPIs por `stripKpis` condicional.
