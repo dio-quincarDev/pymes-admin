@@ -4,6 +4,19 @@ Registro cronológico de decisiones técnicas, refactors y post-mortems del proy
 
 ---
 
+## 2026-09-19 — Fix registro manual (hint + pendingTenant race) — frontend
+
+**Qué se hizo:**
+- **Hint password A:** `RegisterPage.vue:83` + `ResetPasswordPage.vue:16` `hint="Mínimo 8 caracteres, al menos 1 letra y 1 número"` + `rules` `letra+número` alineado a `RegisterRequest.java:19` (`^(?=.*[A-Za-z])(?=.*\d).+$`). Sin checklist (YAGNI).
+- **Race `pendingTenant`:** `store:clearSession()` limpia `pymeq_pending_tenant` (logout correcto, `d866afa`). `RegisterPage:onRegister` hacía `clearSession()` antes de leer `pendingTenant` → `null`, sin `POST` ni consola (HAR sin `register`). Fix captura `tenant` antes y restaura para `payload`, luego `clearPendingTenant()`. `logout`/`OAuth2` intactos.
+- **Verificación:** `lint` 0, `build` PWA 942KB, `curl /auth/register` `200`/`400 VAL001`, `Redis temp-register:*`, `docker compose frontend` healthy. Detalle en `frontend/pymes/docs/DAILY_REPORTS_FRONTEND.md 2026-09-19`.
+
+```
+frontend/pymes/src/modules/auth/pages/RegisterPage.vue + ResetPasswordPage.vue
+```
+
+---
+
 ## 2026-09-18 — Tutorial 7 pasos + Offline 1/2 + Legales BETA v0.1 + Mobile fix
 
 **Qué se hizo:**
