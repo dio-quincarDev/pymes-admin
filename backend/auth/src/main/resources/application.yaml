@@ -117,3 +117,4 @@ springdoc:
   server:
     url: ${SWAGGER_SERVER_URL:http://localhost:8080}
     description: Gateway URL
+# trigger CI for MAIL_FROM oci deploy - retry
