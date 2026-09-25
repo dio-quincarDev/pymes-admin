@@ -1,8 +1,50 @@
 # 📊 Daily Reports & Auth Solutions — Historial de Implementaciones
 
-> **Estado 2026-09-18:** 207 tests (138+56+12+1, 2026-09-17) · gateway 37 · core 263 (V6) · offline 1/2 · legales BETA — ver `docs/DAILY_REPORTS_PROJECT.md`.
+> **Estado 2026-09-25:** 207 tests (138+56+12+1, 2026-09-17) · gateway 37 · core 263 (V6) · email OCI `sa-bogota-1` agnóstico `MAIL_FROM` + pipelines CD alineados — ver `docs/DAILY_REPORTS_PROJECT.md`.
 
 Este documento registra de manera cronológica el historial de decisiones técnicas, problemas resueltos y la evolución de la arquitectura del microservicio de autenticación (`auth`).
+
+---
+
+## 2026-09-25 — OCI Email Delivery agnóstico `MAIL_FROM` + reemplazo SMTP corrupto + CD alineado
+
+### Contexto
+
+VPS stage `149.130.165.200` tenía SMTP corrupto (Gmail `devpruebas.zar@gmail.com` en `/.env` / `backend/auth/.env`) y al migrar a OCI Email Delivery `sa-bogota-1` (`info@dioquincar.dev` verificado, `include:rp.oracleemaildelivery.com`, DKIM+CNAME) apareció `535 5.7.8 Authentication credentials invalid` + `553 Local address ... dot-dot`. Causa: `SPRING_MAIL_USERNAME` en OCI es `ocid1.user...@ocid1.tenancy...ak.com` (contiene `..`) y `EmailServiceImpl.java:23` usaba `@Value("${spring.mail.username}")` como `From` (`helper.setFrom`). OCI rechaza `MAIL FROM:<ocid...>` como dirección. Gmail usa `user==from` y no fallaba, por eso el drift `/.env` (Gmail) vs `backend/auth/.env` (ya OCI) pasó inadvertido hasta docker `healthy`.
+
+### Qué se hizo
+
+- **`application.yaml:104-106`** nuevo `app.mail.from: ${MAIL_FROM:${spring.mail.username}} # ponytail: optional split, Gmail->username, OCI->info@ (ocid has '..')` — fallback nativo: si `MAIL_FROM` vacío usa `spring.mail.username` (Gmail 1 var), si seteado usa Approved Sender OCI.
+- **`EmailServiceImpl.java:23-24`** `@Value("${spring.mail.username}")` → `@Value("${app.mail.from:${spring.mail.username}}")` — `helper.setFrom(fromEmail)` ahora usa `MAIL_FROM` validado, no OCID.
+- **`docker-compose.yml:91`** `- MAIL_FROM=${MAIL_FROM:-info@dioquincar.dev}` → `- MAIL_FROM=${MAIL_FROM:-}` (env-only, sin hardcode de dominio) — deja que Spring resuelva el fallback; vacío = Gmail, `info@dioquincar.dev` = OCI.
+- **`backend/auth/.env.example:31`** doc `MAIL_FROM=info@dioquincar.dev # OCI: Approved Sender sa-bogota-1, Gmail: dejar vacío` — vendor-neutral.
+- **`/.env:33-38` + `backend/auth/.env:37-41`** alineados a OCI: `SPRING_MAIL_HOST=smtp.email.sa-bogota-1.oci.oraclecloud.com:587`, `SPRING_MAIL_USERNAME=ocid1.user.oc1..aaaa...ak.com` verbatim con `.ak.com` (no es email), `MAIL_FROM=info@dioquincar.dev`, `PASSWORD='PusiFugjVTOc}1DGme(I'` con quoting por `}(`.
+- **`.github/SECRETS.md:68-89,173`** tabla renombrada `Email (SMTP — Agnostic: Gmail / OCI)` + fila `MAIL_FROM` opcional + secciones **A) Gmail App Password 16c** y **B) OCI sa-bogota-1** (Approved Senders → Identity SMTP Credentials `ocid...ak.com` → `sa-bogota-1:587` + nota `From=OCID → dot-dot`).
+- **`.github/workflows/cd-staging.yml:283` + `cd-prod.yml:213`** inyectaban solo `SPRING_MAIL_HOST/PORT/USERNAME/PASSWORD` en heredoc remoto (`cat > .env <<EOF` en `149.130.165.200`); faltaba `MAIL_FROM` → prod con OCID hacía bounce silencioso. Añadido `MAIL_FROM=${{ secrets.MAIL_FROM }}` en ambos heredocs — empty secret → fallback Gmail, set → OCI `From` correcto.
+
+### Verificación
+
+- `docker compose up -d --build auth-service` → `pymes-auth-service Up (healthy)` (antes `503 MailHealthIndicator 535`), `docker exec env | grep MAIL` muestra `MAIL_FROM=info@dioquincar.dev` + OCID verbatim, `GET /actuator/health {"status":"UP"}`.
+- Envío real `POST /api/v1/auth/register` a `dio-quincar@outlook.com` recibido `2026-09-25 02:36:50` con `spf=pass ip=158.247.100.126`, `dkim=pass d=dioquincar.dev` + `d=bog1.rp.oracleemaildelivery.com`, `dmarc=bestguesspass`, `From: info@dioquincar.dev`, `SCL:1` — sin `dot-dot`.
+- `./mvnw test -B` auth sigue verde (EmailService mock inyecta `fromEmail`).
+
+### Pendiente
+
+- Crear/actualizar secret GitHub `MAIL_FROM=info@dioquincar.dev` en **ambos** envs `staging` y `production` + `SPRING_MAIL_*` OCI (`Host sa-bogota-1:587`, `Username ocid...ak.com`, `Password PusiFugj...`) — sin esto el próximo `workflow_run` vuelve a desplegar `.env` vacío/corrupto y reaparece `535`. Actualizar también `SPRING_MAIL_PASSWORD` con quoting `'...'` solo en shell local, en GitHub va tal cual.
+
+### Archivos modificados
+
+```
+backend/auth/src/main/resources/application.yaml                                 # app.mail.from fallback
+backend/auth/src/main/java/auth/pymes/service/impl/EmailServiceImpl.java       # @Value app.mail.from
+docker-compose.yml                                                               # MAIL_FROM env-only (antes con default hardcodeado)
+backend/auth/.env.example                                                        # MAIL_FROM doc agnóstico
+.github/SECRETS.md                                                               # agnóstico + MAIL_FROM + pasos OCI/Gmail
+.github/workflows/cd-staging.yml                                                 # heredoc +MAIL_FROM
+.github/workflows/cd-prod.yml                                                    # heredoc +MAIL_FROM
+```
+
+**Estado:** ✅ COMPLETADO — pendiente crear `MAIL_FROM` + 4 `SPRING_MAIL_*` en GitHub Secrets (staging+prod) y `push develop` para que CD reemplace SMTP corrupto en VPS.
 
 ---
 
@@ -63,6 +105,7 @@ A partir de 2026-07-16, CORS opera en **doble capa**:
 - **Defensa en profundidad + Code Exchange OAuth2** — ✅ completado (2026-06-19).
 
 ### ✅ Historial de Soluciones (Orden Cronológico Inverso)
+0. [2026-09-25 — OCI Email Delivery agnostic MAIL_FROM + replacement + CD alignment](#-2026-09-25--oci-email-delivery-agnóstico-mail_from--reemplazo-smtp-corrupto--cd-alineado)
 0. [2026-08-30 — OAuth2 duplicate tenant → redirect whitelabel TNT003](#-2026-08-30--oauth2-duplicate-tenant--redirect-whitelabel-tnt003)
 0. [2026-08-27 — Redis fixes: TTL blacklist + logout error handling + fail-open](#-2026-08-27--redis-fixes-ttl-blacklist--logout-error-handling--fail-open)
 0. [2026-08-14 — OAuth2 slug duplicado fix (DuplicateResourceException)](#-2026-08-14--oauth2-slug-duplicado-fix-duplicateresourceexception)
