@@ -21,7 +21,8 @@ public interface FacturaMapper {
                 f.getColaborador() != null ? f.getColaborador().getNombre() : null,
                 f.getInvoiceNumber(), f.getIssueDate(), f.getType(),
                 f.getGlobalDiscount(), f.getPaymentMethod(), f.getCategory(), f.getStatus(),
-                f.getTotal(), items, f.getCreatedAt());
+                f.getTotal(), f.getSubtotalExento(), f.getSubtotalGravado(), f.getItbmsTotal(),
+                items, f.getCreatedAt());
     }
 
     ItemFacturaResponse toItemResponse(ItemFactura item);

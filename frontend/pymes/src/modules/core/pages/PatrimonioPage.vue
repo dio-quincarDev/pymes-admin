@@ -7,6 +7,7 @@ import { patrimonioService } from '../services/patrimonio.service';
 import { prestamoService } from '../services/prestamo.service';
 import { accountingService } from '../services/accounting.service';
 import { usePeriod } from '../composables/usePeriod';
+import { useTutorial } from 'src/composables/useTutorial';
 import type { Patrimonio, Prestamo, MetricasFinancieras } from '../types';
 
 useMeta({ title: 'Inversión — PYMEQ' });
@@ -16,6 +17,8 @@ const authStore = useAuthStore();
 const tenantId = authStore.user?.tenantId;
 const isOwner = computed(() => authStore.user?.role === 'OWNER');
 const { period } = usePeriod();
+
+const { showForCurrentRoute } = useTutorial();
 
 const data = ref<Patrimonio | null>(null);
 const loading = ref(true);
@@ -128,13 +131,14 @@ async function save() {
 }
 
 onMounted(() => {
-  if (tenantId) void load();
+  if (tenantId) void load().then(() => showForCurrentRoute());
+  else void showForCurrentRoute();
 });
 </script>
 
 <template>
   <q-page class="core-page">
-    <div class="q-mb-lg fade-in-up">
+    <div class="q-mb-lg fade-in-up" data-tour="inversion">
       <h1 class="text-h4 font-bold q-ma-none patrimonio-title">Inversión</h1>
       <p class="text-subtitle1 text-accent q-mt-xs">Capital inicial, inversión y ROI</p>
     </div>

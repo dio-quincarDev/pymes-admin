@@ -6,6 +6,7 @@
         <p class="text-body2" style="color: var(--pq-text-muted);">Gestiona los miembros de tu empresa</p>
       </div>
       <q-btn
+        v-if="isOwner"
         label="INVITAR MIEMBRO"
         icon="sym_r_person_add"
         @click="showInviteDialog = true"
@@ -38,7 +39,7 @@
           <q-td :props="props">
             <div class="row no-wrap q-gutter-xs">
               <q-btn
-                v-if="canManage && props.row.user.id !== currentUserId"
+                v-if="isOwner && props.row.user.id !== currentUserId"
                 flat
                 round
                 dense
@@ -170,7 +171,6 @@ const roleOptions = ['OWNER', 'ADMIN', 'CONTABLE', 'VIEWER'];
 const currentUserId = computed(() => authStore.user?.id);
 const userRole = computed(() => authStore.user?.role || '');
 const isOwner = computed(() => userRole.value === 'OWNER');
-const canManage = computed(() => userRole.value === 'OWNER' || userRole.value === 'ADMIN');
 
 const columns = [
   { name: 'name', label: 'Nombre', field: (row: MemberResponse) => row.user.name, align: 'left' as const },

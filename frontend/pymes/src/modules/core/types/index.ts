@@ -60,6 +60,8 @@ export interface ProveedorRequest {
   contactEmail?: string | null
 }
 
+export type EstadoFactura = 'REGISTRADA' | 'PAGADA' | 'ANULADA'
+
 export interface Factura {
   id: string
   tenantId: string
@@ -73,8 +75,11 @@ export interface Factura {
   paymentMethod: string | null
   category: string | null
   globalDiscount: number | null
-  status: string
+  status: EstadoFactura
   total: number
+  subtotalExento?: number
+  subtotalGravado?: number
+  itbmsTotal?: number
   items: ItemFactura[]
   createdAt: string | null
 }
@@ -94,6 +99,8 @@ export interface ItemFactura {
   precioUnitarioInput?: number
   descuentoInput?: number
   descuentoEsPorcentaje?: boolean
+  itbmsTasa?: number
+  itbmsMonto?: number
 }
 
 export interface ItemFacturaRequest {
@@ -107,6 +114,7 @@ export interface ItemFacturaRequest {
   precioUnitarioInput?: number
   descuentoInput?: number
   descuentoEsPorcentaje?: boolean
+  itbmsTasa?: number | null
 }
 
 export interface FacturaRequest {

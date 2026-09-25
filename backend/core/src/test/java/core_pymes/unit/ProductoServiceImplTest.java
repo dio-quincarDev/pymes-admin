@@ -13,9 +13,11 @@ import core_pymes.product.event.ProductoCreadoEvent;
 import core_pymes.product.mapper.ProductoMapper;
 import core_pymes.product.repository.PresentacionRepository;
 import core_pymes.product.repository.ProductoRepository;
+import core_pymes.common.exception.custom.DuplicateResourceException;
 import core_pymes.common.exception.custom.InvalidInputException;
 import core_pymes.common.exception.custom.ResourceNotFoundException;
 import core_pymes.product.service.impl.ProductoServiceImpl;
+import org.springframework.dao.DataIntegrityViolationException;
 import org.junit.jupiter.api.Test;
 import org.junit.jupiter.api.extension.ExtendWith;
 import org.mockito.ArgumentCaptor;
@@ -228,5 +230,107 @@ class ProductoServiceImplTest {
         assertThatThrownBy(() -> service.deletePresentacion(presentacion.getId(), tenantId))
                 .isInstanceOf(InvalidInputException.class)
                 .hasMessageContaining("does not belong to tenant");
+    }
+
+    // --- SKU auto-generation (index-friendly findTopSkuByTenantId + retry) ---
+
+    @Test
+    void create_autoSku_whenTenantEmpty_generatesP0001() {
+        var tenantId = UUID.randomUUID();
+        var request = new ProductoRequest(tenantId, "Arroz", null, "ABARROTES", "Kg", null, null, null, null);
+        when(productoRepository.findTopSkuByTenantId(tenantId)).thenReturn(Optional.empty());
+        when(productoRepository.save(any())).thenAnswer(i -> {
+            Producto p = i.getArgument(0); p.setId(UUID.randomUUID()); return p;
+        });
+        when(mapper.toResponse(any(), eq(List.of()), isNull())).thenReturn(
+                new ProductoResponse(UUID.randomUUID(), tenantId, "Arroz", "P-0001", null, null, null, true, null, null, List.of(), null, null, null, null, null, null, null));
+
+        var result = service.create(request);
+
+        assertThat(result.sku()).isEqualTo("P-0001");
+        var captor = ArgumentCaptor.forClass(Producto.class);
+        verify(productoRepository).save(captor.capture());
+        assertThat(captor.getValue().getSku()).isEqualTo("P-0001");
+    }
+
+    @Test
+    void create_autoSku_whenMaxExists_generatesMaxPlusOne() {
+        var tenantId = UUID.randomUUID();
+        var request = new ProductoRequest(tenantId, "Arroz", "  ", "ABARROTES", "Kg", null, null, null, null);
+        when(productoRepository.findTopSkuByTenantId(tenantId)).thenReturn(Optional.of("P-0005"));
+        when(productoRepository.save(any())).thenAnswer(i -> {
+            Producto p = i.getArgument(0); p.setId(UUID.randomUUID()); return p;
+        });
+        when(mapper.toResponse(any(), eq(List.of()), isNull())).thenReturn(
+                new ProductoResponse(UUID.randomUUID(), tenantId, "Arroz", "P-0006", null, null, null, true, null, null, List.of(), null, null, null, null, null, null, null));
+
+        var result = service.create(request);
+
+        assertThat(result.sku()).isEqualTo("P-0006");
+        var captor = ArgumentCaptor.forClass(Producto.class);
+        verify(productoRepository).save(captor.capture());
+        assertThat(captor.getValue().getSku()).isEqualTo("P-0006");
+    }
+
+    @Test
+    void create_autoSku_collision_retrySucceeds() {
+        var tenantId = UUID.randomUUID();
+        var request = new ProductoRequest(tenantId, "Arroz", null, "ABARROTES", "Kg", null, null, null, null);
+        when(productoRepository.findTopSkuByTenantId(tenantId)).thenReturn(Optional.of("P-0003"));
+        when(productoRepository.save(any()))
+                .thenThrow(new DataIntegrityViolationException("duplicate key idx_products_tenant_sku"))
+                .thenAnswer(i -> { Producto p = i.getArgument(0); p.setId(UUID.randomUUID()); return p; });
+        when(mapper.toResponse(any(), eq(List.of()), isNull())).thenReturn(
+                new ProductoResponse(UUID.randomUUID(), tenantId, "Arroz", "P-0005", null, null, null, true, null, null, List.of(), null, null, null, null, null, null, null));
+
+        var result = service.create(request);
+
+        assertThat(result.sku()).isEqualTo("P-0005");
+        var captor = ArgumentCaptor.forClass(Producto.class);
+        verify(productoRepository, times(2)).save(captor.capture());
+        assertThat(captor.getAllValues().get(0).getSku()).isEqualTo("P-0004");
+        assertThat(captor.getAllValues().get(1).getSku()).isEqualTo("P-0005");
+    }
+
+    @Test
+    void create_withManualSku_duplicate_throws409() {
+        var tenantId = UUID.randomUUID();
+        var request = new ProductoRequest(tenantId, "Arroz", "P-0001", "ABARROTES", "Kg", null, null, null, null);
+        when(productoRepository.existsByTenantIdAndSku(tenantId, "P-0001")).thenReturn(true);
+
+        assertThatThrownBy(() -> service.create(request))
+                .isInstanceOf(DuplicateResourceException.class)
+                .hasMessageContaining("SKU already exists");
+        verify(productoRepository, never()).save(any());
+    }
+
+    @Test
+    void create_autoSku_zeroPaddedFourDigits() {
+        var tenantId = UUID.randomUUID();
+        var request = new ProductoRequest(tenantId, "Arroz", null, "ABARROTES", "Kg", null, null, null, null);
+        when(productoRepository.findTopSkuByTenantId(tenantId)).thenReturn(Optional.of("P-0009"));
+        when(productoRepository.save(any())).thenAnswer(i -> { Producto p = i.getArgument(0); p.setId(UUID.randomUUID()); return p; });
+        when(mapper.toResponse(any(), eq(List.of()), isNull())).thenReturn(
+                new ProductoResponse(UUID.randomUUID(), tenantId, "Arroz", "P-0010", null, null, null, true, null, null, List.of(), null, null, null, null, null, null, null));
+
+        service.create(request);
+
+        var captor = ArgumentCaptor.forClass(Producto.class);
+        verify(productoRepository).save(captor.capture());
+        assertThat(captor.getValue().getSku()).isEqualTo("P-0010");
+    }
+
+    @Test
+    void create_autoSku_nonNumericTopSku_treatedAsZero() {
+        var tenantId = UUID.randomUUID();
+        var request = new ProductoRequest(tenantId, "Arroz", null, "ABARROTES", "Kg", null, null, null, null);
+        // top sku is custom like CUSTOM-1 filtered by LIKE 'P-%' should not happen, but if max is P-XYZ fallback to 0
+        when(productoRepository.findTopSkuByTenantId(tenantId)).thenReturn(Optional.of("P-XYZ"));
+        when(productoRepository.save(any())).thenAnswer(i -> { Producto p = i.getArgument(0); p.setId(UUID.randomUUID()); return p; });
+        when(mapper.toResponse(any(), eq(List.of()), isNull())).thenReturn(
+                new ProductoResponse(UUID.randomUUID(), tenantId, "Arroz", "P-0001", null, null, null, true, null, null, List.of(), null, null, null, null, null, null, null));
+
+        var result = service.create(request);
+        assertThat(result.sku()).isEqualTo("P-0001");
     }
 }

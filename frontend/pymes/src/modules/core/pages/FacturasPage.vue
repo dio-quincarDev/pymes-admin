@@ -1,6 +1,6 @@
 <template>
   <q-page class="core-page">
-    <div class="q-mb-md fade-in-up">
+    <div class="q-mb-md fade-in-up" data-tour="facturas">
       <h1 class="text-h4 text-primary font-bold q-ma-none">Facturas</h1>
       <p class="text-subtitle1 text-accent q-mt-xs">Registro de facturas de proveedores</p>
     </div>
@@ -39,8 +39,6 @@
       <div
         v-for="inv in group.items" :key="inv.id"
         class="invoice-row"
-        @mouseenter="($event.currentTarget as HTMLElement).style.background = 'color-mix(in srgb, var(--pq-surface) 60%, transparent)'"
-        @mouseleave="($event.currentTarget as HTMLElement).style.background = ''"
       >
         <div class="invoice-row__info">
           <div class="invoice-row__number">{{ inv.invoiceNumber }}</div>
@@ -55,7 +53,7 @@
           <q-btn flat dense round icon="sym_r_visibility" color="accent" size="sm" @click="openDetail(inv)" aria-label="Ver detalles" />
           <q-btn v-if="inv.status === 'REGISTRADA'" flat dense round icon="sym_r_edit" color="primary" size="sm" @click="openEdit(inv)" aria-label="Editar" />
           <q-btn v-if="inv.status === 'REGISTRADA'" flat dense round icon="sym_r_paid" color="positive" size="sm" @click="confirmPay(inv)" aria-label="Marcar como pagada" />
-          <q-btn v-if="inv.status === 'REGISTRADA'" flat dense round icon="sym_r_delete" color="negative" size="sm" @click="confirmDelete(inv)" aria-label="Eliminar" />
+          <q-btn v-if="isOwner && (inv.status === 'REGISTRADA' || inv.status === 'PAGADA')" flat dense round icon="sym_r_delete" color="negative" size="sm" @click="confirmDelete(inv)" :aria-label="inv.status === 'PAGADA' ? 'Anular factura pagada' : 'Eliminar'" />
         </div>
       </div>
     </div>
@@ -109,6 +107,7 @@
                 v-for="(item, i) in form.items" :key="item._key"
                 :item="item" :index="i"
                 :product-options="filteredByCategory"
+                :all-product-options="allProducts"
                 :unit-options="unitOptions(item.productoId)"
               :presentation-conversion-map="presentationConversionMap"
               @update:productoId="onProductoChange(item, $event)"
@@ -116,6 +115,7 @@
                 @update:cantidad="item.cantidad = $event"
                 @update:valor="item.valor = $event"
                 @update:descuento="item.descuento = $event"
+                @update:itbmsTasa="item.itbmsTasa = $event"
                 @remove="removeItem(i)"
               />
             </div>
@@ -168,6 +168,11 @@
             </div>
 
             <q-separator dark class="opacity-10 q-mt-sm" />
+            <div v-if="form.items.length" class="invoice-dialog__breakdown">
+              <div class="invoice-dialog__breakdown-row"><span>Sin ITBMS</span><span>{{ formatCurrency(computedBreakdown.exento) }}</span></div>
+              <div class="invoice-dialog__breakdown-row"><span>Con ITBMS</span><span>{{ formatCurrency(computedBreakdown.gravado) }}</span></div>
+              <div class="invoice-dialog__breakdown-row invoice-dialog__breakdown-row--itbms"><span>ITBMS</span><span>{{ formatCurrency(computedBreakdown.itbms) }}</span></div>
+            </div>
             <div v-if="form.items.length || form.tipo === 'GASTO_OPERATIVO'" class="invoice-dialog__total">
               <span class="invoice-dialog__total-label">Total factura</span>
               <span class="invoice-dialog__total-val">{{ formatCurrency(computedTotal) }}</span>
@@ -188,20 +193,28 @@
     <ConfirmDialog
       v-model="payDialog"
       icon="sym_r_paid" icon-color="positive"
-      :message="`Marcar como pagada la factura <strong>${payingItem?.invoiceNumber}</strong>?`"
       confirm-label="Confirmar Pago" confirm-color="positive"
       :loading="paying" @confirm="pay"
-    />
+    >
+      Marcar como pagada la factura <strong>{{ payingItem?.invoiceNumber }}</strong>?
+    </ConfirmDialog>
 
     <ConfirmDialog
       v-model="deleteDialog"
       icon="sym_r_warning" icon-color="negative"
-      :message="`¿Eliminar factura <strong>${deletingItem?.invoiceNumber}</strong>?`"
-      confirm-label="Eliminar" confirm-color="negative"
+      :confirm-label="deletingItem?.status === 'PAGADA' ? 'Anular' : 'Eliminar'"
+      confirm-color="negative"
       :loading="deleting" @confirm="remove"
-    />
+    >
+      <template v-if="deletingItem?.status === 'PAGADA'">
+        ¿Anular factura pagada <strong>{{ deletingItem?.invoiceNumber }}</strong>? Se revertirá el stock.
+      </template>
+      <template v-else>
+        ¿Eliminar factura <strong>{{ deletingItem?.invoiceNumber }}</strong>?
+      </template>
+    </ConfirmDialog>
 
-    <InvoiceDetailDialog :factura="detailItem" v-model="detailDialog" :presentation-name-map="presentationNameMap" :categoria-map="categoriaMap" />
+    <InvoiceDetailDialog :factura="detailItem" v-model="detailDialog" :presentation-name-map="presentationNameMap" :categoria-map="categoriaMap" :product-base-unit-map="productBaseUnitMap" />
   </q-page>
 </template>
 
@@ -209,7 +222,9 @@
 import { ref, shallowRef, computed, watch, onMounted, onUnmounted, nextTick } from 'vue'
 import { useQuasar, useMeta } from 'quasar'
 import { useAuthStore } from 'src/modules/auth/store'
+import { useTutorial } from 'src/composables/useTutorial'
 import { formatCurrency } from 'src/utils/format'
+import { calcBreakdown } from '../utils/invoiceMath'
 import { facturaService } from '../services/factura.service'
 import { productoService } from '../services/producto.service'
 import { proveedorService } from '../services/proveedor.service'
@@ -227,6 +242,9 @@ useMeta({ title: 'Facturas — PYMEQ' })
 const $q = useQuasar()
 const authStore = useAuthStore()
 const tenantId = authStore.user?.tenantId
+const { showForCurrentRoute } = useTutorial()
+// ponytail: delete solo OWNER; PAGADA->ANULADA conserva items, REGISTRADA borra
+const isOwner = computed(() => authStore.user?.role === 'OWNER')
 
 interface OptionItem { label: string; value: string; __isCreate?: boolean }
 
@@ -236,10 +254,10 @@ const filter = shallowRef('')
 const editingId = shallowRef<string | null>(null)
 
 const statusColor = (s: string) =>
-  s === 'PAGADA' ? 'positive' : s === 'REGISTRADA' ? 'warning' : 'grey'
+  s === 'PAGADA' ? 'positive' : s === 'REGISTRADA' ? 'warning' : s === 'ANULADA' ? 'grey' : 'grey'
 
 const statusLabel = (s: string) =>
-  s === 'REGISTRADA' ? 'Pendiente' : s === 'PAGADA' ? 'Pagada' : s
+  s === 'REGISTRADA' ? 'Pendiente' : s === 'PAGADA' ? 'Pagada' : s === 'ANULADA' ? 'Anulada' : s
 
 const filteredRows = computed(() => {
   if (!filter.value) return rows.value
@@ -263,13 +281,14 @@ const monthGroups = computed(() => {
     if (!groups.has(key)) groups.set(key, [])
     groups.get(key)!.push(inv)
   }
-  const result: MonthGroup[] = []
-  for (const list of groups.values()) {
+  const result: (MonthGroup & { key: string })[] = []
+  for (const [key, list] of groups.entries()) {
     const date = new Date(list[0]!.issueDate)
     const label = date.toLocaleDateString('es-ES', { month: 'long', year: 'numeric' })
-    result.push({ label, items: list })
+    result.push({ key, label, items: list })
   }
-  result.sort((a, b) => b.label.localeCompare(a.label))
+  // sort by key YYYY-MM desc (estable, no depende de locale)
+  result.sort((a, b) => b.key.localeCompare(a.key))
   return result
 })
 
@@ -323,10 +342,18 @@ const unitNameMap = computed(() => {
   return map
 })
 
+// ponytail: deriva unidad base por producto para detail sin presentación (sin snapshot)
+const productBaseUnitMap = computed(() => {
+  const map = new Map<string, string>()
+  for (const p of prodsData.value) map.set(p.id, unitNameMap.value.get(p.baseUnit) || p.baseUnit)
+  return map
+})
+
 const filteredByProvider = computed(() => {
   const providerId = form.value.proveedorId
-  if (!providerId) return allProducts.value
-  return allProducts.value.filter(p => p.proveedorId === providerId)
+  if (!providerId) return [...allProducts.value].sort((a, b) => a.productName.localeCompare(b.productName, 'es', { sensitivity: 'base' }))
+  // ponytail: flexible + específico — genéricos (proveedorId=null) visibles en todos los items; sort O(n log n) para <500, BE pg_trgm si escala
+  return allProducts.value.filter(p => !p.proveedorId || p.proveedorId === providerId).sort((a, b) => a.productName.localeCompare(b.productName, 'es', { sensitivity: 'base' }))
 })
 
 const filteredByCategory = computed(() => {
@@ -352,6 +379,7 @@ interface ItemForm {
   cantidad: number | null
   valor: number | null
   descuento: number
+  itbmsTasa: number
 }
 
 const CATEGORIA_SALARIOS = 'SALARIOS'
@@ -393,6 +421,7 @@ function addItem() {
     cantidad: null,
     valor: null,
     descuento: 0,
+    itbmsTasa: 0,
   })
 }
 
@@ -413,13 +442,11 @@ function removeItem(i: number) {
 
 const computedTotal = computed(() => {
   if (form.value.tipo === 'GASTO_OPERATIVO') return form.value.total || 0
-  return form.value.items.reduce((sum, item) => {
-    const qty = item.cantidad || 0
-    const val = item.valor || 0
-    const disc = item.descuento || 0
-    return sum + (qty * val * (1 - disc / 100))
-  }, 0)
+  // ponytail: derived — single source form.items, no watcher-assigned ref (reactivity.md)
+  return calcBreakdown(form.value.items).total
 })
+
+const computedBreakdown = computed(() => calcBreakdown(form.value.items))
 
 const totalStr = ref('')
 
@@ -572,6 +599,7 @@ async function openEdit(factura: Factura) {
         cantidad: item.cantidadPresentacion ? Number(item.cantidadPresentacion) : (item.conversionFactor && item.conversionFactor > 1 ? Number(item.quantity) / item.conversionFactor : Number(item.quantity)),
         valor: item.valorPresentacion ? Number(item.valorPresentacion) : (item.conversionFactor && item.conversionFactor > 1 ? Number(item.unitPrice) * item.conversionFactor : Number(item.unitPrice)),
         descuento: item.descuentoEsPorcentaje && item.descuentoInput ? Number(item.descuentoInput) : (item.discount && item.quantity ? Number(item.discount) / Number(item.quantity) * 100 : 0),
+        itbmsTasa: item.itbmsTasa ?? 0,
       })),
       total: gastoOperativo ? Number(f.total || 0) : null,
       categoria: gastoOperativo ? CATEGORIA_OTRO : null,
@@ -619,7 +647,8 @@ async function loadDependencies() {
     const [provs, setupRes, prodsRes, colRes, gfRes] = await Promise.all([
       proveedorService.getAll(tenantId),
       api.get<SetupInfo>(`/core/setup/${tenantId}`),
-      productoService.search(tenantId, { page: 0, size: 100 }),
+      // ponytail: cache-first getAll (productos @Cacheable) — full list, no 100 truncation, category search stays client
+      productoService.getAll(tenantId),
       costoService.getAllCollaboradores(tenantId),
       costoService.getAllGastosFijos(tenantId),
     ])
@@ -630,12 +659,13 @@ async function loadDependencies() {
     const provOpts = provs.data.map(p => ({ label: p.name, value: p.id }))
     providerOptions.value = provOpts
     providerFilteredOptions.value = [...provOpts]
-    prodsData.value = prodsRes.data.content
-    allProducts.value = mapProductsToOptions(prodsRes.data.content)
+    const prods: Producto[] = Array.isArray(prodsRes.data) ? prodsRes.data : (prodsRes.data as unknown as { content: Producto[] }).content
+    prodsData.value = prods
+    allProducts.value = mapProductsToOptions(prods)
     const presMap = new Map<string, { label: string; value: string }[]>()
     const presNameMap = new Map<string, string>()
     const convMap = new Map<string, number>()
-    for (const p of prodsRes.data.content) {
+    for (const p of prods) {
       const baseUnitName = unitNameMap.value.get(p.baseUnit) || p.baseUnit
       const unitOpts: { label: string; value: string }[] = [{ label: baseUnitName, value: '' }]
       for (const pres of (p.presentaciones || [])) {
@@ -663,6 +693,9 @@ async function save() {
   }
   saving.value = true
   try {
+    const resolvedCategoria = gastoOperativo
+      ? (form.value.categoria ? (categoriaMap.value.get(form.value.categoria) ?? form.value.categoria) : null)
+      : null;
     const payload: FacturaRequest = {
       tenantId,
       proveedorId: form.value.proveedorId,
@@ -670,7 +703,7 @@ async function save() {
       fecha: form.value.fecha,
       tipo: form.value.tipo,
       metodoPago: form.value.metodoPago,
-      category: gastoOperativo ? form.value.categoria : null,
+      category: resolvedCategoria,
       descuentoGlobal: form.value.descuentoGlobal || 0,
       total: gastoOperativo ? form.value.total : null,
       items: gastoOperativo ? [] : form.value.items.map(item => {
@@ -687,6 +720,7 @@ async function save() {
           descuento: (item.cantidad || 0) * val * ((item.descuento || 0) / 100),
           descuentoInput: item.descuento || 0,
           descuentoEsPorcentaje: true,
+          itbmsTasa: item.itbmsTasa ?? 0,
         }
       }),
     }
@@ -771,8 +805,12 @@ async function load() {
 }
 
 onMounted(async () => {
-  if (!tenantId) return;
+  if (!tenantId) {
+    void showForCurrentRoute();
+    return;
+  }
   await Promise.all([load(), loadDependencies()])
+  void showForCurrentRoute();
   window.addEventListener('keydown', handleKeydown)
 })
 
@@ -865,6 +903,27 @@ function handleKeydown(e: KeyboardEvent) {
   opacity: 1;
 }
 
+.invoice-dialog__breakdown {
+  display: flex;
+  flex-direction: column;
+  align-items: flex-end;
+  gap: 2px;
+  padding: 8px 0 0;
+  font-family: var(--pq-font-utility);
+  font-variant-numeric: tabular-nums;
+  font-size: 0.78rem;
+  color: var(--pq-text-muted);
+}
+.invoice-dialog__breakdown-row {
+  display: flex;
+  gap: 12px;
+  justify-content: space-between;
+  min-width: 160px;
+}
+.invoice-dialog__breakdown-row--itbms {
+  font-weight: 600;
+  color: var(--pq-accent);
+}
 .invoice-dialog__total {
   display: flex;
   align-items: baseline;
@@ -1004,5 +1063,34 @@ function handleKeydown(e: KeyboardEvent) {
 .invoice-row__actions {
   display: flex;
   gap: 2px;
+  flex-shrink: 0;
+}
+
+@media (max-width: 599px) {
+  .invoice-row {
+    flex-wrap: wrap;
+    gap: 4px;
+    padding: 8px 10px;
+  }
+
+  .invoice-row__date {
+    display: none;
+  }
+
+  .invoice-row__total {
+    margin-right: 8px;
+  }
+
+  .invoice-row__status {
+    margin-right: 0;
+    margin-left: auto;
+  }
+
+  .invoice-row__actions {
+    width: 100%;
+    justify-content: flex-end;
+    padding-top: 4px;
+    border-top: 1px solid color-mix(in srgb, var(--pq-border) 6%, transparent);
+  }
 }
 </style>

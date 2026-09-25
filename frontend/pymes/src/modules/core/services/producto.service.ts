@@ -5,7 +5,7 @@ export const productoService = {
   getAll(tenantId: string) {
     return api.get<Producto[]>('/core/productos', { params: { tenantId } })
   },
-  search(tenantId: string, params?: { category?: string; name?: string; page?: number; size?: number }) {
+  search(tenantId: string, params?: { category?: string; search?: string; name?: string; page?: number; size?: number; sort?: string }) {
     return api.get<PageResponse<Producto>>('/core/productos/search', {
       params: { tenantId, ...params },
     })

@@ -87,7 +87,7 @@ public class MetricasServiceImpl implements MetricasService {
                 invoices_cost AS (
                     SELECT COALESCE(SUM(total), 0) AS total
                     FROM core.invoices
-                    WHERE tenant_id = ? AND issue_date >= ? AND issue_date < ? AND type = 'FACTURA'
+                    WHERE tenant_id = ? AND issue_date >= ? AND issue_date < ? AND type = 'FACTURA' AND status = 'PAGADA'
                 ),
                 invoices_opex AS (
                     SELECT COALESCE(SUM(total), 0) AS total

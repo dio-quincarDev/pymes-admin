@@ -6,12 +6,83 @@ Registro de lo implementado y lo pendiente.
 
 ---
 
+## 2026-09-15 — Factura: ITBMS DGI 0/7/10 por ítem + desglose + default 0 opt-in
+
+**Contexto:** DGI Panamá exige ITBMS 7% general, 10% alcohol/hospedaje, 0% exento (DGI Generalidades). `Valor $` del usuario es sin impuesto, descuento antes de impuesto. Antes ITBMS no existía a nivel ítem; `total=subtotal-discount` perdía `ITBMS`. Decisión producto: selector por **ítem en factura** (no en producto), `default 0% Sin ITBMS` opt-in para no cobrar de más a exentos (leche) mezclados con gravados (jabón 7% / cerveza 10%).
+
+**Qué se hizo:**
+- **Migración** `V6__itbms_per_item.sql` **NUEVO** — `invoice_items.itbms_tasa SMALLINT NOT NULL DEFAULT 0 CHECK (0,7,10)` + `itbms_monto NUMERIC(12,2) DEFAULT 0` + `invoices.subtotal_exento/gravado/itbms_total NUMERIC(12,2) DEFAULT 0` + `idx_invoice_items_itbms`.
+- **Dominio** `ItemFactura.java @Builder.Default itbmsTasa=0 itbmsMonto=0` + `Factura.java subtotalExento/Gravado/itbmsTotal 0`.
+- **DTOs** `ItemFacturaRequest itbmsTasa Integer (null→0 exento)` + `ItemFacturaResponse itbmsTasa/itbmsMonto` + `FacturaResponse subtotalExento/Gravado/itbmsTotal`; `FacturaMapper.java` mapea exento/gravado/itbms.
+- **Cálculo** `InvoiceCalculator.java ResolveRequest(itbmsTasa) → CalculatedItem(itbmsTasa,itbmsMonto)` valida `0/7/10` (`InvalidInputException`), `net=gross-discount`, `itbmsMonto=net*tasa/100 HALF_UP (0 si tasa=0)`; `FacturaServiceImpl.buildItem() exento/gravado/itbmsTotal + total=subtotalNet+itbmsTotal-globalDisc`; `isGastoSinItems` totales 0.
+- **Default 0** — `InvoiceCalculator null→0` + `ItemFactura @Builder.Default 0` + `V6 DEFAULT 0`. Facturas existentes no migradas (ITBMS 0 hasta editar).
+- **Skipped:** `Producto.itbmsTasa` (dejar en factura, producto queda sin impuesto), `15% tabaco` reservado, `V7 DEFAULT 0` solo si se necesita `SET DEFAULT` explícito.
+- **Ponytail:** `InvoiceCalculator` stateless sin lib, reutiliza `HALF_UP` ya usado en `gross/discount`.
+
+```
+backend/core/src/main/resources/db/migration/V6__itbms_per_item.sql     # NUEVO
+backend/core/src/main/java/core_pymes/invoice/domain/ItemFactura.java   # +itbmsTasa/itbmsMonto default 0
+backend/core/src/main/java/core_pymes/invoice/domain/Factura.java       # +subtotalExento/Gravado/itbmsTotal
+backend/core/src/main/java/core_pymes/invoice/dto/ItemFacturaRequest.java
+backend/core/src/main/java/core_pymes/invoice/dto/ItemFacturaResponse.java
+backend/core/src/main/java/core_pymes/invoice/dto/FacturaResponse.java
+backend/core/src/main/java/core_pymes/invoice/mapper/FacturaMapper.java
+backend/core/src/main/java/core_pymes/invoice/service/InvoiceCalculator.java # +itbmsMonto HALF_UP
+backend/core/src/main/java/core_pymes/invoice/service/impl/FacturaServiceImpl.java # +exento/gravado/itbms
+```
+
+**Tests:**
+- `FacturaRepositoryTest` — guarda `itbmsTasa 0 / itbmsMonto 0`.
+- `FacturaServiceImplTest` — actualizado a `ItemFacturaRequest` 11 args `itbmsTasa`, asserts `exento/gravado/itbms`.
+- `InvoiceCalculatorItbmsTest.java` **NUEVO** 8 unit: default 0 exento, 0 exento explícito, 7% 3.85, 10% 6.00, descuento antes ITBMS 6.30, invalid 5/15 →400, HALF_UP 0.70, mixta 100@0+200@7→exento100/gravado200/itbms14/total314.
+- `ItbmsIntegrationTest.java` **NUEVO** 5 IT: mixta 0/7/10 → total 317/itbms17/exento100/gravado200, default 0 →100/0/0, con descuento 96.3/total9.63, 15→400, gasto operativo 0.
+- `FacturaIntegrationTest` ajustado a `total 58.85 itbms 3.85 gravado 55`; `mvn test -DskipIntegrationTests 201/0` + `verify -Pintegration 61/61 BUILD SUCCESS`.
+
+---
+
+## 2026-09-11 — Idempotencia POST 6h + lock Factura (ponytail)
+
+**Contexto:** `FacturaServiceImpl.java:459 generateInvoiceNumber` usaba `MAX+1` sin lock → 2 POST concurrentes generaban `F-PROV-2026-0004` duplicado o hueco; retry de red (doble click) duplicaba `total_investment` y `factura` sin deduplicación. Solo `sku` tenía `idx_products_tenant_sku:70` + retry.
+
+**Qué se hizo:**
+- `common/config/IdempotencyFilter.java` **NUEVO** `@Order(0) @ConditionalOnBean(StringRedisTemplate)` — solo `POST` con `Idempotency-Key`. `GET idempotency:{tenant}:{key}` → replay (`status|contentType|body`), `ContentCachingResponseWrapper` + `SET NX EX 6h` solo `2xx`. Reusa `StringRedisTemplate` de `RecomputeDebounceService` (sin tabla/lib nueva). TTL 6h por petición del usuario (no 24h). Cel: migrar a `idempotency_keys` PG si necesitas 30d audit.
+- `invoice/service/impl/FacturaServiceImpl.java:459` `SELECT pg_advisory_xact_lock(hashtext(tenantId))` antes de `MAX` — lock transaccional por tenant (ponytail: global lock, per-tenant-year si throughput importa). Evita carrera sin secuencia.
+- `CORE.md:323` `### Idempotencia (POST seguros, 6h)` documentado. `boot/axios.ts` interceptor `crypto.randomUUID()` para cada `POST`.
+- Sin migración Flyway. Skipped: `idempotency_keys` tabla, `tenant_invoice_seq`.
+
+```
+backend/core/src/main/java/core_pymes/common/config/IdempotencyFilter.java # NUEVO 6h SET NX
+backend/core/src/main/java/core_pymes/invoice/service/impl/FacturaServiceImpl.java # +advisory lock
+backend/core/docs/CORE.md # +Idempotencia 6h
+frontend/pymes/src/boot/axios.ts # Idempotency-Key per POST
+```
+
+**Tests:** `193` core unit `BUILD SUCCESS` tras `clean` (antes `FacturaMapperImpl.java:97` stale), `150` auth, `37` gateway. Principio aplicado: mejorar lógica antes que forzar test.
+
+---
+
+## 2026-09-11 — Facturas: evict cache productos al crear/actualizar/anular
+
+**Contexto:** `ProductoServiceImpl.java:47 @Cacheable("productos") findAll/findById` + `CacheConfig.java 5min TTL` pero `FacturaServiceImpl.java:342 createFactura/updateFactura` tocaba `core.products.last_unit_price/total_investment` vía `jdbc.update` sin invalidar `productos` → `lastUnitPrice` stale hasta TTL. Frontend cambió a `factura getAll()` cache-first, el stale se volvía visible.
+
+**Qué se hizo:**
+- `FacturaServiceImpl.java:23` `+import Caching` + `createFactura:121 @Caching(evict={@CacheEvict("facturas",allEntries=true), @CacheEvict("productos",allEntries=true)})`, `updateFactura:203` mismo, `deleteFactura:404` mismo (ANULADA conserva items). Coarse `allEntries=true` consistente con `ProductoServiceImpl` evicts.
+- Sin migración DB. Skipped: `product_providers M:N` (ponytail: 1 SKU por producto con `proveedorId nullable` cubre case flexible actual; M:N cuando mismo producto varios proveedores a precio distinto).
+
+```
+backend/core/src/main/java/core_pymes/invoice/service/impl/FacturaServiceImpl.java # @Caching evict facturas+productos
+frontend/pymes/src/modules/core/pages/FacturasPage.vue                          # getAll cache (ver FRONTEND 2026-09-11)
+frontend/pymes/src/modules/core/components/facturas/InvoiceItemCard.vue         # per-item filter (ver FRONTEND)
+```
+
+---
+
 ## Estado Rapido
 
 | Modulo | Estado | Tests |
 |--------|--------|-------|
 | Setup | Implementado | 13 unit + 10 integration |
-| Product | Implementado | 11 unit + 30 JPA edge cases |
+| Product | Implementado | 17 unit + 30 JPA + 6 integration (SKU) |
 | Invoice | Implementado | 18 unit + 11 integration |
 | Analytics | Implementado | 6 unit + 6 integration |
 | Modelo de Gastos | Implementado (backend) | 4 integration (ModeloGastosIntegrationTest) |
@@ -21,6 +92,72 @@ Registro de lo implementado y lo pendiente.
 | Venta | Implementado | 13 JPA |
 | Accounting | Implementado | MetricasFinanciera + CTE consolidado |
 | Reportes | Pendiente | Ver FUTURE_MODULES.md |
+
+---
+
+## 2026-09-10 — Productos: paginación A-Z + índices + fix SKU 409
+
+**Contexto:** Crear producto nuevo devolvía `409 Conflicto de datos` (VPS `ubuntu@149.130.165.200`) por `ProductoServiceImpl.java:87` `P-%04d` con `countByTenantId()+1` que colisiona con SKUs soft-deleted (`Producto.java:22 @SQLDelete/@Where is_active=true`, índice `idx_products_tenant_sku WHERE sku IS NOT NULL` `V1__core_schema.sql:70`). Móvil mostraba scroll infinito (30 productos con `Cargar más` + `filteredRows` cliente).
+
+**Qué se hizo:**
+- `ProductoRepository.java:34` `@Query native SELECT sku FROM core.products WHERE tenant_id=:tenantId AND sku LIKE 'P-%' ORDER BY sku DESC LIMIT 1` `Optional<String> findTopSkuByTenantId` — index-friendly (`LIKE 'P-%'` usa `idx_products_tenant_sku`, `ORDER BY sku DESC LIMIT 1` → `Index Scan Backward`).
+- `ProductoServiceImpl.java:86` `create()` valida `existsByTenantIdAndSku` → `DuplicateResourceException("SKU already exists")` (`CodigoError.java: DUP001→409` en `GlobalExceptionHandler.java:43`), `resolveMaxSkuSeq()` parsea `sku.substring(2)` + retry loop 5x `DataIntegrityViolationException` (`// ponytail: index-friendly`).
+- `SetupServiceImpl.java:77` onboarding usa mismo `SELECT sku ORDER BY sku DESC LIMIT 1` (antes empezaba en `1`).
+- `V5__pagination_alphabetical.sql` (NUEVO): `CREATE INDEX IF NOT EXISTS idx_products_tenant_name ON core.products(tenant_id, lower(name))` + `idx_providers_tenant_name` — evita `Sort` para `ORDER BY lower(name) ASC` paginado.
+- `ProductoServiceImpl.java:56` `search()` ya delega `Pageable` con `sort=name,asc` a `ProductoRepository` (4 paths `findByTenantId*`).
+
+**Tests:**
+- `ProductoServiceImplTest.java:242` +6 unit (`P-0001` vacío, `P-0006` tras `P-0005`, retry colisión, duplicado `CUSTOM-1→409`, zero-pad `P-0010`, `P-XYZ` fallback) → `193/193 mvn test BUILD SUCCESS`.
+- `ProductoSkuIntegrationTest.java` (NUEVO) 6 IT edge (soft-delete no recicla `P-0004`, onboarding con previos, tenant isolation, `409` duplicado, `CUSTOM-1` ignorado, secuencial 5) → `56/56 verify -Pintegration BUILD SUCCESS` (Flyway `Validated 6 migrations`, `Schema core version 5`).
+- `ProductoRepositoryTest 20/30` + `verify -Pintegration` confirma `V5` no rompe esquema.
+
+```
+backend/core/src/main/java/core_pymes/product/repository/ProductoRepository.java # +findTopSkuByTenantId
+backend/core/src/main/java/core_pymes/product/service/impl/ProductoServiceImpl.java # fix 409 + paginación A-Z
+backend/core/src/main/java/core_pymes/setup/service/impl/SetupServiceImpl.java  # max+1
+backend/core/src/main/resources/db/migration/V5__pagination_alphabetical.sql     # NUEVO (2 índices)
+backend/core/src/main/java/core_pymes/common/exception/custom/DuplicateResourceException.java # reutilizada (DUP001)
+backend/core/src/test/java/core_pymes/unit/ProductoServiceImplTest.java         # +6 tests
+backend/core/src/test/java/core_pymes/integration/ProductoSkuIntegrationTest.java # NUEVO 6 ITs
+```
+
+---
+
+## 2026-09-08 — Factura: solo PAGADA alimenta analytics/métricas + filter DB + V4 CHECK
+
+**Contexto:** `ANULADA` y `REGISTRADA` seguían inflando 10 motores (`ANALYTICS.md:31`) y `MetricasService` COGS silencioso. `findAllFacturas` filtraba `ANULADA` en memoria (N filas → Java) en vez de SQL.
+
+**Qué se hizo (hoy, solo PAGADA):**
+- `AnalyticsServiceImpl.java:101,138,181,219,285,314,396,459,776` 13 CTEs `WHERE i.status='PAGADA'` (ABC, Tendencia x2, Margen x2, GastoVariable, Proyección, Alertas x3, Comparativa, OLS, supplierSpend) + `MetricasServiceImpl.java:90` `invoices_cost ... AND status='PAGADA'` (opex ya PAGADA). `line: supplierSpend` también.
+- `FacturaRepository.java:16` `findByTenantIdAndStatusNotOrderByCreatedAtDesc` + `FacturaServiceImpl.java:106` push filter a DB (antes `.stream().filter()`).
+- `V4__invoice_status_checks.sql` `CHECK status IN (...)` + `CHECK type IN (...)` `NOT VALID→VALIDATE`.
+
+---
+
+## 2026-09-08 — Factura: ENUM `EstadoFactura` + ANULADA conserva items + delete OWNER
+
+**Contexto:** `F-PROV-2026-0001` PAGADA no tenía forma de anularse sin borrar items (cascada + `FacturaRepository:19 nativeQuery` bypass `@Where` perdía auditoría). Delete permitía `ADMIN/CONTABLE`. Detail mostraba `precioUnitario` base (0.27 en pack x12).
+
+**Qué se hizo:**
+- `invoice/domain/EstadoFactura.java` **NUEVO** enum `REGISTRADA | PAGADA | ANULADA` — `@Enumerated(EnumType.STRING) @Column(length=20) VARCHAR(20)` sin migración (DB ya `VARCHAR(20) DEFAULT 'REGISTRADA'`).
+- `Factura.java:20` `status String → EstadoFactura`, `FacturaResponse.java:14` `EstadoFactura status` (Jackson serializa como `"PAGADA"` sin romper `jsonPath($.status)`).
+- `FacturaApi.java:45` `@PreAuthorize("hasRole('OWNER')")` — delete/anular solo OWNER (antes `OWNER|ADMIN`).
+- `FacturaServiceImpl.java:118` `status(EstadoFactura.REGISTRADA)` + `122,158 String.contains("REGISTRADA") → getStatus()!=REGISTRADA` + `404 deleteFactura`: `PAGADA → status=ANULADA save()` conserva `invoice_items` (auditoría), `REGISTRADA → delete()` (soft-delete `is_active=false` orphanRemoval), `ANULADA → throw Cannot delete` + `reverseProductStats` idempotente.
+- `FacturaServiceImpl.java:105 findAllFacturas` filtra `status != ANULADA` → ANULADA desaparece de `GET /facturas` pero sigue en DB con items (verificable `psql invoice_items count 2`).
+- `InvoiceDetailDialog.vue detailColumns computed` + frontend `EstadoFactura` type `REGISTRADA|PAGADA|ANULADA` + `productBaseUnitMap` para unidad base (`kg/u` vs presentación).
+- Tests: `FacturaServiceImplTest` 20 unit (`whenPaid_succeeds assert ANULADA + verify save never delete`, `whenAnulada_throws`) + `FacturaRepositoryTest` seds enum + `FacturaIntegrationTest` 8 IT (OWNER 204, ADMIN 403, PAGADA delete → lista 0 filtrada) — `verify -Pintegration 50/50` ✅ `mvnw test BUILD SUCCESS`.
+
+```
+invoice/domain/EstadoFactura.java (NUEVO)
+core_pymes/invoice/domain/Factura.java                          # String → EstadoFactura
+core_pymes/invoice/dto/FacturaResponse.java                     # String → EstadoFactura
+core_pymes/invoice/service/impl/FacturaServiceImpl.java         # enum + ANULADA conserva items + filter ANULADA
+core_pymes/invoice/mapper/FacturaMapper.java                    # sin cambio (mapea enum)
+frontend/src/modules/core/types/index.ts                        # +type EstadoFactura
+frontend/src/modules/core/components/facturas/InvoiceDetailDialog.vue # valorPresentacion + status ANULADA + productBaseUnitMap
+frontend/src/modules/core/pages/FacturasPage.vue                # productBaseUnitMap + statusLabel ANULADA
+unit/FacturaServiceImplTest.java + jpa/FacturaRepositoryTest.java # seds enum
+```
 
 ---
 

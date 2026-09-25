@@ -88,6 +88,7 @@ services:
       - SPRING_MAIL_PORT=${SPRING_MAIL_PORT:-587}
       - SPRING_MAIL_USERNAME=${SPRING_MAIL_USERNAME}
       - SPRING_MAIL_PASSWORD=${SPRING_MAIL_PASSWORD}
+      - MAIL_FROM=${MAIL_FROM:-}
       - JAVA_OPTS=-Xmx384m -Xms256m -XX:MaxMetaspaceSize=128m -XX:+UseG1GC
     depends_on:
       postgres:
@@ -174,7 +175,7 @@ services:
       start_period: 5s
 
   # ==================== OBSERVABILITY (VictoriaMetrics + Grafana) ====================
-  # ponytail: 2 contenedores livianos (~300MB). Logs/Tracing diferidos hasta que duela. Trigger CI→CD staging.
+  # ponytail: 2 contenedores livianos (~300MB). Logs/Tracing diferidos hasta que duela. Trigger CI→CD staging v2.
   victoriametrics:
     image: victoriametrics/victoria-metrics:v1.102.0
     container_name: pymes-victoriametrics

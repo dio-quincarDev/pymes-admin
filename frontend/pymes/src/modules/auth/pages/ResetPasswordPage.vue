@@ -13,9 +13,10 @@
             label="Nueva Contraseña"
             :type="showPassword ? 'text' : 'password'"
             placeholder="Mínimo 8 caracteres"
+            hint="Mínimo 8 caracteres, al menos 1 letra y 1 número"
             dark filled color="primary" label-color="accent"
             class="focus-ring radius-xs"
-            :rules="[val => !!val || 'La contraseña es requerida', val => val.length >= 8 || 'Mínimo 8 caracteres']"
+            :rules="[val => !!val || 'La contraseña es requerida', val => val.length >= 8 || 'Mínimo 8 caracteres', val => /^(?=.*[A-Za-z])(?=.*\d).+/.test(val) || 'Debe contener letra y número']"
           >
             <template v-slot:prepend><q-icon name="lock" color="primary" /></template>
             <template v-slot:append>

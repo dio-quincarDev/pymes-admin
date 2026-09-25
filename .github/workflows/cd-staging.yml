@@ -232,7 +232,7 @@ jobs:
           key: ${{ secrets.STAGING_SSH_KEY }}
           port: 22
           script: |
-            sudo rm -rf ~/pymes-admin/infra/monitoring/scrape.yml ~/pymes-admin/infra/monitoring/grafana
+            sudo rm -rf ~/pymes-admin/infra
             mkdir -p ~/pymes-admin/infra/monitoring
 
       - name: Copy monitoring configs to server
@@ -281,10 +281,11 @@ jobs:
             SPRING_MAIL_PORT=${{ secrets.SPRING_MAIL_PORT }}
             SPRING_MAIL_USERNAME=${{ secrets.SPRING_MAIL_USERNAME }}
             SPRING_MAIL_PASSWORD=${{ secrets.SPRING_MAIL_PASSWORD }}
+            MAIL_FROM=${{ secrets.MAIL_FROM }}
             EOF
 
             docker compose pull
-            docker compose up -d --remove-orphans
+            docker compose up -d --force-recreate --remove-orphans
             docker image prune -af
 
       - name: Verify deployment

@@ -98,12 +98,12 @@ public class AnalyticsServiceImpl implements AnalyticsService {
                     FROM core.invoice_items ii
                     JOIN core.invoices i ON ii.invoice_id = i.id
                     JOIN core.products p ON ii.product_id = p.id
-                    WHERE i.tenant_id = ? AND i.issue_date >= ? AND i.issue_date < ?
+                    WHERE i.tenant_id = ? AND i.status = 'PAGADA' AND i.issue_date >= ? AND i.issue_date < ?
                     GROUP BY ii.product_id, p.name
                 ), ranked AS (
                     SELECT *, SUM(total_spend) OVER (ORDER BY total_spend DESC) AS running_total,
-                           SUM(total_spend) OVER () AS grand_total
-                    FROM product_spend
+                            SUM(total_spend) OVER () AS grand_total
+                     FROM product_spend
                 )
                 SELECT product_id, product_name, total_spend,
                        CASE WHEN grand_total > 0
@@ -135,14 +135,14 @@ public class AnalyticsServiceImpl implements AnalyticsService {
                     FROM core.invoice_items ii
                     JOIN core.invoices i ON ii.invoice_id = i.id
                     JOIN core.products p ON ii.product_id = p.id
-                    WHERE i.tenant_id = ? AND i.issue_date >= ? AND i.issue_date < ?
+                    WHERE i.tenant_id = ? AND i.status = 'PAGADA' AND i.issue_date >= ? AND i.issue_date < ?
                     GROUP BY ii.product_id, p.name
                 ), moving_avg AS (
                     SELECT ii.product_id,
-                           AVG(ii.unit_price / NULLIF(ii.conversion_factor, 0)) AS moving_avg_90d
+                            AVG(ii.unit_price / NULLIF(ii.conversion_factor, 0)) AS moving_avg_90d
                     FROM core.invoice_items ii
                     JOIN core.invoices i ON ii.invoice_id = i.id
-                    WHERE i.tenant_id = ? AND i.issue_date >= ? AND i.issue_date < ?
+                    WHERE i.tenant_id = ? AND i.status = 'PAGADA' AND i.issue_date >= ? AND i.issue_date < ?
                     GROUP BY ii.product_id
                 )
                 SELECT cp.product_id, cp.product_name,
@@ -178,14 +178,14 @@ public class AnalyticsServiceImpl implements AnalyticsService {
                     FROM core.invoice_items ii
                     JOIN core.invoices i ON ii.invoice_id = i.id
                     JOIN core.products p ON ii.product_id = p.id
-                    WHERE i.tenant_id = ? AND i.issue_date >= ? AND i.issue_date < ?
+                    WHERE i.tenant_id = ? AND i.status = 'PAGADA' AND i.issue_date >= ? AND i.issue_date < ?
                     GROUP BY ii.product_id, p.name
                 ), previous_prices AS (
                     SELECT ii.product_id,
-                           AVG(ii.unit_price / NULLIF(ii.conversion_factor, 0)) AS avg_price
+                            AVG(ii.unit_price / NULLIF(ii.conversion_factor, 0)) AS avg_price
                     FROM core.invoice_items ii
                     JOIN core.invoices i ON ii.invoice_id = i.id
-                    WHERE i.tenant_id = ? AND i.issue_date >= ? AND i.issue_date < ?
+                    WHERE i.tenant_id = ? AND i.status = 'PAGADA' AND i.issue_date >= ? AND i.issue_date < ?
                     GROUP BY ii.product_id
                 )
                 SELECT cp.product_id, cp.product_name,
@@ -216,7 +216,7 @@ public class AnalyticsServiceImpl implements AnalyticsService {
                     SELECT i.id, i.issue_date, ii.product_id, i.provider_id, ii.subtotal
                     FROM core.invoices i
                     JOIN core.invoice_items ii ON ii.invoice_id = i.id
-                    WHERE i.tenant_id = ? AND i.issue_date >= ? AND i.issue_date < ?
+                    WHERE i.tenant_id = ? AND i.status = 'PAGADA' AND i.issue_date >= ? AND i.issue_date < ?
                       AND (i.type = 'FACTURA'
                            OR (i.type = 'GASTO_OPERATIVO' AND i.status = 'PAGADA'))
                 ),
@@ -282,7 +282,7 @@ public class AnalyticsServiceImpl implements AnalyticsService {
                 SELECT COALESCE(SUM(ii.subtotal) / COUNT(DISTINCT i.issue_date), 0) AS avg_daily
                 FROM core.invoices i
                 JOIN core.invoice_items ii ON ii.invoice_id = i.id
-                WHERE i.tenant_id = ? AND i.issue_date >= ? AND i.issue_date < ?
+                WHERE i.tenant_id = ? AND i.status = 'PAGADA' AND i.issue_date >= ? AND i.issue_date < ?
                 """;
         var avgDaily = jdbc.query(sql, rs -> {
             if (rs.next()) return rs.getBigDecimal("avg_daily");
@@ -311,7 +311,7 @@ public class AnalyticsServiceImpl implements AnalyticsService {
                     FROM core.invoice_items ii
                     JOIN core.invoices i ON ii.invoice_id = i.id
                     JOIN core.products p ON ii.product_id = p.id
-                    WHERE i.tenant_id = ? AND i.issue_date >= ? AND i.issue_date < ?
+                    WHERE i.tenant_id = ? AND i.status = 'PAGADA' AND i.issue_date >= ? AND i.issue_date < ?
                     GROUP BY ii.product_id, p.name
                 )
                 SELECT product_id, product_name, avg_price, stddev_price, purchases, provider_count,
@@ -333,23 +333,23 @@ public class AnalyticsServiceImpl implements AnalyticsService {
         var premiumSql = """
                 WITH product_avg AS (
                     SELECT ii.product_id, p.name AS product_name,
-                           AVG(ii.unit_price / NULLIF(ii.conversion_factor, 0)) AS product_avg_price
+                            AVG(ii.unit_price / NULLIF(ii.conversion_factor, 0)) AS product_avg_price
                     FROM core.invoice_items ii
                     JOIN core.invoices i ON ii.invoice_id = i.id
                     JOIN core.products p ON ii.product_id = p.id
-                    WHERE i.tenant_id = ? AND i.issue_date >= ? AND i.issue_date < ?
+                    WHERE i.tenant_id = ? AND i.status = 'PAGADA' AND i.issue_date >= ? AND i.issue_date < ?
                     GROUP BY ii.product_id, p.name
                 ),
                 supplier_prices AS (
                     SELECT ii.product_id, p.name AS product_name,
-                           pr.id AS provider_id, pr.name AS provider_name,
-                           AVG(ii.unit_price / NULLIF(ii.conversion_factor, 0)) AS avg_price,
-                           COUNT(*) AS purchases
+                            pr.id AS provider_id, pr.name AS provider_name,
+                            AVG(ii.unit_price / NULLIF(ii.conversion_factor, 0)) AS avg_price,
+                            COUNT(*) AS purchases
                     FROM core.invoice_items ii
                     JOIN core.invoices i ON ii.invoice_id = i.id
                     JOIN core.products p ON ii.product_id = p.id
                     JOIN core.providers pr ON i.provider_id = pr.id
-                    WHERE i.tenant_id = ? AND i.issue_date >= ? AND i.issue_date < ?
+                    WHERE i.tenant_id = ? AND i.status = 'PAGADA' AND i.issue_date >= ? AND i.issue_date < ?
                     GROUP BY ii.product_id, p.name, pr.id, pr.name
                 )
                 SELECT sp.product_id, sp.product_name,
@@ -393,7 +393,7 @@ public class AnalyticsServiceImpl implements AnalyticsService {
                 JOIN core.invoices i ON ii.invoice_id = i.id
                 JOIN core.products p ON ii.product_id = p.id
                 JOIN core.providers pr ON i.provider_id = pr.id
-                WHERE i.tenant_id = ? AND i.issue_date >= ? AND i.issue_date < ?
+                WHERE i.tenant_id = ? AND i.status = 'PAGADA' AND i.issue_date >= ? AND i.issue_date < ?
                 GROUP BY p.id, p.name, pr.id, pr.name
                 ORDER BY p.name, avg_price
                 """;
@@ -456,7 +456,7 @@ public class AnalyticsServiceImpl implements AnalyticsService {
                            AVG(ii.unit_price / NULLIF(ii.conversion_factor, 0)) AS unit_price
                     FROM core.invoice_items ii
                     JOIN core.invoices i ON ii.invoice_id = i.id
-                    WHERE i.tenant_id = ? AND i.issue_date >= ? AND i.issue_date < ?
+                    WHERE i.tenant_id = ? AND i.status = 'PAGADA' AND i.issue_date >= ? AND i.issue_date < ?
                     GROUP BY ii.product_id, i.issue_date
                 ),
                 ranked AS (
@@ -777,7 +777,7 @@ public class AnalyticsServiceImpl implements AnalyticsService {
                 FROM core.invoice_items ii
                 JOIN core.invoices i ON ii.invoice_id = i.id
                 JOIN core.providers pr ON i.provider_id = pr.id
-                WHERE i.tenant_id = ? AND i.issue_date >= ? AND i.issue_date < ?
+                WHERE i.tenant_id = ? AND i.status = 'PAGADA' AND i.issue_date >= ? AND i.issue_date < ?
                 GROUP BY i.provider_id, pr.name
                 """;
         return jdbc.query(sql, (rs, row) -> {

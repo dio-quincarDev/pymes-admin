@@ -14,6 +14,9 @@ public interface FacturaRepository extends JpaRepository<Factura, UUID> {
 
     List<Factura> findByTenantIdOrderByCreatedAtDesc(UUID tenantId);
 
+    // ponytail: solo pagada/registrada visibles; ANULADA filtrada en DB (no en memoria)
+    List<Factura> findByTenantIdAndStatusNotOrderByCreatedAtDesc(UUID tenantId, core_pymes.invoice.domain.EstadoFactura status);
+
     Optional<Factura> findByIdAndTenantId(UUID id, UUID tenantId);
 
     @Query(value = "SELECT MAX(invoice_number) FROM core.invoices WHERE tenant_id = ?1 AND invoice_number LIKE ?2", nativeQuery = true)

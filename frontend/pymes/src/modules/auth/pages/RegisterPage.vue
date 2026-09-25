@@ -80,10 +80,11 @@
               label="Contraseña"
               :type="showPassword ? 'text' : 'password'"
               placeholder="Mínimo 8 caracteres"
+              hint="Mínimo 8 caracteres, al menos 1 letra y 1 número"
               dark filled color="primary" label-color="accent"
               class="focus-ring radius-xs"
               :disable="loading"
-              :rules="[val => !!val || 'La contraseña es requerida', val => val.length >= 8 || 'Mínimo 8 caracteres']"
+              :rules="[val => !!val || 'La contraseña es requerida', val => val.length >= 8 || 'Mínimo 8 caracteres', val => /^(?=.*[A-Za-z])(?=.*\d).+/.test(val) || 'Debe contener letra y número']"
             >
               <template v-slot:prepend><q-icon name="lock" color="primary" /></template>
               <template v-slot:append>
@@ -206,16 +207,21 @@ const goBackToHome = () => {
 const onRegister = async () => {
   if (!pendingTenant.value) return;
 
+  // ponytail: capture before clearSession — clearSession now wipes pendingTenant (fix stale OAuth intent)
+  const tenant = pendingTenant.value;
   loading.value = true;
   try {
     authStore.clearSession();
+    // restore for this flow — register needs it, clearPendingTenant runs after success
+    authStore.pendingTenant = tenant;
+    localStorage.setItem('pymeq_pending_tenant', JSON.stringify(tenant));
 
     const fullPayload = {
       name: registerForm.name,
       email: registerForm.email,
       password: registerForm.password,
-      companyName: pendingTenant.value.name,
-      companySlug: pendingTenant.value.slug
+      companyName: tenant.name,
+      companySlug: tenant.slug
     };
 
     await authStore.register(fullPayload);

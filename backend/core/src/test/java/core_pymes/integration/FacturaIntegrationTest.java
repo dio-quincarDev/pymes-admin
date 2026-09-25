@@ -106,10 +106,14 @@ class FacturaIntegrationTest extends AbstractIntegrationTest {
                         .content(invoiceBody))
                 .andExpect(status().isOk())
                 .andExpect(jsonPath("$.invoiceNumber").value("F-PROV-2026-0001"))
-                .andExpect(jsonPath("$.total").value(55.0))
+                .andExpect(jsonPath("$.total").value(58.85))
+                .andExpect(jsonPath("$.itbmsTotal").value(3.85))
+                .andExpect(jsonPath("$.subtotalGravado").value(55.0))
                 .andExpect(jsonPath("$.status").value("REGISTRADA"))
                 .andExpect(jsonPath("$.items[0].productName").value("Arroz"))
-                .andExpect(jsonPath("$.items[0].subtotal").value(55.0));
+                .andExpect(jsonPath("$.items[0].subtotal").value(55.0))
+                .andExpect(jsonPath("$.items[0].itbmsTasa").value(7))
+                .andExpect(jsonPath("$.items[0].itbmsMonto").value(3.85));
     }
 
     @Test
@@ -221,6 +225,209 @@ class FacturaIntegrationTest extends AbstractIntegrationTest {
         mockMvc.perform(get("/api/v1/core/proveedores?tenantId={tid}", tenantB))
                 .andExpect(status().isOk())
                 .andExpect(jsonPath("$.length()").value(0));
+    }
+
+    @Test
+    @DisplayName("Cross-tenant IDOR — factura/proveedor de otro tenant retorna 404")
+    void crossTenantIdorReturns404() throws Exception {
+        var tenantA = UUID.randomUUID();
+        var tenantB = UUID.randomUUID();
+
+        // Crear provider para tenant A
+        var provResult = mockMvc.perform(post("/api/v1/core/proveedores")
+                        .contentType(MediaType.APPLICATION_JSON)
+                        .content(objectMapper.writeValueAsString(Map.of(
+                                "tenantId", tenantA.toString(), "name", "Prov IDOR"))))
+                .andExpect(status().isOk()).andReturn();
+        var providerId = objectMapper.readTree(provResult.getResponse().getContentAsString()).get("id").asText();
+
+        // Tenant B intenta leer provider de A → 404
+        mockMvc.perform(get("/api/v1/core/proveedores/{id}?tenantId={tid}", providerId, tenantB))
+                .andExpect(status().isNotFound());
+
+        // Crear producto + presentacion + factura para tenant A
+        mockMvc.perform(post("/api/v1/core/productos")
+                        .contentType(MediaType.APPLICATION_JSON)
+                        .content(objectMapper.writeValueAsString(Map.of(
+                                "tenantId", tenantA.toString(), "name", "Prod IDOR", "sku", "IDOR-001"))))
+                .andExpect(status().isOk());
+        var productId = objectMapper.readTree(mockMvc.perform(get(
+                        "/api/v1/core/productos?tenantId={tid}", tenantA)).andReturn()
+                .getResponse().getContentAsString()).get(0).get("id").asText();
+        var presBody = objectMapper.writeValueAsString(Map.of("name", "Unidad", "conversion", 1));
+        var presResult = mockMvc.perform(post("/api/v1/core/productos/{id}/presentaciones?tenantId={tid}", productId, tenantA)
+                        .contentType(MediaType.APPLICATION_JSON).content(presBody))
+                .andExpect(status().isOk()).andReturn();
+        var presentacionId = objectMapper.readTree(presResult.getResponse().getContentAsString()).get("id").asText();
+        var invoiceBody = objectMapper.writeValueAsString(Map.of(
+                "tenantId", tenantA.toString(),
+                "proveedorId", providerId,
+                "fecha", "2026-06-15",
+                "tipo", "FACTURA",
+                "items", List.of(Map.of(
+                        "productoId", productId,
+                        "presentacionId", presentacionId,
+                        "cantidad", 1,
+                        "precioUnitario", 10,
+                        "descuento", 0))));
+        var invResult = mockMvc.perform(post("/api/v1/core/facturas")
+                        .contentType(MediaType.APPLICATION_JSON).content(invoiceBody))
+                .andExpect(status().isOk()).andReturn();
+        var invoiceId = objectMapper.readTree(invResult.getResponse().getContentAsString()).get("id").asText();
+
+        // Tenant B intenta leer factura de A → 404
+        mockMvc.perform(get("/api/v1/core/facturas/{id}?tenantId={tid}", invoiceId, tenantB))
+                .andExpect(status().isNotFound());
+        // Tenant B intenta pagar factura de A → 404
+        mockMvc.perform(post("/api/v1/core/facturas/{id}/pagar?tenantId={tid}", invoiceId, tenantB))
+                .andExpect(status().isNotFound());
+        // Tenant B intenta borrar factura de A → 404 (no 403, evita enumeración)
+        mockMvc.perform(delete("/api/v1/core/facturas/{id}?tenantId={tid}", invoiceId, tenantB))
+                .andExpect(status().isNotFound());
+    }
+
+    @Test
+    @DisplayName("Delete REGISTRADA succeeds (OWNER soft-delete)")
+    void deleteRegistradaSucceeds() throws Exception {
+        var tenantId = UUID.randomUUID();
+        mockMvc.perform(post("/api/v1/core/productos")
+                        .contentType(MediaType.APPLICATION_JSON)
+                        .content(objectMapper.writeValueAsString(Map.of(
+                                "tenantId", tenantId.toString(), "name", "Borrable", "sku", "BOR-001"))))
+                .andExpect(status().isOk());
+        var productId = objectMapper.readTree(mockMvc.perform(get(
+                "/api/v1/core/productos?tenantId={tid}", tenantId)).andReturn()
+                .getResponse().getContentAsString()).get(0).get("id").asText();
+        var presBody = objectMapper.writeValueAsString(Map.of("name", "Unidad", "conversion", 1));
+        var presResult = mockMvc.perform(post("/api/v1/core/productos/{id}/presentaciones?tenantId={tid}", productId, tenantId)
+                        .contentType(MediaType.APPLICATION_JSON).content(presBody))
+                .andExpect(status().isOk()).andReturn();
+        var presentacionId = objectMapper.readTree(presResult.getResponse().getContentAsString()).get("id").asText();
+        var provResult = mockMvc.perform(post("/api/v1/core/proveedores")
+                        .contentType(MediaType.APPLICATION_JSON)
+                        .content(objectMapper.writeValueAsString(Map.of(
+                                "tenantId", tenantId.toString(), "name", "Prov Del"))))
+                .andExpect(status().isOk()).andReturn();
+        var providerId = objectMapper.readTree(provResult.getResponse().getContentAsString()).get("id").asText();
+        var invoiceBody = objectMapper.writeValueAsString(Map.of(
+                "tenantId", tenantId.toString(),
+                "proveedorId", providerId,
+                "fecha", "2026-06-20",
+                "tipo", "FACTURA",
+                "items", List.of(Map.of(
+                        "productoId", productId,
+                        "presentacionId", presentacionId,
+                        "cantidad", 1,
+                        "precioUnitario", 10,
+                        "descuento", 0))));
+        var invResult = mockMvc.perform(post("/api/v1/core/facturas")
+                        .contentType(MediaType.APPLICATION_JSON).content(invoiceBody))
+                .andExpect(status().isOk()).andReturn();
+        var invoiceId = objectMapper.readTree(invResult.getResponse().getContentAsString()).get("id").asText();
+
+        mockMvc.perform(delete("/api/v1/core/facturas/{id}?tenantId={tid}", invoiceId, tenantId))
+                .andExpect(status().isNoContent());
+
+        mockMvc.perform(get("/api/v1/core/facturas?tenantId={tid}", tenantId))
+                .andExpect(status().isOk())
+                .andExpect(jsonPath("$.length()").value(0));
+    }
+
+    @Test
+    @DisplayName("Delete PAGADA succeeds (anular pagada) - ponytail: REGISTRADA|PAGADA via soft-delete")
+    void deletePagadaSucceeds() throws Exception {
+        var tenantId = UUID.randomUUID();
+        mockMvc.perform(post("/api/v1/core/productos")
+                        .contentType(MediaType.APPLICATION_JSON)
+                        .content(objectMapper.writeValueAsString(Map.of(
+                                "tenantId", tenantId.toString(), "name", "PagadaDel", "sku", "PAG-DEL-001"))))
+                .andExpect(status().isOk());
+        var productId = objectMapper.readTree(mockMvc.perform(get(
+                "/api/v1/core/productos?tenantId={tid}", tenantId)).andReturn()
+                .getResponse().getContentAsString()).get(0).get("id").asText();
+        var presBody = objectMapper.writeValueAsString(Map.of("name", "Unidad", "conversion", 1));
+        var presResult = mockMvc.perform(post("/api/v1/core/productos/{id}/presentaciones?tenantId={tid}", productId, tenantId)
+                        .contentType(MediaType.APPLICATION_JSON).content(presBody))
+                .andExpect(status().isOk()).andReturn();
+        var presentacionId = objectMapper.readTree(presResult.getResponse().getContentAsString()).get("id").asText();
+        var provResult = mockMvc.perform(post("/api/v1/core/proveedores")
+                        .contentType(MediaType.APPLICATION_JSON)
+                        .content(objectMapper.writeValueAsString(Map.of(
+                                "tenantId", tenantId.toString(), "name", "Prov Pagada"))))
+                .andExpect(status().isOk()).andReturn();
+        var providerId = objectMapper.readTree(provResult.getResponse().getContentAsString()).get("id").asText();
+        var invoiceBody = objectMapper.writeValueAsString(Map.of(
+                "tenantId", tenantId.toString(),
+                "proveedorId", providerId,
+                "fecha", "2026-06-21",
+                "tipo", "FACTURA",
+                "items", List.of(Map.of(
+                        "productoId", productId,
+                        "presentacionId", presentacionId,
+                        "cantidad", 2,
+                        "precioUnitario", 5,
+                        "descuento", 0))));
+        var invResult = mockMvc.perform(post("/api/v1/core/facturas")
+                        .contentType(MediaType.APPLICATION_JSON).content(invoiceBody))
+                .andExpect(status().isOk()).andReturn();
+        var invoiceId = objectMapper.readTree(invResult.getResponse().getContentAsString()).get("id").asText();
+
+        mockMvc.perform(post("/api/v1/core/facturas/{id}/pagar?tenantId={tid}", invoiceId, tenantId))
+                .andExpect(status().isOk())
+                .andExpect(jsonPath("$.status").value("PAGADA"));
+
+        mockMvc.perform(delete("/api/v1/core/facturas/{id}?tenantId={tid}", invoiceId, tenantId))
+                .andExpect(status().isNoContent());
+
+        mockMvc.perform(get("/api/v1/core/facturas?tenantId={tid}", tenantId))
+                .andExpect(status().isOk())
+                .andExpect(jsonPath("$.length()").value(0));
+    }
+
+    @Test
+    @DisplayName("Delete forbidden for non-OWNER (RBAC) - hasRole OWNER only")
+    void deleteForbiddenForNonOwner() throws Exception {
+        var tenantId = UUID.randomUUID();
+        // create invoice as OWNER first
+        mockMvc.perform(post("/api/v1/core/productos")
+                        .contentType(MediaType.APPLICATION_JSON)
+                        .content(objectMapper.writeValueAsString(Map.of(
+                                "tenantId", tenantId.toString(), "name", "Prod RBAC", "sku", "RBAC-001"))))
+                .andExpect(status().isOk());
+        var productId = objectMapper.readTree(mockMvc.perform(get(
+                "/api/v1/core/productos?tenantId={tid}", tenantId)).andReturn()
+                .getResponse().getContentAsString()).get(0).get("id").asText();
+        var presBody = objectMapper.writeValueAsString(Map.of("name", "Unidad", "conversion", 1));
+        var presResult = mockMvc.perform(post("/api/v1/core/productos/{id}/presentaciones?tenantId={tid}", productId, tenantId)
+                        .contentType(MediaType.APPLICATION_JSON).content(presBody))
+                .andExpect(status().isOk()).andReturn();
+        var presentacionId = objectMapper.readTree(presResult.getResponse().getContentAsString()).get("id").asText();
+        var provResult = mockMvc.perform(post("/api/v1/core/proveedores")
+                        .contentType(MediaType.APPLICATION_JSON)
+                        .content(objectMapper.writeValueAsString(Map.of(
+                                "tenantId", tenantId.toString(), "name", "Prov RBAC"))))
+                .andExpect(status().isOk()).andReturn();
+        var providerId = objectMapper.readTree(provResult.getResponse().getContentAsString()).get("id").asText();
+        var invoiceBody = objectMapper.writeValueAsString(Map.of(
+                "tenantId", tenantId.toString(),
+                "proveedorId", providerId,
+                "fecha", "2026-06-22",
+                "tipo", "FACTURA",
+                "items", List.of(Map.of(
+                        "productoId", productId,
+                        "presentacionId", presentacionId,
+                        "cantidad", 1,
+                        "precioUnitario", 10,
+                        "descuento", 0))));
+        var invResult = mockMvc.perform(post("/api/v1/core/facturas")
+                        .contentType(MediaType.APPLICATION_JSON).content(invoiceBody))
+                .andExpect(status().isOk()).andReturn();
+        var invoiceId = objectMapper.readTree(invResult.getResponse().getContentAsString()).get("id").asText();
+
+        // try delete as non-OWNER -> 403
+        mockMvc.perform(delete("/api/v1/core/facturas/{id}?tenantId={tid}", invoiceId, tenantId)
+                        .with(org.springframework.security.test.web.servlet.request.SecurityMockMvcRequestPostProcessors.user("other").roles("ADMIN")))
+                .andExpect(status().isForbidden());
     }
 
     @Test

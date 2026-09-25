@@ -10,6 +10,8 @@
 
 ### Frontend
 
+- [ ] [Media] **Picker categorías sin scroll (40+ con subcategorías)** — `ProductosPage.vue:312` `flattenCategories()` → lista plana 40 items scrolleable; `InvoiceItemCard.vue` dropdown igual. Fix práctico sin BE/seed: `CategoryPicker.vue` agrupado (headers `BEBIDAS` no clicables + hijos indentados, `max-height 320px` virtual Quasar), `Recientes` 3 últimos vía `localStorage pq_recent_cats:{tenantId}` al guardar producto/factura, toggle `Solo usadas` (`Set(rows/productos.category)`), `use-input` typeahead preservado. Reuso `setupCategories` árbol + `allProducts`/`filteredByCategory`. Archivos: `CategoryPicker.vue` nuevo + `ProductosPage.vue` + `InvoiceItemCard.vue`. Visual terminal `#12141A` header `Geist Mono 12px` + selección borde `accent #C8963E`. Nota: `SeedDataRunner.java` queda intocable (solo INSERT arranque). → acordado 2026-09-14, doc en `DAILY_REPORTS_FRONTEND.md` tras implementar.
+
 Estrategia de cierre: → [`FRONTEND_PENDIENTES_STRATEGY.md`](./frontend/pymes/docs/strategies/FRONTEND_PENDIENTES_STRATEGY.md)
 
 **Fase 7 — Amortización de Préstamos** (pendiente)
@@ -87,10 +89,10 @@ Estrategia: → [`FRONTEND_PENDIENTES_STRATEGY.md`](./frontend/pymes/docs/strate
 
 - [x] [Media] **Unificar en `q-btn`** — migrar 68 usos de `BaseButton` a `q-btn`, eliminar `BaseButton.vue` (`git rm` `f31a561` -184 líneas), `app.scss` +44 global overrides, `167` `q-btn` vs `0` `BaseButton` verificado. Residual polish: `color="red"` (`AuthOptionsPage.vue:25`) y `color="amber"` (`AcceptInvitationPage.vue:35`) + icon utils `text-icon-*` pendientes (bajo). → `FRONTEND_PENDIENTES_STRATEGY.md` Fase 5b. `DAILY_REPORTS_FRONTEND.md` 2026-08-17 Fase 5b.
 
-**Fase 6 — Tutorial Guiado (post-Fase 4)** (pendiente — implementar ahora)
+**Fase 6 — Tutorial Guiado (post-Fase 4)** ✅ CERRADO (2026-09-18)
 
-- [ ] [Alta] **Tour guiado con Driver.js** — guía de bienvenida al dashboard post-Fase 4. 3-4 pasos sobre los elementos que queden. Disparo único vía localStorage. Botón "Ayuda" en header para reiniciar. → Se diseña DESPUÉS de completar Fase 4.
-- [ ] [Alta] **Dashboard UI polish** — hover states en stat strip, empty states más expresivos, responsive tuning. → POST-Fase 4 (solo lo que sobreviva la depuración).
+- [x] [Alta] **Tour guiado con Driver.js 7 pasos** — `useTutorial.ts` `TOUR_STEPS` inversión→costos→proveedores→productos→facturas→dashboard→análisis (20 seg, tono panameño), `driver.js 1.3.1` `drive()+poll 10×250ms` + `onNext→goNext` cross-route `router.push`, `data-tour` en 7 páginas + `showForCurrentRoute()` + `watch(route.path)` + mini popover `q-menu` Opción B anclado a `?` con `pymeq_hint_seen` single-shot · `src/css/app.scss` `calc(100vw-32px)` + `cost-summary static` mobile · `index.html viewport-fit=cover` + `env(safe-area)`. Bundle 924KB. (2026-09-18)
+- [x] [Alta] **Dashboard UI polish** — `stripKpis` siempre 3 slots `Costos día —/Facturas pendientes/Rentabilidad —` (fix 2→3), `hint-bounce` sutil, `offline banner` con `lastSync` chip. (2026-09-18)
 
 ### E2E Testing Suite
 

@@ -14,6 +14,7 @@ import core_pymes.product.mapper.ProductoMapper;
 import core_pymes.product.repository.PresentacionRepository;
 import core_pymes.product.repository.ProductoRepository;
 import core_pymes.product.service.ProductoService;
+import core_pymes.common.exception.custom.DuplicateResourceException;
 import core_pymes.common.exception.custom.InvalidInputException;
 import core_pymes.common.exception.custom.ResourceNotFoundException;
 import lombok.RequiredArgsConstructor;
@@ -21,6 +22,7 @@ import lombok.extern.slf4j.Slf4j;
 import org.springframework.cache.annotation.CacheEvict;
 import org.springframework.cache.annotation.Cacheable;
 import org.springframework.context.ApplicationEventPublisher;
+import org.springframework.dao.DataIntegrityViolationException;
 import org.springframework.data.domain.Page;
 import org.springframework.data.domain.Pageable;
 import org.springframework.stereotype.Service;
@@ -82,26 +84,52 @@ public class ProductoServiceImpl implements ProductoService {
     @Transactional
     @CacheEvict(cacheNames = "productos", allEntries = true)
     public ProductoResponse create(ProductoRequest request) {
-        var sku = request.sku();
-        if (sku == null || sku.isBlank()) {
-            long count = productoRepository.countByTenantId(request.tenantId());
-            sku = String.format("P-%04d", count + 1);
+        var providedSku = request.sku();
+        boolean autoSku = providedSku == null || providedSku.isBlank();
+
+        if (!autoSku && productoRepository.existsByTenantIdAndSku(request.tenantId(), providedSku)) {
+            throw new DuplicateResourceException("SKU already exists: " + providedSku);
         }
-        var producto = Producto.builder()
-                .tenantId(request.tenantId())
-                .name(request.name())
-                .sku(sku)
-                .category(request.category())
-                .baseUnit(request.baseUnit())
-                .imageUrl(request.imageUrl())
-                .minQuantity(request.minQuantity())
-                .maxQuantity(request.maxQuantity())
-                .providerId(request.proveedorId())
-                .build();
-        producto = productoRepository.save(producto);
-        eventPublisher.publishEvent(new ProductoCreadoEvent(producto));
-        log.debug("Producto created: {} for tenant {}", producto.getId(), producto.getTenantId());
-        return mapper.toResponse(producto, List.of(), findProveedor(producto.getProviderId()));
+
+        // ponytail: index-friendly MAX via ORDER BY sku DESC LIMIT 1 + retry, covers soft-deleted rows (idx_products_tenant_sku WHERE sku IS NOT NULL)
+        int baseSeq = autoSku ? resolveMaxSkuSeq(request.tenantId()) : -1;
+        for (int attempt = 0; attempt < 5; attempt++) {
+            var sku = autoSku ? String.format("P-%04d", baseSeq + 1 + attempt) : providedSku;
+            var producto = Producto.builder()
+                    .tenantId(request.tenantId())
+                    .name(request.name())
+                    .sku(sku)
+                    .category(request.category())
+                    .baseUnit(request.baseUnit())
+                    .imageUrl(request.imageUrl())
+                    .minQuantity(request.minQuantity())
+                    .maxQuantity(request.maxQuantity())
+                    .providerId(request.proveedorId())
+                    .build();
+            try {
+                producto = productoRepository.save(producto);
+                eventPublisher.publishEvent(new ProductoCreadoEvent(producto));
+                log.debug("Producto created: {} for tenant {}", producto.getId(), producto.getTenantId());
+                return mapper.toResponse(producto, List.of(), findProveedor(producto.getProviderId()));
+            } catch (DataIntegrityViolationException e) {
+                if (!autoSku) throw new DuplicateResourceException("SKU already exists: " + sku);
+                log.warn("SKU collision {} for tenant {}, retry {}", sku, request.tenantId(), attempt + 1);
+                if (attempt == 4) throw new DuplicateResourceException("SKU collision after retries for tenant " + request.tenantId());
+            }
+        }
+        throw new IllegalStateException("unreachable SKU generation");
+    }
+
+    private int resolveMaxSkuSeq(UUID tenantId) {
+        return productoRepository.findTopSkuByTenantId(tenantId)
+                .map(sku -> {
+                    try {
+                        return Integer.parseInt(sku.substring(2));
+                    } catch (Exception e) {
+                        return 0;
+                    }
+                })
+                .orElse(0);
     }
 
     @Override

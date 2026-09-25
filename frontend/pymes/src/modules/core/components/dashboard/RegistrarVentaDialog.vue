@@ -1,8 +1,6 @@
 <script setup lang="ts">
-import { ref, computed } from 'vue';
-import { useQuasar } from 'quasar';
-import { useAuthStore } from 'src/modules/auth/store';
-import { ventaService } from '../../services/venta.service';
+import { useTemplateRef } from 'vue';
+import { useRegistrarVenta } from '../../composables/useRegistrarVenta';
 
 defineProps<{ modelValue: boolean }>();
 const emit = defineEmits<{
@@ -10,38 +8,31 @@ const emit = defineEmits<{
   'created': [];
 }>();
 
-const $q = useQuasar();
-const authStore = useAuthStore();
-const saving = ref(false);
+// ponytail: delegate state/side-effects to composable — dialog stays presentational (props down, events up)
+const { montoStr, descripcion, fecha, saving, error, isValid, save } = useRegistrarVenta();
 
-const amount = ref<number | null>(null);
-const descripcion = ref('');
-const fecha = ref(new Date().toISOString().slice(0, 10));
+// ponytail: useTemplateRef per sfc.md (Vue 3.5+) — typed as component instance with $el
+const fechaDialogRef = useTemplateRef<{ $el: HTMLElement }>('fechaDialogRef');
 
-const isValid = computed(() => amount.value !== null && amount.value > 0);
+function openPickerDialog() {
+  const input = fechaDialogRef.value?.$el.querySelector<HTMLInputElement>('input[type="date"]');
+  if (input?.showPicker) {
+    try {
+      input.showPicker();
+    } catch {
+      input.focus();
+    }
+  } else {
+    input?.focus();
+    input?.click();
+  }
+}
 
-async function save() {
-  const tenantId = authStore.user?.tenantId;
-  if (!tenantId || !isValid.value) return;
-
-  saving.value = true;
-  try {
-    await ventaService.create({
-      tenantId,
-      montoBruto: amount.value!,
-      fecha: fecha.value,
-      descripcion: descripcion.value || null,
-    });
-    $q.notify({ type: 'positive', message: 'Venta registrada' });
+async function onSave() {
+  const ok = await save();
+  if (ok) {
     emit('created');
     emit('update:modelValue', false);
-    amount.value = null;
-    descripcion.value = '';
-    fecha.value = new Date().toISOString().slice(0, 10);
-  } catch {
-    $q.notify({ type: 'negative', message: 'Error al registrar venta' });
-  } finally {
-    saving.value = false;
   }
 }
 </script>
@@ -56,23 +47,28 @@ async function save() {
 
       <q-card-section class="venta-dialog__body">
         <q-input
-          v-model.number="amount"
+          v-model="montoStr"
           label="Monto"
-          type="number"
-          step="0.01"
-          min="0"
+          prefix="B/."
+          placeholder="0.00"
           outlined
           dense
           autofocus
+          input-class="venta-dialog__mono"
           class="venta-dialog__input"
+          :error="!!error"
+          :error-message="error"
+          @keyup.enter="onSave"
         />
         <q-input
+          ref="fechaDialogRef"
           v-model="fecha"
           label="Fecha"
           type="date"
           outlined
           dense
           class="venta-dialog__input"
+          @click="openPickerDialog"
         />
         <q-input
           v-model="descripcion"
@@ -80,6 +76,7 @@ async function save() {
           outlined
           dense
           class="venta-dialog__input"
+          @keyup.enter="onSave"
         />
       </q-card-section>
 
@@ -88,10 +85,11 @@ async function save() {
         <q-btn
           no-caps
           label="Guardar"
-          color="positive"
+          color="primary"
+          text-color="dark"
           :disable="!isValid"
           :loading="saving"
-          @click="save"
+          @click="onSave"
         />
       </q-card-actions>
     </q-card>
@@ -124,6 +122,12 @@ async function save() {
     display: flex;
     flex-direction: column;
     gap: 12px;
+  }
+
+  &__mono {
+    font-family: 'Geist Mono', monospace;
+    font-weight: 600;
+    font-variant-numeric: tabular-nums;
   }
 
   &__input {

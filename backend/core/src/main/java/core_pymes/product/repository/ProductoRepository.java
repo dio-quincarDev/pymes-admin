@@ -4,6 +4,8 @@ import core_pymes.product.domain.Producto;
 import org.springframework.data.domain.Page;
 import org.springframework.data.domain.Pageable;
 import org.springframework.data.jpa.repository.JpaRepository;
+import org.springframework.data.jpa.repository.Query;
+import org.springframework.data.repository.query.Param;
 import org.springframework.stereotype.Repository;
 
 import java.util.List;
@@ -28,4 +30,7 @@ public interface ProductoRepository extends JpaRepository<Producto, UUID> {
     boolean existsByTenantIdAndSku(UUID tenantId, String sku);
 
     long countByTenantId(UUID tenantId);
+
+    @Query(value = "SELECT sku FROM core.products WHERE tenant_id = :tenantId AND sku LIKE 'P-%' ORDER BY sku DESC LIMIT 1", nativeQuery = true)
+    Optional<String> findTopSkuByTenantId(@Param("tenantId") UUID tenantId);
 }

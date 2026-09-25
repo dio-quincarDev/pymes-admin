@@ -1,5 +1,6 @@
 package core_pymes.jpa;
 
+import core_pymes.invoice.domain.EstadoFactura;
 import core_pymes.invoice.domain.Factura;
 import core_pymes.invoice.domain.ItemFactura;
 import core_pymes.invoice.domain.Proveedor;
@@ -47,15 +48,15 @@ class FacturaRepositoryTest extends AbstractJpaTest {
 
         invoice1 = em.persistFlushFind(Factura.builder()
                 .tenantId(tenantA).providerId(providerA.getId()).invoiceNumber("F-PROV-2026-0001")
-                .issueDate(LocalDate.of(2026, 6, 1)).type("FACTURA").status("REGISTRADA")
+                .issueDate(LocalDate.of(2026, 6, 1)).type("FACTURA").status(EstadoFactura.REGISTRADA)
                 .globalDiscount(BigDecimal.ZERO).total(new BigDecimal("100.00")).build());
         invoice2 = em.persistFlushFind(Factura.builder()
                 .tenantId(tenantA).providerId(providerB.getId()).invoiceNumber("F-PROV-2026-0002")
-                .issueDate(LocalDate.of(2026, 6, 15)).type("FACTURA").status("PAGADA")
+                .issueDate(LocalDate.of(2026, 6, 15)).type("FACTURA").status(EstadoFactura.PAGADA)
                 .globalDiscount(BigDecimal.ZERO).total(new BigDecimal("200.00")).build());
         em.persistFlushFind(Factura.builder()
                 .tenantId(tenantB).providerId(providerOther.getId()).invoiceNumber("F-PROV-2026-0001")
-                .issueDate(LocalDate.of(2026, 6, 1)).type("FACTURA").status("REGISTRADA")
+                .issueDate(LocalDate.of(2026, 6, 1)).type("FACTURA").status(EstadoFactura.REGISTRADA)
                 .globalDiscount(BigDecimal.ZERO).total(new BigDecimal("50.00")).build());
         em.clear();
     }
@@ -213,13 +214,14 @@ class FacturaRepositoryTest extends AbstractJpaTest {
             var presentacion = em.persistFlushFind(Presentacion.builder().producto(product).name("Bolsa 1kg").conversion(1).build());
             var invoice = Factura.builder()
                     .tenantId(tenantA).providerId(providerA.getId()).invoiceNumber("F-PROV-2026-0003")
-                    .issueDate(LocalDate.of(2026, 7, 1)).type("FACTURA").status("REGISTRADA")
+                    .issueDate(LocalDate.of(2026, 7, 1)).type("FACTURA").status(EstadoFactura.REGISTRADA)
                     .globalDiscount(BigDecimal.ZERO).total(new BigDecimal("55.00")).build();
             invoice.getItems().add(ItemFactura.builder()
                     .factura(invoice).productId(product.getId()).productName("Arroz")
                     .presentacionId(presentacion.getId()).conversionFactor(1)
                     .quantity(new BigDecimal("10")).unitPrice(new BigDecimal("5.50"))
-                    .discount(BigDecimal.ZERO).subtotal(new BigDecimal("55.00")).build());
+                    .discount(BigDecimal.ZERO).subtotal(new BigDecimal("55.00"))
+                    .itbmsTasa(7).itbmsMonto(new BigDecimal("3.85")).build());
 
             em.persistAndFlush(invoice);
             em.clear();

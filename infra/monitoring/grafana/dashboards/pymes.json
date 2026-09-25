@@ -39,8 +39,8 @@
       "title": "p95 latency",
       "gridPos": { "h": 8, "w": 12, "x": 12, "y": 4 },
       "datasource": { "type": "prometheus", "uid": "VictoriaMetrics" },
-      "targets": [{ "expr": "histogram_quantile(0.95, sum(rate(http_server_requests_seconds_bucket[1m])) by (le, application))", "refId": "A", "legendFormat": "{{application}}" }],
-      "fieldConfig": { "defaults": { "unit": "s" } }
+      "targets": [{ "expr": "histogram_quantile(0.95, sum(rate(http_server_requests_seconds_bucket[1m])) by (le, application))",
+      "refId": "A", "legendFormat": "{{application}}" }], "fieldConfig": { "defaults": { "unit": "s" } }
     },
     {
       "id": 4,
@@ -68,8 +68,9 @@
       "title": "Errors 5xx /s",
       "gridPos": { "h": 8, "w": 24, "x": 0, "y": 20 },
       "datasource": { "type": "prometheus", "uid": "VictoriaMetrics" },
-      "targets": [{ "expr": "sum(rate(http_server_requests_seconds_count{status=~\"5..\"}[1m])) by (application)", "refId": "A", "legendFormat": "{{application}}" }],
-      "fieldConfig": { "defaults": { "unit": "reqps", "thresholds": { "mode": "absolute", "steps": [{ "color": "green", "value": 0 }, { "color": "red", "value": 0.1 }] } } }
+      "targets": [{ "expr": "sum(rate(http_server_requests_seconds_count{status=~\"5..\"}[1m])) by (application)", "refId": "A",
+      "legendFormat": "{{application}}" }],"fieldConfig": { "defaults": { "unit": "reqps", "thresholds": { "mode": "absolute",
+      "steps": [{ "color": "green", "value": 0 }, { "color": "red", "value": 0.1 }] } } }
     }
   ]
 }

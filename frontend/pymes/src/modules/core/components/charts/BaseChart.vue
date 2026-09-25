@@ -1,5 +1,5 @@
 <template>
-  <div ref="container" class="base-chart">
+  <div ref="container" class="base-chart" :style="{ height: height + 'px' }">
     <canvas ref="canvas" />
   </div>
 </template>
@@ -157,8 +157,15 @@ onUnmounted(() => {
 .base-chart {
   position: relative;
   width: 100%;
+  max-width: 100%;
+  min-width: 0;
+  overflow: hidden;
   /* Container entrance mirrors chart draw-in; reduced-motion block in app.scss kills it */
   animation: baseChartIn 400ms cubic-bezier(0.4, 0, 0.2, 1) both;
+
+  @media (max-width: 480px) {
+    height: 220px !important;
+  }
 }
 
 @keyframes baseChartIn {

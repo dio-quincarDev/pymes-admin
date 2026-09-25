@@ -1,5 +1,6 @@
 <script setup lang="ts">
-import { computed } from 'vue'
+import { computed, ref, shallowRef, watch } from 'vue'
+import { calcItbms, calcNeto } from 'src/modules/core/utils/invoiceMath'
 
 export interface ProductOption {
   label: string
@@ -20,24 +21,77 @@ interface ItemForm {
   cantidad: number | null
   valor: number | null
   descuento: number
+  itbmsTasa: number
 }
 
-const props = defineProps<{
+interface Props {
   item: ItemForm
   index: number
   productOptions: ProductOption[]
+  /** catálogo completo para resolver label aunque el filtro de categoría oculte el producto */
+  allProductOptions?: ProductOption[]
   unitOptions: { label: string; value: string }[]
   presentationConversionMap: Map<string, number>
-}>()
+}
 
-const emit = defineEmits<{
+interface Emits {
   'update:productoId': [value: string | null]
   'update:presentacionId': [value: string | null]
   'update:cantidad': [value: number | null]
   'update:valor': [value: number | null]
   'update:descuento': [value: number]
+  'update:itbmsTasa': [value: number]
   remove: []
-}>()
+}
+
+const props = defineProps<Props>()
+const emit = defineEmits<Emits>()
+
+const selectedLabel = computed(() => {
+  const catalog = props.allProductOptions ?? props.productOptions
+  return catalog.find(o => o.value === props.item.productoId)?.label ?? ''
+})
+
+// ponytail: 3 filtros independientes AND — FacturasPage ya entrega productOptions = proveedor AND categoría; acá texto filtra ENCIMA de esa base y se preserva al cambiar proveedor/categoría
+const searchNeedle = shallowRef('')
+const filteredOptions = ref<ProductOption[]>([])
+
+function getFiltered(list: ProductOption[], needle: string) {
+  if (!needle) return [...list]
+  const n = needle.toLowerCase()
+  return list.filter(o =>
+    o.productName.toLowerCase().includes(n) ||
+    (o.sku ?? '').toLowerCase().includes(n) ||
+    (o.proveedorName ?? '').toLowerCase().includes(n) ||
+    (o.categoryName ?? '').toLowerCase().includes(n)
+  )
+}
+
+// ponytail: single source — text filters on top of proveedor+categoría base from parent; selected only prepended when needle empty so user sees filter working
+function getFilteredWithSelected(list: ProductOption[], needle: string) {
+  const base = getFiltered(list, needle)
+  const sel = props.item.productoId
+  if (!sel || needle) return base
+  if (base.some(o => o.value === sel)) return base
+  const catalog = props.allProductOptions?.length ? props.allProductOptions : list
+  const found = catalog.find(o => o.value === sel)
+  return found ? [found, ...base] : base
+}
+
+watch(() => props.productOptions, v => { filteredOptions.value = getFilteredWithSelected(v, searchNeedle.value) }, { immediate: true })
+watch(() => props.item.productoId, () => { filteredOptions.value = getFilteredWithSelected(props.productOptions, searchNeedle.value) })
+
+function productFilter(val: string, update: (fn: () => void) => void) {
+  update(() => {
+    searchNeedle.value = val ?? ''
+    filteredOptions.value = getFilteredWithSelected(props.productOptions, searchNeedle.value)
+  })
+}
+
+function onClear() {
+  searchNeedle.value = ''
+  filteredOptions.value = getFilteredWithSelected(props.productOptions, '')
+}
 
 const conversion = computed(() => {
   if (!props.item.presentacionId) return 1
@@ -51,12 +105,15 @@ const precioUnitario = computed(() => {
   return conv > 0 ? val / conv : val
 })
 
-const subtotal = computed(() => {
-  const qty = props.item.cantidad || 0
-  const val = props.item.valor || 0
-  const disc = props.item.descuento || 0
-  return val && qty ? qty * val * (1 - disc / 100) : 0
-})
+const subtotal = computed(() => calcNeto(props.item.cantidad, props.item.valor, props.item.descuento))
+
+const itbmsMonto = computed(() => calcItbms(subtotal.value, props.item.itbmsTasa))
+
+const itbmsOptions = [
+  { label: 'Sin ITBMS (0%)', value: 0 },
+  { label: '7%', value: 7 },
+  { label: '10%', value: 10 },
+]
 
 function fmt(n: number | null) {
   if (n == null || !Number.isFinite(n)) return '—'
@@ -73,12 +130,25 @@ function fmt(n: number | null) {
         dark dense
         :model-value="item.productoId"
         @update:model-value="emit('update:productoId', $event)"
-        :options="productOptions"
-        placeholder="Buscar producto..."
+        :options="filteredOptions"
+        option-value="value"
+        option-label="label"
+        :placeholder="selectedLabel ? '' : 'Buscar producto...'"
         map-options emit-value use-input input-debounce="0"
+        clearable
+        @filter="productFilter"
+        @clear="onClear"
         class="item-card__product"
         popup-content-class="item-dropdown"
       >
+        <template v-slot:no-option>
+          <q-item>
+            <q-item-section class="text-caption text-accent">Sin productos — limpia el filtro de categoría o cambia de proveedor</q-item-section>
+          </q-item>
+        </template>
+        <template v-slot:selected>
+          <span v-if="selectedLabel" class="item-card__selected">{{ selectedLabel }}</span>
+        </template>
         <template v-slot:option="{ itemProps, opt }">
           <q-item v-bind="itemProps" class="item-dropdown__opt">
             <q-item-section>
@@ -162,11 +232,26 @@ function fmt(n: number | null) {
         />
       </div>
 
+      <div class="item-card__field item-card__field--itbms">
+        <span class="item-card__label">ITBMS</span>
+        <q-select
+          dark dense outlined
+          :model-value="item.itbmsTasa"
+          @update:model-value="emit('update:itbmsTasa', Number($event) ?? 0)"
+          :options="itbmsOptions"
+          map-options emit-value
+          class="item-card__itbms"
+        />
+      </div>
+
       <div class="item-card__field item-card__field--subtotal">
         <span class="item-card__label">Subtotal</span>
-        <span class="item-card__subtotal" :class="{ 'item-card__subtotal--disc': item.descuento > 0 }">
-          {{ fmt(subtotal) }}
-        </span>
+        <div class="item-card__subtotal-wrap">
+          <span class="item-card__subtotal" :class="{ 'item-card__subtotal--disc': item.descuento > 0 }">
+            {{ fmt(subtotal) }}
+          </span>
+          <span v-if="itbmsMonto" class="item-card__itbms-val">+{{ fmt(itbmsMonto) }} ITBMS</span>
+        </div>
       </div>
     </div>
   </div>
@@ -227,6 +312,18 @@ function fmt(n: number | null) {
   padding: 0 4px !important;
 }
 
+.item-card__selected {
+  font-size: 0.85rem;
+  white-space: nowrap;
+  overflow: hidden;
+  text-overflow: ellipsis;
+}
+
+.item-card__placeholder {
+  color: color-mix(in srgb, var(--pq-accent) 35%, transparent);
+  font-size: 0.85rem;
+}
+
 .item-card__remove {
   opacity: 0;
   transition: opacity var(--pq-motion-fast);
@@ -274,7 +371,8 @@ function fmt(n: number | null) {
 .item-card__field--valor { width: 96px; }
 .item-card__field--calc { width: 88px; }
 .item-card__field--disc { width: 54px; }
-.item-card__field--subtotal { width: 105px; }
+.item-card__field--itbms { width: 92px; }
+.item-card__field--subtotal { width: 115px; }
 
 .item-card__field :deep(.q-field__control) {
   min-height: 30px !important;
@@ -308,8 +406,19 @@ function fmt(n: number | null) {
   color: color-mix(in srgb, var(--pq-accent) 25%, transparent);
 }
 
-.item-card__subtotal {
+.item-card__itbms :deep(.q-field__control) { font-size: 0.78rem; }
+
+.item-card__subtotal-wrap {
   height: 30px;
+  display: flex;
+  flex-direction: column;
+  align-items: flex-end;
+  justify-content: center;
+  gap: 0;
+  line-height: 1;
+}
+
+.item-card__subtotal {
   display: flex;
   align-items: center;
   justify-content: flex-end;
@@ -319,6 +428,13 @@ function fmt(n: number | null) {
   font-weight: 700;
   font-variant-numeric: tabular-nums;
   color: var(--pq-accent);
+}
+
+.item-card__itbms-val {
+  font-family: var(--pq-font-utility);
+  font-size: 0.62rem;
+  font-weight: 600;
+  color: color-mix(in srgb, var(--pq-accent) 55%, transparent);
 }
 
 .item-card__subtotal--disc {
@@ -339,6 +455,7 @@ function fmt(n: number | null) {
   .item-card__field--valor { width: 80px; }
   .item-card__field--calc { width: 76px; }
   .item-card__field--disc { width: 46px; }
+  .item-card__field--itbms { width: 80px; }
   .item-card__field--subtotal { width: 88px; }
 }
 

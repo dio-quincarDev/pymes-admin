@@ -19,5 +19,8 @@ public record ItemFacturaRequest(
         BigDecimal valorPresentacion,
         BigDecimal precioUnitarioInput,
         BigDecimal descuentoInput,
-        Boolean descuentoEsPorcentaje
+        Boolean descuentoEsPorcentaje,
+
+        // ITBMS por item: 0, 7, 10 (null = 7 default)
+        Integer itbmsTasa
 ) {}

@@ -4,6 +4,441 @@ Registro cronológico de decisiones, problemas resueltos y estado del frontend.
 
 ---
 
+## 2026-09-19 — Fix registro manual: hint password + clearSession pendingTenant race
+
+**Contexto:** Beta reportó que en `/register` no se veían las reglas de contraseña (solo `Mínimo 8 caracteres` en placeholder). Backend exige `RegisterRequest.java:19` / `ResetPasswordRequest.java:13` `^(?=.*[A-Za-z])(?=.*\d).+$` (letra+número). Además, el registro manual se quedaba “estancado” sin `POST /auth/register` ni error en consola/Network — `OAuth2` funcionaba perfecto.
+
+**Causa raíz — race `pendingTenant`:**
+- `store/index.ts:197-206` `clearSession()` limpia `pymeq_pending_tenant` (fix `d866afa` para `OAuth2` stale `intent`). 
+- `RegisterPage.vue:207-219` hacía `clearSession()` y **después** leía `pendingTenant.value.name/slug` → `null` → `TypeError` capturado como `Error al registrar` genérico, sin `Network`. `curl POST /api/v1/auth/register` directo sí daba `200`/`400 VAL001`/`409 USR004/TNT003` — backend intacto. HAR sin `register` confirmó `q-form` no emitía `submit` (validación frenaba antes de red).
+
+**Qué se hizo:**
+- **UX hint A (mínimo):** `RegisterPage.vue:83` + `ResetPasswordPage.vue:16` `hint="Mínimo 8 caracteres, al menos 1 letra y 1 número"` + `:rules` con ` /^(?=.*[A-Za-z])(?=.*\d).+/.test(val) || 'Debe contener letra y número'` alineado a backend. Sin checklist/medidor (YAGNI, pedido A).
+- **Fix race:** `RegisterPage.vue:207-220` captura `const tenant = pendingTenant.value` antes de `clearSession()`, restaura `pendingTenant = tenant` + `localStorage pymeq_pending_tenant` para armar `payload {companyName, companySlug}`; tras éxito `clearPendingTenant()` + `router.push('/verify')`. `logout` sigue con `clearSession()` completo (`CLEAR_API_CACHE` al SW) — no se rompe `OAuth2`.
+- **Ponytail:** 5 líneas, sin nuevo composable ni lib; `OAuth2` (`LoginPage/RegisterPage` `createOAuth2Intent`) no usa `clearSession` antes de intent → intacto.
+
+**Verificación:** `npm run lint` 0, `npm run build` PWA 942KB (379KB CSS), `docker compose up -d --build frontend` healthy, `curl POST /auth/register` con `Pymeq20261` → `200` + `Redis temp-register:*` + `EmailService` log, con `contrasena` → `400 VAL001 detalles.password`. Manual `ivan20-21@outlook.com` ya envía.
+
+```
+frontend/pymes/src/modules/auth/pages/RegisterPage.vue      # hint + rules + capture tenant before clearSession
+frontend/pymes/src/modules/auth/pages/ResetPasswordPage.vue # hint + rules
+frontend/pymes/src/modules/auth/store/index.ts              # clearSession limpia pendingTenant (logout)
+```
+
+**Estado:** ✅ COMPLETADO — pendiente commit/push `feature/refactor`
+
+---
+
+## 2026-09-18 — Tutorial guiado 7 pasos + mini popover on-demand + mobile viewport fix + Dashboard Rentabilidad fix
+
+**Contexto:** Usuario pidió tutorial cercano panameño en orden exacto 1 Inversión → 2 Gastos/Costos salarios → 3 Proveedores → 4 Productos (borrar/crear) → 5 Facturas (Sin/Con ITBMS 0/7/10) → 6 Dashboard → 7 Análisis (9 alertas). Tono simple dentro del tour ("arriba sin impuesto abajo con ITBMS…"). Además reportó bug `driver.js highlight` sin botón Siguiente, overlap mobile por `mobile-bottom-nav` + `CostSummaryBar sticky`, y Dashboard mostraba solo 2 KPIs por `stripKpis` condicional.
+
+**Qué se hizo:**
+- **driver.js** `useTutorial.ts` `TOUR_STEPS` 7 rutas `data-tour` inversion/costos/proveedores/productos/facturas/dashboard/analisis + `localStorage pymeq_tour_seen/active/step`. Fix `highlight()→setSteps+drive()` (highlight escondía next/prev) + poll 10×250ms para skeletons + `onNextClick→goNext`/`onPrevClick→goPrev` cross-route `router.push`. `showForCurrentRoute()` por página + `watch(route.path)` en `MainLayout`.
+- **Mini popover Opción B** `MainLayout.vue` `sym_r_help` `?` siempre `startTour(true)` forzado. `showHint` si `hasTenant && !hasSeen && !isActive && !hintSeen` → `q-menu anchor bottom middle offset 8,10` con texto `¿Primera vez acá? Recorrido de 7 pasos (20 seg) — inversión → … → análisis.` botones `[Empezar tour →]` (`hint_seen=true + startTour`) `[Ahora no]` (`hint_seen=true`). `pymeq_hint_seen` single-shot; `?` on-demand. Timer 800ms.
+- **Mobile viewport** `index.html` `viewport-fit=cover` siempre (antes solo Cordova) + `app.scss` `.pymeq-tour-popover max-width min(360px,calc(100vw-32px)) margin-bottom env(safe-area)` + `.driver-active .cost-summary{position:static}` (evita cover en Costos) + `.mobile-bottom-nav padding-bottom env(bottom)` + `stagePadding` consideración.
+- **Dashboard Rentabilidad** `DashboardPage.vue:50` `stripKpis` siempre 3 slots `Costos día —/Facturas pendientes/Rentabilidad —` (antes escondía si `!m`) con `accent gold` placeholder.
+- **Estilos** `app.scss` `.tour-hint` `::before` flecha + `hint-bounce` sutil `1.2s 2`.
+
+**Verificación:** `npm run lint` 0, `npm run build` PWA 924 KB (375 CSS), `vue-tsc` fix `!` TS18048, manual hint 800ms → Empezar 1/7 Patrimonio → Siguiente navega 7/7 Análisis → Ahora no guarda `hint_seen` + `?` reabre.
+
+```
+frontend/pymes/src/composables/useTutorial.ts              # TOUR_STEPS 7 + drive+poll + hint keys
+frontend/pymes/src/layouts/MainLayout.vue                  # ? help + q-menu hint + watch route
+frontend/pymes/src/modules/core/pages/PatrimonioPage.vue   # data-tour inversion
+frontend/pymes/src/modules/core/pages/CostosPage.vue       # data-tour costos
+frontend/pymes/src/modules/core/pages/ProveedoresPage.vue  # data-tour proveedores
+frontend/pymes/src/modules/core/pages/ProductosPage.vue    # data-tour productos
+frontend/pymes/src/modules/core/pages/FacturasPage.vue     # data-tour facturas
+frontend/pymes/src/pages/DashboardPage.vue                 # data-tour dashboard + stripKpis fix
+frontend/pymes/src/modules/core/pages/AnalisisGastosPage.vue # data-tour analisis
+frontend/pymes/src/css/app.scss                            # pymeq-tour-popover calc + tour-hint
+frontend/pymes/index.html                                  # viewport-fit=cover always
+frontend/pymes/package.json                                # driver.js 1.3.1
+```
+
+**Estado:** ✅ COMPLETADO — pendiente bases legales + offline PWA cierre MVP
+
+---
+
+## 2026-09-16 — AnalisisPage: MetricCard fix + Salud Financiera criolla + filtros Proveedor/Alertas
+
+**Contexto:** `AnalisisGastosPage` kpiCards invertidos (`MetricCard.vue:31` valor arriba label abajo vs `KpiCard` label arriba), `Salud Financiera` con puntajes técnicos (66/100 30 rojo sin contexto), `Recomendaciones por Proveedor` generaba falsos positivos por compra mínima (1kg $2.25 vs 10kg $2.20), `Alertas` mostraba `Mayonesa 0.00 vs 3.88`, y `Recomendaciones` tenía jerarquía Producto>Proveedor y chips verdes ilegibles sobre fondo oscuro.
+
+**Qué se hizo:**
+- **MetricCard** `MetricCard.vue:31-48` swap `__label` arriba / `__value` abajo + skeletons + SCSS margin.
+- **Salud criolla dinámica** `utils/financialGuide.ts` **NUEVO** `guideForPillar/overallGuide/isGoodDependence` deriva `mantén` invirtiendo scoring desde `breakdown.drivers` (sin hardcode tabla). `FinancialHealthBreakdown.vue:12-26` subtítulos criollos + `q-tooltip`; `FinancialHealthPanel.vue:15-50` banda `0-39/40-69/70-84/85-100` + guide; `FinancialHealthAlerts.vue:1` color amarillo/rojo según `isGoodDependence`. Cableado `AnalisisGastosPage.vue:128` + `DashboardPage.vue:206` pasan `supplierRecommendations`.
+- **Filtros Proveedor** `SupplierRecommendationsCard.vue:1` `shallowRef onlySignificant/onlyMultiSupplier` + `computed filteredItems` (`savingsPct>5%` y `supplierCount>2`), chips `Ahorro >5%` / `Probados (3+ prov.)` + `Limpiar`, empty `Ninguna coincide`. SFC `script→template→style`.
+- **Fix jerarquía Proveedor** `SupplierRecommendationsCard.vue:30-65` chips `grey-4/white` para contraste + avatar 28px `#2D5A27` + `provider-main-name 0.95rem 700 #E2E8E4` protagonista, producto pasa a `product-sub 0.75rem #8A9E99 uppercase`.
+- **Alertas 0.00** `AlertsPanel.vue:1` `computed filteredAlerts filter(currentPrice>0 && avgPrice>0)` + `hasCritical` sobre filtradas, SFC reordenado.
+- **Ponytail:** sin backend, sin lib nueva, reuse `analyticsNormalize.toNumber` + `useAnalytics`.
+
+**Verificación:** `npm run lint` 0, `npm run build` PWA 891KB, manual 375/768/1440: MetricCard label arriba, breakdown muestra `Ganaste $8 de cada $100…`, filtros ocultan pollo 2%, alertas 0.00 no aparecen.
+
+**Archivos:**
+```
+frontend/pymes/src/modules/core/components/analytics/MetricCard.vue
+frontend/pymes/src/modules/core/utils/financialGuide.ts # NUEVO
+frontend/pymes/src/modules/core/components/dashboard/FinancialHealthBreakdown.vue
+frontend/pymes/src/modules/core/components/dashboard/FinancialHealthPanel.vue
+frontend/pymes/src/modules/core/components/dashboard/FinancialHealthAlerts.vue
+frontend/pymes/src/modules/core/components/dashboard/SupplierRecommendationsCard.vue
+frontend/pymes/src/modules/core/components/dashboard/AlertsPanel.vue
+frontend/pymes/src/modules/core/pages/AnalisisGastosPage.vue
+frontend/pymes/src/pages/DashboardPage.vue
+```
+
+**Estado:** ✅ COMPLETADO — commit `503fd87` + fix jerarquía pendiente commit `feature/refactor`
+
+---
+
+## 2026-09-15 — Facturas: ITBMS por ítem 0/7/10 + Sin/Con ITBMS + default 0 + provider strict
+
+**Contexto:** Usuario no entiende `Gravado` (jerga contador). DGI Panamá ITBMS 0% exento / 7% general / 10% alcohol; `Valor $` sin impuesto, descuento antes de impuesto. Decisión: selector por **ítem en factura** `0/7/10` (`Sin ITBMS (0%)` default opt-in), desglose `Sin ITBMS / Con ITBMS / ITBMS` — no tocar producto. Además `FacturaPage filteredByProvider` flexible `!proveedorId || ===` escondía productos de otros proveedores; usuario pidió **estricto puro** `proveedorId===providerId` (vacío=todos).
+
+**Qué se hizo:**
+- **Tipos** `types/index.ts` `ItemFactura itbmsTasa/itbmsMonto` + `Factura subtotalExento/Gravado/itbmsTotal`.
+- **Util** `utils/invoiceMath.ts` **NUEVO** `calcNeto(q,val,disc%)` + `calcItbms(net,tasa??0)` + `calcBreakdown(items) HALF_UP` → `{exento,gravado,itbms,total}` para breakdown y `InvoiceItemCard` reutiliza misma fórmula que backend.
+- **Item card** `InvoiceItemCard.vue` `+itbmsTasa` + `itbmsOptions [{Sin ITBMS (0%),0},{7%,7},{10%,10}]` + `q-select ITBMS` + fila `Subtotal +X ITBMS` (`itbmsMonto calcItbms`), fix móvil doble Buscar ya en `3ddabb5`.
+- **Factura page** `FacturasPage.vue` `ItemForm itbmsTasa=0` default (`addItem/openEdit/save ??0`), `computedTotal calcBreakdown().total` + `computedBreakdown` + breakdown `Sin ITBMS / Con ITBMS / ITBMS` (antes `Exento/Gravado`), `filteredByProvider` → `p.proveedorId===providerId` estricto (ponytail: sin `M:N product_providers`).
+- **Detalle** `InvoiceDetailDialog.vue` columna `ITBMS` (`itbmsMonto` o `—` si 0) + desglose `Sin ITBMS: / Con ITBMS: / ITBMS:`.
+- **Ponytail:** sin lib, sin endpoint nuevo, `proposal from stage` + `q-select model-value/@update:model-value` Quasar 2.19 `popup-content-class` solo `QSelect`.
+
+```
+frontend/pymes/src/modules/core/types/index.ts                     # +itbmsTasa/Monto subtotalExento/Gravado
+frontend/pymes/src/modules/core/utils/invoiceMath.ts               # NUEVO calcNeto/calcItbms/calcBreakdown
+frontend/pymes/src/modules/core/components/facturas/InvoiceItemCard.vue # +itbms select + subtotal+ITBMS
+frontend/pymes/src/modules/core/pages/FacturasPage.vue             # default 0 Sin/Con ITBMS + provider strict
+frontend/pymes/src/modules/core/components/facturas/InvoiceDetailDialog.vue # col ITBMS + Sin/Con
+```
+
+**Verificación:** `npm run lint` 0, `vue-tsc` 0, `npm run build` PWA 886KB. Manual: crear `2×50 Sin ITBMS + 1×100 7% → Sin 100 Con 100 ITBMS 7 Total 207`.
+
+---
+
+## 2026-09-14 — Facturas: búsqueda indexada + proveedor + categoría (3 independientes) + fix móvil
+
+**Contexto:** `InvoiceItemCard.vue:52` `productFilter` per-item filtraba por `productName/sku/proveedorName/categoryName` sin BE (rápido, `use-input`), pero `watch(productOptions→[...v])` borraba el `needle` al cambiar proveedor/categoría — por eso proveedor/categoría parecían no filtrar cuando había texto. Además `FacturasPage.vue:343` `filteredByProvider` (`!proveedorId || flexible`) + `filteredByCategory:350` (`findCategoryInTree` con hijas) estaban bien pero no se notaban en móvil por doble `Buscar producto...`.
+
+**Qué se hizo:**
+- `InvoiceItemCard.vue:1,52` — `shallowRef searchNeedle` + `getFiltered(list, needle)` + `watch(productOptions → getFiltered(v, needle) immediate:true)` + `productFilter` guarda `needle` y filtra **sobre** `productOptions` (ya es `proveedor AND categoría`). Así texto, proveedor y categoría funcionan solos o juntos (AND si usas varios). Ej: `Toledano` con 2 insumos → al abrir `Buscar producto...` ves 2, escribes `aceite` queda 1.
+- `InvoiceItemCard.vue:7,27,44` — `allProductOptions?: ProductOption[]` + `selectedLabel = (allProductOptions ?? productOptions).find(...)` + `FacturasPage.vue:107 :all-product-options="allProducts"` para no perder el nombre al cambiar de pestaña.
+- `InvoiceItemCard.vue:106` — `q-select` `hide-selected` + `:placeholder="selectedLabel ? '' : 'Buscar producto...'"` + quitado `<span v-else>Buscar...</span>` del slot — queda 1 sola fuente, sin doble en 375px. `display-value` eliminado (duplicaba con slot).
+- Ponytail: sin BE, sin migración, reuse `filteredByCategory` y `productoService.getAll` cache.
+
+**Verificación:** `npm run lint` 0, `npx vue-tsc --noEmit` 0, `npm run build` PWA OK (889KB). Manual 375px: vacío 1x `Buscar...`, elegido muestra label, cambiar proveedor/categoría preserva texto.
+
+```
+frontend/pymes/src/modules/core/components/facturas/InvoiceItemCard.vue # searchNeedle + hide-selected + allProductOptions
+frontend/pymes/src/modules/core/pages/FacturasPage.vue # :all-product-options + filteredByCategory base
+```
+
+**Estado:** ✅ COMPLETADO
+
+---
+
+## 2026-09-14 — Facturas: fix móvil doble Buscar + Dashboard pie sin UUID
+
+**Contexto:** Móvil <599px `InvoiceItemCard` mostraba `Buscar producto...` doble (placeholder nativo + `v-slot:selected` placeholder). Tras elegir seguía viendo `Buscar...` si la categoría cambiaba (`selectedLabel` buscaba solo en `filteredByCategory`). Dashboard `ExpenseBreakdown`/`CategoryBreakdownChart` mostraba UUID en Mantenimiento porque `FacturaRequest.category` String aceptaba `g.id` (`gastoFijoCategorias value=g.id`) y `useFinancialDashboard` sumaba `category` crudo.
+
+**Qué se hizo:**
+- `InvoiceItemCard.vue:106-115` fix doble + fantasma (ver entry anterior, `hide-selected` + `allProductOptions`).
+- `FacturasPage.vue:685` `resolvedCategoria = categoriaMap.get(categoria) ?? categoria` antes de `payload.category` — nuevos `MANTENIMIENTO` se guardan como nombre, no UUID. `useFinancialDashboard.ts:12,38,85` `gastosFijos ref` + `categoriaLabelMap computed` + `resolveCategoria` traduce UUID viejos a nombre en `gastosPorCategoria` y `actividadReciente` (solo visual, sin migración). `CategoryBreakdownChart.vue`/`ExpenseBreakdown.vue:2,74` tipado `TooltipItem<'doughnut'>` y quitado `eslint-disable @typescript-eslint/no-explicit-any` + `as unknown as number[]` para total (lint 0).
+- `LandingHero.vue` (2026-09-14 tarde) — `onboarding-row max-width 480px` compartido + `company-input flex:1` + `media max-width:none` en móvil para simetría 320 vs 100% (fix asimetría `Buscar producto...` landing).
+
+**Verificación:** `npm run lint` 0 (`no-unnecessary-type-assertion` fix), `npx vue-tsc --noEmit` 0, `npm run build` PWA OK. Manual: crear gasto `MANTENIMIENTO` → pie muestra `MANTENIMIENTO`, viejos UUID se ven como nombre.
+
+```
+frontend/pymes/src/modules/core/pages/FacturasPage.vue # resolvedCategoria
+frontend/pymes/src/modules/core/composables/useFinancialDashboard.ts # categoriaLabelMap + resolveCategoria
+frontend/pymes/src/modules/core/components/analytics/CategoryBreakdownChart.vue # TooltipItem tipado
+frontend/pymes/src/modules/core/components/dashboard/ExpenseBreakdown.vue # TooltipItem tipado
+frontend/pymes/src/components/landing/LandingHero.vue # responsive fix
+```
+
+**Estado:** ✅ COMPLETADO
+
+---
+
+## 2026-09-12 (tarde) — Proyección mensual solo PAGADA sin duplicar fijo + baja confianza heurística
+
+**Contexto:** `useMonthlyProjection` sumaba `costoOperativoMensual (3415 fijo config)` + `opex.projectedMonthly (avg PAGADA * diasMes)` duplicando factor; `3415` era fantasma (activo sin PAGADA). `confianzaBaja` solo `===0` no marcaba 1 mes (340).
+
+**Qué se hizo:**
+- `useMonthlyProjection.ts` elimina `costoService.getDiario`, solo `analyticsService.consultar`. `proyeccionMensual = opex.projectedMonthly` (solo PAGADA, `avgDailySpend*diasMes` `AnalyticsServiceImpl:275`). `invoiceCount` + heurística `confianzaBaja = 0 || <3` facturas PAGADA del mes. `breakdown {promedioDiario,total}`.
+- `MonthlyProjectionKpi.vue` props `Breakdown {promedioDiario,total}`, tooltip `Promedio pagado X/día proyectado a YYYY-MM · baja confianza (pocos datos)` cuando `<3` facturas. Funcional desde 1 mes (baja), fiable 60d (3 meses).
+- Ponytail: fijo fuera hasta PAGADA real (`invoice GASTO_OPERATIVO PAGADA`), sin duplicar. Sin endpoint nuevo.
+
+**Verificación:** lint 0 build PWA 888KB
+
+```
+frontend/pymes/src/modules/core/composables/useMonthlyProjection.ts # solo PAGADA + invoiceCount<3
+frontend/pymes/src/modules/core/components/dashboard/MonthlyProjectionKpi.vue # Breakdown promedioDiario
+```
+
+**Estado:** ✅ COMPLETADO
+
+---
+
+## 2026-09-12 — AnalisisPage mensual desglose + CostosPage composition surface + responsive
+
+**Contexto:** `AnalisisGastosPage` mostraba `Inversión en Productos` all-time `totalInvestment` (histórico) en vez de mensual; `CatalogDashboard` contenía `MonthlyInvestmentKpi` huérfano (no ruteado) por lo que nunca se veía en `/dashboard`. `CostosPage.vue:916` mega-componente (8 secciones, 6 dialogs) violaba `vue-best-practices` (view no era composition surface, estado acoplado, `ref` vs `shallowRef`, `computed` impuro). Mobile `cost-summary` sticky 8 items + `row-item grid 1fr auto auto` desbordaba en 375px.
+
+**Qué se hizo:**
+- **AnalisisPage mensual** `AnalisisGastosPage.vue:6,34,74` reemplaza `MetricCard totalInvestment` por `MonthlyInvestmentKpi :amount monthlyInvestment :breakdown :periodo periodoMensual :loading monthlyLoading` desde `useMonthlyInvestment` (reuse sin endpoint, `watch period+tenantId abort`, `readonly`). `MonthlyInvestmentKpi.vue:14` añade `loading?:boolean` (`withDefaults false`, `formatted → —`).
+- **CostosPage refactor** `CostoPage` → composition surface + `composables/useCostos.ts` **NUEVO** estado `readonly` + acciones explícitas (`loadAll/loadDiario/saveConfig/createProveedor/upsert/remove`) + `computed catGroups/costoFijoDiario/...` (`shallowRef` primitivos, `computed` puro, `readonly`). Split en `components/costos/CostSummaryBar.vue` + `CollaboratorList.vue` + `GastoFijoGroupedList.vue` (props down/events up, PascalCase, scoped class selectors, `script→template→style`). Page queda `~220` líneas vs 916.
+- **Responsive mobile** `CostSummaryBar.vue` `cost-summary__grid` media `≤600px grid 2 cols hide arrows/separator top 48`, `CostosPage.vue` `.cost-tabs overflow-x:auto`, `CollaboratorList/GastoFijoGroupedList` `row-item 1fr 44px touch` (quasar-skilld: responsive CSS classes > Screen plugin, `class` no `content-class`, `v-model` model-value).
+- Ponytail: sin lib nueva, sin endpoint, reuse `facturaService.getAll+costoService.getDiario+usePeriod`.
+
+**Verificación:** `npm run lint` 0, `npm run build` Build succeeded PWA 882KB, `vue-tsc` 0 (fix `readonly[]` props), Quasar 2.19.3 API check OK.
+
+```
+frontend/pymes/src/modules/core/pages/AnalisisGastosPage.vue # MetricCard→MonthlyInvestmentKpi
+frontend/pymes/src/modules/core/components/dashboard/MonthlyInvestmentKpi.vue # +loading
+frontend/pymes/src/modules/core/composables/useCostos.ts # NUEVO readonly composable
+frontend/pymes/src/modules/core/components/costos/CostSummaryBar.vue # NUEVO summary responsive
+frontend/pymes/src/modules/core/components/costos/CollaboratorList.vue # NUEVO list
+frontend/pymes/src/modules/core/components/costos/GastoFijoGroupedList.vue # NUEVO grouped list
+frontend/pymes/src/modules/core/pages/CostosPage.vue # refactor composition surface 916→220
+frontend/pymes/docs/DAILY_REPORTS_FRONTEND.md # 2026-09-12
+```
+
+**Estado:** ✅ COMPLETADO — pendiente commit/push `feature/refactor` → `develop` PR
+
+---
+
+## 2026-09-11 — Inversión mensual frontend-only + Charts mixed + Idempotencia header
+
+**Contexto:** KPI `Inversión en Productos` mostraba all-time `sum totalInvestment` sin ventana mensual; `VentasVsCostosChart` grouped bar para costo plano duplicaba 14 rects; POST sin `Idempotency-Key` duplicaba facturas en retry.
+
+**Qué se hizo:**
+- **Mensual** `composables/useMonthlyInvestment.ts` **NUEVO** `ref facturas` + `shallowRef costo 6h` + `computed insumosMensual (type!=GASTO_OPERATIVO PAGADA issueDate startsWith period) / gastoVariableMensual (GASTO_OPERATIVO) / runningMensual (CostoDiario.costoOperativoMensual) / monthlyInvestment` `watch([period, tenantId] immediate + Abort)` `readonly`. `components/dashboard/MonthlyInvestmentKpi.vue` **NUEVO** props tipadas `amount/breakdown/periodo` → `KpiCard` + `q-tooltip` desglose `Insumos X + variable Y + fijo Z`. `CatalogDashboard.vue` composition surface 3 KPIs estáticos + 1 mensual derivado.
+- **Charts** `VentasVsCostosChart.vue:17` Costos `type:'line' tension 0.3` vs Ventas `bar`, leyenda `bottom center circle` (unifica donas), `scales.x/y title Día/USD`.
+- **Idempotencia** `boot/axios.ts:17` interceptor `POST → Idempotency-Key: crypto.randomUUID()` (fallback `Date.now()+random`) — usa `crypto` nativo sin lib, TTL 6h en `IdempotencyFilter` core.
+- Ponytail: sin endpoint mensual, sin lib chart nueva, reuse `facturaService.getAll` + `costoService.getDiario` + `usePeriod` + `BaseChart`.
+
+```
+frontend/pymes/src/modules/core/composables/useMonthlyInvestment.ts # NUEVO monthly 6h
+frontend/pymes/src/modules/core/components/dashboard/MonthlyInvestmentKpi.vue # NUEVO
+frontend/pymes/src/modules/core/components/dashboard/CatalogDashboard.vue # 3+1 KPIs + periodoMensual
+frontend/pymes/src/modules/core/components/dashboard/VentasVsCostosChart.vue # line vs bar + bottom legend + titles
+frontend/pymes/src/boot/axios.ts # Idempotency-Key per POST
+```
+
+**Verificación:** `npm run lint` 0, `npm run build Build succeeded` (898KB), `vue-tsc` 0. Chart audit `Chart Designer` skill: Donut 5+Otros OK, gauge OK, trend bar→line fix data-ink.
+
+---
+
+## 2026-09-11 — Cards sizing Dashboard + Vue Best Practices (useVentasSemanales)
+
+### Contexto
+Cards Dashboard desajustados vs Analisis (grid 4col vacía, `dashboard-secondary 1fr 1fr` con 3 hijos huérfano, `FinancialHealthPanel`/`ActivityPanel` sin chrome). Además audit Vue Best Practices: `mondayStr` cacheado sin deps + lógica ventas en view violaba `composables.md`.
+
+### Qué se hizo
+- **KpiStrip `KpiStrip.vue:38`** `repeat(4,1fr) gap12` → `repeat(3,1fr) gap16` `@768 1fr` (3 KPIs llenan, igual que `metric-row` Analisis).
+- **Dashboard `DashboardPage.vue:277`** `1fr 1fr gap20` → `repeat(3,1fr) gap16 align-items:stretch >*{height:100%}` (3 cards sin huérfana).
+- **Panels `FinancialHealthPanel.vue:99` + `ActivityPanel.vue:98`** `+ background var(--pq-surface) border var(--pq-border) radius8 padding16 height:100%` (igual que `analysis-card`/`cat-chart`).
+- **Best Practices `AnalisisGastosPage.vue:1`** extrae ventas semanales a `useVentasSemanales.ts:1` (ref/set + computed puro sin side effects, readonly, shallowRef para loading, `getMondayStr()` llamado dentro de computed para evitar cache stale). View queda composition surface (props down/events up). Lint/build verde.
+
+### Verificación
+- `npm run lint` 0, `npm run build` Build succeeded
+
+### Archivos
+```
+frontend/pymes/src/modules/core/components/dashboard/KpiStrip.vue
+frontend/pymes/src/pages/DashboardPage.vue
+frontend/pymes/src/modules/core/components/dashboard/FinancialHealthPanel.vue
+frontend/pymes/src/modules/core/components/dashboard/ActivityPanel.vue
+frontend/pymes/src/modules/core/composables/useVentasSemanales.ts # nuevo
+frontend/pymes/src/modules/core/pages/AnalisisGastosPage.vue # refactorizado a composable
+```
+
+---
+
+## 2026-09-11 — AnalisisPage Donut Top5 + Ventas semanales + Dashboard quita Ventas hoy
+
+### Contexto
+Usuario pidió: quitar `Ventas hoy` del Dashboard (margen/costo ya cubren), quitar `Categorías` de AnalisisPage y aclarar ABC (confuso) → reemplazar por donut simple; agregar `Ventas semanales lun-dom fija hasta lunes` en AnalisisPage (dato de `ventaService.getAll` / `core.daily_sales.fecha`). Donut Dashboard se deja con `GAS/LUZ/etc.` (5+Otros) tal cual.
+
+### Qué se hizo
+- **Dashboard `DashboardPage.vue:58`** borrado `items.push Ventas hoy` del `stripKpis` (quedan `Costos día + Margen + ROI mes`).
+- **AnalisisPage `AnalisisGastosPage.vue:1,33`** — `byCategory` ya no se usa para card; `MetricCard Categorías` borrada, entra `MetricCard Ventas semanales = sum(ventas.filter(fecha >= lunes))` con `ventasLoading`, rango `{{monday}} → {{sunday}} lun-dom` vía `toLocalISODate`/`getMondayStr()` (Panamá). 1 fetch `ventaService.getAll(tenantId)` + `computed ventasSemanales`.
+- **AnalisisPage `AnalisisGastosPage.vue:82`** — `AbcGastosChart` → `TopProductosDonut.vue` nuevo `doughnut cutout 62%` top5 `abc.spend` + `Otros`, reusa `BaseChart`/`useChartTheme` (colores `abcA/B/positive/negative/info/text`), height 260, tooltip `formatCurrency`.
+- **Nuevo `TopProductosDonut.vue:1`** 45 líneas, ponytail sin nueva dep.
+
+### Verificación
+- `npm run lint` 0, `npm run build` Build succeeded PWA 872KB
+
+### Archivos (previo)
+```
+frontend/pymes/src/pages/DashboardPage.vue
+frontend/pymes/src/modules/core/pages/AnalisisGastosPage.vue
+frontend/pymes/src/modules/core/components/analytics/TopProductosDonut.vue # nuevo
+```
+
+---
+
+## 2026-09-11 — Dashboard Facturas pendientes + Rentabilidad
+
+### Contexto
+`Margen` (`ventasHoy - costoOperativoDiario`) duplicaba `CostoDiario.gananciaRealEstimada` ya visible en `Costos diarios`; `ROI mes` confuso.
+
+### Qué se hizo
+- **Dashboard `DashboardPage.vue:51`** `stripKpis`: `Margen` → `Facturas pendientes` (`facturasPendientes.value.length` de `useFinancialDashboard.ts:84` `filter status !== PAGADA`, de `facturaService.getAll`), rojo si >0 verde si 0. `ROI mes` → `Rentabilidad` (mismo `margenNetoPct`).
+- Quedan `Costos día | Facturas pendientes | Rentabilidad`.
+
+### Verificación
+- `npm run lint` 0, `npm run build` Build succeeded
+
+### Archivos
+```
+frontend/pymes/src/pages/DashboardPage.vue
+```
+```
+
+**Estado:** ✅ COMPLETADO
+
+---
+
+## 2026-09-11 — Teams RBAC solo OWNER + Charts Panama + Paginación
+
+### Contexto
+5 gaps en revisión pre-cierre: `TeamsPage.vue:41` `canManage=OWNER||ADMIN` mostraba lápiz "Cambiar rol" y `roleOptions=['OWNER','ADMIN',...]` a ADMIN (podía intentar promover VIEWER→OWNER); `ProveedoresPage.vue:249-273` doble `q-pagination` idéntico copia/pega; `CategoryBreakdownChart` `indexAxis:'y' barThickness:16 height:items*40` generaba scroll-x móvil; `AnalisisGastosPage.vue:72` solo mostraba breakdown descriptivo sin valor accionable; `VentasVsCostosChart` fantasma domingo 2026-09-06 (venta del 05 movida a 06 por `toISOString` UTC a las 19:00 Panamá UTC-5). Verificación en `vm2-test2` (`core.daily_sales` sin fila 06) confirmó bug frontend no backend (`VentaRequest.fecha LocalDate` directo a `sale_date DATE`).
+
+### Qué se hizo
+1. **TeamsPage RBAC (`TeamsPage.vue:8,41,170`)** — `INVITAR MIEMBRO` `v-if="isOwner"`, lápiz `v-if="canManage"`→`isOwner` (solo OWNER ve/edita), `canManage` eliminado, `isOwner=role==='OWNER'` se mantiene. ADMIN queda lectura. Ponytail: 3 líneas, sin nuevo servicio.
+2. **ProveedoresPage paginación (`ProveedoresPage.vue:249-273`)** — borrado 2º bloque `q-pagination` duplicado, queda 1 footer `v-if="totalPages>1"`. `ProductosPage.vue:289` ya OK con 1.
+3. **CategoryBreakdownChart donut (`CategoryBreakdownChart.vue:1-115`)** — `bar indexAxis:'y'` → `doughnut cutout:'62%'` `MAX_SLICES=5 +Otros`, `height:260` fijo (no `items*40`), `colors=[abcA,abcB,positive,negative,info,text]`, legend `bottom` con `pointStyle circle`, tooltip `formatCurrency + %`. Reusa `DoughnutController` ya registrado en `BaseChart.vue:26`. Ponytail: evita `chartjs-chart-treemap` nueva dep.
+4. **AnalisisGastosPage valor accionable (`AnalisisGastosPage.vue:1,72`)** — eliminado `CategoryBreakdownChart` descriptivo, ahora `AbcGastosChart :data="abc"` (Pareto 80% `useAnalytics.ts:60`) + `SupplierRecommendationsCard :items="supplierRecommendations"` (ahorro por proveedor `useAnalytics.ts:71`). `MetricCard` se mantiene.
+5. **Fix fecha Panamá (`utils/format.ts:18`, `DashboardPage.vue:9,90-104`, `VentasPage.vue:5,19-31,50,89`, `RegistrarVentaDialog.vue:4,19,40`)** — nuevo `toLocalISODate(d)` con `getFullYear/Month/Date padStart` (local `America/Panama` UTC-5 sin DST) en vez de `toISOString().slice(0,10)` UTC. `DashboardPage.chartData` ahora `toLocalISODate + label es-PA dom 06`, `VentasPage totalSemana/totalMes` compara `YYYY-MM-DD` string + `new Date(date+'T00:00:00') es-PA`.
+
+### Verificación
+- `npm run lint` → 0 errores
+- `npm run build` → Build succeeded (PWA 872KB JS)
+- `vm2-test2` `select sale_date from core.daily_sales` → `2026-09-05 Sat 364.45`, `2026-09-07 Mon 369.55`, `2026-09-06 Sun` 0 filas ✅ fantasma confirmado frontend
+- Manual 375px: `CategoryBreakdownChart` sin scroll-x, `ProveedoresPage` 1 pager, `TeamsPage` como ADMIN no ve lápiz/INVITAR
+
+### Archivos modificados
+```
+frontend/pymes/src/utils/format.ts                                         # +toLocalISODate America/Panama
+frontend/pymes/src/pages/DashboardPage.vue                                  # chartData toLocalISODate + es-PA
+frontend/pymes/src/modules/core/pages/VentasPage.vue                        # totalSemana/Mes + dayGroups + defaults toLocalISODate
+frontend/pymes/src/modules/core/components/dashboard/RegistrarVentaDialog.vue # fecha toLocalISODate
+frontend/pymes/src/modules/core/components/analytics/CategoryBreakdownChart.vue # bar→doughnut 5+Otros 260
+frontend/pymes/src/modules/core/pages/AnalisisGastosPage.vue                # -CategoryBreakdown +Abc +SupplierRecommendations
+frontend/pymes/src/modules/core/pages/ProveedoresPage.vue                   # -duplicado q-pagination
+frontend/pymes/src/modules/auth/pages/TeamsPage.vue                         # isOwner-only INVITAR/editar, -canManage
+```
+
+### Pendiente
+- `InvitationService` aún permite ADMIN invitar CONTABLE/VIEWER (backend `hasMorePowerThan` OK) — si se quiere estricto solo OWNER invitar, tocar `InvitationServiceImpl.java:154`.
+- Transfer ownership flow para OWNER auto-remove (ya bloqueado `OWNER_CANNOT_BE_REMOVED`).
+
+**Estado:** ✅ COMPLETADO — pendiente commit/push `develop` → CI → staging `vm2-test2`
+
+---
+
+## 2026-09-11 — Card grid fix + Vue Best Practices audit
+
+### Contexto
+
+Cards de Productos y Proveedores usaban Quasar flex grid (`row q-col-gutter-x-sm q-col-gutter-y-sm` + `col-12 col-sm-6 col-md-4`). Quasar flex no fuerza altura igual por fila → cards con diferente contenido (chips, proveedor, presentaciones vs solo nombre) generaban filas dentadas visualmente feo. Además, `.glass` era una clase muerta (no existía en CSS). Auditoría con `vue-best-practices` skill encontró violaciones de reactividad y memory leak.
+
+### Qué se hizo
+
+1. **CSS Grid utility** (`app.scss:376-392`) — nueva clase `.card-grid`: `display: grid; grid-template-columns: repeat(3, 1fr)` con media queries `2→1` en breakpoints Quasar. CSS Grid fuerza `align-items: stretch` por defecto → todas las cards de una fila = misma altura.
+
+2. **ProductosPage.vue** — skeleton + card grid migrados de `row q-col-gutter` + `col-12 col-sm-6 col-md-4` a `.card-grid`. Quitado `.glass` muerto. Quitado wrapper `<div>` innecesario alrededor de cada `<q-card>`.
+
+3. **ProveedoresPage.vue** — mismo cambio. Quitado `.glass`. Scoped styles solo quedan con `.toolbar` y `.toolbar__search` (siguen siendo necesarios).
+
+4. **Vue Best Practices audit — fixes:**
+   - `ProductosPage.vue:27-30` — `catOptions`, `setupCategories`, `unitOptions`, `providerOptions` cambiados de `ref()` a `shallowRef()` (se reasignan completo, no mutan propiedades anidadas → `shallowRef` es correcto para performance).
+   - `ProductosPage.vue:192` — debounce `searchTimer` ahora se limpia en `onUnmounted` (antes era memory leak).
+   - `form` en ambos archivos se mantuvo como `ref()` (deliberado) — `v-model` en `q-input`/`q-select` muta propiedades anidadas (`form.value.name = 'x'`), `shallowRef` no trackearía eso → rompería reactividad.
+
+### Archivos modificados
+
+```
+frontend/pymes/src/css/app.scss                              # +card-grid utility (CSS Grid, 3→2→1 responsive)
+frontend/pymes/src/modules/core/pages/ProductosPage.vue       # row→card-grid, -glass, shallowRef arrays, debounce cleanup
+frontend/pymes/src/modules/core/pages/ProveedoresPage.vue     # row→card-grid, -glass, scoped styles intactos
+```
+
+### Verificación
+
+- `npm run lint`: ✅ 0 errores
+- `npm run build`: ✅ Build succeeded (898KB JS)
+
+### Skills aplicadas
+
+- **vue-best-practices:** reactivity (`shallowRef` para valores reasignados, `ref` para `v-model`), SFC structure, cleanup en `onUnmounted`
+- **quasar-skilld:** responsive CSS classes via media queries, sin Screen plugin
+
+### Pendiente
+
+- `ProductosPage` mega-componente (6+ UI sections) — acknowledged, deferred hasta que feature split sea prioridad.
+
+**Estado:** ✅ COMPLETADO
+
+---
+
+## 2026-09-11 — Facturas: producto flexible + búsqueda por fila + cache getAll
+
+**Contexto:** `FacturasPage.vue:342 filteredByProvider` era `===` estricto → productos flexibles (`proveedorId=null`, `Producto.java:62` nullable) desaparecían al elegir proveedor obligatorio de la factura (`vuelidate Requerido`). `InvoiceItemCard.vue:72 q-select use-input` sin `@filter` filtraba solo por `label` Quasar default (no sku/categoría) y `loadDependencies:638 search size:100` truncaba catálogo (>100 productos no aparecen) sin usar `ProductoServiceImpl.java:47 @Cacheable("productos")`.
+
+**Qué se hizo:**
+- `FacturasPage.vue:342` `filteredByProvider` → `!p.proveedorId || p.proveedorId===providerId` (ponytail: flexible visible para cualquier proveedor, estricto solo si `proveedorId` seteado). Mantiene `filteredByCategory:348 findCategoryInTree` (Categorías/Subcategorías `CategoryTabs.vue:103`).
+- `FacturasPage.vue:632 loadDependencies()` → `productoService.getAll(tenantId)` cache-first (`productos` Redis 5min) en vez de `search page:0 size:100`; soporta `Producto[]` directo o `Page.content` (compatibilidad), `prodsData` + `allProducts=mapProductsToOptions(prods)` completo sin 100 truncation.
+- `InvoiceItemCard.vue:1,42` per-item `@filter`: `filteredOptions=ref([]) watch(productOptions→[...v] immediate:true)` + `productFilter(val,update)` filtra `productOptions` (ya es `filteredByCategory`) por `productName/sku/proveedorName/categoryName includes lower(needle)` — sin hit BE, instantáneo por fila, categoría preservada cuando `val` vacío. Quasar `use-input input-debounce=0 @filter` imperative (skill `vue-best-practices` reactivity `immediate:true` + typed `defineProps<ProductOption[]>`).
+
+**Verificación:** `npm run lint` 0, `npm run build` `Build succeeded` (898KB JS), `vue-tsc` 0. Manual: crear factura `proveedor=Toledano`, agregar 3 items, en fila 2 escribir "Arroz" filtra solo esa fila por sku/proveedor/categoría dentro de la categoría activa; `filteredByProvider` muestra flexibles + del proveedor.
+
+```
+frontend/pymes/src/modules/core/pages/FacturasPage.vue           # flexible provider + getAll cache
+frontend/pymes/src/modules/core/components/facturas/InvoiceItemCard.vue # per-item @filter client
+```
+
+---
+
+## 2026-09-10 — Productos/Proveedores: paginación A-Z + fix scroll infinito móvil
+
+**Contexto:** `ProductosPage.vue:84` `size:30` + `Cargar más` + `filteredRows` cliente y `ProveedoresPage.vue:30` `getAll()` sin paginación causaban scroll infinito en móvil (barra de scroll larga). `ProductosPage.vue:81` sin `sort` → `Pageable` no determinista (duplicados entre páginas). Usuario pidió orden alfabético.
+
+**Qué se hizo:**
+- `ProductosPage.vue:1,22,79,288` server `A-Z` paginado: `PAGE_SIZE=12` (3 cols×4 filas desktop / 12 filas móvil), `page` 1-based para `q-pagination` → `page-1` en API, `totalPages=ceil(totalElements/12)`, `load(p)` manda `{page:p-1, size:12, sort:'name,asc', category?, search?}` (`producto.service.ts:8` ahora `search?:string; sort?:string`), reemplaza `rows` no concatena, `watch(search 300ms debounce)` + `watch(categoryFilter)→load(1)`, `q-pagination :max=totalPages :max-pages=5 boundary-numbers direction-links`, `save()/remove()` recargan `load(page)` (evita `unshift` desordenado), `clearable` en buscador.
+- `ProveedoresPage.vue:5,15,177` cliente `A-Z` paginado (ponytail: `9/page` sin BE para <150 rows): `PAGE_SIZE=9`, `sortedFiltrados=[...filtrados].sort(lower(localeCompare))`, `paginated=slice((page-1)*9)`, `totalPages=ceil(sortedFiltrados.length/9)`, `watch(search→page=1)`, contador `{{sortedFiltrados.length}} página {{page}} de {{totalPages}}`, `q-pagination` + `clearable`.
+- `producto.service.ts:8` `search(tenantId, params?: {category?, search?, name?, page?, size?, sort?})` — añade `search` (mapea a `ProductoApi.java:34 @RequestParam String search` → `findByTenantIdAndNameContainingIgnoreCase`) y `sort`.
+
+**Verificación:** `npm run build` → `Build succeeded` (`QPagination-CAOmfjCy.js 5.36KB`, `ProductosPage 2.69KB`), `vue-tsc` 0 errores, `q-pagination` nativo Quasar 2.19 sin libs nuevas. Skipped: selector `Recientes`, `pg_trgm` para `search='%a%'` (ponytail: 12/page barato).
+
+```
+frontend/pymes/src/modules/core/pages/ProductosPage.vue  # server paginación A-Z 12/page + q-pagination
+frontend/pymes/src/modules/core/pages/ProveedoresPage.vue # client paginación A-Z 9/page + q-pagination
+frontend/pymes/src/modules/core/services/producto.service.ts # +search/sort en search()
+```
+
+---
+
+## 2026-09-08 — Facturas: ENUM ANULADA + precio typeado + unidad base + XSS + hover Quasar 2.19
+
+**Contexto:** Detail de PAGADA mostraba `precioUnitario` base (0.27 en pack x12) y `field:'cantidad'` undefined; `ConfirmDialog v-html` XSS con `invoiceNumber`; `invoice-row` hover por JS; delete permitía ADMIN y PAGADA borraba items (pérdida auditoría).
+
+**Qué se hizo:**
+- `types/index.ts:76` `type EstadoFactura = 'REGISTRADA' | 'PAGADA' | 'ANULADA'` + `Factura.status: EstadoFactura` → type-safe en todo el módulo.
+- `InvoiceDetailDialog.vue` `detailColumns = computed(() => [...])` ponytail evita recrear array — `cantidad: cantidadPresentacion ?? quantity`, `precio: valorPresentacion ?? unitPrice` fallback base, `unidad: presentacionId ? presentationNameMap.get(id) : productBaseUnitMap?.get(productId) || '—'` + `statusColor/Label` `ANULADA→grey/Anulada`, `TOTAL` label + `formatCurrency(total)`.
+- `FacturasPage.vue` `productBaseUnitMap = computed(()=>Map prodsData.id → unitNameMap.get(baseUnit)||baseUnit)` desde `setupUnits` + `prodsData` → resuelve `kg/u/l` base cuando `presentacionId` null; `statusColor/Label` incluye `ANULADA`; `isOwner = authStore.user?.role==='OWNER'` `v-if="isOwner && (REGISTRADA||PAGADA)"` + `confirmLabel Anular/Eliminar` según `PAGADA`; elimina `@mouseenter/@mouseleave` JS → solo `:hover` CSS `color-mix 30%`; `monthGroups` sort por `key YYYY-MM` desc (no `label.localeCompare`).
+- `ConfirmDialog.vue` `v-html` → `<slot>` seguro; caller pasa `<strong>{{ invoiceNumber }}</strong>` + `status PAGADA ? 'Anular' : 'Eliminar'`.
+
+Lint 0, build PWA ok. Verified con `F-PROV-2026-0001` (Arroz 2×3.25 `Bolsa 1Kg`, Frijoles 5×0.95 sin presentación → unidad `kg`/`u`).
+
+```
+types/index.ts                                      # +EstadoFactura
+InvoiceDetailDialog.vue, ConfirmDialog.vue, FacturasPage.vue # valorPresentacion + ANULADA + productBaseUnitMap + hover CSS
+```
+
+---
+
 ## 2026-08-30 — OAuth2 PWA whitelabel: SW denylist + duplicate tenant
 
 ### El problema

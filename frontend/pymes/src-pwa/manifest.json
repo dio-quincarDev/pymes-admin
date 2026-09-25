@@ -1,7 +1,6 @@
 {
   "name": "PYMEQ - Auditoría Inteligente",
   "short_name": "PYMEQ",
-  "id": "/",
   "description": "Sistema de auditoría inteligente para pequeñas y medianas empresas. Gestiona tus finanzas, controla gastos y recibe alertas de seguridad.",
   "orientation": "portrait",
   "start_url": "/",
@@ -49,6 +48,7 @@
       "purpose": "any maskable"
     }
   ],
+  "screenshots": [],
   "shortcuts": [
     {
       "name": "Dashboard",

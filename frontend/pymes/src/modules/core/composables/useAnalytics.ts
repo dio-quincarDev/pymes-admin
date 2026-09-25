@@ -1,7 +1,8 @@
-import { ref, computed, watch } from 'vue';
+import { ref, shallowRef, computed, watch, readonly } from 'vue';
 import { analyticsService } from '../services/analytics.service';
 import type {
   AnalyticsResponse,
+  AnalyticsResponseWire,
   AbcItem,
   TrendItem,
   MarginItem,
@@ -13,7 +14,9 @@ import type {
   PricePredictionItem,
   FinancialHealth,
   FinancialHealthAlert,
+  FinancialHealthWire,
 } from '../types/analytics';
+import { normalizeAbc, normalizeFinancialHealth } from '../utils/analyticsNormalize';
 import { useAuthStore } from 'src/modules/auth/store';
 import { usePeriod } from './usePeriod';
 
@@ -21,8 +24,8 @@ export function useAnalytics() {
   const authStore = useAuthStore();
   const { period, setPeriod } = usePeriod();
   const data = ref<AnalyticsResponse | null>(null);
-  const loading = ref(false);
-  const error = ref<string | null>(null);
+  const loading = shallowRef(false);
+  const error = shallowRef<string | null>(null);
 
   async function fetch() {
     if (!authStore.user?.tenantId) return;
@@ -33,7 +36,12 @@ export function useAnalytics() {
         authStore.user.tenantId,
         period.value,
       );
-      data.value = res.data;
+      const wire = res.data as unknown as AnalyticsResponseWire;
+      data.value = {
+        ...wire,
+        abc: normalizeAbc(wire.abc ?? []),
+        financialHealth: normalizeFinancialHealth(wire.financialHealth as FinancialHealthWire),
+      } as AnalyticsResponse;
     } catch (e: unknown) {
       error.value = e instanceof Error ? e.message : 'Error cargando analytics';
     } finally {
@@ -49,7 +57,12 @@ export function useAnalytics() {
         authStore.user.tenantId,
         period.value,
       );
-      data.value = res.data;
+      const wire = res.data as unknown as AnalyticsResponseWire;
+      data.value = {
+        ...wire,
+        abc: normalizeAbc(wire.abc ?? []),
+        financialHealth: normalizeFinancialHealth(wire.financialHealth as FinancialHealthWire),
+      } as AnalyticsResponse;
     } catch (e: unknown) {
       error.value = e instanceof Error ? e.message : 'Error recalculando';
     } finally {
@@ -87,9 +100,9 @@ export function useAnalytics() {
   watch(period, fetch, { immediate: true });
 
   return {
-    data,
-    loading,
-    error,
+    data: readonly(data),
+    loading: readonly(loading),
+    error: readonly(error),
     period,
     setPeriod,
     fetch,

@@ -7,6 +7,13 @@ export interface AbcItem {
   category: 'A' | 'B' | 'C';
 }
 
+// Wire compat: backend envía totalSpend/pct (ver AnalyticsServiceImpl.java:121)
+// Este tipo representa lo que realmente llega por la red antes de normalizar.
+export type AbcItemWire = AbcItem & {
+  totalSpend?: number | string;
+  pct?: number | string;
+};
+
 export interface TrendItem {
   productId: string;
   productName: string;
@@ -98,6 +105,22 @@ export interface FinancialHealthAlert {
   action: string;
 }
 
+// Wire: backend manda type/message/metric (AnalyticsServiceImpl.java:830)
+export type FinancialHealthAlertWire = Omit<FinancialHealthAlert, 'code' | 'description' | 'current'> & {
+  type?: string;
+  code?: string;
+  message?: string;
+  description?: string;
+  metric?: number | string;
+  current?: number | string;
+  severity?: string;
+};
+
+export type FinancialHealthWire = Omit<FinancialHealth, 'criticalAlerts' | 'breakdown'> & {
+  criticalAlerts: FinancialHealthAlertWire[];
+  breakdown: Record<string, FinancialHealthBreakdown>;
+};
+
 export interface FinancialHealthExpansionRequirement {
   met: boolean;
   label: string;
@@ -134,3 +157,9 @@ export interface AnalyticsResponse {
   pricePrediction: PricePredictionItem[];
   financialHealth?: FinancialHealth;
 }
+
+// Respuesta cruda del backend antes de normalizar (usa AbcItemWire + FinancialHealthWire)
+export type AnalyticsResponseWire = Omit<AnalyticsResponse, 'abc' | 'financialHealth'> & {
+  abc: AbcItemWire[];
+  financialHealth?: FinancialHealthWire | FinancialHealth;
+};

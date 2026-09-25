@@ -64,11 +64,24 @@ public class Factura {
 
     private String category;
 
-    @Column(nullable = false)
-    private String status;
+    @Enumerated(EnumType.STRING)
+    @Column(nullable = false, length = 20)
+    private EstadoFactura status;
 
     @Column(nullable = false)
     private BigDecimal total;
+
+    @Column(name = "subtotal_exento", nullable = false)
+    @Builder.Default
+    private BigDecimal subtotalExento = BigDecimal.ZERO;
+
+    @Column(name = "subtotal_gravado", nullable = false)
+    @Builder.Default
+    private BigDecimal subtotalGravado = BigDecimal.ZERO;
+
+    @Column(name = "itbms_total", nullable = false)
+    @Builder.Default
+    private BigDecimal itbmsTotal = BigDecimal.ZERO;
 
     @Builder.Default
     @Column(name = "is_active", nullable = false)

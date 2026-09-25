@@ -1,5 +1,6 @@
 package core_pymes.invoice.service.impl;
 
+import core_pymes.invoice.domain.EstadoFactura;
 import core_pymes.invoice.domain.Factura;
 import core_pymes.invoice.domain.ItemFactura;
 import core_pymes.invoice.domain.Proveedor;
@@ -20,6 +21,7 @@ import core_pymes.product.repository.PresentacionRepository;
 import lombok.RequiredArgsConstructor;
 import lombok.extern.slf4j.Slf4j;
 import org.springframework.cache.annotation.CacheEvict;
+import org.springframework.cache.annotation.Caching;
 import org.springframework.cache.annotation.Cacheable;
 import org.springframework.context.ApplicationEventPublisher;
 import org.springframework.jdbc.core.JdbcTemplate;
@@ -102,7 +104,7 @@ public class FacturaServiceImpl implements FacturaService {
     @Transactional(readOnly = true)
     @Cacheable(cacheNames = "facturas", key = "#tenantId")
     public List<FacturaResponse> findAllFacturas(UUID tenantId) {
-        return facturaRepository.findByTenantIdOrderByCreatedAtDesc(tenantId).stream()
+        return facturaRepository.findByTenantIdAndStatusNotOrderByCreatedAtDesc(tenantId, EstadoFactura.ANULADA).stream()
                 .map(f -> mapper.toResponse(f, mapper.toItemResponseList(f.getItems())))
                 .toList();
     }
@@ -117,7 +119,10 @@ public class FacturaServiceImpl implements FacturaService {
 
     @Override
     @Transactional
-    @CacheEvict(cacheNames = "facturas", allEntries = true)
+    @Caching(evict = {
+        @CacheEvict(cacheNames = "facturas", allEntries = true),
+        @CacheEvict(cacheNames = "productos", allEntries = true)
+    })
     public FacturaResponse createFactura(FacturaRequest request) {
         Proveedor proveedor = null;
         if (request.proveedorId() != null) {
@@ -137,7 +142,7 @@ public class FacturaServiceImpl implements FacturaService {
                 .globalDiscount(request.descuentoGlobal() != null ? request.descuentoGlobal() : BigDecimal.ZERO)
                 .paymentMethod(request.metodoPago())
                 .category(request.category())
-                .status("REGISTRADA")
+                .status(EstadoFactura.REGISTRADA)
                 .total(BigDecimal.ZERO)
                 .build();
 
@@ -153,6 +158,9 @@ public class FacturaServiceImpl implements FacturaService {
             }
             factura.setColaboradorId(request.colaboradorId());
             factura.setColaborador(colaborador);
+            factura.setSubtotalExento(BigDecimal.ZERO);
+            factura.setSubtotalGravado(BigDecimal.ZERO);
+            factura.setItbmsTotal(BigDecimal.ZERO);
             factura.setTotal(nz(request.total()).subtract(factura.getGlobalDiscount()));
             factura = facturaRepository.save(factura);
             eventPublisher.publishEvent(new FacturaCreadaEvent(factura));
@@ -184,13 +192,21 @@ public class FacturaServiceImpl implements FacturaService {
                     .collect(Collectors.toMap(Presentacion::getId, p -> p));
         }
 
-        BigDecimal total = BigDecimal.ZERO;
+        BigDecimal subtotalNet = BigDecimal.ZERO;
+        BigDecimal itbmsTotal = BigDecimal.ZERO;
+        BigDecimal exento = BigDecimal.ZERO;
+        BigDecimal gravado = BigDecimal.ZERO;
         for (var itemReq : request.items()) {
             var calc = buildItem(itemReq, productNameMap, presentacionMap, factura, request.tenantId(), request.fecha());
-            total = total.add(calc.subtotal());
+            subtotalNet = subtotalNet.add(calc.subtotal());
+            itbmsTotal = itbmsTotal.add(calc.itbmsMonto());
+            if (calc.itbmsTasa() == 0) exento = exento.add(calc.subtotal());
+            else gravado = gravado.add(calc.subtotal());
         }
-
-        factura.setTotal(total.subtract(factura.getGlobalDiscount()));
+        factura.setSubtotalExento(exento);
+        factura.setSubtotalGravado(gravado);
+        factura.setItbmsTotal(itbmsTotal);
+        factura.setTotal(subtotalNet.add(itbmsTotal).subtract(factura.getGlobalDiscount()));
         factura = facturaRepository.save(factura);
 
         eventPublisher.publishEvent(new FacturaCreadaEvent(factura));
@@ -201,10 +217,13 @@ public class FacturaServiceImpl implements FacturaService {
 
     @Override
     @Transactional
-    @CacheEvict(cacheNames = "facturas", allEntries = true)
+    @Caching(evict = {
+        @CacheEvict(cacheNames = "facturas", allEntries = true),
+        @CacheEvict(cacheNames = "productos", allEntries = true)
+    })
     public FacturaResponse updateFactura(UUID id, UUID tenantId, FacturaRequest request) {
         var factura = getFactura(id, tenantId);
-        if (!"REGISTRADA".equals(factura.getStatus())) {
+        if (factura.getStatus() != EstadoFactura.REGISTRADA) {
             throw new InvalidInputException("Solo facturas en estado REGISTRADA pueden editarse");
         }
 
@@ -228,6 +247,9 @@ public class FacturaServiceImpl implements FacturaService {
             factura.setGlobalDiscount(request.descuentoGlobal() != null ? request.descuentoGlobal() : BigDecimal.ZERO);
             factura.setPaymentMethod(request.metodoPago());
             factura.setCategory(request.category());
+            factura.setSubtotalExento(BigDecimal.ZERO);
+            factura.setSubtotalGravado(BigDecimal.ZERO);
+            factura.setItbmsTotal(BigDecimal.ZERO);
             factura.setTotal(nz(request.total()).subtract(factura.getGlobalDiscount()));
             factura = facturaRepository.save(factura);
             return mapper.toResponse(factura, mapper.toItemResponseList(factura.getItems()));
@@ -262,10 +284,16 @@ public class FacturaServiceImpl implements FacturaService {
         }
 
         // 4. Create new items using InvoiceCalculator
-        BigDecimal total = BigDecimal.ZERO;
+        BigDecimal subtotalNet = BigDecimal.ZERO;
+        BigDecimal itbmsTotal = BigDecimal.ZERO;
+        BigDecimal exento = BigDecimal.ZERO;
+        BigDecimal gravado = BigDecimal.ZERO;
         for (var itemReq : request.items()) {
             var calc = buildItem(itemReq, productNameMap, presentacionMap, factura, tenantId, request.fecha());
-            total = total.add(calc.subtotal());
+            subtotalNet = subtotalNet.add(calc.subtotal());
+            itbmsTotal = itbmsTotal.add(calc.itbmsMonto());
+            if (calc.itbmsTasa() == 0) exento = exento.add(calc.subtotal());
+            else gravado = gravado.add(calc.subtotal());
         }
 
         // 5. Update header
@@ -275,7 +303,10 @@ public class FacturaServiceImpl implements FacturaService {
         factura.setGlobalDiscount(request.descuentoGlobal() != null ? request.descuentoGlobal() : BigDecimal.ZERO);
         factura.setPaymentMethod(request.metodoPago());
         factura.setCategory(request.category());
-        factura.setTotal(total.subtract(factura.getGlobalDiscount()));
+        factura.setSubtotalExento(exento);
+        factura.setSubtotalGravado(gravado);
+        factura.setItbmsTotal(itbmsTotal);
+        factura.setTotal(subtotalNet.add(itbmsTotal).subtract(factura.getGlobalDiscount()));
 
         factura = facturaRepository.save(factura);
         log.debug("Factura updated: {} for tenant {}", factura.getId(), factura.getTenantId());
@@ -314,7 +345,8 @@ public class FacturaServiceImpl implements FacturaService {
                 itemReq.precioUnitarioInput(),
                 itemReq.descuentoInput(),
                 itemReq.descuentoEsPorcentaje(),
-                conversionFactor
+                conversionFactor,
+                itemReq.itbmsTasa()
         );
 
         var calc = InvoiceCalculator.resolve(resolveReq);
@@ -334,6 +366,8 @@ public class FacturaServiceImpl implements FacturaService {
                 .precioUnitarioInput(calc.precioUnitarioInputOriginal())
                 .descuentoInput(calc.descuentoInputOriginal())
                 .descuentoEsPorcentaje(calc.descuentoEsPorcentajeOriginal())
+                .itbmsTasa(calc.itbmsTasa())
+                .itbmsMonto(calc.itbmsMonto())
                 .build();
         factura.getItems().add(item);
 
@@ -359,14 +393,14 @@ public class FacturaServiceImpl implements FacturaService {
                 last_unit_price = (
                     SELECT ii.unit_price FROM core.invoice_items ii
                     JOIN core.invoices i ON i.id = ii.invoice_id
-                    WHERE ii.product_id = ? AND i.tenant_id = ? AND i.status != 'ELIMINADA' AND i.id != ?
+                    WHERE ii.product_id = ? AND i.tenant_id = ? AND i.status != 'ANULADA' AND i.id != ?
                     ORDER BY i.issue_date DESC, i.created_at DESC
                     LIMIT 1
                 ),
                 last_purchase_date = (
                     SELECT i.issue_date FROM core.invoices i
                     JOIN core.invoice_items ii ON ii.invoice_id = i.id
-                    WHERE ii.product_id = ? AND i.tenant_id = ? AND i.status != 'ELIMINADA' AND i.id != ?
+                    WHERE ii.product_id = ? AND i.tenant_id = ? AND i.status != 'ANULADA' AND i.id != ?
                     ORDER BY i.issue_date DESC, i.created_at DESC
                     LIMIT 1
                 )
@@ -388,10 +422,10 @@ public class FacturaServiceImpl implements FacturaService {
     @CacheEvict(cacheNames = "facturas", allEntries = true)
     public FacturaResponse pagarFactura(UUID id, UUID tenantId) {
         var factura = getFactura(id, tenantId);
-        if (!"REGISTRADA".equals(factura.getStatus())) {
+        if (factura.getStatus() != EstadoFactura.REGISTRADA) {
             throw new InvalidInputException("Factura already " + factura.getStatus());
         }
-        factura.setStatus("PAGADA");
+        factura.setStatus(EstadoFactura.PAGADA);
         factura = facturaRepository.save(factura);
         eventPublisher.publishEvent(new FacturaPagadaEvent(factura));
         return mapper.toResponse(factura, mapper.toItemResponseList(factura.getItems()));
@@ -399,14 +433,24 @@ public class FacturaServiceImpl implements FacturaService {
 
     @Override
     @Transactional
-    @CacheEvict(cacheNames = "facturas", allEntries = true)
+    @Caching(evict = {
+        @CacheEvict(cacheNames = "facturas", allEntries = true),
+        @CacheEvict(cacheNames = "productos", allEntries = true)
+    })
+    // ponytail: delete/anular cubre REGISTRADA|PAGADA via EstadoFactura enum (PAGADA->ANULADA conserva items, REGISTRADA borra)
     public void deleteFactura(UUID id, UUID tenantId) {
         var factura = getFactura(id, tenantId);
-        if (!"REGISTRADA".equals(factura.getStatus())) {
+        if (factura.getStatus() == EstadoFactura.ANULADA) {
             throw new InvalidInputException("Cannot delete factura in status " + factura.getStatus());
         }
+        // ANULADA conserva items para auditoria (sin cascada); REGISTRADA/PAGADA -> ANULADA
         reverseProductStats(factura.getItems(), tenantId, factura.getId());
-        facturaRepository.delete(factura);
+        if (factura.getStatus() == EstadoFactura.PAGADA) {
+            factura.setStatus(EstadoFactura.ANULADA);
+            facturaRepository.save(factura);
+        } else {
+            facturaRepository.delete(factura);
+        }
     }
 
     // -- helpers --
@@ -439,6 +483,15 @@ public class FacturaServiceImpl implements FacturaService {
     }
 
     private String generateInvoiceNumber(UUID tenantId, int year) {
+        // ponytail: global lock por tenant, per-tenant lock si throughput lo pide. Evita MAX+1 carrera sin secuencia nueva.
+        // pg_advisory_xact_lock retorna void -> queryForObject(Void.class) falla con PGobject; usar execute con param
+        jdbc.execute((java.sql.Connection con) -> {
+            try (var ps = con.prepareStatement("SELECT pg_advisory_xact_lock(hashtext(?))")) {
+                ps.setString(1, tenantId.toString());
+                ps.execute();
+            }
+            return null;
+        });
         var prefix = "F-PROV-" + year + "-";
         var max = facturaRepository.findMaxInvoiceNumber(tenantId, prefix + "%");
         var next = max.map(s -> Integer.parseInt(s.substring(prefix.length())) + 1).orElse(1);

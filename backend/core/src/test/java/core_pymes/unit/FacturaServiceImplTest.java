@@ -1,5 +1,6 @@
 package core_pymes.unit;
 
+import core_pymes.invoice.domain.EstadoFactura;
 import core_pymes.invoice.domain.Factura;
 import core_pymes.invoice.domain.ItemFactura;
 import core_pymes.invoice.domain.Proveedor;
@@ -72,29 +73,29 @@ class FacturaServiceImplTest {
         when(facturaRepository.findMaxInvoiceNumber(eq(tenantId), anyString())).thenReturn(Optional.empty());
         mockPresentaciones(List.of(presentacion));
 
-        var item = new ItemFacturaRequest(productId, presentacion.getId(), new BigDecimal("10"), new BigDecimal("5.50"), BigDecimal.ZERO, null, null, null, null, null);
+        var item = new ItemFacturaRequest(productId, presentacion.getId(), new BigDecimal("10"), new BigDecimal("5.50"), BigDecimal.ZERO, null, null, null, null, null, null);
         var request = new FacturaRequest(tenantId, proveedorId, null, LocalDate.of(2026, 6, 1),
                 "FACTURA", "EFECTIVO", null, BigDecimal.ZERO, null, List.of(item));
 
         var savedFactura = Factura.builder().id(UUID.randomUUID()).tenantId(tenantId).providerId(proveedorId)
-                .invoiceNumber("F-PROV-2026-0001").total(new BigDecimal("55.00")).status("REGISTRADA")
+                .invoiceNumber("F-PROV-2026-0001").total(new BigDecimal("55.00")).status(EstadoFactura.REGISTRADA)
                 .issueDate(request.fecha()).type(request.tipo()).build();
         when(facturaRepository.save(any())).thenAnswer(i -> i.getArgument(0));
         var itemResponse = new ItemFacturaResponse(UUID.randomUUID(), productId, "Arroz",
                 presentacion.getId(), 1, new BigDecimal("10"), new BigDecimal("5.50"), BigDecimal.ZERO, new BigDecimal("55.00"),
-                null, null, null, null, null);
+                null, null, null, null, null, 7, new BigDecimal("3.85"));
         when(mapper.toItemResponseList(anyList())).thenReturn(List.of(itemResponse));
         var facturaResponse = new FacturaResponse(savedFactura.getId(), tenantId, proveedorId, "Distribuidora ABC",
                 null, null,
                 "F-PROV-2026-0001", LocalDate.of(2026, 6, 1), "FACTURA",
-                BigDecimal.ZERO, "EFECTIVO", null, "REGISTRADA", new BigDecimal("55.00"), List.of(itemResponse), null);
+                BigDecimal.ZERO, "EFECTIVO", null, EstadoFactura.REGISTRADA, new BigDecimal("55.00"), BigDecimal.ZERO, BigDecimal.ZERO, new BigDecimal("3.85"), List.of(itemResponse), null);
         when(mapper.toResponse(any(), anyList())).thenReturn(facturaResponse);
 
         var result = service.createFactura(request);
 
         assertThat(result.invoiceNumber()).isEqualTo("F-PROV-2026-0001");
         assertThat(result.total()).isEqualByComparingTo(new BigDecimal("55.00"));
-        assertThat(result.status()).isEqualTo("REGISTRADA");
+        assertThat(result.status()).isEqualTo(EstadoFactura.REGISTRADA);
     }
 
     @Test
@@ -108,20 +109,18 @@ class FacturaServiceImplTest {
         when(facturaRepository.findMaxInvoiceNumber(eq(tenantId), anyString())).thenReturn(Optional.empty());
         mockPresentaciones(List.of(presentacion));
 
-        var item = new ItemFacturaRequest(productId, presentacion.getId(), new BigDecimal("5"), new BigDecimal("20.00"), BigDecimal.ZERO, null, null, null, null, null);
+        var item = new ItemFacturaRequest(productId, presentacion.getId(), new BigDecimal("5"), new BigDecimal("20.00"), BigDecimal.ZERO, null, null, null, null, null, 0);
         var request = new FacturaRequest(tenantId, proveedorId, null, LocalDate.of(2026, 6, 1),
                 "FACTURA", null, null, new BigDecimal("10.00"), null, List.of(item));
 
         var savedFactura = Factura.builder().id(UUID.randomUUID()).tenantId(tenantId)
-                .invoiceNumber("F-PROV-2026-0001").total(new BigDecimal("90.00")).status("REGISTRADA")
+                .invoiceNumber("F-PROV-2026-0001").total(new BigDecimal("90.00")).status(EstadoFactura.REGISTRADA)
                 .issueDate(request.fecha()).type(request.tipo()).build();
         when(facturaRepository.save(any())).thenAnswer(i -> i.getArgument(0));
         when(mapper.toItemResponseList(anyList())).thenReturn(List.of());
         when(mapper.toResponse(any(), anyList())).thenAnswer(i -> {
             Factura f = i.getArgument(0);
-            return new FacturaResponse(f.getId(), f.getTenantId(), f.getProviderId(), null, null, null,
-                    f.getInvoiceNumber(), f.getIssueDate(), f.getType(), f.getGlobalDiscount(),
-                    f.getPaymentMethod(), null, f.getStatus(), f.getTotal(), List.of(), null);
+            return new FacturaResponse(f.getId(), f.getTenantId(), f.getProviderId(), null, null, null, f.getInvoiceNumber(), f.getIssueDate(), f.getType(), f.getGlobalDiscount(), f.getPaymentMethod(), null, f.getStatus(), f.getTotal(), BigDecimal.ZERO, BigDecimal.ZERO, BigDecimal.ZERO, List.of(), null);
         });
 
         var result = service.createFactura(request);
@@ -144,11 +143,11 @@ class FacturaServiceImplTest {
         when(mapper.toItemResponseList(anyList())).thenReturn(List.of());
         when(mapper.toResponse(any(), anyList())).thenReturn(
                 new FacturaResponse(null, tenantId, proveedorId, null, null, null, null, null, null,
-                        null, null, null, null, null, List.of(), null));
+                        null, null, null, null, null, BigDecimal.ZERO, BigDecimal.ZERO, BigDecimal.ZERO, List.of(), null));
 
         service.createFactura(new FacturaRequest(tenantId, proveedorId, null, LocalDate.of(2026, 6, 1),
                 "FACTURA", null, null, BigDecimal.ZERO, null,
-                List.of(new ItemFacturaRequest(productId, presentacion.getId(), BigDecimal.ONE, BigDecimal.TEN, BigDecimal.ZERO, null, null, null, null, null))));
+                List.of(new ItemFacturaRequest(productId, presentacion.getId(), BigDecimal.ONE, BigDecimal.TEN, BigDecimal.ZERO, null, null, null, null, null, null))));
 
         var captor = ArgumentCaptor.forClass(FacturaCreadaEvent.class);
         verify(eventPublisher).publishEvent(captor.capture());
@@ -167,7 +166,7 @@ class FacturaServiceImplTest {
         when(facturaRepository.findMaxInvoiceNumber(eq(tenantId), anyString())).thenReturn(Optional.empty());
         mockPresentaciones(List.of(presentacion));
 
-        var item = new ItemFacturaRequest(productId, presentacion.getId(), BigDecimal.ONE, BigDecimal.TEN, BigDecimal.ZERO, null, null, null, null, null);
+        var item = new ItemFacturaRequest(productId, presentacion.getId(), BigDecimal.ONE, BigDecimal.TEN, BigDecimal.ZERO, null, null, null, null, null, null);
         var request = new FacturaRequest(tenantId, proveedorId, null, LocalDate.of(2026, 6, 1),
                 "FACTURA", null, null, BigDecimal.ZERO, null, List.of(item));
 
@@ -180,25 +179,24 @@ class FacturaServiceImplTest {
     void pagarFactura_whenRegistered_marksAsPaid() {
         var tenantId = UUID.randomUUID();
         var facturaId = UUID.randomUUID();
-        var factura = Factura.builder().id(facturaId).tenantId(tenantId).status("REGISTRADA").items(List.of()).build();
+        var factura = Factura.builder().id(facturaId).tenantId(tenantId).status(EstadoFactura.REGISTRADA).items(List.of()).build();
         when(facturaRepository.findById(facturaId)).thenReturn(Optional.of(factura));
         when(facturaRepository.save(any())).thenAnswer(i -> i.getArgument(0));
         when(mapper.toItemResponseList(anyList())).thenReturn(List.of());
         when(mapper.toResponse(any(), anyList())).thenAnswer(i -> {
             Factura f = i.getArgument(0);
-            return new FacturaResponse(f.getId(), f.getTenantId(), null, null, null, null,
-                    null, null, null, null, null, null, f.getStatus(), null, List.of(), null);
+            return new FacturaResponse(f.getId(), f.getTenantId(), null, null, null, null, null, null, null, null, null, null, f.getStatus(), null, BigDecimal.ZERO, BigDecimal.ZERO, BigDecimal.ZERO, List.of(), null);
         });
 
         var result = service.pagarFactura(facturaId, tenantId);
 
-        assertThat(result.status()).isEqualTo("PAGADA");
+        assertThat(result.status()).isEqualTo(EstadoFactura.PAGADA);
     }
 
     @Test
     void pagarFactura_whenAlreadyPaid_throws() {
         var tenantId = UUID.randomUUID();
-        var factura = Factura.builder().id(UUID.randomUUID()).tenantId(tenantId).status("PAGADA").build();
+        var factura = Factura.builder().id(UUID.randomUUID()).tenantId(tenantId).status(EstadoFactura.PAGADA).build();
         when(facturaRepository.findById(factura.getId())).thenReturn(Optional.of(factura));
 
         assertThatThrownBy(() -> service.pagarFactura(factura.getId(), tenantId))
@@ -207,9 +205,33 @@ class FacturaServiceImplTest {
     }
 
     @Test
-    void deleteFactura_whenPaid_throws() {
+    void deleteFactura_whenPaid_succeeds() {
         var tenantId = UUID.randomUUID();
-        var factura = Factura.builder().id(UUID.randomUUID()).tenantId(tenantId).status("PAGADA").build();
+        var factura = Factura.builder().id(UUID.randomUUID()).tenantId(tenantId).status(EstadoFactura.PAGADA).items(List.of()).build();
+        when(facturaRepository.findById(factura.getId())).thenReturn(Optional.of(factura));
+
+        service.deleteFactura(factura.getId(), tenantId);
+
+        assertThat(factura.getStatus()).isEqualTo(EstadoFactura.ANULADA);
+        verify(facturaRepository).save(factura);
+        verify(facturaRepository, never()).delete(any());
+    }
+
+    @Test
+    void deleteFactura_whenRegistrada_succeeds() {
+        var tenantId = UUID.randomUUID();
+        var factura = Factura.builder().id(UUID.randomUUID()).tenantId(tenantId).status(EstadoFactura.REGISTRADA).items(List.of()).build();
+        when(facturaRepository.findById(factura.getId())).thenReturn(Optional.of(factura));
+
+        service.deleteFactura(factura.getId(), tenantId);
+
+        verify(facturaRepository).delete(factura);
+    }
+
+    @Test
+    void deleteFactura_whenAnulada_throws() {
+        var tenantId = UUID.randomUUID();
+        var factura = Factura.builder().id(UUID.randomUUID()).tenantId(tenantId).status(EstadoFactura.ANULADA).build();
         when(facturaRepository.findById(factura.getId())).thenReturn(Optional.of(factura));
 
         assertThatThrownBy(() -> service.deleteFactura(factura.getId(), tenantId))
@@ -221,7 +243,7 @@ class FacturaServiceImplTest {
     void updateFactura_withEmptyItems_throws() {
         var tenantId = UUID.randomUUID();
         var facturaId = UUID.randomUUID();
-        var factura = Factura.builder().id(facturaId).tenantId(tenantId).status("REGISTRADA").items(List.of()).build();
+        var factura = Factura.builder().id(facturaId).tenantId(tenantId).status(EstadoFactura.REGISTRADA).items(List.of()).build();
         when(facturaRepository.findById(facturaId)).thenReturn(Optional.of(factura));
 
         var request = new FacturaRequest(tenantId, UUID.randomUUID(), null, LocalDate.of(2026, 7, 1),
@@ -236,7 +258,7 @@ class FacturaServiceImplTest {
     void updateFactura_whenAlreadyPaid_throws() {
         var tenantId = UUID.randomUUID();
         var facturaId = UUID.randomUUID();
-        var factura = Factura.builder().id(facturaId).tenantId(tenantId).status("PAGADA").build();
+        var factura = Factura.builder().id(facturaId).tenantId(tenantId).status(EstadoFactura.PAGADA).build();
         when(facturaRepository.findById(facturaId)).thenReturn(Optional.of(factura));
 
         var request = new FacturaRequest(tenantId, UUID.randomUUID(), null, LocalDate.of(2026, 7, 1),
@@ -254,7 +276,7 @@ class FacturaServiceImplTest {
         var productId = UUID.randomUUID();
         var proveedorId = UUID.randomUUID();
         var presentacion = mockPresentacion(productId, 1);
-        var factura = Factura.builder().id(facturaId).tenantId(tenantId).providerId(proveedorId).status("REGISTRADA")
+        var factura = Factura.builder().id(facturaId).tenantId(tenantId).providerId(proveedorId).status(EstadoFactura.REGISTRADA)
                 .items(new ArrayList<>()).issueDate(LocalDate.of(2026, 6, 1)).build();
         when(facturaRepository.findById(facturaId)).thenReturn(Optional.of(factura));
         when(facturaRepository.save(any())).thenAnswer(i -> i.getArgument(0));
@@ -262,22 +284,20 @@ class FacturaServiceImplTest {
                 Proveedor.builder().id(proveedorId).tenantId(tenantId).name("Prov").build()));
         mockPresentaciones(List.of(presentacion));
 
-        var item = new ItemFacturaRequest(productId, presentacion.getId(), new BigDecimal("10"), new BigDecimal("5.50"), BigDecimal.ZERO, null, null, null, null, null);
+        var item = new ItemFacturaRequest(productId, presentacion.getId(), new BigDecimal("10"), new BigDecimal("5.50"), BigDecimal.ZERO, null, null, null, null, null, null);
         var request = new FacturaRequest(tenantId, proveedorId, null, LocalDate.of(2026, 7, 1),
                 "FACTURA", "EFECTIVO", null, BigDecimal.ZERO, null, List.of(item));
 
         when(mapper.toItemResponseList(anyList())).thenReturn(List.of());
         when(mapper.toResponse(any(), anyList())).thenAnswer(i -> {
             Factura f = i.getArgument(0);
-            return new FacturaResponse(f.getId(), f.getTenantId(), f.getProviderId(), null, null, null,
-                    f.getInvoiceNumber(), f.getIssueDate(), f.getType(), f.getGlobalDiscount(),
-                    f.getPaymentMethod(), null, f.getStatus(), f.getTotal(), List.of(), null);
+            return new FacturaResponse(f.getId(), f.getTenantId(), f.getProviderId(), null, null, null, f.getInvoiceNumber(), f.getIssueDate(), f.getType(), f.getGlobalDiscount(), f.getPaymentMethod(), null, f.getStatus(), f.getTotal(), BigDecimal.ZERO, BigDecimal.ZERO, BigDecimal.ZERO, List.of(), null);
         });
 
         var result = service.updateFactura(facturaId, tenantId, request);
 
         assertThat(result).isNotNull();
-        assertThat(result.status()).isEqualTo("REGISTRADA");
+        assertThat(result.status()).isEqualTo(EstadoFactura.REGISTRADA);
         verify(facturaRepository, times(1)).save(any());
         verify(jdbc, atLeastOnce()).update(anyString(), any(), any(), any(), any(), any());
     }
@@ -310,7 +330,7 @@ class FacturaServiceImplTest {
             return new FacturaResponse(f.getId(), f.getTenantId(), null, null,
                     f.getColaboradorId(), null,
                     f.getInvoiceNumber(), f.getIssueDate(), f.getType(), null,
-                    null, "SALARIOS", f.getStatus(), f.getTotal(), List.of(), null);
+                    null, "SALARIOS", f.getStatus(), f.getTotal(), BigDecimal.ZERO, BigDecimal.ZERO, BigDecimal.ZERO, List.of(), null);
         });
 
         var request = new FacturaRequest(tenantId, null, colaboradorId, LocalDate.of(2026, 8, 1),
@@ -337,7 +357,7 @@ class FacturaServiceImplTest {
             return new FacturaResponse(f.getId(), f.getTenantId(), null, null,
                     null, null,
                     f.getInvoiceNumber(), f.getIssueDate(), f.getType(), null,
-                    null, "SALARIOS", f.getStatus(), f.getTotal(), List.of(), null);
+                    null, "SALARIOS", f.getStatus(), f.getTotal(), BigDecimal.ZERO, BigDecimal.ZERO, BigDecimal.ZERO, List.of(), null);
         });
 
         var request = new FacturaRequest(tenantId, null, null, LocalDate.of(2026, 8, 1),
@@ -364,7 +384,7 @@ class FacturaServiceImplTest {
             Factura f = i.getArgument(0);
             return new FacturaResponse(f.getId(), f.getTenantId(), null, null,
                     f.getColaboradorId(), null,
-                    null, null, null, null, null, null, f.getStatus(), null, List.of(), null);
+                    null, null, null, null, null, null, f.getStatus(), null, BigDecimal.ZERO, BigDecimal.ZERO, BigDecimal.ZERO, List.of(), null);
         });
 
         service.createFactura(new FacturaRequest(tenantId, null, colaboradorId, LocalDate.of(2026, 8, 1),
@@ -411,7 +431,7 @@ class FacturaServiceImplTest {
         var facturaId = UUID.randomUUID();
         var colaboradorId = UUID.randomUUID();
         var colaborador = Collaborador.builder().id(colaboradorId).tenantId(tenantId).nombre("Carlos").build();
-        var factura = Factura.builder().id(facturaId).tenantId(tenantId).status("REGISTRADA")
+        var factura = Factura.builder().id(facturaId).tenantId(tenantId).status(EstadoFactura.REGISTRADA)
                 .items(new ArrayList<>()).issueDate(LocalDate.of(2026, 6, 1)).build();
         when(facturaRepository.findById(facturaId)).thenReturn(Optional.of(factura));
         when(facturaRepository.save(any())).thenAnswer(i -> i.getArgument(0));
@@ -422,7 +442,7 @@ class FacturaServiceImplTest {
             return new FacturaResponse(f.getId(), f.getTenantId(), null, null,
                     f.getColaboradorId(), null,
                     f.getInvoiceNumber(), f.getIssueDate(), f.getType(), null,
-                    null, "SALARIOS", f.getStatus(), f.getTotal(), List.of(), null);
+                    null, "SALARIOS", f.getStatus(), f.getTotal(), BigDecimal.ZERO, BigDecimal.ZERO, BigDecimal.ZERO, List.of(), null);
         });
 
         var request = new FacturaRequest(tenantId, null, colaboradorId, LocalDate.of(2026, 8, 1),
@@ -441,7 +461,7 @@ class FacturaServiceImplTest {
         var tenantId = UUID.randomUUID();
         var facturaId = UUID.randomUUID();
         var oldColaboradorId = UUID.randomUUID();
-        var factura = Factura.builder().id(facturaId).tenantId(tenantId).status("REGISTRADA")
+        var factura = Factura.builder().id(facturaId).tenantId(tenantId).status(EstadoFactura.REGISTRADA)
                 .colaboradorId(oldColaboradorId)
                 .items(new ArrayList<>()).issueDate(LocalDate.of(2026, 6, 1)).build();
         when(facturaRepository.findById(facturaId)).thenReturn(Optional.of(factura));
@@ -452,7 +472,7 @@ class FacturaServiceImplTest {
             return new FacturaResponse(f.getId(), f.getTenantId(), null, null,
                     f.getColaboradorId(), null,
                     f.getInvoiceNumber(), f.getIssueDate(), f.getType(), null,
-                    null, "SALARIOS", f.getStatus(), f.getTotal(), List.of(), null);
+                    null, "SALARIOS", f.getStatus(), f.getTotal(), BigDecimal.ZERO, BigDecimal.ZERO, BigDecimal.ZERO, List.of(), null);
         });
 
         var request = new FacturaRequest(tenantId, null, null, LocalDate.of(2026, 8, 1),

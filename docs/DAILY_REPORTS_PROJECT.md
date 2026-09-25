@@ -4,6 +4,117 @@ Registro cronológico de decisiones técnicas, refactors y post-mortems del proy
 
 ---
 
+## 2026-09-19 — Fix registro manual (hint + pendingTenant race) — frontend
+
+**Qué se hizo:**
+- **Hint password A:** `RegisterPage.vue:83` + `ResetPasswordPage.vue:16` `hint="Mínimo 8 caracteres, al menos 1 letra y 1 número"` + `rules` `letra+número` alineado a `RegisterRequest.java:19` (`^(?=.*[A-Za-z])(?=.*\d).+$`). Sin checklist (YAGNI).
+- **Race `pendingTenant`:** `store:clearSession()` limpia `pymeq_pending_tenant` (logout correcto, `d866afa`). `RegisterPage:onRegister` hacía `clearSession()` antes de leer `pendingTenant` → `null`, sin `POST` ni consola (HAR sin `register`). Fix captura `tenant` antes y restaura para `payload`, luego `clearPendingTenant()`. `logout`/`OAuth2` intactos.
+- **Verificación:** `lint` 0, `build` PWA 942KB, `curl /auth/register` `200`/`400 VAL001`, `Redis temp-register:*`, `docker compose frontend` healthy. Detalle en `frontend/pymes/docs/DAILY_REPORTS_FRONTEND.md 2026-09-19`.
+
+```
+frontend/pymes/src/modules/auth/pages/RegisterPage.vue + ResetPasswordPage.vue
+```
+
+---
+
+## 2026-09-18 — Tutorial 7 pasos + Offline 1/2 + Legales BETA v0.1 + Mobile fix
+
+**Qué se hizo:**
+- **Tutorial** `useTutorial.ts` 7 pasos inversión→análisis `driver.js 1.3.1` `drive()+poll 10×250ms` + mini `q-menu` Opción B `dio-quincar@outlook.com` + `?` on-demand + `viewport-fit=cover` + `pymeq_hint_seen` (924KB PWA, commit `5dc27b8`).
+- **Legales** `pages/legal/TerminosPage.vue` + `PrivacidadPage.vue` BETA v0.1 lenguaje simple 10 secciones + banner beta + `routes /terminos/privacidad` + footer `BETA` (commit `7aed42d`).
+- **Offline 1/2** `axios.ts` evita logout fantasma sin red (`!navigator.onLine` no borra sesión, OFFLINE reject + pymeq_last_sync) + `MainLayout` banner `datos desactualizados · última sync 12:34` + chip cacheado + notify al volver (commit `da482eb`).
+
+```
+frontend/pymes/src/composables/useTutorial.ts + MainLayout + app.scss + index.html + DashboardPage + 5 pages data-tour
+frontend/pymes/src/pages/legal/* + router/routes.ts + LandingLayout
+frontend/pymes/src/boot/axios.ts + MainLayout offline
+```
+
+## 2026-09-16 — Análisis: MetricCard fix + Salud Financiera criolla
+
+**Qué se hizo:** `MetricCard` label arriba + `financialGuide.ts` `guideForPillar/overallGuide` criollo desde `breakdown.drivers` + `SupplierRecommendationsCard` filtros `>5%` + `3+ prov` + `AlertsPanel` filtra `0.00` + skeletons. Ver `frontend/pymes/docs/DAILY_REPORTS_FRONTEND.md 2026-09-16`.
+
+---
+
+## 2026-09-15 — Factura: ITBMS DGI 0/7/10 por ítem (Sin/Con ITBMS, default 0)
+
+**Contexto:** `Valor $` sin impuesto + descuento antes de impuesto. Mezcla exento (leche 0%) y gravado (jabón 7% / cerveza 10%) por ítem DGI. `Gravado` no lo entiende el tendero → lenguaje `Sin ITBMS / Con ITBMS`.
+
+**Qué se hizo:**
+- **Core V6** `itbms_tasa DEFAULT 0 + itbms_monto + subtotal_exento/gravado/itbms_total`, `InvoiceCalculator tasa null→0 valida 0/7/10 HALF_UP`, `FacturaServiceImpl` desglose + `total=subtotalNet+itbmsTotal`. 8 unit `InvoiceCalculatorItbmsTest` + 5 IT `ItbmsIntegrationTest`. `201 unit + 61 integration BUILD SUCCESS`.
+- **Frontend** `InvoiceItemCard` selector `Sin ITBMS (0%) | 7% | 10%` + `invoiceMath.calcBreakdown`, `FacturasPage` default `0` + breakdown `Sin ITBMS / Con ITBMS / ITBMS` + provider filter estricto `proveedorId===providerId`, `InvoiceDetailDialog` col `ITBMS`. `lint 0 build PWA 886KB vue-tsc 0`.
+- **Docs** `backend/core/docs/DAILY_REPORTS_CORE_SOLUTIONS.md 2026-09-15` + `frontend/pymes/docs/DAILY_REPORTS_FRONTEND.md 2026-09-15`.
+
+```
+backend/core V6__itbms_per_item.sql + InvoiceCalculator + FacturaServiceImpl + FacturaMapper + ItemFactura/Factura + tests 8+5
+frontend invoiceMath + InvoiceItemCard + FacturasPage + InvoiceDetailDialog + types
+```
+
+---
+
+## 2026-09-11 — Idempotencia 6h + Inversión mensual + Charts mixed
+
+**Contexto:** `MAX+1` de factura con carrera + retry duplicaba gasto; KPI all-time sin mensual; `VentasVsCostosChart` barras duplicadas para costo plano.
+
+**Qué se hizo:**
+- **Core** `IdempotencyFilter 6h SET NX` + `pg_advisory_xact_lock(tenant)` en `FacturaServiceImpl:459` (sin Flyway).
+- **Frontend** `useMonthlyInvestment` frontend-only mensual `insumos+variable+fijo` + `MonthlyInvestmentKpi` con tooltip + `axios Idempotency-Key per POST` + `VentasVsCostosChart` costo `line tension 0.3` leyenda bottom + títulos Día/USD.
+- **Tests:** `193` core + `150` auth + `37` gateway `BUILD SUCCESS` (`clean` fix MapStruct stale). `lint 0` `build PWA` OK.
+
+```
+backend/core/src/main/java/core_pymes/common/config/IdempotencyFilter.java
+backend/core/src/main/java/core_pymes/invoice/service/impl/FacturaServiceImpl.java
+backend/core/docs/CORE.md + DAILY_REPORTS_CORE_SOLUTIONS.md 2026-09-11
+frontend/pymes/src/boot/axios.ts
+frontend/pymes/src/modules/core/composables/useMonthlyInvestment.ts
+frontend/pymes/src/modules/core/components/dashboard/MonthlyInvestmentKpi.vue
+frontend/pymes/src/modules/core/components/dashboard/VentasVsCostosChart.vue
+frontend/pymes/docs/DAILY_REPORTS_FRONTEND.md 2026-09-11
+```
+
+---
+
+## 2026-09-11 — Facturas: producto flexible + búsqueda por fila + evict cache
+
+**Contexto:** Factura exige `proveedorId` obligatorio (`FacturasPage.vue:81` rule) pero `Producto.proveedorId` nullable es flexible (mayoría sin vínculo). `filteredByProvider` estricto escondía flexibles; `InvoiceItemCard` sin `@filter` no buscaba por sku/categoría por fila; `loadDependencies search size:100` truncaba y no usaba cache `productos` → "Arroz" no aparecía sin cambiar tab. Backend `FacturaServiceImpl` dejaba `last_unit_price` stale 5min.
+
+**Qué se hizo:**
+- **Core** `FacturaServiceImpl.java:23,121,203,404` `@Caching evict facturas+productos` al crear/actualizar/anular (fix stale `last_unit_price` vía jdbc). Sin migración — flexible `provider_id nullable` reutilizado (ponytail: `M:N product_providers` cuando mismo SKU varios proveedores).
+- **Frontend** `FacturasPage.vue:342 filteredByProvider !proveedorId || ===` + `632 getAll(tenantId)` cache-first (full list, no 100 truncation, `prodsData`/`allProducts` completo, categorías `CategoryTabs:103` + `findCategoryInTree:312` preservadas) + `InvoiceItemCard.vue:42 per-item @filter` `productName/sku/proveedorName/categoryName includes` sin BE, por fila, con `watch immediate:true` (`vue-best-practices`).
+- **Verificación:** `npm run lint` 0, `npm run build Build succeeded` (898KB), `vue-tsc` 0, manual 3 items con búsqueda por fila + flexibles visibles.
+
+```
+backend/core/src/main/java/core_pymes/invoice/service/impl/FacturaServiceImpl.java
+frontend/pymes/src/modules/core/pages/FacturasPage.vue
+frontend/pymes/src/modules/core/components/facturas/InvoiceItemCard.vue
+backend/core/docs/DAILY_REPORTS_CORE_SOLUTIONS.md 2026-09-11
+frontend/pymes/docs/DAILY_REPORTS_FRONTEND.md 2026-09-11
+```
+
+---
+
+## 2026-09-10 — Móvil: paginación A-Z productos/proveedores + fix 409 SKU
+
+**Contexto:** Reporte `409 Conflicto de datos` al crear producto + UX móvil con scroll infinito en `ProductosPage`/`ProveedoresPage` (30 productos + `Cargar más`). Orden no determinista rompía paginación.
+
+**Qué se hizo:**
+- **Core `V5__pagination_alphabetical.sql`**: `idx_products_tenant_name` + `idx_providers_tenant_name` (`lower(name)`) para `ORDER BY name ASC` sin `Sort`. Fix `409` en `ProductoRepository.java:34`/`ProductoServiceImpl.java:86`/`SetupServiceImpl.java:77` (`LIKE 'P-%' ORDER BY sku DESC LIMIT 1` + retry 5x, `DUP001→409`) — ver `backend/core/docs/DAILY_REPORTS_CORE_SOLUTIONS.md 2026-09-10`.
+- **Frontend**: `ProductosPage.vue` server `12/page sort=name,asc` + `q-pagination` (watch search 300ms), `ProveedoresPage.vue` client `9/page A-Z localeCompare` + `q-pagination` — ver `frontend/pymes/docs/DAILY_REPORTS_FRONTEND.md 2026-09-10`.
+- **Tests**: `193/193` unit + `30/30` ProductoRepository + `56/56` integration (`verify -Pintegration` Flyway `Validated 6 migrations` v5) + `npm run build` `Build succeeded` `QPagination-CAOmfjCy.js`.
+
+```
+backend/core/src/main/java/core_pymes/product/repository/ProductoRepository.java
+backend/core/src/main/java/core_pymes/product/service/impl/ProductoServiceImpl.java
+backend/core/src/main/java/core_pymes/setup/service/impl/SetupServiceImpl.java
+backend/core/src/main/resources/db/migration/V5__pagination_alphabetical.sql
+frontend/pymes/src/modules/core/pages/ProductosPage.vue
+frontend/pymes/src/modules/core/pages/ProveedoresPage.vue
+frontend/pymes/src/modules/core/services/producto.service.ts
+docs/DAILY_REPORTS_PROJECT.md
+```
+
+---
+
 ## 2026-08-13 — Sync feature/core ← develop + docs de infra al día
 
 ### Contexto

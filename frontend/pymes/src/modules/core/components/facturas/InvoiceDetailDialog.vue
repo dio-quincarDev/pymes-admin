@@ -1,12 +1,14 @@
 <script setup lang="ts">
+import { computed } from 'vue'
 import type { Factura, ItemFactura } from 'src/modules/core/types'
 import { formatDate, formatCurrency } from 'src/utils/format'
 
-defineProps<{
+const props = defineProps<{
   modelValue: boolean
   factura: Factura | null
   presentationNameMap: Map<string, string>
   categoriaMap: Map<string, string>
+  productBaseUnitMap?: Map<string, string>
 }>()
 
 const emit = defineEmits<{
@@ -15,8 +17,57 @@ const emit = defineEmits<{
 
 const tipoLabel: Record<string, string> = { FACTURA: 'Factura', GASTO_OPERATIVO: 'Gasto' }
 
-const statusColor: Record<string, string> = { PAGADA: 'positive', REGISTRADA: 'warning' }
-const statusLabel: Record<string, string> = { PAGADA: 'Pagada', REGISTRADA: 'Pendiente' }
+const statusColor: Record<string, string> = { PAGADA: 'positive', REGISTRADA: 'warning', ANULADA: 'grey' }
+const statusLabel: Record<string, string> = { PAGADA: 'Pagada', REGISTRADA: 'Pendiente', ANULADA: 'Anulada' }
+
+// ponytail: columnas derivadas como computed — evita recrear array + closures en cada render
+// precio muestra lo typeado (valorPresentacion) con fallback a unitPrice base
+const detailColumns = computed(() => [
+  { name: 'product', label: 'Producto', field: 'productName', align: 'left' as const },
+  {
+    name: 'unidad',
+    label: 'Unidad',
+    field: (row: ItemFactura) =>
+      row.presentacionId
+        ? props.presentationNameMap.get(row.presentacionId) || '—'
+        : props.productBaseUnitMap?.get(row.productId) || '—',
+    align: 'left' as const,
+  },
+  {
+    name: 'cantidad',
+    label: 'Cant.',
+    field: (row: ItemFactura) => row.cantidadPresentacion ?? row.quantity,
+    align: 'right' as const,
+  },
+  {
+    name: 'precio',
+    label: 'Precio',
+    field: (row: ItemFactura) => row.valorPresentacion ?? row.unitPrice,
+    align: 'right' as const,
+    format: (v: number) => formatCurrency(v),
+  },
+  {
+    name: 'descuento',
+    label: 'Desc.',
+    field: 'discount' as const,
+    align: 'right' as const,
+    format: (v: number | null) => (v ? formatCurrency(v) : '—'),
+  },
+  {
+    name: 'subtotal',
+    label: 'Subtotal',
+    field: 'subtotal' as const,
+    align: 'right' as const,
+    format: (v: number) => formatCurrency(v),
+  },
+  {
+    name: 'itbms',
+    label: 'ITBMS',
+    field: (row: ItemFactura) => row.itbmsMonto ?? 0,
+    align: 'right' as const,
+    format: (v: number, row: ItemFactura) => (row.itbmsTasa === 0 ? '0% —' : `${row.itbmsTasa ?? 7}% ${formatCurrency(v)}`),
+  },
+])
 </script>
 
 <template>
@@ -68,24 +119,25 @@ const statusLabel: Record<string, string> = { PAGADA: 'Pagada', REGISTRADA: 'Pen
           v-else
           dark flat dense
           :rows="factura.items"
-          :columns="[
-            { name: 'product', label: 'Producto', field: 'productName', align: 'left' },
-            { name: 'unidad', label: 'Unidad', field: (row: ItemFactura) => row.presentacionId ? presentationNameMap.get(row.presentacionId) || '—' : 'Base', align: 'left' },
-            { name: 'cantidad', label: 'Cant.', field: 'cantidad', align: 'right' },
-            { name: 'precio', label: 'Precio', field: 'precioUnitario', align: 'right', format: (v: number) => formatCurrency(v) },
-            { name: 'descuento', label: 'Desc.', field: 'descuento', align: 'right', format: (v: number | null) => v ? formatCurrency(v) : '—' },
-            { name: 'subtotal', label: 'Subtotal', field: 'subtotal', align: 'right', format: (v: number) => formatCurrency(v) },
-          ]"
+          :columns="detailColumns"
           row-key="id"
           hide-pagination
           hide-bottom
         />
       </q-card-section>
       <q-separator dark />
-      <q-card-section class="text-right">
-        <div v-if="factura.globalDiscount" class="text-caption text-accent">Desc. global: -{{ formatCurrency(factura.globalDiscount) }}</div>
-        <div class="text-h6 text-primary">{{ formatCurrency(factura.total) }}</div>
+      <q-card-section class="column items-end q-gutter-y-xs">
+        <div v-if="factura.subtotalExento != null || factura.itbmsTotal != null" class="column items-end text-caption" style="font-variant-numeric: tabular-nums">
+          <div v-if="factura.subtotalExento" class="text-accent">Sin ITBMS: {{ formatCurrency(factura.subtotalExento) }}</div>
+          <div v-if="factura.subtotalGravado" class="text-accent">Con ITBMS: {{ formatCurrency(factura.subtotalGravado) }}</div>
+          <div v-if="factura.itbmsTotal" class="text-primary text-weight-medium">ITBMS: {{ formatCurrency(factura.itbmsTotal) }}</div>
+        </div>
+        <div class="row items-center justify-between full-width">
+          <div class="text-caption text-accent" style="letter-spacing:0.08em">TOTAL</div>
+          <div class="text-h6 text-primary" style="font-variant-numeric: tabular-nums">{{ formatCurrency(factura.total) }}</div>
+        </div>
       </q-card-section>
+      <div v-if="factura.globalDiscount" class="text-caption text-accent text-right q-px-md q-pb-sm">Desc. global: -{{ formatCurrency(factura.globalDiscount) }}</div>
     </q-card>
   </q-dialog>
 </template>

@@ -1,6 +1,6 @@
 # Core Service — Estado Actual
 
-> **Estado (2026-07-09):** Todos los modulos de negocio implementados: `setup/`, `product/`, `invoice/`, `analytics/`, `gasto/`, `prestamo/`, `inversion/`, `venta/`, `accounting/`. Pendiente: `reportes/`.
+> **Estado (2026-09-18):** 9 módulos + `costos/` + ITBMS V6. Tests `263 (85+11+104+62+1)` + `44 endpoints` `V1..V6`. `costo_operativo_diario` en CTE, `IdempotencyFilter` 6h, `tenantFinMetrics` con `costos`. Ver `DAILY_REPORTS_CORE_SOLUTIONS.md 2026-09-15`.
 > Ver `FUTURE_MODULES.md` para blueprints originales y `DAILY_REPORTS_CORE_SOLUTIONS.md` para historial.
 
 ---
@@ -55,13 +55,13 @@ Todos comunican via Spring Events (no bloqueantes). Paquete base: `core_pymes.*`
 
 | Aspecto | Detalle |
 |---------|---------|
-| Entidades | `Factura` (UUID, items cascade ALL), `ItemFactura` (snapshot, subtotal, audit fields), `Proveedor` (soft-delete) |
-| Endpoints | CRUD `/facturas`, `PUT /facturas/{id}?tenantId=`, `POST /facturas/{id}/pagar`, CRUD `/proveedores` |
-| Eventos | `FacturaCreadaEvent` (escuchado por Analytics + debounce) |
-| Invoice number | `F-PROV-{year}-{sequential:04d}` por tenant |
-| Update logic | Solo `REGISTRADA`. `reverseProductStats()` → `clear items` → `buildItem()` con `InvoiceCalculator` → recalc total |
-| Audit fields | `cantidad_presentacion`, `valor_presentacion`, `precio_unitario_input`, `descuento_input`, `descuento_es_porcentaje` (raw user input) |
-| Flyway | V1: `core.invoices`, `core.invoice_items`, `core.providers` (nullable provider_id, category, colaborador_id) |
+| Entidades | `Factura` (UUID, items cascade ALL, `subtotalExento/Gravado/itbmsTotal`, `ESTADO ANULADA`), `ItemFactura` (`itbmsTasa/itbmsMonto` 0/7/10 `HALF_UP`), `Proveedor` (soft-delete) |
+| Endpoints | CRUD `/facturas`, `PUT /facturas/{id}?tenantId=`, `POST /facturas/{id}/pagar`, `DELETE` solo `OWNER` + solo `ANULADA` físico, CRUD `/proveedores`, `GET /facturas paginated` A-Z |
+| Eventos | `FacturaCreadaEvent` + `FacturaPagadaEvent` → `markMetricsDirty` + `pg_advisory_xact_lock(tenant)` |
+| Invoice number | `F-PROV-{year}-{sequential:04d}` por tenant con `pg_advisory_xact_lock` (2026-09-11) |
+| Update logic | Solo `REGISTRADA`. `reverseProductStats()` → `clear items` → `buildItem()` con `InvoiceCalculator tasa null→0` → `total=subtotalNet+itbmsTotal` |
+| Audit fields | `cantidad_presentacion`, `valor_presentacion`, `precio_unitario_input`, `descuento_input`, `descuento_es_porcentaje`, `itbms_tasa/monto` |
+| Flyway | V6 `itbms_tasa DEFAULT 0`, V5 `idx_products/providers lower(name)`, V1 consolidado + `nullable provider_id/category` |
 
 ### Analytics (`core_pymes/analytics/`)
 
@@ -326,6 +326,17 @@ TTL: 1 hora. Retry: key se conserva si falla (reintenta en proximo ciclo).
 2. Evento se publica DESPUES del COMMIT
 3. Listeners procesan async (pueden fallar sin afectar persistencia)
 4. Idempotencia: debounce Redis deduplica por (tipo, tenant, periodo)
+
+### Idempotencia (POST seguros, 6h)
+
+> **Problema:** Factura `MAX+1` con carrera + reintento de red duplicaba gasto e inversión.
+
+**Solución ponytail — reuse Redis + PG advisory lock, sin tabla/lib nueva:**
+* `IdempotencyFilter.java` (`@Order(0)`): solo `POST`, si trae `Idempotency-Key` hace `SET NX idempotency:{tenant}:{key} → status|contentType|body EX 6h`; si existe, replay directo sin `save()`. Solo cachea `2xx`.
+* `FacturaServiceImpl.java:459 generateInvoiceNumber`: `SELECT pg_advisory_xact_lock(hashtext(tenantId))` antes de `MAX`, evita colisión sin secuencia nueva. Error único aún → `409 CON001`.
+* Frontend `boot/axios.ts`: interceptor añade `Idempotency-Key: crypto.randomUUID()` a cada `POST` (6h TTL en Redis).
+* **Omitido:** tabla `idempotency_keys`, secuencia `tenant_invoice_seq FOR UPDATE`. Añadir si necesitas replay >6h o auditoría.
+* **TTL:** 6h (no 24h) por petición, reusa `StringRedisTemplate` de `RecomputeDebounceService`.
 
 ### Cache
 

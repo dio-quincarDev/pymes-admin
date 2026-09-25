@@ -37,12 +37,12 @@ defineProps<{ kpis: Kpi[]; loading?: boolean }>();
 <style scoped lang="scss">
 .kpi-strip {
   display: grid;
-  grid-template-columns: repeat(4, 1fr);
-  gap: 12px;
+  grid-template-columns: repeat(3, 1fr);
+  gap: 16px;
   margin-bottom: 20px;
 
   @media (max-width: 768px) {
-    grid-template-columns: repeat(2, 1fr);
+    grid-template-columns: 1fr;
   }
 
   &__item {

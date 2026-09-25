@@ -8,15 +8,18 @@ import { productoService } from '../../services/producto.service'
 import { proveedorService } from '../../services/proveedor.service'
 import { api } from 'src/boot/axios'
 import { useNumberFormat } from '../../composables/useNumberFormat'
+import { useMonthlyInvestment } from '../../composables/useMonthlyInvestment'
 import type { Producto, SetupCategory } from '../../types'
 import type { SetupInfo } from '../../types'
 import KpiCard from './KpiCard.vue'
+import MonthlyInvestmentKpi from './MonthlyInvestmentKpi.vue'
 
 const $q = useQuasar()
 const authStore = useAuthStore()
 const { greeting } = useGreeting()
 const tenantId = authStore.user?.tenantId
 const { formatCurrency } = useNumberFormat()
+const { monthlyInvestment, breakdown, periodo: periodoMensual } = useMonthlyInvestment()
 
 useMeta({ title: 'Dashboard — PYMEQ' })
 
@@ -159,12 +162,6 @@ const kpis = computed(() => [
   { label: 'Productos', value: String(products.value.length), icon: 'inventory_2', accent: 'copper' as const },
   { label: 'Categorías', value: String(tree.value.length), icon: 'category', accent: 'sage' as const },
   { label: 'Proveedores', value: String(supplierCount.value), icon: 'people', accent: 'gold' as const },
-  {
-    label: 'Inversión en Productos',
-    value: formatCurrency(products.value.reduce((s, p) => s + (p.totalInvestment || 0), 0)),
-    icon: 'payments',
-    accent: 'copper' as const,
-  },
 ])
 
 const filteredRows = computed(() => {
@@ -209,10 +206,17 @@ onMounted(loadData)
       <p class="dashboard-subtitle">Panel de control — Catálogo de productos</p>
     </div>
 
-    <!-- KPIs -->
+    <!-- KPIs — composition surface: 3 estáticos + 1 mensual derivado (insumos+operativo+funcionamiento) -->
     <div class="row q-col-gutter-md q-mb-lg">
       <div class="col-12 col-sm-6 col-lg-3" v-for="kpi in kpis" :key="kpi.label">
         <KpiCard v-bind="kpi" />
+      </div>
+      <div class="col-12 col-sm-6 col-lg-3">
+        <MonthlyInvestmentKpi
+          :amount="monthlyInvestment"
+          :breakdown="breakdown"
+          :periodo="periodoMensual"
+        />
       </div>
     </div>
 

@@ -30,8 +30,8 @@ const deltaClass = computed(() => {
 
 <template>
   <div v-if="loading" class="metric-card">
-    <div class="skeleton skeleton-value" style="width: 80px; height: 24px" />
-    <div class="skeleton skeleton-text" style="width: 60px; height: 12px; margin-top: 6px" />
+    <div class="skeleton skeleton-text" style="width: 60px; height: 12px" />
+    <div class="skeleton skeleton-value" style="width: 80px; height: 24px; margin-top: 6px" />
   </div>
 
   <div
@@ -40,8 +40,8 @@ const deltaClass = computed(() => {
     :class="`metric-card--${accent}`"
     :aria-label="`${label}: ${value}`"
   >
-    <div class="metric-card__value">{{ value }}</div>
     <div class="metric-card__label">{{ label }}</div>
+    <div class="metric-card__value">{{ value }}</div>
     <div v-if="delta !== undefined" class="metric-card__delta" :class="deltaClass">
       {{ deltaArrow }} {{ delta > 0 ? '+' : '' }}{{ delta }}% {{ deltaLabel }}
     </div>
@@ -65,6 +65,13 @@ const deltaClass = computed(() => {
   &--red { border-left: 3px solid var(--pq-danger); }
   &--blue { border-left: 3px solid var(--pq-info); }
 
+  &__label {
+    font-family: 'Satoshi', sans-serif;
+    font-size: 12px;
+    font-weight: 400;
+    color: var(--pq-text-muted);
+  }
+
   &__value {
     font-family: 'Geist Mono', monospace;
     font-size: 24px;
@@ -72,13 +79,6 @@ const deltaClass = computed(() => {
     color: var(--pq-text);
     line-height: 1;
     font-variant-numeric: tabular-nums;
-  }
-
-  &__label {
-    font-family: 'Satoshi', sans-serif;
-    font-size: 12px;
-    font-weight: 400;
-    color: var(--pq-text-muted);
     margin-top: 6px;
   }
 

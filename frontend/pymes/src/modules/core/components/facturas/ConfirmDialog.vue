@@ -4,7 +4,7 @@ defineProps<{
   title?: string
   icon: string
   iconColor: string
-  message: string
+  message?: string
   confirmLabel: string
   confirmColor: string
   loading?: boolean
@@ -24,11 +24,16 @@ const emit = defineEmits<{
       </q-card-section>
       <q-card-section class="row items-center q-gutter-x-md">
         <q-icon :name="icon" :color="iconColor" size="md" />
-        <span v-html="message" />
+        <!-- slot = rich safe content (e.g. <strong>{{ invoiceNumber }}</strong>), fallback = plain message -->
+        <span>
+          <slot>
+            <template v-if="message">{{ message }}</template>
+          </slot>
+        </span>
       </q-card-section>
       <q-card-actions align="right">
-        <q-btn flat label="Cancelar" color="accent" v-close-popup />
-        <q-btn :label="confirmLabel" :color="confirmColor" :loading="loading" @click="emit('confirm')" />
+        <q-btn flat label="Cancelar" color="accent" v-close-popup no-caps />
+        <q-btn :label="confirmLabel" :color="confirmColor" :loading="loading" @click="emit('confirm')" no-caps />
       </q-card-actions>
     </q-card>
   </q-dialog>

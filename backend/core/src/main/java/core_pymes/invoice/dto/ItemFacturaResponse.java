@@ -17,5 +17,7 @@ public record ItemFacturaResponse(
         BigDecimal valorPresentacion,
         BigDecimal precioUnitarioInput,
         BigDecimal descuentoInput,
-        Boolean descuentoEsPorcentaje
+        Boolean descuentoEsPorcentaje,
+        Integer itbmsTasa,
+        BigDecimal itbmsMonto
 ) {}

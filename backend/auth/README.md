@@ -21,7 +21,7 @@ Centro de identidad multi-tenant. Orquesta el ciclo de vida completo del usuario
 | **Auth** | Login, registro, logout global, rotacion de tokens (RTR), rate limiting |
 | **User** | Perfiles de identidad globales |
 | **Tenant** | Workspaces, switching de contexto, limites de plan FREE |
-| **Member** | Roles jerarquicos (OWNER > ADMIN > CONTABLE > VIEWER) |
+| **Member** | Roles jerarquicos (OWNER > ADMIN > CONTABLE > VIEWER) — solo OWNER edita roles; asignar `OWNER` bloqueado (anti-escalada 2º OWNER) |
 | **Invitation** | Flujo completo de invitacion para nuevos colaboradores |
 
 ### Stack Tecnico
@@ -66,7 +66,7 @@ POST /login
 - **Refresh Token**: Payload minimo (userId). Almacenado en DB con hash SHA-256.
 - **Refresh Token Rotation (RTR)**: Cada uso invalida el Refresh anterior.
 - **Reuse Detection**: Si se reusa un Refresh revocado -> eliminacion de todos los tokens del usuario (full re-auth).
-- **Blacklist**: Logout inmediato via Redis. Key: `auth:token_blacklist:{jwt}`, TTL = restante del token. O(1) lookup.
+- **Blacklist**: Logout inmediato via Redis. Key: `auth:token_blacklist:{jwt}`, TTL = restante del token en ms (`TimeUnit.MILLISECONDS`, no segundos) + `fail-open` si Redis caído. `logout()` separa `revokeToken` de `deleteByUserId` — no deja refresh huérfano si blacklist falla. O(1) lookup.
 
 ### Multi-tenancy
 
@@ -87,6 +87,7 @@ POST /login
   1. SuccessHandler guarda `{accessToken, refreshToken}` en Redis (clave `oauth:code:{uuid}`, TTL 2 min)
   2. Redirige al frontend solo con `?code=<uuid>`
   3. Frontend llama `POST /auth/exchange` con `{code}` para obtener los tokens de forma segura
+- Slug duplicado (whitelabel): ya no `500` → `302 ?error=TNT003` (`OAuth2AuthenticationSuccessHandler:89`, fix 2026-08-30).
 - Facebook: POSTERGADO (Meta no aprobo la verificacion de la empresa. Pendiente indefinidamente hasta obtener credenciales validas).
 
 ### Email System
@@ -138,8 +139,10 @@ Ruta base: `/api/v1`
 | GET | /oauth2/intent/{intentId} | No | Consultar intent pre-registro OAuth2 |
 | GET | /invitations | Si | Invitaciones pendientes del usuario |
 | POST | /invitations | Si | Crear invitacion |
-| POST | /invitations/accept | Si | Aceptar invitacion |
+| POST | /invitations/accept | Si | Aceptar invitacion (auth requerida desde 2026-07-29; `accept` sin auth eliminado) |
 | DELETE | /invitations/{id} | Si | Cancelar invitacion |
+| GET | /invitations/{id}/info | No | Preview público de invitación (whitelist) |
+| POST | /invitations/{id}/register | No | Registro vía invitación (whitelist) |
 
 ---
 
@@ -156,20 +159,22 @@ Maven Surefire ejecuta solo `**/integration/**` excluido. Failsafe ejecuta solo 
 
 ### Cobertura por Dominio
 
+> Conteos verificados `grep -c @Test` 2026-09-17 — total **207** (`138 unit + 56 integration + 12 consistency + 1 context`).
+
 | Dominio | Unit | Integration | Consistency |
 |---------|------|-------------|-------------|
-| Auth (login/register/refresh/logout) | 11 | 10 | — |
-| JWT (tokens/blacklist/validacion) | 20 | — | — |
-| OAuth2 (intent/filter/handler/exchange) | 20 | 10 | — |
-| Email (verificacion/reset) | 12 | 4 | — |
+| Auth (login/register/refresh/logout) | 13 | 15 | — |
+| JWT (tokens/blacklist/validacion) | 30 | — | — |
+| OAuth2 (intent/filter/handler/exchange) | 23 | 12 | — |
+| Email (verificacion/reset) | 17 | 4 | — |
 | Tenant (CRUD/select/shutdown) | 10 | — | — |
-| Member (roles/delete) | 3 | — | — |
-| Invitation (create/accept/cancel) | 23 | 2 | — |
+| Member (roles/delete) | 7 | — | — |
+| Invitation (create/accept/cancel) | 33 | 9 | — |
 | Security (constraints/RBAC) | — | 16 | — |
 | User (profile) | 5 | — | — |
-| Password Reset (forgot/reset) | 5 | 4 | — |
-| API paths (constantes vs produccion) | — | — | 12 |
-| **Total** | **114** | **47** | **12** |
+| Consistency (paths vs whitelist) | — | — | 12 |
+| Context load | — | — | — |
+| **Total** | **138** | **56** | **12** |
 
 ### Infraestructura de Test
 
@@ -182,14 +187,14 @@ Maven Surefire ejecuta solo `**/integration/**` excluido. Failsafe ejecuta solo 
 
 ```
 src/test/java/auth/pymes/
-├── AuthApplicationTests.java               # Context load
+├── AuthApplicationTests.java               # 1 context load
 ├── consistency/
 │   └── ApiPathConsistencyTest.java        # 12 tests: paths vs constants vs whitelist
 ├── integration/
 │   ├── AbstractIntegrationTest.java       # Base class (Testcontainers)
 │   └── api/
-│       ├── AuthApiIntegrationTest.java    # 13 tests: endpoints auth
-│       ├── InvitationServiceIntegrationTest.java  # 2 tests
+│       ├── AuthApiIntegrationTest.java    # 15 tests: endpoints auth + concurrent refresh
+│       ├── InvitationServiceIntegrationTest.java  # 9 tests
 │       ├── OAuth2IntentIntegrationTest.java       # 4 tests
 │       ├── OAuth2LoginIntegrationTest.java        # 8 tests
 │       ├── PasswordResetIntegrationTest.java      # 4 tests
@@ -197,24 +202,26 @@ src/test/java/auth/pymes/
 ├── testutil/
 │   └── TestApiPaths.java
 └── unit/
-    ├── AuthServiceImplTest.java           # 11 tests
+    ├── AuthServiceImplTest.java           # 13 tests
     ├── EmailVerificationServiceImplTest.java  # 12 tests
-    ├── InvitationServiceImplTest.java     # 23 tests
-    ├── JwtServiceImplTest.java            # 25 tests
+    ├── InvitationServiceImplTest.java     # 33 tests
+    ├── JwtServiceImplTest.java            # 27 tests
     ├── MemberServiceImplTest.java         # 3 tests
-    ├── OAuth2AuthenticationSuccessHandlerTest.java  # 4 tests
-    ├── OAuth2IntentCookieFilterTest.java  # 7 tests
+    ├── MemberServiceImplNewLogicTest.java # 4 tests (RBAC solo OWNER, anti-escalada)
+    ├── OAuth2AuthenticationSuccessHandlerTest.java  # 5 tests (incl. TNT003)
+    ├── OAuth2IntentCookieFilterTest.java  # 9 tests
     ├── OAuth2IntentServiceImplTest.java   # 9 tests
     ├── PasswordResetServiceImplTest.java  # 5 tests
     ├── TenantServiceImplTest.java         # 10 tests
+    ├── TokenBlacklistServiceTest.java     # 3 tests (TTL ms, fail-open)
     └── UserServiceImplTest.java           # 5 tests
 ```
 
 ### Gaps Conocidos
 
-- Sin tests directos para `TokenBlacklistService`, `JwtAuthenticationFilter`, `GlobalExceptionHandler`.
+- Sin tests directos para `JwtAuthenticationFilter`, `GlobalExceptionHandler` (TokenBlacklistService ya cubierto: 3 tests, TTL ms + fail-open).
 - Mappers y repositories solo cubiertos via integracion, sin unit tests dedicados.
-- Happy-path integration para tenant/member/user/invitation CRUD pendiente.
+- Happy-path integration para tenant/member/user/invitation CRUD parcialmente cubierto (Invitation 9 IT, Auth 15 IT); faltan `GET /tenants` paginado y `selectTenant` E2E.
 - Sin test de CORS o configuracion de templates Thymeleaf.
 
 ---
