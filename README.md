@@ -144,7 +144,7 @@ See `AGENTS.md` for profiles (`dev` default, `stg`, `prod`, `integration`, `test
 
 **Q2 2026 MVP — done:** OAuth2 + JWT + RBAC, invitations, password reset, gateway JWT + Swagger, full core domain (setup, products, suppliers, invoices with ITBMS, costs, loans, sales, accounting, analytics), 536 checks.
 
-**Q3 2026 Beta:** 10-20 pilot businesses, feedback, models with real data. Remaining: invoice QR scan (PWA), basic anomaly detection.
+**Q3 2026 Beta:** 10-20 pilot businesses, feedback, models with real data. Remaining: invoice QR scan (PWA), basic anomaly detection, monthly owner report (PDF+XLSX — plan: backend/core/docs/strategies/MONTHLY_REPORT_STRATEGY.md).
 
 **Q4 2026 Launch:** Panama/LATAM rollout, Claude API integration, security certifications.
 
