@@ -88,6 +88,7 @@ services:
       - SPRING_MAIL_PORT=${SPRING_MAIL_PORT:-587}
       - SPRING_MAIL_USERNAME=${SPRING_MAIL_USERNAME}
       - SPRING_MAIL_PASSWORD=${SPRING_MAIL_PASSWORD}
+      - MAIL_FROM=${MAIL_FROM:-}
       - JAVA_OPTS=-Xmx384m -Xms256m -XX:MaxMetaspaceSize=128m -XX:+UseG1GC
     depends_on:
       postgres:

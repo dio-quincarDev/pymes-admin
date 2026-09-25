@@ -281,6 +281,7 @@ jobs:
             SPRING_MAIL_PORT=${{ secrets.SPRING_MAIL_PORT }}
             SPRING_MAIL_USERNAME=${{ secrets.SPRING_MAIL_USERNAME }}
             SPRING_MAIL_PASSWORD=${{ secrets.SPRING_MAIL_PASSWORD }}
+            MAIL_FROM=${{ secrets.MAIL_FROM }}
             EOF
 
             docker compose pull

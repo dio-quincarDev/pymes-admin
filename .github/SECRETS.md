@@ -65,21 +65,28 @@ Todos los secrets deben configurarse en **GitHub → Settings → Secrets and va
 
 ---
 
-## 📧 Email (SMTP - Gmail)
+## 📧 Email (SMTP — Agnostic: Gmail / OCI Email Delivery)
 
 | Secret | Descripción | Ejemplo |
 |--------|-------------|---------|
-| `SPRING_MAIL_HOST` | Host SMTP (Gmail o OCI Email Delivery) | `smtp.gmail.com` |
-| `SPRING_MAIL_PORT` | Puerto SMTP | `587` |
-| `SPRING_MAIL_USERNAME` | Correo Gmail para envío de emails | `devpruebas.zar@gmail.com` |
-| `SPRING_MAIL_PASSWORD` | App Password de Gmail | *(16 caracteres)* |
+| `SPRING_MAIL_HOST` | Host SMTP | `smtp.gmail.com` (Gmail) / `smtp.email.sa-bogota-1.oci.oraclecloud.com` (OCI `sa-bogota-1`) |
+| `SPRING_MAIL_PORT` | Puerto SMTP (STARTTLS) | `587` |
+| `SPRING_MAIL_USERNAME` | Usuario SMTP — Gmail: email / OCI: SMTP Username `ocid1.user...@ocid1.tenancy...ak.com` | `devpruebas.zar@gmail.com` / `ocid1.user.oc1...ak.com` |
+| `SPRING_MAIL_PASSWORD` | Credencial SMTP — Gmail: App Password 16c / OCI: SMTP Password generado en Console | *(16 caracteres)* |
+| `MAIL_FROM` | **Opcional** — `From` verificado (Approved Sender). Si vacío → fallback a `SPRING_MAIL_USERNAME` (`application.yaml:app.mail.from`). **Requerido en OCI** cuando USERNAME es OCID (no email) | `info@<tu-dominio-verificado>` ej: `info@dioquincar.dev` |
 
-**Cómo obtener SPRING_MAIL_PASSWORD:**
+**A) Gmail — Cómo obtener `SPRING_MAIL_PASSWORD`:**
 1. Ve a myaccount.google.com/security
 2. Activa **2-Step Verification**
 3. Ve a myaccount.google.com/apppasswords
 4. Genera un "App Password" para "Mail"
 5. Copia los 16 caracteres
+
+**B) OCI Email Delivery (`sa-bogota-1`) — Cómo obtener credenciales:**
+1. OCI Console → `sa-bogota-1` → Email Delivery → Approved Senders → Create (`info@dioquincar.dev` → verificar)
+2. Identity & Security → Identity → Users → tu user → SMTP Credentials → Generate → copia `Username` (`ocid1.user...ak.com`) → `SPRING_MAIL_USERNAME`
+3. Copia `Password` generado → `SPRING_MAIL_PASSWORD` (no es IAM password)
+4. Set `SPRING_MAIL_HOST=smtp.email.sa-bogota-1.oci.oraclecloud.com`, `PORT=587`, `MAIL_FROM=<approved-sender>` (si omites, `From=OCID` → bounce `dot-dot`)
 
 ---
 
@@ -158,11 +165,12 @@ FACEBOOK_CLIENT_ID
 FACEBOOK_CLIENT_SECRET
 OAUTH2_REDIRECT_URI
 
-# Email
+# Email (agnostic)
 SPRING_MAIL_HOST
 SPRING_MAIL_PORT
 SPRING_MAIL_USERNAME
 SPRING_MAIL_PASSWORD
+MAIL_FROM  # opcional — Approved Sender (OCI) / fallback USERNAME (Gmail)
 
 # CORS
 CORS_ALLOWED_ORIGINS_STAGING
