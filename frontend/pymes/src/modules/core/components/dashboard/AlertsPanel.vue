@@ -1,5 +1,5 @@
 <script setup lang="ts">
-import { computed } from 'vue';
+import { computed, shallowRef } from 'vue';
 import type { AlertItem } from '../../types/analytics';
 import { useNumberFormat } from '../../composables/useNumberFormat';
 import { toNumber } from '../../utils/analyticsNormalize';
@@ -16,7 +16,23 @@ const filteredAlerts = computed(() =>
   props.items.filter((a) => toNumber(a.currentPrice) > 0 && toNumber(a.avgPrice) > 0 && Number.isFinite(toNumber(a.variationPct, 0))),
 );
 
+// ponytail: tope fijo, sin scroll infinito — el backend ya ordena por cv/premium desc; subir TOP_VISIBLE si piden
+const TOP_VISIBLE = 8;
+const expanded = shallowRef(false);
+
+const visibleAlerts = computed(() =>
+  expanded.value ? filteredAlerts.value : filteredAlerts.value.slice(0, TOP_VISIBLE),
+);
+const hiddenCount = computed(() => filteredAlerts.value.length - visibleAlerts.value.length);
+
 const hasCritical = computed(() => filteredAlerts.value.some((a) => a.severity === 'critical'));
+
+function evidenceSuffix(alert: AlertItem): string {
+  if (!alert.purchaseCount) return '';
+  const buys = `${alert.purchaseCount} compra${alert.purchaseCount === 1 ? '' : 's'}`;
+  if (alert.alertKind === 'SUPPLIER_PREMIUM' || !alert.providerCount) return `, basado en ${buys}`;
+  return `, basado en ${buys} en ${alert.providerCount} proveedore${alert.providerCount === 1 ? '' : 's'}`;
+}
 </script>
 
 <template>
@@ -34,7 +50,7 @@ const hasCritical = computed(() => filteredAlerts.value.some((a) => a.severity =
     </div>
 
     <q-list v-else dense class="alerts-panel__list">
-      <q-item v-for="alert in filteredAlerts" :key="alert.productId" class="alerts-panel__item">
+      <q-item v-for="alert in visibleAlerts" :key="alert.productId" class="alerts-panel__item">
         <q-item-section avatar>
           <q-icon
             :name="alert.severity === 'critical' ? 'error' : 'warning'"
@@ -45,7 +61,8 @@ const hasCritical = computed(() => filteredAlerts.value.some((a) => a.severity =
         <q-item-section>
           <q-item-label class="alerts-panel__name">{{ alert.productName }}</q-item-label>
           <q-item-label caption class="alerts-panel__detail">
-            {{ formatCurrency(alert.currentPrice) }} vs {{ formatCurrency(alert.avgPrice) }}
+            <template v-if="alert.alertKind === 'SUPPLIER_PREMIUM' && alert.providerName">{{ alert.providerName }} cobra {{ formatCurrency(alert.currentPrice) }} sobre el promedio {{ formatCurrency(alert.avgPrice) }}</template>
+            <template v-else>Subiendo: {{ formatCurrency(alert.currentPrice) }} vs promedio {{ formatCurrency(alert.avgPrice) }}</template>{{ evidenceSuffix(alert) }}.
           </q-item-label>
         </q-item-section>
         <q-item-section side>
@@ -57,6 +74,16 @@ const hasCritical = computed(() => filteredAlerts.value.some((a) => a.severity =
         </q-item-section>
       </q-item>
     </q-list>
+    <q-btn
+      v-if="hiddenCount > 0 || expanded"
+      flat
+      dense
+      size="sm"
+      color="warning"
+      class="alerts-panel__more"
+      :label="expanded ? 'Ver menos' : `+${hiddenCount} más este mes`"
+      @click="expanded = !expanded"
+    />
   </div>
 </template>
 
@@ -112,6 +139,12 @@ const hasCritical = computed(() => filteredAlerts.value.some((a) => a.severity =
   &__detail {
     font-size: 0.7rem;
     color: #8a9e99;
+  }
+
+  &__more {
+    margin: 0.25rem auto 0;
+    display: block;
+    font-size: 0.75rem;
   }
 }
 </style>

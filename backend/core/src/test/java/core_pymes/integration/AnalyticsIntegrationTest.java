@@ -32,6 +32,7 @@ class AnalyticsIntegrationTest extends AbstractIntegrationTest {
     private static final LocalDate MAY_25 = LocalDate.of(2026, 5, 25);
     private static final LocalDate JUN_05 = LocalDate.of(2026, 6, 5);
     private static final LocalDate JUN_15 = LocalDate.of(2026, 6, 15);
+    private static final LocalDate JUN_25 = LocalDate.of(2026, 6, 25);
 
     @Test
     @DisplayName("ejecutarCompleto persists all ten JSONB with expected structure")
@@ -92,8 +93,8 @@ class AnalyticsIntegrationTest extends AbstractIntegrationTest {
         assertThat(comparativa.get(0).get("providerName").asText()).isNotBlank();
 
         assertThat(recomendaciones.isArray()).isTrue();
-        assertThat(recomendaciones.size()).isEqualTo(1);
-        assertThat(recomendaciones.get(0).get("recommendedProviderId").asText()).isNotBlank();
+        // regla A: Frijol quedó 1v1 en junio → se calla (antes esperaba 1)
+        assertThat(recomendaciones.size()).isEqualTo(0);
 
         assertThat(predicciones.isArray()).isTrue();
         assertThat(predicciones.size()).isEqualTo(1);
@@ -164,6 +165,81 @@ class AnalyticsIntegrationTest extends AbstractIntegrationTest {
         assertThat(comparativa.get(0).get("purchaseCount").asInt()).isEqualTo(2);
 
         assertThat(objectMapper.readTree(result.getSupplierRecommendations()).isEmpty()).isTrue();
+    }
+
+    @Test
+    @DisplayName("Regla A: recomienda con 3 compras por lado, calla con 2")
+    void reglaA_minimoTresComprasPorLado() throws Exception {
+        var tenantId = UUID.randomUUID();
+        var provA = seedProvider(tenantId, "Distribuidora A");
+        var provB = seedProvider(tenantId, "Distribuidora B");
+        var conTres = seedProduct(tenantId, "Con Tres");
+        var conDos = seedProduct(tenantId, "Con Dos");
+        seedInvoice(tenantId, provA, conTres, "Con Tres", JUN_05, new BigDecimal("20.00"));
+        seedInvoice(tenantId, provA, conTres, "Con Tres", JUN_15, new BigDecimal("20.00"));
+        seedInvoice(tenantId, provA, conTres, "Con Tres", JUN_25, new BigDecimal("20.00"));
+        seedInvoice(tenantId, provB, conTres, "Con Tres", JUN_05, new BigDecimal("22.00"));
+        seedInvoice(tenantId, provB, conTres, "Con Tres", JUN_15, new BigDecimal("22.00"));
+        seedInvoice(tenantId, provB, conTres, "Con Tres", JUN_25, new BigDecimal("22.00"));
+        seedInvoice(tenantId, provA, conDos, "Con Dos", JUN_05, new BigDecimal("10.00"));
+        seedInvoice(tenantId, provA, conDos, "Con Dos", JUN_15, new BigDecimal("10.00"));
+        seedInvoice(tenantId, provB, conDos, "Con Dos", JUN_05, new BigDecimal("12.00"));
+        seedInvoice(tenantId, provB, conDos, "Con Dos", JUN_15, new BigDecimal("12.00"));
+        seedMetrics(tenantId, new BigDecimal("100"));
+
+        var result = analyticsService.ejecutarCompleto(tenantId, PERIOD);
+
+        var recomendaciones = objectMapper.readTree(result.getSupplierRecommendations());
+        assertThat(recomendaciones.isArray()).isTrue();
+        assertThat(recomendaciones.size()).isEqualTo(1);
+        assertThat(recomendaciones.get(0).get("productName").asText()).isEqualTo("Con Tres");
+        assertThat(recomendaciones.get(0).get("recommendedProviderName").asText()).isEqualTo("Distribuidora A");
+    }
+
+    @Test
+    @DisplayName("Regla A en alertas: variación exige 3 compras")
+    void reglaA_alertasExigenTresCompras() throws Exception {
+        var tenantId = UUID.randomUUID();
+        var provA = seedProvider(tenantId, "Distribuidora A");
+        var conDos = seedProduct(tenantId, "Con Dos");
+        var conTres = seedProduct(tenantId, "Con Tres");
+        // CV ~70% en ambos: con 2 compras es ruido (se calla), con 3 es alerta
+        seedInvoice(tenantId, provA, conDos, "Con Dos", JUN_05, new BigDecimal("10.00"));
+        seedInvoice(tenantId, provA, conDos, "Con Dos", JUN_25, new BigDecimal("30.00"));
+        seedInvoice(tenantId, provA, conTres, "Con Tres", JUN_05, new BigDecimal("10.00"));
+        seedInvoice(tenantId, provA, conTres, "Con Tres", JUN_15, new BigDecimal("30.00"));
+        seedInvoice(tenantId, provA, conTres, "Con Tres", JUN_25, new BigDecimal("10.00"));
+        seedMetrics(tenantId, new BigDecimal("100"));
+
+        var result = analyticsService.ejecutarCompleto(tenantId, PERIOD);
+
+        var alerts = objectMapper.readTree(result.getAlerts());
+        assertThat(alerts.isArray()).isTrue();
+        assertThat(alerts).filteredOn(a -> "Con Tres".equals(a.path("productName").asText()))
+                .anyMatch(a -> "PRICE_VARIATION".equals(a.path("type").asText()));
+        assertThat(alerts).filteredOn(a -> "Con Dos".equals(a.path("productName").asText())).isEmpty();
+    }
+
+    @Test
+    @DisplayName("Promedio 0 por ajustes no rompe alertas (regresión division by zero)")
+    void precioCero_noRompeAlertas() throws Exception {
+        var tenantId = UUID.randomUUID();
+        var provA = seedProvider(tenantId, "Distribuidora A");
+        var provB = seedProvider(tenantId, "Distribuidora B");
+        var ajuste = seedProduct(tenantId, "Ajuste");
+        // promedio del producto = 0 con un proveedor por encima: antes reventaba premium_pct con division by zero
+        // y como ejecutarCompleto no aísla motores, se perdía el guardado completo del período
+        seedInvoice(tenantId, provA, ajuste, "Ajuste", JUN_05, new BigDecimal("-5.00"));
+        seedInvoice(tenantId, provA, ajuste, "Ajuste", JUN_15, new BigDecimal("-5.00"));
+        seedInvoice(tenantId, provB, ajuste, "Ajuste", JUN_05, new BigDecimal("5.00"));
+        seedInvoice(tenantId, provB, ajuste, "Ajuste", JUN_15, new BigDecimal("5.00"));
+        seedMetrics(tenantId, new BigDecimal("100"));
+
+        var result = analyticsService.ejecutarCompleto(tenantId, PERIOD);
+
+        var alerts = objectMapper.readTree(result.getAlerts());
+        assertThat(alerts.isArray()).isTrue();
+        assertThat(alerts).filteredOn(a -> "Ajuste".equals(a.path("productName").asText())).isEmpty();
     }
 
     @Test
