@@ -57,6 +57,16 @@ export interface AlertItem {
   severity: 'warning' | 'critical';
 }
 
+// Wire compat: backend envía cvPct/premiumPct sin variationPct ni severity (ver AnalyticsServiceImpl.java:324,364)
+export type AlertItemWire = Omit<AlertItem, 'currentPrice' | 'variationPct' | 'severity'> & {
+  currentPrice?: number | string;
+  variationPct?: number | string;
+  severity?: string;
+  cvPct?: number | string;
+  premiumPct?: number | string;
+  type?: string;
+};
+
 export interface SupplierComparisonItem {
   productId: string;
   productName: string;
@@ -158,8 +168,9 @@ export interface AnalyticsResponse {
   financialHealth?: FinancialHealth;
 }
 
-// Respuesta cruda del backend antes de normalizar (usa AbcItemWire + FinancialHealthWire)
-export type AnalyticsResponseWire = Omit<AnalyticsResponse, 'abc' | 'financialHealth'> & {
+// Respuesta cruda del backend antes de normalizar (usa AbcItemWire + FinancialHealthWire + AlertItemWire)
+export type AnalyticsResponseWire = Omit<AnalyticsResponse, 'abc' | 'alerts' | 'financialHealth'> & {
   abc: AbcItemWire[];
+  alerts: AlertItemWire[];
   financialHealth?: FinancialHealthWire | FinancialHealth;
 };

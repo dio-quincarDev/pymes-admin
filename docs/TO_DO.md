@@ -8,6 +8,15 @@
 - [ ] [Baja] **Refactor Producto → InsumoTemplate** (post-MVP)
 - [ ] [Baja] **Spring Security local JWT** (post-MVP)
 
+### Core — Unidades y presentaciones (post-MVP, raíz del gap Fase 1)
+
+- [x] [Alta] **Fase 1: guarda "callar en vez de mentir"** — `AnalyticsServiceImpl.productosConUnidadesMezcladas` (COUNT DISTINCT con COALESCE por el NULL-trap); recomendaciones y alertas saltan productos con presentaciones mezcladas. Tests: 3 nuevos en `AnalyticsServiceImplTest` (14/14 verde). (2026-09-27)
+- [x] [Alta] **Fase 2 frontend: mismatch `variationPct` (badge 0%)** — backend envía `cvPct`/`premiumPct`, `AlertsPanel.vue:54` busca `variationPct` → pintaba `0.0%`. Fix solo frontend: `normalizeAlerts` en `analyticsNormalize.ts` + cableado en `useAnalytics.ts` (patrón ABC) + `AlertItemWire`. Tests: 3 nuevos en `analyticsNormalize.spec.ts` (Orégano +192% critical, premium leve warning, severity existente respetada). `npm run build` verde. (2026-09-27)
+- [ ] [Alta] **Presentaciones: conversión > 1 obligatoria** — `PresentacionesDialog.vue:25,119` acepta conversión 1 en silencio (origen del "Lb ×1" de Dorado). Rechazar con aviso + preview siempre visible (hoy solo si >1, línea 30-35).
+- [ ] [Alta] **Facturas: sin default silencioso a unidad base** — `FacturasPage.vue:670` primera opción `value: ''` deja filas sin `presentacion_id` (origen Distral/Rey). Obligar a elegir o confirmar "fue suelto".
+- [ ] [Alta] **Datos: base + presentaciones reales Harina/Orégano** — Harina base lb + Saco ×25 + Bolsa ×5; reasignar 5 filas históricas sin presentación. Con esto la guarda de Fase 1 deja de dispararse y las recomendaciones vuelven verdaderas.
+- [ ] [Media] **Base unit a catálogo (post-MVP)** — `Producto.baseUnit` texto libre ("Kg"/"kilo"/"KG"). Estandarizar o referenciar catálogo. Sin esto, tabla de equivalencia global innecesaria (decisión 2026-09-27: pragmático por producto, no catálogo lb↔kg).
+
 ### Frontend
 
 - [ ] [Media] **Picker categorías sin scroll (40+ con subcategorías)** — `ProductosPage.vue:312` `flattenCategories()` → lista plana 40 items scrolleable; `InvoiceItemCard.vue` dropdown igual. Fix práctico sin BE/seed: `CategoryPicker.vue` agrupado (headers `BEBIDAS` no clicables + hijos indentados, `max-height 320px` virtual Quasar), `Recientes` 3 últimos vía `localStorage pq_recent_cats:{tenantId}` al guardar producto/factura, toggle `Solo usadas` (`Set(rows/productos.category)`), `use-input` typeahead preservado. Reuso `setupCategories` árbol + `allProducts`/`filteredByCategory`. Archivos: `CategoryPicker.vue` nuevo + `ProductosPage.vue` + `InvoiceItemCard.vue`. Visual terminal `#12141A` header `Geist Mono 12px` + selección borde `accent #C8963E`. Nota: `SeedDataRunner.java` queda intocable (solo INSERT arranque). → acordado 2026-09-14, doc en `DAILY_REPORTS_FRONTEND.md` tras implementar.
