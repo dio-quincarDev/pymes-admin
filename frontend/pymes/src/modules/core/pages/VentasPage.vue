@@ -1,10 +1,14 @@
 <script setup lang="ts">
-import { ref, shallowRef, computed, onMounted, onUnmounted } from 'vue';
+import { computed, onMounted, onUnmounted, reactive, shallowRef } from 'vue';
 import { useQuasar, useMeta } from 'quasar';
 import { useAuthStore } from 'src/modules/auth/store';
-import { formatCurrency, toLocalISODate } from 'src/utils/format';
-import { ventaService } from '../services/venta.service';
+import { toLocalISODate } from 'src/utils/format';
 import type { VentaDiaria, VentaRequest } from '../types';
+import { useVentas } from '../composables/useVentas';
+import VentasMonthPager from '../components/ventas/VentasMonthPager.vue';
+import VentasStatStrip from '../components/ventas/VentasStatStrip.vue';
+import VentasDayList from '../components/ventas/VentasDayList.vue';
+import VentaFormDialog from '../components/ventas/VentaFormDialog.vue';
 import EmptyState from 'src/components/ui/EmptyState.vue';
 
 useMeta({ title: 'Ventas — PYMEQ' });
@@ -13,139 +17,68 @@ const $q = useQuasar();
 const authStore = useAuthStore();
 const tenantId = authStore.user?.tenantId;
 
-const rows = ref<VentaDiaria[]>([]);
-const loading = shallowRef(false);
+const canEdit = computed(() => authStore.user?.role === 'OWNER' || authStore.user?.role === 'ADMIN');
 
-const totalSemana = computed(() => {
-  const weekAgoStr = toLocalISODate(new Date(Date.now() - 7 * 24 * 60 * 60 * 1000));
-  return rows.value
-    .filter((r) => r.fecha >= weekAgoStr)
-    .reduce((s, r) => s + r.montoBruto, 0);
-});
-
-const totalMes = computed(() => {
-  const now = new Date();
-  const monthStartStr = `${now.getFullYear()}-${String(now.getMonth() + 1).padStart(2, '0')}-01`;
-  return rows.value
-    .filter((r) => r.fecha >= monthStartStr)
-    .reduce((s, r) => s + r.montoBruto, 0);
-});
-
-interface DayGroup {
-  date: string;
-  label: string;
-  items: VentaDiaria[];
-  total: number;
-}
-
-const dayGroups = computed(() => {
-  const groups = new Map<string, VentaDiaria[]>();
-  for (const v of rows.value) {
-    if (!groups.has(v.fecha)) groups.set(v.fecha, []);
-    groups.get(v.fecha)!.push(v);
-  }
-  const result: DayGroup[] = [];
-  for (const [date, list] of groups) {
-    const d = new Date(date + 'T00:00:00');
-    const label = d.toLocaleDateString('es-PA', {
-      weekday: 'short',
-      day: 'numeric',
-      month: 'short',
-    });
-    result.push({
-      date,
-      label,
-      items: list,
-      total: list.reduce((s, v) => s + v.montoBruto, 0),
-    });
-  }
-  result.sort((a, b) => b.date.localeCompare(a.date));
-  return result;
-});
-
-async function load() {
-  if (!tenantId) return;
-  loading.value = true;
-  try {
-    const res = await ventaService.getAll(tenantId);
-    rows.value = res.data;
-  } catch (err) {
-    $q.notify({
-      type: 'negative',
-      message: err instanceof Error ? err.message : 'Error al cargar ventas',
-    });
-  } finally {
-    loading.value = false;
-  }
-}
+const {
+  loading,
+  error,
+  monthLabel,
+  dayGroups,
+  totalMes,
+  registroCount,
+  ticketPromedio,
+  prevMonth,
+  nextMonth,
+  goToday,
+  load,
+  create,
+  update,
+  remove,
+} = useVentas(tenantId);
 
 const dialogOpen = shallowRef(false);
 const editingId = shallowRef<string | null>(null);
-const saving = shallowRef(false);
-const formRef = ref<{ validate: () => Promise<boolean> } | null>(null);
-const form = ref<VentaRequest>({
+const formInitial = reactive<VentaRequest>({
   tenantId: tenantId as string,
   fecha: toLocalISODate(new Date()),
   montoBruto: 0,
+  descripcion: null,
 });
 
-const montoBrutoStr = ref('');
-function onGrossAmountInput(val: string | number | null) {
-  montoBrutoStr.value = String(val ?? '')
-    .replace(/[^0-9.]/g, '')
-    .replace(/(\..*)\./g, '$1');
-}
-function formatGrossAmount() {
-  const n = parseFloat(montoBrutoStr.value);
-  if (!isNaN(n) && montoBrutoStr.value) {
-    montoBrutoStr.value = n.toLocaleString('en-US', {
-      minimumFractionDigits: 2,
-      maximumFractionDigits: 2,
-    });
-    form.value.montoBruto = n;
-  }
-}
-function rawAmount(val: number) {
-  return val
-    ? val.toLocaleString('en-US', { minimumFractionDigits: 2, maximumFractionDigits: 2 })
-    : '';
-}
+const deleteDialog = shallowRef(false);
+const deletingItem = shallowRef<VentaDiaria | null>(null);
+const deleting = shallowRef(false);
 
 function openCreate() {
+  if (!canEdit.value) return;
   editingId.value = null;
-  form.value = {
+  Object.assign(formInitial, {
     tenantId: tenantId as string,
     fecha: toLocalISODate(new Date()),
     montoBruto: 0,
-  };
-  montoBrutoStr.value = '';
+    descripcion: null,
+  });
   dialogOpen.value = true;
 }
 
 function openEdit(v: VentaDiaria) {
+  if (!canEdit.value) return;
   editingId.value = v.id;
-  form.value = {
+  Object.assign(formInitial, {
     tenantId: v.tenantId,
     fecha: v.fecha,
     montoBruto: v.montoBruto,
     descripcion: v.descripcion,
-  };
-  montoBrutoStr.value = rawAmount(v.montoBruto);
+  });
   dialogOpen.value = true;
 }
 
-async function save() {
-  formatGrossAmount();
-  if (!(await formRef.value?.validate())) return;
-  saving.value = true;
+async function onSave(payload: VentaRequest) {
   try {
     if (editingId.value) {
-      const res = await ventaService.update(editingId.value, form.value);
-      const idx = rows.value.findIndex((r) => r.id === editingId.value);
-      if (idx >= 0) rows.value[idx] = res.data;
+      await update(editingId.value, payload);
     } else {
-      const res = await ventaService.create(form.value);
-      rows.value.unshift(res.data);
+      await create(payload);
     }
     dialogOpen.value = false;
     $q.notify({
@@ -157,26 +90,19 @@ async function save() {
       type: 'negative',
       message: err instanceof Error ? err.message : 'Error al guardar venta',
     });
-  } finally {
-    saving.value = false;
   }
 }
-
-const deleteDialog = shallowRef(false);
-const deletingItem = shallowRef<VentaDiaria | null>(null);
-const deleting = shallowRef(false);
 
 function confirmDelete(v: VentaDiaria) {
   deletingItem.value = v;
   deleteDialog.value = true;
 }
 
-async function remove() {
+async function onRemove() {
   if (!deletingItem.value || !tenantId) return;
   deleting.value = true;
   try {
-    await ventaService.remove(deletingItem.value.id, tenantId);
-    rows.value = rows.value.filter((r) => r.id !== deletingItem.value!.id);
+    await remove(deletingItem.value.id, tenantId);
     deleteDialog.value = false;
     $q.notify({ type: 'positive', message: 'Venta eliminada' });
   } catch (err) {
@@ -190,6 +116,18 @@ async function remove() {
   }
 }
 
+function handleKeydown(e: KeyboardEvent) {
+  if ((e.ctrlKey || e.metaKey) && e.key === 'n') {
+    e.preventDefault();
+    openCreate();
+  }
+}
+
+async function onRefresh(done: () => void) {
+  await load();
+  done();
+}
+
 onMounted(() => {
   if (!tenantId) return;
   void load();
@@ -197,17 +135,6 @@ onMounted(() => {
 });
 
 onUnmounted(() => window.removeEventListener('keydown', handleKeydown));
-
-function handleKeydown(e: KeyboardEvent) {
-  if ((e.ctrlKey || e.metaKey) && e.key === 'n') {
-    e.preventDefault();
-    openCreate();
-  }
-  if ((e.ctrlKey || e.metaKey) && e.key === 's' && dialogOpen.value) {
-    e.preventDefault();
-    void save();
-  }
-}
 </script>
 
 <template>
@@ -217,123 +144,58 @@ function handleKeydown(e: KeyboardEvent) {
       <p class="text-subtitle1 text-accent q-mt-xs">Registro diario de ventas</p>
     </div>
 
-    <q-card dark class="glass q-pa-sm q-mb-sm">
-      <div class="row q-gutter-x-lg q-pa-xs">
-        <div>
-          <div
-            class="text-caption text-accent text-uppercase"
-            style="font-size: 0.72rem; letter-spacing: 0.04em"
-          >
-            Esta semana
-          </div>
-          <div class="font-mono text-weight-bold text-h6">{{ formatCurrency(totalSemana) }}</div>
-        </div>
-        <div>
-          <div
-            class="text-caption text-accent text-uppercase"
-            style="font-size: 0.72rem; letter-spacing: 0.04em"
-          >
-            Este mes
-          </div>
-          <div class="font-mono text-weight-bold text-h6">{{ formatCurrency(totalMes) }}</div>
-        </div>
-      </div>
-    </q-card>
+    <q-pull-to-refresh @refresh="onRefresh">
+      <VentasMonthPager :label="monthLabel" @prev="prevMonth" @next="nextMonth" @today="goToday" />
 
-    <div class="toolbar">
-      <q-space />
-      <q-btn v-if="rows.length" color="primary" icon="sym_r_add" label="Nueva" @click="openCreate" />
-    </div>
+      <VentasStatStrip :total="totalMes" :count="registroCount" :average="ticketPromedio" />
 
-    <div v-if="!loading && !rows.length" class="q-mt-lg">
-      <EmptyState
-        icon="sym_r_point_of_sale"
-        title="Sin ventas registradas"
-        message="Registra tu primera venta diaria para llevar el control."
-      >
-        <q-btn color="primary" icon="sym_r_add" label="Nueva Venta" @click="openCreate" class="q-mt-sm" />
-      </EmptyState>
-    </div>
+      <q-banner v-if="error" dense class="bg-negative text-white q-mb-sm">
+        {{ error }}
+        <template #action>
+          <q-btn flat dense label="Reintentar" @click="load" />
+        </template>
+      </q-banner>
 
-    <div v-if="loading" class="q-gutter-y-md q-mt-md">
-      <div v-for="n in 4" :key="n">
-        <q-skeleton type="rect" dark animation="pulse" height="48px" />
-      </div>
-    </div>
-
-    <div v-for="group in dayGroups" :key="group.date" class="day-group">
-      <div class="day-group__header">
-        <span class="day-group__label">{{ group.label }}</span>
-        <span class="day-group__total">{{ formatCurrency(group.total) }}</span>
+      <div v-if="loading" class="q-gutter-y-md q-mt-md">
+        <q-skeleton v-for="n in 4" :key="n" type="rect" dark animation="pulse" height="48px" />
       </div>
 
-      <div v-for="v in group.items" :key="v.id" class="sale-row">
-        <div class="sale-row__desc">{{ v.descripcion || 'Sin descripción' }}</div>
-        <div class="sale-row__amount">{{ formatCurrency(v.montoBruto) }}</div>
-        <div class="sale-row__actions">
-          <q-btn
-            flat
-            dense
-            round
-            icon="sym_r_edit"
-            color="primary"
-            size="sm"
-            @click="openEdit(v)"
-            aria-label="Editar"
-          />
-          <q-btn
-            flat
-            dense
-            round
-            icon="sym_r_delete"
-            color="negative"
-            size="sm"
-            @click="confirmDelete(v)"
-            aria-label="Eliminar"
-          />
-        </div>
-      </div>
-    </div>
-
-    <q-dialog v-model="dialogOpen" dark>
-      <q-card dark class="bg-surface-pine" style="width: 90vw; max-width: 460px">
-        <q-card-section
-          ><div class="text-h6 text-primary">
-            {{ editingId ? 'Editar' : 'Nueva' }} Venta
-          </div></q-card-section
+      <div v-else-if="!dayGroups.length" class="q-mt-lg">
+        <EmptyState
+          icon="sym_r_point_of_sale"
+          title="Sin ventas este mes"
+          :message="`No hay ventas registradas en ${monthLabel}.`"
         >
-        <q-separator dark />
-        <q-card-section>
-          <q-form ref="formRef" @submit.prevent="save" class="q-gutter-y-md">
-            <q-input
-              dark
-              filled
-              v-model="form.fecha"
-              label="Fecha"
-              type="date"
-              :rules="[(v) => !!v || 'Requerido']"
-            />
-            <q-input
-              dark
-              filled
-              :model-value="montoBrutoStr"
-              @update:model-value="onGrossAmountInput"
-              @blur="formatGrossAmount"
-              label="Monto Bruto"
-              type="text"
-              inputmode="decimal"
-              prefix="$"
-              :rules="[(v) => !!v || 'Requerido']"
-            />
-            <q-input dark filled v-model="form.descripcion" label="Descripción" />
-            <div class="row justify-end q-gutter-x-sm">
-              <q-btn flat label="Cancelar" color="accent" v-close-popup />
-              <q-btn type="submit" label="Guardar" color="primary" :loading="saving" />
-            </div>
-          </q-form>
-        </q-card-section>
-      </q-card>
-    </q-dialog>
+          <q-btn
+            v-if="canEdit"
+            color="primary"
+            icon="sym_r_add"
+            label="Nueva Venta"
+            class="q-mt-sm"
+            @click="openCreate"
+          />
+        </EmptyState>
+      </div>
+
+      <VentasDayList
+        v-else
+        :groups="dayGroups"
+        :can-edit="canEdit"
+        @edit="openEdit"
+        @delete="confirmDelete"
+      />
+    </q-pull-to-refresh>
+
+    <q-page-sticky v-if="canEdit" position="bottom-right" :offset="[16, 88]">
+      <q-btn fab icon="sym_r_add" color="primary" aria-label="Nueva venta" @click="openCreate" />
+    </q-page-sticky>
+
+    <VentaFormDialog
+      v-model="dialogOpen"
+      :editing="!!editingId"
+      :initial="formInitial"
+      @save="onSave"
+    />
 
     <q-dialog v-model="deleteDialog" dark>
       <q-card dark class="bg-surface-pine">
@@ -345,62 +207,10 @@ function handleKeydown(e: KeyboardEvent) {
           >
         </q-card-section>
         <q-card-actions align="right">
-          <q-btn flat label="Cancelar" color="accent" v-close-popup />
-          <q-btn label="Eliminar" color="negative" :loading="deleting" @click="remove" />
+          <q-btn v-close-popup flat label="Cancelar" color="accent" />
+          <q-btn label="Eliminar" color="negative" :loading="deleting" @click="onRemove" />
         </q-card-actions>
       </q-card>
     </q-dialog>
   </q-page>
 </template>
-
-<style scoped>
-.toolbar {
-  display: flex;
-  align-items: center;
-  margin-bottom: 16px;
-}
-
-.day-group {
-  margin-bottom: 20px;
-}
-
-.day-group:last-child {
-  margin-bottom: 0;
-}
-
-.day-group__header {
-  display: flex;
-  align-items: baseline;
-  justify-content: space-between;
-  padding: 8px 12px;
-  background: rgba(27, 38, 36, 0.3);
-  border-radius: 6px;
-  margin-bottom: 4px;
-}
-
-.day-group__label {
-  font-size: 0.85rem;
-  font-weight: 600;
-  text-transform: capitalize;
-}
-
-.sale-row {
-  display: grid;
-  grid-template-columns: 1fr auto auto;
-  align-items: center;
-  gap: 12px;
-  padding: 8px 12px;
-  border-bottom: 1px solid rgba(113, 131, 127, 0.04);
-}
-
-.sale-row:hover {
-  background: rgba(27, 38, 36, 0.3);
-}
-
-.sale-row__desc {
-  font-size: 0.85rem;
-  white-space: nowrap;
-  overflow: hidden;
-  text-overflow: ellipsis;
-}
-</style>

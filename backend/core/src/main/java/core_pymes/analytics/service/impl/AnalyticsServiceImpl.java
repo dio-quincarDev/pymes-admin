@@ -299,6 +299,7 @@ public class AnalyticsServiceImpl implements AnalyticsService {
 
     List<Map<String, Object>> analisisAlertas(UUID tenantId, LocalDate start, LocalDate end) {
         var alerts = new ArrayList<Map<String, Object>>();
+        var mezclados = productosConUnidadesMezcladas(tenantId, start, end);
 
         // -- Price variation alerts (existing) --
         var variationSql = """
@@ -372,6 +373,9 @@ public class AnalyticsServiceImpl implements AnalyticsService {
                 "type", "SUPPLIER_PREMIUM"
         ), tenantId, start, end, tenantId, start, end));
 
+        // ponytail: misma guarda — la variación por empaque no es anomalía de precio
+        alerts.removeIf(a -> mezclados.contains(String.valueOf(a.getOrDefault("productId", ""))));
+
         if (alerts.isEmpty()) {
             return List.of(Map.<String, Object>of("message", "No significant anomalies detected"));
         }
@@ -410,8 +414,24 @@ public class AnalyticsServiceImpl implements AnalyticsService {
         ), tenantId, start, end);
     }
 
+    // ponytail: 1 query extra por ejecución; si el volumen crece, plegar la guarda a cada SQL
+    Set<String> productosConUnidadesMezcladas(UUID tenantId, LocalDate start, LocalDate end) {
+        var sql = """
+                -- motor: unidades_mezcladas
+                SELECT ii.product_id
+                FROM core.invoice_items ii
+                JOIN core.invoices i ON ii.invoice_id = i.id
+                WHERE i.tenant_id = ? AND i.status = 'PAGADA' AND i.issue_date >= ? AND i.issue_date < ?
+                GROUP BY ii.product_id
+                HAVING COUNT(DISTINCT COALESCE(ii.presentacion_id::text, 'NONE')) > 1
+                    OR COUNT(DISTINCT ii.conversion_factor) > 1
+                """;
+        return new HashSet<>(jdbc.query(sql, (rs, row) -> rs.getObject("product_id").toString(), tenantId, start, end));
+    }
+
     List<Map<String, Object>> analisisRecomendacionProveedor(UUID tenantId, LocalDate start, LocalDate end) {
         var comparativa = analisisComparativaProveedores(tenantId, start, end);
+        var mezclados = productosConUnidadesMezcladas(tenantId, start, end);
         var byProduct = new LinkedHashMap<String, List<Map<String, Object>>>();
         for (var entry : comparativa) {
             var key = (String) entry.get("productId");
@@ -420,6 +440,8 @@ public class AnalyticsServiceImpl implements AnalyticsService {
 
         var recomendaciones = new ArrayList<Map<String, Object>>();
         for (var entry : byProduct.entrySet()) {
+            // ponytail: callar en vez de mentir — con/sin presentación mezclados, el promedio miente
+            if (mezclados.contains(entry.getKey())) continue;
             var suppliers = entry.getValue();
             if (suppliers.size() < 2) continue;
 

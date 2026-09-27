@@ -70,6 +70,8 @@ async function confirm() {
     await setupService.completeOnboarding(tenantId, selected.value)
     // ponytail: refresh tenant hydration so MainLayout hybrid auto-start sees hasTenant=true
     try { await authStore.fetchCurrentUser(); } catch { /* ignore */ }
+    // ponytail: el guard del router no re-pregunta tras completar
+    authStore.onboardingCompleted = true
     $q.notify({ type: 'positive', message: 'Configuracion completada' })
     void router.push('/dashboard')
   } catch (err) {
