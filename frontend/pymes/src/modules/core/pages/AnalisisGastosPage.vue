@@ -1,11 +1,12 @@
 <script setup lang="ts">
-import { onMounted } from 'vue';
+import { computed, onMounted } from 'vue';
 import { useQuasar, useMeta } from 'quasar';
 import { useAuthStore } from 'src/modules/auth/store';
 import { useTutorial } from 'src/composables/useTutorial';
 import { useNumberFormat } from 'src/modules/core/composables/useNumberFormat';
 import { useAnalytics } from '../composables/useAnalytics';
 import { useAnalisisGastos } from '../composables/useAnalisisGastos';
+import { enrichAlert, enrichRecommendation } from '../utils/analyticsNormalize';
 import { useVentasSemanales } from '../composables/useVentasSemanales';
 import { useMonthlyInvestment } from '../composables/useMonthlyInvestment';
 import { useMonthlyProjection } from '../composables/useMonthlyProjection';
@@ -34,10 +35,21 @@ const {
   alerts,
   financialHealth,
   abc,
+  supplierComparison,
   supplierRecommendations,
 } = useAnalytics();
 
-const { productCount, loading, load } = useAnalisisGastos(tenantId);
+const { productCount, products, loading, load } = useAnalisisGastos(tenantId);
+
+// Derivación pura: la página compone (comparativa + catálogo ya están cargados, cero requests).
+const enrichedRecommendations = computed(() =>
+  supplierRecommendations.value.map((r) =>
+    enrichRecommendation(r, supplierComparison.value, products.value),
+  ),
+);
+const enrichedAlerts = computed(() =>
+  alerts.value.map((a) => enrichAlert(a, supplierComparison.value)),
+);
 
 const {
   ventasSemanales,
@@ -127,11 +139,11 @@ onMounted(() => {
     </div>
 
     <!-- B) Ahorro por proveedor — cuánto te ahorras -->
-    <SupplierRecommendationsCard :items="supplierRecommendations" class="q-mb-lg" />
+    <SupplierRecommendationsCard :items="enrichedRecommendations" class="q-mb-lg" />
 
     <div class="analysis-vital">
       <FinancialHealthPanel :data="financialHealth" :loading="analyticsLoading" :recommendations="supplierRecommendations" />
-      <AlertsPanel :items="alerts" />
+      <AlertsPanel :items="enrichedAlerts" />
     </div>
   </q-page>
 </template>

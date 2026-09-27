@@ -4,6 +4,30 @@ Registro de lo implementado y lo pendiente.
 
 > Ver también: `CORE.md` (arquitectura + estado), `ANALYTICS.md`, `FUTURE_MODULES.md` (blueprints), `SEED_TEMPLATES.md`.
 
+> Pendientes de unidades/presentaciones y reglas de emisión: [`docs/TO_DO.md` (raíz)](../../../docs/TO_DO.md) — bloque "Core — Unidades y presentaciones".
+
+---
+
+## 2026-09-27 — Analytics: Regla A en recomendaciones y alertas + NULLIF anti division-by-zero
+
+**Contexto:** recomendaciones y alertas se emitían con 1-2 compras (promedio = ruido) y con presentaciones mezcladas (promedio miente). Además `premiumSql` dividía por el promedio del producto sin `NULLIF`: con promedio 0 (ajustes/notas de crédito) reventaba con `division by zero` y, como `ejecutarCompleto` no aísla motores, se perdía el guardado completo del período. Filosofía: callar en vez de mentir.
+
+**Qué se hizo:**
+- **Regla A recomendaciones** `AnalyticsServiceImpl.analisisRecomendacionProveedor` — skip si `purchaseCount < 3` en cualquier lado (constante `MIN_COMPRAS_POR_PROVEEDOR`, fail-fast antes del cálculo) + early-return si comparativa vacía (ahorra 1 query). Cero queries nuevas, comparativa intacta para su panel y salud financiera.
+- **Regla A alertas** — `variationSql`/`premiumSql` exigen `purchases >= 3` (reciclan sus `COUNT(*)`, misma constante vía `formatted`). Solo filtran sus motores; JSON y frontend intactos.
+- **NULLIF premium** — `/ NULLIF(pa.product_avg_price, 0)` + descarte `<> 0` (la fila desaparece en vez de viajar con premium NULL).
+- **Skipped:** derivar premium de la comparativa en Java (redondea AVG a 4 decimales, movería `premiumPct` visible — add when el volumen duela), compartir `mezclados` entre motores (churn de firmas por 1 query barata), try/catch por motor (add when un motor caiga en prod), Regla B cantidad mínima (bloqueada por `baseUnit` texto-libre — ver TO_DO).
+- **Ponytail:** reparar lógica antes que forzar test — el captor-SQL afirma por contenido con aridad exacta + `atLeastOnce`, no por `times(1)` (los matchers de varargs no distinguen llamadas).
+
+```
+backend/core/src/main/java/core_pymes/analytics/service/impl/AnalyticsServiceImpl.java # Regla A + NULLIF + early-return
+backend/core/src/test/java/core_pymes/analytics/service/impl/AnalyticsServiceImplTest.java # purchaseCount en stubs + 3 tests nuevos
+backend/core/src/test/java/core_pymes/integration/AnalyticsIntegrationTest.java # ajuste 1v1→0 + 3 tests nuevos
+docs/TO_DO.md # Regla A [x], Regla B documentada [Baja] post-unidades
+```
+
+**Tests:** unit `AnalyticsServiceImplTest` 17/17 (pareja 1v1 se calla, 3v3 recomienda, captor-SQL umbral+NULLIF); IT `AnalyticsIntegrationTest` 9/9 (`reglaA_minimoTresComprasPorLado`, `reglaA_alertasExigenTresCompras`, `precioCero_noRompeAlertas`); suite completo unit 206/206 + `verify -Pintegration` 65/65 BUILD SUCCESS. Sin commit/push (orden del usuario).
+
 ---
 
 ## 2026-09-15 — Factura: ITBMS DGI 0/7/10 por ítem + desglose + default 0 opt-in

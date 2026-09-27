@@ -55,10 +55,16 @@ export interface AlertItem {
   avgPrice: number;
   variationPct: number;
   severity: 'warning' | 'critical';
+  // Enriquecimiento UI (frontend-only, ver enrichAlert): tipo, proveedor señalado y evidencia.
+  alertKind?: 'PRICE_VARIATION' | 'SUPPLIER_PREMIUM';
+  providerId?: string | undefined;
+  providerName?: string | undefined;
+  purchaseCount?: number | undefined;
+  providerCount?: number | undefined;
 }
 
 // Wire compat: backend envía cvPct/premiumPct sin variationPct ni severity (ver AnalyticsServiceImpl.java:324,364)
-export type AlertItemWire = Omit<AlertItem, 'currentPrice' | 'variationPct' | 'severity'> & {
+export type AlertItemWire = Omit<AlertItem, 'currentPrice' | 'variationPct' | 'severity' | 'alertKind' | 'purchaseCount' | 'providerCount'> & {
   currentPrice?: number | string;
   variationPct?: number | string;
   severity?: string;
@@ -89,6 +95,9 @@ export interface SupplierRecommendationItem {
   savingsPerUnit: number;
   savingsPct: number;
   supplierCount: number;
+  // Enriquecimiento UI (frontend-only, ver enrichRecommendation): contra quién y en qué unidad.
+  comparedProviderName?: string | undefined;
+  unitLabel?: string | undefined;
 }
 
 export interface PricePredictionItem {

@@ -4,6 +4,35 @@ Registro cronológico de decisiones, problemas resueltos y estado del frontend.
 
 ---
 
+## 2026-09-27 — Info clara en recomendaciones y alertas (join UI, cero backend) + top 8
+
+**Contexto:** Usuario pidió frases accionables con los datos que ya llegan: recomendación `Proveedor Recomendado… diferencia de X por libra/kilo/unidad/paquete vs otro Proveedor`; alerta `producto subiendo X%… 3 compras en 2 proveedores`. Sin scrolls infinitos. Skills: `vue-best-practices` (referencias reactivity/sfc/data-flow/composables leídas y aplicadas) + `quasar-skilld` (verificación).
+
+**Qué se hizo (solo pantalla, cero queries/migraciones/llaves renombradas):**
+- **Tipos** `types/analytics.ts`: `AlertItem` + `comparedProviderName/unitLabel` en recomendación (opcionales frontend-only); `AlertItemWire` + `providerId/providerName` (el premium ya los manda, el tipo los botaba); `| undefined` por `exactOptionalPropertyTypes`.
+- **Joins puros** `utils/analyticsNormalize.ts` (utils, no composable): `enrichRecommendation` (caro = max avgPrice de la comparativa, unidad = `baseUnit` del catálogo) + `enrichAlert` (Σ compras, # proveedores; premium usa las del proveedor señalado). Sin match devuelven intacto y la frase se acorta sola (caché vieja no rompe).
+- **normalize** preserva `alertKind/providerId/providerName` (antes los botaba).
+- **Página** `AnalisisGastosPage.vue` (superficie de composición): 2 `computed` enriquecen con `supplierComparison` + `products` (ya cargados, cero requests). Sin split — derivación pura justificada.
+- **Tarjetas:** frase exacta (`Compra a Dorado a $0.60 — ahorras $0.33 por Libra frente a Distral ($0.93)` / `Orégano subiendo… basado en 3 compras en 2 proveedores` / `ProvB cobra… basado en 4 compras`). Fuera chips `Ahorro>5%/Probados`, fuera badge `único` (muerto por Regla A), vacíos honestos (regla 3+3+2). Top 8 + `+N más este mes`/`Ver menos` (`shallowRef` local por tarjeta).
+- **Fix preexistente:** `vitest.config.ts` + alias `src` (el spec del auth store fallaba al resolver; no era por este cambio). Suite 4 archivos / 38 tests verde.
+
+**Verificación:** `vitest` 9/9 spec + 38/38 total, `eslint` 0, `quasar build` PWA OK.
+
+```
+frontend/pymes/src/modules/core/types/analytics.ts
+frontend/pymes/src/modules/core/utils/analyticsNormalize.ts
+frontend/pymes/src/modules/core/utils/__tests__/analyticsNormalize.spec.ts
+frontend/pymes/src/modules/core/composables/useAnalytics.ts      # sin cambios (ya exponía supplierComparison)
+frontend/pymes/src/modules/core/pages/AnalisisGastosPage.vue
+frontend/pymes/src/modules/core/components/dashboard/SupplierRecommendationsCard.vue
+frontend/pymes/src/modules/core/components/dashboard/AlertsPanel.vue
+frontend/pymes/vitest.config.ts                                  # alias src
+```
+
+**Estado:** ✅ COMPLETADO — sin commit/push (directiva vigente)
+
+---
+
 ## 2026-09-19 — Fix registro manual: hint password + clearSession pendingTenant race
 
 **Contexto:** Beta reportó que en `/register` no se veían las reglas de contraseña (solo `Mínimo 8 caracteres` en placeholder). Backend exige `RegisterRequest.java:19` / `ResetPasswordRequest.java:13` `^(?=.*[A-Za-z])(?=.*\d).+$` (letra+número). Además, el registro manual se quedaba “estancado” sin `POST /auth/register` ni error en consola/Network — `OAuth2` funcionaba perfecto.

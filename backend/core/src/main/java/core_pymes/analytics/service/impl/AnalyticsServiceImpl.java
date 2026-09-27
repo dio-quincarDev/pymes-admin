@@ -42,6 +42,9 @@ public class AnalyticsServiceImpl implements AnalyticsService {
     private final PatrimonioRepository patrimonioRepository;
     private final PrestamoRepository prestamoRepository;
 
+    // ponytail: fija por ahora; si un tenant pide otro umbral, parametrizar por tenant
+    private static final int MIN_COMPRAS_POR_PROVEEDOR = 3;
+
     @Override
     @Transactional
     public AnalisisGasto ejecutarCompleto(UUID tenantId, String periodo) {
@@ -320,8 +323,10 @@ public class AnalyticsServiceImpl implements AnalyticsService {
                 FROM stats
                 WHERE stddev_price IS NOT NULL
                   AND (stddev_price / NULLIF(avg_price, 0)) > 0.15
+                  -- ponytail: regla A también en alertas — con <3 compras el CV es ruido
+                  AND purchases >= %d
                 ORDER BY cv_pct DESC
-                """;
+                """.formatted(MIN_COMPRAS_POR_PROVEEDOR);
         alerts.addAll(jdbc.query(variationSql, (rs, row) -> Map.<String, Object>of(
                 "productId", rs.getObject("product_id").toString(),
                 "productName", rs.getString("product_name"),
@@ -356,12 +361,18 @@ public class AnalyticsServiceImpl implements AnalyticsService {
                 SELECT sp.product_id, sp.product_name,
                        sp.provider_id, sp.provider_name,
                        sp.avg_price, pa.product_avg_price,
-                       ROUND((sp.avg_price - pa.product_avg_price) / pa.product_avg_price * 100, 2) AS premium_pct
+                       -- ponytail: NULLIF — promedio 0 (bonificación/muestra) reventaba con division by zero
+                       -- y como ejecutarCompleto no aísla motores, caía el guardado completo del período
+                       ROUND((sp.avg_price - pa.product_avg_price) / NULLIF(pa.product_avg_price, 0) * 100, 2) AS premium_pct
                 FROM supplier_prices sp
                 JOIN product_avg pa ON sp.product_id = pa.product_id
                 WHERE sp.avg_price > pa.product_avg_price * 1.15
+                  -- ponytail: promedio 0 (ajustes/notas de crédito) → la fila se descarta, no viaja con premium NULL
+                  AND pa.product_avg_price <> 0
+                  -- ponytail: regla A también en alertas — una sola compra cara no es "premium"
+                  AND sp.purchases >= %d
                 ORDER BY premium_pct DESC
-                """;
+                """.formatted(MIN_COMPRAS_POR_PROVEEDOR);
         alerts.addAll(jdbc.query(premiumSql, (rs, row) -> Map.<String, Object>of(
                 "productId", rs.getObject("product_id").toString(),
                 "productName", rs.getString("product_name"),
@@ -431,6 +442,8 @@ public class AnalyticsServiceImpl implements AnalyticsService {
 
     List<Map<String, Object>> analisisRecomendacionProveedor(UUID tenantId, LocalDate start, LocalDate end) {
         var comparativa = analisisComparativaProveedores(tenantId, start, end);
+        // ponytail: mes sin datos → ni siquiera correr la guarda de mezclados (ahorra 1 query)
+        if (comparativa.isEmpty()) return List.of();
         var mezclados = productosConUnidadesMezcladas(tenantId, start, end);
         var byProduct = new LinkedHashMap<String, List<Map<String, Object>>>();
         for (var entry : comparativa) {
@@ -447,6 +460,9 @@ public class AnalyticsServiceImpl implements AnalyticsService {
 
             var cheapest = suppliers.stream().min(Comparator.comparing(s -> (BigDecimal) s.get("avgPrice"))).orElseThrow();
             var mostExpensive = suppliers.stream().max(Comparator.comparing(s -> (BigDecimal) s.get("avgPrice"))).orElseThrow();
+            // ponytail: regla A — con <3 compras por lado el promedio es ruido; callar antes de calcular ahorro
+            if ((int) cheapest.get("purchaseCount") < MIN_COMPRAS_POR_PROVEEDOR
+                    || (int) mostExpensive.get("purchaseCount") < MIN_COMPRAS_POR_PROVEEDOR) continue;
             var cheapestPrice = (BigDecimal) cheapest.get("avgPrice");
             var expensivePrice = (BigDecimal) mostExpensive.get("avgPrice");
             var savings = expensivePrice.subtract(cheapestPrice);
