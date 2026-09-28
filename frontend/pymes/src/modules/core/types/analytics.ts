@@ -61,10 +61,24 @@ export interface AlertItem {
   providerName?: string | undefined;
   purchaseCount?: number | undefined;
   providerCount?: number | undefined;
+  // Recorrido primera→última compra (frontend-only, ver firstLastByProduct): ancla la frase
+  // "la comprabas a $X y ahora a $Y" sin comparar carriles distintos (Lb vs suelta).
+  priceTrail?: PriceTrail | undefined;
+  unitLabel?: string | undefined;
+}
+
+// Primera y última compra pagada del producto (precio ya normalizado por conversión).
+export interface PriceTrail {
+  firstPrice: number;
+  lastPrice: number;
+  count: number;
+  // todo el producto va por un solo carril en el historial (misma presentación y conversión);
+  // sin esto, primera→última compara Lb contra suelta y miente
+  singleLane: boolean;
 }
 
 // Wire compat: backend envía cvPct/premiumPct sin variationPct ni severity (ver AnalyticsServiceImpl.java:324,364)
-export type AlertItemWire = Omit<AlertItem, 'currentPrice' | 'variationPct' | 'severity' | 'alertKind' | 'purchaseCount' | 'providerCount'> & {
+export type AlertItemWire = Omit<AlertItem, 'currentPrice' | 'variationPct' | 'severity' | 'alertKind' | 'purchaseCount' | 'providerCount' | 'priceTrail' | 'unitLabel'> & {
   currentPrice?: number | string;
   variationPct?: number | string;
   severity?: string;

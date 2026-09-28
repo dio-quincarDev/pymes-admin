@@ -1,6 +1,7 @@
 import { describe, expect, it } from 'vitest';
-import { enrichAlert, enrichRecommendation, normalizeAlerts } from '../analyticsNormalize';
+import { alertBadge, alertDummyText, alertEvidence, alertFallbackText, enrichAlert, enrichAlertPrices, enrichRecommendation, firstLastByProduct, normalizeAlerts, resolveUnitLabel, withinTrustedAlertRange, withinTrustedRange } from '../analyticsNormalize';
 import type { AlertItem, AlertItemWire, SupplierComparisonItem, SupplierRecommendationItem } from '../../types/analytics';
+import type { Factura } from '../../types';
 
 describe('normalizeAlerts', () => {
   it('traduce cvPct a variationPct (caso Orégano, era 0.0%)', () => {
@@ -83,10 +84,45 @@ describe('enrichRecommendation', () => {
   ];
 
   it('encuentra al caro y la unidad (caso Harina Dorado vs Distral)', () => {
-    const r = enrichRecommendation(rec, comparison, [{ id: 'harina', baseUnit: 'Libra' }]);
+    const r = enrichRecommendation(rec, comparison, [{ id: 'harina', baseUnit: 'Libra' }], []);
 
     expect(r.comparedProviderName).toBe('Distral');
     expect(r.unitLabel).toBe('Libra');
+  });
+
+  it('traduce base_unit guardado como ID a su nombre (caso Azúcar Morena → Kg)', () => {
+    const azucar: SupplierRecommendationItem = {
+      ...rec, productId: 'azucar', productName: 'Azucar Morena', savingsPct: 58,
+    };
+    const units = [{ code: '1e949c0d-fc2f-4282-9fae-a5a4ccac2cfb', name: 'Kg' }];
+
+    const r = enrichRecommendation(
+      azucar, comparison, [{ id: 'azucar', baseUnit: '1e949c0d-fc2f-4282-9fae-a5a4ccac2cfb' }], units,
+    );
+
+    expect(r.unitLabel).toBe('Kg');
+  });
+
+  it('UUID desconocido se descarta (la tarjeta cae a "por unidad")', () => {
+    expect(resolveUnitLabel('1e949c0d-fc2f-4282-9fae-a5a4ccac2cfb', [])).toBeUndefined();
+    expect(resolveUnitLabel('Libra', [])).toBe('Libra');
+    expect(resolveUnitLabel(undefined, [])).toBeUndefined();
+  });
+
+  it('rango confiable 35–75% con bordes incluidos', () => {
+    expect(withinTrustedRange(35)).toBe(true);
+    expect(withinTrustedRange(58)).toBe(true);
+    expect(withinTrustedRange(75)).toBe(true);
+    expect(withinTrustedRange(34.9)).toBe(false);
+    expect(withinTrustedRange(75.1)).toBe(false);
+  });
+
+  it('alertas: solo ≤ +100% por defecto (contaminados VPS quedan fuera)', () => {
+    expect(withinTrustedAlertRange(72.8)).toBe(true);
+    expect(withinTrustedAlertRange(100)).toBe(true);
+    expect(withinTrustedAlertRange(100.1)).toBe(false);
+    expect(withinTrustedAlertRange(140.8)).toBe(false); // Huevos Caja x30
+    expect(withinTrustedAlertRange(112.3)).toBe(false); // Orégano "LB" conv 1
   });
 
   it('sin datos devuelve el rec intacto (la tarjeta acorta la frase)', () => {
@@ -139,5 +175,139 @@ describe('enrichAlert', () => {
 
     expect(a.purchaseCount).toBeUndefined();
     expect(a.variationPct).toBe(192.2);
+  });
+});
+
+describe('alertEvidence', () => {
+  const base: AlertItem = {
+    productId: 'x', productName: 'X', currentPrice: 1, avgPrice: 1,
+    variationPct: 50, severity: 'warning',
+  };
+
+  it('variación con plural correcto (caso Huevos: 2 compras, 2 proveedores)', () => {
+    expect(alertEvidence({ ...base, alertKind: 'PRICE_VARIATION', purchaseCount: 2, providerCount: 2 }))
+      .toBe(', basado en 2 compras en 2 proveedores');
+  });
+
+  it('singular sin "proveedore" (caso Miró: 2 compras, 1 proveedor)', () => {
+    expect(alertEvidence({ ...base, alertKind: 'PRICE_VARIATION', purchaseCount: 2, providerCount: 1 }))
+      .toBe(', basado en 2 compras en 1 proveedor');
+  });
+
+  it('premium solo compras (caso Parmigiana: 1 compra)', () => {
+    expect(alertEvidence({ ...base, alertKind: 'SUPPLIER_PREMIUM', providerName: 'La Parmigiana', purchaseCount: 1, providerCount: 3 }))
+      .toBe(', basado en 1 compra');
+  });
+
+  it('sin evidencia devuelve vacío (caché vieja no rompe)', () => {
+    expect(alertEvidence(base)).toBe('');
+  });
+});
+
+describe('firstLastByProduct', () => {
+  // Harina real 2026-09: primera en Lb, resto suelta → carriles mezclados, sin frase con números
+  const harina: Factura[] = [
+    { status: 'PAGADA', issueDate: '2026-09-07', items: [{ productId: 'harina', unitPrice: 0.6, conversionFactor: 1, presentacionId: 'lb-id' }] },
+    { status: 'PAGADA', issueDate: '2026-09-08', items: [{ productId: 'harina', unitPrice: 1.15, conversionFactor: 1, presentacionId: null }] },
+    { status: 'PAGADA', issueDate: '2026-09-08', items: [{ productId: 'harina', unitPrice: 0.93, conversionFactor: 1, presentacionId: null }] },
+  ] as unknown as Factura[];
+
+  it('Harina: primera $0.60, última $0.93, carril mezclado', () => {
+    const t = firstLastByProduct(harina).get('harina');
+
+    expect(t?.firstPrice).toBeCloseTo(0.6);
+    expect(t?.lastPrice).toBeCloseTo(0.93);
+    expect(t?.count).toBe(3);
+    expect(t?.singleLane).toBe(false);
+  });
+
+  it('mismo carril (misma presentación) pasa', () => {
+    const fs = [
+      { status: 'PAGADA', issueDate: '2026-09-01', items: [{ productId: 'a', unitPrice: 2, conversionFactor: 1, presentacionId: 'p1' }] },
+      { status: 'PAGADA', issueDate: '2026-09-02', items: [{ productId: 'a', unitPrice: 3, conversionFactor: 1, presentacionId: 'p1' }] },
+    ] as unknown as Factura[];
+
+    expect(firstLastByProduct(fs).get('a')?.singleLane).toBe(true);
+  });
+
+  it('ambas sueltas misma conversión pasan; distinta conversión o ANULADA se ignoran', () => {
+    const ok = [
+      { status: 'PAGADA', issueDate: '2026-09-01', items: [{ productId: 'b', unitPrice: 2, conversionFactor: 1, presentacionId: null }] },
+      { status: 'PAGADA', issueDate: '2026-09-02', items: [{ productId: 'b', unitPrice: 3, conversionFactor: 1, presentacionId: null }] },
+    ] as unknown as Factura[];
+    const mixed = [
+      { status: 'PAGADA', issueDate: '2026-09-01', items: [{ productId: 'c', unitPrice: 2, conversionFactor: 1, presentacionId: null }] },
+      { status: 'PAGADA', issueDate: '2026-09-02', items: [{ productId: 'c', unitPrice: 60, conversionFactor: 30, presentacionId: null }] },
+      { status: 'ANULADA', issueDate: '2026-09-03', items: [{ productId: 'c', unitPrice: 99, conversionFactor: 1, presentacionId: null }] },
+    ] as unknown as Factura[];
+
+    expect(firstLastByProduct(ok).get('b')?.singleLane).toBe(true);
+    const mc = firstLastByProduct(mixed).get('c');
+    expect(mc?.singleLane).toBe(false);
+    expect(mc?.count).toBe(2);
+  });
+});
+
+describe('alertDummyText', () => {
+  const base: AlertItem = {
+    productId: 'x', productName: 'X', currentPrice: 1, avgPrice: 1,
+    variationPct: 50, severity: 'warning', alertKind: 'PRICE_VARIATION',
+  };
+
+  it('carril mezclado (Harina) → revisar registro, sin números', () => {
+    const a = enrichAlertPrices(base, { firstPrice: 0.6, lastPrice: 0.93, count: 3, singleLane: false });
+
+    expect(alertDummyText(a)).toBe('Hay compras en distintas presentaciones, revisa el registro.');
+  });
+
+  it('carril único que sube → primera vs última con $ y %', () => {
+    const a = enrichAlertPrices(base, { firstPrice: 0.6, lastPrice: 0.93, count: 3, singleLane: true });
+
+    expect(alertDummyText(a)).toBe('La comprabas a $0.60 y ahora a $0.93 — subió $0.33 (+55.0%) en 3 compras.');
+  });
+
+  it('carril único que baja → dice bajó, no subió', () => {
+    const a = enrichAlertPrices(base, { firstPrice: 1, lastPrice: 0.8, count: 2, singleLane: true });
+
+    expect(alertDummyText(a)).toBe('La comprabas a $1.00 y ahora a $0.80 — bajó $0.20 (-20.0%) en 2 compras.');
+  });
+
+  it('premium carril único → de-más en plata, sin proveedor', () => {
+    const a = enrichAlertPrices(
+      { ...base, alertKind: 'SUPPLIER_PREMIUM', avgPrice: 2.12, variationPct: 112.3 },
+      { firstPrice: 0.32, lastPrice: 4.5, count: 3, singleLane: true },
+      'unidad',
+    );
+
+    expect(alertDummyText(a)).toBe('Se paga cara: hasta $2.38 de más por unidad.');
+  });
+
+  it('sin trail → vacío (el panel cae al texto anterior)', () => {
+    expect(alertDummyText(base)).toBe('');
+    expect(alertFallbackText({ ...base, purchaseCount: 2, providerCount: 1 }))
+      .toBe('Tendencia al alza, basado en 2 compras en 1 proveedor.');
+  });
+});
+
+describe('alertBadge', () => {
+  const base: AlertItem = {
+    productId: 'x', productName: 'X', currentPrice: 1, avgPrice: 1,
+    variationPct: 140.8, severity: 'critical', alertKind: 'PRICE_VARIATION',
+  };
+
+  it('variación carril único → subida en plata', () => {
+    expect(alertBadge(enrichAlertPrices(base, { firstPrice: 0.6, lastPrice: 0.93, count: 3, singleLane: true })))
+      .toBe('↑$0.33');
+  });
+
+  it('premium carril único → de-más en plata', () => {
+    expect(alertBadge(enrichAlertPrices(
+      { ...base, alertKind: 'SUPPLIER_PREMIUM', avgPrice: 2.12, variationPct: 112.3 },
+      { firstPrice: 0.32, lastPrice: 4.5, count: 3, singleLane: true },
+    ))).toBe('+$2.38');
+  });
+
+  it('sin carril único → % de antes (tolerante)', () => {
+    expect(alertBadge(base)).toBe('+140.8%');
   });
 });

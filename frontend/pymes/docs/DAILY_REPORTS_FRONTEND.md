@@ -4,6 +4,34 @@ Registro cronológico de decisiones, problemas resueltos y estado del frontend.
 
 ---
 
+## 2026-09-28 — Alertas solo-precios para dummies + guardia de carril + fetch condicional
+
+**Contexto:** Usuario frenó el % ("el tendero entiende centavos, no %") y luego frenó mi frase primera→última: sin `base_unit`/`presentacion_id` canónicos, comparar primera vs última puede mentir con números verdaderos. Caso testigo VPS: Harina 2026-09 — primera en Lb $0.60 vs resto suelta ($1.15/$0.93); mi frase "$0.60→$0.93" era mentira. Dilema resuelto con guardia de carril, no con backend (directiva: hoy no se toca backend).
+
+**Qué se hizo (solo front, endpoint existente, sin commit/push):**
+- **Tipos** `types/analytics.ts`: `PriceTrail {firstPrice, lastPrice, count, singleLane}` + `priceTrail?/unitLabel?` en `AlertItem` (frontend-only, sumados al `Omit` del Wire).
+- **Guardia** `firstLastByProduct` (facturas PAGADA, precio normalizado por conversión, orden estable por fecha): carril = `presentacion_id + conversion_factor`; `singleLane` exige un solo carril en todo el historial del producto.
+- **Frases** `alertDummyText` (solo precios, cero proveedores/promedios/"basado en"): carril único → `La comprabas a $0.60 y ahora a $0.93 — subió $0.33 (+55.0%) en 3 compras` (bajada dice "bajó"; premium carril único → `Se paga cara: hasta $D de más`); carril mezclado → `Hay compras en distintas presentaciones, revisa el registro`, nunca números. `alertFallbackText` conserva el texto anterior cuando no hay facturas. `alertBadge` en plata (`↑$0.33`, `+$2.38`) con fallback a %.
+- **Tope** `TRUSTED_ALERT_MAX_PCT=100` (gemelo del 35–75 de recs): VPS 2026-09 confirma que +100 corta exactamente entre los 4 contaminados (Huevos +140.8/+99.6 ratio 459x por Caja x30 a $0.13; Orégano +112.3/+101.4 ratio 14x por "LB" conv 1; Bolsas +72.8 ratio 8x queda debajo — la malla es gruesa, la guardia fina va en backend diferido).
+- **Mitigación multitenant** `loadFacturas()` condicional: solo si `alerts.length > 0` (watch en página, idempotente ante cambios de período); mes limpio = cero requests. Endpoint `@Cacheable("facturas", tenantId)` en Redis — 73 facturas/283 ítems hoy (<100 KB); aislamiento `tenant_id` verificado en repo + servicio.
+- **Docs:** `docs/TO_DO.md` alineado al approach verdadero — `base_unit` canónico = **ID** (entrada anterior "guardar el nombre" invertida y corregida), plan V7 + validación + seed a IDs diferido; presentaciones reales Harina/Orégano + reasignar sueltas pendientes.
+
+**Verificación:** `vitest` 28/28 spec (11 nuevos: Harina real, subida, bajada, premium, badge), 57/57 total, `eslint` 0, `quasar build` PWA OK.
+
+```
+frontend/pymes/src/modules/core/types/analytics.ts
+frontend/pymes/src/modules/core/utils/analyticsNormalize.ts
+frontend/pymes/src/modules/core/utils/__tests__/analyticsNormalize.spec.ts
+frontend/pymes/src/modules/core/composables/useAnalisisGastos.ts      # +loadFacturas condicional
+frontend/pymes/src/modules/core/pages/AnalisisGastosPage.vue          # watch alerts + enrichAlertPrices
+frontend/pymes/src/modules/core/components/dashboard/AlertsPanel.vue  # frase dummy + badge plata
+docs/TO_DO.md                                                          # approach verdadero (ID canónico)
+```
+
+**Estado:** ✅ COMPLETADO — sin commit/push (directiva vigente)
+
+---
+
 ## 2026-09-27 — Info clara en recomendaciones y alertas (join UI, cero backend) + top 8
 
 **Contexto:** Usuario pidió frases accionables con los datos que ya llegan: recomendación `Proveedor Recomendado… diferencia de X por libra/kilo/unidad/paquete vs otro Proveedor`; alerta `producto subiendo X%… 3 compras en 2 proveedores`. Sin scrolls infinitos. Skills: `vue-best-practices` (referencias reactivity/sfc/data-flow/composables leídas y aplicadas) + `quasar-skilld` (verificación).

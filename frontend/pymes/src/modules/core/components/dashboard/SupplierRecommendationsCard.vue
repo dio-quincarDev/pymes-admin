@@ -1,6 +1,7 @@
 <script setup lang="ts">
 import { computed, shallowRef } from 'vue';
 import { useNumberFormat } from '../../composables/useNumberFormat';
+import { withinTrustedRange } from '../../utils/analyticsNormalize';
 import type { SupplierRecommendationItem } from '../../types/analytics';
 
 interface Props {
@@ -14,9 +15,12 @@ const { formatCurrency } = useNumberFormat();
 const TOP_VISIBLE = 8;
 const expanded = shallowRef(false);
 
-const visibleItems = computed(() =>
-  expanded.value ? props.items : props.items.slice(0, TOP_VISIBLE),
-);
+// ponytail: por defecto solo rango confiable 35–75% (fuera puede haber contaminación de unidades);
+// el resto queda tras "ver más", sin chips ni filtros opcionales
+const visibleItems = computed(() => {
+  if (expanded.value) return props.items;
+  return props.items.filter((r) => withinTrustedRange(r.savingsPct)).slice(0, TOP_VISIBLE);
+});
 const hiddenCount = computed(() => props.items.length - visibleItems.value.length);
 </script>
 
