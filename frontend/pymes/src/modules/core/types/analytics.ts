@@ -71,6 +71,8 @@ export interface AlertItem {
 export interface PriceTrail {
   firstPrice: number;
   lastPrice: number;
+  // pico del historial: si primera==última pero hubo pico en el medio, la alerta es por él
+  maxPrice: number;
   count: number;
   // todo el producto va por un solo carril en el historial (misma presentación y conversión);
   // sin esto, primera→última compara Lb contra suelta y miente

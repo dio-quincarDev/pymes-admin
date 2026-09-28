@@ -212,11 +212,12 @@ describe('firstLastByProduct', () => {
     { status: 'PAGADA', issueDate: '2026-09-08', items: [{ productId: 'harina', unitPrice: 0.93, conversionFactor: 1, presentacionId: null }] },
   ] as unknown as Factura[];
 
-  it('Harina: primera $0.60, última $0.93, carril mezclado', () => {
+  it('Harina: primera $0.60, última $0.93, pico $1.15, carril mezclado', () => {
     const t = firstLastByProduct(harina).get('harina');
 
     expect(t?.firstPrice).toBeCloseTo(0.6);
     expect(t?.lastPrice).toBeCloseTo(0.93);
+    expect(t?.maxPrice).toBeCloseTo(1.15);
     expect(t?.count).toBe(3);
     expect(t?.singleLane).toBe(false);
   });
@@ -255,27 +256,45 @@ describe('alertDummyText', () => {
   };
 
   it('carril mezclado (Harina) → revisar registro, sin números', () => {
-    const a = enrichAlertPrices(base, { firstPrice: 0.6, lastPrice: 0.93, count: 3, singleLane: false });
+    const a = enrichAlertPrices(base, { firstPrice: 0.6, lastPrice: 0.93, maxPrice: 1.15, count: 3, singleLane: false });
 
     expect(alertDummyText(a)).toBe('Hay compras en distintas presentaciones, revisa el registro.');
   });
 
   it('carril único que sube → primera vs última con $ y %', () => {
-    const a = enrichAlertPrices(base, { firstPrice: 0.6, lastPrice: 0.93, count: 3, singleLane: true });
+    const a = enrichAlertPrices(base, { firstPrice: 0.6, lastPrice: 0.93, maxPrice: 0.93, count: 3, singleLane: true });
 
     expect(alertDummyText(a)).toBe('La comprabas a $0.60 y ahora a $0.93 — subió $0.33 (+55.0%) en 3 compras.');
   });
 
   it('carril único que baja → dice bajó, no subió', () => {
-    const a = enrichAlertPrices(base, { firstPrice: 1, lastPrice: 0.8, count: 2, singleLane: true });
+    const a = enrichAlertPrices(base, { firstPrice: 1, lastPrice: 0.8, maxPrice: 1, count: 2, singleLane: true });
 
     expect(alertDummyText(a)).toBe('La comprabas a $1.00 y ahora a $0.80 — bajó $0.20 (-20.0%) en 2 compras.');
+  });
+
+  it('frase +720% (Bolsas) → se calla aunque el carril sea único', () => {
+    const a = enrichAlertPrices(base, { firstPrice: 0.25, lastPrice: 2.05, maxPrice: 2.05, count: 3, singleLane: true });
+
+    expect(alertDummyText(a)).toBe('Hay compras en distintas presentaciones, revisa el registro.');
+  });
+
+  it('primera==última con pico (Azúcar $1.40→$3.35→$1.40) → dice el pico, no +0.0%', () => {
+    const a = enrichAlertPrices(base, { firstPrice: 1.4, lastPrice: 1.4, maxPrice: 3.35, count: 3, singleLane: true });
+
+    expect(alertDummyText(a)).toBe('Tuvo un pico de $3.35, hoy está en $1.40. En 3 compras.');
+  });
+
+  it('primera==última sin pico (Mayonesa $3.25) → se mantiene', () => {
+    const a = enrichAlertPrices(base, { firstPrice: 3.25, lastPrice: 3.25, maxPrice: 3.25, count: 5, singleLane: true });
+
+    expect(alertDummyText(a)).toBe('Se mantiene a $3.25 en 5 compras.');
   });
 
   it('premium carril único → de-más en plata, sin proveedor', () => {
     const a = enrichAlertPrices(
       { ...base, alertKind: 'SUPPLIER_PREMIUM', avgPrice: 2.12, variationPct: 112.3 },
-      { firstPrice: 0.32, lastPrice: 4.5, count: 3, singleLane: true },
+      { firstPrice: 0.32, lastPrice: 4.5, maxPrice: 4.5, count: 3, singleLane: true },
       'unidad',
     );
 
@@ -296,14 +315,26 @@ describe('alertBadge', () => {
   };
 
   it('variación carril único → subida en plata', () => {
-    expect(alertBadge(enrichAlertPrices(base, { firstPrice: 0.6, lastPrice: 0.93, count: 3, singleLane: true })))
+    expect(alertBadge(enrichAlertPrices(base, { firstPrice: 0.6, lastPrice: 0.93, maxPrice: 0.93, count: 3, singleLane: true })))
       .toBe('↑$0.33');
+  });
+
+  it('bajada (Miró $3.70→$1.68) → flecha para abajo', () => {
+    expect(alertBadge(enrichAlertPrices(base, { firstPrice: 3.7, lastPrice: 1.68, maxPrice: 3.7, count: 2, singleLane: true })))
+      .toBe('↓$2.02');
+  });
+
+  it('sin cambio (Azúcar $1.40) → % del backend, nada de ↑$0.00', () => {
+    expect(alertBadge(enrichAlertPrices(
+      { ...base, variationPct: 54.9 },
+      { firstPrice: 1.4, lastPrice: 1.4, maxPrice: 3.35, count: 3, singleLane: true },
+    ))).toBe('+54.9%');
   });
 
   it('premium carril único → de-más en plata', () => {
     expect(alertBadge(enrichAlertPrices(
       { ...base, alertKind: 'SUPPLIER_PREMIUM', avgPrice: 2.12, variationPct: 112.3 },
-      { firstPrice: 0.32, lastPrice: 4.5, count: 3, singleLane: true },
+      { firstPrice: 0.32, lastPrice: 4.5, maxPrice: 4.5, count: 3, singleLane: true },
     ))).toBe('+$2.38');
   });
 

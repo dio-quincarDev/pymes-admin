@@ -158,6 +158,7 @@ export function firstLastByProduct(
       map.set(r.productId, {
         firstPrice: r.price,
         lastPrice: r.price,
+        maxPrice: r.price,
         count: 1,
         singleLane: true,
         lanes: new Set([r.lane]),
@@ -165,6 +166,7 @@ export function firstLastByProduct(
       continue;
     }
     e.lastPrice = r.price;
+    if (r.price > e.maxPrice) e.maxPrice = r.price;
     e.count += 1;
     e.lanes.add(r.lane);
   }
@@ -216,7 +218,15 @@ export function alertDummyText(alert: AlertItem): string {
   const d = t.lastPrice - t.firstPrice;
   const pct = t.firstPrice > 0 ? (d / t.firstPrice) * 100 : 0;
   const buys = `${t.count} compra${t.count === 1 ? '' : 's'}`;
+  // Tope negocio también a la frase: el % primera→última puede dispararse aunque el CV pase
+  // (Bolsas +720% con CV +72.8%) — arriba de 100 es registro, no mercado
+  if (Math.abs(pct) > TRUSTED_ALERT_MAX_PCT) return 'Hay compras en distintas presentaciones, revisa el registro.';
   const head = `La comprabas a ${money(t.firstPrice)} y ahora a ${money(t.lastPrice)}`;
+  // Primera==última: el backend alertó por lo del medio — pico real o estabilidad real
+  if (d === 0) {
+    if (t.maxPrice > t.lastPrice) return `Tuvo un pico de ${money(t.maxPrice)}, hoy está en ${money(t.lastPrice)}. En ${buys}.`;
+    return `Se mantiene a ${money(t.lastPrice)} en ${buys}.`;
+  }
   if (d < 0) return `${head} — bajó ${money(-d)} (${pct.toFixed(1)}%) en ${buys}.`;
   return `${head} — subió ${money(d)} (+${pct.toFixed(1)}%) en ${buys}.`;
 }
@@ -238,7 +248,9 @@ export function alertBadge(alert: AlertItem): string {
       return `+${money((alert.avgPrice * toNumber(alert.variationPct, 0)) / 100)}`;
     }
     if (alert.alertKind !== 'SUPPLIER_PREMIUM') {
-      return `↑${money(Math.abs(t.lastPrice - t.firstPrice))}`;
+      const delta = t.lastPrice - t.firstPrice;
+      // Sin cambio no hay plata que mostrar — se cae al % del backend que guarda la señal
+      if (delta !== 0) return `${delta < 0 ? '↓' : '↑'}${money(Math.abs(delta))}`;
     }
   }
   const p = toNumber(alert.variationPct, 0);
