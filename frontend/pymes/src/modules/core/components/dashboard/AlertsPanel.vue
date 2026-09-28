@@ -1,15 +1,13 @@
 <script setup lang="ts">
 import { computed, shallowRef } from 'vue';
 import type { AlertItem } from '../../types/analytics';
-import { useNumberFormat } from '../../composables/useNumberFormat';
-import { toNumber } from '../../utils/analyticsNormalize';
+import { alertBadge, alertDummyText, alertFallbackText, toNumber, withinTrustedAlertRange } from '../../utils/analyticsNormalize';
 
 interface Props {
   items: AlertItem[];
 }
 
 const props = defineProps<Props>();
-const { formatCurrency } = useNumberFormat();
 
 // ponytail: filtro UI puro — esconde basura 0.00 (Mayonesa 0.00 vs 3.88) sin tocar backend; si necesitás persistir, filtra en AnalyticsServiceImpl
 const filteredAlerts = computed(() =>
@@ -20,19 +18,17 @@ const filteredAlerts = computed(() =>
 const TOP_VISIBLE = 8;
 const expanded = shallowRef(false);
 
-const visibleAlerts = computed(() =>
-  expanded.value ? filteredAlerts.value : filteredAlerts.value.slice(0, TOP_VISIBLE),
-);
+const visibleAlerts = computed(() => {
+  if (expanded.value) return filteredAlerts.value;
+  // ponytail: por defecto solo alertas ≤ +100% (arriba es error de registro: Huevos +140%, Orégano +112%);
+  // el resto queda tras "ver más", gemelo del rango 35–75 de recomendaciones
+  return filteredAlerts.value
+    .filter((a) => withinTrustedAlertRange(toNumber(a.variationPct, 0)))
+    .slice(0, TOP_VISIBLE);
+});
 const hiddenCount = computed(() => filteredAlerts.value.length - visibleAlerts.value.length);
 
 const hasCritical = computed(() => filteredAlerts.value.some((a) => a.severity === 'critical'));
-
-function evidenceSuffix(alert: AlertItem): string {
-  if (!alert.purchaseCount) return '';
-  const buys = `${alert.purchaseCount} compra${alert.purchaseCount === 1 ? '' : 's'}`;
-  if (alert.alertKind === 'SUPPLIER_PREMIUM' || !alert.providerCount) return `, basado en ${buys}`;
-  return `, basado en ${buys} en ${alert.providerCount} proveedore${alert.providerCount === 1 ? '' : 's'}`;
-}
 </script>
 
 <template>
@@ -61,14 +57,13 @@ function evidenceSuffix(alert: AlertItem): string {
         <q-item-section>
           <q-item-label class="alerts-panel__name">{{ alert.productName }}</q-item-label>
           <q-item-label caption class="alerts-panel__detail">
-            <template v-if="alert.alertKind === 'SUPPLIER_PREMIUM' && alert.providerName">{{ alert.providerName }} cobra {{ formatCurrency(alert.currentPrice) }} sobre el promedio {{ formatCurrency(alert.avgPrice) }}</template>
-            <template v-else>Subiendo: {{ formatCurrency(alert.currentPrice) }} vs promedio {{ formatCurrency(alert.avgPrice) }}</template>{{ evidenceSuffix(alert) }}.
+            {{ alertDummyText(alert) || alertFallbackText(alert) }}
           </q-item-label>
         </q-item-section>
         <q-item-section side>
           <q-badge
             :color="alert.severity === 'critical' ? 'negative' : 'warning'"
-            :label="`${alert.variationPct > 0 ? '+' : ''}${alert.variationPct?.toFixed(1) ?? '0.0'}%`"
+            :label="alertBadge(alert)"
             rounded
           />
         </q-item-section>
