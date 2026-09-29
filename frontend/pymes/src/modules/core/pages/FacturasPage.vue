@@ -225,6 +225,7 @@ import { useAuthStore } from 'src/modules/auth/store'
 import { useTutorial } from 'src/composables/useTutorial'
 import { formatCurrency } from 'src/utils/format'
 import { calcBreakdown } from '../utils/invoiceMath'
+import { SUELTO, isItemComplete, toPresentacionPayload } from '../utils/invoiceItemGuards'
 import { facturaService } from '../services/factura.service'
 import { productoService } from '../services/producto.service'
 import { proveedorService } from '../services/proveedor.service'
@@ -376,6 +377,7 @@ interface ItemForm {
   _key: number
   productoId: string | null
   presentacionId: string | null
+  fueSuelto: boolean
   cantidad: number | null
   valor: number | null
   descuento: number
@@ -418,6 +420,7 @@ function addItem() {
     _key: ++keyCounter,
     productoId: null,
     presentacionId: null,
+    fueSuelto: false,
     cantidad: null,
     valor: null,
     descuento: 0,
@@ -428,12 +431,14 @@ function addItem() {
 function onProductoChange(item: ItemForm, productoId: string | null) {
   item.productoId = productoId
   item.presentacionId = null
+  item.fueSuelto = false
   const prod = allProducts.value.find(p => p.value === productoId)
   item.valor = prod?.lastUnitPrice ?? null
 }
 
 function onPresentacionChange(item: ItemForm, presId: string | null) {
   item.presentacionId = presId
+  item.fueSuelto = presId === SUELTO
 }
 
 function removeItem(i: number) {
@@ -595,7 +600,8 @@ async function openEdit(factura: Factura) {
       items: gastoOperativo ? [] : f.items.map(item => ({
         _key: ++keyCounter,
         productoId: item.productId,
-        presentacionId: item.presentacionId,
+        presentacionId: item.fueSuelto ? SUELTO : item.presentacionId,
+        fueSuelto: item.fueSuelto ?? false,
         cantidad: item.cantidadPresentacion ? Number(item.cantidadPresentacion) : (item.conversionFactor && item.conversionFactor > 1 ? Number(item.quantity) / item.conversionFactor : Number(item.quantity)),
         valor: item.valorPresentacion ? Number(item.valorPresentacion) : (item.conversionFactor && item.conversionFactor > 1 ? Number(item.unitPrice) * item.conversionFactor : Number(item.unitPrice)),
         descuento: item.descuentoEsPorcentaje && item.descuentoInput ? Number(item.descuentoInput) : (item.discount && item.quantity ? Number(item.discount) / Number(item.quantity) * 100 : 0),
@@ -666,8 +672,7 @@ async function loadDependencies() {
     const presNameMap = new Map<string, string>()
     const convMap = new Map<string, number>()
     for (const p of prods) {
-      const baseUnitName = unitNameMap.value.get(p.baseUnit) || p.baseUnit
-      const unitOpts: { label: string; value: string }[] = [{ label: baseUnitName, value: '' }]
+      const unitOpts: { label: string; value: string }[] = [{ label: 'Standard', value: SUELTO }]
       for (const pres of (p.presentaciones || [])) {
         unitOpts.push({ label: pres.name, value: pres.id })
         presNameMap.set(pres.id, pres.name)
@@ -693,6 +698,15 @@ async function save() {
   }
   saving.value = true
   try {
+    // ponytail: pre-flight en palabras del usuario — el 400 del backend es red, no UX
+    if (!gastoOperativo) {
+      const incompleto = !form.value.items.length || form.value.items.some(i => !isItemComplete(i))
+      if (incompleto) {
+        $q.notify({ type: 'warning', message: 'Cada item necesita producto, unidad, cantidad y valor' })
+        saving.value = false
+        return
+      }
+    }
     const resolvedCategoria = gastoOperativo
       ? (form.value.categoria ? (categoriaMap.value.get(form.value.categoria) ?? form.value.categoria) : null)
       : null;
@@ -707,13 +721,15 @@ async function save() {
       descuentoGlobal: form.value.descuentoGlobal || 0,
       total: gastoOperativo ? form.value.total : null,
       items: gastoOperativo ? [] : form.value.items.map(item => {
-        const conv = item.presentacionId
+        const conv = !item.fueSuelto && item.presentacionId
           ? (presentationConversionMap.value.get(item.presentacionId) || 1)
           : 1
         const val = item.valor || 0
+        const pres = toPresentacionPayload(item)
         return {
           productoId: item.productoId!,
-          presentacionId: item.presentacionId || null,
+          presentacionId: pres.presentacionId,
+          fueSuelto: pres.fueSuelto,
           cantidadPresentacion: item.cantidad || 0,
           valorPresentacion: val,
           precioUnitario: conv > 0 ? val / conv : val,

@@ -8,6 +8,24 @@ Registro de lo implementado y lo pendiente.
 
 ---
 
+## 2026-09-29 — Unidades: cura raíz (base_unit ID + 8 globales + fue_suelto)
+
+**Contexto:** hallazgo VPS: ~149 productos mezclaban nombres ("Kg") con IDs en `base_unit`; 33 presentaciones ×1; filas de factura sin `presentacion_id` en silencio. Decisión: el ID de `template_units` es la clave exacta (comparar por ID, sin tabla de equivalencias — YAGNI).
+
+**Qué se hizo (commit `3c06cf8` en `feature/report`, sin push):**
+- **V7 `V7__normalize_units.sql`** — A0 `''`→NULL, A0b puente "Botella" donde falte, A nombres→IDs idempotente, B `conversion`→`NUMERIC(19,6)`, C `fue_suelto`, D 8 globales + re-apunte industria→global por nombre. Probada en docker `v7check` (casos VPS + idempotencia OK).
+- **Globales** — Kg, Gr, Lb, Oz (nueva), Ml, Litro, Galón, Unidad con UUIDs fijos iguales en `SeedDataRunner.GLOBAL_UNITS` y V7; `GlobalUnitsMigrationTest` vigila deriva. Caja/Bolsa/Paquete/Lata quedan por industria. UUID se queda (migrar a Long = reescribir todo sin beneficio).
+- **Seed** — `seedGlobalUnits()` con guard `NOT EXISTS`, industrias sin duplicadas globales, `addProd` fallback industria→global con fail-fast, guard excluye `'global'` del conteo.
+- **Servicios** — `SetupServiceImpl` preview/copia mezclan industria+globales (industria primero); `ProductoServiceImpl.resolveBaseUnit` acepta industria o global (`blank→null`, texto desconocido→400); item sin `presentacionId` exige `fueSuelto=true` o 400.
+- **Skipped:** tabla de equivalencias, migrar UUID→Long, rechazar ×1 legacy en backend (solo UI valida >1; los 33 existentes siguen).
+- **Ponytail:** parche UI `resolveUnitLabel` traduce ID→nombre vía `SetupInfo.units` (el ID nunca se muestra).
+
+**Tests:** 210 unit + 66 IT verdes (incluye `GlobalUnitsMigrationTest` nuevo).
+
+**Docs:** `CORE.md` (fila V7), `SEED_TEMPLATES.md` (sección globales), `CORE_MIGRATIONS_STRATEGY.md` (fila V7), `TO_DO.md` (cura raíz + globales [x]).
+
+---
+
 ## 2026-09-27 — Analytics: Regla A en recomendaciones y alertas + NULLIF anti division-by-zero
 
 **Contexto:** recomendaciones y alertas se emitían con 1-2 compras (promedio = ruido) y con presentaciones mezcladas (promedio miente). Además `premiumSql` dividía por el promedio del producto sin `NULLIF`: con promedio 0 (ajustes/notas de crédito) reventaba con `division by zero` y, como `ejecutarCompleto` no aísla motores, se perdía el guardado completo del período. Filosofía: callar en vez de mentir.

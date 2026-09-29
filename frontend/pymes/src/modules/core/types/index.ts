@@ -101,11 +101,13 @@ export interface ItemFactura {
   descuentoEsPorcentaje?: boolean
   itbmsTasa?: number
   itbmsMonto?: number
+  fueSuelto?: boolean
 }
 
 export interface ItemFacturaRequest {
   productoId: string
   presentacionId?: string | null
+  fueSuelto?: boolean
   cantidad?: number
   precioUnitario?: number
   descuento?: number | null

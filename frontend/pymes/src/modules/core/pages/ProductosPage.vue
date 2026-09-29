@@ -30,6 +30,7 @@ const catOptions = shallowRef<{ label: string; value: string }[]>([])
 const setupCategories = shallowRef<SetupCategory[]>([])
 const unitOptions = shallowRef<{ label: string; value: string }[]>([])
 const providerOptions = shallowRef<{ label: string; value: string }[]>([])
+const setupReady = shallowRef(false)
 
 function flattenCategories(cats: SetupCategory[], prefix = ''): { label: string; value: string }[] {
   const result: { label: string; value: string }[] = []
@@ -64,6 +65,9 @@ const totalCategories = computed(() => {
   return seen.size
 })
 
+// ponytail: sin industria no hay catalogo — el form manda a onboarding, no muestra selector vacio
+const needsOnboarding = computed(() => setupReady.value && !unitOptions.value.length)
+
 async function loadSetup() {
   if (!tenantId) return
   try {
@@ -75,7 +79,9 @@ async function loadSetup() {
     catOptions.value = flattenCategories(setupCategories.value)
     unitOptions.value = (setupRes.data.units || []).map(u => ({ label: u.name, value: u.code }))
     providerOptions.value = provRes.data.map(p => ({ label: p.name, value: p.id }))
-  } catch { /* non-critical */ }
+  } catch { /* non-critical */ } finally {
+    setupReady.value = true
+  }
 }
 
 async function load(p = 1) {
@@ -311,13 +317,17 @@ function handleKeydown(e: KeyboardEvent) {
         <q-separator dark />
         <q-card-section>
           <q-form ref="formRef" @submit.prevent="save" class="q-gutter-y-md">
+            <q-banner v-if="needsOnboarding" dense class="bg-warning text-dark">
+              Completa tu configuración primero para tener unidades.
+              <template v-slot:action><q-btn flat dense label="Ir" to="/onboarding" /></template>
+            </q-banner>
             <q-input dark filled v-model="form.name" label="Nombre" :rules="[v => !!v || 'Requerido']" />
             <q-select dark filled v-model="form.category" label="Categoría" :options="catOptions" option-value="value" option-label="label" emit-value map-options use-input input-debounce="0" @filter="(val, update) => { update(() => catOptions.filter(o => !val || o.label.toLowerCase().includes(val.toLowerCase()))) }" :rules="[v => !!v || 'Requerido']" />
-            <q-select dark filled v-model="form.baseUnit" label="Unidad base" :options="unitOptions" option-value="value" option-label="label" emit-value map-options use-input input-debounce="0" @filter="(val, update) => { update(() => unitOptions.filter(o => !val || o.label.toLowerCase().includes(val.toLowerCase()))) }" />
+            <q-select dark filled v-model="form.baseUnit" label="Unidad base" :options="unitOptions" option-value="value" option-label="label" emit-value map-options use-input input-debounce="0" @filter="(val, update) => { update(() => unitOptions.filter(o => !val || o.label.toLowerCase().includes(val.toLowerCase()))) }" :rules="[v => !!v || 'Elige la unidad base del catálogo']" />
             <q-select dark filled v-model="form.proveedorId" label="Proveedor" :options="providerOptions" option-value="value" option-label="label" emit-value map-options clearable />
             <div class="row justify-end q-gutter-x-sm">
               <q-btn flat label="Cancelar" color="accent" v-close-popup />
-              <q-btn type="submit" label="Guardar" color="primary" :loading="saving" />
+              <q-btn type="submit" label="Guardar" color="primary" :loading="saving" :disable="needsOnboarding" />
             </div>
           </q-form>
         </q-card-section>

@@ -4,6 +4,36 @@ Registro cronológico de decisiones, problemas resueltos y estado del frontend.
 
 ---
 
+## 2026-09-29 — Unidades y presentaciones: sin defaults silenciosos + Standard
+
+**Contexto:** cierre del gap de unidades en las 3 capas (backend V7 + `fue_suelto` ya commiteado en `3c06cf8`). Faltaba el frontend: el diálogo aceptaba conversión 1 en silencio y la factura defaulteaba a unidad base con `value: ''`. Spec previo en `.ulpi/design/unidades-presentaciones.md`.
+
+**Qué se hizo (sin commit/push hasta este commit):**
+- **Empaques** `PresentacionesDialog.vue` — guardia `>1` antes que aviso (`canAdd` deshabilita Agregar), `type="number"` `min=2`, preview siempre visible (válido verde, inválido ámbar). Sin `<Transition>` (contenido condicional, no animación).
+- **Productos** `ProductosPage.vue` — onboarding-first: sin catálogo (`units` vacío) banner "Completa tu configuración primero" → `/onboarding`; `baseUnit` requerido sin opción vacía.
+- **Facturas** `FacturasPage.vue` — selector `Unidad: [Standard | empaques...]` sin primera opción vacía; centinela UI `SUELTO='__SUELTO__'` (nunca viaja; se traduce a `presentacionId: null + fueSuelto: true`); pre-flight `isItemComplete` al guardar (aviso "producto, unidad, cantidad y valor", no 400 críptico); `toPresentacionPayload` centraliza la traducción.
+- **Tipos** `types/index.ts` — `ItemFacturaRequest`/`ItemFactura` `+fueSuelto?: boolean`; `ItemForm` (page + card) `+fueSuelto: boolean` default `false`.
+- **Util** `utils/invoiceItemGuards.ts` **NUEVO** + spec (6 tests: payload suelto/empaque, completitud, `valorPresentacion`). `InvoiceItemCard` conversión suelto=1 (precio base directo).
+- **Etiqueta:** la opción sin empaque se dice **"Standard"** (decisión usuario 2026-09-29; 1 sola línea en el selector, nada más).
+- **Ponytail:** `Regle` y `setTimeout` nativo preexistentes se dejan (auditoría quasar-skilld retroactiva: sin legacy/`content-*`/`.sync`/`GoBack`); norma propuesta: cargar `quasar-skilld` antes de tocar Quasar.
+
+**Verificación:** `vitest` 68/68, `eslint` 0, `quasar build` PWA OK.
+
+```
+frontend/pymes/src/modules/core/utils/invoiceItemGuards.ts          # NUEVO SUELTO/isItemComplete/toPresentacionPayload
+frontend/pymes/src/modules/core/utils/__tests__/invoiceItemGuards.spec.ts # NUEVO 6 tests
+frontend/pymes/src/modules/core/components/PresentacionesDialog.vue # guardia >1 + preview + type number
+frontend/pymes/src/modules/core/pages/ProductosPage.vue             # onboarding-first + baseUnit requerido
+frontend/pymes/src/modules/core/pages/FacturasPage.vue              # Standard + pre-flight + payload
+frontend/pymes/src/modules/core/components/facturas/InvoiceItemCard.vue # conv suelto=1
+frontend/pymes/src/modules/core/types/index.ts                      # +fueSuelto
+.ulpi/design/unidades-presentaciones.md                              # spec UI
+```
+
+**Estado:** ✅ COMPLETADO — commit en `feature/report`, sin push (directiva vigente)
+
+---
+
 ## 2026-09-28 — Alertas solo-precios para dummies + guardia de carril + fetch condicional
 
 **Contexto:** Usuario frenó el % ("el tendero entiende centavos, no %") y luego frenó mi frase primera→última: sin `base_unit`/`presentacion_id` canónicos, comparar primera vs última puede mentir con números verdaderos. Caso testigo VPS: Harina 2026-09 — primera en Lb $0.60 vs resto suelta ($1.15/$0.93); mi frase "$0.60→$0.93" era mentira. Dilema resuelto con guardia de carril, no con backend (directiva: hoy no se toca backend).
