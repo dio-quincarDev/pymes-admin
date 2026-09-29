@@ -12,6 +12,7 @@ import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.data.domain.PageRequest;
 import org.springframework.data.domain.Sort;
 
+import java.math.BigDecimal;
 import java.util.List;
 import java.util.UUID;
 
@@ -244,11 +245,11 @@ class ProductoRepositoryTest extends AbstractJpaTest {
 
         @BeforeEach
         void setUpPresentaciones() {
-            presArroz = em.persistFlushFind(Presentacion.builder().producto(productA).name("Bolsa 1kg").conversion(1).build());
-            em.persistFlushFind(Presentacion.builder().producto(productA).name("Saco 50kg").conversion(50).build());
-            presLeche = em.persistFlushFind(Presentacion.builder().producto(productLeche).name("Litro").conversion(1).build());
-            em.persistFlushFind(Presentacion.builder().producto(productLeche).name("Galon").conversion(4).build());
-            em.persistFlushFind(Presentacion.builder().producto(productQueso).name("Kg").conversion(1).build());
+            presArroz = em.persistFlushFind(Presentacion.builder().producto(productA).name("Bolsa 1kg").conversion(new BigDecimal("1")).build());
+            em.persistFlushFind(Presentacion.builder().producto(productA).name("Saco 50kg").conversion(new BigDecimal("50")).build());
+            presLeche = em.persistFlushFind(Presentacion.builder().producto(productLeche).name("Litro").conversion(new BigDecimal("1")).build());
+            em.persistFlushFind(Presentacion.builder().producto(productLeche).name("Galon").conversion(new BigDecimal("4")).build());
+            em.persistFlushFind(Presentacion.builder().producto(productQueso).name("Kg").conversion(new BigDecimal("1")).build());
             em.clear();
         }
 
@@ -307,7 +308,7 @@ class ProductoRepositoryTest extends AbstractJpaTest {
         @DisplayName("findByProductoIdInAndIsActiveTrue does not return presentations from other tenant products")
         void findByProductoIdIn_crossTenantIsolation() {
             var productB = em.persistFlushFind(Producto.builder().tenantId(tenantB).name("Producto B").build());
-            em.persistFlushFind(Presentacion.builder().producto(productB).name("Presentacion B").conversion(1).build());
+            em.persistFlushFind(Presentacion.builder().producto(productB).name("Presentacion B").conversion(new BigDecimal("1")).build());
             em.clear();
 
             var result = presentacionRepository.findByProductoIdInAndIsActiveTrue(
@@ -325,8 +326,8 @@ class ProductoRepositoryTest extends AbstractJpaTest {
 
         @BeforeEach
         void setUpPresentaciones() {
-            presA = em.persistFlushFind(Presentacion.builder().producto(productA).name("Bolsa 1kg").conversion(1).build());
-            em.persistFlushFind(Presentacion.builder().producto(productA).name("Saco 50kg").conversion(50).build());
+            presA = em.persistFlushFind(Presentacion.builder().producto(productA).name("Bolsa 1kg").conversion(new BigDecimal("1")).build());
+            em.persistFlushFind(Presentacion.builder().producto(productA).name("Saco 50kg").conversion(new BigDecimal("50")).build());
             em.clear();
         }
 

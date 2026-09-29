@@ -35,7 +35,7 @@ class ItbmsIntegrationTest extends AbstractIntegrationTest {
     }
 
     private String createPres(UUID tenantId, String productId) throws Exception {
-        var body = objectMapper.writeValueAsString(Map.of("name", "Unidad", "conversion", 1));
+        var body = objectMapper.writeValueAsString(Map.of("name", "Unidad", "conversion", 2));
         var res = mockMvc.perform(post("/api/v1/core/productos/{id}/presentaciones?tenantId={tid}", productId, tenantId)
                         .contentType(MediaType.APPLICATION_JSON).content(body))
                 .andExpect(status().isOk()).andReturn();

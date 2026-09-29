@@ -621,7 +621,7 @@ El interceptor axios (`boot/axios.ts`) ya normaliza errores a `new Error(mensaje
 |-----------|----------|--------|
 | ✅ (ninguno) | SQL injection | 0 — todo parametrizado |
 | ✅ (ninguno) | Índices duplicados V16 | Corregido en sesión anterior |
-| 🔹 LOW | `conversion INTEGER` no soporta factores fraccionarios | Pendiente: cambiar a `NUMERIC(10,4)` |
+| 🔹 LOW | `conversion INTEGER` no soporta factores fraccionarios | ✅ Resuelto 2026-09-29: `NUMERIC(19,6)` en `product_presentations`, `invoice_items.conversion_factor` y `template_product_presentations` (V7 sección B) |
 | 🔹 LOW | `loans(tenant_id)` single-column | Aceptado: PYME, <500 loans |
 
 ### Archivos creados

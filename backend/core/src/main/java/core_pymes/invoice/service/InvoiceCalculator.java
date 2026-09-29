@@ -33,12 +33,12 @@ public final class InvoiceCalculator {
             BigDecimal precioUnitarioInput,
             BigDecimal descuentoInput,
             Boolean descuentoEsPorcentaje,
-            int conversionFactor,
+            BigDecimal conversionFactor,
             Integer itbmsTasa
     ) {}
 
     public static CalculatedItem resolve(ResolveRequest req) {
-        BigDecimal conversion = BigDecimal.valueOf(req.conversionFactor());
+        BigDecimal conversion = req.conversionFactor() == null ? BigDecimal.ONE : req.conversionFactor();
         BigDecimal quantity = null;
         BigDecimal unitPrice = null;
         BigDecimal discount = BigDecimal.ZERO;

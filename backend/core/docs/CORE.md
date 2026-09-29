@@ -479,9 +479,11 @@ POST   /api/v1/core/analytics/recalcular?tenantId={uuid}&periodo=YYYY-MM
 | Aspecto | Detalle |
 |---------|---------|
 | Flyway V1 | `industries`, `template_categories`, `template_units`, `template_payment_methods`, `template_products`, `template_product_presentations` (consolidado) |
-| SeedDataRunner | `@Component` idempotente, inserta via JdbcTemplate al startup (sin DDL) |
-| Constantes | Industry codes (8) + SQL INSERT strings (5) — java:S1192 cleanup |
-| Industrias | 8: restaurante, bares, salon_belleza, ferreteria, mini_super, taller_mecanico, farmacia, default |
+| Flyway V7 | `V7__normalize_units.sql`: base_unit nombre→ID, conversion→`NUMERIC(19,6)`, `fue_suelto`, puente "Botella", 8 unidades globales + re-apunte industria→global |
+| SeedDataRunner | `@Component` idempotente, inserta via JdbcTemplate al startup (sin DDL). Guard excluye `'global'` (la pone V7) |
+| Constantes | Industry codes (8) + `GLOBAL` + `GLOBAL_UNITS` (8 IDs fijos) + SQL INSERT strings (5) — java:S1192 cleanup |
+| Industrias | 8: restaurante, bares, salon_belleza, ferreteria, mini_super, taller_mecanico, farmacia, default (+ `global` solo para unidades, invisible en onboarding) |
+| Unidades globales | Kg, Gr, Lb, Oz, Ml, Litro, Galón, Unidad — mismo ID en todas las industrias/ambientes |
 | Productos | ~160 productos + ~280 presentaciones en seed |
 
 Ver `SEED_TEMPLATES.md` para detalle completo.
