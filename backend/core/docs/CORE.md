@@ -1,6 +1,6 @@
 # Core Service — Estado Actual
 
-> **Estado (2026-09-18):** 9 módulos + `costos/` + ITBMS V6. Tests `263 (85+11+104+62+1)` + `44 endpoints` `V1..V6`. `costo_operativo_diario` en CTE, `IdempotencyFilter` 6h, `tenantFinMetrics` con `costos`. Ver `DAILY_REPORTS_CORE_SOLUTIONS.md 2026-09-15`.
+> **Estado (2026-09-29):** 10 módulos (incluye `report/` fase 1 PDF) + ITBMS V6 + migraciones `V1..V8`. `costo_operativo_diario` en CTE, `IdempotencyFilter` 6h, `tenantFinMetrics` con `costos`. Ver `DAILY_REPORTS_CORE_SOLUTIONS.md 2026-09-29`.
 > Ver `FUTURE_MODULES.md` para blueprints originales y `DAILY_REPORTS_CORE_SOLUTIONS.md` para historial.
 
 ---
@@ -22,7 +22,7 @@ Core Service (8082)
 ├── inversion/  patrimonio
 ├── venta/      ventas diarias
 ├── accounting/ metricas financieras consolidadas
-└── reportes/   (pendiente)
+└── report/     reporte mensual PDF a OWNERs (cron día 1, V8 report_log)
 ```
 
 Todos comunican via Spring Events (no bloqueantes). Paquete base: `core_pymes.*`.
@@ -220,6 +220,21 @@ Cada sub-score tiene drivers que explican *por qué* está en ese nivel. No es u
 | Endpoints | `GET /accounting/consultar`, `POST /accounting/recalcular` |
 | Query | CTE consolidado (5 fuentes: ventas, facturas, gastos, prestamos, patrimonio) en 1 round-trip |
 
+### Report (`core_pymes/report/`)
+
+| Aspecto | Detalle |
+|---------|---------|
+| Tabla | `core.report_log` — PK `(tenant_id, period, format)`, status `SENDING\|SENT\|FAILED\|SKIPPED` |
+| Endpoint | `POST /reportes/monthly?period=YYYY-MM&dryRun=true` — `@PreAuthorize('OWNER\|ADMIN')` |
+| Cron | `@Scheduled(cron="0 0 6 1 * *", zone="America/Panama")` → envía el mes anterior |
+| Dueños | Query batch cross-schema `auth.user_tenants/users/tenants` (rol OWNER activo) |
+| Reglas | `0 ventas + 0 facturas → SKIP (SKIPPED)`; facturas sin ventas → PDF parcial con banner; facturas **solo `PAGADA`** |
+| Idempotencia | `INSERT ... ON CONFLICT DO NOTHING RETURNING` → sin fila = ya enviado, skip (sin ShedLock) |
+| PDF | JasperReports **7.0.4**, plantilla `reports/MonthlyReport.jrxml` (formato JR7) compilada 1 vez y cacheada, DejaVu Sans + logo SVG |
+| Mail | `spring-boot-starter-mail`, 1 adjunto PDF, `@MockBean` en tests (sin `.env` el contexto revienta) |
+| Flyway | V8: `V8__report_log.sql` (V7 lo ocupó `normalize_units`) |
+| Fase 2 | XLSX — `jasperreports-excel-poi` ya en el POM, misma tabla `format='XLSX'` |
+
 ---
 
 ## Estructura de Paquetes
@@ -248,7 +263,11 @@ core_pymes/
 ├── prestamo/    controller/domain/dto/mapper/repository/service
 ├── inversion/   controller/domain/dto/mapper/repository/service
 ├── venta/       controller/domain/dto/event/listener/mapper/repository/service
-└── accounting/  controller/domain/dto/mapper/repository/service
+├── accounting/  controller/domain/dto/mapper/repository/service
+└── report/      config/controller/dto/exception/repository/service/support
+    # MonthlyReportScheduler (@Scheduled), MonthlyReportApi+Controller,
+    # ReportDataRepository (cross-schema auth), MonthlyReportService (PDF Jasper 7),
+    # ReportEmailService, ReportLabels
 ```
 
 Controller pattern: interface (`XxxApi`) + impl (`XxxController`) dentro del modulo.
@@ -472,6 +491,14 @@ GET    /api/v1/core/analytics?tenantId={uuid}&periodo=YYYY-MM
 POST   /api/v1/core/analytics/recalcular?tenantId={uuid}&periodo=YYYY-MM
 ```
 
+### Reportes
+
+```
+POST   /api/v1/core/reportes/monthly?period=YYYY-MM&dryRun=true
+```
+> `dryRun=true` (default) solo valida y genera sin enviar. `X-User-Role: OWNER|ADMIN`.
+> 400 si `period` no es `YYYY-MM` (`InvalidInputException` → `GlobalExceptionHandler`).
+
 ---
 
 ## Seed Data
@@ -531,6 +558,8 @@ Ver `SEED_TEMPLATES.md` para detalle completo.
 - [x] SQL review — division por cero en analisisABC, indices redundantes removidos
 - [x] **Cleanup seed: remover stock** — `template_locations` + `template_movement_reasons` eliminadas, industry codes → constantes (java:S1192). Flyway V18 para DDL. Ver `SEED_TEMPLATES.md` → Cleanup 2026-07.
 - [x] **Financial Health Engine** — Motor #10: scoring compuesto + alertas críticas + señales inversión/expansión. V4 (columna `financial_health JSONB`), `analisisSaludFinanciera()` en AnalyticsServiceImpl. Pendiente: `FinancialHealthResponse` DTO + `useAnalytics` + `AnalisisGastosPage.vue`.
+- [x] **Reporte mensual fase 1 (PDF)** — `core_pymes/report/`: cron día 1 06:00 Panama, PDF Jasper 7, mail a OWNERs, idempotencia V8, `POST /reportes/monthly` con dryRun. Ver `strategies/MONTHLY_REPORT_STRATEGY.md`.
+- [ ] **Reporte mensual fase 2 (XLSX)** — `JRXlsxExporter` + 3 hojas (`Resumen`/`Semanal`/`Detalle`, `detectCellType=true`); `jasperreports-excel-poi` ya en POM y `format='XLSX'` ya soportado en `report_log` (sin migración).
 
 ### Mediate
 

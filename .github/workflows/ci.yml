@@ -217,8 +217,10 @@ jobs:
           distribution: 'temurin'
           cache: 'maven'
 
-      - name: Precache Testcontainers image
-        run: docker pull postgres:15-alpine
+      - name: Precache Testcontainers images
+        run: |
+          docker pull postgres:15-alpine
+          docker pull redis:7-alpine
 
       - name: Make mvnw executable
         run: chmod +x mvnw

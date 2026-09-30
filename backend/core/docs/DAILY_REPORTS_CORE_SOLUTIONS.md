@@ -8,6 +8,43 @@ Registro de lo implementado y lo pendiente.
 
 ---
 
+## 2026-09-29 — Reporte mensual a OWNERs: PDF + envío + idempotencia (fase 1)
+
+**Contexto:** el dueño no quería abrir la app para saber cómo le fue el mes. Decisión previa con el usuario: **solo PDF este sprint** (XLSX = sprint siguiente, sin romper nada), filtro de facturas = **solo `PAGADA`** (consistente con analytics desde 2026-09-08), migración **V8** (V7 se lo llevó `normalize_units`), alcance **backend puro — cero frontend**, y solo una excepción custom permitida fuera de `report/` (`ReportGenerationException`/`RPT001`). Regla de oro: **nunca proyectar** ("$X en N días cargados, faltan N").
+
+**Qué se hizo:**
+- **Módulo `core_pymes/report/`** — `MonthlyReportScheduler` (`@Scheduled cron 0 0 6 1 * *`, `zone America/Panama`) → batch de OWNERs cross-schema (`auth.user_tenants/users/tenants`, opción A) → `INSERT ... ON CONFLICT DO NOTHING RETURNING` (idempotencia sin ShedLock) → data → PDF → mail → `UPDATE status SENT|FAILED|SKIPPED`. Contador `pymes_report_monthly_sent`.
+- **Reglas** — `0 ventas + 0 facturas → SKIP (SKIPPED, sin mail)`; facturas sin ventas → parcial con banner `sinVentas`; facturas solo `PAGADA`.
+- **`MonthlyReport.jrxml`** — escrito a mano **en formato Jasper 7**, paleta locked de `.ulpi/design/DESIGN.md`, DejaVu Sans, logo SVG como `InputStream`. **Sin charts** (JFreeChart no está en `.m2`; 2 tablas cubren semanas y top proveedores). Filtro `filtering=true` en resources → el JRXML no puede llevar `${}`.
+- **Endpoint** — `POST /api/v1/core/reportes/monthly?period=YYYY-MM&dryRun=true`, `@PreAuthorize("hasAnyRole('OWNER','ADMIN')")` (la validación de periodo vive en el scheduler, no en el controller).
+- **V8 `V8__report_log.sql`** — PK `(tenant_id, period, format)` + CHECK de status `SENDING|SENT|FAILED|SKIPPED` + índice parcial de fallos. **Un solo formato de fila**: XLSX entra sin migración nueva.
+- **Contexto roto + CI** — el bean de mail revienta `${spring.mail.username}` sin `.env`. Fix: `spring-dotenv:4.0.0` + `.env.example`/`.env` (gitignored) + **`@MockBean ReportEmailService` en `AbstractIntegrationTest`** (esto es lo que hace verde a CI: reemplaza el bean y la property nunca se evalúa). Ojo: el `security-check` de CI hace `exit 1` si hay un `.env` trackeado — `.env.example` sí.
+- **Formato Jasper 7 (descubierto a la fuerza)** — JR7 rechaza el JRXML v6. Resumen: raíz sin namespace, `subDataset→dataset`, `isBold→bold`, sin wrapper `<band>`, atributos de `reportElement`/`textElement` directos en el elemento, `textAlignment→hTextAlign`, `imageExpression|textFieldExpression→expression`, hijos de banda como `<element kind="...">`, y tablas `<jr:table>→<component kind="table">` + `<jr:column kind="single">` + `datasetRun subDataset=`. Método que vale para cualquier JR7: serializar `JRDesign*` con `JacksonUtil.getXmlMapper().writeValueAsString(...)`.
+- **Skipped:** XLSX (fase 2), frontend/botón trigger, ShedLock, charts, CSV, Spring AI, tocar los solapamientos existentes de `CodigoError` (`SEC_*` muertos, `DUP001`/`CON001` — deuda anotada).
+- **Ponytail:** arreglar la lógica antes que forzar el test — el test nuevo (`generaPdfYEnvia`) descubrió que el PDF **nunca se pudo generar**; no se tocó el assert hasta que la plantilla compiló de verdad.
+
+```
+backend/core/pom.xml # jasper 7.0.4 + starter-mail + spring-dotenv
+backend/core/.env.example # modelo vacío (committeable) — .env NO (CI lo bloquea)
+backend/core/src/main/resources/db/migration/V8__report_log.sql # report_log
+backend/core/src/main/resources/reports/MonthlyReport.jrxml # formato JR7
+backend/core/src/main/resources/reports/pymeq-logo.svg
+backend/core/src/main/java/core_pymes/report/ # módulo completo
+backend/core/src/main/java/core_pymes/common/exception/{CodigoError,CoreApiException}.java # RPT001 (1 línea)
+backend/core/src/test/java/core_pymes/integration/AbstractIntegrationTest.java # @MockBean ReportEmailService
+backend/core/src/test/java/core_pymes/report/MonthlyReportIntegrationTest.java # 4 tests (PDF real)
+backend/core/src/test/java/core_pymes/report/MonthlyReportControllerTest.java # 11 edge cases
+backend/core/README.md # módulo report + .env
+docs/strategies/MONTHLY_REPORT_STRATEGY.md # estado fase 1 + tabla JR6→JR7
+```
+
+**Tests:** 225/225 `./mvnw test -B` BUILD SUCCESS (los dos tests de report viven en `core_pymes/report/`, fuera del filtro `**/integration/**` → corren en la fase `test`). Nuevos: `MonthlyReportIntegrationTest` 4/4 (PDF real `%PDF` + idempotencia 1 fila + SKIP vacío + periodo inválido) y `MonthlyReportControllerTest` 11/11 (sin rol/USER → 403, OWNER/ADMIN → 200, 4 periodos inválidos → 400 vía `InvalidInputException`→`GlobalExceptionHandler`, dryRun default/false, llamadas repetidas).
+
+**Docs:** `strategies/MONTHLY_REPORT_STRATEGY.md` (estado + tabla JR6→JR7 + V8 + ruta real `reportes`), `CORE.md` (módulo/paquetes/endpoint/V8), `README.md` (fila módulo + testing).
+
+---
+
+
 ## 2026-09-29 — Unidades: cura raíz (base_unit ID + 8 globales + fue_suelto)
 
 **Contexto:** hallazgo VPS: ~149 productos mezclaban nombres ("Kg") con IDs en `base_unit`; 33 presentaciones ×1; filas de factura sin `presentacion_id` en silencio. Decisión: el ID de `template_units` es la clave exacta (comparar por ID, sin tabla de equivalencias — YAGNI).
