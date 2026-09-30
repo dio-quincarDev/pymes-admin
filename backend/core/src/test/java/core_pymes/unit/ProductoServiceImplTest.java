@@ -29,7 +29,10 @@ import org.springframework.data.domain.Page;
 import org.springframework.data.domain.PageImpl;
 import org.springframework.data.domain.PageRequest;
 import org.springframework.data.domain.Pageable;
+import org.springframework.jdbc.core.JdbcTemplate;
+import org.junit.jupiter.api.BeforeEach;
 
+import java.math.BigDecimal;
 import java.util.List;
 import java.util.Optional;
 import java.util.UUID;
@@ -39,6 +42,7 @@ import static org.assertj.core.api.Assertions.assertThatThrownBy;
 import static org.mockito.ArgumentMatchers.any;
 import static org.mockito.ArgumentMatchers.eq;
 import static org.mockito.Mockito.*;
+import static org.mockito.Mockito.lenient;
 
 @ExtendWith(MockitoExtension.class)
 class ProductoServiceImplTest {
@@ -48,7 +52,13 @@ class ProductoServiceImplTest {
     @Mock ProveedorRepository proveedorRepository;
     @Mock ProductoMapper mapper;
     @Mock ApplicationEventPublisher eventPublisher;
+    @Mock JdbcTemplate jdbc;
     @InjectMocks ProductoServiceImpl service;
+
+    @BeforeEach
+    void stubUnits() {
+        lenient().when(jdbc.queryForObject(anyString(), eq(Integer.class), any(), any())).thenReturn(1);
+    }
 
     @Test
     void findAll_withTenantId_returnsProducts() {
@@ -205,18 +215,29 @@ class ProductoServiceImplTest {
         var productId = UUID.randomUUID();
         var producto = Producto.builder().id(productId).tenantId(tenantId).build();
         when(productoRepository.findById(productId)).thenReturn(Optional.of(producto));
-        var request = new PresentacionRequest("Caja", 24);
-        var saved = Presentacion.builder().id(UUID.randomUUID()).name("Caja").conversion(24).build();
+        var request = new PresentacionRequest("Caja", new BigDecimal("24"));
+        var saved = Presentacion.builder().id(UUID.randomUUID()).name("Caja").conversion(new BigDecimal("24")).build();
         when(presentacionRepository.save(any())).thenAnswer(i -> i.getArgument(0));
-        var response = new PresentacionResponse(saved.getId(), productId, "Caja", 24, true, null);
+        var response = new PresentacionResponse(saved.getId(), productId, "Caja", new BigDecimal("24"), true, null);
         when(mapper.toResponse(any())).thenReturn(response);
 
         var result = service.addPresentacion(productId, tenantId, request);
 
-        assertThat(result.conversion()).isEqualTo(24);
+        assertThat(result.conversion()).isEqualByComparingTo(new BigDecimal("24"));
         var captor = ArgumentCaptor.forClass(PresentacionCreadaEvent.class);
         verify(eventPublisher).publishEvent(captor.capture());
-        assertThat(captor.getValue().presentacion().getConversion()).isEqualTo(24);
+        assertThat(captor.getValue().presentacion().getConversion()).isEqualByComparingTo(new BigDecimal("24"));
+    }
+
+    @Test
+    void create_withUnknownBaseUnit_throws() {
+        var tenantId = UUID.randomUUID();
+        when(jdbc.queryForObject(anyString(), eq(Integer.class), any(), any())).thenReturn(0);
+        var request = new ProductoRequest(tenantId, "Arroz", "ARR-001", "ABARROTES", "NO-EXISTE", null, null, null, null);
+
+        assertThatThrownBy(() -> service.create(request))
+                .isInstanceOf(InvalidInputException.class)
+                .hasMessageContaining("Unidad base invalida");
     }
 
     @Test

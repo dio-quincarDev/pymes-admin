@@ -71,7 +71,7 @@ class FacturaIntegrationTest extends AbstractIntegrationTest {
         var productId = objectMapper.readTree(prodResult.getResponse().getContentAsString()).get("id").asText();
 
         // Create presentation
-        var presBody = objectMapper.writeValueAsString(Map.of("name", "Bolsa de 1 Kg", "conversion", 1));
+        var presBody = objectMapper.writeValueAsString(Map.of("name", "Bolsa de 1 Kg", "conversion", 2));
         var presResult = mockMvc.perform(post("/api/v1/core/productos/{id}/presentaciones?tenantId={tid}", productId, tenantId)
                         .contentType(MediaType.APPLICATION_JSON).content(presBody))
                 .andExpect(status().isOk()).andReturn();
@@ -132,7 +132,7 @@ class FacturaIntegrationTest extends AbstractIntegrationTest {
                 .getResponse().getContentAsString()).get(0).get("id").asText();
 
         // Create presentation
-        var presBody = objectMapper.writeValueAsString(Map.of("name", "Paquete", "conversion", 1));
+        var presBody = objectMapper.writeValueAsString(Map.of("name", "Paquete", "conversion", 2));
         var presResult = mockMvc.perform(post("/api/v1/core/productos/{id}/presentaciones?tenantId={tid}", productId, tenantId)
                         .contentType(MediaType.APPLICATION_JSON).content(presBody))
                 .andExpect(status().isOk()).andReturn();
@@ -188,7 +188,7 @@ class FacturaIntegrationTest extends AbstractIntegrationTest {
                 "/api/v1/core/productos?tenantId={tid}", tenantA)).andReturn()
                 .getResponse().getContentAsString()).get(0).get("id").asText();
 
-        var presBody = objectMapper.writeValueAsString(Map.of("name", "Bolsa", "conversion", 1));
+        var presBody = objectMapper.writeValueAsString(Map.of("name", "Bolsa", "conversion", 2));
         var presResult = mockMvc.perform(post("/api/v1/core/productos/{id}/presentaciones?tenantId={tid}", productId, tenantA)
                         .contentType(MediaType.APPLICATION_JSON).content(presBody))
                 .andExpect(status().isOk()).andReturn();
@@ -254,7 +254,7 @@ class FacturaIntegrationTest extends AbstractIntegrationTest {
         var productId = objectMapper.readTree(mockMvc.perform(get(
                         "/api/v1/core/productos?tenantId={tid}", tenantA)).andReturn()
                 .getResponse().getContentAsString()).get(0).get("id").asText();
-        var presBody = objectMapper.writeValueAsString(Map.of("name", "Unidad", "conversion", 1));
+        var presBody = objectMapper.writeValueAsString(Map.of("name", "Unidad", "conversion", 2));
         var presResult = mockMvc.perform(post("/api/v1/core/productos/{id}/presentaciones?tenantId={tid}", productId, tenantA)
                         .contentType(MediaType.APPLICATION_JSON).content(presBody))
                 .andExpect(status().isOk()).andReturn();
@@ -298,7 +298,7 @@ class FacturaIntegrationTest extends AbstractIntegrationTest {
         var productId = objectMapper.readTree(mockMvc.perform(get(
                 "/api/v1/core/productos?tenantId={tid}", tenantId)).andReturn()
                 .getResponse().getContentAsString()).get(0).get("id").asText();
-        var presBody = objectMapper.writeValueAsString(Map.of("name", "Unidad", "conversion", 1));
+        var presBody = objectMapper.writeValueAsString(Map.of("name", "Unidad", "conversion", 2));
         var presResult = mockMvc.perform(post("/api/v1/core/productos/{id}/presentaciones?tenantId={tid}", productId, tenantId)
                         .contentType(MediaType.APPLICATION_JSON).content(presBody))
                 .andExpect(status().isOk()).andReturn();
@@ -345,7 +345,7 @@ class FacturaIntegrationTest extends AbstractIntegrationTest {
         var productId = objectMapper.readTree(mockMvc.perform(get(
                 "/api/v1/core/productos?tenantId={tid}", tenantId)).andReturn()
                 .getResponse().getContentAsString()).get(0).get("id").asText();
-        var presBody = objectMapper.writeValueAsString(Map.of("name", "Unidad", "conversion", 1));
+        var presBody = objectMapper.writeValueAsString(Map.of("name", "Unidad", "conversion", 2));
         var presResult = mockMvc.perform(post("/api/v1/core/productos/{id}/presentaciones?tenantId={tid}", productId, tenantId)
                         .contentType(MediaType.APPLICATION_JSON).content(presBody))
                 .andExpect(status().isOk()).andReturn();
@@ -397,7 +397,7 @@ class FacturaIntegrationTest extends AbstractIntegrationTest {
         var productId = objectMapper.readTree(mockMvc.perform(get(
                 "/api/v1/core/productos?tenantId={tid}", tenantId)).andReturn()
                 .getResponse().getContentAsString()).get(0).get("id").asText();
-        var presBody = objectMapper.writeValueAsString(Map.of("name", "Unidad", "conversion", 1));
+        var presBody = objectMapper.writeValueAsString(Map.of("name", "Unidad", "conversion", 2));
         var presResult = mockMvc.perform(post("/api/v1/core/productos/{id}/presentaciones?tenantId={tid}", productId, tenantId)
                         .contentType(MediaType.APPLICATION_JSON).content(presBody))
                 .andExpect(status().isOk()).andReturn();

@@ -1,6 +1,7 @@
 <script setup lang="ts">
 import { computed, ref, shallowRef, watch } from 'vue'
 import { calcItbms, calcNeto } from 'src/modules/core/utils/invoiceMath'
+import { SUELTO } from 'src/modules/core/utils/invoiceItemGuards'
 
 export interface ProductOption {
   label: string
@@ -18,6 +19,7 @@ interface ItemForm {
   _key: number
   productoId: string | null
   presentacionId: string | null
+  fueSuelto: boolean
   cantidad: number | null
   valor: number | null
   descuento: number
@@ -94,7 +96,8 @@ function onClear() {
 }
 
 const conversion = computed(() => {
-  if (!props.item.presentacionId) return 1
+  // ponytail: suelto y sin elegir = precio directo en unidad base
+  if (!props.item.presentacionId || props.item.presentacionId === SUELTO) return 1
   return props.presentationConversionMap.get(props.item.presentacionId) || 1
 })
 
@@ -198,7 +201,7 @@ function fmt(n: number | null) {
           :options="unitOptions"
           map-options emit-value
           :disable="!item.productoId"
-          placeholder="—"
+          placeholder="Elegir…"
         />
       </div>
 
@@ -366,9 +369,7 @@ function fmt(n: number | null) {
   padding-left: 2px;
 }
 
-.item-card__field--qty { width: 56px; }
-.item-card__field--unit { width: 110px; }
-.item-card__field--valor { width: 96px; }
+.item-card__field--unit { width: 110px; }.item-card__field--valor { width: 96px; }
 .item-card__field--calc { width: 88px; }
 .item-card__field--disc { width: 54px; }
 .item-card__field--itbms { width: 92px; }

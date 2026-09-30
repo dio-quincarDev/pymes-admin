@@ -322,8 +322,9 @@ public class FacturaServiceImpl implements FacturaService {
                                                          java.time.LocalDate fecha) {
         String productoName = productNameMap.get(itemReq.productoId());
 
-        int conversionFactor = 1;
+        BigDecimal conversionFactor = BigDecimal.ONE;
         UUID presentacionId = null;
+        boolean fueSuelto = Boolean.TRUE.equals(itemReq.fueSuelto());
         if (itemReq.presentacionId() != null) {
             var presentacion = presentacionMap.get(itemReq.presentacionId());
             if (presentacion == null) {
@@ -334,6 +335,8 @@ public class FacturaServiceImpl implements FacturaService {
             }
             conversionFactor = presentacion.getConversion();
             presentacionId = presentacion.getId();
+        } else if (!fueSuelto) {
+            throw new InvalidInputException("Item sin presentacion debe marcarse como suelto: " + itemReq.productoId());
         }
 
         var resolveReq = new InvoiceCalculator.ResolveRequest(
@@ -356,6 +359,7 @@ public class FacturaServiceImpl implements FacturaService {
                 .productId(itemReq.productoId())
                 .productName(productoName)
                 .presentacionId(presentacionId)
+                .fueSuelto(fueSuelto)
                 .conversionFactor(conversionFactor)
                 .quantity(calc.quantity())
                 .unitPrice(calc.unitPrice())

@@ -1,11 +1,16 @@
 # Reporte Mensual Automático — Estrategia (Core)
 
-Estado: **planificado** (2026-09-25).
+Estado: **fase 1 (PDF) implementada** (2026-09-29). Fase 2 (XLSX) pendiente.
 
 Objetivo: el día 1 de cada mes a las 06:00 `America/Panama`, cada OWNER de cada
 tenant activo recibe por mail el resumen en PDF (lectura del dueño) + XLSX
 (contable), con brand PymeQ. Cero intervención manual, cero proyecciones:
 solo lo realmente cargado en el mes cerrado.
+
+**Hecho hoy:** PDF en 1 página A4 + envío + idempotencia + `SKIPPED` + endpoint
+`POST /api/v1/core/reportes/monthly` con `dryRun`. **Pendiente:** XLSX (3 hojas)
+— la dependencia `jasperreports-excel-poi` ya está en el POM, se cambia el
+exporter y se agrega el test.
 
 > Relacionado: `ANALYTICS.md` (motores CTE que alimentan los datos),
 > `COSTOS_ENGINE.md` (costo operativo diario), `FUTURE_MODULES.md` §Spring AI
@@ -13,13 +18,18 @@ solo lo realmente cargado en el mes cerrado.
 
 ## Hechos verificados en entorno staging (2026-09-25)
 
+> **Actualizado 2026-09-29:** desde esta inspección se aplicaron **V7**
+> (`V7__normalize_units.sql`, unidades) y **V8** (`V8__report_log.sql`, este
+> reporte). La fila `Flyway V1–V6 → siguiente V7` de abajo quedó histórica;
+> la migración de este feature es **V8**, no V7 (V7 se lo llevó el fix de unidades).
+
 Inspección read-only del entorno de staging:
 
 | Dato | Valor verificado |
 |---|---|
-| Flyway core | **V1–V6** aplicadas → siguiente `V7__report_log.sql` (NO V2) |
+| Flyway core | **V1–V6** aplicadas → siguiente `V7__report_log.sql` (NO V2) — *hoy: V8* |
 | TZ container core | **UTC** → cron requiere `zone` explícita |
-| `core` mail | Sin `spring-boot-starter-mail`, sin `JavaMailSender`, sin `MAIL_*` en compose (solo el container **auth** los tiene: puerto `587`, `MAIL_FROM=<remitente configurado>`) |
+| `core` mail | *histórico:* sin `spring-boot-starter-mail`. **Hoy sí**: `spring-boot-starter-mail` en el POM, `JavaMailSender` en `ReportEmailServiceImpl`, `SPRING_MAIL_*` + `MAIL_FROM` ya en `docker-compose.yml` (`core-service`) |
 | `auth.tenants` | **Sin** `created_by`/`owner_id` (16 columnas verificadas) |
 | OWNER | `auth.user_tenants.role='OWNER'`; 4/4 tenants con exactamente 1 OWNER (invariante por código: `AuthServiceImpl:125`, `TenantServiceImpl:128`, bloqueo de segundo OWNER en `MemberServiceImpl:94-96`) |
 | Owner query | EXPLAIN verificado: `Index Scan idx_user_tenants_tenant_active`, rows=1 |
@@ -98,10 +108,13 @@ top_prov       = TOP 5 proveedores por Σ total FACTURA + count
 
 ## Plan de implementación (backend)
 
-1. **Deps** `backend/core/pom.xml`: `jasperreports:7.0.0`,
-   `jasperreports-jackson:7.0.0`, `jasperreports-poi:7.0.0`,
-   `jasperreports-fonts:6.0.0`, `spring-boot-starter-mail`.
-2. **`V7__report_log.sql`**:
+1. **Deps** `backend/core/pom.xml` (hecho): `jasperreports`, `jasperreports-json`,
+   `jasperreports-pdf`, `jasperreports-fonts`, `jasperreports-excel-poi`
+   (todos **7.0.4**, vía propiedad `jasperreports.version`),
+   `spring-boot-starter-mail` + `spring-dotenv:4.0.0`.
+   *OJO:* el artifact de fuentes es `jasperreports-fonts`, **no** `jasperreports-fonts:6.0.0`;
+   el de Excel es `jasperreports-excel-poi`, no `jasperreports-poi`.
+2. **`V8__report_log.sql`** (hecho):
    ```sql
    CREATE TABLE core.report_log (
        tenant_id UUID        NOT NULL,
@@ -115,37 +128,70 @@ top_prov       = TOP 5 proveedores por Σ total FACTURA + count
    CREATE INDEX idx_report_log_failed
      ON core.report_log (tenant_id, period) WHERE status = 'FAILED';
    ```
-3. **`MonthlyReport.jrxml`** (diseñado en Jaspersoft Studio 7 — JRXML de v6 son
-   incompatibles): bandas title/pageHeader/columnHeader/detail/summary/pageFooter;
-   paleta `--pq-*` (`app.scss`); logo `frontend/pymes/public/icons/logo.svg`
-   (Batik nativo JR — fallback: rasterizar a PNG si no resuelve); chart JFreeChart
-   **2D** (v7/1.5.4 eliminó 3D) para ventas semanales; XLSX sin chart (JR no exporta
-   charts a XLSX).
-   XLSX en 3 hojas (`Resumen` KPIs · `Semanal` tabla · `Detalle` facturas+ventas)
-   con `detectCellType=true` (numéricos reales para el contable).
-4. **`ReportDataRepository`** — 2 queries batch (owners + CTE datos, sargable,
-   columnas explícitas; reutiliza índices covering existentes).
-5. **`MonthlyReportService`** — fill a PDF (`JasperExportManager`) y XLSX
-   (`JRXlsxExporter`); plantilla compilada una vez y cacheada.
-6. **`ReportEmailService`** — `JavaMailSender` + `MimeMessage` multipart: asunto
-   `"<Tenant> — Resumen <mes> <año>"`, cuerpo HTML corto, 2 adjuntos.
-7. **`MonthlyReportController`** — `POST /api/v1/core/reports/monthly?period=YYYY-MM&dryRun=true`,
-   `@PreAuthorize("hasAnyRole('OWNER','ADMIN')")` (patrón existente).
-8. **`MonthlyReportScheduler`** — `@Scheduled(cron="0 0 6 1 * *", zone="America/Panama")`.
-   Flow por tenant: batch owners → `INSERT report_log ... ON CONFLICT DO NOTHING
-   RETURNING` → sin fila = skip → CTE data → fill → mail → `UPDATE status
-   SENT/FAILED`. Contador Prometheus (micrometer ya inyectado).
-9. **`docker-compose.yml`** — agregar a `core-service` los `MAIL_*`
-   (mismos valores OCI que auth; secretos por `.env`, nunca en el YAML).
-10. **Tests** — `MonthlyReportIntegrationTest` (Testcontainers PG+Redis, seed
-    estilo un tenant de prueba con seed ficticio de ventas/facturas/proveedores): asserts PDF bytes > 0, XLSX bytes > 0,
-    SKIP sin data, conflicto de PK no duplica envío.
+3. **`MonthlyReport.jrxml`** (hecho — escrito a mano en **formato Jasper 7**,
+   ver §Formato JR7 abajo): bandas background/title/summary/pageFooter;
+   paleta locked de `.ulpi/design/DESIGN.md`; logo `pymeq-logo.svg` (recursos
+   del reporte) inyectado como `InputStream`; fuentes **DejaVu Sans** de
+   `jasperreports-fonts`. **Sin charts**: JFreeChart no está en `.m2` y 2
+   tablas (semanas / top proveedores) cubren el contenido. XLSX (fase 2) no
+   exporta charts igual.
+4. **`ReportDataRepository`** (hecho) — owners cross-schema (`auth.*`, opción A)
+   + mes con solo `PAGADA` en facturas (consistencia con analytics desde
+   2026-09-08), sargable `[from,to)`, columnas explícitas.
+5. **`MonthlyReportService`** (hecho) — fill PDF (`JasperExportManager`) con
+   plantilla compilada una vez y cacheada. XLSX con `JRXlsxExporter` = fase 2.
+6. **`ReportEmailService`** (hecho) — `JavaMailSender` + `MimeMessage`
+   multipart. **1 adjunto** (PDF) hasta fase 2.
+7. **`MonthlyReportController`** (hecho) —
+   `POST /api/v1/core/reportes/monthly?period=YYYY-MM&dryRun=true`
+   (`reportes`, no `reports`; ruta real en `CorePath.REPORTES_ROUTE`),
+   `@PreAuthorize("hasAnyRole('OWNER','ADMIN')")` + `X-User-Role` del gateway.
+8. **`MonthlyReportScheduler`** (hecho) —
+   `@Scheduled(cron="0 0 6 1 * *", zone="America/Panama")`. Flow por tenant:
+   batch owners → `INSERT ... ON CONFLICT DO NOTHING` → sin fila = skip →
+   data → fill → mail → `UPDATE status SENT/FAILED|SKIPPED`.
+   Contador `pymes_report_monthly_sent`.
+9. **`docker-compose.yml`** — ya tenía `SPRING_MAIL_*` + `MAIL_FROM` en
+   `core-service` (no hizo falta tocarlo).
+10. **Tests** (hecho) — `MonthlyReportIntegrationTest` (4: PDF bytes `%PDF` +
+    idempotencia + SKIP vacío + periodo inválido) y
+    `MonthlyReportControllerTest` (11: roles 403, periodos 400, dryRun,
+    repetidas). XLSX: test pendiente en fase 2.
+
+### Formato Jasper 7 (hallazgo — JRXML v6 NO compila)
+
+El JRXML se escribió a mano y **JR7 rechaza el formato v6**. Los cambios que
+hicieron falta (todos en `MonthlyReport.jrxml`):
+
+| JR6 | JR7 |
+|---|---|
+| `<jasperReport xmlns=...>` | raíz **sin namespace** (el loader exige `namespaceURI` vacío) |
+| `<subDataset>` / `subDataset="X"` | `<dataset>` / `datasetName="X"` |
+| `isBold="true"` | `bold="true"` |
+| `<title><band>...</band></title>` | la sección **es** el `<band>` (sin wrapper) |
+| `<reportElement x=... />` dentro de `<staticText>` | atributos **directos** en el elemento |
+| `<textElement><font size="15"/></textElement>` | `fontSize="15"` directo en el elemento |
+| `<textAlignment="Right">` | `hTextAlign="Right"` |
+| `<imageExpression>` / `<textFieldExpression>` | `<expression>` |
+| hijo suelto en la banda | `<element kind="rectangle\|staticText\|textField\|image\|line\|component">` |
+| `<jr:table>` / `<jr:column>` / `<jr:columnHeader>` / `<jr:detailCell>` | `<component kind="table">` / `<column kind="single">` / `<columnHeader>` / `<detailCell>` |
+| `datasetRun datasetName=` | `datasetRun subDataset=` |
+
+Cómo se descubrió (método que vale para cualquier JR7): serializar objetos
+`JRDesign*` con `JacksonUtil.getXmlMapper().writeValueAsString(...)` y copiar
+la salida. `JacksonReportLoader.detectRootElement` solo acepta raíz sin
+namespace — por eso un `xmlns` tarda en fallar con un error engañoso.
+
+> **Ojo con el filtrado de Maven:** `src/main/resources` tiene
+> `filtering=true` en core, así que el JRXML **no puede llevar `${}`** (el único
+> que hay está dentro de un comentario).
 
 ## Verificación
 
 ```bash
 cd backend/core && ./mvnw test -B            # unit + integración (Testcontainers)
-# stage: POST /api/v1/core/reports/monthly?period=2026-09&dryRun=true
+# local/stage: POST /api/v1/core/reportes/monthly?period=2026-09&dryRun=true
+#   header X-User-Role: OWNER (o ADMIN)
 # primer mail real solo tras aprobación explícita del dryRun
 ```
 
@@ -158,20 +204,45 @@ cd backend/core && ./mvnw test -B            # unit + integración (Testcontaine
 - Segundo OWNER, borrado de duplicados sin datos (innecesario: quedan SKIP por regla "sin data").
 - ShedLock dedicado (add cuando `core` escale a 2+ réplicas).
 - Fuentes custom (Geist/Satoshi) en el PDF — add si el dueño lo pide.
+- **XLSX = fase 2** (no descartado): `jasperreports-excel-poi` ya en POM,
+  solo falta cambiar el exporter + 3 hojas + test.
+- Chart JFreeChart en el PDF (dependencia no presente; 2 tablas lo cubren).
 
-## Archivos afectados
+## Archivos afectados (fase 1 — PDF)
 
 Nuevos:
-- `backend/core/src/main/resources/db/migration/V7__report_log.sql`
+- `backend/core/src/main/resources/db/migration/V8__report_log.sql`
 - `backend/core/src/main/resources/reports/MonthlyReport.jrxml`
-- `backend/core/src/main/java/core_pymes/report/ReportDataRepository.java`
-- `backend/core/src/main/java/core_pymes/report/MonthlyReportService.java`
-- `backend/core/src/main/java/core_pymes/report/ReportEmailService.java`
-- `backend/core/src/main/java/core_pymes/report/MonthlyReportController.java`
-- `backend/core/src/main/java/core_pymes/report/MonthlyReportScheduler.java`
+- `backend/core/src/main/resources/reports/pymeq-logo.svg`
+- `backend/core/src/main/java/core_pymes/report/`
+  (`config/MonthlyReportScheduler`, `controller/MonthlyReportApi` +
+  `controller/impl/MonthlyReportController`, `dto/{ReportData,ReportOwner}`,
+  `exception/ReportGenerationException`, `repository/{ReportDataRepository,impl}`,
+  `service/{MonthlyReportService,ReportEmailService,impl}`,
+  `support/ReportLabels`)
 - `backend/core/src/test/java/core_pymes/report/MonthlyReportIntegrationTest.java`
+- `backend/core/src/test/java/core_pymes/report/MonthlyReportControllerTest.java`
+- `backend/core/.env.example` (ver paso 0 abajo)
 - `backend/core/docs/strategies/MONTHLY_REPORT_STRATEGY.md` (este archivo)
 
 Modificados:
-- `backend/core/pom.xml` (deps JasperReports 7 + starter-mail)
-- `docker-compose.yml` (`MAIL_*` en `core-service`)
+- `backend/core/pom.xml` (deps Jasper 7.0.4 + starter-mail + `spring-dotenv`)
+- `backend/core/README.md` (módulo report, `.env`)
+- `backend/core/docs/CORE.md` (módulo, paquetes, endpoint, V8)
+- `backend/core/docs/DAILY_REPORTS_CORE_SOLUTIONS.md` (entrada 2026-09-29)
+- `backend/core/src/test/java/core_pymes/integration/AbstractIntegrationTest.java`
+  (`@MockBean ReportEmailService` — sin esto el contexto revienta en CI)
+- `backend/core/src/main/java/core_pymes/common/exception/{CodigoError,CoreApiException}.java`
+  (1 línea: `RPT001`; única excepción fuera de `report/`)
+
+### Paso 0 (obligatorio para correr tests locales)
+
+`./mvnw test -B` falla sin `.env`: el bean `ReportEmailServiceImpl` resuelve
+`${app.mail.from:${spring.mail.username}}` al arrancar el contexto.
+
+```bash
+cd backend/core && cp .env.example .env   # y pon tus valores de mail/DB
+```
+
+En **CI no hace falta**: el `@MockBean ReportEmailService` de
+`AbstractIntegrationTest` reemplaza el bean y la property nunca se evalúa.

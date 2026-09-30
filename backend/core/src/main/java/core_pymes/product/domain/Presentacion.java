@@ -6,6 +6,7 @@ import org.hibernate.annotations.CreationTimestamp;
 import org.hibernate.annotations.SQLDelete;
 import org.hibernate.annotations.Where;
 
+import java.math.BigDecimal;
 import java.time.ZonedDateTime;
 import java.util.UUID;
 
@@ -34,8 +35,8 @@ public class Presentacion {
     @Column(nullable = false)
     private String name;
 
-    @Column(nullable = false)
-    private Integer conversion;
+    @Column(nullable = false, precision = 19, scale = 6)
+    private BigDecimal conversion;
 
     @Builder.Default
     @Column(name = "is_active", nullable = false)

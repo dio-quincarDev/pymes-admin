@@ -9,7 +9,9 @@ import org.springframework.stereotype.Component;
 import org.springframework.transaction.annotation.Transactional;
 
 import java.util.ArrayList;
+import java.util.HashMap;
 import java.util.List;
+import java.util.Map;
 import java.util.UUID;
 
 @Component
@@ -26,6 +28,8 @@ public class SeedDataRunner implements ApplicationRunner {
     private static final String TALLER_MECANICO = "taller_mecanico";
     private static final String FARMACIA = "farmacia";
     private static final String DEFAULT = "default";
+    // ponytail: unidades globales (mismo ID en todas las industrias); IDs fijos = mismos que V7 seccion D
+    private static final String GLOBAL = "global";
 
     // ponytail: SQL INSERT strings — repeated 8× each
     private static final String SQL_INSERT_CATEGORIES = "INSERT INTO template_categories (id, industry_code, name, parent_id, sort_order) VALUES (?, ?, ?, ?, ?)";
@@ -36,6 +40,9 @@ public class SeedDataRunner implements ApplicationRunner {
 
     private final JdbcTemplate jdbc;
 
+    // ponytail: nombre -> ID por industria; addProd resuelve base_unit a ID (tras V7 ya no hay nombres)
+    private final Map<String, UUID> unitIds = new HashMap<>();
+
     public SeedDataRunner(JdbcTemplate jdbc) {
         this.jdbc = jdbc;
     }
@@ -43,13 +50,15 @@ public class SeedDataRunner implements ApplicationRunner {
     @Override
     @Transactional
     public void run(ApplicationArguments args) {
-        var count = jdbc.queryForObject("SELECT COUNT(*) FROM industries", Integer.class);
+        // ponytail: 'global' la pone V7, no cuenta como seed
+        var count = jdbc.queryForObject("SELECT COUNT(*) FROM industries WHERE code <> 'global'", Integer.class);
         if (count != null && count > 0) {
             log.info("Seed data already exists, skipping");
             return;
         }
         log.info("Seeding reference data...");
         seedIndustries();
+        seedGlobalUnits();
         seedRestaurante();
         seedBares();
         seedSalonBelleza();
@@ -73,6 +82,32 @@ public class SeedDataRunner implements ApplicationRunner {
                         new Object[]{FARMACIA, "Farmacia"},
                         new Object[]{DEFAULT, "General"}
                 ));
+    }
+
+    // ponytail: fuente unica de IDs globales; GlobalUnitsMigrationTest vigila que V7 use los mismos
+    public static final List<String[]> GLOBAL_UNITS = List.of(
+            new String[]{"4f53e997-a24e-471d-9301-78b656e3708c", "Kg"},
+            new String[]{"8ac6e70b-cffa-4987-9aa8-9e8d0b4e7275", "Gr"},
+            new String[]{"6e75362d-3e00-460f-82bb-8a1a2a771348", "Lb"},
+            new String[]{"e26aac0f-a0b3-4ee4-8409-38a6a8573757", "Oz"},
+            new String[]{"8c3b5709-cc1d-4b30-a33c-e7c4585eeacf", "Ml"},
+            new String[]{"b5124ee3-6255-4d0b-b458-84444986b7cf", "Litro"},
+            new String[]{"8633021b-621c-48e4-ba9b-2c897f686c84", "Galón"},
+            new String[]{"d68cf1b9-9b0f-43ca-9e08-f052fb89919d", "Unidad"});
+
+    // ponytail: peso/volumen/conteo generico, un solo ID global para comparar entre industrias
+    // V7 ya las inserto en bases migradas; el guard evita duplicados en bases frescas
+    private void seedGlobalUnits() {
+        var values = new StringBuilder();
+        for (int i = 0; i < GLOBAL_UNITS.size(); i++) {
+            if (i > 0) values.append(", ");
+            values.append("('").append(GLOBAL_UNITS.get(i)[0]).append("', '")
+                    .append(GLOBAL_UNITS.get(i)[1]).append("', ").append(i + 1).append(")");
+        }
+        jdbc.update("INSERT INTO template_units (id, industry_code, name, sort_order) " +
+                "SELECT v.id::uuid, 'global', v.name, v.ord FROM (VALUES " + values + ") v(id, name, ord) " +
+                "WHERE NOT EXISTS (SELECT 1 FROM template_units tu WHERE tu.industry_code = 'global' AND tu.name = v.name)");
+        for (var g : GLOBAL_UNITS) unitIds.put(GLOBAL + "|" + g[1], UUID.fromString(g[0]));
     }
 
     private void seedRestaurante() {
@@ -160,7 +195,7 @@ public class SeedDataRunner implements ApplicationRunner {
 
         jdbc.batchUpdate(SQL_INSERT_CATEGORIES, cats);
         jdbc.batchUpdate(SQL_INSERT_UNITS,
-                units(RESTAURANTE, "Kg", "Lb", "Gr", "Litro", "Ml", "Unidad", "Caja", "Bolsa", "Paquete"));
+                units(RESTAURANTE, "Caja", "Bolsa", "Paquete", "Botella"));
         jdbc.batchUpdate(SQL_INSERT_PAYMENTS,
                 paymentMethods(RESTAURANTE, "Yappy", "ACH", "Efectivo", "Crédito"));
 
@@ -288,7 +323,7 @@ public class SeedDataRunner implements ApplicationRunner {
 
         jdbc.batchUpdate(SQL_INSERT_CATEGORIES, cats);
         jdbc.batchUpdate(SQL_INSERT_UNITS,
-                units(BARES, "Botella", "Lata", "Unidad", "Ml", "Litro", "Caja", "Paquete", "Kg"));
+                units(BARES, "Botella", "Lata", "Caja", "Paquete", "Bolsa"));
         jdbc.batchUpdate(SQL_INSERT_PAYMENTS,
                 paymentMethods(BARES, "Yappy", "ACH", "Efectivo", "Crédito", "Consignación"));
 
@@ -420,7 +455,7 @@ public class SeedDataRunner implements ApplicationRunner {
 
         jdbc.batchUpdate(SQL_INSERT_CATEGORIES, cats);
         jdbc.batchUpdate(SQL_INSERT_UNITS,
-                units(SALON_BELLEZA, "Unidad", "Ml", "Litro", "Tubo", "Caja", "Kit", "Botella"));
+                units(SALON_BELLEZA, "Tubo", "Caja", "Kit", "Botella"));
         jdbc.batchUpdate(SQL_INSERT_PAYMENTS,
                 paymentMethods(SALON_BELLEZA, "Yappy", "ACH", "Efectivo", "Tarjeta"));
 
@@ -523,7 +558,7 @@ public class SeedDataRunner implements ApplicationRunner {
 
         jdbc.batchUpdate(SQL_INSERT_CATEGORIES, cats);
         jdbc.batchUpdate(SQL_INSERT_UNITS,
-                units(FERRETERIA, "Unidad", "Metro", "Cm", "Kg", "Lb", "Galón", "Caja", "Bolsa", "Paquete"));
+                units(FERRETERIA, "Metro", "Cm", "Caja", "Bolsa", "Paquete"));
         jdbc.batchUpdate(SQL_INSERT_PAYMENTS,
                 paymentMethods(FERRETERIA, "Efectivo", "Tarjeta", "Crédito", "Cheque"));
 
@@ -627,7 +662,7 @@ public class SeedDataRunner implements ApplicationRunner {
 
         jdbc.batchUpdate(SQL_INSERT_CATEGORIES, cats);
         jdbc.batchUpdate(SQL_INSERT_UNITS,
-                units(MINI_SUPER, "Unidad", "Caja", "Paquete", "Botella", "Lata", "Kg", "Lb"));
+                units(MINI_SUPER, "Caja", "Paquete", "Botella", "Lata", "Bolsa"));
         jdbc.batchUpdate(SQL_INSERT_PAYMENTS,
                 paymentMethods(MINI_SUPER, "Efectivo", "Tarjeta", "Cheque"));
 
@@ -724,7 +759,7 @@ public class SeedDataRunner implements ApplicationRunner {
 
         jdbc.batchUpdate(SQL_INSERT_CATEGORIES, cats);
         jdbc.batchUpdate(SQL_INSERT_UNITS,
-                units(TALLER_MECANICO, "Unidad", "Litro", "Ml", "Caja", "Juego", "Kit", "Kg"));
+                units(TALLER_MECANICO, "Caja", "Juego", "Kit"));
         jdbc.batchUpdate(SQL_INSERT_PAYMENTS,
                 paymentMethods(TALLER_MECANICO, "Efectivo", "Tarjeta", "Crédito", "ACH"));
 
@@ -822,7 +857,7 @@ public class SeedDataRunner implements ApplicationRunner {
 
         jdbc.batchUpdate(SQL_INSERT_CATEGORIES, cats);
         jdbc.batchUpdate(SQL_INSERT_UNITS,
-                units(FARMACIA, "Unidad", "Caja", "Blíster", "Frasco", "Ml", "Gr", "Botella"));
+                units(FARMACIA, "Caja", "Blíster", "Frasco", "Botella", "Tubo"));
         jdbc.batchUpdate(SQL_INSERT_PAYMENTS,
                 paymentMethods(FARMACIA, "Efectivo", "Tarjeta", "Crédito", "Seguro médico"));
 
@@ -859,7 +894,7 @@ public class SeedDataRunner implements ApplicationRunner {
         cats.add(cat(DEFAULT, UUID.randomUUID(), "Sin subcategoría", defaultCat, 1));
         jdbc.batchUpdate(SQL_INSERT_CATEGORIES, cats);
         jdbc.batchUpdate(SQL_INSERT_UNITS,
-                units(DEFAULT, "Unidad", "Caja", "Paquete", "Kg", "Litro"));
+                units(DEFAULT, "Caja", "Paquete"));
         jdbc.batchUpdate(SQL_INSERT_PAYMENTS,
                 paymentMethods(DEFAULT, "Efectivo", "Transferencia"));
 
@@ -875,10 +910,13 @@ public class SeedDataRunner implements ApplicationRunner {
         return new Object[]{id, industry, name, parentId, sortOrder};
     }
 
-    private static ArrayList<Object[]> units(String industry, String... names) {
+    private ArrayList<Object[]> units(String industry, String... names) {
         var list = new ArrayList<Object[]>();
-        for (int i = 0; i < names.length; i++)
-            list.add(new Object[]{UUID.randomUUID(), industry, names[i], i + 1});
+        for (int i = 0; i < names.length; i++) {
+            var id = UUID.randomUUID();
+            list.add(new Object[]{id, industry, names[i], i + 1});
+            unitIds.put(industry + "|" + names[i], id);
+        }
         return list;
     }
 
@@ -892,7 +930,13 @@ public class SeedDataRunner implements ApplicationRunner {
     // ponytail: single helper for both product + presentation batch data
     private void addProd(ArrayList<Object[]> prods, ArrayList<Object[]> ppts, String industry, UUID category, String name, String baseUnit, int sort, Object[]... presentations) {
         var id = UUID.randomUUID();
-        prods.add(new Object[]{id, industry, category, name, baseUnit, null, null, sort});
+        var unitId = unitIds.get(industry + "|" + baseUnit);
+        // ponytail: fallback a globales (Kg, Litro...) antes de fallar
+        if (unitId == null) unitId = unitIds.get(GLOBAL + "|" + baseUnit);
+        if (unitId == null) {
+            throw new IllegalStateException("Unidad sin catalogo: " + industry + "/" + baseUnit);
+        }
+        prods.add(new Object[]{id, industry, category, name, unitId.toString(), null, null, sort});
         for (int i = 0; i < presentations.length; i++)
             ppts.add(new Object[]{UUID.randomUUID(), id, presentations[i][0], presentations[i][1], i + 1});
     }

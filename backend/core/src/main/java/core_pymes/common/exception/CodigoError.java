@@ -11,6 +11,7 @@ public enum CodigoError {
     SEC_FORBIDDEN("SEC002", "Access denied"),
     SEC_TOKEN_EXPIRED("SEC003", "Token expired"),
     INTERNAL_SERVER_ERROR("INT001", "Internal server error"),
+    REPORT_GENERATION("RPT001", "Report generation failed"),
     ;
 
     private final String codigo;
