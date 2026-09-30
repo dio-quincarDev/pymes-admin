@@ -344,11 +344,19 @@ const unitNameMap = computed(() => {
 })
 
 // ponytail: deriva unidad base por producto para detail sin presentación (sin snapshot)
+// UUID sin nombre en catálogo -> 'Standard' (evita filtrar IDs crudos)
 const productBaseUnitMap = computed(() => {
   const map = new Map<string, string>()
-  for (const p of prodsData.value) map.set(p.id, unitNameMap.value.get(p.baseUnit) || p.baseUnit)
+  for (const p of prodsData.value) {
+    const named = p.baseUnit ? unitNameMap.value.get(p.baseUnit) : undefined
+    map.set(p.id, named || (p.baseUnit && !isUuidLike(p.baseUnit) ? p.baseUnit : 'Standard'))
+  }
   return map
 })
+
+function isUuidLike(v: string | null | undefined): boolean {
+  return !!v && v.length >= 32 && v.includes('-')
+}
 
 const filteredByProvider = computed(() => {
   const providerId = form.value.proveedorId
@@ -671,8 +679,12 @@ async function loadDependencies() {
     const presMap = new Map<string, { label: string; value: string }[]>()
     const presNameMap = new Map<string, string>()
     const convMap = new Map<string, number>()
+    const unitByCode = new Map(setupUnits.value.map(u => [u.code, u.name]))
     for (const p of prods) {
-      const unitOpts: { label: string; value: string }[] = [{ label: 'Standard', value: SUELTO }]
+      // ponytail: suelto muestra la unidad base real (Kg, Lb...), 'Standard' solo si no hay nombre
+      const named = p.baseUnit ? unitByCode.get(p.baseUnit) : undefined
+      const baseLabel = named || (p.baseUnit && !isUuidLike(p.baseUnit) ? p.baseUnit : 'Standard')
+      const unitOpts: { label: string; value: string }[] = [{ label: baseLabel, value: SUELTO }]
       for (const pres of (p.presentaciones || [])) {
         unitOpts.push({ label: pres.name, value: pres.id })
         presNameMap.set(pres.id, pres.name)
