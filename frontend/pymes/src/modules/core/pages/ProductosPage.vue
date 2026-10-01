@@ -29,6 +29,8 @@ const categoryFilter = shallowRef('')
 const catOptions = shallowRef<{ label: string; value: string }[]>([])
 const setupCategories = shallowRef<SetupCategory[]>([])
 const unitOptions = shallowRef<{ label: string; value: string }[]>([])
+// ponytail: lista completa para traducir códigos viejos (global) a nombre; el selector usa unitOptions (sin duplicados)
+const allUnits = shallowRef<{ label: string; value: string }[]>([])
 const providerOptions = shallowRef<{ label: string; value: string }[]>([])
 const setupReady = shallowRef(false)
 
@@ -56,7 +58,7 @@ const categoryNameMap = computed(() => {
 
 const unitNameMap = computed(() => {
   const map = new Map<string, string>()
-  for (const o of unitOptions.value) map.set(o.value, o.label)
+  for (const o of allUnits.value) map.set(o.value, o.label)
   return map
 })
 
@@ -77,7 +79,17 @@ async function loadSetup() {
     ])
     setupCategories.value = setupRes.data.categories || []
     catOptions.value = flattenCategories(setupCategories.value)
-    unitOptions.value = (setupRes.data.units || []).map(u => ({ label: u.name, value: u.code }))
+    // ponytail: el back manda rubro + global (duplica Kg, Lb...); el selector muestra cada nombre una vez (el del rubro viene primero)
+    const seenUnits = new Set<string>()
+    const rawUnits = (setupRes.data.units || [])
+      .map(u => ({ label: u.name, value: u.code }))
+    allUnits.value = rawUnits
+    unitOptions.value = rawUnits.filter(o => {
+        const k = o.label.toLowerCase()
+        if (seenUnits.has(k)) return false
+        seenUnits.add(k)
+        return true
+      })
     providerOptions.value = provRes.data.map(p => ({ label: p.name, value: p.id }))
   } catch { /* non-critical */ } finally {
     setupReady.value = true
@@ -121,7 +133,7 @@ const presDialog = shallowRef(false)
 const presProduct = ref<Producto | null>(null)
 const unitLabel = computed(() => {
   if (!presProduct.value) return 'unidades'
-  const opt = unitOptions.value.find(o => o.value === presProduct.value!.baseUnit)
+  const opt = allUnits.value.find(o => o.value === presProduct.value!.baseUnit)
   return opt?.label || 'unidades'
 })
 
