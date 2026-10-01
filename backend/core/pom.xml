@@ -240,6 +240,13 @@
 			<artifactId>jasperreports-pdf</artifactId>
 			<version>${jasperreports.version}</version>
 		</dependency>
+		<!-- Compilador Java embebido: sin esto Jasper usa "javac" del sistema,
+		     que no existe en la imagen JRE de producción -->
+		<dependency>
+			<groupId>org.eclipse.jdt</groupId>
+			<artifactId>ecj</artifactId>
+			<version>3.40.0</version>
+		</dependency>
 
 		<!-- Mail (Reports) -->
 		<dependency>

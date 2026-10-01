@@ -99,7 +99,11 @@ top_prov       = TOP 5 proveedores por Σ total FACTURA + count
    `services.auth.base-url` ya existen y están sin usar.
 3. **Fuentes DejaVu** (ya en `jasperreports-fonts`) — acentos OK, cero TTFs embebidos.
 4. **Compilación JRXML en runtime + cache en memoria** — sin `jasperreports-maven-plugin`
-   (riesgo de compatibilidad con JR 7); el test de integración valida la plantilla.
+    (riesgo de compatibilidad con JR 7); el test de integración valida la plantilla.
+    Requiere `org.eclipse.jdt:ecj` en el POM: sin él Jasper usa el `javac` del
+    sistema, que **no existe** en la imagen `eclipse-temurin:21-jre-alpine` de
+    producción (falló en staging 2026-10-01: `Cannot run program "javac"`).
+    Con ECJ compila en memoria y el JRE basta.
 5. **Idempotencia = PK de `report_log` + `ON CONFLICT DO NOTHING RETURNING`** —
    atómico y race-safe incluso con 2 réplicas. Sin ShedLock por ahora.
 6. **Sin CSV** — decisión del usuario: solo PDF + XLSX. Sin subreportes. Test IT sí.
@@ -110,8 +114,9 @@ top_prov       = TOP 5 proveedores por Σ total FACTURA + count
 
 1. **Deps** `backend/core/pom.xml` (hecho): `jasperreports`, `jasperreports-json`,
    `jasperreports-pdf`, `jasperreports-fonts`, `jasperreports-excel-poi`
-   (todos **7.0.4**, vía propiedad `jasperreports.version`),
-   `spring-boot-starter-mail` + `spring-dotenv:4.0.0`.
+    (todos **7.0.4**, vía propiedad `jasperreports.version`),
+    `spring-boot-starter-mail` + `spring-dotenv:4.0.0` + `org.eclipse.jdt:ecj:3.40.0`
+    (compilador embebido, ver punto 4 arriba).
    *OJO:* el artifact de fuentes es `jasperreports-fonts`, **no** `jasperreports-fonts:6.0.0`;
    el de Excel es `jasperreports-excel-poi`, no `jasperreports-poi`.
 2. **`V8__report_log.sql`** (hecho):
