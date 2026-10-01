@@ -88,6 +88,39 @@ class MonthlyReportIntegrationTest extends AbstractIntegrationTest {
                 .isInstanceOf(InvalidInputException.class);
     }
 
+    @Test
+    @DisplayName("Genera el PDF con tabla de proveedores con datos")
+    void generaPdfConProveedores() {
+        var tenantId = seedDueno("dueno4@py.test", "Negocio Con Proveedores");
+        seedVenta(tenantId, LocalDate.of(2026, 6, 5), "50.00");
+        var proveedorId = seedProveedor(tenantId, "Grupo Rey");
+        seedFactura(tenantId, proveedorId, LocalDate.of(2026, 6, 10), "F-001", "120.50");
+
+        scheduler.runPeriod(PERIODO, false);
+
+        assertThat(estado(tenantId, PERIODO)).isEqualTo("SENT");
+
+        ArgumentCaptor<byte[]> pdf = ArgumentCaptor.forClass(byte[].class);
+        verify(reportEmailService, times(1)).sendMonthlyReport(any(), any(), pdf.capture());
+        assertThat(pdf.getValue()).startsWith("%PDF".getBytes(StandardCharsets.US_ASCII));
+        assertThat(pdf.getValue().length).isGreaterThan(1000);
+    }
+
+    @Test
+    @DisplayName("Un mes fallido se retoma en el siguiente intento")
+    void fallidoSeRetoma() {
+        var tenantId = seedDueno("dueno5@py.test", "Negocio Reintento");
+        seedVenta(tenantId, LocalDate.of(2026, 6, 5), "50.00");
+        jdbcTemplate.update(
+                "INSERT INTO core.report_log (tenant_id, period, format, status, error_msg) VALUES (?, ?, 'PDF', 'FAILED', 'fallo viejo')",
+                tenantId, PERIODO);
+
+        scheduler.runPeriod(PERIODO, false);
+
+        assertThat(estado(tenantId, PERIODO)).isEqualTo("SENT");
+        verify(reportEmailService, times(1)).sendMonthlyReport(any(), any(), any());
+    }
+
     // ponytail: esquema minimo (solo columnas que lee findOwners); el real vive en auth
     private void montarEsquemaAuth() {
         jdbcTemplate.execute("CREATE SCHEMA IF NOT EXISTS auth");
@@ -135,6 +168,20 @@ class MonthlyReportIntegrationTest extends AbstractIntegrationTest {
         jdbcTemplate.update(
                 "INSERT INTO core.daily_sales (id, tenant_id, sale_date, gross_amount) VALUES (?, ?, ?, ?)",
                 UUID.randomUUID(), tenantId, fecha, new BigDecimal(monto));
+    }
+
+    private UUID seedProveedor(UUID tenantId, String nombre) {
+        var proveedorId = UUID.randomUUID();
+        jdbcTemplate.update(
+                "INSERT INTO core.providers (id, tenant_id, name) VALUES (?, ?, ?)",
+                proveedorId, tenantId, nombre);
+        return proveedorId;
+    }
+
+    private void seedFactura(UUID tenantId, UUID proveedorId, LocalDate fecha, String numero, String monto) {
+        jdbcTemplate.update(
+                "INSERT INTO core.invoices (id, tenant_id, provider_id, invoice_number, issue_date, type, status, total) VALUES (?, ?, ?, ?, ?, 'FACTURA', 'PAGADA', ?)",
+                UUID.randomUUID(), tenantId, proveedorId, numero, fecha, new BigDecimal(monto));
     }
 
     private String estado(UUID tenantId, String periodo) {

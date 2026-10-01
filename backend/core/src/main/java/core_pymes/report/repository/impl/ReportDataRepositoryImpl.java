@@ -121,8 +121,9 @@ public class ReportDataRepositoryImpl implements ReportDataRepository {
 
     @Override
     public boolean claim(UUID tenantId, String periodo, String format) {
+        // ponytail: FAILED se retoma (reintento), SENT/SENDING/SKIPPED bloquean; sin contador extra (YAGNI)
         return jdbc.update(
-                "INSERT INTO core.report_log(tenant_id, period, format, status) VALUES (?, ?, ?, 'SENDING') ON CONFLICT DO NOTHING",
+                "INSERT INTO core.report_log(tenant_id, period, format, status) VALUES (?, ?, ?, 'SENDING') ON CONFLICT (tenant_id, period, format) DO UPDATE SET status = 'SENDING', error_msg = NULL WHERE report_log.status = 'FAILED'",
                 tenantId, periodo, format) == 1;
     }
 

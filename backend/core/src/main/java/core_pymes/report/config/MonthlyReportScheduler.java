@@ -67,10 +67,22 @@ public class MonthlyReportScheduler {
                 meterRegistry.counter("pymes_report_monthly_sent").increment();
             }
         } catch (Exception e) {
-            log.warn("Monthly report FAILED tenant={} periodo={}: {}", owner.tenantId(), periodo, e.getMessage());
+            // ponytail: el throwable va al log + la cadena de causas a la base; sin esto el motivo real se pierde
+            log.warn("Monthly report FAILED tenant={} periodo={}", owner.tenantId(), periodo, e);
             if (!dryRun) {
-                repository.updateStatus(owner.tenantId(), periodo, "PDF", "FAILED", e.getMessage());
+                repository.updateStatus(owner.tenantId(), periodo, "PDF", "FAILED", causa(e));
+                meterRegistry.counter("pymes_report_monthly_failed").increment();
             }
         }
+    }
+
+    private static String causa(Throwable e) {
+        StringBuilder sb = new StringBuilder();
+        for (Throwable t = e; t != null; t = t.getCause()) {
+            if (sb.length() > 0) sb.append(" <- ");
+            sb.append(t.getClass().getSimpleName()).append(": ").append(t.getMessage());
+            if (sb.length() > 4000) break;
+        }
+        return sb.toString();
     }
 }
