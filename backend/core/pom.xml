@@ -240,12 +240,13 @@
 			<artifactId>jasperreports-pdf</artifactId>
 			<version>${jasperreports.version}</version>
 		</dependency>
-		<!-- Compilador Java embebido: sin esto Jasper usa "javac" del sistema,
-		     que no existe en la imagen JRE de producción -->
+		<!-- Compilador Jasper en runtime: Jasper 7 lo separó del núcleo y sin él
+		     usa el "javac" del sistema, que NO existe en la imagen JRE de
+		     producción (falló en staging 2026-10-01). Trae ECJ transitivo. -->
 		<dependency>
-			<groupId>org.eclipse.jdt</groupId>
-			<artifactId>ecj</artifactId>
-			<version>3.40.0</version>
+			<groupId>net.sf.jasperreports</groupId>
+			<artifactId>jasperreports-jdt</artifactId>
+			<version>${jasperreports.version}</version>
 		</dependency>
 
 		<!-- Mail (Reports) -->
