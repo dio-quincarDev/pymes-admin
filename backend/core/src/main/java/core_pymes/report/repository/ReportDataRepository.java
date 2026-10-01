@@ -14,7 +14,7 @@ public interface ReportDataRepository {
 
     ReportData loadMonthData(UUID tenantId, String periodo);
 
-    /** Reserva el envío (PK + ON CONFLICT DO NOTHING). false = ya existe, skip. */
+    /** Reserva el envío. false = ya enviado/en curso/omitido, skip. FAILED se retoma. */
     boolean claim(UUID tenantId, String periodo, String format);
 
     void updateStatus(UUID tenantId, String periodo, String format, String status, String errorMsg);
