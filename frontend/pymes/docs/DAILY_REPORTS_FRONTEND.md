@@ -4,6 +4,93 @@ Registro cronológico de decisiones, problemas resueltos y estado del frontend.
 
 ---
 
+## 2026-09-29 — Unidades y presentaciones: sin defaults silenciosos + Standard
+
+**Contexto:** cierre del gap de unidades en las 3 capas (backend V7 + `fue_suelto` ya commiteado en `3c06cf8`). Faltaba el frontend: el diálogo aceptaba conversión 1 en silencio y la factura defaulteaba a unidad base con `value: ''`. Spec previo en `.ulpi/design/unidades-presentaciones.md`.
+
+**Qué se hizo (sin commit/push hasta este commit):**
+- **Empaques** `PresentacionesDialog.vue` — guardia `>1` antes que aviso (`canAdd` deshabilita Agregar), `type="number"` `min=2`, preview siempre visible (válido verde, inválido ámbar). Sin `<Transition>` (contenido condicional, no animación).
+- **Productos** `ProductosPage.vue` — onboarding-first: sin catálogo (`units` vacío) banner "Completa tu configuración primero" → `/onboarding`; `baseUnit` requerido sin opción vacía.
+- **Facturas** `FacturasPage.vue` — selector `Unidad: [Standard | empaques...]` sin primera opción vacía; centinela UI `SUELTO='__SUELTO__'` (nunca viaja; se traduce a `presentacionId: null + fueSuelto: true`); pre-flight `isItemComplete` al guardar (aviso "producto, unidad, cantidad y valor", no 400 críptico); `toPresentacionPayload` centraliza la traducción.
+- **Tipos** `types/index.ts` — `ItemFacturaRequest`/`ItemFactura` `+fueSuelto?: boolean`; `ItemForm` (page + card) `+fueSuelto: boolean` default `false`.
+- **Util** `utils/invoiceItemGuards.ts` **NUEVO** + spec (6 tests: payload suelto/empaque, completitud, `valorPresentacion`). `InvoiceItemCard` conversión suelto=1 (precio base directo).
+- **Etiqueta:** la opción sin empaque se dice **"Standard"** (decisión usuario 2026-09-29; 1 sola línea en el selector, nada más).
+- **Ponytail:** `Regle` y `setTimeout` nativo preexistentes se dejan (auditoría quasar-skilld retroactiva: sin legacy/`content-*`/`.sync`/`GoBack`); norma propuesta: cargar `quasar-skilld` antes de tocar Quasar.
+
+**Verificación:** `vitest` 68/68, `eslint` 0, `quasar build` PWA OK.
+
+```
+frontend/pymes/src/modules/core/utils/invoiceItemGuards.ts          # NUEVO SUELTO/isItemComplete/toPresentacionPayload
+frontend/pymes/src/modules/core/utils/__tests__/invoiceItemGuards.spec.ts # NUEVO 6 tests
+frontend/pymes/src/modules/core/components/PresentacionesDialog.vue # guardia >1 + preview + type number
+frontend/pymes/src/modules/core/pages/ProductosPage.vue             # onboarding-first + baseUnit requerido
+frontend/pymes/src/modules/core/pages/FacturasPage.vue              # Standard + pre-flight + payload
+frontend/pymes/src/modules/core/components/facturas/InvoiceItemCard.vue # conv suelto=1
+frontend/pymes/src/modules/core/types/index.ts                      # +fueSuelto
+.ulpi/design/unidades-presentaciones.md                              # spec UI
+```
+
+**Estado:** ✅ COMPLETADO — commit en `feature/report`, sin push (directiva vigente)
+
+---
+
+## 2026-09-28 — Alertas solo-precios para dummies + guardia de carril + fetch condicional
+
+**Contexto:** Usuario frenó el % ("el tendero entiende centavos, no %") y luego frenó mi frase primera→última: sin `base_unit`/`presentacion_id` canónicos, comparar primera vs última puede mentir con números verdaderos. Caso testigo VPS: Harina 2026-09 — primera en Lb $0.60 vs resto suelta ($1.15/$0.93); mi frase "$0.60→$0.93" era mentira. Dilema resuelto con guardia de carril, no con backend (directiva: hoy no se toca backend).
+
+**Qué se hizo (solo front, endpoint existente, sin commit/push):**
+- **Tipos** `types/analytics.ts`: `PriceTrail {firstPrice, lastPrice, count, singleLane}` + `priceTrail?/unitLabel?` en `AlertItem` (frontend-only, sumados al `Omit` del Wire).
+- **Guardia** `firstLastByProduct` (facturas PAGADA, precio normalizado por conversión, orden estable por fecha): carril = `presentacion_id + conversion_factor`; `singleLane` exige un solo carril en todo el historial del producto.
+- **Frases** `alertDummyText` (solo precios, cero proveedores/promedios/"basado en"): carril único → `La comprabas a $0.60 y ahora a $0.93 — subió $0.33 (+55.0%) en 3 compras` (bajada dice "bajó"; premium carril único → `Se paga cara: hasta $D de más`); carril mezclado → `Hay compras en distintas presentaciones, revisa el registro`, nunca números. `alertFallbackText` conserva el texto anterior cuando no hay facturas. `alertBadge` en plata (`↑$0.33`, `+$2.38`) con fallback a %.
+- **Tope** `TRUSTED_ALERT_MAX_PCT=100` (gemelo del 35–75 de recs): VPS 2026-09 confirma que +100 corta exactamente entre los 4 contaminados (Huevos +140.8/+99.6 ratio 459x por Caja x30 a $0.13; Orégano +112.3/+101.4 ratio 14x por "LB" conv 1; Bolsas +72.8 ratio 8x queda debajo — la malla es gruesa, la guardia fina va en backend diferido).
+- **Mitigación multitenant** `loadFacturas()` condicional: solo si `alerts.length > 0` (watch en página, idempotente ante cambios de período); mes limpio = cero requests. Endpoint `@Cacheable("facturas", tenantId)` en Redis — 73 facturas/283 ítems hoy (<100 KB); aislamiento `tenant_id` verificado en repo + servicio.
+- **Docs:** `docs/TO_DO.md` alineado al approach verdadero — `base_unit` canónico = **ID** (entrada anterior "guardar el nombre" invertida y corregida); backend ejecutado 2026-09-29 (V7 + validación + seed a IDs + 8 unidades globales con ID fijo); presentaciones reales Harina/Orégano + reasignar sueltas pendientes.
+
+**Verificación:** `vitest` 28/28 spec (11 nuevos: Harina real, subida, bajada, premium, badge), 57/57 total, `eslint` 0, `quasar build` PWA OK.
+
+```
+frontend/pymes/src/modules/core/types/analytics.ts
+frontend/pymes/src/modules/core/utils/analyticsNormalize.ts
+frontend/pymes/src/modules/core/utils/__tests__/analyticsNormalize.spec.ts
+frontend/pymes/src/modules/core/composables/useAnalisisGastos.ts      # +loadFacturas condicional
+frontend/pymes/src/modules/core/pages/AnalisisGastosPage.vue          # watch alerts + enrichAlertPrices
+frontend/pymes/src/modules/core/components/dashboard/AlertsPanel.vue  # frase dummy + badge plata
+docs/TO_DO.md                                                          # approach verdadero (ID canónico)
+```
+
+**Estado:** ✅ COMPLETADO — sin commit/push (directiva vigente)
+
+---
+
+## 2026-09-27 — Info clara en recomendaciones y alertas (join UI, cero backend) + top 8
+
+**Contexto:** Usuario pidió frases accionables con los datos que ya llegan: recomendación `Proveedor Recomendado… diferencia de X por libra/kilo/unidad/paquete vs otro Proveedor`; alerta `producto subiendo X%… 3 compras en 2 proveedores`. Sin scrolls infinitos. Skills: `vue-best-practices` (referencias reactivity/sfc/data-flow/composables leídas y aplicadas) + `quasar-skilld` (verificación).
+
+**Qué se hizo (solo pantalla, cero queries/migraciones/llaves renombradas):**
+- **Tipos** `types/analytics.ts`: `AlertItem` + `comparedProviderName/unitLabel` en recomendación (opcionales frontend-only); `AlertItemWire` + `providerId/providerName` (el premium ya los manda, el tipo los botaba); `| undefined` por `exactOptionalPropertyTypes`.
+- **Joins puros** `utils/analyticsNormalize.ts` (utils, no composable): `enrichRecommendation` (caro = max avgPrice de la comparativa, unidad = `baseUnit` del catálogo) + `enrichAlert` (Σ compras, # proveedores; premium usa las del proveedor señalado). Sin match devuelven intacto y la frase se acorta sola (caché vieja no rompe).
+- **normalize** preserva `alertKind/providerId/providerName` (antes los botaba).
+- **Página** `AnalisisGastosPage.vue` (superficie de composición): 2 `computed` enriquecen con `supplierComparison` + `products` (ya cargados, cero requests). Sin split — derivación pura justificada.
+- **Tarjetas:** frase exacta (`Compra a Dorado a $0.60 — ahorras $0.33 por Libra frente a Distral ($0.93)` / `Orégano subiendo… basado en 3 compras en 2 proveedores` / `ProvB cobra… basado en 4 compras`). Fuera chips `Ahorro>5%/Probados`, fuera badge `único` (muerto por Regla A), vacíos honestos (regla 3+3+2). Top 8 + `+N más este mes`/`Ver menos` (`shallowRef` local por tarjeta).
+- **Fix preexistente:** `vitest.config.ts` + alias `src` (el spec del auth store fallaba al resolver; no era por este cambio). Suite 4 archivos / 38 tests verde.
+
+**Verificación:** `vitest` 9/9 spec + 38/38 total, `eslint` 0, `quasar build` PWA OK.
+
+```
+frontend/pymes/src/modules/core/types/analytics.ts
+frontend/pymes/src/modules/core/utils/analyticsNormalize.ts
+frontend/pymes/src/modules/core/utils/__tests__/analyticsNormalize.spec.ts
+frontend/pymes/src/modules/core/composables/useAnalytics.ts      # sin cambios (ya exponía supplierComparison)
+frontend/pymes/src/modules/core/pages/AnalisisGastosPage.vue
+frontend/pymes/src/modules/core/components/dashboard/SupplierRecommendationsCard.vue
+frontend/pymes/src/modules/core/components/dashboard/AlertsPanel.vue
+frontend/pymes/vitest.config.ts                                  # alias src
+```
+
+**Estado:** ✅ COMPLETADO — sin commit/push (directiva vigente)
+
+---
+
 ## 2026-09-19 — Fix registro manual: hint password + clearSession pendingTenant race
 
 **Contexto:** Beta reportó que en `/register` no se veían las reglas de contraseña (solo `Mínimo 8 caracteres` en placeholder). Backend exige `RegisterRequest.java:19` / `ResetPasswordRequest.java:13` `^(?=.*[A-Za-z])(?=.*\d).+$` (letra+número). Además, el registro manual se quedaba “estancado” sin `POST /auth/register` ni error en consola/Network — `OAuth2` funcionaba perfecto.

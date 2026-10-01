@@ -4,6 +4,85 @@ Registro de lo implementado y lo pendiente.
 
 > Ver también: `CORE.md` (arquitectura + estado), `ANALYTICS.md`, `FUTURE_MODULES.md` (blueprints), `SEED_TEMPLATES.md`.
 
+> Pendientes de unidades/presentaciones y reglas de emisión: [`docs/TO_DO.md` (raíz)](../../../docs/TO_DO.md) — bloque "Core — Unidades y presentaciones".
+
+---
+
+## 2026-09-29 — Reporte mensual a OWNERs: PDF + envío + idempotencia (fase 1)
+
+**Contexto:** el dueño no quería abrir la app para saber cómo le fue el mes. Decisión previa con el usuario: **solo PDF este sprint** (XLSX = sprint siguiente, sin romper nada), filtro de facturas = **solo `PAGADA`** (consistente con analytics desde 2026-09-08), migración **V8** (V7 se lo llevó `normalize_units`), alcance **backend puro — cero frontend**, y solo una excepción custom permitida fuera de `report/` (`ReportGenerationException`/`RPT001`). Regla de oro: **nunca proyectar** ("$X en N días cargados, faltan N").
+
+**Qué se hizo:**
+- **Módulo `core_pymes/report/`** — `MonthlyReportScheduler` (`@Scheduled cron 0 0 6 1 * *`, `zone America/Panama`) → batch de OWNERs cross-schema (`auth.user_tenants/users/tenants`, opción A) → `INSERT ... ON CONFLICT DO NOTHING RETURNING` (idempotencia sin ShedLock) → data → PDF → mail → `UPDATE status SENT|FAILED|SKIPPED`. Contador `pymes_report_monthly_sent`.
+- **Reglas** — `0 ventas + 0 facturas → SKIP (SKIPPED, sin mail)`; facturas sin ventas → parcial con banner `sinVentas`; facturas solo `PAGADA`.
+- **`MonthlyReport.jrxml`** — escrito a mano **en formato Jasper 7**, paleta locked de `.ulpi/design/DESIGN.md`, DejaVu Sans, logo SVG como `InputStream`. **Sin charts** (JFreeChart no está en `.m2`; 2 tablas cubren semanas y top proveedores). Filtro `filtering=true` en resources → el JRXML no puede llevar `${}`.
+- **Endpoint** — `POST /api/v1/core/reportes/monthly?period=YYYY-MM&dryRun=true`, `@PreAuthorize("hasAnyRole('OWNER','ADMIN')")` (la validación de periodo vive en el scheduler, no en el controller).
+- **V8 `V8__report_log.sql`** — PK `(tenant_id, period, format)` + CHECK de status `SENDING|SENT|FAILED|SKIPPED` + índice parcial de fallos. **Un solo formato de fila**: XLSX entra sin migración nueva.
+- **Contexto roto + CI** — el bean de mail revienta `${spring.mail.username}` sin `.env`. Fix: `spring-dotenv:4.0.0` + `.env.example`/`.env` (gitignored) + **`@MockBean ReportEmailService` en `AbstractIntegrationTest`** (esto es lo que hace verde a CI: reemplaza el bean y la property nunca se evalúa). Ojo: el `security-check` de CI hace `exit 1` si hay un `.env` trackeado — `.env.example` sí.
+- **Formato Jasper 7 (descubierto a la fuerza)** — JR7 rechaza el JRXML v6. Resumen: raíz sin namespace, `subDataset→dataset`, `isBold→bold`, sin wrapper `<band>`, atributos de `reportElement`/`textElement` directos en el elemento, `textAlignment→hTextAlign`, `imageExpression|textFieldExpression→expression`, hijos de banda como `<element kind="...">`, y tablas `<jr:table>→<component kind="table">` + `<jr:column kind="single">` + `datasetRun subDataset=`. Método que vale para cualquier JR7: serializar `JRDesign*` con `JacksonUtil.getXmlMapper().writeValueAsString(...)`.
+- **Skipped:** XLSX (fase 2), frontend/botón trigger, ShedLock, charts, CSV, Spring AI, tocar los solapamientos existentes de `CodigoError` (`SEC_*` muertos, `DUP001`/`CON001` — deuda anotada).
+- **Ponytail:** arreglar la lógica antes que forzar el test — el test nuevo (`generaPdfYEnvia`) descubrió que el PDF **nunca se pudo generar**; no se tocó el assert hasta que la plantilla compiló de verdad.
+
+```
+backend/core/pom.xml # jasper 7.0.4 + starter-mail + spring-dotenv
+backend/core/.env.example # modelo vacío (committeable) — .env NO (CI lo bloquea)
+backend/core/src/main/resources/db/migration/V8__report_log.sql # report_log
+backend/core/src/main/resources/reports/MonthlyReport.jrxml # formato JR7
+backend/core/src/main/resources/reports/pymeq-logo.svg
+backend/core/src/main/java/core_pymes/report/ # módulo completo
+backend/core/src/main/java/core_pymes/common/exception/{CodigoError,CoreApiException}.java # RPT001 (1 línea)
+backend/core/src/test/java/core_pymes/integration/AbstractIntegrationTest.java # @MockBean ReportEmailService
+backend/core/src/test/java/core_pymes/report/MonthlyReportIntegrationTest.java # 4 tests (PDF real)
+backend/core/src/test/java/core_pymes/report/MonthlyReportControllerTest.java # 11 edge cases
+backend/core/README.md # módulo report + .env
+docs/strategies/MONTHLY_REPORT_STRATEGY.md # estado fase 1 + tabla JR6→JR7
+```
+
+**Tests:** 225/225 `./mvnw test -B` BUILD SUCCESS (los dos tests de report viven en `core_pymes/report/`, fuera del filtro `**/integration/**` → corren en la fase `test`). Nuevos: `MonthlyReportIntegrationTest` 4/4 (PDF real `%PDF` + idempotencia 1 fila + SKIP vacío + periodo inválido) y `MonthlyReportControllerTest` 11/11 (sin rol/USER → 403, OWNER/ADMIN → 200, 4 periodos inválidos → 400 vía `InvalidInputException`→`GlobalExceptionHandler`, dryRun default/false, llamadas repetidas).
+
+**Docs:** `strategies/MONTHLY_REPORT_STRATEGY.md` (estado + tabla JR6→JR7 + V8 + ruta real `reportes`), `CORE.md` (módulo/paquetes/endpoint/V8), `README.md` (fila módulo + testing).
+
+---
+
+
+## 2026-09-29 — Unidades: cura raíz (base_unit ID + 8 globales + fue_suelto)
+
+**Contexto:** hallazgo VPS: ~149 productos mezclaban nombres ("Kg") con IDs en `base_unit`; 33 presentaciones ×1; filas de factura sin `presentacion_id` en silencio. Decisión: el ID de `template_units` es la clave exacta (comparar por ID, sin tabla de equivalencias — YAGNI).
+
+**Qué se hizo (commit `3c06cf8` en `feature/report`, sin push):**
+- **V7 `V7__normalize_units.sql`** — A0 `''`→NULL, A0b puente "Botella" donde falte, A nombres→IDs idempotente, B `conversion`→`NUMERIC(19,6)`, C `fue_suelto`, D 8 globales + re-apunte industria→global por nombre. Probada en docker `v7check` (casos VPS + idempotencia OK).
+- **Globales** — Kg, Gr, Lb, Oz (nueva), Ml, Litro, Galón, Unidad con UUIDs fijos iguales en `SeedDataRunner.GLOBAL_UNITS` y V7; `GlobalUnitsMigrationTest` vigila deriva. Caja/Bolsa/Paquete/Lata quedan por industria. UUID se queda (migrar a Long = reescribir todo sin beneficio).
+- **Seed** — `seedGlobalUnits()` con guard `NOT EXISTS`, industrias sin duplicadas globales, `addProd` fallback industria→global con fail-fast, guard excluye `'global'` del conteo.
+- **Servicios** — `SetupServiceImpl` preview/copia mezclan industria+globales (industria primero); `ProductoServiceImpl.resolveBaseUnit` acepta industria o global (`blank→null`, texto desconocido→400); item sin `presentacionId` exige `fueSuelto=true` o 400.
+- **Skipped:** tabla de equivalencias, migrar UUID→Long, rechazar ×1 legacy en backend (solo UI valida >1; los 33 existentes siguen).
+- **Ponytail:** parche UI `resolveUnitLabel` traduce ID→nombre vía `SetupInfo.units` (el ID nunca se muestra).
+
+**Tests:** 210 unit + 66 IT verdes (incluye `GlobalUnitsMigrationTest` nuevo).
+
+**Docs:** `CORE.md` (fila V7), `SEED_TEMPLATES.md` (sección globales), `CORE_MIGRATIONS_STRATEGY.md` (fila V7), `TO_DO.md` (cura raíz + globales [x]).
+
+---
+
+## 2026-09-27 — Analytics: Regla A en recomendaciones y alertas + NULLIF anti division-by-zero
+
+**Contexto:** recomendaciones y alertas se emitían con 1-2 compras (promedio = ruido) y con presentaciones mezcladas (promedio miente). Además `premiumSql` dividía por el promedio del producto sin `NULLIF`: con promedio 0 (ajustes/notas de crédito) reventaba con `division by zero` y, como `ejecutarCompleto` no aísla motores, se perdía el guardado completo del período. Filosofía: callar en vez de mentir.
+
+**Qué se hizo:**
+- **Regla A recomendaciones** `AnalyticsServiceImpl.analisisRecomendacionProveedor` — skip si `purchaseCount < 3` en cualquier lado (constante `MIN_COMPRAS_POR_PROVEEDOR`, fail-fast antes del cálculo) + early-return si comparativa vacía (ahorra 1 query). Cero queries nuevas, comparativa intacta para su panel y salud financiera.
+- **Regla A alertas** — `variationSql`/`premiumSql` exigen `purchases >= 3` (reciclan sus `COUNT(*)`, misma constante vía `formatted`). Solo filtran sus motores; JSON y frontend intactos.
+- **NULLIF premium** — `/ NULLIF(pa.product_avg_price, 0)` + descarte `<> 0` (la fila desaparece en vez de viajar con premium NULL).
+- **Skipped:** derivar premium de la comparativa en Java (redondea AVG a 4 decimales, movería `premiumPct` visible — add when el volumen duela), compartir `mezclados` entre motores (churn de firmas por 1 query barata), try/catch por motor (add when un motor caiga en prod), Regla B cantidad mínima (bloqueada por `baseUnit` texto-libre — ver TO_DO).
+- **Ponytail:** reparar lógica antes que forzar test — el captor-SQL afirma por contenido con aridad exacta + `atLeastOnce`, no por `times(1)` (los matchers de varargs no distinguen llamadas).
+
+```
+backend/core/src/main/java/core_pymes/analytics/service/impl/AnalyticsServiceImpl.java # Regla A + NULLIF + early-return
+backend/core/src/test/java/core_pymes/analytics/service/impl/AnalyticsServiceImplTest.java # purchaseCount en stubs + 3 tests nuevos
+backend/core/src/test/java/core_pymes/integration/AnalyticsIntegrationTest.java # ajuste 1v1→0 + 3 tests nuevos
+docs/TO_DO.md # Regla A [x], Regla B documentada [Baja] post-unidades
+```
+
+**Tests:** unit `AnalyticsServiceImplTest` 17/17 (pareja 1v1 se calla, 3v3 recomienda, captor-SQL umbral+NULLIF); IT `AnalyticsIntegrationTest` 9/9 (`reglaA_minimoTresComprasPorLado`, `reglaA_alertasExigenTresCompras`, `precioCero_noRompeAlertas`); suite completo unit 206/206 + `verify -Pintegration` 65/65 BUILD SUCCESS. Sin commit/push (orden del usuario).
+
 ---
 
 ## 2026-09-15 — Factura: ITBMS DGI 0/7/10 por ítem + desglose + default 0 opt-in
@@ -597,7 +676,7 @@ El interceptor axios (`boot/axios.ts`) ya normaliza errores a `new Error(mensaje
 |-----------|----------|--------|
 | ✅ (ninguno) | SQL injection | 0 — todo parametrizado |
 | ✅ (ninguno) | Índices duplicados V16 | Corregido en sesión anterior |
-| 🔹 LOW | `conversion INTEGER` no soporta factores fraccionarios | Pendiente: cambiar a `NUMERIC(10,4)` |
+| 🔹 LOW | `conversion INTEGER` no soporta factores fraccionarios | ✅ Resuelto 2026-09-29: `NUMERIC(19,6)` en `product_presentations`, `invoice_items.conversion_factor` y `template_product_presentations` (V7 sección B) |
 | 🔹 LOW | `loans(tenant_id)` single-column | Aceptado: PYME, <500 loans |
 
 ### Archivos creados

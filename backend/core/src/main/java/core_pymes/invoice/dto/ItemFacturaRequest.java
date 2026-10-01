@@ -8,6 +8,7 @@ import java.util.UUID;
 public record ItemFacturaRequest(
         @NotNull UUID productoId,
         UUID presentacionId,
+        Boolean fueSuelto,
 
         // Legacy (compatibilidad)
         BigDecimal cantidad,

@@ -16,7 +16,7 @@ class InvoiceCalculatorItbmsTest {
     private InvoiceCalculator.CalculatedItem calc(BigDecimal qty, BigDecimal precio, BigDecimal descPct, Integer tasa) {
         return InvoiceCalculator.resolve(new InvoiceCalculator.ResolveRequest(
                 qty, precio, null,
-                null, null, null, descPct, descPct != null, 1, tasa));
+                null, null, null, descPct, descPct != null, BigDecimal.ONE, tasa));
     }
 
     @Test

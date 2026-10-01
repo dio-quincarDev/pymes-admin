@@ -1,11 +1,12 @@
 <script setup lang="ts">
-import { onMounted } from 'vue';
+import { computed, onMounted, watch } from 'vue';
 import { useQuasar, useMeta } from 'quasar';
 import { useAuthStore } from 'src/modules/auth/store';
 import { useTutorial } from 'src/composables/useTutorial';
 import { useNumberFormat } from 'src/modules/core/composables/useNumberFormat';
 import { useAnalytics } from '../composables/useAnalytics';
 import { useAnalisisGastos } from '../composables/useAnalisisGastos';
+import { enrichAlert, enrichAlertPrices, enrichRecommendation, firstLastByProduct, resolveUnitLabel } from '../utils/analyticsNormalize';
 import { useVentasSemanales } from '../composables/useVentasSemanales';
 import { useMonthlyInvestment } from '../composables/useMonthlyInvestment';
 import { useMonthlyProjection } from '../composables/useMonthlyProjection';
@@ -34,10 +35,34 @@ const {
   alerts,
   financialHealth,
   abc,
+  supplierComparison,
   supplierRecommendations,
 } = useAnalytics();
 
-const { productCount, loading, load } = useAnalisisGastos(tenantId);
+const { productCount, products, setupUnits, facturas, loading, load, loadFacturas } = useAnalisisGastos(tenantId);
+
+// Derivación pura: la página compone (comparativa + catálogo + unidades del setup ya están cargados, cero requests).
+const enrichedRecommendations = computed(() =>
+  supplierRecommendations.value.map((r) =>
+    enrichRecommendation(r, supplierComparison.value, products.value, setupUnits.value),
+  ),
+);
+const enrichedAlerts = computed(() => {
+  const trails = firstLastByProduct(facturas.value);
+  return alerts.value.map((a) =>
+    enrichAlertPrices(
+      enrichAlert(a, supplierComparison.value),
+      trails.get(a.productId),
+      resolveUnitLabel(products.value.find((p) => p.id === a.productId)?.baseUnit, setupUnits.value),
+    ),
+  );
+});
+
+// ponytail: facturas solo si hay alertas (multitenant: evita 1 request + RAM Redis por visita
+// en meses limpios); idempotente ante cambios de período
+watch(alerts, (a) => {
+  if (a.length) void loadFacturas();
+});
 
 const {
   ventasSemanales,
@@ -127,11 +152,11 @@ onMounted(() => {
     </div>
 
     <!-- B) Ahorro por proveedor — cuánto te ahorras -->
-    <SupplierRecommendationsCard :items="supplierRecommendations" class="q-mb-lg" />
+    <SupplierRecommendationsCard :items="enrichedRecommendations" class="q-mb-lg" />
 
     <div class="analysis-vital">
       <FinancialHealthPanel :data="financialHealth" :loading="analyticsLoading" :recommendations="supplierRecommendations" />
-      <AlertsPanel :items="alerts" />
+      <AlertsPanel :items="enrichedAlerts" />
     </div>
   </q-page>
 </template>

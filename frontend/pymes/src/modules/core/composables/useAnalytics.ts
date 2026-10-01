@@ -16,7 +16,7 @@ import type {
   FinancialHealthAlert,
   FinancialHealthWire,
 } from '../types/analytics';
-import { normalizeAbc, normalizeFinancialHealth } from '../utils/analyticsNormalize';
+import { normalizeAbc, normalizeAlerts, normalizeFinancialHealth } from '../utils/analyticsNormalize';
 import { useAuthStore } from 'src/modules/auth/store';
 import { usePeriod } from './usePeriod';
 
@@ -40,6 +40,7 @@ export function useAnalytics() {
       data.value = {
         ...wire,
         abc: normalizeAbc(wire.abc ?? []),
+        alerts: normalizeAlerts(wire.alerts ?? []),
         financialHealth: normalizeFinancialHealth(wire.financialHealth as FinancialHealthWire),
       } as AnalyticsResponse;
     } catch (e: unknown) {
@@ -61,6 +62,7 @@ export function useAnalytics() {
       data.value = {
         ...wire,
         abc: normalizeAbc(wire.abc ?? []),
+        alerts: normalizeAlerts(wire.alerts ?? []),
         financialHealth: normalizeFinancialHealth(wire.financialHealth as FinancialHealthWire),
       } as AnalyticsResponse;
     } catch (e: unknown) {

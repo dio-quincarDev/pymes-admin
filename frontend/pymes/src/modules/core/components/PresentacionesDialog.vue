@@ -31,8 +31,12 @@ const conversionPreview = computed(() => {
   const name = presForm.value.name || '—'
   const conv = presForm.value.conversion
   const unit = baseUnitLabel.value
-  return conv > 1 ? `1 ${name} = ${conv} ${unit}` : ''
+  // ponytail: preview siempre (regla 2 del spec) — verde si guarda, ambar si no
+  return conv > 1 ? { ok: true, text: `1 ${name} = ${conv} ${unit}` }
+    : { ok: false, text: `El empaque debe traer más de 1 ${unit}` }
 })
+
+const canAdd = computed(() => !!presForm.value.name.trim() && presForm.value.conversion > 1 && !addingPres.value)
 
 watch(() => props.modelValue, (val) => {
   if (val && props.product) {
@@ -42,7 +46,7 @@ watch(() => props.modelValue, (val) => {
 })
 
 async function addPresentation() {
-  if (!presForm.value.name || !props.product || !tenantId) return
+  if (!canAdd.value || !props.product || !tenantId) return
   addingPres.value = true
   try {
     const res = await productoService.addPresentation(props.product.id, presForm.value, tenantId)
@@ -116,7 +120,7 @@ async function removePresentation(p: Presentacion) {
             <q-input dark dense outlined v-model="presForm.name" label="Nombre" placeholder="Ej: Caja x24" class="pres-input" />
           </div>
           <div class="col-xs-12 col-sm-4">
-            <q-input dark dense outlined v-model.number="presForm.conversion" label="Conversión" type="text" inputmode="numeric" class="pres-input" />
+            <q-input dark dense outlined v-model.number="presForm.conversion" label="Conversión" type="number" :min="2" inputmode="numeric" class="pres-input" />
             <div class="pres-hint">
               Unidades base que caben en esta presentación
             </div>
@@ -124,18 +128,16 @@ async function removePresentation(p: Presentacion) {
           <div class="col-xs-12 col-sm-3">
             <q-btn
               label="Agregar" color="primary" no-caps
-              :loading="addingPres" @click="addPresentation"
+              :loading="addingPres" :disable="!canAdd" @click="addPresentation"
               icon="sym_r_add"
               class="pres-add-btn"
             />
           </div>
         </div>
-        <Transition name="preview-fade">
-          <div v-if="conversionPreview" class="pres-preview">
-            <q-icon name="swap_vert" size="0.9rem" />
-            <span>{{ conversionPreview }}</span>
-          </div>
-        </Transition>
+        <div class="pres-preview" :class="{ 'pres-preview--warn': !conversionPreview.ok }">
+          <q-icon name="swap_vert" size="0.9rem" />
+          <span>{{ conversionPreview.text }}</span>
+        </div>
       </q-card-section>
     </q-card>
   </q-dialog>
@@ -284,6 +286,13 @@ async function removePresentation(p: Presentacion) {
   background: rgba(34, 211, 238, 0.08);
   border: 1px solid rgba(34, 211, 238, 0.15);
   border-radius: 6px;
+  transition: color 0.2s, background 0.2s, border-color 0.2s;
+}
+
+.pres-preview--warn {
+  color: rgba(200, 160, 66, 0.9);
+  background: rgba(200, 160, 66, 0.08);
+  border-color: rgba(200, 160, 66, 0.2);
 }
 
 .pres-hint {
@@ -300,22 +309,5 @@ async function removePresentation(p: Presentacion) {
 .pres-add-btn {
   border-radius: 8px;
   font-weight: 600;
-}
-
-.preview-fade-enter-active {
-  transition: all 0.2s cubic-bezier(0.4, 0, 0.2, 1);
-}
-
-.preview-fade-leave-active {
-  transition: all 0.15s cubic-bezier(0.4, 0, 0.2, 1);
-}
-
-.preview-fade-enter-from {
-  opacity: 0;
-  transform: translateY(-4px);
-}
-
-.preview-fade-leave-to {
-  opacity: 0;
 }
 </style>

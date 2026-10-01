@@ -1,20 +1,32 @@
 <script setup lang="ts">
-import { computed } from 'vue';
+import { computed, shallowRef } from 'vue';
 import type { AlertItem } from '../../types/analytics';
-import { useNumberFormat } from '../../composables/useNumberFormat';
-import { toNumber } from '../../utils/analyticsNormalize';
+import { alertBadge, alertDummyText, alertFallbackText, toNumber, withinTrustedAlertRange } from '../../utils/analyticsNormalize';
 
 interface Props {
   items: AlertItem[];
 }
 
 const props = defineProps<Props>();
-const { formatCurrency } = useNumberFormat();
 
 // ponytail: filtro UI puro — esconde basura 0.00 (Mayonesa 0.00 vs 3.88) sin tocar backend; si necesitás persistir, filtra en AnalyticsServiceImpl
 const filteredAlerts = computed(() =>
   props.items.filter((a) => toNumber(a.currentPrice) > 0 && toNumber(a.avgPrice) > 0 && Number.isFinite(toNumber(a.variationPct, 0))),
 );
+
+// ponytail: tope fijo, sin scroll infinito — el backend ya ordena por cv/premium desc; subir TOP_VISIBLE si piden
+const TOP_VISIBLE = 8;
+const expanded = shallowRef(false);
+
+const visibleAlerts = computed(() => {
+  if (expanded.value) return filteredAlerts.value;
+  // ponytail: por defecto solo alertas ≤ +100% (arriba es error de registro: Huevos +140%, Orégano +112%);
+  // el resto queda tras "ver más", gemelo del rango 35–75 de recomendaciones
+  return filteredAlerts.value
+    .filter((a) => withinTrustedAlertRange(toNumber(a.variationPct, 0)))
+    .slice(0, TOP_VISIBLE);
+});
+const hiddenCount = computed(() => filteredAlerts.value.length - visibleAlerts.value.length);
 
 const hasCritical = computed(() => filteredAlerts.value.some((a) => a.severity === 'critical'));
 </script>
@@ -34,7 +46,7 @@ const hasCritical = computed(() => filteredAlerts.value.some((a) => a.severity =
     </div>
 
     <q-list v-else dense class="alerts-panel__list">
-      <q-item v-for="alert in filteredAlerts" :key="alert.productId" class="alerts-panel__item">
+      <q-item v-for="alert in visibleAlerts" :key="alert.productId" class="alerts-panel__item">
         <q-item-section avatar>
           <q-icon
             :name="alert.severity === 'critical' ? 'error' : 'warning'"
@@ -45,18 +57,28 @@ const hasCritical = computed(() => filteredAlerts.value.some((a) => a.severity =
         <q-item-section>
           <q-item-label class="alerts-panel__name">{{ alert.productName }}</q-item-label>
           <q-item-label caption class="alerts-panel__detail">
-            {{ formatCurrency(alert.currentPrice) }} vs {{ formatCurrency(alert.avgPrice) }}
+            {{ alertDummyText(alert) || alertFallbackText(alert) }}
           </q-item-label>
         </q-item-section>
         <q-item-section side>
           <q-badge
             :color="alert.severity === 'critical' ? 'negative' : 'warning'"
-            :label="`${alert.variationPct > 0 ? '+' : ''}${alert.variationPct?.toFixed(1) ?? '0.0'}%`"
+            :label="alertBadge(alert)"
             rounded
           />
         </q-item-section>
       </q-item>
     </q-list>
+    <q-btn
+      v-if="hiddenCount > 0 || expanded"
+      flat
+      dense
+      size="sm"
+      color="warning"
+      class="alerts-panel__more"
+      :label="expanded ? 'Ver menos' : `+${hiddenCount} más este mes`"
+      @click="expanded = !expanded"
+    />
   </div>
 </template>
 
@@ -112,6 +134,12 @@ const hasCritical = computed(() => filteredAlerts.value.some((a) => a.severity =
   &__detail {
     font-size: 0.7rem;
     color: #8a9e99;
+  }
+
+  &__more {
+    margin: 0.25rem auto 0;
+    display: block;
+    font-size: 0.75rem;
   }
 }
 </style>
