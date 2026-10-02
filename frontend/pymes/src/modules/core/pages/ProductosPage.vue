@@ -129,6 +129,14 @@ const saving = shallowRef(false)
 const formRef = ref<{ validate: () => Promise<boolean> } | null>(null)
 const form = ref<ProductoRequest>({ tenantId: tenantId as string, name: '', category: '', baseUnit: '', proveedorId: null })
 
+// ponytail: el dialogo muestra el nombre aunque el producto traiga un codigo viejo (global); al elegir de la lista se normaliza solo
+const formUnitOptions = computed(() => {
+  const cur = form.value.baseUnit
+  if (!cur || unitOptions.value.some(o => o.value === cur)) return unitOptions.value
+  const legacy = allUnits.value.find(o => o.value === cur)
+  return [...unitOptions.value, { label: legacy?.label || 'Unidad anterior', value: cur }]
+})
+
 const presDialog = shallowRef(false)
 const presProduct = ref<Producto | null>(null)
 const unitLabel = computed(() => {
@@ -335,7 +343,7 @@ function handleKeydown(e: KeyboardEvent) {
             </q-banner>
             <q-input dark filled v-model="form.name" label="Nombre" :rules="[v => !!v || 'Requerido']" />
             <q-select dark filled v-model="form.category" label="Categoría" :options="catOptions" option-value="value" option-label="label" emit-value map-options use-input input-debounce="0" @filter="(val, update) => { update(() => catOptions.filter(o => !val || o.label.toLowerCase().includes(val.toLowerCase()))) }" :rules="[v => !!v || 'Requerido']" />
-            <q-select dark filled v-model="form.baseUnit" label="Unidad base" :options="unitOptions" option-value="value" option-label="label" emit-value map-options use-input input-debounce="0" @filter="(val, update) => { update(() => unitOptions.filter(o => !val || o.label.toLowerCase().includes(val.toLowerCase()))) }" :rules="[v => !!v || 'Elige la unidad base del catálogo']" />
+            <q-select dark filled v-model="form.baseUnit" label="Unidad base" :options="formUnitOptions" option-value="value" option-label="label" emit-value map-options use-input input-debounce="0" @filter="(val, update) => { update(() => formUnitOptions.filter(o => !val || o.label.toLowerCase().includes(val.toLowerCase()))) }" :rules="[v => !!v || 'Elige la unidad base del catálogo']" />
             <q-select dark filled v-model="form.proveedorId" label="Proveedor" :options="providerOptions" option-value="value" option-label="label" emit-value map-options clearable />
             <div class="row justify-end q-gutter-x-sm">
               <q-btn flat label="Cancelar" color="accent" v-close-popup />
