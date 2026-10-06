@@ -26,8 +26,10 @@
 ### Frontend
 
 - [ ] [Media] **Picker categorías sin scroll (40+ con subcategorías)** — `ProductosPage.vue:312` `flattenCategories()` → lista plana 40 items scrolleable; `InvoiceItemCard.vue` dropdown igual. Fix práctico sin BE/seed: `CategoryPicker.vue` agrupado (headers `BEBIDAS` no clicables + hijos indentados, `max-height 320px` virtual Quasar), `Recientes` 3 últimos vía `localStorage pq_recent_cats:{tenantId}` al guardar producto/factura, toggle `Solo usadas` (`Set(rows/productos.category)`), `use-input` typeahead preservado. Reuso `setupCategories` árbol + `allProducts`/`filteredByCategory`. Archivos: `CategoryPicker.vue` nuevo + `ProductosPage.vue` + `InvoiceItemCard.vue`. Visual terminal `#12141A` header `Geist Mono 12px` + selección borde `accent #C8963E`. Nota: `SeedDataRunner.java` queda intocable (solo INSERT arranque). → acordado 2026-09-14, doc en `DAILY_REPORTS_FRONTEND.md` tras implementar.
+- [x] [Alta] **Fix mismatch de fechas por timezone UTC (agrupación mensual y formularios)** — `monthGroups` por texto `issueDate.slice(0,7)` + label con `key + '-01T00:00:00'` (hora local, sin shift UTC-5); formularios `Facturas/Gastos/Prestamos/Accounting` a `toLocalISODate(new Date())`. Cero `toISOString().slice` en `src`. Lint + build verde. (2026-10-05)
+- [x] [Media] **Armonía responsive y botones en móviles + tablet (2026-10-06)** — Teléfono: actions grilla 2 col, FAB `[16,84]` + abre diálogo, Guardar/X agrupados, remove visible + campos fluidos. Tablet: bottom-nav hasta 1023px + safe-area, grids 2 col intermedias, dialogs `maximized` solo xs (`$q.screen.xs`), tablas `overflow-x:auto` global, filas wrap. Botones: 44px táctil (`pointer:coarse`), un primario dorado por vista, radius→sm (spec). Calendario: `color-scheme:dark` + 📅 blanco. Spec: `.ulpi/design/responsive-tablet.md`. Lint + build verde.
 
-Estrategia de cierre: → [`FRONTEND_PENDIENTES_STRATEGY.md`](./frontend/pymes/docs/strategies/FRONTEND_PENDIENTES_STRATEGY.md)
+Estrategia de cierre: → [`FRONTEND_PENDIENTES_STRATEGY.md`](../frontend/pymes/docs/strategies/FRONTEND_PENDIENTES_STRATEGY.md)
 
 **Fase 7 — Amortización de Préstamos** (pendiente)
 
@@ -116,8 +118,8 @@ Estrategia completa: → [`E2E_TESTING_STRATEGY.md`](./strategies/E2E_TESTING_ST
 **Fase 1 — Backend integration tests (ahora)**
 
 - [x] [Alta] **Setup Playwright E2E** — Root `package.json` + `e2e/` folder (config, fixtures, tests). Chromium installed. 5 test cases base. (2026-08-05)
-- [ ] [Alta] **Auth:填补 5 endpoints sin integration test** — `POST /exchange`, `POST /tenants/select`, `GET /invitations`, `DELETE /invitations/{id}`, `GET /tenants/{id}/shutdown`. → E2E_TESTING_STRATEGY.md (A-IT1 a A-IT5)
-- [ ] [Alta] **Auth:填补 4 services sin unit test** — `PermissionCacheService`, `RateLimitService`, `CustomOAuth2UserService`, `TokenBlacklistService`. → E2E_TESTING_STRATEGY.md (A-UT1 a A-UT4)
+- [ ] [Alta] **Auth: 5 endpoints sin integration test** — `POST /exchange`, `POST /tenants/select`, `GET /invitations`, `DELETE /invitations/{id}`, `GET /tenants/{id}/shutdown`. → E2E_TESTING_STRATEGY.md (A-IT1 a A-IT5)
+- [ ] [Alta] **Auth: 4 services sin unit test** — `PermissionCacheService`, `RateLimitService`, `CustomOAuth2UserService`, `TokenBlacklistService`. → E2E_TESTING_STRATEGY.md (A-UT1 a A-UT4)
 - [ ] [Alta] **Auth: integration test completo CRUD** — Register→Verify→Login→Create tenant→Invite→Accept→List members→Delete member. → E2E_TESTING_STRATEGY.md (A-IT6)
 - [ ] [Alta] **Gateway: 9 integration tests nuevos** — proxy routing, route ordering, CORS, security headers, JWT validation, identity headers forward. → E2E_TESTING_STRATEGY.md (G-IT1 a G-IT8, G-UT1)
 

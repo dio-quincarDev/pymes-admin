@@ -3,6 +3,7 @@ import { ref, computed, shallowRef, onMounted } from 'vue'
 import { useQuasar, useMeta } from 'quasar'
 import { useAuthStore } from 'src/modules/auth/store'
 import { useNumberFormat } from 'src/modules/core/composables/useNumberFormat'
+import { toLocalISODate } from 'src/utils/format'
 import { accountingService } from '../services/accounting.service'
 import AnalyticsHeader from 'src/modules/core/components/analytics/AnalyticsHeader.vue'
 import KpiCard from 'src/modules/core/components/analytics/KpiCard.vue'
@@ -19,7 +20,7 @@ const data = ref<MetricasFinancieras | null>(null)
 const dataPrev = ref<MetricasFinancieras | null>(null)
 const loading = shallowRef(true)
 const error = shallowRef<string | null>(null)
-const periodo = ref(new Date().toISOString().slice(0, 7))
+const periodo = ref(toLocalISODate(new Date()).slice(0, 7))
 
 const isLoading = computed(() => loading.value && !data.value)
 const hasError = computed(() => error.value !== null && !data.value)

@@ -3,7 +3,7 @@ import { ref, shallowRef, computed, onMounted, onUnmounted } from 'vue';
 import { useRouter } from 'vue-router';
 import { useQuasar, useMeta } from 'quasar';
 import { useAuthStore } from 'src/modules/auth/store';
-import { formatCurrency } from 'src/utils/format';
+import { formatCurrency, toLocalISODate } from 'src/utils/format';
 import { gastoService } from '../services/gasto.service';
 import type { GastoOperativo, GastoRequest } from '../types';
 import EmptyState from 'src/components/ui/EmptyState.vue';
@@ -82,7 +82,7 @@ const form = ref<GastoRequest>({
   categoria: '',
   descripcion: '',
   monto: 0,
-  fecha: new Date().toISOString().slice(0, 10),
+  fecha: toLocalISODate(new Date()),
 });
 
 const amountStr = ref('');
@@ -114,7 +114,7 @@ function openCreate() {
     categoria: '',
     descripcion: '',
     monto: 0,
-    fecha: new Date().toISOString().slice(0, 10),
+    fecha: toLocalISODate(new Date()),
   };
   amountStr.value = '';
   dialogOpen.value = true;

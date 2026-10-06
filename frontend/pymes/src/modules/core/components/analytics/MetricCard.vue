@@ -31,7 +31,7 @@ const deltaClass = computed(() => {
 <template>
   <div v-if="loading" class="metric-card">
     <div class="skeleton skeleton-text" style="width: 60px; height: 12px" />
-    <div class="skeleton skeleton-value" style="width: 80px; height: 24px; margin-top: 6px" />
+    <div class="skeleton skeleton-value" style="width: 80px; height: 32px; margin-top: 12px" />
   </div>
 
   <div
@@ -53,11 +53,12 @@ const deltaClass = computed(() => {
   background: var(--pq-surface);
   border: 1px solid var(--pq-border);
   border-radius: 6px;
-  padding: 12px 16px;
-  transition: background var(--pq-motion-fast);
+  padding: 1.25rem 1.5rem;
+  transition: transform 160ms cubic-bezier(0.4, 0, 0.2, 1), box-shadow 160ms cubic-bezier(0.4, 0, 0.2, 1);
 
   &:hover {
-    background: var(--pq-elevated);
+    transform: translateY(-2px);
+    box-shadow: var(--pq-shadow-md);
   }
 
   &--gold { border-left: 3px solid var(--pq-accent); }
@@ -67,26 +68,30 @@ const deltaClass = computed(() => {
 
   &__label {
     font-family: 'Satoshi', sans-serif;
-    font-size: 12px;
-    font-weight: 400;
+    font-size: 0.75rem;
+    font-weight: 500;
     color: var(--pq-text-muted);
+    text-transform: uppercase;
+    letter-spacing: 0.05em;
   }
 
   &__value {
-    font-family: 'Geist Mono', monospace;
-    font-size: 24px;
+    font-family: 'Geist', sans-serif;
+    font-size: 2rem;
     font-weight: 700;
     color: var(--pq-text);
     line-height: 1;
-    font-variant-numeric: tabular-nums;
-    margin-top: 6px;
+    margin-top: 0.75rem;
+    white-space: nowrap;
+    overflow: hidden;
+    text-overflow: ellipsis;
   }
 
   &__delta {
     font-family: 'Satoshi', sans-serif;
-    font-size: 11px;
+    font-size: 0.75rem;
     font-weight: 500;
-    margin-top: 4px;
+    margin-top: 0.5rem;
 
     &--up { color: var(--pq-success); }
     &--down { color: var(--pq-danger); }

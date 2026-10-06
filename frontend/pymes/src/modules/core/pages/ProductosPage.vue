@@ -248,7 +248,7 @@ function handleKeydown(e: KeyboardEvent) {
       <span class="text-accent text-caption">{{ totalCategories }} {{ totalCategories === 1 ? 'categoría' : 'categorías' }}</span>
     </div>
 
-    <div class="row items-center q-gutter-x-sm q-mb-md wrap">
+    <div class="row items-center q-gutter-x-sm q-mb-md wrap productos-toolbar">
       <q-select
         dark dense filled
         v-model="categoryFilter"
@@ -375,3 +375,31 @@ function handleKeydown(e: KeyboardEvent) {
     </q-dialog>
   </q-page>
 </template>
+
+<style scoped>
+@media (max-width: 599px) {
+  /* ponytail: todo apilado full-width, una fila por control */
+  .productos-toolbar {
+    display: grid;
+    grid-template-columns: 1fr;
+    gap: 8px;
+  }
+
+  .productos-toolbar.q-gutter-x-sm {
+    margin: 0;
+  }
+
+  .productos-toolbar.q-gutter-x-sm > * {
+    margin: 0;
+    max-width: none;
+  }
+
+  .productos-toolbar > * {
+    width: 100%;
+  }
+
+  .productos-toolbar :deep(.q-space) {
+    display: none;
+  }
+}
+</style>
