@@ -1006,12 +1006,18 @@ function handleKeydown(e: KeyboardEvent) {
 @media (max-width: 599px) {
   .facturas-toolbar {
     display: grid;
-    grid-template-columns: 1fr 1fr;
+    grid-template-columns: 1fr;
     gap: 8px;
   }
 
   .facturas-toolbar__search {
     grid-column: 1 / -1;
+  }
+
+  /* ponytail: cajas idénticas full-width — el outline ya no se lee "más chico" */
+  .facturas-toolbar .q-btn {
+    width: 100%;
+    white-space: nowrap;
   }
 
   .facturas-toolbar :deep(.q-space) {
