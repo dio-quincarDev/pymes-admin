@@ -337,6 +337,17 @@ function fmt(n: number | null) {
   opacity: 0.35;
 }
 
+/* ponytail: táctil sin hover + teclado — remove siempre visible */
+@media (pointer: coarse) {
+  .item-card__remove {
+    opacity: 0.7;
+  }
+}
+
+.item-card__remove:focus-visible {
+  opacity: 1;
+}
+
 .item-card__remove:hover {
   opacity: 1 !important;
   background: color-mix(in srgb, var(--pq-danger) 15%, transparent);
@@ -451,13 +462,34 @@ function fmt(n: number | null) {
     gap: 4px;
   }
 
-  .item-card__field--qty { width: 48px; }
-  .item-card__field--unit { width: 90px; }
-  .item-card__field--valor { width: 80px; }
-  .item-card__field--calc { width: 76px; }
-  .item-card__field--disc { width: 46px; }
-  .item-card__field--itbms { width: 80px; }
-  .item-card__field--subtotal { width: 88px; }
+  /* ponytail: grilla fluida en vez de anchos fijos — sin quiebres a mitad de fila */
+  .item-card__field--qty,
+  .item-card__field--unit,
+  .item-card__field--valor,
+  .item-card__field--calc,
+  .item-card__field--itbms,
+  .item-card__field--subtotal {
+    width: auto;
+    flex: 1 1 80px;
+  }
+
+  .item-card__field--disc {
+    width: auto;
+    flex: 0 1 54px;
+  }
+}
+
+/* ponytail: targets táctiles 44px solo en coarse — desktop conserva densidad 30px */
+@media (pointer: coarse) {
+  .item-card__product :deep(.q-field__control),
+  .item-card__field :deep(.q-field__control) {
+    min-height: 44px !important;
+  }
+
+  .item-card__product :deep(.q-field__marginal),
+  .item-card__field :deep(.q-field__marginal) {
+    height: 44px;
+  }
 }
 
 .item-dropdown {

@@ -541,6 +541,7 @@ function navigateTo(path: string) {
   display: none;
   border-top: 1px solid var(--pq-border);
   background: var(--pq-surface);
+  padding-bottom: env(safe-area-inset-bottom);
 }
 
 .mobile-tabs {
@@ -555,7 +556,7 @@ function navigateTo(path: string) {
   }
 }
 
-@media (max-width: 767px) {
+@media (max-width: 1023px) {
   .mobile-bottom-nav {
     display: block;
   }

@@ -10,7 +10,7 @@
         <template v-slot:prepend><q-icon name="search" /></template>
       </q-input>
       <q-space />
-      <q-btn color="positive" icon="sym_r_payments" label="Gasto rápido" @click="openCreate('GASTO_OPERATIVO')" no-caps />
+      <q-btn color="positive" outline icon="sym_r_payments" label="Gasto rápido" @click="openCreate('GASTO_OPERATIVO')" no-caps />
       <q-btn color="primary" icon="sym_r_add" label="Factura" @click="openCreate('FACTURA')" no-caps />
     </div>
 
@@ -59,7 +59,7 @@
     </div>
 
     <!-- Create Invoice Dialog -->
-    <q-dialog v-model="dialogOpen" dark maximized transition-show="scale" transition-hide="fade">
+    <q-dialog v-model="dialogOpen" dark :maximized="$q.screen.xs" transition-show="scale" transition-hide="fade">
       <q-card dark class="bg-surface-pine invoice-dialog">
         <q-form @submit.prevent="save" class="fit column no-wrap">
           <!-- Header -->
@@ -223,7 +223,7 @@ import { ref, shallowRef, computed, watch, onMounted, onUnmounted, nextTick } fr
 import { useQuasar, useMeta } from 'quasar'
 import { useAuthStore } from 'src/modules/auth/store'
 import { useTutorial } from 'src/composables/useTutorial'
-import { formatCurrency } from 'src/utils/format'
+import { formatCurrency, toLocalISODate } from 'src/utils/format'
 import { calcBreakdown } from '../utils/invoiceMath'
 import { SUELTO, isItemComplete, toPresentacionPayload } from '../utils/invoiceItemGuards'
 import { facturaService } from '../services/factura.service'
@@ -277,14 +277,14 @@ interface MonthGroup {
 const monthGroups = computed(() => {
   const groups = new Map<string, Factura[]>()
   for (const inv of filteredRows.value) {
-    const date = new Date(inv.issueDate)
-    const key = `${date.getFullYear()}-${String(date.getMonth() + 1).padStart(2, '0')}`
+    // ponytail: key por texto YYYY-MM — new Date() cambiaba de mes en UTC-5
+    const key = inv.issueDate.slice(0, 7)
     if (!groups.has(key)) groups.set(key, [])
     groups.get(key)!.push(inv)
   }
   const result: (MonthGroup & { key: string })[] = []
   for (const [key, list] of groups.entries()) {
-    const date = new Date(list[0]!.issueDate)
+    const date = new Date(key + '-01T00:00:00')
     const label = date.toLocaleDateString('es-ES', { month: 'long', year: 'numeric' })
     result.push({ key, label, items: list })
   }
@@ -411,7 +411,7 @@ const form = ref<{
   fechaHasta: string | null
 }>({
   proveedorId: null,
-  fecha: new Date().toISOString().slice(0, 10),
+  fecha: toLocalISODate(new Date()),
   tipo: 'FACTURA',
   metodoPago: null,
   descuentoGlobal: 0,
@@ -572,7 +572,7 @@ function onProviderSelected(val: string | null) {
 async function openCreate(tipo: 'FACTURA' | 'GASTO_OPERATIVO' = 'FACTURA') {
   form.value = {
     proveedorId: null,
-    fecha: new Date().toISOString().slice(0, 10),
+    fecha: toLocalISODate(new Date()),
     tipo,
     metodoPago: null,
     descuentoGlobal: 0,
@@ -994,6 +994,10 @@ function handleKeydown(e: KeyboardEvent) {
   margin-bottom: 16px;
 }
 
+.facturas-toolbar .q-btn {
+  flex-shrink: 0;
+}
+
 .facturas-toolbar__search {
   flex: 1;
   min-width: 0;
@@ -1039,6 +1043,8 @@ function handleKeydown(e: KeyboardEvent) {
 .invoice-row {
   display: flex;
   align-items: center;
+  flex-wrap: wrap;
+  row-gap: 4px;
   padding: 8px 12px;
   cursor: pointer;
   transition: background var(--pq-motion-fast);
