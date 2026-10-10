@@ -7,6 +7,7 @@ import { api } from 'src/boot/axios'
 import { productoService } from '../services/producto.service'
 import { proveedorService } from '../services/proveedor.service'
 import type { Producto, ProductoRequest, SetupInfo, SetupCategory } from '../types'
+import { isUuidLike } from 'src/utils/format'
 import PresentacionesDialog from '../components/PresentacionesDialog.vue'
 import EmptyState from 'src/components/ui/EmptyState.vue'
 
@@ -61,6 +62,13 @@ const unitNameMap = computed(() => {
   for (const o of allUnits.value) map.set(o.value, o.label)
   return map
 })
+
+// ponytail: base_unit canónico es UUID desde V7 — sin match nunca se muestra el ID crudo
+function baseUnitLabel(code: string): string {
+  const named = unitNameMap.value.get(code)
+  if (named) return named
+  return isUuidLike(code) ? 'Unidad' : code
+}
 
 const totalCategories = computed(() => {
   const seen = new Set(rows.value.map(p => p.category))
@@ -295,7 +303,7 @@ function handleKeydown(e: KeyboardEvent) {
               {{ categoryNameMap.get(item.category) || item.category }}
             </q-chip>
             <q-chip v-if="item.baseUnit" dense dark size="sm" outline color="accent">
-              {{ unitNameMap.get(item.baseUnit) || item.baseUnit }}
+              {{ baseUnitLabel(item.baseUnit) }}
             </q-chip>
           </div>
           <div v-if="item.proveedorName" class="text-caption text-accent q-mt-sm">

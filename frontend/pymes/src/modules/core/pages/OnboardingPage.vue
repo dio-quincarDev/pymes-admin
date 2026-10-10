@@ -7,6 +7,7 @@ import { useAuthStore } from 'src/modules/auth/store'
 useMeta({ title: 'Onboarding — PYMEQ' });
 import { setupService } from '../services/setup.service'
 import type { SetupInfo, SetupCategory } from '../types'
+import { isUuidLike } from 'src/utils/format'
 import IndustryCard from 'src/components/onboarding/IndustryCard.vue'
 
 
@@ -37,6 +38,17 @@ function countCategories(cats: SetupCategory[]): number {
 }
 
 const totalCategories = computed(() => previewData.value ? countCategories(previewData.value.categories) : 0)
+// ponytail: base_unit canónico es UUID desde V7 — el preview resuelve nombre desde units del payload
+const previewUnitMap = computed(() => {
+  const map = new Map<string, string>()
+  for (const u of previewData.value?.units ?? []) map.set(u.code, u.name)
+  return map
+})
+function unitLabel(code: string): string {
+  const named = previewUnitMap.value.get(code)
+  if (named) return named
+  return isUuidLike(code) ? 'Unidad' : code
+}
 const fallbackIndustry = { code: '', name: '', icon: 'sym_r_business', desc: '' }
 const selectedIndustry = computed(() => industries.find(i => i.code === selected.value) || fallbackIndustry)
 
@@ -155,7 +167,7 @@ async function confirm() {
               <div v-for="p in previewData.products.slice(0, 6)" :key="p.id" class="preview-product">
                 <div class="preview-product__name">{{ p.name }}</div>
                 <div class="preview-product__meta">
-                  <span class="preview-product__unit">{{ p.baseUnit }}</span>
+                  <span class="preview-product__unit">{{ unitLabel(p.baseUnit) }}</span>
                   <span class="preview-product__category">{{ p.categoryName }}</span>
                 </div>
               </div>

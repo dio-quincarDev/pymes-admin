@@ -4,6 +4,22 @@ Registro cronológico de decisiones, problemas resueltos y estado del frontend.
 
 ---
 
+## 2026-10-10 — Botones +Nuevo acoplados (Proveedores/Costos) + UUID fuera del onboarding
+
+**Contexto:** con datos cargados, el `Nuevo` de Proveedores quedaba chico a la derecha en mobile (solo tenía `flex-wrap`, sin el patrón full-width de Facturas), y el `Nuevo` de Costos (Equipo/Gastos Fijos) flotaba en la esquina derecha por un `q-space` sin search que lo balanceara. Además el preview del onboarding mostraba el `baseUnit` crudo (UUID canónico desde backend V7).
+
+**Qué se hizo:**
+- **Proveedores** `ProveedoresPage.vue` — toolbar en xs (`≤599px`) igual que `facturas-toolbar`: grid 1fr, search full-width, `.q-btn width:100%`, `q-space` oculto. `no-caps` en `Nuevo`/`Nuevo Proveedor` (igual que Facturas).
+- **Costos** `CollaboratorList.vue` + `GastoFijoGroupedList.vue` — fuera el `q-space`: contador + `Nuevo` a la izquierda en desktop (sin search no hay nada que balancee a la derecha); en xs grid 1fr con `Nuevo` full-width. Contadores `computed` (`N integrante(s)`, `N gastos · $X/mes`). `CostosPage.vue` botón `+` circular → `outline + label="Nuevo"`.
+- **UUID onboarding** `OnboardingPage.vue:158` — `unitLabel()` resuelve desde `previewData.units`; UUID sin match → `"Unidad"`, texto legacy → crudo. `isUuidLike` pasa de copia local en Facturas a util en `utils/format.ts`.
+- **Productos** `ProductosPage.vue:298` — chip de unidad usa `baseUnitLabel()` (mismo fallback, adiós UUID crudo en tarjetas).
+
+**Verificación:** `npm run lint` 0, `npm run build` PWA verde.
+
+**Estado:** ✅ COMPLETADO — pendiente push `feature/refactor`
+
+---
+
 ## 2026-09-29 — Unidades y presentaciones: sin defaults silenciosos + Standard
 
 **Contexto:** cierre del gap de unidades en las 3 capas (backend V7 + `fue_suelto` ya commiteado en `3c06cf8`). Faltaba el frontend: el diálogo aceptaba conversión 1 en silencio y la factura defaulteaba a unidad base con `value: ''`. Spec previo en `.ulpi/design/unidades-presentaciones.md`.

@@ -223,7 +223,7 @@ import { ref, shallowRef, computed, watch, onMounted, onUnmounted, nextTick } fr
 import { useQuasar, useMeta } from 'quasar'
 import { useAuthStore } from 'src/modules/auth/store'
 import { useTutorial } from 'src/composables/useTutorial'
-import { formatCurrency, toLocalISODate } from 'src/utils/format'
+import { formatCurrency, isUuidLike, toLocalISODate } from 'src/utils/format'
 import { calcBreakdown } from '../utils/invoiceMath'
 import { SUELTO, isItemComplete, toPresentacionPayload } from '../utils/invoiceItemGuards'
 import { facturaService } from '../services/factura.service'
@@ -353,10 +353,6 @@ const productBaseUnitMap = computed(() => {
   }
   return map
 })
-
-function isUuidLike(v: string | null | undefined): boolean {
-  return !!v && v.length >= 32 && v.includes('-')
-}
 
 const filteredByProvider = computed(() => {
   const providerId = form.value.proveedorId

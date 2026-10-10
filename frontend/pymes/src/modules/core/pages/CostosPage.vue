@@ -243,7 +243,7 @@ onUnmounted(() => window.removeEventListener('keydown', handleKeydown));
             <q-select dark filled v-model="gastoForm.metodoPago" :options="metodoPagoOptions" label="Método de pago" clearable />
             <div class="row items-center q-gutter-x-sm">
               <q-select dark filled v-model="gastoForm.proveedorId" :options="proveedorOptions" label="Proveedor" clearable map-options emit-value class="col" />
-              <q-btn flat round icon="sym_r_add" color="primary" type="button" @click="openNewProveedor" />
+              <q-btn outline color="primary" icon="sym_r_add" label="Nuevo" size="sm" no-caps type="button" @click="openNewProveedor" />
             </div>
             <div class="row justify-end q-gutter-x-sm"><q-btn flat label="Cancelar" color="accent" v-close-popup /><q-btn type="submit" label="Guardar" color="primary" :loading="saving" /></div>
           </q-form>
