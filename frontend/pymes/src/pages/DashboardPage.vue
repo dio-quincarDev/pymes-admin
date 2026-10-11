@@ -12,7 +12,6 @@ import CategoryBreakdownChart from 'src/modules/core/components/analytics/Catego
 import ActivityPanel from 'src/modules/core/components/dashboard/ActivityPanel.vue';
 import FinancialHealthPanel from 'src/modules/core/components/dashboard/FinancialHealthPanel.vue';
 import KpiStrip from 'src/modules/core/components/dashboard/KpiStrip.vue';
-import RegistrarVentaDialog from 'src/modules/core/components/dashboard/RegistrarVentaDialog.vue';
 import RegistrarVentaInlineBar from 'src/modules/core/components/dashboard/RegistrarVentaInlineBar.vue';
 import VentasVsCostosChart from 'src/modules/core/components/dashboard/VentasVsCostosChart.vue';
 import { usePullToRefresh } from 'src/composables/usePullToRefresh';
@@ -50,7 +49,6 @@ const { pullDistance, isRefreshing } = usePullToRefresh({ onRefresh: fetch });
 
 // Inline quick capture — composition surface only (logic lives in RegistrarVentaInlineBar + useRegistrarVenta)
 const showInline = shallowRef(false);
-const showRegistrarVenta = shallowRef(false);
 
 function onVentaCreada() {
   void fetch();
@@ -218,16 +216,6 @@ const categoryItems = computed(() =>
         />
         <FinancialHealthPanel :data="financialHealth" :loading="analyticsLoading" :recommendations="supplierRecommendations" />
       </div>
-
-      <!-- Dialog kept for mobile FAB bottom-sheet -->
-      <RegistrarVentaDialog v-model="showRegistrarVenta" @created="onVentaCreada" />
-
-      <!-- Mobile FAB — thumb-reach, only writer, hidden when inline already open -->
-      <q-page-sticky v-if="hasTenant && isWriter && !showInline && !showRegistrarVenta" position="bottom-right" :offset="[16, 84]" class="venta-fab">
-        <q-btn fab icon="sym_r_add" color="primary" text-color="dark" aria-label="Registrar venta" @click="showRegistrarVenta = true">
-          <q-tooltip>Registrar venta</q-tooltip>
-        </q-btn>
-      </q-page-sticky>
     </template>
   </q-page>
 </template>
@@ -330,15 +318,6 @@ const categoryItems = computed(() =>
     &__btn--secondary {
       width: 100%;
     }
-  }
-}
-
-.venta-fab {
-  // keep above mobile-bottom-nav (q-footer) — z 300
-  z-index: 310;
-
-  @media (min-width: 768px) {
-    display: none;
   }
 }
 

@@ -149,6 +149,17 @@ onUnmounted(() => window.removeEventListener('keydown', handleKeydown));
 
       <VentasStatStrip :total="totalMes" :count="registroCount" :average="ticketPromedio" />
 
+      <div class="toolbar">
+        <q-btn
+          v-if="canEdit && dayGroups.length"
+          color="primary"
+          icon="sym_r_add"
+          label="Nuevo"
+          no-caps
+          @click="openCreate"
+        />
+      </div>
+
       <q-banner v-if="error" dense class="bg-negative text-white q-mb-sm">
         {{ error }}
         <template #action>
@@ -186,10 +197,6 @@ onUnmounted(() => window.removeEventListener('keydown', handleKeydown));
       />
     </q-pull-to-refresh>
 
-    <q-page-sticky v-if="canEdit" position="bottom-right" :offset="[16, 88]">
-      <q-btn fab icon="sym_r_add" color="primary" aria-label="Nueva venta" @click="openCreate" />
-    </q-page-sticky>
-
     <VentaFormDialog
       v-model="dialogOpen"
       :editing="!!editingId"
@@ -214,3 +221,27 @@ onUnmounted(() => window.removeEventListener('keydown', handleKeydown));
     </q-dialog>
   </q-page>
 </template>
+
+<style scoped>
+.toolbar {
+  display: flex;
+  align-items: center;
+  flex-wrap: wrap;
+  gap: 12px;
+  margin: 16px 0;
+}
+
+/* ponytail: mismo patrón que Proveedores/Facturas — Nuevo full-width en xs */
+@media (max-width: 599px) {
+  .toolbar {
+    display: grid;
+    grid-template-columns: 1fr;
+    gap: 8px;
+  }
+
+  .toolbar .q-btn {
+    width: 100%;
+    white-space: nowrap;
+  }
+}
+</style>
