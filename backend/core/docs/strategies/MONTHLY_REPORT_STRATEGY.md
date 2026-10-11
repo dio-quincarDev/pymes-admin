@@ -329,3 +329,28 @@ por tenant, anclado a su primer registro (ej: tenant creado en febrero → cierr
 abr/jul/oct/ene). El scheduler del día 1 solo genera trimestral (+ 2 XLSX) a los
 tenants que cumplen `meses_desde_primer_registro % 3 == 0`. El mensual de ese mes se
 envía igual junto al paquete trimestral.
+
+## Recuperación de inversión en reportes (diseño 2026-10-11)
+
+**Idea:** el reporte le dice al dueño *"si tomaste las recomendaciones, debes haber
+recuperado $X de $10,000 hasta el momento"*. Misma lógica de la tarjeta de
+Patrimonio (`PatrimonioPage.vue`, sección "Plan de retorno"), repetida sobre meses
+cerrados. Solo lo real: mes sin datos = 0 aportado, nunca inventar.
+
+**Cálculo por mes cerrado:** aporte = fijo del plazo (`capitalInicial / plazo`),
+con tope 70% de la rentabilidad del mes; si el mes no dio (rentabilidad ≤ 0 o sin
+datos), aporte 0. Sin arrastres entre meses (decisión del dueño 2026-10-11: la
+tarjeta es solo mes actual; el acumulado vive aquí).
+- Recuperado = Σ aportes de los meses del rango. Restante = capital − recuperado.
+- Ritmo vigente = el calificado por el último mes cerrado (bandas 6m ≥ 38% ·
+  12m ≥ 19% · 18m ≥ 13% · < 13% = protege la caja).
+
+**Dónde vive:** PDF trimestral página 1, una línea debajo de los 3 totales
+(es cara cliente y el tema es inversión). El mensual no se toca (lleno con etapa 2).
+XLSX `Datos`: una columna más por mes (aporte recomendado + recuperado acumulado) —
+el detalle detrás de la línea del PDF. Sin capital registrado → la sección no aparece.
+
+**Diseño técnico (cuando se construya):** replay en proceso sobre
+`tenant_financial_metrics` (`netMargin`, `netMarginPct` por período) + capital de
+`core.patrimony`; reutiliza el mismo helper de cálculo que la tarjeta (un solo punto
+de verdad). Sin migración, sin endpoint nuevo para la v1.
