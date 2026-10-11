@@ -1,6 +1,6 @@
 # Reporte Mensual Automático — Estrategia (Core)
 
-Estado: **fase 1 (PDF) implementada** (2026-09-29). Fase 2 (XLSX) pendiente.
+Estado: **fase 1 (PDF 1 página) implementada** (2026-09-29). **Etapa 2 en bases y diseño** (2026-10-10): página 2 con top 5 productos + top 3 gastos — modelado concluido, pendiente construcción.
 
 Objetivo: el día 1 de cada mes a las 06:00 `America/Panama`, cada OWNER de cada
 tenant activo recibe por mail el resumen en PDF (lectura del dueño) + XLSX
@@ -261,3 +261,96 @@ cd backend/core && cp .env.example .env   # y pon tus valores de mail/DB
 
 En **CI no hace falta**: el `@MockBean ReportEmailService` de
 `AbstractIntegrationTest` reemplaza el bean y la property nunca se evalúa.
+
+## Etapa 2 — Página 2: top productos + top gastos (modelado 2026-10-10)
+
+**Concluido con el dueño:** el PDF pasa a 2 páginas. La 1 queda igual; la 2 trae:
+
+1. **Top 5 productos más comprados**, por cantidad de mayor a menor
+   (ej: `Pechuga — 40 kg — $175.00`). Cantidades en unidad base, sin precios
+   promedio entre presentaciones. Desempate por monto.
+2. **Top 3 gastos operativos**, por monto de mayor a menor
+   (ej: `Salarios — $1,750.00`). Agrupados por categoría, etiqueta bonita.
+
+**Reglas:** solo lo pagado del mes cerrado, sin proyecciones; mismo correo
+(+1 línea avisando lo nuevo) y mismo adjunto; mes vacío se salta igual.
+Cada sección aparece solo si tiene filas (mes parcial: solo la que tenga
+datos). Menos de 5/3: se muestran los que haya, sin relleno.
+
+**Diseño técnico:** `ReportData` suma `TopProducto(nombre, cantidad, unidad, total)`
++ `TopGasto(nombre, total, facturas)`; `LEFT JOIN products` (fallback a snapshot)
++ `template_units` por texto; JRXML extiende `summary` con `printWhen` por sección
+(fluye solo a página 2, footer ya numera). Unidad sin match → `"Unidad"`.
+
+## Etapa trimestral — PDF cara cliente + 2 XLSX (modelado 2026-10-10)
+
+**Principio:** el trimestral lo lee el cliente (dueño), no el contable. Carta de
+resultados, máx 2 páginas, lista para reenviar por WhatsApp/correo. Rango rodante:
+los 3 meses que cierran el mes de envío.
+
+**Regla dura:** prohibido atribuir ganancia por producto. Las ventas son totales
+del día (sin porcionado por producto), así que no existe rentabilidad por producto.
+La ganancia vale solo a nivel negocio (ventas − compras − gastos). El producto
+estrella se define por volumen de compra, nunca por aporte a la ganancia.
+
+**PDF trimestral (qué + qué hago, para leer en 2 minutos):**
+- Página 1: frase resumen en 1 línea + 3 totales grandes (ingresos, gastos,
+  ganancia del trimestre) + barras mes a mes ingresos vs gastos (mitad de la
+  página, dibujo simple con elementos del template, sin librerías nuevas).
+- Página 2: sección grande de consejos (media página o más), 2–3 consejos con su
+  porqué en 1 línea, en palabras normales, solo sobre compras y gastos medidos.
+  Cierra con comparativa ↑↓ del trimestre.
+- Sin tablas mensuales, sin puntajes, sin tortas (eso vive en el Excel).
+
+**XLSX contable:** 1 hoja `Mes | Proveedor | Facturas | Total`, una fila por
+proveedor+mes, ordenada por fecha. Cero fórmulas raras.
+
+**XLSX comportamiento + salud (el respaldo, no redundante con el PDF):**
+- `Datos`: tabla mes a mes (ingresos, compras, gastos, ganancia, días cargados,
+  salud 0–100). El detalle detrás de los totales del PDF.
+- `Gráficos` (solo lo que el PDF no tiene): torta de composición del gasto del
+  trimestre + línea de tendencia de ganancia. Sin barras ingresos-vs-gastos (ya
+  están en el PDF). Generados con POI vía `jasperreports-excel-poi` (ya en el POM),
+  sin JFreeChart (ausente).
+- `Salud`: puntaje + pilares + todas las alertas y recomendaciones en texto simple
+  (diagnóstico completo). Regla: el PDF dice qué hacer, el Excel dice por qué.
+  Mes sin datos → `"sin datos"`, nunca inventar.
+- Salud del motor existente (`core_pymes.analytics`) llamado en proceso, sin cableado
+  nuevo: último mes del trimestre + delta vs hace 3 meses. Sin proyecciones.
+- El XLSX mensual pendiente de Fase 2 queda absorbido: el contable lo cubre a nivel trimestre.
+
+**Diseño técnico:** queries del mensual reutilizadas con rango `[from, to)` de 3 meses;
+`period` trimestral convive en `report_log` sin migraciones (mismo tenant, período
+distinto: mensual `YYYY-MM`, trimestral con formato propio). Cada archivo con su fila
+en `report_log` (reintento independiente por formato).
+
+**Envío:** el mensual va todos los meses para todos. El trimestral va cada 3 meses
+por tenant, anclado a su primer registro (ej: tenant creado en febrero → cierres en
+abr/jul/oct/ene). El scheduler del día 1 solo genera trimestral (+ 2 XLSX) a los
+tenants que cumplen `meses_desde_primer_registro % 3 == 0`. El mensual de ese mes se
+envía igual junto al paquete trimestral.
+
+## Recuperación de inversión en reportes (diseño 2026-10-11)
+
+**Idea:** el reporte le dice al dueño *"si tomaste las recomendaciones, debes haber
+recuperado $X de $10,000 hasta el momento"*. Misma lógica de la tarjeta de
+Patrimonio (`PatrimonioPage.vue`, sección "Plan de retorno"), repetida sobre meses
+cerrados. Solo lo real: mes sin datos = 0 aportado, nunca inventar.
+
+**Cálculo por mes cerrado:** aporte = fijo del plazo (`capitalInicial / plazo`),
+con tope 70% de la rentabilidad del mes; si el mes no dio (rentabilidad ≤ 0 o sin
+datos), aporte 0. Sin arrastres entre meses (decisión del dueño 2026-10-11: la
+tarjeta es solo mes actual; el acumulado vive aquí).
+- Recuperado = Σ aportes de los meses del rango. Restante = capital − recuperado.
+- Ritmo vigente = el calificado por el último mes cerrado (bandas 6m ≥ 38% ·
+  12m ≥ 19% · 18m ≥ 13% · < 13% = protege la caja).
+
+**Dónde vive:** PDF trimestral página 1, una línea debajo de los 3 totales
+(es cara cliente y el tema es inversión). El mensual no se toca (lleno con etapa 2).
+XLSX `Datos`: una columna más por mes (aporte recomendado + recuperado acumulado) —
+el detalle detrás de la línea del PDF. Sin capital registrado → la sección no aparece.
+
+**Diseño técnico (cuando se construya):** replay en proceso sobre
+`tenant_financial_metrics` (`netMargin`, `netMarginPct` por período) + capital de
+`core.patrimony`; reutiliza el mismo helper de cálculo que la tarjeta (un solo punto
+de verdad). Sin migración, sin endpoint nuevo para la v1.
