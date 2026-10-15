@@ -8,6 +8,67 @@ Registro de lo implementado y lo pendiente.
 
 ---
 
+## 2026-10-15 — Reporte mensual página 2: top productos + top gastos + cierre de retorno
+
+**Contexto:** etapa 2 del mensual (diseñada 2026-10-10). Decisión del dueño: el
+rango de días sale del motor de análisis en proceso (pivot opción A, sin tocar
+la base); el cierre dice "retorno de tu inversión inicial ($Z)" (no "tu
+inversión" a secas); el rango de días se queda porque cada extremo sale de un
+día real. Trimestral queda en diseño (ahí vive la idea #2 con avance acumulado).
+
+**Qué se hizo (backend puro, cero migraciones):**
+- **Pivot** — `AnalyticsService.proyeccionOperativa` (+DTO `ProyeccionOperativa`):
+  gasto mensual/diario/min/max del mes en 1 query (dueña del gasto diario =
+  `operatingExpenses / diasConGasto`, sin doble conteo items+headers). Misma JVM,
+  sin HTTP.
+- **Cierre** — `report/support/RetornoInversion.java` puro (réplica de
+  `recuperacion.ts` del front: bandas 6m ≥ 38% · 12m ≥ 19% · 18m ≥ 13%, tope
+  70%): línea 1 aporte+ritmo, línea 2 resto con rango
+  `floor(resto/gastoMax)…floor(resto/gastoMin)` + `% del gasto mensual`.
+  Mes que no dio → `protege la caja`; sin capital → bloque ausente.
+- **`ReportData` + repo** — `TopProducto` (unidad base, desempate monto, unidad
+  sin match → `"Unidad"`) + `TopGasto` (por categoría) + `capital`
+  (`core.patrimony`, null = ausente). `MonthlyReportServiceImpl` pasa
+  `productosDs/gastosDs/tieneProductos/tieneGastos/retornoLinea1/2`.
+- **JRXML** — `summary` extendido (tablas + cierre con `printWhen` por sección,
+  fluye a página 2). Líneas del cierre con `textAdjust="StretchHeight"` + la
+  segunda con `positionType="Float"`. **Hallazgo JR7:** `stretchWithOverflow`
+  ya no existe (el loader lo rechaza); el reemplazo es `textAdjust`
+  (`TextAdjustEnum`: CutText/StretchHeight/ScaleFont). Fila agregada a la tabla
+  JR6→JR7 de `MONTHLY_REPORT_STRATEGY.md`.
+- **Email** — +1 línea avisando lo nuevo de la página 2.
+- **Skipped:** XLSX mensual (absorbido por el trimestral en diseño), acumulado en
+  el mensual (vive en el trimestral), charts.
+- **Ponytail:** reparar lógica antes que forzar test — el test de estiramiento
+  falló 3 veces por cifras que sí cabían en 2 renglones, no por Jasper; se
+  confirmó contra la doc oficial + `TextAdjustEnum` del jar y se fijó con línea
+  duplicada que fuerza 3+ renglones.
+
+```
+backend/core/src/main/java/core_pymes/analytics/dto/ProyeccionOperativa.java # NUEVO
+backend/core/src/main/java/core_pymes/analytics/service/AnalyticsService.java # +proyeccionOperativa
+backend/core/src/main/java/core_pymes/analytics/service/impl/AnalyticsServiceImpl.java # impl pivot
+backend/core/src/main/java/core_pymes/report/support/RetornoInversion.java # NUEVO + unit 5/5
+backend/core/src/main/java/core_pymes/report/dto/ReportData.java # +TopProducto/TopGasto/capital
+backend/core/src/main/java/core_pymes/report/dto/ReportOwner.java # +tenantId (pivot)
+backend/core/src/main/java/core_pymes/report/repository/impl/ReportDataRepositoryImpl.java # queries pág. 2
+backend/core/src/main/java/core_pymes/report/service/impl/MonthlyReportServiceImpl.java # params pág. 2
+backend/core/src/main/java/core_pymes/report/service/impl/ReportEmailServiceImpl.java # +1 línea
+backend/core/src/main/resources/reports/MonthlyReport.jrxml # summary pág. 2 + textAdjust
+backend/core/src/test/java/core_pymes/report/RetornoInversionTest.java # NUEVO 5 unit
+backend/core/src/test/java/core_pymes/report/MonthlyReportTemplateTest.java # pág. 2 + no-corte
+backend/core/src/test/java/core_pymes/report/MonthlyReportIntegrationTest.java # generaPdfConPagina2
+backend/core/docs/strategies/MONTHLY_REPORT_STRATEGY.md # etapa 2 construida + fila textAdjust
+```
+
+**Tests:** `verify -Pintegration` BUILD SUCCESS (66 IT + units, incluye
+`RetornoInversionTest` 5/5, plantilla 2/2, `generaPdfConPagina2` con Docker).
+
+**Docs:** `strategies/MONTHLY_REPORT_STRATEGY.md` (etapa 2 + §Recuperación con
+formato final + trimestral guarda idea #2), este DAILY (esta entrada).
+
+---
+
 ## 2026-09-29 — Reporte mensual a OWNERs: PDF + envío + idempotencia (fase 1)
 
 **Contexto:** el dueño no quería abrir la app para saber cómo le fue el mes. Decisión previa con el usuario: **solo PDF este sprint** (XLSX = sprint siguiente, sin romper nada), filtro de facturas = **solo `PAGADA`** (consistente con analytics desde 2026-09-08), migración **V8** (V7 se lo llevó `normalize_units`), alcance **backend puro — cero frontend**, y solo una excepción custom permitida fuera de `report/` (`ReportGenerationException`/`RPT001`). Regla de oro: **nunca proyectar** ("$X en N días cargados, faltan N").

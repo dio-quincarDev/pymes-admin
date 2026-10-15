@@ -54,7 +54,8 @@ public class ReportEmailServiceImpl implements ReportEmailService {
         String linea = "<p><b>" + escape(owner.tenantName()) + " — " + label + ":</b> vendiste "
                 + money(owner, data.ingresos()) + ", te quedaron " + money(owner, data.neto()) + ".</p>";
         String parcial = data.esParcial() ? "<p>Sin ventas registradas en el periodo.</p>" : "";
-        return linea + parcial + "<p>Adjunto el resumen en PDF.</p><p>— PymeQ</p>";
+        String pagina2 = "<p>En la página 2: lo que más compraste, tus gastos más grandes y cuánto apartar.</p>";
+        return linea + parcial + pagina2 + "<p>Adjunto el resumen en PDF.</p><p>— PymeQ</p>";
     }
 
     private String money(ReportOwner owner, BigDecimal v) {

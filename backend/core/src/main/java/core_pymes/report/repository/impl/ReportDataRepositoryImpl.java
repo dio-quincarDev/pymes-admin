@@ -100,12 +100,54 @@ public class ReportDataRepositoryImpl implements ReportDataRepository {
                         rs.getString("nombre"), rs.getBigDecimal("total"), rs.getLong("facturas")),
                 tenantId, from, to);
 
+        List<ReportData.TopProducto> productos = jdbc.query(
+                """
+                SELECT COALESCE(p.name, MAX(ii.product_name)) AS nombre,
+                       SUM(ii.quantity * ii.conversion_factor) AS cantidad,
+                       COALESCE((SELECT tu.name FROM core.template_units tu
+                                 WHERE tu.id::text = MAX(p.base_unit) LIMIT 1), 'Unidad') AS unidad,
+                       SUM(ii.subtotal) AS total
+                FROM core.invoice_items ii
+                JOIN core.invoices i ON i.id = ii.invoice_id
+                LEFT JOIN core.products p ON p.id = ii.product_id
+                WHERE i.tenant_id = ? AND i.type = 'FACTURA' AND i.status = 'PAGADA'
+                  AND i.is_active AND i.issue_date >= ? AND i.issue_date < ?
+                GROUP BY p.id, p.name, p.base_unit
+                ORDER BY cantidad DESC, total DESC LIMIT 5
+                """,
+                (rs, row) -> new ReportData.TopProducto(
+                        rs.getString("nombre"), rs.getBigDecimal("cantidad"),
+                        rs.getString("unidad"), rs.getBigDecimal("total")),
+                tenantId, from, to);
+
+        List<ReportData.TopGasto> gastos = jdbc.query(
+                """
+                SELECT COALESCE(NULLIF(i.category, ''), 'Sin categoría') AS nombre,
+                       SUM(i.total) AS total, COUNT(*) AS facturas
+                FROM core.invoices i
+                WHERE i.tenant_id = ? AND i.type = 'GASTO_OPERATIVO' AND i.status = 'PAGADA'
+                  AND i.is_active AND i.issue_date >= ? AND i.issue_date < ?
+                GROUP BY nombre ORDER BY total DESC LIMIT 3
+                """,
+                (rs, row) -> new ReportData.TopGasto(
+                        rs.getString("nombre"), rs.getBigDecimal("total"), rs.getLong("facturas")),
+                tenantId, from, to);
+
+        BigDecimal capital;
+        try {
+            capital = jdbc.queryForObject(
+                    "SELECT initial_capital FROM core.patrimony WHERE tenant_id = ?",
+                    BigDecimal.class, tenantId);
+        } catch (org.springframework.dao.EmptyResultDataAccessException e) {
+            capital = null; // ponytail: sin capital registrado -> el bloque de retorno no aparece
+        }
+
         return new ReportData(
                 ym.toString(), ingresos, costoCompras, gastosOper,
                 ingresos.subtract(costoCompras).subtract(gastosOper),
                 ((Number) ventas.get("dias")).intValue(), ym.lengthOfMonth(),
                 ((Number) ventas.get("n")).longValue(), ((Number) compras.get("n")).longValue(),
-                semanas, top);
+                semanas, top, productos, gastos, capital);
     }
 
     private Map<String, Object> sumInvoices(UUID tenantId, LocalDate from, LocalDate to, String type) {

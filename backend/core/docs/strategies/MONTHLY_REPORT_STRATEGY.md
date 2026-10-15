@@ -1,6 +1,7 @@
 # Reporte Mensual Automático — Estrategia (Core)
 
-Estado: **fase 1 (PDF 1 página) implementada** (2026-09-29). **Etapa 2 en bases y diseño** (2026-10-10): página 2 con top 5 productos + top 3 gastos — modelado concluido, pendiente construcción.
+Estado: **fase 1 (PDF 1 página) + etapa 2 (página 2: top productos, top gastos,
+cierre de retorno) implementadas**. **Trimestral en diseño** (sin código).
 
 Objetivo: el día 1 de cada mes a las 06:00 `America/Panama`, cada OWNER de cada
 tenant activo recibe por mail el resumen en PDF (lectura del dueño) + XLSX
@@ -8,9 +9,10 @@ tenant activo recibe por mail el resumen en PDF (lectura del dueño) + XLSX
 solo lo realmente cargado en el mes cerrado.
 
 **Hecho hoy:** PDF en 1 página A4 + envío + idempotencia + `SKIPPED` + endpoint
-`POST /api/v1/core/reportes/monthly` con `dryRun`. **Pendiente:** XLSX (3 hojas)
-— la dependencia `jasperreports-excel-poi` ya está en el POM, se cambia el
-exporter y se agrega el test.
+`POST /api/v1/core/reportes/monthly` con `dryRun`. **Etapa 2 (construida):**
+página 2 con top 5 productos + top 3 gastos + cierre de retorno (ver §Etapa 2).
+**Pendiente:** XLSX (3 hojas) — la dependencia `jasperreports-excel-poi` ya está
+en el POM, se cambia el exporter y se agrega el test.
 
 > Relacionado: `ANALYTICS.md` (motores CTE que alimentan los datos),
 > `COSTOS_ENGINE.md` (costo operativo diario), `FUTURE_MODULES.md` §Spring AI
@@ -191,6 +193,7 @@ hicieron falta (todos en `MonthlyReport.jrxml`):
 | hijo suelto en la banda | `<element kind="rectangle\|staticText\|textField\|image\|line\|component">` |
 | `<jr:table>` / `<jr:column>` / `<jr:columnHeader>` / `<jr:detailCell>` | `<component kind="table">` / `<column kind="single">` / `<columnHeader>` / `<detailCell>` |
 | `datasetRun datasetName=` | `datasetRun subDataset=` |
+| `isStretchWithOverflow="true"` (JR6, ya no existe) | `textAdjust="StretchHeight"` (verificado 2026-10-15: el loader JR7 rechaza el nombre viejo con `UnrecognizedPropertyException`; el valor se confirma en `TextAdjustEnum`: `CutText`/`StretchHeight`/`ScaleFont`). El elemento siguiente lleva `positionType="Float"` para que baje cuando el texto se estira. Ojo al probar: una línea de ~150 caracteres cabe en 2 renglones y no se estira — el test usa la línea duplicada (~380) para forzar 3+ renglones y afirmar `height > diseño` + no-solape. |
 
 Cómo se descubrió (método que vale para cualquier JR7): serializar objetos
 `JRDesign*` con `JacksonUtil.getXmlMapper().writeValueAsString(...)` y copiar
@@ -262,15 +265,22 @@ cd backend/core && cp .env.example .env   # y pon tus valores de mail/DB
 En **CI no hace falta**: el `@MockBean ReportEmailService` de
 `AbstractIntegrationTest` reemplaza el bean y la property nunca se evalúa.
 
-## Etapa 2 — Página 2: top productos + top gastos (modelado 2026-10-10)
+## Etapa 2 — Página 2: top productos + top gastos + cierre de retorno (construida)
 
 **Concluido con el dueño:** el PDF pasa a 2 páginas. La 1 queda igual; la 2 trae:
 
 1. **Top 5 productos más comprados**, por cantidad de mayor a menor
-   (ej: `Pechuga — 40 kg — $175.00`). Cantidades en unidad base, sin precios
-   promedio entre presentaciones. Desempate por monto.
+   (ej: `Pechuga — 40 kg — $175.00`). Cantidades en unidad base
+   (`quantity × conversion_factor`), sin precios promedio entre presentaciones.
+   Desempate por monto.
 2. **Top 3 gastos operativos**, por monto de mayor a menor
-   (ej: `Salarios — $1,750.00`). Agrupados por categoría, etiqueta bonita.
+   (ej: `Salarios — $1,750.00`). Agrupados por categoría tal cual se registró.
+3. **Cierre "Recupera tu inversión"** (2 líneas, en palabras normales):
+   aporte del mes con ritmo (`Te quedaron $4,600: aparta $1,666.67 para el
+   retorno de tu inversión inicial ($10,000) (ritmo 6 meses).`) + resto con
+   rango de días y % del gasto (`Con $2,933.33 te alcanza para operar entre
+   8 y 10 días (39% del gasto mensual).`). Mes que no dio → `Este mes no
+   apartes: protege la caja.` Sin capital registrado → el bloque no aparece.
 
 **Reglas:** solo lo pagado del mes cerrado, sin proyecciones; mismo correo
 (+1 línea avisando lo nuevo) y mismo adjunto; mes vacío se salta igual.
@@ -278,9 +288,18 @@ Cada sección aparece solo si tiene filas (mes parcial: solo la que tenga
 datos). Menos de 5/3: se muestran los que haya, sin relleno.
 
 **Diseño técnico:** `ReportData` suma `TopProducto(nombre, cantidad, unidad, total)`
-+ `TopGasto(nombre, total, facturas)`; `LEFT JOIN products` (fallback a snapshot)
-+ `template_units` por texto; JRXML extiende `summary` con `printWhen` por sección
-(fluye solo a página 2, footer ya numera). Unidad sin match → `"Unidad"`.
++ `TopGasto(nombre, total, facturas)` + `capital` (`core.patrimony`, null = ausente);
+`LEFT JOIN products` (fallback a snapshot `product_name`) + `template_units` por
+texto vía subquery (`LIMIT 1`, sin fan-out); unidad sin match → `"Unidad"`.
+JRXML extiende `summary` con `printWhen` por sección (fluye a página 2, footer
+ya numera). **Pivot (decisión del dueño):** el rango de días y el % salen del
+motor de análisis en proceso — `AnalyticsService.proyeccionOperativa`
+(`gastoMensual, gastoDiario, gastoMin, gastoMax`, 1 query dueña del gasto diario,
+misma JVM sin HTTP). Días = `floor(resto / gastoMax)…floor(resto / gastoMin)`;
+`% = resto / gastoMensual`. Sin gasto en el mes → solo la línea de aparte.
+Cálculo del aporte en `report/support/RetornoInversion.java` (réplica de
+`recuperacion.ts` del front: bandas 6m ≥ 38% · 12m ≥ 19% · 18m ≥ 13%, tope 70%),
+puro y con unit test sin Docker (`RetornoInversionTest`, 5 casos).
 
 ## Etapa trimestral — PDF cara cliente + 2 XLSX (modelado 2026-10-10)
 
@@ -337,11 +356,20 @@ recuperado $X de $10,000 hasta el momento"*. Misma lógica de la tarjeta de
 Patrimonio (`PatrimonioPage.vue`, sección "Plan de retorno"), repetida sobre meses
 cerrados. Solo lo real: mes sin datos = 0 aportado, nunca inventar.
 
-**Cálculo por mes cerrado:** aporte = fijo del plazo (`capitalInicial / plazo`),
-con tope 70% de la rentabilidad del mes; si el mes no dio (rentabilidad ≤ 0 o sin
-datos), aporte 0. Sin arrastres entre meses (decisión del dueño 2026-10-11: la
-tarjeta es solo mes actual; el acumulado vive aquí).
-- Recuperado = Σ aportes de los meses del rango. Restante = capital − recuperado.
+**Cálculo por mes cerrado (decisión final del dueño: cierre en mensual pág. 2,
+formato corto):** aporte = fijo del plazo (`capitalInicial / plazo`), con tope
+70% de la rentabilidad del mes; si el mes no dio (rentabilidad ≤ 0 o margen
+< 13%), aporte 0 y línea `protege la caja`. Resto = rentabilidad − aporte;
+días = `floor(resto / gastoMax)…floor(resto / gastoMin)` con el gasto
+diario/min/max del pivot; `% = resto / gastoMensual`. Sin arrastres entre meses
+(decisión del dueño 2026-10-11: la tarjeta es solo mes actual; el acumulado vive
+en el trimestral, en diseño).
+- Mensual pág. 2: `Te quedaron $X: aparta $Y para el retorno de tu inversión
+  inicial ($Z) (ritmo N meses).` + `Con $R te alcanza para operar entre N y M
+  días (P% del gasto mensual).`
+- Trimestral pág. 1 (diseño, sin código): `recuperaste $Y de $Z` + aparte vigente
+  + avance `Llevas recuperado $Y de $Z` (idea #2 del dueño: suma de aportes del
+  rango, sale del historial guardado).
 - Ritmo vigente = el calificado por el último mes cerrado (bandas 6m ≥ 38% ·
   12m ≥ 19% · 18m ≥ 13% · < 13% = protege la caja).
 

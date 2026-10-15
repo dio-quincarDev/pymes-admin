@@ -1,10 +1,14 @@
 package core_pymes.report.service.impl;
 
+import core_pymes.analytics.dto.ProyeccionOperativa;
+import core_pymes.analytics.service.AnalyticsService;
 import core_pymes.report.dto.ReportData;
 import core_pymes.report.dto.ReportOwner;
 import core_pymes.report.exception.ReportGenerationException;
 import core_pymes.report.service.MonthlyReportService;
 import core_pymes.report.support.ReportLabels;
+import core_pymes.report.support.RetornoInversion;
+import lombok.RequiredArgsConstructor;
 import net.sf.jasperreports.engine.JREmptyDataSource;
 import net.sf.jasperreports.engine.JRException;
 import net.sf.jasperreports.engine.JasperCompileManager;
@@ -24,7 +28,10 @@ import java.util.List;
 import java.util.Map;
 
 @Service
+@RequiredArgsConstructor
 public class MonthlyReportServiceImpl implements MonthlyReportService {
+
+    private final AnalyticsService analyticsService;
 
     private JasperReport template;
 
@@ -44,6 +51,13 @@ public class MonthlyReportServiceImpl implements MonthlyReportService {
             params.put("sinVentas", data.esParcial());
             params.put("semanasDs", new JRMapCollectionDataSource(semanas(data.semanas())));
             params.put("proveedoresDs", new JRMapCollectionDataSource(proveedores(data.topProveedores())));
+            params.put("productosDs", new JRMapCollectionDataSource(productos(data.topProductos())));
+            params.put("gastosDs", new JRMapCollectionDataSource(gastos(data.topGastos())));
+            params.put("tieneProductos", !data.topProductos().isEmpty());
+            params.put("tieneGastos", !data.topGastos().isEmpty());
+            var retorno = retorno(owner, data);
+            params.put("retornoLinea1", retorno.linea1());
+            params.put("retornoLinea2", retorno.linea2());
 
             JasperPrint print;
             try (InputStream logo = resource("/reports/pymeq-logo.svg")) {
@@ -90,5 +104,33 @@ public class MonthlyReportServiceImpl implements MonthlyReportService {
             out.add(Map.of("nombre", p.nombre(), "total", p.total(), "facturas", p.facturas()));
         }
         return out;
+    }
+
+    private Collection<Map<String, ?>> productos(List<ReportData.TopProducto> rows) {
+        List<Map<String, ?>> out = new ArrayList<>();
+        for (ReportData.TopProducto p : rows) {
+            out.add(Map.of("nombre", p.nombre(), "cantidad", p.cantidad(),
+                    "unidad", p.unidad(), "total", p.total()));
+        }
+        return out;
+    }
+
+    private Collection<Map<String, ?>> gastos(List<ReportData.TopGasto> rows) {
+        List<Map<String, ?>> out = new ArrayList<>();
+        for (ReportData.TopGasto g : rows) {
+            out.add(Map.of("nombre", g.nombre(), "total", g.total(), "facturas", g.facturas()));
+        }
+        return out;
+    }
+
+    // ponytail: pivot en proceso al motor de analisis (misma JVM, sin HTTP); el JRXML solo imprime
+    private RetornoInversion.Lineas retorno(ReportOwner owner, ReportData data) {
+        if (data.capital() == null) {
+            return new RetornoInversion.Lineas(null, null);
+        }
+        var ym = java.time.YearMonth.parse(data.periodo());
+        ProyeccionOperativa op = analyticsService.proyeccionOperativa(
+                owner.tenantId(), ym.atDay(1), ym.plusMonths(1).atDay(1));
+        return RetornoInversion.armar(data.capital(), data.neto(), data.ingresos(), op, owner.currency());
     }
 }
