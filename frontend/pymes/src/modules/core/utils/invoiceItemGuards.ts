@@ -21,3 +21,25 @@ export function toPresentacionPayload(i: Pick<ItemDraft, 'presentacionId' | 'fue
 } {
   return i.fueSuelto ? { presentacionId: null, fueSuelto: true } : { presentacionId: i.presentacionId || null, fueSuelto: false }
 }
+
+function round2(n: number): number {
+  return Math.round(n * 100) / 100
+}
+
+/**
+ * ponytail: al cambiar de unidad, el Valor sigue al precio auto-llenado (por unidad base)
+ * SOLO si el usuario no lo toco. Agnostico: lee la conversion de cada presentacion,
+ * entera o decimal (Bulto 43.2, Caja x24, Galon 3.785...). conv null = suelto (x1).
+ */
+export function scaledPriceOnPresentationChange(
+  currentValor: number | null,
+  basePrice: number | null,
+  newConv: number | null,
+  prevConv: number | null,
+): number | null {
+  if (basePrice == null) return currentValor
+  const prev = prevConv ?? 1
+  const next = newConv ?? 1
+  const untouched = currentValor == null || round2(currentValor) === round2(basePrice * prev)
+  return untouched ? round2(basePrice * next) : currentValor
+}

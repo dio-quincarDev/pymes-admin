@@ -225,7 +225,7 @@ import { useAuthStore } from 'src/modules/auth/store'
 import { useTutorial } from 'src/composables/useTutorial'
 import { formatCurrency, isUuidLike, toLocalISODate } from 'src/utils/format'
 import { calcBreakdown } from '../utils/invoiceMath'
-import { SUELTO, isItemComplete, toPresentacionPayload } from '../utils/invoiceItemGuards'
+import { SUELTO, isItemComplete, scaledPriceOnPresentationChange, toPresentacionPayload } from '../utils/invoiceItemGuards'
 import { facturaService } from '../services/factura.service'
 import { productoService } from '../services/producto.service'
 import { proveedorService } from '../services/proveedor.service'
@@ -441,8 +441,17 @@ function onProductoChange(item: ItemForm, productoId: string | null) {
 }
 
 function onPresentacionChange(item: ItemForm, presId: string | null) {
+  // ponytail: el Valor sigue al autollenado por unidad base SOLO si no lo tocaste — agnostico al producto
+  const prevConv = item.presentacionId && item.presentacionId !== SUELTO
+    ? (presentationConversionMap.value.get(item.presentacionId) ?? null)
+    : null
+  const newConv = presId && presId !== SUELTO
+    ? (presentationConversionMap.value.get(presId) ?? null)
+    : null
+  const base = allProducts.value.find(p => p.value === item.productoId)?.lastUnitPrice ?? null
   item.presentacionId = presId
   item.fueSuelto = presId === SUELTO
+  item.valor = scaledPriceOnPresentationChange(item.valor, base, newConv, prevConv)
 }
 
 function removeItem(i: number) {

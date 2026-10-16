@@ -108,6 +108,12 @@ const precioUnitario = computed(() => {
   return conv > 0 ? val / conv : val
 })
 
+// ponytail: aclara en que unidad esta el Valor (Bulto, Caja, Kg...) — agnostico al producto
+const valorLabel = computed(() => {
+  const u = props.unitOptions.find(o => o.value === props.item.presentacionId)?.label
+  return u ? `Valor $ · ${u}` : 'Valor $'
+})
+
 const subtotal = computed(() => calcNeto(props.item.cantidad, props.item.valor, props.item.descuento))
 
 const itbmsMonto = computed(() => calcItbms(subtotal.value, props.item.itbmsTasa))
@@ -206,7 +212,7 @@ function fmt(n: number | null) {
       </div>
 
       <div class="item-card__field item-card__field--valor">
-        <span class="item-card__label">Valor $</span>
+        <span class="item-card__label">{{ valorLabel }}</span>
         <q-input
           dark dense outlined
           :model-value="item.valor"
