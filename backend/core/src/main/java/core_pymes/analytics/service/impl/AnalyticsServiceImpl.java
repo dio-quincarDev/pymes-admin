@@ -289,12 +289,13 @@ public class AnalyticsServiceImpl implements AnalyticsService {
                     SELECT i.issue_date AS dia, ii.subtotal AS monto
                     FROM core.invoices i
                     JOIN core.invoice_items ii ON ii.invoice_id = i.id
-                    WHERE i.tenant_id = ? AND i.status = 'PAGADA'
+                    WHERE i.tenant_id = ? AND i.status = 'PAGADA' AND i.is_active
                       AND i.issue_date >= ? AND i.issue_date < ?
                     UNION ALL
                     SELECT i.issue_date AS dia, i.total AS monto
                     FROM core.invoices i
                     WHERE i.tenant_id = ? AND i.type = 'GASTO_OPERATIVO' AND i.status = 'PAGADA'
+                      AND i.is_active
                       AND i.issue_date >= ? AND i.issue_date < ?
                       AND NOT EXISTS (SELECT 1 FROM core.invoice_items ii WHERE ii.invoice_id = i.id)
                 ),

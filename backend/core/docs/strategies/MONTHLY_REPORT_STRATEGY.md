@@ -297,6 +297,11 @@ motor de análisis en proceso — `AnalyticsService.proyeccionOperativa`
 (`gastoMensual, gastoDiario, gastoMin, gastoMax`, 1 query dueña del gasto diario,
 misma JVM sin HTTP). Días = `floor(resto / gastoMax)…floor(resto / gastoMin)`;
 `% = resto / gastoMensual`. Sin gasto en el mes → solo la línea de aparte.
+Ojo semántico (no es bug): el pivot suma renglones `ii.subtotal` (sin ITBMS ni
+descuento global), así que `gastoMensual` puede diferir unos centavos de
+`costoCompras + gastosOper` de la página 1 — el rango de días usa la misma base
+del pivot, internamente consistente. También filtra `i.is_active` igual que el
+resto del reporte (aunque hoy una PAGADA jamás se soft-deletea).
 Cálculo del aporte en `report/support/RetornoInversion.java` (réplica de
 `recuperacion.ts` del front: bandas 6m ≥ 38% · 12m ≥ 19% · 18m ≥ 13%, tope 70%),
 puro y con unit test sin Docker (`RetornoInversionTest`, 5 casos).
