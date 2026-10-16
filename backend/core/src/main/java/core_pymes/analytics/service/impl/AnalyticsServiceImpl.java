@@ -6,6 +6,7 @@ import core_pymes.accounting.domain.MetricasFinanciera;
 import core_pymes.accounting.repository.MetricasRepository;
 import core_pymes.accounting.service.MetricasService;
 import core_pymes.analytics.domain.AnalisisGasto;
+import core_pymes.analytics.dto.ProyeccionOperativa;
 import core_pymes.analytics.repository.AnalisisGastoRepository;
 import core_pymes.analytics.service.AnalyticsService;
 import core_pymes.inversion.repository.PatrimonioRepository;
@@ -280,8 +281,44 @@ public class AnalyticsServiceImpl implements AnalyticsService {
         }, tenantId, start, end, tenantId, start, end);
     }
 
-    List<Map<String, Object>> analisisProyeccion(UUID tenantId, LocalDate start, LocalDate end) {
+    @Override
+    public ProyeccionOperativa proyeccionOperativa(UUID tenantId, LocalDate start, LocalDate end) {
+        // ponytail: mismo patron que analisisGastoVariable (items + headers sin items, sin doble conteo)
         var sql = """
+                WITH gasto AS (
+                    SELECT i.issue_date AS dia, ii.subtotal AS monto
+                    FROM core.invoices i
+                    JOIN core.invoice_items ii ON ii.invoice_id = i.id
+                    WHERE i.tenant_id = ? AND i.status = 'PAGADA' AND i.is_active
+                      AND i.issue_date >= ? AND i.issue_date < ?
+                    UNION ALL
+                    SELECT i.issue_date AS dia, i.total AS monto
+                    FROM core.invoices i
+                    WHERE i.tenant_id = ? AND i.type = 'GASTO_OPERATIVO' AND i.status = 'PAGADA'
+                      AND i.is_active
+                      AND i.issue_date >= ? AND i.issue_date < ?
+                      AND NOT EXISTS (SELECT 1 FROM core.invoice_items ii WHERE ii.invoice_id = i.id)
+                ),
+                dias AS (
+                    SELECT dia, SUM(monto) AS total FROM gasto GROUP BY dia
+                )
+                SELECT COALESCE(SUM(total), 0) AS mensual,
+                       COALESCE(AVG(total), 0) AS diario,
+                       COALESCE(MIN(total), 0) AS minimo,
+                       COALESCE(MAX(total), 0) AS maximo
+                FROM dias
+                """;
+        return jdbc.query(sql, rs -> {
+            rs.next();
+            return new ProyeccionOperativa(
+                    rs.getBigDecimal("mensual"),
+                    rs.getBigDecimal("diario"),
+                    rs.getBigDecimal("minimo"),
+                    rs.getBigDecimal("maximo"));
+        }, tenantId, start, end, tenantId, start, end);
+    }
+
+    List<Map<String, Object>> analisisProyeccion(UUID tenantId, LocalDate start, LocalDate end) {        var sql = """
                 SELECT COALESCE(SUM(ii.subtotal) / COUNT(DISTINCT i.issue_date), 0) AS avg_daily
                 FROM core.invoices i
                 JOIN core.invoice_items ii ON ii.invoice_id = i.id

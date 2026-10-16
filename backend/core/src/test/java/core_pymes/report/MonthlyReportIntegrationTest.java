@@ -3,6 +3,7 @@ package core_pymes.report;
 import core_pymes.common.exception.custom.InvalidInputException;
 import core_pymes.integration.AbstractIntegrationTest;
 import core_pymes.report.config.MonthlyReportScheduler;
+import core_pymes.report.dto.ReportData;
 import org.junit.jupiter.api.BeforeEach;
 import org.junit.jupiter.api.DisplayName;
 import org.junit.jupiter.api.Test;
@@ -107,6 +108,30 @@ class MonthlyReportIntegrationTest extends AbstractIntegrationTest {
     }
 
     @Test
+    @DisplayName("Pagina 2: top productos, top gastos y retorno con capital")
+    void generaPdfConPagina2() {
+        var tenantId = seedDueno("dueno6@py.test", "Negocio Pagina Dos");
+        seedVenta(tenantId, LocalDate.of(2026, 6, 5), "8500.00");
+        var productoId = seedProducto(tenantId, "Pechuga");
+        var proveedorId = seedProveedor(tenantId, "Grupo Rey");
+        var facturaId = seedFactura(tenantId, proveedorId, LocalDate.of(2026, 6, 10), "F-100", "175.00");
+        seedItem(facturaId, productoId, "Pechuga", "40", "4.375", "175.00");
+        seedGasto(tenantId, proveedorId, LocalDate.of(2026, 6, 12), "G-001", "Salarios", "1750.00");
+        seedPatrimonio(tenantId, "10000.00");
+
+        scheduler.runPeriod(PERIODO, false);
+
+        assertThat(estado(tenantId, PERIODO)).isEqualTo("SENT");
+
+        ArgumentCaptor<ReportData> datos = ArgumentCaptor.forClass(ReportData.class);
+        ArgumentCaptor<byte[]> pdf = ArgumentCaptor.forClass(byte[].class);
+        verify(reportEmailService, times(1)).sendMonthlyReport(any(), datos.capture(), pdf.capture());
+        assertThat(pdf.getValue()).startsWith("%PDF".getBytes(StandardCharsets.US_ASCII));
+        assertThat(datos.getValue().topProductos()).isNotEmpty();
+        assertThat(datos.getValue().topGastos()).isNotEmpty();
+        assertThat(datos.getValue().capital()).isEqualByComparingTo("10000.00");
+    }
+    @Test
     @DisplayName("Un mes fallido se retoma en el siguiente intento")
     void fallidoSeRetoma() {
         var tenantId = seedDueno("dueno5@py.test", "Negocio Reintento");
@@ -178,10 +203,41 @@ class MonthlyReportIntegrationTest extends AbstractIntegrationTest {
         return proveedorId;
     }
 
-    private void seedFactura(UUID tenantId, UUID proveedorId, LocalDate fecha, String numero, String monto) {
+    private UUID seedFactura(UUID tenantId, UUID proveedorId, LocalDate fecha, String numero, String monto) {
+        var id = UUID.randomUUID();
         jdbcTemplate.update(
                 "INSERT INTO core.invoices (id, tenant_id, provider_id, invoice_number, issue_date, type, status, total) VALUES (?, ?, ?, ?, ?, 'FACTURA', 'PAGADA', ?)",
-                UUID.randomUUID(), tenantId, proveedorId, numero, fecha, new BigDecimal(monto));
+                id, tenantId, proveedorId, numero, fecha, new BigDecimal(monto));
+        return id;
+    }
+
+    private UUID seedProducto(UUID tenantId, String nombre) {
+        var id = UUID.randomUUID();
+        jdbcTemplate.update(
+                "INSERT INTO core.products (id, tenant_id, name) VALUES (?, ?, ?)",
+                id, tenantId, nombre);
+        return id;
+    }
+
+    private void seedItem(UUID facturaId, UUID productoId, String nombre, String cantidad,
+            String precio, String subtotal) {
+        jdbcTemplate.update(
+                "INSERT INTO core.invoice_items (id, invoice_id, product_id, product_name, quantity, unit_price, subtotal) VALUES (?, ?, ?, ?, ?, ?, ?)",
+                UUID.randomUUID(), facturaId, productoId, nombre,
+                new BigDecimal(cantidad), new BigDecimal(precio), new BigDecimal(subtotal));
+    }
+
+    private void seedGasto(UUID tenantId, UUID proveedorId, LocalDate fecha, String numero,
+            String categoria, String monto) {
+        jdbcTemplate.update(
+                "INSERT INTO core.invoices (id, tenant_id, provider_id, invoice_number, issue_date, type, status, category, total) VALUES (?, ?, ?, ?, ?, 'GASTO_OPERATIVO', 'PAGADA', ?, ?)",
+                UUID.randomUUID(), tenantId, proveedorId, numero, fecha, categoria, new BigDecimal(monto));
+    }
+
+    private void seedPatrimonio(UUID tenantId, String capital) {
+        jdbcTemplate.update(
+                "INSERT INTO core.patrimony (tenant_id, initial_capital) VALUES (?, ?)",
+                tenantId, new BigDecimal(capital));
     }
 
     private String estado(UUID tenantId, String periodo) {

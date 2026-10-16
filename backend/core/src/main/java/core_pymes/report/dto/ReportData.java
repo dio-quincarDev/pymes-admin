@@ -14,12 +14,21 @@ public record ReportData(
         long ventasCount,
         long facturasCount,
         List<Semana> semanas,
-        List<TopProveedor> topProveedores
+        List<TopProveedor> topProveedores,
+        List<TopProducto> topProductos,
+        List<TopGasto> topGastos,
+        BigDecimal capital
 ) {
     public record Semana(String rango, BigDecimal total) {
     }
 
     public record TopProveedor(String nombre, BigDecimal total, long facturas) {
+    }
+
+    public record TopProducto(String nombre, BigDecimal cantidad, String unidad, BigDecimal total) {
+    }
+
+    public record TopGasto(String nombre, BigDecimal total, long facturas) {
     }
 
     /** Sin ventas ni facturas: no se envía, se loguea SKIPPED. */

@@ -1,14 +1,14 @@
 <script setup lang="ts">
-import { ref, computed, onMounted } from 'vue';
+import { ref, shallowRef, computed, onMounted } from 'vue';
 import { useQuasar, useMeta } from 'quasar';
 import { useAuthStore } from 'src/modules/auth/store';
 import { formatCurrency } from 'src/utils/format';
 import { patrimonioService } from '../services/patrimonio.service';
-import { prestamoService } from '../services/prestamo.service';
 import { accountingService } from '../services/accounting.service';
 import { usePeriod } from '../composables/usePeriod';
 import { useTutorial } from 'src/composables/useTutorial';
-import type { Patrimonio, Prestamo, MetricasFinancieras } from '../types';
+import RecuperacionCard from '../components/patrimonio/RecuperacionCard.vue';
+import type { Patrimonio, MetricasFinancieras } from '../types';
 
 useMeta({ title: 'Inversión — PYMEQ' });
 
@@ -21,23 +21,32 @@ const { period } = usePeriod();
 const { showForCurrentRoute } = useTutorial();
 
 const data = ref<Patrimonio | null>(null);
-const loading = ref(true);
-const saving = ref(false);
-const prestamos = ref<Prestamo[]>([]);
+const loading = shallowRef(true);
+const saving = shallowRef(false);
 const metricas = ref<MetricasFinancieras | null>(null);
 
 async function load() {
   if (!tenantId) return;
   loading.value = true;
   try {
-    const [patRes, prestRes, metRes] = await Promise.all([
-      patrimonioService.get(tenantId),
-      prestamoService.getAll(tenantId),
-      accountingService.consultar(tenantId, period.value),
-    ]);
+    const patRes = await patrimonioService.get(tenantId);
     data.value = patRes.data;
-    prestamos.value = prestRes.data;
-    metricas.value = metRes.data;
+    // ponytail: 204 sin contenido = mes sin datos, no es error.
+    let met: MetricasFinancieras | null = null;
+    try {
+      met = (await accountingService.consultar(tenantId, period.value)).data ?? null;
+    } catch {
+      met = null;
+    }
+    // ponytail: backfill solo OWNER — el resto ve "sin datos".
+    if (!met && isOwner.value) {
+      try {
+        met = (await accountingService.recalcular(tenantId, period.value)).data ?? null;
+      } catch {
+        met = null;
+      }
+    }
+    metricas.value = met;
     form.value = {
       capitalInicial: patRes.data.capitalInicial,
       fechaInicio: patRes.data.fechaInicio,
@@ -54,9 +63,9 @@ async function load() {
 }
 
 const form = ref({ capitalInicial: 0, fechaInicio: null as string | null });
-const editing = ref(false);
+const editing = shallowRef(false);
 
-const capitalStr = ref('');
+const capitalStr = shallowRef('');
 function onCapitalInput(val: string | number | null) {
   capitalStr.value = String(val ?? '')
     .replace(/[^0-9.]/g, '')
@@ -85,24 +94,6 @@ function toggleEdit() {
     void save();
   }
 }
-
-const plataARecuperar = computed(() => {
-  const capital = data.value?.capitalInicial ?? 0;
-  const deudaActiva = prestamos.value
-    .filter((p) => p.estado === 'ACTIVO')
-    .reduce((s, p) => s + p.saldoPendiente, 0);
-  return capital + deudaActiva;
-});
-
-const gananciaMensual = computed(() => {
-  const m = metricas.value;
-  return m ? (m.totalIngresos * m.margenNetoPct) / 100 : 0;
-});
-
-const mesesRecuperacion = computed(() => {
-  if (gananciaMensual.value <= 0) return null;
-  return Math.ceil(plataARecuperar.value / gananciaMensual.value);
-});
 
 async function save() {
   if (!tenantId) return;
@@ -140,7 +131,7 @@ onMounted(() => {
   <q-page class="core-page">
     <div class="q-mb-lg fade-in-up" data-tour="inversion">
       <h1 class="text-h4 font-bold q-ma-none patrimonio-title">Inversión</h1>
-      <p class="text-subtitle1 text-accent q-mt-xs">Capital inicial, inversión y ROI</p>
+      <p class="text-subtitle1 text-accent q-mt-xs">Capital inicial y plan de retorno</p>
     </div>
 
     <div v-if="loading" class="row q-col-gutter-md">
@@ -183,15 +174,10 @@ onMounted(() => {
             <div class="metric-card__bar" />
           </div>
         </div>
-        <div class="col-12 col-sm-4">
-          <div class="metric-card metric-card--copper">
-            <div class="metric-card__label">Tiempo de recuperación</div>
-            <div class="metric-card__value metric-card__value--date">
-              {{ mesesRecuperacion === null ? '—' : `~${mesesRecuperacion} meses` }}
-            </div>
-            <div class="metric-card__bar" />
-          </div>
-        </div>
+      </div>
+
+      <div class="q-mb-lg fade-in-up" style="animation-delay: 0.2s">
+        <RecuperacionCard :capital="data.capitalInicial" :metricas="metricas" />
       </div>
 
       <div class="fade-in-up" style="animation-delay: 0.25s">
@@ -367,6 +353,19 @@ onMounted(() => {
 
   &__body {
     padding: 1.5rem;
+  }
+}
+
+/* ponytail: mismo patrón que Proveedores/Facturas — header apilado + acción full-width en xs */
+@media (max-width: 599px) {
+  .config-card__header {
+    display: grid;
+    grid-template-columns: 1fr;
+    gap: 0.75rem;
+  }
+
+  .config-card__action {
+    width: 100%;
   }
 }
 </style>
