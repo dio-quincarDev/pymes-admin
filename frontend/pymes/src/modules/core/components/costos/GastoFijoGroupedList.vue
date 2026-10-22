@@ -1,4 +1,5 @@
 <script setup lang="ts">
+import { computed } from 'vue';
 import { formatCurrency } from 'src/utils/format';
 import type { GastoFijoRecurrente } from '../../types';
 import EmptyState from 'src/components/ui/EmptyState.vue';
@@ -6,19 +7,26 @@ import EmptyState from 'src/components/ui/EmptyState.vue';
 interface CatGroup { categoria: string; items: readonly GastoFijoRecurrente[]; total: number; }
 interface Props { groups: readonly CatGroup[]; loading: boolean; }
 interface Emits { (e:'create'):void; (e:'edit', v:GastoFijoRecurrente):void; (e:'delete', v:GastoFijoRecurrente):void; }
-defineProps<Props>();
+const props = defineProps<Props>();
 defineEmits<Emits>();
+
+const totalCount = computed(() => props.groups.reduce((n, g) => n + g.items.length, 0));
+const summaryLabel = computed(() => {
+  const n = totalCount.value;
+  const total = props.groups.reduce((sum, g) => sum + g.total, 0);
+  return `${n} gasto${n !== 1 ? 's' : ''} · ${formatCurrency(total)}/mes`;
+});
 </script>
 
 <template>
   <div>
     <div class="toolbar">
-      <q-space />
-      <q-btn v-if="groups.length" color="primary" icon="sym_r_add" label="Nuevo" @click="$emit('create')" />
+      <span v-if="!loading && groups.length" class="text-accent text-caption">{{ summaryLabel }}</span>
+      <q-btn v-if="groups.length" color="primary" icon="sym_r_add" label="Nuevo" no-caps @click="$emit('create')" />
     </div>
     <div v-if="!loading && !groups.length" class="q-mt-lg">
       <EmptyState icon="sym_r_receipt" title="Sin gastos fijos" message="Agrega alquiler, internet, luz y otros gastos recurrentes.">
-        <q-btn color="primary" icon="sym_r_add" label="Nuevo Gasto Fijo" @click="$emit('create')" class="q-mt-sm" />
+        <q-btn color="primary" icon="sym_r_add" label="Nuevo Gasto Fijo" no-caps @click="$emit('create')" class="q-mt-sm" />
       </EmptyState>
     </div>
     <div v-if="loading" class="q-gutter-y-md q-mt-md">
@@ -51,7 +59,12 @@ defineEmits<Emits>();
 </template>
 
 <style scoped lang="scss">
-.toolbar{display:flex;align-items:center;flex-wrap:wrap;margin-bottom:16px;}
+.toolbar{display:flex;align-items:center;flex-wrap:wrap;gap:12px;margin-bottom:16px;}
+/* ponytail: sin search no hay nada que balancee a la derecha — izquierda en desktop, full-width en xs */
+@media (max-width: 599px) {
+  .toolbar{display:grid;grid-template-columns:1fr;gap:8px;}
+  .toolbar .q-btn{width:100%;white-space:nowrap;}
+}
 .cat-group{margin-bottom:20px;} .cat-group:last-child{margin-bottom:0;}
 .cat-group__header{display:flex;align-items:baseline;gap:10px;padding:8px 12px;background:rgba(27,38,36,0.3);border-radius:6px;margin-bottom:4px;flex-wrap:wrap;}
 .cat-group__title{font-size:0.85rem;font-weight:600;} .cat-group__count{font-size:0.72rem;color:rgba(163,120,94,0.45);}

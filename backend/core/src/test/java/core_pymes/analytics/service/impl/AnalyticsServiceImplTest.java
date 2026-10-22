@@ -14,6 +14,7 @@ import core_pymes.product.repository.ProductoRepository;
 import org.junit.jupiter.api.BeforeEach;
 import org.junit.jupiter.api.Test;
 import org.junit.jupiter.api.extension.ExtendWith;
+import org.mockito.ArgumentCaptor;
 import org.mockito.Mock;
 import org.mockito.junit.jupiter.MockitoExtension;
 import org.springframework.jdbc.core.JdbcTemplate;
@@ -24,6 +25,9 @@ import java.time.LocalDate;
 import java.util.*;
 
 import static org.assertj.core.api.Assertions.assertThat;
+import static org.mockito.BDDMockito.given;
+import static org.mockito.BDDMockito.then;
+import static org.mockito.BDDMockito.willReturn;
 import static org.mockito.Mockito.*;
 
 @ExtendWith(MockitoExtension.class)
@@ -301,5 +305,142 @@ class AnalyticsServiceImplTest {
         assertThat((BigDecimal) r.get("pctChange")).isEqualByComparingTo("4.17");
         assertThat((BigDecimal) r.get("confidence")).isEqualByComparingTo("90.0");
         assertThat(r.get("dataPoints")).isEqualTo(4);
+    }
+
+    @Test
+    void recomendacion_callaProductoConPresentacionesMezcladas() {
+        var tenantId = UUID.randomUUID();
+        var harinaId = UUID.randomUUID().toString();
+        var costillaId = UUID.randomUUID().toString();
+        doReturn(List.<Map<String, Object>>of(
+                Map.of("productId", harinaId, "productName", "Harina de Trigo",
+                        "providerId", "p1", "providerName", "Dorado", "avgPrice", new BigDecimal("0.60"), "purchaseCount", 4),
+                Map.of("productId", harinaId, "productName", "Harina de Trigo",
+                        "providerId", "p2", "providerName", "Distral", "avgPrice", new BigDecimal("0.93"), "purchaseCount", 4),
+                Map.of("productId", costillaId, "productName", "Costilla de Cerdo",
+                        "providerId", "p1", "providerName", "ProvA", "avgPrice", new BigDecimal("5.00"), "purchaseCount", 4),
+                Map.of("productId", costillaId, "productName", "Costilla de Cerdo",
+                        "providerId", "p3", "providerName", "ProvB", "avgPrice", new BigDecimal("5.50"), "purchaseCount", 5)
+        )).when(service).analisisComparativaProveedores(any(), any(), any());
+        willReturn(Set.of(harinaId)).given(service)
+                .productosConUnidadesMezcladas(any(), any(), any());
+
+        var result = service.analisisRecomendacionProveedor(tenantId,
+                LocalDate.parse("2026-09-01"), LocalDate.parse("2026-10-01"));
+
+        assertThat(result).extracting(m -> m.get("productName")).containsExactly("Costilla de Cerdo");
+        assertThat(result.get(0).get("recommendedProviderName")).isEqualTo("ProvA");
+    }
+
+    @Test
+    void recomendacion_callaParejaConPocasComprasPorLado() {
+        // regla A: parejo en unidades pero 1 compra por lado → el promedio es ruido, se calla
+        var tenantId = UUID.randomUUID();
+        var frijolId = UUID.randomUUID().toString();
+        doReturn(List.<Map<String, Object>>of(
+                Map.of("productId", frijolId, "productName", "Frijol",
+                        "providerId", "p1", "providerName", "ProvA", "avgPrice", new BigDecimal("20.00"), "purchaseCount", 1),
+                Map.of("productId", frijolId, "productName", "Frijol",
+                        "providerId", "p2", "providerName", "ProvB", "avgPrice", new BigDecimal("22.00"), "purchaseCount", 1)
+        )).when(service).analisisComparativaProveedores(any(), any(), any());
+        willReturn(Set.of()).given(service)
+                .productosConUnidadesMezcladas(any(), any(), any());
+
+        var result = service.analisisRecomendacionProveedor(tenantId,
+                LocalDate.parse("2026-09-01"), LocalDate.parse("2026-10-01"));
+
+        assertThat(result).isEmpty();
+    }
+
+    @Test
+    void recomendacion_recomiendaParejaConTresComprasPorLado() {
+        var tenantId = UUID.randomUUID();
+        var frijolId = UUID.randomUUID().toString();
+        doReturn(List.<Map<String, Object>>of(
+                Map.of("productId", frijolId, "productName", "Frijol",
+                        "providerId", "p1", "providerName", "ProvA", "avgPrice", new BigDecimal("20.00"), "purchaseCount", 3),
+                Map.of("productId", frijolId, "productName", "Frijol",
+                        "providerId", "p2", "providerName", "ProvB", "avgPrice", new BigDecimal("22.00"), "purchaseCount", 3)
+        )).when(service).analisisComparativaProveedores(any(), any(), any());
+        willReturn(Set.of()).given(service)
+                .productosConUnidadesMezcladas(any(), any(), any());
+
+        var result = service.analisisRecomendacionProveedor(tenantId,
+                LocalDate.parse("2026-09-01"), LocalDate.parse("2026-10-01"));
+
+        assertThat(result).extracting(m -> m.get("productName")).containsExactly("Frijol");
+        assertThat(result.get(0).get("recommendedProviderName")).isEqualTo("ProvA");
+    }
+
+    @Test
+    void alertas_callaProductoConPresentacionesMezcladas() {
+        var tenantId = UUID.randomUUID();
+        var harinaId = UUID.randomUUID().toString();
+        var costillaId = UUID.randomUUID().toString();
+        willReturn(Set.of(harinaId)).given(service)
+                .productosConUnidadesMezcladas(any(), any(), any());
+        given(jdbc.query(
+                argThat((String sql) -> sql != null && sql.contains("cv_pct")),
+                any(RowMapper.class), any(), any(), any()))
+                .willReturn(List.<Map<String, Object>>of(Map.of(
+                        "productId", harinaId, "productName", "Harina de Trigo",
+                        "avgPrice", new BigDecimal("0.76"), "cvPct", new BigDecimal("25.00"),
+                        "type", "PRICE_VARIATION")));
+        given(jdbc.query(
+                argThat((String sql) -> sql != null && sql.contains("premium_pct")),
+                any(RowMapper.class), any(Object[].class)))
+                .willReturn(List.<Map<String, Object>>of(Map.of(
+                        "productId", costillaId, "productName", "Costilla de Cerdo",
+                        "providerId", "p3", "providerName", "ProvB",
+                        "currentPrice", new BigDecimal("5.50"), "avgPrice", new BigDecimal("5.25"),
+                        "premiumPct", new BigDecimal("16.00"), "type", "SUPPLIER_PREMIUM")));
+
+        var result = service.analisisAlertas(tenantId,
+                LocalDate.parse("2026-09-01"), LocalDate.parse("2026-10-01"));
+
+        assertThat(result).extracting(m -> m.get("productName")).containsExactly("Costilla de Cerdo");
+    }
+
+    @Test
+    void unidadesMezcladas_sqlCubrePresentacionNula() {
+        // COUNT(DISTINCT col) ignora nulos: sin COALESCE, con/sin presentación se ve "parejo" y la guarda nunca dispara
+        var sqlCaptor = ArgumentCaptor.forClass(String.class);
+        given(jdbc.query(anyString(), any(RowMapper.class), any(), any(), any()))
+                .willReturn(List.of());
+
+        var result = service.productosConUnidadesMezcladas(UUID.randomUUID(),
+                LocalDate.parse("2026-09-01"), LocalDate.parse("2026-10-01"));
+
+        assertThat(result).isEmpty();
+        then(jdbc).should().query(sqlCaptor.capture(), any(RowMapper.class), any(), any(), any());
+        assertThat(sqlCaptor.getValue()).contains("COALESCE").contains("conversion_factor");
+    }
+
+    @Test
+    void alertas_sqlExigeMinimoComprasYNullif() {
+        // regla A en alertas + NULLIF anti division-by-zero: ambos viajan en el SQL, se afirman por contenido.
+        // Cada verify casa su aridad exacta (variation/mezclados = 5 args, premium = 7 args): los matchers de
+        // varargs no distinguen llamadas por contenido, así que el conteo se deja en atLeastOnce y la
+        // precisión la pone el anyMatch sobre el texto SQL — afirmar times(1) sería forzar la prueba.
+        var sqlCaptor = ArgumentCaptor.forClass(String.class);
+        var premiumCaptor = ArgumentCaptor.forClass(String.class);
+        given(jdbc.query(anyString(), any(RowMapper.class), any(), any(), any()))
+                .willReturn(List.of());
+        given(jdbc.query(anyString(), any(RowMapper.class), any(), any(), any(), any(), any(), any()))
+                .willReturn(List.of());
+
+        service.analisisAlertas(UUID.randomUUID(),
+                LocalDate.parse("2026-09-01"), LocalDate.parse("2026-10-01"));
+
+        then(jdbc).should(atLeastOnce())
+                .query(sqlCaptor.capture(), any(RowMapper.class), any(), any(), any());
+        assertThat(sqlCaptor.getAllValues())
+                .anyMatch(s -> s.contains("cv_pct") && s.contains("purchases >= 3"));
+        then(jdbc).should(atLeastOnce())
+                .query(premiumCaptor.capture(), any(RowMapper.class), any(), any(), any(), any(), any(), any());
+        assertThat(premiumCaptor.getAllValues())
+                .anyMatch(s -> s.contains("premium_pct")
+                        && s.contains("sp.purchases >= 3")
+                        && s.contains("NULLIF(pa.product_avg_price, 0)"));
     }
 }

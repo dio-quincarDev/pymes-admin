@@ -1,7 +1,10 @@
 <script setup lang="ts">
 import { computed } from 'vue'
+import { useQuasar } from 'quasar'
 import type { Factura, ItemFactura } from 'src/modules/core/types'
 import { formatDate, formatCurrency } from 'src/utils/format'
+
+const $q = useQuasar()
 
 const props = defineProps<{
   modelValue: boolean
@@ -71,7 +74,7 @@ const detailColumns = computed(() => [
 </script>
 
 <template>
-  <q-dialog :model-value="modelValue" @update:model-value="emit('update:modelValue', $event)" dark maximized>
+  <q-dialog :model-value="modelValue" @update:model-value="emit('update:modelValue', $event)" dark :maximized="$q.screen.xs">
     <q-card v-if="factura" dark class="bg-surface-pine detail-dialog">
       <q-card-section class="row items-center justify-between">
         <div>

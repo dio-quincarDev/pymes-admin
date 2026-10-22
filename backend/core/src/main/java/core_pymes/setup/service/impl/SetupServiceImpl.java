@@ -69,7 +69,7 @@ public class SetupServiceImpl implements SetupService {
             (rs, row) -> new TemplatePresentationRow(
                 rs.getObject("template_product_id", java.util.UUID.class),
                 rs.getString("name"),
-                rs.getInt("conversion")),
+                rs.getBigDecimal("conversion")),
             industry);
         var presByProduct = templatePres.stream()
             .collect(Collectors.groupingBy(pp -> pp.templateProductId));
@@ -144,12 +144,14 @@ public class SetupServiceImpl implements SetupService {
                                 List<SetupResponse.ProductTemplateDTO> products) {}
 
     private record TemplateProductRow(java.util.UUID id, String name, String baseUnit, java.math.BigDecimal minQuantity, java.math.BigDecimal maxQuantity, String categoryCode) {}
-    private record TemplatePresentationRow(java.util.UUID templateProductId, String name, int conversion) {}
+    private record TemplatePresentationRow(java.util.UUID templateProductId, String name, java.math.BigDecimal conversion) {}
 
     private IndustryData loadIndustryData(String industry) {
         var categories = buildCategoryTree(industry);
+        // ponytail: industria primero, globales despues (mismo orden en todas las industrias)
         var units = jdbc.query(
-                "SELECT id AS code, name FROM template_units WHERE industry_code = ? ORDER BY sort_order",
+                "SELECT id AS code, name FROM template_units WHERE industry_code IN (?, 'global') " +
+                "ORDER BY CASE WHEN industry_code = 'global' THEN 1 ELSE 0 END, sort_order",
                 (rs, row) -> SetupResponse.ItemDTO.flat(rs.getString("code"), rs.getString("name")),
                 industry);
         var products = jdbc.query(

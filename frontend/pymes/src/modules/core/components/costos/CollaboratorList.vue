@@ -1,4 +1,5 @@
 <script setup lang="ts">
+import { computed } from 'vue';
 import { formatCurrency } from 'src/utils/format';
 import type { Collaborador } from '../../types';
 import EmptyState from 'src/components/ui/EmptyState.vue';
@@ -12,19 +13,23 @@ interface Emits {
   (e: 'edit', value: Collaborador): void;
   (e: 'delete', value: Collaborador): void;
 }
-defineProps<Props>();
+const props = defineProps<Props>();
 defineEmits<Emits>();
+
+const countLabel = computed(() =>
+  `${props.items.length} integrante${props.items.length !== 1 ? 's' : ''}`,
+);
 </script>
 
 <template>
   <div>
     <div class="toolbar">
-      <q-space />
-      <q-btn v-if="items.length" color="primary" icon="sym_r_add" label="Nuevo" @click="$emit('create')" />
+      <span v-if="!loading && items.length" class="text-accent text-caption">{{ countLabel }}</span>
+      <q-btn v-if="items.length" color="primary" icon="sym_r_add" label="Nuevo" no-caps @click="$emit('create')" />
     </div>
     <div v-if="!loading && !items.length" class="q-mt-lg">
       <EmptyState icon="sym_r_groups" title="Sin equipo" message="Registra a tu equipo para calcular el costo de salarios.">
-        <q-btn color="primary" icon="sym_r_add" label="Nuevo Integrante" @click="$emit('create')" class="q-mt-sm" />
+        <q-btn color="primary" icon="sym_r_add" label="Nuevo Integrante" no-caps @click="$emit('create')" class="q-mt-sm" />
       </EmptyState>
     </div>
     <div v-if="loading" class="q-gutter-y-md q-mt-md">
@@ -45,7 +50,12 @@ defineEmits<Emits>();
 </template>
 
 <style scoped lang="scss">
-.toolbar { display:flex; align-items:center; flex-wrap:wrap; margin-bottom:16px; }
+.toolbar { display:flex; align-items:center; flex-wrap:wrap; gap:12px; margin-bottom:16px; }
+/* ponytail: sin search no hay nada que balancee a la derecha — izquierda en desktop, full-width en xs */
+@media (max-width: 599px) {
+  .toolbar { display:grid; grid-template-columns:1fr; gap:8px; }
+  .toolbar .q-btn { width:100%; white-space:nowrap; }
+}
 .row-item { display:grid; grid-template-columns: 1fr auto auto; align-items:center; gap:12px; padding:10px 12px; border-bottom:1px solid rgba(113,131,127,0.04); }
 .row-item:hover { background: rgba(27,38,36,0.3); }
 .row-item__title { font-size:0.85rem; }

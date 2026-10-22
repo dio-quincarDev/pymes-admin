@@ -12,7 +12,7 @@ export const ventaService = {
     return api.post<VentaDiaria>('/core/ventas', data)
   },
   update(id: string, data: VentaRequest) {
-    return api.put<VentaDiaria>(`/core/ventas/${id}`, data)
+    return api.put<VentaDiaria>(`/core/ventas/${id}`, data, { params: { tenantId: data.tenantId } })
   },
   remove(id: string, tenantId: string) {
     return api.delete(`/core/ventas/${id}`, { params: { tenantId } })

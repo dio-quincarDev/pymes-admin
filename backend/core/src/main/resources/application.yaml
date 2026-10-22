@@ -39,6 +39,19 @@ spring:
       host: ${REDIS_HOST}
       port: ${REDIS_PORT}
 
+  mail:
+    host: ${SPRING_MAIL_HOST:smtp.gmail.com}
+    port: ${SPRING_MAIL_PORT:587}
+    username: ${SPRING_MAIL_USERNAME}
+    password: ${SPRING_MAIL_PASSWORD}
+    properties:
+      mail:
+        smtp:
+          auth: true
+          starttls:
+            enable: true
+            required: true
+
   jackson:
     serialization:
       write-dates-as-timestamps: false
@@ -47,6 +60,10 @@ spring:
 services:
   auth:
     base-url: ${AUTH_SERVICE_URL}
+
+app:
+  mail:
+    from: ${MAIL_FROM:${spring.mail.username}}
 
 server:
   port: ${SERVER_PORT:8082}

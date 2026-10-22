@@ -10,7 +10,7 @@
         <template v-slot:prepend><q-icon name="search" /></template>
       </q-input>
       <q-space />
-      <q-btn color="positive" icon="sym_r_payments" label="Gasto rápido" @click="openCreate('GASTO_OPERATIVO')" no-caps />
+      <q-btn color="positive" outline icon="sym_r_payments" label="Gasto rápido" @click="openCreate('GASTO_OPERATIVO')" no-caps />
       <q-btn color="primary" icon="sym_r_add" label="Factura" @click="openCreate('FACTURA')" no-caps />
     </div>
 
@@ -59,7 +59,7 @@
     </div>
 
     <!-- Create Invoice Dialog -->
-    <q-dialog v-model="dialogOpen" dark maximized transition-show="scale" transition-hide="fade">
+    <q-dialog v-model="dialogOpen" dark :maximized="$q.screen.xs" transition-show="scale" transition-hide="fade">
       <q-card dark class="bg-surface-pine invoice-dialog">
         <q-form @submit.prevent="save" class="fit column no-wrap">
           <!-- Header -->
@@ -223,8 +223,9 @@ import { ref, shallowRef, computed, watch, onMounted, onUnmounted, nextTick } fr
 import { useQuasar, useMeta } from 'quasar'
 import { useAuthStore } from 'src/modules/auth/store'
 import { useTutorial } from 'src/composables/useTutorial'
-import { formatCurrency } from 'src/utils/format'
+import { formatCurrency, isUuidLike, toLocalISODate } from 'src/utils/format'
 import { calcBreakdown } from '../utils/invoiceMath'
+import { SUELTO, isItemComplete, scaledPriceOnPresentationChange, toPresentacionPayload } from '../utils/invoiceItemGuards'
 import { facturaService } from '../services/factura.service'
 import { productoService } from '../services/producto.service'
 import { proveedorService } from '../services/proveedor.service'
@@ -276,14 +277,14 @@ interface MonthGroup {
 const monthGroups = computed(() => {
   const groups = new Map<string, Factura[]>()
   for (const inv of filteredRows.value) {
-    const date = new Date(inv.issueDate)
-    const key = `${date.getFullYear()}-${String(date.getMonth() + 1).padStart(2, '0')}`
+    // ponytail: key por texto YYYY-MM — new Date() cambiaba de mes en UTC-5
+    const key = inv.issueDate.slice(0, 7)
     if (!groups.has(key)) groups.set(key, [])
     groups.get(key)!.push(inv)
   }
   const result: (MonthGroup & { key: string })[] = []
   for (const [key, list] of groups.entries()) {
-    const date = new Date(list[0]!.issueDate)
+    const date = new Date(key + '-01T00:00:00')
     const label = date.toLocaleDateString('es-ES', { month: 'long', year: 'numeric' })
     result.push({ key, label, items: list })
   }
@@ -343,9 +344,13 @@ const unitNameMap = computed(() => {
 })
 
 // ponytail: deriva unidad base por producto para detail sin presentación (sin snapshot)
+// UUID sin nombre en catálogo -> 'Standard' (evita filtrar IDs crudos)
 const productBaseUnitMap = computed(() => {
   const map = new Map<string, string>()
-  for (const p of prodsData.value) map.set(p.id, unitNameMap.value.get(p.baseUnit) || p.baseUnit)
+  for (const p of prodsData.value) {
+    const named = p.baseUnit ? unitNameMap.value.get(p.baseUnit) : undefined
+    map.set(p.id, named || (p.baseUnit && !isUuidLike(p.baseUnit) ? p.baseUnit : 'Standard'))
+  }
   return map
 })
 
@@ -376,6 +381,7 @@ interface ItemForm {
   _key: number
   productoId: string | null
   presentacionId: string | null
+  fueSuelto: boolean
   cantidad: number | null
   valor: number | null
   descuento: number
@@ -401,7 +407,7 @@ const form = ref<{
   fechaHasta: string | null
 }>({
   proveedorId: null,
-  fecha: new Date().toISOString().slice(0, 10),
+  fecha: toLocalISODate(new Date()),
   tipo: 'FACTURA',
   metodoPago: null,
   descuentoGlobal: 0,
@@ -418,6 +424,7 @@ function addItem() {
     _key: ++keyCounter,
     productoId: null,
     presentacionId: null,
+    fueSuelto: false,
     cantidad: null,
     valor: null,
     descuento: 0,
@@ -428,12 +435,23 @@ function addItem() {
 function onProductoChange(item: ItemForm, productoId: string | null) {
   item.productoId = productoId
   item.presentacionId = null
+  item.fueSuelto = false
   const prod = allProducts.value.find(p => p.value === productoId)
   item.valor = prod?.lastUnitPrice ?? null
 }
 
 function onPresentacionChange(item: ItemForm, presId: string | null) {
+  // ponytail: el Valor sigue al autollenado por unidad base SOLO si no lo tocaste — agnostico al producto
+  const prevConv = item.presentacionId && item.presentacionId !== SUELTO
+    ? (presentationConversionMap.value.get(item.presentacionId) ?? null)
+    : null
+  const newConv = presId && presId !== SUELTO
+    ? (presentationConversionMap.value.get(presId) ?? null)
+    : null
+  const base = allProducts.value.find(p => p.value === item.productoId)?.lastUnitPrice ?? null
   item.presentacionId = presId
+  item.fueSuelto = presId === SUELTO
+  item.valor = scaledPriceOnPresentationChange(item.valor, base, newConv, prevConv)
 }
 
 function removeItem(i: number) {
@@ -559,7 +577,7 @@ function onProviderSelected(val: string | null) {
 async function openCreate(tipo: 'FACTURA' | 'GASTO_OPERATIVO' = 'FACTURA') {
   form.value = {
     proveedorId: null,
-    fecha: new Date().toISOString().slice(0, 10),
+    fecha: toLocalISODate(new Date()),
     tipo,
     metodoPago: null,
     descuentoGlobal: 0,
@@ -595,7 +613,8 @@ async function openEdit(factura: Factura) {
       items: gastoOperativo ? [] : f.items.map(item => ({
         _key: ++keyCounter,
         productoId: item.productId,
-        presentacionId: item.presentacionId,
+        presentacionId: item.fueSuelto ? SUELTO : item.presentacionId,
+        fueSuelto: item.fueSuelto ?? false,
         cantidad: item.cantidadPresentacion ? Number(item.cantidadPresentacion) : (item.conversionFactor && item.conversionFactor > 1 ? Number(item.quantity) / item.conversionFactor : Number(item.quantity)),
         valor: item.valorPresentacion ? Number(item.valorPresentacion) : (item.conversionFactor && item.conversionFactor > 1 ? Number(item.unitPrice) * item.conversionFactor : Number(item.unitPrice)),
         descuento: item.descuentoEsPorcentaje && item.descuentoInput ? Number(item.descuentoInput) : (item.discount && item.quantity ? Number(item.discount) / Number(item.quantity) * 100 : 0),
@@ -665,9 +684,12 @@ async function loadDependencies() {
     const presMap = new Map<string, { label: string; value: string }[]>()
     const presNameMap = new Map<string, string>()
     const convMap = new Map<string, number>()
+    const unitByCode = new Map(setupUnits.value.map(u => [u.code, u.name]))
     for (const p of prods) {
-      const baseUnitName = unitNameMap.value.get(p.baseUnit) || p.baseUnit
-      const unitOpts: { label: string; value: string }[] = [{ label: baseUnitName, value: '' }]
+      // ponytail: suelto muestra la unidad base real (Kg, Lb...), 'Standard' solo si no hay nombre
+      const named = p.baseUnit ? unitByCode.get(p.baseUnit) : undefined
+      const baseLabel = named || (p.baseUnit && !isUuidLike(p.baseUnit) ? p.baseUnit : 'Standard')
+      const unitOpts: { label: string; value: string }[] = [{ label: baseLabel, value: SUELTO }]
       for (const pres of (p.presentaciones || [])) {
         unitOpts.push({ label: pres.name, value: pres.id })
         presNameMap.set(pres.id, pres.name)
@@ -693,6 +715,15 @@ async function save() {
   }
   saving.value = true
   try {
+    // ponytail: pre-flight en palabras del usuario — el 400 del backend es red, no UX
+    if (!gastoOperativo) {
+      const incompleto = !form.value.items.length || form.value.items.some(i => !isItemComplete(i))
+      if (incompleto) {
+        $q.notify({ type: 'warning', message: 'Cada item necesita producto, unidad, cantidad y valor' })
+        saving.value = false
+        return
+      }
+    }
     const resolvedCategoria = gastoOperativo
       ? (form.value.categoria ? (categoriaMap.value.get(form.value.categoria) ?? form.value.categoria) : null)
       : null;
@@ -707,13 +738,15 @@ async function save() {
       descuentoGlobal: form.value.descuentoGlobal || 0,
       total: gastoOperativo ? form.value.total : null,
       items: gastoOperativo ? [] : form.value.items.map(item => {
-        const conv = item.presentacionId
+        const conv = !item.fueSuelto && item.presentacionId
           ? (presentationConversionMap.value.get(item.presentacionId) || 1)
           : 1
         const val = item.valor || 0
+        const pres = toPresentacionPayload(item)
         return {
           productoId: item.productoId!,
-          presentacionId: item.presentacionId || null,
+          presentacionId: pres.presentacionId,
+          fueSuelto: pres.fueSuelto,
           cantidadPresentacion: item.cantidad || 0,
           valorPresentacion: val,
           precioUnitario: conv > 0 ? val / conv : val,
@@ -966,6 +999,10 @@ function handleKeydown(e: KeyboardEvent) {
   margin-bottom: 16px;
 }
 
+.facturas-toolbar .q-btn {
+  flex-shrink: 0;
+}
+
 .facturas-toolbar__search {
   flex: 1;
   min-width: 0;
@@ -974,12 +1011,18 @@ function handleKeydown(e: KeyboardEvent) {
 @media (max-width: 599px) {
   .facturas-toolbar {
     display: grid;
-    grid-template-columns: 1fr 1fr;
+    grid-template-columns: 1fr;
     gap: 8px;
   }
 
   .facturas-toolbar__search {
     grid-column: 1 / -1;
+  }
+
+  /* ponytail: cajas idénticas full-width — el outline ya no se lee "más chico" */
+  .facturas-toolbar .q-btn {
+    width: 100%;
+    white-space: nowrap;
   }
 
   .facturas-toolbar :deep(.q-space) {
@@ -1011,6 +1054,8 @@ function handleKeydown(e: KeyboardEvent) {
 .invoice-row {
   display: flex;
   align-items: center;
+  flex-wrap: wrap;
+  row-gap: 4px;
   padding: 8px 12px;
   cursor: pointer;
   transition: background var(--pq-motion-fast);

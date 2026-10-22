@@ -27,7 +27,7 @@ cd backend/core
 ./mvnw spring-boot:run -Pdev
 ```
 
-> Requiere PostgreSQL y Redis en local. Ver `.env` en la raiz del proyecto.
+> Requiere PostgreSQL y Redis en local. Copia `.env.example` a `.env` (igual que auth).
 
 ### Docker
 
@@ -75,7 +75,8 @@ core_pymes/
 ├── prestamo/    prestamos y pagos
 ├── inversion/   patrimonio
 ├── venta/       ventas diarias
-└── accounting/  metricas financieras consolidadas
+├── accounting/  metricas financieras consolidadas
+└── report/      reporte mensual PDF (cron + endpoint dryRun)
 ```
 
 Controller pattern: interface (`XxxApi`) + impl (`XxxController`) dentro del modulo.
@@ -99,8 +100,9 @@ Ver [docs/CORE.md](./docs/CORE.md) para arquitectura completa.
 | venta | 5 | Ventas diarias (soft-delete) |
 | analytics | 2 | 9 motores CTE (ABC, tendencias, margenes, opex, proyeccion, alertas, supplier analytics) — solo `PAGADA` alimenta métricas |
 | accounting | 2 | Metricas financieras consolidadas (CTE 1 round-trip) |
+| report | 1 | Reporte mensual a OWNERs: PDF Jasper 7 + mail + idempotencia (`V8 report_log`) — cron día 1 06:00 Panama |
 
-> **Total: 44 endpoints** — Facturas ahora exponen `itbmsTasa/itbmsMonto` por ítem y `subtotalExento/Gravado/itbmsTotal` en header; `Idempotency-Key` header opcional en POST (replay 6h)
+> **Total: 45 endpoints** — Facturas ahora exponen `itbmsTasa/itbmsMonto` por ítem y `subtotalExento/Gravado/itbmsTotal` en header; `Idempotency-Key` header opcional en POST (replay 6h)
 
 ---
 
@@ -159,16 +161,21 @@ Seguridad
 
 ### Cobertura por Tipo
 
-> Verificado `grep -c @Test` 2026-09-17 — total **263** (`85 unit + 11 analytics unit + 104 JPA + 62 integration + 1 context`).
+> Verificado `grep -c @Test` 2026-09-29 — total **291** (`88 unit + 17 analytics + 104 JPA + 15 report + 66 integration + 1 context`).
 
 | Tipo | Tests | Tecnologia |
 |------|-------|------------|
-| Unit | 85 | Mockito, JUnit 5 (incl. `InvoiceCalculatorItbmsTest` 8, `GlobalExceptionHandlerTest` 14) |
-| Analytics unit | 11 | Mockito + JdbcTemplate mock (`AnalyticsServiceImplTest`) |
+| Unit | 88 | Mockito, JUnit 5 (incl. `InvoiceCalculatorItbmsTest` 8, `GlobalExceptionHandlerTest` 14) |
+| Analytics unit | 17 | Mockito + JdbcTemplate mock (`AnalyticsServiceImplTest`) |
 | JPA | 104 | @DataJpaTest + Testcontainers PostgreSQL (Producto 30, Factura 18, Gasto 10, Prestamo 12, Venta 11, etc.) |
-| Integration | 62 | @SpringBootTest + Testcontainers PG + Redis (Factura 9, Itbms 5, ProductoSku 6, FacturaColaborador 6, ModeloGastos 5, etc.) |
+| Report | 15 | @SpringBootTest + Testcontainers PG/Redis — `core_pymes/report/`: `MonthlyReportIntegrationTest` 4 (PDF real) + `MonthlyReportControllerTest` 11 (edge cases) |
+| Integration | 66 | @SpringBootTest + Testcontainers PG + Redis — `core_pymes/integration/` (Factura, Itbms, Producto, etc.) |
 | Context | 1 | Application context load |
-| **Total** | **263** | `mvn test` 96 unit/analytics PASS + `verify -Pintegration` 167 JPA/integration PASS |
+| **Total** | **291** | `./mvnw test -B` = **225** (todo salvo `core_pymes/integration/`) · `verify -Pintegration` = 66 |
+
+> **Los tests de `report/` viven en `core_pymes/report/`, NO en `integration/`** → corren en la fase `test`
+> (job "Unit Tests Core" de CI, que arranca Docker) y quedan fuera de `verify -Pintegration`.
+> Si algún día se mueven a `integration/`, `./mvnw test -B` baja a 210 y el job de integración sube a 70.
 
 ---
 
@@ -235,6 +242,7 @@ GET    /api/v1/core/accounting/consultar?tenantId={uuid}&periodo=YYYY-MM
 POST   /api/v1/core/accounting/recalcular?tenantId={uuid}&periodo=YYYY-MM
 GET    /api/v1/core/analytics?tenantId={uuid}&periodo=YYYY-MM
 POST   /api/v1/core/analytics/recalcular?tenantId={uuid}&periodo=YYYY-MM
+POST   /api/v1/core/reportes/monthly?period=YYYY-MM&dryRun=true   # OWNER|ADMIN
 ```
 
 > Todas las rutas pasan por el Gateway (puerto 8080) con autenticacion JWT.
@@ -261,6 +269,7 @@ GitHub Actions ejecuta `mvn verify` en cada PR a main/develop/feature/*. Docker 
 | [docs/ANALYTICS.md](./docs/ANALYTICS.md) | 9 motores CTE + SQL + performance |
 | [docs/SEED_TEMPLATES.md](./docs/SEED_TEMPLATES.md) | Plantillas por industria |
 | [docs/FUTURE_MODULES.md](./docs/FUTURE_MODULES.md) | Blueprints originales (reportes pendiente) |
+| [docs/strategies/MONTHLY_REPORT_STRATEGY.md](./docs/strategies/MONTHLY_REPORT_STRATEGY.md) | Reporte mensual fase 1 (PDF) + tabla de migración JR6→JR7 |
 | [docs/DAILY_REPORTS_CORE_SOLUTIONS.md](./docs/DAILY_REPORTS_CORE_SOLUTIONS.md) | Historial de desarrollo |
 
 ---

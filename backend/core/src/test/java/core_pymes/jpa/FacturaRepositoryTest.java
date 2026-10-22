@@ -211,14 +211,14 @@ class FacturaRepositoryTest extends AbstractJpaTest {
         @DisplayName("persisting Factura cascades to items")
         void persistFactura_cascadesToItems() {
             var product = em.persistFlushFind(Producto.builder().tenantId(tenantA).name("Arroz").build());
-            var presentacion = em.persistFlushFind(Presentacion.builder().producto(product).name("Bolsa 1kg").conversion(1).build());
+            var presentacion = em.persistFlushFind(Presentacion.builder().producto(product).name("Bolsa 1kg").conversion(new BigDecimal("1")).build());
             var invoice = Factura.builder()
                     .tenantId(tenantA).providerId(providerA.getId()).invoiceNumber("F-PROV-2026-0003")
                     .issueDate(LocalDate.of(2026, 7, 1)).type("FACTURA").status(EstadoFactura.REGISTRADA)
                     .globalDiscount(BigDecimal.ZERO).total(new BigDecimal("55.00")).build();
             invoice.getItems().add(ItemFactura.builder()
                     .factura(invoice).productId(product.getId()).productName("Arroz")
-                    .presentacionId(presentacion.getId()).conversionFactor(1)
+                    .presentacionId(presentacion.getId()).conversionFactor(new BigDecimal("1"))
                     .quantity(new BigDecimal("10")).unitPrice(new BigDecimal("5.50"))
                     .discount(BigDecimal.ZERO).subtotal(new BigDecimal("55.00"))
                     .itbmsTasa(7).itbmsMonto(new BigDecimal("3.85")).build());

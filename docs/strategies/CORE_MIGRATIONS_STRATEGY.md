@@ -48,6 +48,10 @@ Consolidar 18 migraciones de Flyway en un único `V1__core_schema.sql` idempoten
 | V1 | Esquema consolidado: setup, providers, products, invoices (nullable provider, category, colaborador), expense_analysis (+financial_health), accounting, templates | Absorbe V3-V9: +category, +colaborador_id, +provider_id nullable, +costo_operativo_diario, +financial_health, fix idx_invoices_tenant_date_type, +FK template_product_presentations |
 | V2 | Costos engine: collaboradores, gastos_fijos, config_laboral | Sin cambios |
 | V3 | Performance indexes: partial (activo), covering (analytics), invoice number | Nuevo |
+| V4 | Checks de estado de factura | Nuevo |
+| V5 | Paginación alfabética | Nuevo |
+| V6 | ITBMS por ítem | Nuevo |
+| V7 | Normalización de unidades (2026-09-29): `base_unit` nombre→ID (idempotente), puente "Botella", `''`→NULL, `conversion`→`NUMERIC(19,6)`, `fue_suelto`, 8 unidades globales (IDs fijos = seed) + re-apunte industria→global | Nuevo |
 
 ---
 

@@ -21,12 +21,22 @@ export default defineRouter(function (/* { store, ssrContext } */) {
     history: createHistory(process.env.VUE_ROUTER_BASE),
   });
 
-  Router.beforeEach((to) => {
+  Router.beforeEach(async (to) => {
     const authStore = useAuthStore();
     const requiresAuth = to.matched.some(record => record.meta.requiresAuth);
 
     if (requiresAuth && !authStore.isAuthenticated) {
       return { path: '/login', query: { redirect: to.fullPath } };
+    }
+
+    // ponytail: onboarding obligatorio — sin negocio o con onboarding pendiente
+    // solo se puede estar en /onboarding; fail-open si el backend falla
+    if (requiresAuth && to.name !== 'onboarding') {
+      await authStore.ensureOnboarding();
+      const tid = authStore.user?.tenantId;
+      if (tid && authStore.onboardingCompleted === false) {
+        return { path: '/onboarding' };
+      }
     }
   });
 

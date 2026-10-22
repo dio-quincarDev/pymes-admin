@@ -36,8 +36,7 @@ class ProductoIntegrationTest extends AbstractIntegrationTest {
                 "tenantId", tenantId.toString(),
                 "name", "Arroz",
                 "sku", "ARR-001",
-                "category", "ABARROTES",
-                "baseUnit", "Kg"));
+                "category", "ABARROTES"));
 
         var result = mockMvc.perform(post("/api/v1/core/productos")
                         .contentType(MediaType.APPLICATION_JSON)
@@ -46,7 +45,6 @@ class ProductoIntegrationTest extends AbstractIntegrationTest {
                 .andExpect(jsonPath("$.name").value("Arroz"))
                 .andExpect(jsonPath("$.sku").value("ARR-001"))
                 .andExpect(jsonPath("$.category").value("ABARROTES"))
-                .andExpect(jsonPath("$.baseUnit").value("Kg"))
                 .andExpect(jsonPath("$.isActive").value(true))
                 // ponytail: createdAt omitted when null by Jackson record serialization
 
@@ -58,6 +56,40 @@ class ProductoIntegrationTest extends AbstractIntegrationTest {
                 .andExpect(status().isOk())
                 .andExpect(jsonPath("$.name").value("Arroz"))
                 .andExpect(jsonPath("$.sku").value("ARR-001"));
+    }
+
+    @Test
+    @DisplayName("baseUnit acepta ID del catalogo y rechaza texto libre")
+    void baseUnit_validaContraCatalogo() throws Exception {
+        var tenantId = UUID.randomUUID();
+
+        // Onboarding restaurante para tener catalogo de unidades
+        mockMvc.perform(post("/api/v1/core/setup/{tenantId}/onboarding", tenantId)
+                        .contentType(MediaType.APPLICATION_JSON)
+                        .content(objectMapper.writeValueAsString(Map.of("industry", "restaurante"))))
+                .andExpect(status().isOk());
+
+        // ID real del catalogo
+        var preview = objectMapper.readTree(mockMvc.perform(get("/api/v1/core/setup/preview/restaurante"))
+                .andExpect(status().isOk()).andReturn().getResponse().getContentAsString());
+        var unitId = preview.get("units").get(0).get("code").asText();
+
+        // ID valido -> 200
+        mockMvc.perform(post("/api/v1/core/productos")
+                        .contentType(MediaType.APPLICATION_JSON)
+                        .content(objectMapper.writeValueAsString(Map.of(
+                                "tenantId", tenantId.toString(), "name", "Arroz",
+                                "sku", "ARR-U-001", "baseUnit", unitId))))
+                .andExpect(status().isOk())
+                .andExpect(jsonPath("$.baseUnit").value(unitId));
+
+        // Texto libre ("Kg") -> 400 aunque exista en el catalogo por nombre
+        mockMvc.perform(post("/api/v1/core/productos")
+                        .contentType(MediaType.APPLICATION_JSON)
+                        .content(objectMapper.writeValueAsString(Map.of(
+                                "tenantId", tenantId.toString(), "name", "Frijol",
+                                "sku", "FRI-U-001", "baseUnit", "Kg"))))
+                .andExpect(status().isBadRequest());
     }
 
     @Test

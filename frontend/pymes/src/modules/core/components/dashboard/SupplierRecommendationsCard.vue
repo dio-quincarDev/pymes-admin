@@ -1,6 +1,7 @@
 <script setup lang="ts">
 import { computed, shallowRef } from 'vue';
 import { useNumberFormat } from '../../composables/useNumberFormat';
+import { withinTrustedRange } from '../../utils/analyticsNormalize';
 import type { SupplierRecommendationItem } from '../../types/analytics';
 
 interface Props {
@@ -10,21 +11,17 @@ interface Props {
 const props = defineProps<Props>();
 const { formatCurrency } = useNumberFormat();
 
-// ponytail: filtro UI puro — esconde recomendaciones engañosas por compra mínima (ej 1kg a 2.25 vs 10kg a 2.20 = 2% → oculto con >5%); sin backend
-const onlySignificant = shallowRef(false);
-const onlyMultiSupplier = shallowRef(false);
+// ponytail: tope fijo, sin scroll infinito — el backend ya ordena por ahorro; subir TOP_VISIBLE si piden
+const TOP_VISIBLE = 8;
+const expanded = shallowRef(false);
 
-const filteredItems = computed(() => {
-  let list = props.items;
-  if (onlySignificant.value) list = list.filter((r) => r.savingsPct > 5);
-  if (onlyMultiSupplier.value) list = list.filter((r) => r.supplierCount > 2);
-  return list;
+// ponytail: por defecto solo rango confiable 35–75% (fuera puede haber contaminación de unidades);
+// el resto queda tras "ver más", sin chips ni filtros opcionales
+const visibleItems = computed(() => {
+  if (expanded.value) return props.items;
+  return props.items.filter((r) => withinTrustedRange(r.savingsPct)).slice(0, TOP_VISIBLE);
 });
-
-function clearFilters() {
-  onlySignificant.value = false;
-  onlyMultiSupplier.value = false;
-}
+const hiddenCount = computed(() => props.items.length - visibleItems.value.length);
 </script>
 
 <template>
@@ -40,55 +37,15 @@ function clearFilters() {
       </q-badge>
     </div>
 
-    <div v-if="items.length" class="recs-panel__filters">
-      <q-chip
-        :color="onlySignificant ? 'positive' : 'grey-4'"
-        :text-color="onlySignificant ? 'white' : 'white'"
-        clickable
-        dense
-        :outline="!onlySignificant"
-        icon="savings"
-        @click="onlySignificant = !onlySignificant"
-      >
-        Ahorro &gt;5%
-      </q-chip>
-      <q-chip
-        :color="onlyMultiSupplier ? 'positive' : 'grey-4'"
-        :text-color="onlyMultiSupplier ? 'white' : 'white'"
-        clickable
-        dense
-        :outline="!onlyMultiSupplier"
-        icon="verified"
-        @click="onlyMultiSupplier = !onlyMultiSupplier"
-      >
-        Probados (3+ prov.)
-      </q-chip>
-      <q-btn
-        v-if="onlySignificant || onlyMultiSupplier"
-        flat
-        dense
-        size="sm"
-        label="Limpiar"
-        class="recs-panel__clear"
-        @click="clearFilters"
-      />
-    </div>
-
     <div v-if="!items.length" class="recs-panel__empty">
       <q-icon name="verified" size="2.5rem" class="recs-panel__empty-icon" />
-      <p class="recs-panel__empty-text">Sin recomendaciones disponibles</p>
-      <p class="recs-panel__empty-hint">Se necesitan datos de al menos 2 proveedores por producto</p>
-    </div>
-
-    <div v-else-if="!filteredItems.length" class="recs-panel__empty">
-      <q-icon name="filter_alt_off" size="2rem" class="recs-panel__empty-icon" />
-      <p class="recs-panel__empty-text">Ninguna coincide con el filtro</p>
-      <q-btn flat dense size="sm" color="positive" label="Limpiar filtros" @click="clearFilters" />
+      <p class="recs-panel__empty-text">Sin recomendaciones este mes</p>
+      <p class="recs-panel__empty-hint">Aparecen con 3+ compras por proveedor en 2+ proveedores</p>
     </div>
 
     <div v-else class="recs-panel__list">
       <div
-        v-for="(rec, idx) in filteredItems"
+        v-for="(rec, idx) in visibleItems"
         :key="rec.productId"
         class="recs-panel__item"
         :style="{ animationDelay: `${idx * 50}ms` }"
@@ -104,26 +61,37 @@ function clearFilters() {
             </div>
             <div class="recs-panel__badges">
               <q-badge
-                v-if="rec.supplierCount > 1"
                 :class="{ 'recs-panel__badge--hot': rec.savingsPct > 15 }"
                 color="positive"
                 rounded
-                :label="`${rec.savingsPct.toFixed(0)}%`"
+                :label="`−${rec.savingsPct.toFixed(0)}%`"
               />
-              <q-badge v-else label="único" color="grey-7" rounded />
             </div>
           </div>
           <div class="recs-panel__item-body">
             <span class="recs-panel__product-sub">{{ rec.productName }}</span>
             <div class="recs-panel__pricing">
               <span class="recs-panel__price">{{ formatCurrency(rec.recommendedPrice) }}</span>
-              <span v-if="rec.supplierCount > 1" class="recs-panel__savings">
+              <span class="recs-panel__savings">
                 ahorro {{ formatCurrency(rec.savingsPerUnit) }}/u
               </span>
             </div>
           </div>
+          <p class="recs-panel__sentence">
+            Compra a <strong>{{ rec.recommendedProviderName }}</strong> a {{ formatCurrency(rec.recommendedPrice) }} — ahorras {{ formatCurrency(rec.savingsPerUnit) }} por {{ rec.unitLabel ?? 'unidad' }}<template v-if="rec.comparedProviderName"> frente a <strong>{{ rec.comparedProviderName }}</strong> ({{ formatCurrency(rec.currentAvgPrice) }})</template>.
+          </p>
         </div>
       </div>
+      <q-btn
+        v-if="hiddenCount > 0 || expanded"
+        flat
+        dense
+        size="sm"
+        color="positive"
+        class="recs-panel__more"
+        :label="expanded ? 'Ver menos' : `+${hiddenCount} más este mes`"
+        @click="expanded = !expanded"
+      />
     </div>
   </div>
 </template>
@@ -180,19 +148,6 @@ function clearFilters() {
     font-weight: 600;
     padding: 0.25rem 0.6rem;
     margin-top: 0.15rem;
-  }
-
-  &__filters {
-    display: flex;
-    align-items: center;
-    gap: 8px;
-    padding: 0 1.5rem 0.75rem;
-    flex-wrap: wrap;
-  }
-
-  &__clear {
-    color: #8a9e99;
-    font-size: 0.75rem;
   }
 
   &__empty {
@@ -354,6 +309,23 @@ function clearFilters() {
     font-size: 0.7rem;
     color: #2d5a27;
     font-weight: 500;
+  }
+
+  &__sentence {
+    font-size: 0.78rem;
+    line-height: 1.45;
+    color: #c6d2cd;
+    margin: 0.45rem 0 0;
+
+    strong {
+      color: #e2e8e4;
+    }
+  }
+
+  &__more {
+    margin: 0.25rem auto 0.5rem;
+    display: block;
+    font-size: 0.75rem;
   }
 }
 

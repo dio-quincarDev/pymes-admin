@@ -32,3 +32,7 @@ export const formatDate = (dateStr: string, withYear = false) => {
     ...(withYear ? { year: 'numeric' } : {}),
   })
 }
+
+// ponytail: base_unit canónico es UUID desde V7 — detecta IDs sin resolver a nombre
+export const isUuidLike = (v: string | null | undefined): boolean =>
+  !!v && v.length >= 32 && v.includes('-')

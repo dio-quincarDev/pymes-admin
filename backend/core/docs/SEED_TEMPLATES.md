@@ -2,6 +2,20 @@
 
 ---
 
+## Unidades globales (2026-09-29)
+
+Mismo ID en todas las industrias → comparables entre industrias y ambientes (prod/stg/nuevo VPS).
+IDs fijos en `SeedDataRunner.GLOBAL_UNITS` y `V7__normalize_units.sql` sección D
+(test `GlobalUnitsMigrationTest` vigila que no se desincronicen):
+
+- Kg, Gr, Lb, Oz (nueva), Ml, Litro, Galón, Unidad
+
+Cada industria suma solo sus unidades propias (envases y especialidades).
+El preview y la validación mezclan industria + globales (industria primero).
+`base_unit` guarda el ID (nunca el nombre); `addProd` resuelve industria→global con fail-fast.
+
+---
+
 ## Plantilla Agnóstica (Por Defecto)
 
 Usada cuando el tenant selecciona "Otro" o no elige industria específica.
@@ -13,11 +27,9 @@ General
 ```
 
 ### Unidades
-- Unidad
 - Caja
 - Paquete
-- Kg
-- Litro
+- (+ 8 globales)
 
 ### Método de Pago
 - Efectivo
@@ -76,15 +88,11 @@ SUMINISTROS
 ```
 
 ### Unidades
-- Kg
-- Lb
-- Gr
-- Litro
-- Ml
-- Unidad
 - Caja
 - Bolsa
 - Paquete
+- Botella
+- (+ 8 globales)
 
 ### Método de Pago
 - Yappy
@@ -139,12 +147,10 @@ SUMINISTROS
 ### Unidades
 - Botella
 - Lata
-- Unidad
-- Ml
-- Litro
 - Caja
 - Paquete
-- Kg (hielo)
+- Bolsa
+- (+ 8 globales)
 
 ### Método de Pago
 - Yappy
@@ -210,13 +216,11 @@ LIMPIEZA
 ```
 
 ### Unidades
-- Unidad
-- Ml
-- Litro
 - Tubo
 - Caja
 - Kit
 - Botella
+- (+ 8 globales)
 
 ### Método de Pago
 - Yappy
@@ -289,15 +293,12 @@ OTROS SUMINISTROS
 ```
 
 ### Unidades
-- Unidad
 - Metro
 - Cm
-- Kg
-- Lb
-- Galón
 - Caja
 - Bolsa
 - Paquete
+- (+ 8 globales)
 
 ### Método de Pago
 - Efectivo
@@ -370,13 +371,12 @@ OTROS
 ```
 
 ### Unidades
-- Unidad
 - Caja
 - Paquete
 - Botella
 - Lata
-- Kg
-- Lb
+- Bolsa
+- (+ 8 globales)
 
 ### Método de Pago
 - Efectivo
@@ -442,13 +442,10 @@ PIEZAS VARIADAS
 ```
 
 ### Unidades
-- Unidad
-- Litro
-- Ml
 - Caja
 - Juego
 - Kit
-- Kg
+- (+ 8 globales)
 
 ### Método de Pago
 - Efectivo
@@ -521,13 +518,12 @@ HIGIENE DEL HOGAR
 ```
 
 ### Unidades
-- Unidad
 - Caja
 - Blíster
 - Frasco
-- Ml
-- Gr
 - Botella
+- Tubo
+- (+ 8 globales)
 
 ### Método de Pago
 - Efectivo
@@ -668,8 +664,9 @@ template_movement_reasons           — SeedDataRunner (nunca en Flyway, solo el
 
 El seed se ejecuta vía `SeedDataRunner` (ApplicationRunner) al startup:
 1. `seedIndustries()` — inserta 8 industrias
-2. `seed{Nombre}()` — por industria inserta categorías, unidades, pagos, **productos** y **presentaciones** (todo en un mismo método)
-3. Es idempotente: verifica `SELECT COUNT(*) FROM industries` antes de insertar
+2. `seedGlobalUnits()` — inserta las 8 unidades globales con IDs fijos (con guard `NOT EXISTS`; V7 ya las puso en bases migradas)
+3. `seed{Nombre}()` — por industria inserta categorías, unidades propias, pagos, **productos** y **presentaciones** (todo en un mismo método). `base_unit` se guarda como ID (`addProd` resuelve industria→global con fail-fast, ya no hay nombres)
+4. Es idempotente: verifica `SELECT COUNT(*) FROM industries WHERE code <> 'global'` antes de insertar ('global' la pone V7, no cuenta como seed)
 
 ### Flyway migration
 

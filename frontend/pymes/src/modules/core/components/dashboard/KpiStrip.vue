@@ -41,7 +41,11 @@ defineProps<{ kpis: Kpi[]; loading?: boolean }>();
   gap: 16px;
   margin-bottom: 20px;
 
-  @media (max-width: 768px) {
+  @media (max-width: 1023px) {
+    grid-template-columns: repeat(2, 1fr);
+  }
+
+  @media (max-width: 599px) {
     grid-template-columns: 1fr;
   }
 

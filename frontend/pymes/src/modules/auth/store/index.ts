@@ -2,6 +2,7 @@ import { defineStore } from 'pinia';
 import { api } from 'src/boot/axios';
 import { authService } from '../services/auth.service';
 import { tenantService } from '../services/tenant.service';
+import { setupService } from 'src/modules/core/services/setup.service';
 import type { User, LoginRequest, RegisterRequest, ApiResponse, AuthResponse, LogoutResponse } from '../types';
 import type { PageResponse } from 'src/modules/core/types';
 
@@ -23,6 +24,8 @@ export const useAuthStore = defineStore('auth', {
     accessToken: localStorage.getItem('pymeq_token') || null,
     pendingTenant: safeParse<{ name: string; slug: string } | null>('pymeq_pending_tenant', null),
     tenantName: localStorage.getItem('pymeq_tenant_name') || null,
+    // ponytail: onboarding cache for the router guard (null = not checked yet this session)
+    onboardingCompleted: null as boolean | null,
     loading: false,
     error: null as string | null,
   }),
@@ -168,10 +171,22 @@ export const useAuthStore = defineStore('auth', {
       }
     },
 
+    async ensureOnboarding() {
+      const tid = this.user?.tenantId;
+      if (!tid) return;
+      if (this.onboardingCompleted !== null) return;
+      try {
+        // ponytail: 401 here means expired session — let the api interceptor handle it
+        const { data } = await setupService.get(tid);
+        this.onboardingCompleted = data.onboardingCompleted === true;
+      } catch { /* ponytail: fail-open — nunca bloquear por un error tecnico */ }
+    },
+
     setSession(token: string, refreshToken: string, user: User, tenantName?: string) {
       this.accessToken = token;
       this.user = user;
       this.tenantName = tenantName ?? null;
+      this.onboardingCompleted = null;
       localStorage.setItem('pymeq_token', token);
       localStorage.setItem('pymeq_refresh_token', refreshToken);
       localStorage.setItem('pymeq_user', JSON.stringify(user));
@@ -199,6 +214,7 @@ export const useAuthStore = defineStore('auth', {
       this.accessToken = null;
       this.tenantName = null;
       this.pendingTenant = null;
+      this.onboardingCompleted = null;
       localStorage.removeItem('pymeq_token');
       localStorage.removeItem('pymeq_refresh_token');
       localStorage.removeItem('pymeq_user');

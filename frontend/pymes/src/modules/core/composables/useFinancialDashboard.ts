@@ -52,7 +52,7 @@ export function useFinancialDashboard() {
 
   const gastosPorCategoria = computed<GastoPorCategoria[]>(() => {
     const gastosFacturas = facturas.value.filter(
-      (f) => f.type === 'GASTO_OPERATIVO' && f.status === 'PAGADA',
+      (f) => f.type === 'GASTO_OPERATIVO' && f.status === 'PAGADA' && f.issueDate.startsWith(period.value),
     );
     if (!gastosFacturas.length) return [];
     const totals = new Map<string, number>();

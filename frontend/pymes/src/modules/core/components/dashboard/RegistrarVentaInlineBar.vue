@@ -73,17 +73,19 @@ async function onSave() {
         class="venta-inline-bar__field venta-inline-bar__field--desc"
         @keyup.enter="onSave"
       />
-      <q-btn
-        no-caps
-        label="Guardar"
-        color="primary"
-        text-color="dark"
-        class="venta-inline-bar__save"
-        :disable="!isValid"
-        :loading="saving"
-        @click="onSave"
-      />
-      <q-btn flat dense round icon="sym_r_close" aria-label="Cerrar" @click="emit('update:modelValue', false)" />
+      <div class="venta-inline-bar__actions">
+        <q-btn
+          no-caps
+          label="Guardar"
+          color="primary"
+          text-color="dark"
+          class="venta-inline-bar__save"
+          :disable="!isValid"
+          :loading="saving"
+          @click="onSave"
+        />
+        <q-btn flat dense round icon="sym_r_close" aria-label="Cerrar" @click="emit('update:modelValue', false)" />
+      </div>
       <div class="venta-inline-bar__hint">Se refleja en gráfico 7 días al guardar (Costo es fijo)</div>
     </div>
   </transition>
@@ -135,6 +137,11 @@ async function onSave() {
     align-self: center;
   }
 
+  // ponytail: wrapper sin layout en desktop (display:contents); en xs agrupa Guardar+X
+  &__actions {
+    display: contents;
+  }
+
   &__hint {
     flex: 1 0 100%;
     font-family: 'Satoshi', sans-serif;
@@ -168,8 +175,14 @@ async function onSave() {
       }
     }
 
-    &__save {
+    &__actions {
+      display: flex;
+      gap: 8px;
       width: 100%;
+    }
+
+    &__save {
+      flex: 1;
     }
   }
 }

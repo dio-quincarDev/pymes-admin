@@ -45,12 +45,12 @@ const deleting = shallowRef(false);
 const savingNewProveedor = shallowRef(false);
 const deletingColab = ref<Collaborador | null>(null);
 const deletingGasto = ref<GastoFijoRecurrente | null>(null);
-const newProveedorName = ref('');
+const newProveedorName = shallowRef('');
 const colabFormRef = ref<{ validate: () => Promise<boolean> } | null>(null);
 const gastoFormRef = ref<{ validate: () => Promise<boolean> } | null>(null);
 const colabForm = ref<CollaboradorRequest>({ tenantId, nombre: '', tipoPago: 'MENSUAL', monto: 0 });
 const gastoForm = ref<GastoFijoRequest>({ tenantId, categoria: '', monto: 0, descripcion: '', diaEjecucion: 1, metodoPago: null, proveedorId: null });
-const amounts = { amountStr: ref(''), amountStrGasto: ref('') };
+const amounts = { amountStr: shallowRef(''), amountStrGasto: shallowRef('') };
 
 function onAmountInput(field: 'amountStr' | 'amountStrGasto', val: string | number | null) {
   amounts[field].value = String(val ?? '').replace(/[^0-9.]/g, '').replace(/(\..*)\./g, '$1');
@@ -235,15 +235,15 @@ onUnmounted(() => window.removeEventListener('keydown', handleKeydown));
         <q-card-section>
           <q-form ref="gastoFormRef" @submit.prevent="saveGasto" class="q-gutter-y-md">
             <div class="row q-col-gutter-md">
-              <div class="col-6"><q-select dark filled v-model="gastoForm.categoria" :options="categoriaOptions" label="Categoría" :rules="[(v) => !!v || 'Requerido']" /></div>
-              <div class="col-6"><q-input dark filled type="number" min="1" max="31" v-model.number="gastoForm.diaEjecucion" label="Día de ejecución" :rules="[(v) => (v >= 1 && v <= 31) || 'Entre 1 y 31']" /></div>
+              <div class="col-12 col-sm-6"><q-select dark filled v-model="gastoForm.categoria" :options="categoriaOptions" label="Categoría" :rules="[(v) => !!v || 'Requerido']" /></div>
+              <div class="col-12 col-sm-6"><q-input dark filled type="number" min="1" max="31" v-model.number="gastoForm.diaEjecucion" label="Día de ejecución" :rules="[(v) => (v >= 1 && v <= 31) || 'Entre 1 y 31']" /></div>
             </div>
             <q-input dark filled v-model="gastoForm.descripcion" label="Descripción" :rules="[(v) => !!v || 'Requerido']" />
             <q-input dark filled :model-value="amounts.amountStrGasto.value" @update:model-value="(val) => onAmountInput('amountStrGasto', val)" @blur="formatAmount(gastoForm, 'amountStrGasto')" label="Monto" type="text" inputmode="decimal" prefix="$" :rules="[(v) => !!v || 'Requerido']" />
             <q-select dark filled v-model="gastoForm.metodoPago" :options="metodoPagoOptions" label="Método de pago" clearable />
-            <div class="row items-center q-gutter-x-sm">
-              <q-select dark filled v-model="gastoForm.proveedorId" :options="proveedorOptions" label="Proveedor" clearable map-options emit-value class="col" />
-              <q-btn flat round icon="sym_r_add" color="primary" type="button" @click="openNewProveedor" />
+            <div class="gasto-proveedor-row">
+              <q-select dark filled v-model="gastoForm.proveedorId" :options="proveedorOptions" label="Proveedor" clearable map-options emit-value class="gasto-proveedor-row__select" />
+              <q-btn outline color="primary" icon="sym_r_add" label="Nuevo" size="sm" no-caps type="button" @click="openNewProveedor" />
             </div>
             <div class="row justify-end q-gutter-x-sm"><q-btn flat label="Cancelar" color="accent" v-close-popup /><q-btn type="submit" label="Guardar" color="primary" :loading="saving" /></div>
           </q-form>
@@ -277,4 +277,11 @@ onUnmounted(() => window.removeEventListener('keydown', handleKeydown));
 <style scoped lang="scss">
 .cost-tabs { border-bottom: 1px solid rgba(113,131,127,0.12); overflow-x: auto; -webkit-overflow-scrolling: touch; }
 .cost-tabs :deep(.q-tabs__content) { flex-wrap: nowrap; }
+.gasto-proveedor-row { display: flex; align-items: center; gap: 8px; }
+.gasto-proveedor-row__select { flex: 1; min-width: 0; }
+/* ponytail: en xs el select se encoge — apilado con Nuevo full-width debajo */
+@media (max-width: 599px) {
+  .gasto-proveedor-row { display: grid; grid-template-columns: 1fr; }
+  .gasto-proveedor-row .q-btn { width: 100%; white-space: nowrap; }
+}
 </style>

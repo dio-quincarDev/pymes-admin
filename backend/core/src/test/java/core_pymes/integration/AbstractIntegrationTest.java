@@ -1,7 +1,9 @@
 package core_pymes.integration;
 
+import core_pymes.report.service.ReportEmailService;
 import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.boot.test.context.SpringBootTest;
+import org.springframework.boot.test.mock.mockito.MockBean;
 import org.springframework.boot.testcontainers.service.connection.ServiceConnection;
 import org.springframework.jdbc.core.JdbcTemplate;
 import org.springframework.test.context.ActiveProfiles;
@@ -43,4 +45,9 @@ public abstract class AbstractIntegrationTest {
 
     @Autowired
     protected JdbcTemplate jdbcTemplate;
+
+    // Sin esto el contexto revienta: el bean real resuelve ${SPRING_MAIL_USERNAME},
+    // que no existe en CI. Auth hace lo mismo con su EmailService.
+    @MockBean
+    protected ReportEmailService reportEmailService;
 }

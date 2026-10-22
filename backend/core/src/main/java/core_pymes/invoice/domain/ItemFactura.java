@@ -34,8 +34,13 @@ public class ItemFactura {
     @Column(name = "presentacion_id")
     private UUID presentacionId;
 
-    @Column(name = "conversion_factor", nullable = false)
-    private Integer conversionFactor;
+    @Column(name = "conversion_factor", nullable = false, precision = 19, scale = 6)
+    private BigDecimal conversionFactor;
+
+    // ponytail: fila sin presentacion solo si el usuario la marco suelto a proposito
+    @Builder.Default
+    @Column(name = "fue_suelto", nullable = false)
+    private Boolean fueSuelto = false;
 
     @Column(nullable = false)
     private BigDecimal quantity;

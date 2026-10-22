@@ -28,7 +28,7 @@ case DUPLICATE_RESOURCE, CONSTRAINT_VIOLATION -> HttpStatus.CONFLICT;
 			case SEC_AUTH -> HttpStatus.UNAUTHORIZED;
             case SEC_FORBIDDEN -> HttpStatus.FORBIDDEN;
             case SEC_TOKEN_EXPIRED -> HttpStatus.UNAUTHORIZED;
-            case INTERNAL_SERVER_ERROR -> HttpStatus.INTERNAL_SERVER_ERROR;
+            case INTERNAL_SERVER_ERROR, REPORT_GENERATION -> HttpStatus.INTERNAL_SERVER_ERROR;
         };
     }
 }

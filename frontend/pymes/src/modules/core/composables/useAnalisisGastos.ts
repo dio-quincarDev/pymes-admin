@@ -1,7 +1,13 @@
 import { ref, shallowRef, computed, readonly } from 'vue';
 import { productoService } from '../services/producto.service';
+import { facturaService } from '../services/factura.service';
 import { api } from 'src/boot/axios';
-import type { Producto, SetupInfo, SetupCategory } from '../types';
+import type { Factura, Producto, SetupInfo, SetupCategory } from '../types';
+
+interface SetupUnit {
+  code: string;
+  name: string;
+}
 
 interface CategoryGroup {
   name: string;
@@ -13,6 +19,9 @@ interface CategoryGroup {
 export function useAnalisisGastos(tenantId: string | undefined) {
   const products = ref<Producto[]>([]);
   const setupCategories = ref<SetupCategory[]>([]);
+  const setupUnits = ref<SetupUnit[]>([]);
+  const facturas = ref<Factura[]>([]);
+  const facturasLoaded = shallowRef(false);
   const loading = shallowRef(false);
 
   const totalInvestment = computed(() =>
@@ -72,19 +81,39 @@ export function useAnalisisGastos(tenantId: string | undefined) {
       ]);
       products.value = prodRes.data;
       setupCategories.value = setupRes.data.categories || [];
+      // ponytail: el setup ya trae units (id→nombre); exponerlo evita otro request para traducir base_unit
+      setupUnits.value = setupRes.data.units || [];
     } finally {
       loading.value = false;
+    }
+  }
+
+  // ponytail: facturas solo si hay alertas que enriquecer (endpoint existente, cero backend,
+  // @Cacheable por tenant en Redis); mes sin alertas = cero requests. Idempotente y fail-soft:
+  // si falla, las alertas caen al texto anterior en vez de romper la página.
+  async function loadFacturas() {
+    if (!tenantId || facturasLoaded.value) return;
+    facturasLoaded.value = true;
+    try {
+      const factRes = await facturaService.getAll(tenantId);
+      facturas.value = factRes.data ?? [];
+    } catch {
+      facturas.value = [];
+      facturasLoaded.value = false;
     }
   }
 
   return {
     products: readonly(products),
     setupCategories: readonly(setupCategories),
+    setupUnits: readonly(setupUnits),
+    facturas: readonly(facturas),
     loading: readonly(loading),
     totalInvestment,
     productCount,
     byCategory,
     categoryChartItems,
     load,
+    loadFacturas,
   };
 }

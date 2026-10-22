@@ -2,7 +2,7 @@
 import { ref, shallowRef, computed, onMounted, onUnmounted } from 'vue';
 import { useQuasar, useMeta } from 'quasar';
 import { useAuthStore } from 'src/modules/auth/store';
-import { formatCurrency } from 'src/utils/format';
+import { formatCurrency, toLocalISODate } from 'src/utils/format';
 import { prestamoService } from '../services/prestamo.service';
 import { cuotaMensual, totalConInteres } from '../utils/prestamo';
 import type { Prestamo, PrestamoRequest, PagoPrestamo, PagoPrestamoRequest } from '../types';
@@ -46,7 +46,7 @@ const form = ref<PrestamoRequest>({
   monto: 0,
   tasaInteres: 0,
   plazoMeses: 0,
-  fechaInicio: new Date().toISOString().slice(0, 10),
+  fechaInicio: toLocalISODate(new Date()),
 });
 
 function openCreate() {
@@ -57,7 +57,7 @@ function openCreate() {
     monto: 0,
     tasaInteres: 0,
     plazoMeses: 0,
-    fechaInicio: new Date().toISOString().slice(0, 10),
+    fechaInicio: toLocalISODate(new Date()),
   };
   dialogOpen.value = true;
 }
@@ -138,13 +138,13 @@ const pagos = ref<PagoPrestamo[]>([]);
 const savingPago = shallowRef(false);
 const pagoForm = ref<PagoPrestamoRequest>({
   monto: 0,
-  fechaPago: new Date().toISOString().slice(0, 10),
+  fechaPago: toLocalISODate(new Date()),
 });
 const pagosLoaded = shallowRef(false);
 
 function openPagos(p: Prestamo) {
   pagoPrestamo.value = p;
-  pagoForm.value = { monto: 0, fechaPago: new Date().toISOString().slice(0, 10) };
+  pagoForm.value = { monto: 0, fechaPago: toLocalISODate(new Date()) };
   pagosLoaded.value = false;
   pagos.value = [];
   pagoDialog.value = true;
@@ -172,7 +172,7 @@ async function savePago() {
   try {
     await prestamoService.createPago(pagoPrestamo.value.id, pagoForm.value, tenantId);
     $q.notify({ type: 'positive', message: 'Pago registrado' });
-    pagoForm.value = { monto: 0, fechaPago: new Date().toISOString().slice(0, 10) };
+    pagoForm.value = { monto: 0, fechaPago: toLocalISODate(new Date()) };
     await loadPagos(pagoPrestamo.value.id);
     await load();
   } catch (err) {

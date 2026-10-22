@@ -109,9 +109,9 @@ class ProveedorProductoEdgeCaseIntegrationTest extends AbstractIntegrationTest {
         assertThat(productsJson.size() - conProveedorCount).isEqualTo(25);
 
         // 8) Crear presentaciones para algunos productos
-        var presMusloTol = addPresentation(musloTol, tenantId, "Kg", 1);
-        var presPechugaAte = addPresentation(pechugaAte, tenantId, "Libras", 1);
+        var presMusloTol = addPresentation(musloTol, tenantId, "Kg", 2);
 
+        var presPechugaAte = addPresentation(pechugaAte, tenantId, "Libras", 2);
         // 9) Crear factura con proveedor Toledano y un producto de Toledano
         var facturaBody1 = Map.of(
                 "tenantId", tenantId.toString(),
@@ -176,7 +176,7 @@ class ProveedorProductoEdgeCaseIntegrationTest extends AbstractIntegrationTest {
         assertThat(seedProduct.has("proveedorId")).isFalse();
 
         // Crear presentación para ese producto
-        var presSeed = addPresentation(seedProductId, tenantId, "Unidad", 1);
+        var presSeed = addPresentation(seedProductId, tenantId, "Unidad", 2);
 
         // Crear proveedor
         var provResult = mockMvc.perform(post("/api/v1/core/proveedores")

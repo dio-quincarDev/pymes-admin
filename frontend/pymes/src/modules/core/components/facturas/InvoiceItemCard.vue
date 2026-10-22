@@ -1,6 +1,7 @@
 <script setup lang="ts">
 import { computed, ref, shallowRef, watch } from 'vue'
 import { calcItbms, calcNeto } from 'src/modules/core/utils/invoiceMath'
+import { SUELTO } from 'src/modules/core/utils/invoiceItemGuards'
 
 export interface ProductOption {
   label: string
@@ -18,6 +19,7 @@ interface ItemForm {
   _key: number
   productoId: string | null
   presentacionId: string | null
+  fueSuelto: boolean
   cantidad: number | null
   valor: number | null
   descuento: number
@@ -94,7 +96,8 @@ function onClear() {
 }
 
 const conversion = computed(() => {
-  if (!props.item.presentacionId) return 1
+  // ponytail: suelto y sin elegir = precio directo en unidad base
+  if (!props.item.presentacionId || props.item.presentacionId === SUELTO) return 1
   return props.presentationConversionMap.get(props.item.presentacionId) || 1
 })
 
@@ -103,6 +106,12 @@ const precioUnitario = computed(() => {
   if (val == null) return null
   const conv = conversion.value
   return conv > 0 ? val / conv : val
+})
+
+// ponytail: aclara en que unidad esta el Valor (Bulto, Caja, Kg...) — agnostico al producto
+const valorLabel = computed(() => {
+  const u = props.unitOptions.find(o => o.value === props.item.presentacionId)?.label
+  return u ? `Valor $ · ${u}` : 'Valor $'
 })
 
 const subtotal = computed(() => calcNeto(props.item.cantidad, props.item.valor, props.item.descuento))
@@ -198,12 +207,12 @@ function fmt(n: number | null) {
           :options="unitOptions"
           map-options emit-value
           :disable="!item.productoId"
-          placeholder="—"
+          placeholder="Elegir…"
         />
       </div>
 
       <div class="item-card__field item-card__field--valor">
-        <span class="item-card__label">Valor $</span>
+        <span class="item-card__label">{{ valorLabel }}</span>
         <q-input
           dark dense outlined
           :model-value="item.valor"
@@ -334,6 +343,17 @@ function fmt(n: number | null) {
   opacity: 0.35;
 }
 
+/* ponytail: táctil sin hover + teclado — remove siempre visible */
+@media (pointer: coarse) {
+  .item-card__remove {
+    opacity: 0.7;
+  }
+}
+
+.item-card__remove:focus-visible {
+  opacity: 1;
+}
+
 .item-card__remove:hover {
   opacity: 1 !important;
   background: color-mix(in srgb, var(--pq-danger) 15%, transparent);
@@ -366,9 +386,7 @@ function fmt(n: number | null) {
   padding-left: 2px;
 }
 
-.item-card__field--qty { width: 56px; }
-.item-card__field--unit { width: 110px; }
-.item-card__field--valor { width: 96px; }
+.item-card__field--unit { width: 110px; }.item-card__field--valor { width: 96px; }
 .item-card__field--calc { width: 88px; }
 .item-card__field--disc { width: 54px; }
 .item-card__field--itbms { width: 92px; }
@@ -450,13 +468,34 @@ function fmt(n: number | null) {
     gap: 4px;
   }
 
-  .item-card__field--qty { width: 48px; }
-  .item-card__field--unit { width: 90px; }
-  .item-card__field--valor { width: 80px; }
-  .item-card__field--calc { width: 76px; }
-  .item-card__field--disc { width: 46px; }
-  .item-card__field--itbms { width: 80px; }
-  .item-card__field--subtotal { width: 88px; }
+  /* ponytail: grilla fluida en vez de anchos fijos — sin quiebres a mitad de fila */
+  .item-card__field--qty,
+  .item-card__field--unit,
+  .item-card__field--valor,
+  .item-card__field--calc,
+  .item-card__field--itbms,
+  .item-card__field--subtotal {
+    width: auto;
+    flex: 1 1 80px;
+  }
+
+  .item-card__field--disc {
+    width: auto;
+    flex: 0 1 54px;
+  }
+}
+
+/* ponytail: targets táctiles 44px solo en coarse — desktop conserva densidad 30px */
+@media (pointer: coarse) {
+  .item-card__product :deep(.q-field__control),
+  .item-card__field :deep(.q-field__control) {
+    min-height: 44px !important;
+  }
+
+  .item-card__product :deep(.q-field__marginal),
+  .item-card__field :deep(.q-field__marginal) {
+    height: 44px;
+  }
 }
 
 .item-dropdown {

@@ -33,7 +33,7 @@ class SetupSeedIntegrationTest extends AbstractIntegrationTest {
     @DisplayName("Seed data is loaded on startup")
     void seedDataLoaded() {
         var industries = jdbcTemplate.queryForObject("SELECT COUNT(*) FROM industries", Integer.class);
-        assertThat(industries).isEqualTo(8);
+        assertThat(industries).isEqualTo(9); // 8 industrias + 'global'
 
         var categories = jdbcTemplate.queryForObject("SELECT COUNT(*) FROM template_categories", Integer.class);
         assertThat(categories).isGreaterThan(0);
@@ -46,7 +46,7 @@ class SetupSeedIntegrationTest extends AbstractIntegrationTest {
 
         var defaultUnits = jdbcTemplate.queryForObject(
                 "SELECT COUNT(*) FROM template_units WHERE industry_code = ?", Integer.class, "default");
-        assertThat(defaultUnits).isEqualTo(5);
+        assertThat(defaultUnits).isEqualTo(2); // propias: Caja, Paquete (resto son globales)
 
         var templateProducts = jdbcTemplate.queryForObject("SELECT COUNT(*) FROM template_products", Integer.class);
         assertThat(templateProducts).isGreaterThan(0);

@@ -55,7 +55,39 @@ export interface AlertItem {
   avgPrice: number;
   variationPct: number;
   severity: 'warning' | 'critical';
+  // Enriquecimiento UI (frontend-only, ver enrichAlert): tipo, proveedor señalado y evidencia.
+  alertKind?: 'PRICE_VARIATION' | 'SUPPLIER_PREMIUM';
+  providerId?: string | undefined;
+  providerName?: string | undefined;
+  purchaseCount?: number | undefined;
+  providerCount?: number | undefined;
+  // Recorrido primera→última compra (frontend-only, ver firstLastByProduct): ancla la frase
+  // "la comprabas a $X y ahora a $Y" sin comparar carriles distintos (Lb vs suelta).
+  priceTrail?: PriceTrail | undefined;
+  unitLabel?: string | undefined;
 }
+
+// Primera y última compra pagada del producto (precio ya normalizado por conversión).
+export interface PriceTrail {
+  firstPrice: number;
+  lastPrice: number;
+  // pico del historial: si primera==última pero hubo pico en el medio, la alerta es por él
+  maxPrice: number;
+  count: number;
+  // todo el producto va por un solo carril en el historial (misma presentación y conversión);
+  // sin esto, primera→última compara Lb contra suelta y miente
+  singleLane: boolean;
+}
+
+// Wire compat: backend envía cvPct/premiumPct sin variationPct ni severity (ver AnalyticsServiceImpl.java:324,364)
+export type AlertItemWire = Omit<AlertItem, 'currentPrice' | 'variationPct' | 'severity' | 'alertKind' | 'purchaseCount' | 'providerCount' | 'priceTrail' | 'unitLabel'> & {
+  currentPrice?: number | string;
+  variationPct?: number | string;
+  severity?: string;
+  cvPct?: number | string;
+  premiumPct?: number | string;
+  type?: string;
+};
 
 export interface SupplierComparisonItem {
   productId: string;
@@ -79,6 +111,9 @@ export interface SupplierRecommendationItem {
   savingsPerUnit: number;
   savingsPct: number;
   supplierCount: number;
+  // Enriquecimiento UI (frontend-only, ver enrichRecommendation): contra quién y en qué unidad.
+  comparedProviderName?: string | undefined;
+  unitLabel?: string | undefined;
 }
 
 export interface PricePredictionItem {
@@ -158,8 +193,9 @@ export interface AnalyticsResponse {
   financialHealth?: FinancialHealth;
 }
 
-// Respuesta cruda del backend antes de normalizar (usa AbcItemWire + FinancialHealthWire)
-export type AnalyticsResponseWire = Omit<AnalyticsResponse, 'abc' | 'financialHealth'> & {
+// Respuesta cruda del backend antes de normalizar (usa AbcItemWire + FinancialHealthWire + AlertItemWire)
+export type AnalyticsResponseWire = Omit<AnalyticsResponse, 'abc' | 'alerts' | 'financialHealth'> & {
   abc: AbcItemWire[];
+  alerts: AlertItemWire[];
   financialHealth?: FinancialHealthWire | FinancialHealth;
 };

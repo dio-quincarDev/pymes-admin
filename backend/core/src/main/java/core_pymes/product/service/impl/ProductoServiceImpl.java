@@ -23,6 +23,7 @@ import org.springframework.cache.annotation.CacheEvict;
 import org.springframework.cache.annotation.Cacheable;
 import org.springframework.context.ApplicationEventPublisher;
 import org.springframework.dao.DataIntegrityViolationException;
+import org.springframework.jdbc.core.JdbcTemplate;
 import org.springframework.data.domain.Page;
 import org.springframework.data.domain.Pageable;
 import org.springframework.stereotype.Service;
@@ -41,6 +42,7 @@ public class ProductoServiceImpl implements ProductoService {
     private final ProveedorRepository proveedorRepository;
     private final ProductoMapper mapper;
     private final ApplicationEventPublisher eventPublisher;
+    private final JdbcTemplate jdbc;
 
     @Override
     @Transactional(readOnly = true)
@@ -99,9 +101,9 @@ public class ProductoServiceImpl implements ProductoService {
                     .tenantId(request.tenantId())
                     .name(request.name())
                     .sku(sku)
-                    .category(request.category())
-                    .baseUnit(request.baseUnit())
-                    .imageUrl(request.imageUrl())
+                    .category(blankToNull(request.category()))
+                    .baseUnit(resolveBaseUnit(request.tenantId(), request.baseUnit()))
+                    .imageUrl(blankToNull(request.imageUrl()))
                     .minQuantity(request.minQuantity())
                     .maxQuantity(request.maxQuantity())
                     .providerId(request.proveedorId())
@@ -139,9 +141,9 @@ public class ProductoServiceImpl implements ProductoService {
         var producto = getProducto(id, tenantId);
         producto.setName(request.name());
         producto.setSku(request.sku());
-        producto.setCategory(request.category());
-        producto.setBaseUnit(request.baseUnit());
-        producto.setImageUrl(request.imageUrl());
+        producto.setCategory(blankToNull(request.category()));
+        producto.setBaseUnit(resolveBaseUnit(tenantId, request.baseUnit()));
+        producto.setImageUrl(blankToNull(request.imageUrl()));
         producto.setMinQuantity(request.minQuantity());
         producto.setMaxQuantity(request.maxQuantity());
         producto.setProviderId(request.proveedorId());
@@ -211,6 +213,24 @@ public class ProductoServiceImpl implements ProductoService {
     private Proveedor findProveedor(UUID providerId) {
         if (providerId == null) return null;
         return proveedorRepository.findById(providerId).orElse(null);
+    }
+
+    // ponytail: '' nunca se guarda; null es "sin valor"
+    private String blankToNull(String value) {
+        return value == null || value.isBlank() ? null : value;
+    }
+
+    // ponytail: base_unit es ID del catalogo (industria o global); texto viejo se rechaza, no se adivina
+    private String resolveBaseUnit(UUID tenantId, String baseUnit) {
+        var unit = blankToNull(baseUnit);
+        if (unit == null) return null;
+        Integer count = jdbc.queryForObject(
+                "SELECT COUNT(*) FROM core.template_units tu JOIN core.tenant_setup ts ON (ts.industry = tu.industry_code OR tu.industry_code = 'global') WHERE ts.tenant_id = ? AND tu.id::text = ?",
+                Integer.class, tenantId, unit);
+        if (count == null || count == 0) {
+            throw new InvalidInputException("Unidad base invalida: " + unit);
+        }
+        return unit;
     }
 
     private Map<UUID, List<PresentacionResponse>> mapPresentacionesBatch(List<Producto> products) {

@@ -7,6 +7,7 @@ import { api } from 'src/boot/axios'
 import { productoService } from '../services/producto.service'
 import { proveedorService } from '../services/proveedor.service'
 import type { Producto, ProductoRequest, SetupInfo, SetupCategory } from '../types'
+import { isUuidLike } from 'src/utils/format'
 import PresentacionesDialog from '../components/PresentacionesDialog.vue'
 import EmptyState from 'src/components/ui/EmptyState.vue'
 
@@ -29,7 +30,10 @@ const categoryFilter = shallowRef('')
 const catOptions = shallowRef<{ label: string; value: string }[]>([])
 const setupCategories = shallowRef<SetupCategory[]>([])
 const unitOptions = shallowRef<{ label: string; value: string }[]>([])
+// ponytail: lista completa para traducir códigos viejos (global) a nombre; el selector usa unitOptions (sin duplicados)
+const allUnits = shallowRef<{ label: string; value: string }[]>([])
 const providerOptions = shallowRef<{ label: string; value: string }[]>([])
+const setupReady = shallowRef(false)
 
 function flattenCategories(cats: SetupCategory[], prefix = ''): { label: string; value: string }[] {
   const result: { label: string; value: string }[] = []
@@ -55,14 +59,24 @@ const categoryNameMap = computed(() => {
 
 const unitNameMap = computed(() => {
   const map = new Map<string, string>()
-  for (const o of unitOptions.value) map.set(o.value, o.label)
+  for (const o of allUnits.value) map.set(o.value, o.label)
   return map
 })
+
+// ponytail: base_unit canónico es UUID desde V7 — sin match nunca se muestra el ID crudo
+function baseUnitLabel(code: string): string {
+  const named = unitNameMap.value.get(code)
+  if (named) return named
+  return isUuidLike(code) ? 'Unidad' : code
+}
 
 const totalCategories = computed(() => {
   const seen = new Set(rows.value.map(p => p.category))
   return seen.size
 })
+
+// ponytail: sin industria no hay catalogo — el form manda a onboarding, no muestra selector vacio
+const needsOnboarding = computed(() => setupReady.value && !unitOptions.value.length)
 
 async function loadSetup() {
   if (!tenantId) return
@@ -73,9 +87,21 @@ async function loadSetup() {
     ])
     setupCategories.value = setupRes.data.categories || []
     catOptions.value = flattenCategories(setupCategories.value)
-    unitOptions.value = (setupRes.data.units || []).map(u => ({ label: u.name, value: u.code }))
+    // ponytail: el back manda rubro + global (duplica Kg, Lb...); el selector muestra cada nombre una vez (el del rubro viene primero)
+    const seenUnits = new Set<string>()
+    const rawUnits = (setupRes.data.units || [])
+      .map(u => ({ label: u.name, value: u.code }))
+    allUnits.value = rawUnits
+    unitOptions.value = rawUnits.filter(o => {
+        const k = o.label.toLowerCase()
+        if (seenUnits.has(k)) return false
+        seenUnits.add(k)
+        return true
+      })
     providerOptions.value = provRes.data.map(p => ({ label: p.name, value: p.id }))
-  } catch { /* non-critical */ }
+  } catch { /* non-critical */ } finally {
+    setupReady.value = true
+  }
 }
 
 async function load(p = 1) {
@@ -111,11 +137,19 @@ const saving = shallowRef(false)
 const formRef = ref<{ validate: () => Promise<boolean> } | null>(null)
 const form = ref<ProductoRequest>({ tenantId: tenantId as string, name: '', category: '', baseUnit: '', proveedorId: null })
 
+// ponytail: el dialogo muestra el nombre aunque el producto traiga un codigo viejo (global); al elegir de la lista se normaliza solo
+const formUnitOptions = computed(() => {
+  const cur = form.value.baseUnit
+  if (!cur || unitOptions.value.some(o => o.value === cur)) return unitOptions.value
+  const legacy = allUnits.value.find(o => o.value === cur)
+  return [...unitOptions.value, { label: legacy?.label || 'Unidad anterior', value: cur }]
+})
+
 const presDialog = shallowRef(false)
 const presProduct = ref<Producto | null>(null)
 const unitLabel = computed(() => {
   if (!presProduct.value) return 'unidades'
-  const opt = unitOptions.value.find(o => o.value === presProduct.value!.baseUnit)
+  const opt = allUnits.value.find(o => o.value === presProduct.value!.baseUnit)
   return opt?.label || 'unidades'
 })
 
@@ -222,7 +256,7 @@ function handleKeydown(e: KeyboardEvent) {
       <span class="text-accent text-caption">{{ totalCategories }} {{ totalCategories === 1 ? 'categoría' : 'categorías' }}</span>
     </div>
 
-    <div class="row items-center q-gutter-x-sm q-mb-md wrap">
+    <div class="row items-center q-gutter-x-sm q-mb-md wrap productos-toolbar">
       <q-select
         dark dense filled
         v-model="categoryFilter"
@@ -269,7 +303,7 @@ function handleKeydown(e: KeyboardEvent) {
               {{ categoryNameMap.get(item.category) || item.category }}
             </q-chip>
             <q-chip v-if="item.baseUnit" dense dark size="sm" outline color="accent">
-              {{ unitNameMap.get(item.baseUnit) || item.baseUnit }}
+              {{ baseUnitLabel(item.baseUnit) }}
             </q-chip>
           </div>
           <div v-if="item.proveedorName" class="text-caption text-accent q-mt-sm">
@@ -311,13 +345,17 @@ function handleKeydown(e: KeyboardEvent) {
         <q-separator dark />
         <q-card-section>
           <q-form ref="formRef" @submit.prevent="save" class="q-gutter-y-md">
+            <q-banner v-if="needsOnboarding" dense class="bg-warning text-dark">
+              Completa tu configuración primero para tener unidades.
+              <template v-slot:action><q-btn flat dense label="Ir" to="/onboarding" /></template>
+            </q-banner>
             <q-input dark filled v-model="form.name" label="Nombre" :rules="[v => !!v || 'Requerido']" />
             <q-select dark filled v-model="form.category" label="Categoría" :options="catOptions" option-value="value" option-label="label" emit-value map-options use-input input-debounce="0" @filter="(val, update) => { update(() => catOptions.filter(o => !val || o.label.toLowerCase().includes(val.toLowerCase()))) }" :rules="[v => !!v || 'Requerido']" />
-            <q-select dark filled v-model="form.baseUnit" label="Unidad base" :options="unitOptions" option-value="value" option-label="label" emit-value map-options use-input input-debounce="0" @filter="(val, update) => { update(() => unitOptions.filter(o => !val || o.label.toLowerCase().includes(val.toLowerCase()))) }" />
+            <q-select dark filled v-model="form.baseUnit" label="Unidad base" :options="formUnitOptions" option-value="value" option-label="label" emit-value map-options use-input input-debounce="0" @filter="(val, update) => { update(() => formUnitOptions.filter(o => !val || o.label.toLowerCase().includes(val.toLowerCase()))) }" :rules="[v => !!v || 'Elige la unidad base del catálogo']" />
             <q-select dark filled v-model="form.proveedorId" label="Proveedor" :options="providerOptions" option-value="value" option-label="label" emit-value map-options clearable />
             <div class="row justify-end q-gutter-x-sm">
               <q-btn flat label="Cancelar" color="accent" v-close-popup />
-              <q-btn type="submit" label="Guardar" color="primary" :loading="saving" />
+              <q-btn type="submit" label="Guardar" color="primary" :loading="saving" :disable="needsOnboarding" />
             </div>
           </q-form>
         </q-card-section>
@@ -345,3 +383,31 @@ function handleKeydown(e: KeyboardEvent) {
     </q-dialog>
   </q-page>
 </template>
+
+<style scoped>
+@media (max-width: 599px) {
+  /* ponytail: todo apilado full-width, una fila por control */
+  .productos-toolbar {
+    display: grid;
+    grid-template-columns: 1fr;
+    gap: 8px;
+  }
+
+  .productos-toolbar.q-gutter-x-sm {
+    margin: 0;
+  }
+
+  .productos-toolbar.q-gutter-x-sm > * {
+    margin: 0;
+    max-width: none;
+  }
+
+  .productos-toolbar > * {
+    width: 100%;
+  }
+
+  .productos-toolbar :deep(.q-space) {
+    display: none;
+  }
+}
+</style>

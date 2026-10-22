@@ -179,7 +179,7 @@ class FacturaColaboradorIntegrationTest extends AbstractIntegrationTest {
         // Create presentation
         var presResult = mockMvc.perform(post("/api/v1/core/productos/{id}/presentaciones?tenantId={tid}", productId, tenantId)
                         .contentType(MediaType.APPLICATION_JSON)
-                        .content(objectMapper.writeValueAsString(Map.of("name", "Litro", "conversion", 1))))
+                        .content(objectMapper.writeValueAsString(Map.of("name", "Litro", "conversion", 2))))
                 .andExpect(status().isOk()).andReturn();
         var presentacionId = objectMapper.readTree(presResult.getResponse().getContentAsString()).get("id").asText();
 

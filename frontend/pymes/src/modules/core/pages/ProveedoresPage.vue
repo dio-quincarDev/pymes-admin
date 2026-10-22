@@ -180,7 +180,7 @@ function handleKeydown(e: KeyboardEvent) {
         <template v-slot:prepend><q-icon name="search" /></template>
       </q-input>
       <q-space />
-      <q-btn v-if="rows.length" color="primary" icon="sym_r_add" label="Nuevo" @click="openCreate" />
+      <q-btn v-if="rows.length" color="primary" icon="sym_r_add" label="Nuevo" no-caps @click="openCreate" />
     </div>
 
     <div v-if="!loading && sortedFiltrados.length" class="row items-center q-gutter-x-xs q-mb-sm">
@@ -199,6 +199,7 @@ function handleKeydown(e: KeyboardEvent) {
           color="primary"
           icon="sym_r_add"
           label="Nuevo Proveedor"
+          no-caps
           @click="openCreate"
           class="q-mt-sm"
         />
@@ -320,5 +321,28 @@ function handleKeydown(e: KeyboardEvent) {
 
 .toolbar__search {
   max-width: 250px;
+}
+
+/* ponytail: mismo patrón que facturas-toolbar — search full-width + Nuevo full-width en xs */
+@media (max-width: 599px) {
+  .toolbar {
+    display: grid;
+    grid-template-columns: 1fr;
+    gap: 8px;
+  }
+
+  .toolbar__search {
+    max-width: none;
+    width: 100%;
+  }
+
+  .toolbar .q-btn {
+    width: 100%;
+    white-space: nowrap;
+  }
+
+  .toolbar :deep(.q-space) {
+    display: none;
+  }
 }
 </style>
