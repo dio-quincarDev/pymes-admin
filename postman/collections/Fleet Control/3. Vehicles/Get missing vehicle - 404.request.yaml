@@ -1,0 +1,15 @@
+$kind: http-request
+name: Get missing vehicle -> 404
+description: Returns 404 VEHICLE_NOT_FOUND when vehicle UUID is not found.
+url: "{{baseUrl}}/api/vehicles/00000000-0000-0000-0000-000000000000"
+method: GET
+scripts:
+  - type: afterResponse
+    code: |-
+      pm.test("Get missing vehicle -> 404 Not Found", function () {
+          pm.response.to.have.status(404);
+          var json = pm.response.json();
+          pm.expect(json.error).to.eql("VEHICLE_NOT_FOUND");
+      });
+    language: text/javascript
+order: 5000

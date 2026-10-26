@@ -1,0 +1,29 @@
+$kind: http-request
+name: Update missing driver -> 404
+description: Returns 404 DRIVER_NOT_FOUND when driver ID does not exist.
+url: "{{baseUrl}}/api/drivers/00000000-0000-0000-0000-000000000000"
+method: PUT
+headers:
+  Content-Type: application/json
+body:
+  type: json
+  content: |-
+    {
+      "fullName": "Postman Missing",
+      "email": "missing@example.com",
+      "phone": "+34 600 444 555",
+      "licenseNumber": "DL-MISSING",
+      "licenseCategory": "B",
+      "licenseExpiresAt": "2029-01-01",
+      "status": "ACTIVE"
+    }
+scripts:
+  - type: afterResponse
+    code: |-
+      pm.test("Update missing driver -> 404 Not Found", function () {
+          pm.response.to.have.status(404);
+          var json = pm.response.json();
+          pm.expect(json.error).to.eql("DRIVER_NOT_FOUND");
+      });
+    language: text/javascript
+order: 11000

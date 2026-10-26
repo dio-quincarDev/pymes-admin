@@ -1,0 +1,29 @@
+$kind: http-request
+name: Update duplicate license -> 409
+description: Returns 409 DRIVER_ALREADY_EXISTS when updating with another driver's license number.
+url: "{{baseUrl}}/api/drivers/{{driverId}}"
+method: PUT
+headers:
+  Content-Type: application/json
+body:
+  type: json
+  content: |-
+    {
+      "fullName": "Postman Tester",
+      "email": "postman.dup.license@example.com",
+      "phone": "+34 600 444 555",
+      "licenseNumber": "DL-DEMO-0002",
+      "licenseCategory": "B",
+      "licenseExpiresAt": "2029-01-01",
+      "status": "ACTIVE"
+    }
+scripts:
+  - type: afterResponse
+    code: |-
+      pm.test("Update duplicate license -> 409 Conflict", function () {
+          pm.response.to.have.status(409);
+          var json = pm.response.json();
+          pm.expect(json.error).to.eql("DRIVER_ALREADY_EXISTS");
+      });
+    language: text/javascript
+order: 12000

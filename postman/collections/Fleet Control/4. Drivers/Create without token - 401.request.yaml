@@ -1,0 +1,22 @@
+$kind: http-request
+name: Create without token -> 401
+description: Returns 401 UNAUTHORIZED when Bearer token is omitted.
+url: "{{baseUrl}}/api/drivers"
+method: POST
+headers:
+  Content-Type: application/json
+body:
+  type: json
+  content: "{}"
+auth:
+  type: noauth
+scripts:
+  - type: afterResponse
+    code: |-
+      pm.test("Create without token -> 401 Unauthorized", function () {
+          pm.response.to.have.status(401);
+          var json = pm.response.json();
+          pm.expect(json.error).to.eql("UNAUTHORIZED");
+      });
+    language: text/javascript
+order: 13000

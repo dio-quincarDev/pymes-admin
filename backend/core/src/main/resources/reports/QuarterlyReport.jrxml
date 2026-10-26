@@ -1,0 +1,339 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<!-- QuarterlyReport: 2 paginas A4 al OWNER. Pagina 1 = resultado y barras mensuales;
+     pagina 2 = articulos, consejos y comparativa. Sin charts/JFreeChart: barras con
+     bloques DejaVu. Sin ${} por filtering=true del pom. -->
+<jasperReport name="QuarterlyReport" pageWidth="595" pageHeight="842"
+              columnWidth="515" leftMargin="40" rightMargin="40" topMargin="40" bottomMargin="40">
+
+  <parameter name="logoStream" class="java.io.InputStream"/>
+  <parameter name="tenantName" class="java.lang.String"/>
+  <parameter name="periodoLabel" class="java.lang.String"/>
+  <parameter name="moneda" class="java.lang.String"/>
+  <parameter name="ingresos" class="java.math.BigDecimal"/>
+  <parameter name="costoCompras" class="java.math.BigDecimal"/>
+  <parameter name="gastosOperativos" class="java.math.BigDecimal"/>
+  <parameter name="neto" class="java.math.BigDecimal"/>
+  <parameter name="itbms" class="java.math.BigDecimal"/>
+  <parameter name="sinVentas" class="java.lang.Boolean"/>
+  <parameter name="mesesDs" class="net.sf.jasperreports.engine.JRDataSource"/>
+  <parameter name="productosDs" class="net.sf.jasperreports.engine.JRDataSource"/>
+  <parameter name="comparativasDs" class="net.sf.jasperreports.engine.JRDataSource"/>
+  <parameter name="tieneProductos" class="java.lang.Boolean"/>
+  <parameter name="tieneComparativa" class="java.lang.Boolean"/>
+  <parameter name="consejo1" class="java.lang.String"/>
+  <parameter name="consejo2" class="java.lang.String"/>
+  <parameter name="consejo3" class="java.lang.String"/>
+  <parameter name="retornoLinea" class="java.lang.String"/>
+  <parameter name="tieneRetorno" class="java.lang.Boolean"/>
+
+  <dataset name="MesesDS">
+    <parameter name="moneda" class="java.lang.String"/>
+    <field name="etiqueta" class="java.lang.String"/>
+    <field name="ingresos" class="java.math.BigDecimal"/>
+    <field name="compras" class="java.math.BigDecimal"/>
+    <field name="gastos" class="java.math.BigDecimal"/>
+    <field name="barraIngresos" class="java.lang.String"/>
+    <field name="barraGastos" class="java.lang.String"/>
+    <field name="sinDatos" class="java.lang.Boolean"/>
+  </dataset>
+
+  <dataset name="ProductosDS">
+    <parameter name="moneda" class="java.lang.String"/>
+    <field name="nombre" class="java.lang.String"/>
+    <field name="cantidad" class="java.math.BigDecimal"/>
+    <field name="unidad" class="java.lang.String"/>
+    <field name="total" class="java.math.BigDecimal"/>
+  </dataset>
+
+  <dataset name="ComparativasDS">
+    <parameter name="moneda" class="java.lang.String"/>
+    <field name="etiqueta" class="java.lang.String"/>
+    <field name="actual" class="java.math.BigDecimal"/>
+    <field name="anterior" class="java.math.BigDecimal"/>
+    <field name="delta" class="java.lang.String"/>
+  </dataset>
+
+  <style name="NetoNumber" fontName="DejaVu Sans" fontSize="26" bold="true" forecolor="#3D7A5A">
+    <conditionalStyle>
+      <conditionExpression><![CDATA[$P{neto}.signum() < 0]]></conditionExpression>
+      <style forecolor="#A04038"/>
+    </conditionalStyle>
+  </style>
+  <style name="TableHeader" fontName="DejaVu Sans" fontSize="9" bold="true" forecolor="#8B6B3A" backcolor="#F3F0E7"/>
+  <style name="TableCell" fontName="DejaVu Sans" fontSize="10" forecolor="#2E3138"/>
+  <style name="SectionTitle" fontName="DejaVu Sans" fontSize="13" bold="true" forecolor="#1E2129"/>
+  <style name="Body" fontName="DejaVu Sans" fontSize="11" forecolor="#2E3138"/>
+
+  <title height="620">
+    <element kind="image" x="0" y="0" width="44" height="44">
+      <expression class="java.io.InputStream"><![CDATA[$P{logoStream}]]></expression>
+    </element>
+    <element kind="staticText" x="54" y="0" width="200" height="22" forecolor="#8B6B3A" fontName="DejaVu Sans" fontSize="15" bold="true">
+      <text><![CDATA[PYMEQ — TRIMESTRE]]></text>
+    </element>
+    <element kind="textField" x="54" y="22" width="360" height="18" forecolor="#1E2129" fontName="DejaVu Sans" fontSize="12" bold="true" blankWhenNull="true">
+      <expression><![CDATA[$P{tenantName}]]></expression>
+    </element>
+    <element kind="textField" x="315" y="4" width="200" height="16" forecolor="#6B6863" hTextAlign="Right" fontName="DejaVu Sans" fontSize="10" blankWhenNull="true">
+      <expression><![CDATA[$P{periodoLabel}]]></expression>
+    </element>
+    <element kind="line" x="0" y="56" width="515" height="1" forecolor="#C8963E"/>
+
+    <element kind="textField" x="0" y="72" width="515" height="24" forecolor="#6B6863" fontName="DejaVu Sans" fontSize="11">
+      <expression><![CDATA["Este trimestre vendiste " + $P{moneda} + " " + new java.text.DecimalFormat("#,##0.00").format($P{ingresos}) + " y te quedaron:"]]></expression>
+    </element>
+    <element kind="textField" x="0" y="96" width="515" height="42" style="NetoNumber">
+      <expression><![CDATA[$P{moneda} + " " + new java.text.DecimalFormat("#,##0.00").format($P{neto})]]></expression>
+    </element>
+
+    <element kind="rectangle" x="0" y="158" width="162" height="80" backcolor="#FFFFFF" forecolor="#E4E1D6"/>
+    <element kind="staticText" x="12" y="166" width="138" height="14" forecolor="#6B6863" fontName="DejaVu Sans" fontSize="9" bold="true">
+      <text><![CDATA[INGRESOS]]></text>
+    </element>
+    <element kind="textField" x="12" y="188" width="138" height="24" forecolor="#1E2129" fontName="DejaVu Sans" fontSize="14" bold="true">
+      <expression><![CDATA[$P{moneda} + " " + new java.text.DecimalFormat("#,##0.00").format($P{ingresos})]]></expression>
+    </element>
+
+    <element kind="rectangle" x="177" y="158" width="162" height="80" backcolor="#FFFFFF" forecolor="#E4E1D6"/>
+    <element kind="staticText" x="189" y="166" width="138" height="14" forecolor="#6B6863" fontName="DejaVu Sans" fontSize="9" bold="true">
+      <text><![CDATA[COMPRAS]]></text>
+    </element>
+    <element kind="textField" x="189" y="188" width="138" height="24" forecolor="#1E2129" fontName="DejaVu Sans" fontSize="14" bold="true">
+      <expression><![CDATA[$P{moneda} + " " + new java.text.DecimalFormat("#,##0.00").format($P{costoCompras})]]></expression>
+    </element>
+
+    <element kind="rectangle" x="353" y="158" width="162" height="80" backcolor="#FFFFFF" forecolor="#E4E1D6"/>
+    <element kind="staticText" x="365" y="166" width="138" height="14" forecolor="#6B6863" fontName="DejaVu Sans" fontSize="9" bold="true">
+      <text><![CDATA[GASTOS]]></text>
+    </element>
+    <element kind="textField" x="365" y="188" width="138" height="24" forecolor="#1E2129" fontName="DejaVu Sans" fontSize="14" bold="true">
+      <expression><![CDATA[$P{moneda} + " " + new java.text.DecimalFormat("#,##0.00").format($P{gastosOperativos})]]></expression>
+    </element>
+
+    <element kind="textField" x="0" y="252" width="515" height="20" forecolor="#8B6B3A" fontName="DejaVu Sans" fontSize="10" bold="true">
+      <expression><![CDATA["ITBMS pagado en compras: " + $P{moneda} + " " + new java.text.DecimalFormat("#,##0.00").format($P{itbms})]]></expression>
+    </element>
+
+    <element kind="staticText" x="0" y="292" width="515" height="22" style="SectionTitle">
+      <text><![CDATA[Mes a mes: ingresos contra salidas]]></text>
+    </element>
+    <element kind="component" x="0" y="320" width="515" height="150">
+      <component kind="table" xmlns:jr="http://jasperreports.sourceforge.net/jasperreports/components">
+        <datasetRun subDataset="MesesDS">
+          <parameter name="moneda">
+            <expression><![CDATA[$P{moneda}]]></expression>
+          </parameter>
+          <dataSourceExpression><![CDATA[$P{mesesDs}]]></dataSourceExpression>
+        </datasetRun>
+        <column kind="single" width="95">
+          <columnHeader style="TableHeader" height="24">
+            <element kind="staticText" x="8" y="0" width="87" height="24">
+              <text><![CDATA[MES]]></text>
+            </element>
+          </columnHeader>
+          <detailCell style="TableCell" height="38">
+            <element kind="textField" x="8" y="4" width="87" height="20" blankWhenNull="true">
+              <expression><![CDATA[$F{etiqueta}]]></expression>
+            </element>
+          </detailCell>
+        </column>
+        <column kind="single" width="210">
+          <columnHeader style="TableHeader" height="24">
+            <element kind="staticText" x="8" y="0" width="194" height="24">
+              <text><![CDATA[INGRESOS]]></text>
+            </element>
+          </columnHeader>
+          <detailCell style="TableCell" height="38">
+            <element kind="textField" x="8" y="0" width="194" height="17" hTextAlign="Right">
+              <expression><![CDATA[$F{sinDatos} ? "Sin datos" : $P{moneda} + " " + new java.text.DecimalFormat("#,##0.00").format($F{ingresos})]]></expression>
+            </element>
+            <element kind="textField" x="8" y="18" width="194" height="16" forecolor="#3D7A5A" fontName="DejaVu Sans" fontSize="11">
+              <printWhenExpression><![CDATA[!$F{sinDatos}]]></printWhenExpression>
+              <expression><![CDATA[$F{barraIngresos}]]></expression>
+            </element>
+          </detailCell>
+        </column>
+        <column kind="single" width="210">
+          <columnHeader style="TableHeader" height="24">
+            <element kind="staticText" x="8" y="0" width="194" height="24">
+              <text><![CDATA[SALIDAS (COMPRAS + GASTOS)]]></text>
+            </element>
+          </columnHeader>
+          <detailCell style="TableCell" height="38">
+            <element kind="textField" x="8" y="0" width="194" height="17" hTextAlign="Right">
+              <expression><![CDATA[$F{sinDatos} ? "Sin datos" : $P{moneda} + " " + new java.text.DecimalFormat("#,##0.00").format($F{compras}.add($F{gastos}))]]></expression>
+            </element>
+            <element kind="textField" x="8" y="18" width="194" height="16" forecolor="#A04038" fontName="DejaVu Sans" fontSize="11">
+              <printWhenExpression><![CDATA[!$F{sinDatos}]]></printWhenExpression>
+              <expression><![CDATA[$F{barraGastos}]]></expression>
+            </element>
+          </detailCell>
+        </column>
+      </component>
+    </element>
+
+    <element kind="staticText" x="0" y="492" width="515" height="22" style="SectionTitle">
+      <printWhenExpression><![CDATA[$P{tieneRetorno}]]></printWhenExpression>
+      <text><![CDATA[Tu inversión inicial]]></text>
+    </element>
+    <element kind="textField" x="0" y="520" width="515" height="38" style="Body" textAdjust="StretchHeight">
+      <printWhenExpression><![CDATA[$P{tieneRetorno}]]></printWhenExpression>
+      <expression><![CDATA[$P{retornoLinea}]]></expression>
+    </element>
+
+    <element kind="textField" x="0" y="572" width="515" height="20" forecolor="#8B6B3A" fontName="DejaVu Sans" fontSize="11" bold="true">
+      <printWhenExpression><![CDATA[$P{sinVentas}]]></printWhenExpression>
+      <expression><![CDATA["Sin ventas registradas en el trimestre."]]></expression>
+    </element>
+  </title>
+
+  <summary height="690" splitType="Prevent">
+    <element kind="staticText" x="0" y="0" width="515" height="22" style="SectionTitle">
+      <text><![CDATA[Lo que más compraste]]></text>
+    </element>
+    <element kind="component" x="0" y="28" width="515" height="170">
+      <printWhenExpression><![CDATA[$P{tieneProductos}]]></printWhenExpression>
+      <component kind="table" xmlns:jr="http://jasperreports.sourceforge.net/jasperreports/components">
+        <datasetRun subDataset="ProductosDS">
+          <parameter name="moneda">
+            <expression><![CDATA[$P{moneda}]]></expression>
+          </parameter>
+          <dataSourceExpression><![CDATA[$P{productosDs}]]></dataSourceExpression>
+        </datasetRun>
+        <column kind="single" width="250">
+          <columnHeader style="TableHeader" height="24">
+            <element kind="staticText" x="8" y="0" width="242" height="24">
+              <text><![CDATA[ARTÍCULO]]></text>
+            </element>
+          </columnHeader>
+          <detailCell style="TableCell" height="26">
+            <element kind="textField" x="8" y="0" width="242" height="26" blankWhenNull="true">
+              <expression><![CDATA[$F{nombre}]]></expression>
+            </element>
+          </detailCell>
+        </column>
+        <column kind="single" width="130">
+          <columnHeader style="TableHeader" height="24">
+            <element kind="staticText" x="0" y="0" width="122" height="24" hTextAlign="Right">
+              <text><![CDATA[CANTIDAD]]></text>
+            </element>
+          </columnHeader>
+          <detailCell style="TableCell" height="26">
+            <element kind="textField" x="0" y="0" width="122" height="26" hTextAlign="Right">
+              <expression><![CDATA[new java.text.DecimalFormat("#,##0.##").format($F{cantidad}) + " " + $F{unidad}]]></expression>
+            </element>
+          </detailCell>
+        </column>
+        <column kind="single" width="135">
+          <columnHeader style="TableHeader" height="24">
+            <element kind="staticText" x="0" y="0" width="127" height="24" hTextAlign="Right">
+              <text><![CDATA[COMPRA]]></text>
+            </element>
+          </columnHeader>
+          <detailCell style="TableCell" height="26">
+            <element kind="textField" x="0" y="0" width="127" height="26" hTextAlign="Right">
+              <expression><![CDATA[$P{moneda} + " " + new java.text.DecimalFormat("#,##0.00").format($F{total})]]></expression>
+            </element>
+          </detailCell>
+        </column>
+      </component>
+    </element>
+    <element kind="textField" x="0" y="32" width="515" height="20" forecolor="#6B6863" fontName="DejaVu Sans" fontSize="10">
+      <printWhenExpression><![CDATA[!$P{tieneProductos}]]></printWhenExpression>
+      <expression><![CDATA["No hay artículos registrados en facturas pagadas de este trimestre."]]></expression>
+    </element>
+
+    <element kind="staticText" x="0" y="214" width="515" height="22" style="SectionTitle">
+      <text><![CDATA[Qué hacer con estos números]]></text>
+    </element>
+    <element kind="textField" x="0" y="244" width="515" height="42" style="Body" textAdjust="StretchHeight">
+      <printWhenExpression><![CDATA[$P{consejo1} != null]]></printWhenExpression>
+      <expression><![CDATA["1. " + $P{consejo1}]]></expression>
+    </element>
+    <element kind="textField" x="0" y="294" width="515" height="42" style="Body" textAdjust="StretchHeight" positionType="Float">
+      <printWhenExpression><![CDATA[$P{consejo2} != null]]></printWhenExpression>
+      <expression><![CDATA["2. " + $P{consejo2}]]></expression>
+    </element>
+    <element kind="textField" x="0" y="344" width="515" height="42" style="Body" textAdjust="StretchHeight" positionType="Float">
+      <printWhenExpression><![CDATA[$P{consejo3} != null]]></printWhenExpression>
+      <expression><![CDATA["3. " + $P{consejo3}]]></expression>
+    </element>
+
+    <element kind="staticText" x="0" y="414" width="515" height="22" style="SectionTitle" positionType="Float">
+      <text><![CDATA[Comparado con el trimestre anterior]]></text>
+    </element>
+    <element kind="component" x="0" y="442" width="515" height="130" positionType="Float">
+      <printWhenExpression><![CDATA[$P{tieneComparativa}]]></printWhenExpression>
+      <component kind="table" xmlns:jr="http://jasperreports.sourceforge.net/jasperreports/components">
+        <datasetRun subDataset="ComparativasDS">
+          <parameter name="moneda">
+            <expression><![CDATA[$P{moneda}]]></expression>
+          </parameter>
+          <dataSourceExpression><![CDATA[$P{comparativasDs}]]></dataSourceExpression>
+        </datasetRun>
+        <column kind="single" width="155">
+          <columnHeader style="TableHeader" height="24">
+            <element kind="staticText" x="8" y="0" width="147" height="24">
+              <text><![CDATA[INDICADOR]]></text>
+            </element>
+          </columnHeader>
+          <detailCell style="TableCell" height="28">
+            <element kind="textField" x="8" y="0" width="147" height="28">
+              <expression><![CDATA[$F{etiqueta}]]></expression>
+            </element>
+          </detailCell>
+        </column>
+        <column kind="single" width="120">
+          <columnHeader style="TableHeader" height="24">
+            <element kind="staticText" x="0" y="0" width="112" height="24" hTextAlign="Right">
+              <text><![CDATA[ESTE]]></text>
+            </element>
+          </columnHeader>
+          <detailCell style="TableCell" height="28">
+            <element kind="textField" x="0" y="0" width="112" height="28" hTextAlign="Right">
+              <expression><![CDATA[$P{moneda} + " " + new java.text.DecimalFormat("#,##0.00").format($F{actual})]]></expression>
+            </element>
+          </detailCell>
+        </column>
+        <column kind="single" width="120">
+          <columnHeader style="TableHeader" height="24">
+            <element kind="staticText" x="0" y="0" width="112" height="24" hTextAlign="Right">
+              <text><![CDATA[ANTERIOR]]></text>
+            </element>
+          </columnHeader>
+          <detailCell style="TableCell" height="28">
+            <element kind="textField" x="0" y="0" width="112" height="28" hTextAlign="Right">
+              <expression><![CDATA[$P{moneda} + " " + new java.text.DecimalFormat("#,##0.00").format($F{anterior})]]></expression>
+            </element>
+          </detailCell>
+        </column>
+        <column kind="single" width="120">
+          <columnHeader style="TableHeader" height="24">
+            <element kind="staticText" x="0" y="0" width="112" height="24" hTextAlign="Right">
+              <text><![CDATA[CAMBIO]]></text>
+            </element>
+          </columnHeader>
+          <detailCell style="TableCell" height="28">
+            <element kind="textField" x="0" y="0" width="112" height="28" hTextAlign="Right" bold="true" forecolor="#8B6B3A">
+              <expression><![CDATA[$F{delta}]]></expression>
+            </element>
+          </detailCell>
+        </column>
+      </component>
+    </element>
+    <element kind="textField" x="0" y="446" width="515" height="22" forecolor="#6B6863" fontName="DejaVu Sans" fontSize="10">
+      <printWhenExpression><![CDATA[!$P{tieneComparativa}]]></printWhenExpression>
+      <expression><![CDATA["Sin datos del trimestre anterior para comparar."]]></expression>
+    </element>
+  </summary>
+
+  <pageFooter height="30">
+    <element kind="line" x="0" y="0" width="515" height="1" forecolor="#E4E1D6"/>
+    <element kind="staticText" x="0" y="6" width="300" height="14" forecolor="#9B9790" fontName="DejaVu Sans" fontSize="9">
+      <text><![CDATA[Generado por PymeQ]]></text>
+    </element>
+    <element kind="textField" x="415" y="6" width="100" height="14" forecolor="#9B9790" hTextAlign="Right" fontName="DejaVu Sans" fontSize="9">
+      <expression><![CDATA["Página " + $V{PAGE_NUMBER}]]></expression>
+    </element>
+  </pageFooter>
+</jasperReport>

@@ -243,6 +243,7 @@ POST   /api/v1/core/accounting/recalcular?tenantId={uuid}&periodo=YYYY-MM
 GET    /api/v1/core/analytics?tenantId={uuid}&periodo=YYYY-MM
 POST   /api/v1/core/analytics/recalcular?tenantId={uuid}&periodo=YYYY-MM
 POST   /api/v1/core/reportes/monthly?period=YYYY-MM&dryRun=true   # OWNER|ADMIN
+POST   /api/v1/core/reportes/quarterly?period=YYYY-MM&dryRun=true # OWNER|ADMIN (period = mes que cierra el ciclo)
 ```
 
 > Todas las rutas pasan por el Gateway (puerto 8080) con autenticacion JWT.

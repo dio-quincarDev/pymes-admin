@@ -29,34 +29,43 @@ public final class RetornoInversion {
         if (capital == null || capital.signum() <= 0) {
             return new Lineas(null, null);
         }
-        if (neto == null || neto.signum() <= 0) {
+        Plan plan = plan(capital, neto, ingresos);
+        if (plan == null) {
             return new Lineas("Este mes no apartes: protege la caja.", null);
+        }
+        String linea1 = "Te quedaron " + money(moneda, neto) + ": aparta " + money(moneda, plan.aporte())
+                + " para el retorno de tu inversión inicial (" + money(moneda, capital) + ")"
+                + (plan.ritmo() != null ? " (ritmo " + plan.ritmo() + " meses)." : ".");
+        return new Lineas(linea1, lineaResto(moneda, neto.subtract(plan.aporte()), op));
+    }
+
+    /** Aporte recomendado de un mes para acumular la recuperación (0 si protege caja). */
+    public static BigDecimal aporte(BigDecimal capital, BigDecimal neto, BigDecimal ingresos) {
+        Plan plan = plan(capital, neto, ingresos);
+        return plan == null ? BigDecimal.ZERO : plan.aporte();
+    }
+
+    private record Plan(BigDecimal aporte, Integer ritmo) {
+    }
+
+    private static Plan plan(BigDecimal capital, BigDecimal neto, BigDecimal ingresos) {
+        if (capital == null || capital.signum() <= 0 || neto == null || neto.signum() <= 0) {
+            return null;
         }
         BigDecimal margen = ingresos != null && ingresos.signum() > 0
                 ? neto.multiply(BigDecimal.valueOf(100)).divide(ingresos, 2, RoundingMode.HALF_UP)
                 : BigDecimal.ZERO;
         if (margen.compareTo(BigDecimal.valueOf(BANDAS[BANDAS.length - 1])) < 0) {
-            return new Lineas("Este mes no apartes: protege la caja.", null);
+            return null;
         }
-
-        BigDecimal aporte = BigDecimal.ZERO;
-        Integer ritmo = null;
         for (int i = 0; i < PLAZOS.length; i++) {
             BigDecimal fijo = capital.divide(BigDecimal.valueOf(PLAZOS[i]), 2, RoundingMode.HALF_UP);
-            if (ritmo == null && margen.compareTo(BigDecimal.valueOf(BANDAS[i])) >= 0
-                    && fijo.compareTo(neto) <= 0) {
-                ritmo = PLAZOS[i];
-                aporte = fijo;
+            if (margen.compareTo(BigDecimal.valueOf(BANDAS[i])) >= 0 && fijo.compareTo(neto) <= 0) {
+                return new Plan(fijo, PLAZOS[i]);
             }
         }
-        if (ritmo == null) {
-            // ponytail: no alcanza ningun ritmo: se aparta lo posible (70%) y el plazo se extiende solo
-            aporte = neto.multiply(TOPE).setScale(2, RoundingMode.HALF_UP);
-        }
-        String linea1 = "Te quedaron " + money(moneda, neto) + ": aparta " + money(moneda, aporte)
-                + " para el retorno de tu inversión inicial (" + money(moneda, capital) + ")"
-                + (ritmo != null ? " (ritmo " + ritmo + " meses)." : ".");
-        return new Lineas(linea1, lineaResto(moneda, neto.subtract(aporte), op));
+        // ponytail: no alcanza ningun ritmo: se aparta lo posible (70%) y el plazo se extiende solo
+        return new Plan(neto.multiply(TOPE).setScale(2, RoundingMode.HALF_UP), null);
     }
 
     private static String lineaResto(String moneda, BigDecimal resto, ProyeccionOperativa op) {

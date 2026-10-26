@@ -1,5 +1,6 @@
 package core_pymes.report.service.impl;
 
+import core_pymes.report.dto.QuarterlyReportData;
 import core_pymes.report.dto.ReportData;
 import core_pymes.report.dto.ReportOwner;
 import core_pymes.report.exception.ReportGenerationException;
@@ -48,6 +49,39 @@ public class ReportEmailServiceImpl implements ReportEmailService {
             throw new ReportGenerationException(
                     "No se pudo enviar el reporte " + data.periodo() + " a " + owner.email(), e);
         }
+    }
+
+    @Override
+    public void sendQuarterlyReport(ReportOwner owner, QuarterlyReportData data, byte[] pdf) {
+        String label = ReportLabels.trimestre(data.periodo());
+        String subject = owner.tenantName() + " — Tu trimestre " + label;
+        try {
+            MimeMessage message = mailSender.createMimeMessage();
+            MimeMessageHelper helper = new MimeMessageHelper(message, true, "UTF-8");
+
+            helper.setFrom(fromEmail);
+            helper.setTo(owner.email());
+            helper.setSubject(subject);
+            helper.setText(bodyTrimestre(owner, data, label), true);
+            helper.addAttachment("Trimestre-" + data.periodo() + ".pdf",
+                    new ByteArrayResource(pdf), "application/pdf");
+
+            mailSender.send(message);
+        } catch (MessagingException e) {
+            throw new ReportGenerationException(
+                    "No se pudo enviar el reporte trimestral " + data.periodo() + " a " + owner.email(), e);
+        }
+    }
+
+    private String bodyTrimestre(ReportOwner owner, QuarterlyReportData data, String label) {
+        String linea = "<p><b>" + escape(owner.tenantName()) + " — " + label + ":</b> vendiste "
+                + money(owner, data.ingresos()) + ", te quedaron " + money(owner, data.neto())
+                + " e ITBMS pagado en compras " + money(owner, data.itbms()) + ".</p>";
+        String parcial = data.esParcial() ? "<p>Sin ventas registradas en el trimestre.</p>" : "";
+        String pagina2 = data.tieneComparativa()
+                ? "<p>En la página 2: lo que más compraste, qué hacer y la comparación con el trimestre anterior.</p>"
+                : "<p>En la página 2: lo que más compraste y qué hacer. Aún no hay trimestre anterior para comparar.</p>";
+        return linea + parcial + pagina2 + "<p>Adjunto el resumen en PDF.</p><p>— PymeQ</p>";
     }
 
     private String body(ReportOwner owner, ReportData data, String label) {

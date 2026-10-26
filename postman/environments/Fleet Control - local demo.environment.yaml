@@ -1,0 +1,14 @@
+name: Fleet Control - local demo
+values:
+  - key: baseUrl
+    value: 'http://localhost:8080'
+  - key: adminEmail
+    value: admin@fleetcontrol.com
+  - key: adminPassword
+    value: Change_Admin123
+  - key: jwtToken
+    value: ''
+  - key: vehicleId
+    value: ''
+  - key: driverId
+    value: ''

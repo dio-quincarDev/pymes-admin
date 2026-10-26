@@ -1,0 +1,10 @@
+$kind: collection
+description: |-
+  Comprehensive E2E Postman collection for Fleet Control microservices (Gateway, Auth, Vehicles, Drivers) via Gateway (:8080).
+
+  Features:
+  - Organised in 4 modules: Gateway, Auth, Vehicles, Drivers
+  - Automatic token capture in 'Auth > Login (saves jwtToken)'
+  - Automatic ID capture (vehicleId, driverId) in creation requests
+  - Dynamic generators for emails/plates/licenses to support repeated full runs (Newman / Collection Runner) without 409 collisions
+  - Full coverage of positive flows, filtering, validations (400), conflicts (409), not found (404), invalid state transitions (409), and missing authentication (401).

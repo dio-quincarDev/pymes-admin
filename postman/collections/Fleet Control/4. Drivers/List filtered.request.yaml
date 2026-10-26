@@ -1,0 +1,19 @@
+$kind: http-request
+description: Filter drivers by status (ACTIVE) and license expiring in <= 30 days.
+url: "{{baseUrl}}/api/drivers?page=0&size=20&status=ACTIVE&licenseExpiringInDays=30"
+method: GET
+queryParams:
+  page: "0"
+  size: "20"
+  status: ACTIVE
+  licenseExpiringInDays: "30"
+scripts:
+  - type: afterResponse
+    code: |-
+      pm.test("List filtered -> 200 OK", function () {
+          pm.response.to.have.status(200);
+          var json = pm.response.json();
+          pm.expect(json.content).to.be.an("array");
+      });
+    language: text/javascript
+order: 2000

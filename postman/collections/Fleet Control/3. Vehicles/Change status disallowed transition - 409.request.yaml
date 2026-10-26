@@ -1,0 +1,23 @@
+$kind: http-request
+name: Change status disallowed transition -> 409
+description: IN_USE -> IN_MAINTENANCE is disallowed (returns 409 INVALID_STATUS_TRANSITION).
+url: "{{baseUrl}}/api/vehicles/{{vehicleId}}/status"
+method: PATCH
+headers:
+  Content-Type: application/json
+body:
+  type: json
+  content: |-
+    {
+      "status": "IN_MAINTENANCE"
+    }
+scripts:
+  - type: afterResponse
+    code: |-
+      pm.test("Disallowed transition -> 409 Conflict", function () {
+          pm.response.to.have.status(409);
+          var json = pm.response.json();
+          pm.expect(json.error).to.eql("INVALID_STATUS_TRANSITION");
+      });
+    language: text/javascript
+order: 12000

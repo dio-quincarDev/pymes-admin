@@ -1,0 +1,31 @@
+$kind: http-request
+name: Create validation error (bad year/capacity) -> 400
+description: Returns 400 VALIDATION_ERROR with validation failure details.
+url: "{{baseUrl}}/api/vehicles"
+method: POST
+headers:
+  Content-Type: application/json
+body:
+  type: json
+  content: |-
+    {
+      "plate": "BAD-YEAR",
+      "make": "Postman",
+      "model": "Bad",
+      "year": 1850,
+      "type": "CAR",
+      "fuelType": "GASOLINE",
+      "tankCapacityL": -10,
+      "odometerKm": -1
+    }
+scripts:
+  - type: afterResponse
+    code: |-
+      pm.test("Create validation error -> 400 Bad Request", function () {
+          pm.response.to.have.status(400);
+          var json = pm.response.json();
+          pm.expect(json.error).to.eql("VALIDATION_ERROR");
+          pm.expect(json).to.have.property("details");
+      });
+    language: text/javascript
+order: 8000

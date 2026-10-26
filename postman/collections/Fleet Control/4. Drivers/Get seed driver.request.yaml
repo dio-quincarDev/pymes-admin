@@ -1,0 +1,15 @@
+$kind: http-request
+description: Fetches a deterministic driver from the demo seed (driver-1).
+url: "{{baseUrl}}/api/drivers/a6efc71c-384f-3cb0-8f2c-6d0d82e754fe"
+method: GET
+scripts:
+  - type: afterResponse
+    code: |-
+      pm.test("Get seed driver -> 200 OK", function () {
+          pm.response.to.have.status(200);
+          var json = pm.response.json();
+          pm.expect(json.licenseNumber).to.eql("DL-DEMO-0001");
+          pm.expect(json.status).to.eql("ACTIVE");
+      });
+    language: text/javascript
+order: 4000

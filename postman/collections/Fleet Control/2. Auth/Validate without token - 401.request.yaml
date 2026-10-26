@@ -1,0 +1,17 @@
+$kind: http-request
+name: Validate without token -> 401
+description: Returns 401 Unauthorized when Authorization header is omitted.
+url: "{{baseUrl}}/api/auth/validate"
+method: POST
+auth:
+  type: noauth
+scripts:
+  - type: afterResponse
+    code: |-
+      pm.test("Validate without token -> 401 Unauthorized", function () {
+          pm.response.to.have.status(401);
+          var json = pm.response.json();
+          pm.expect(json.error).to.eql("UNAUTHORIZED");
+      });
+    language: text/javascript
+order: 9000

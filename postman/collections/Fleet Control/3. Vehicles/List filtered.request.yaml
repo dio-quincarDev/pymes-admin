@@ -1,0 +1,20 @@
+$kind: http-request
+description: Filter vehicles by status, type and partial plate match.
+url: "{{baseUrl}}/api/vehicles?page=0&size=20&status=AVAILABLE&type=VAN&plate=KLM"
+method: GET
+queryParams:
+  page: "0"
+  size: "20"
+  status: AVAILABLE
+  type: VAN
+  plate: KLM
+scripts:
+  - type: afterResponse
+    code: |-
+      pm.test("List filtered -> 200 OK", function () {
+          pm.response.to.have.status(200);
+          var json = pm.response.json();
+          pm.expect(json.content).to.be.an("array");
+      });
+    language: text/javascript
+order: 2000

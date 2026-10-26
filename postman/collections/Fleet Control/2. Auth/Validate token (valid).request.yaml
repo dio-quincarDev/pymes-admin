@@ -1,0 +1,20 @@
+$kind: http-request
+description: Validates the active JWT token and echoes the decoded user identity.
+url: "{{baseUrl}}/api/auth/validate"
+method: POST
+auth:
+  type: bearer
+  credentials:
+    token: "{{jwtToken}}"
+scripts:
+  - type: afterResponse
+    code: |-
+      pm.test("Validate token -> 200 OK", function () {
+          pm.response.to.have.status(200);
+          var json = pm.response.json();
+          pm.expect(json.valid).to.be.true;
+          pm.expect(json.username).to.eql("admin");
+          pm.expect(json.role).to.eql("ADMIN");
+      });
+    language: text/javascript
+order: 7000

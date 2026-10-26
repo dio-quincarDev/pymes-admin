@@ -1,0 +1,26 @@
+$kind: http-request
+description: Authenticates the seeded ADMIN user and saves the resulting token into {{jwtToken}} environment variable.
+url: "{{baseUrl}}/api/auth/login"
+method: POST
+headers:
+  Content-Type: application/json
+body:
+  type: json
+  content: |-
+    {
+      "email": "{{adminEmail}}",
+      "password": "{{adminPassword}}"
+    }
+scripts:
+  - type: afterResponse
+    code: |-
+      pm.test("Login -> 200 OK", function () {
+          pm.response.to.have.status(200);
+          var json = pm.response.json();
+          pm.expect(json.token).to.be.a("string");
+          pm.expect(json.tokenType).to.eql("Bearer");
+          pm.expect(json.role).to.eql("ADMIN");
+          pm.environment.set("jwtToken", json.token);
+      });
+    language: text/javascript
+order: 4000

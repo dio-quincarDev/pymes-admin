@@ -1,0 +1,28 @@
+$kind: http-request
+name: Create invalid email -> 400
+description: Returns 400 VALIDATION_ERROR when email is not formatted properly.
+url: "{{baseUrl}}/api/drivers"
+method: POST
+headers:
+  Content-Type: application/json
+body:
+  type: json
+  content: |-
+    {
+      "fullName": "Postman Invalid Email",
+      "email": "invalid-email-string",
+      "phone": "+34 600 444 558",
+      "licenseNumber": "DL-PM-BADMAIL",
+      "licenseCategory": "B",
+      "licenseExpiresAt": "2028-01-01"
+    }
+scripts:
+  - type: afterResponse
+    code: |-
+      pm.test("Create invalid email -> 400 Bad Request", function () {
+          pm.response.to.have.status(400);
+          var json = pm.response.json();
+          pm.expect(json.error).to.eql("VALIDATION_ERROR");
+      });
+    language: text/javascript
+order: 9000

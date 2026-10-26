@@ -1,0 +1,19 @@
+$kind: http-request
+name: Validate invalid token -> 401
+description: Returns 401 Unauthorized payload when the token signature is invalid.
+url: "{{baseUrl}}/api/auth/validate"
+method: POST
+auth:
+  type: bearer
+  credentials:
+    token: ""
+scripts:
+  - type: afterResponse
+    code: |-
+      pm.test("Validate invalid token -> 401 Unauthorized", function () {
+          pm.response.to.have.status(401);
+          var json = pm.response.json();
+          pm.expect(json.valid).to.be.false;
+      });
+    language: text/javascript
+order: 8000

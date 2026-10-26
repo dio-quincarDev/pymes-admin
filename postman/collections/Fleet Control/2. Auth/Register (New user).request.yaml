@@ -1,0 +1,32 @@
+$kind: http-request
+description: Registers a new user with MANAGER role. Generates dynamic credentials per run.
+url: "{{baseUrl}}/api/auth/register"
+method: POST
+headers:
+  Content-Type: application/json
+body:
+  type: json
+  content: |-
+    {
+      "username": "{{newAuthUsername}}",
+      "email": "{{newAuthEmail}}",
+      "password": "Password123"
+    }
+scripts:
+  - type: beforeRequest
+    code: |-
+      var rand = Math.floor(Math.random() * 90000) + 10000;
+      pm.variables.set("newAuthUsername", "user_" + rand);
+      pm.variables.set("newAuthEmail", "user_" + rand + "@fleetcontrol.com");
+    language: text/javascript
+  - type: afterResponse
+    code: |-
+      pm.test("Register -> 201 Created", function () {
+          pm.response.to.have.status(201);
+          var json = pm.response.json();
+          pm.expect(json.role).to.eql("MANAGER");
+          pm.expect(json).to.have.property("id");
+          pm.expect(json.email).to.eql(pm.variables.get("newAuthEmail"));
+      });
+    language: text/javascript
+order: 1000
