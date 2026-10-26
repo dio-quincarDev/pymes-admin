@@ -55,6 +55,7 @@ public class MonthlyReportServiceImpl implements MonthlyReportService {
             params.put("gastosDs", new JRMapCollectionDataSource(gastos(data.topGastos())));
             params.put("tieneProductos", !data.topProductos().isEmpty());
             params.put("tieneGastos", !data.topGastos().isEmpty());
+            params.put("tieneProveedores", !data.topProveedores().isEmpty());
             var retorno = retorno(owner, data);
             params.put("retornoLinea1", retorno.linea1());
             params.put("retornoLinea2", retorno.linea2());

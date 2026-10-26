@@ -8,6 +8,49 @@ Registro de lo implementado y lo pendiente.
 
 ---
 
+## 2026-10-26 — Reporte mensual: página 1 dejó de estar vacía (rebalanceo de bandas)
+
+**Contexto:** el dueño abrió el PDF mensual y la página 1 estaba prácticamente en
+blanco. Causa: `summary` medía 742pt y no cabía en los ~452pt que dejaba el `title`
+(310pt), así que Jasper mandaba la banda entera a la página 2 y la 1 quedaba con
+header + números + ~450pt de aire.
+
+**Qué se hizo:**
+- `title` 310 → **680**: el header y los 3 totales + "Ventas por semana" +
+  "Principales proveedores" + la nota del neto (movidos desde el `summary`).
+  Todo el "cómo te fue" del mes vive en la página 1.
+- `summary` 742 → **490** con `splitType="Prevent"`: productos + gastos + cierre,
+  con separación entre secciones (antes iban pegadas como continuación).
+- Cierre intacto: `textAdjust="StretchHeight"` en la línea 1 y
+  `positionType="Float"` en la 2 (para eso ya había test propio).
+- Cero cambios Java: mismos parámetros, mismos datasets, solo layout.
+
+**Mes parcial sin ventas (mismo día, cierre del hueco):** cuando hay facturas pero
+cero ventas (`esParcial`), la tabla "Ventas por semana" salía con solo encabezados y
+dejaba un hueco de 126pt en medio de la página 1. Ahora:
+- La nota "Sin ventas registradas en el periodo." se pinta siempre (texto condicional,
+  no `printWhen`) para que su espacio no se colapse en los meses normales.
+- "Ventas por semana" (título + tabla) lleva `printWhenExpression="!sinVentas"` +
+  `removeLineWhenBlank="true"`: si no hay ventas no se pinta y lo de abajo sube.
+- "Principales proveedores" igual pero con `tieneProveedores` (param nuevo, una línea
+  en `MonthlyReportServiceImpl`): mes con solo gastos ya no pinta tabla vacía.
+- Sin `positionType="Float"` ni cambios de `y`: `removeLineWhenBlank` colapsa el
+  hueco y arrastra lo siguiente, que es justo lo que se quería.
+
+**Tests:** `MonthlyReportTemplateTest` ahora exige **2 páginas exactas** y verifica
+qué secciones caen en cada una (antes solo `>= 2`, que dejaba pasar justo este bug).
+Dos tests nuevos: `mesParcialSinVentas` (sin tabla vacía, proveedores suben al hueco)
+y `sinProveedoresNoPintaTablaVacia`. Suite **248** verde; render de cada caso revisado.
+
+```
+backend/core/src/main/resources/reports/MonthlyReport.jrxml    # title 680 / summary 490 Prevent
+backend/core/src/main/java/core_pymes/report/service/impl/MonthlyReportServiceImpl.java # tieneProveedores
+backend/core/src/test/java/core_pymes/report/MonthlyReportTemplateTest.java # asserts por pagina + casos vacios
+backend/core/docs/strategies/MONTHLY_REPORT_STRATEGY.md        # etapa 2: que trae cada pagina
+```
+
+---
+
 ## 2026-10-15 — Reporte mensual página 2: top productos + top gastos + cierre de retorno
 
 **Contexto:** etapa 2 del mensual (diseñada 2026-10-10). Decisión del dueño: el
