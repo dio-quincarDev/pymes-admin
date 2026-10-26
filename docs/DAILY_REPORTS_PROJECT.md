@@ -1004,7 +1004,7 @@ docs/DAILY_REPORTS_PROJECT.md                                                   
 
 ### Próximo
 
-1. Frontend CORS test real desde navegador
+1. ~~Frontend CORS test real desde navegador~~ ✅ verificado en producción 2026-10-26 (preflight 200, POST 400 sin 403)
 2. Retomar gaps 🟡 (N+1, rate limit, etc.)
 3. Si aplica, mergar a `develop`
 

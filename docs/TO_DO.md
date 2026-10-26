@@ -119,7 +119,7 @@ Estrategia completa: → [`E2E_TESTING_STRATEGY.md`](./strategies/E2E_TESTING_ST
 
 - [x] [Alta] **Setup Playwright E2E** — Root `package.json` + `e2e/` folder (config, fixtures, tests). Chromium installed. 5 test cases base. (2026-08-05)
 - [ ] [Alta] **Auth: 5 endpoints sin integration test** — `POST /exchange`, `POST /tenants/select`, `GET /invitations`, `DELETE /invitations/{id}`, `GET /tenants/{id}/shutdown`. → E2E_TESTING_STRATEGY.md (A-IT1 a A-IT5)
-- [ ] [Alta] **Auth: 4 services sin unit test** — `PermissionCacheService`, `RateLimitService`, `CustomOAuth2UserService`, `TokenBlacklistService`. → E2E_TESTING_STRATEGY.md (A-UT1 a A-UT4)
+- [ ] [Alta] **Auth: 3 services sin unit test** — `PermissionCacheService`, `RateLimitService`, `CustomOAuth2UserService`. (A-UT4 `TokenBlacklistService` cerrado con `TokenBlacklistServiceTest`, 2026-10-26) → E2E_TESTING_STRATEGY.md (A-UT1 a A-UT3)
 - [ ] [Alta] **Auth: integration test completo CRUD** — Register→Verify→Login→Create tenant→Invite→Accept→List members→Delete member. → E2E_TESTING_STRATEGY.md (A-IT6)
 - [ ] [Alta] **Gateway: 9 integration tests nuevos** — proxy routing, route ordering, CORS, security headers, JWT validation, identity headers forward. → E2E_TESTING_STRATEGY.md (G-IT1 a G-IT8, G-UT1)
 

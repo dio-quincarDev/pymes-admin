@@ -46,7 +46,7 @@
 | 6 | **`@Lazy` circular** (`EmailVerificationServiceImpl.java:41`) — `EmailVerificationServiceImpl` ↔ `AuthServiceImpl` | Extraer lógica de registro a tercer service | Mantenibilidad |
 | 7 | **`extractEmail()` duplicado** (`InvitationServiceImpl.java:184`, `MemberServiceImpl.java:143`) — misma lógica en 3 servicios | Utility class o leer directo de `SecurityContextHolder` | Mantenibilidad |
 | 8 | **`/exchange` sin rate limit** (`AuthApiController.java:81-83`) — cualquiera puede brute-forcear códigos OAuth | Rate limit por IP | Security | Diferido (ponytail) — hardening, no bug; requiere filter config + Redis en gateway (DAILY 2026-07-30) |
-| 9 | **CORS permisivo con credenciales** (`WebCorsConfig.java:21,24`) — `allowedOriginPatterns` permite `*` | Separar orígenes productivos y dev | Security |
+| 9 | **CORS permisivo con credenciales** (`WebCorsConfig.java:21,24`) — originalmente `allowedOriginPatterns` admitía `*` | Separar orígenes productivos y dev | Security | ✅ 2026-07-16 — `setAllowedOrigins(List.of(...))` con orígenes explícitos; prod verificado 2026-10-26 (preflight 200, POST 400) |
 | 10 | **JWT completo como key Redis** (`TokenBlacklistService.java:31`) — tokens largos = keys largas | Hashear el token como key | Performance |
 | 11 | **`Thread.sleep(200)` anti-enumeration** (`PasswordResetServiceImpl.java:96-100`) — primitivo | Delay constante async + respuesta genérica | Security |
 | 12 | **Método logueado doble** (`GlobalExceptionHandler.java:200-201`) — `request.getMethod()` impreso 2 veces | Corregir formato | Mantenibilidad |
