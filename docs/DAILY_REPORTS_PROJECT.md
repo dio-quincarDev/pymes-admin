@@ -16,6 +16,8 @@ Registro cronológico de decisiones técnicas, refactors y post-mortems del proy
 
 **Verificación:** `grep` de `maximum-pool-size` (2 hits), `sslmode` (0 hits en perfiles), `db/migration/` de auth (3) y core (8), `TenantServiceImpl.shutdown` hace `setIsActive(false)`, 0 usos de `useI18n`/`$t` en `src`.
 
+**Incidencia de Auth corregida (misma fecha):** la lista de "Incidencias abiertas" del proyecto daba a entender que auth estaba sin cubrir. Auditoría `endpoint × test`: `POST /exchange` es el único sin ningún test (no hay unit de `AuthServiceImpl.exchange` ni IT); `POST /tenants/select`, `GET /invitations`, `DELETE /invitations/{id}` y `GET /tenants/{id}/shutdown` ya tienen unit de servicio y solo les falta la capa HTTP. Sin unit siguen `PermissionCacheService`, `RateLimitService` (solo mockeado) y `CustomOAuth2UserService`. En `TO_DO.md` se eliminó la sección `### Auth` duplicada y la entrada que aún listaba `TokenBlacklistService` como pendiente. Corrida real: `./mvnw test -B` → **168/168**, `./mvnw verify -B -Dspring.profiles.active=integration` → **56/56**, BUILD SUCCESS.
+
 ```
 docs/persistencia-postgres.md · docs/TO_DO.md · docs/DAILY_REPORTS_PROJECT.md
 ```
