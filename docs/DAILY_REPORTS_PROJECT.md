@@ -4,6 +4,20 @@ Registro cronológico de decisiones técnicas, refactors y post-mortems del proy
 
 ---
 
+## 2026-10-26 — Branding/SEO + iconos PWA reales — frontend
+
+**Qué se hizo:** `og:image` 1200x630 + `og:url`/`twitter:image` en `index.html` (URL absoluta a `pymeq.dioquincar.dev` por decisión explícita: los crawlers ignoran rutas relativas); `manifest.name/description` alineados con `<title>`/`package.json`; los 14 PNG del PWA y `favicon.ico` regenerados desde `pymeq-app-icon.svg` (antes placeholder azul de Quasar).
+
+**Verificación:** `og-image.png` 1200x630 · bronce `#CC9639` dominante en los 15 iconos · `build` PWA verde. Detalle en `frontend/pymes/docs/DAILY_REPORTS_FRONTEND.md 2026-10-26`.
+
+**Pendiente fuera del repo:** purgar Cloudflare para `apple-icon-*`/`favicon-*` (sin query de versión); confirmar el recorte maskable instalando la PWA en un dispositivo real.
+
+```
+frontend/pymes/index.html · frontend/pymes/src-pwa/manifest.json · frontend/pymes/public/og-image.png · frontend/pymes/public/icons/*.png · frontend/pymes/public/favicon.ico
+```
+
+---
+
 ## 2026-10-26 — Regresión E2E de flujos críticos — frontend
 
 **Qué se hizo:**

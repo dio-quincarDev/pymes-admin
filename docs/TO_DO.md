@@ -312,6 +312,11 @@ Todos implementados inline en cada page (sin componentes separados).
 - [x] [Media] **PWA: SW cache fix + manifest cache-busting** — SW `postMessage CLEAR_API_CACHE` en logout + `quasar.config.ts` `manifest icons ?v=timestamp` + `core-api-cache` cleanup. (2026-08-29)
 - [x] [Baja] **SVG cache fix** — Caddy `path_regexp \.svg$` + `Cache-Control: no-cache` para SW/SVG/HTML, Cloudflare purge tras cambio logos. `path *.svg` no cruza `/`. (2026-08-27)
 
+### Frontend — Completado (branding y SEO 2026-10-26)
+
+- [x] [Media] **Branding/SEO: og:image y marca unificada** — `og:image` 1200x630 (`public/og-image.png`) con `og:image:width/height/alt`, `og:url`, `twitter:image`/`image:alt`; URL absoluta a `pymeq.dioquincar.dev` (los crawlers ignoran rutas relativas). `manifest.name/description` alineados con `<title>`/`productName`/`package.json`. (2026-10-26)
+- [x] [Baja] **Iconos PWA con la marca real** — los 14 PNG (`icon-*`, `apple-icon-*`, `favicon-*`, `ms-icon-*`) y `favicon.ico` eran el placeholder azul de Quasar; regenerados desde `pymeq-app-icon.svg` (Chromium headless + Pillow, fondo `#08090D`). Verificado bronce `#CC9639` en los 15. (2026-10-26)
+
 ### Frontend — Completado (PWA)
 
 - [x] [Baja] **PWA: custom install prompt** — Banner "Instalar PYMEQ" con dismiss persistido (`beforeinstallprompt` + `pwa_install_dismissed` en `MainLayout.vue`). (2026-08-02)

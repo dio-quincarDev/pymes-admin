@@ -4,6 +4,21 @@ Registro cronológico de decisiones, problemas resueltos y estado del frontend.
 
 ---
 
+## 2026-10-26 — Branding/SEO: og:image + marca unificada + iconos PWA reales
+
+**Contexto:** la alerta Baja de Notion "Frontend: branding y SEO pendiente" seguía abierta. `index.html` no tenía `og:image` (compartir el link no mostraba imagen) y `manifest.name`/`description` diferían del `<title>`/`package.json`. Hallazgo extra: los PNG del PWA seguían siendo el placeholder azul de Quasar (`#00B8FF`), así que un install mostraba el icono equivocado.
+
+**Qué se hizo:**
+- **`index.html`** — `og:image` 1200x630 (`public/og-image.png`) + `og:image:width/height/alt`, `og:url`, `twitter:image`/`image:alt`. URL absoluta a `https://pymeq.dioquincar.dev`: los crawlers no resuelven rutas relativas y es el único host de despliegue aceptado.
+- **`src-pwa/manifest.json`** — `name`/`description` alineados con `<title>`, `productName` y `package.json`.
+- **Iconos** — 14 PNG (`icon-128/192/256/384/512`, `apple-icon-120/152/167/180`, `favicon-16/32/96/128`, `ms-icon-144`) + `favicon.ico` multi-tamaño (16–256) rasterizados desde `public/icons/pymeq-app-icon.svg` con Chromium headless a 1024 px y Pillow LANCZOS, fondo aplanado `#08090D` para maskable/iOS.
+
+**Verificación:** `identify` 1200x630 · color dominante bronce `#CC9639` en los 15 archivos · favicon 32 px legible al ampliar · `dist/pwa` recibe los assets · `npm run build` verde (960 KB JS / 383 KB CSS). OAuth2 real y recorte maskable en dispositivo **no** verificados.
+
+**Estado:** ✅ COMPLETADO — pendiente push `feature/refactor` y purga de Cloudflare (`apple-icon-*`/`favicon-*` van sin query de versión)
+
+---
+
 ## 2026-10-10 — Botones +Nuevo acoplados (Proveedores/Costos) + UUID fuera del onboarding
 
 **Contexto:** con datos cargados, el `Nuevo` de Proveedores quedaba chico a la derecha en mobile (solo tenía `flex-wrap`, sin el patrón full-width de Facturas), y el `Nuevo` de Costos (Equipo/Gastos Fijos) flotaba en la esquina derecha por un `q-space` sin search que lo balanceara. Además el preview del onboarding mostraba el `baseUnit` crudo (UUID canónico desde backend V7).
