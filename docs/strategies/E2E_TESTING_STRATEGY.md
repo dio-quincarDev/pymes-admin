@@ -6,7 +6,7 @@ Estrategia global de testing para PYMEQ. Cubre 3 capas: unit tests (por servicio
 
 | Servicio | Unit tests | Integration tests | Gaps abiertos |
 |---|---|---|---|
-| Gateway | 37 (9 unit RouterValidator +22 AuthenticationFilter +5 GlobalErrorHandler +1 SwaggerAggregator, 2026-09-17 `grep -c @Test`) | 0 | 0 integration, CORS, route ordering |
+| Gateway | 48 (5 JwtUtils +22 RouterValidator +9 AuthenticationFilter +1 context +10 GatewayIntegrationTest +1 SwaggerAggregator, 2026-10-26) | 10 (`GatewayIntegrationTest`) | 0 — cerrado 2026-10-26 |
 | Auth | 207 (138 unit +56 integration +12 consistency +1 auth, 2026-09-17) | 56 | 5 endpoints sin integration, 4 services sin unit test |
 | Core | 263 (85 unit +11 analytics +104 JPA +62 integration +1, 2026-09-17, V6 ITBMS 0/7/10) | 62 | C-IT1..4 listos |
 | Frontend | 29 (vitest) + 7 pasos tour 924KB | 0 | Playwright 2+2 specs |
@@ -18,7 +18,7 @@ Estrategia global de testing para PYMEQ. Cubre 3 capas: unit tests (por servicio
 
 Tests HTTP reales contra DB+Redis vía Testcontainers. Sin frontend.
 
-### Gateway — 9 tests nuevos
+### Gateway — 11 tests nuevos (✅ 2026-10-26)
 
 | # | Test | Qué valida |
 |---|---|---|
@@ -26,11 +26,13 @@ Tests HTTP reales contra DB+Redis vía Testcontainers. Sin frontend.
 | G-IT2 | Proxy routing a auth | `POST /api/v1/auth/login` llega a auth |
 | G-IT3 | Route ordering | `/api/v1/core/products` matchea core, NO auth |
 | G-IT4 | CORS preflight OPTIONS | `OPTIONS` retorna `Access-Control-Allow-Origin` |
+| G-IT4b | CORS origen no permitido → 403 | `Origin` ajeno → `403` |
 | G-IT5 | Security headers | HSTS, X-Frame-Options, X-Content-Type-Options |
 | G-IT6 | JWT missing → 401 | Sin header → 401 JSON |
 | G-IT7 | JWT expired → 401 | Token expirado → 401 JSON |
 | G-IT8 | Identity headers forward | Token válido → X-User-Id, X-Tenant-Id llegan al upstream |
-| G-UT1 | SwaggerAggregatorConfig | URLs de auth y core configuradas |
+| Actuator | Health público | `GET /actuator/health` → 200 UP |
+| G-UT1 | SwaggerAggregatorConfig | URL real de Auth registrada (core pendiente hasta exponer OpenAPI) |
 
 **Infra**: `@SpringBootTest(RANDOM_PORT)` + `WebTestClient` + MockWebServer como upstream mock.
 
@@ -150,6 +152,7 @@ Auth unit              Core integration        Docker compose
 | `e2e/tests/navigation.spec.ts` | Crear |
 | `e2e/tests/auth-logout.spec.ts` | Crear |
 | `backend/gateway-pymes/src/test/.../GatewayIntegrationTest.java` | Crear |
+| `backend/gateway-pymes/src/test/.../config/SwaggerAggregatorConfigTest.java` | Crear |
 | `backend/auth/src/test/.../TenantMemberIntegrationTest.java` | Crear |
 | `backend/auth/src/test/.../PermissionCacheServiceTest.java` | Crear |
 | `backend/auth/src/test/.../RateLimitServiceTest.java` | Crear |

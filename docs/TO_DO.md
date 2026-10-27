@@ -121,7 +121,7 @@ Estrategia completa: → [`E2E_TESTING_STRATEGY.md`](./strategies/E2E_TESTING_ST
 - [ ] [Alta] **Auth: 5 endpoints sin integration test** — `POST /exchange`, `POST /tenants/select`, `GET /invitations`, `DELETE /invitations/{id}`, `GET /tenants/{id}/shutdown`. → E2E_TESTING_STRATEGY.md (A-IT1 a A-IT5)
 - [ ] [Alta] **Auth: 3 services sin unit test** — `PermissionCacheService`, `RateLimitService`, `CustomOAuth2UserService`. (A-UT4 `TokenBlacklistService` cerrado con `TokenBlacklistServiceTest`, 2026-10-26) → E2E_TESTING_STRATEGY.md (A-UT1 a A-UT3)
 - [ ] [Alta] **Auth: integration test completo CRUD** — Register→Verify→Login→Create tenant→Invite→Accept→List members→Delete member. → E2E_TESTING_STRATEGY.md (A-IT6)
-- [ ] [Alta] **Gateway: 9 integration tests nuevos** — proxy routing, route ordering, CORS, security headers, JWT validation, identity headers forward. → E2E_TESTING_STRATEGY.md (G-IT1 a G-IT8, G-UT1)
+- [x] [Alta] **Gateway: 11 tests nuevos (routing, CORS, actuator)** — `GatewayIntegrationTest` (10) + `SwaggerAggregatorConfigTest` (1); destapó y corrigió HSTS con comillas literales. 48/48 verde. (2026-10-26)
 
 **Fase 2 — Playwright E2E (después)**
 
@@ -146,7 +146,7 @@ Estrategia completa: → [`E2E_TESTING_STRATEGY.md`](./strategies/E2E_TESTING_ST
 
 ### Gateway
 
-- [ ] [Alta] **Integration tests WebTestClient + MockWebServer** — 9 tests: proxy routing, route ordering, CORS, security headers, JWT validation, identity headers. → E2E_TESTING_STRATEGY.md (G-IT1 a G-IT8)
+- [x] [Alta] **Integration tests WebTestClient + MockWebServer** — 10 tests: proxy routing, route ordering, CORS, security headers, JWT validation, identity headers, actuator. (2026-10-26)
 
 ### Auth
 
