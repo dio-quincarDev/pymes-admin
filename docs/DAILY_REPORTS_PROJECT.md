@@ -4,6 +4,24 @@ Registro cronológico de decisiones técnicas, refactors y post-mortems del proy
 
 ---
 
+## 2026-10-27 — Revisión de las 4 tareas Media: 2 cerradas por decisión, 2 siguen abiertas
+
+**Contexto:** las 4 tareas `[Media]` pendientes del proyecto eran "Postgres: Hikari + SSL", "Postgres: FK de tenant_id + Flyway", "Frontend: cerrar offline PWA" y "Frontend: i18n base". Ninguna estaba enlazada desde `TO_DO.md`, así que el trabajo hecho no aparecía en la documentación del repo.
+
+**Qué se hizo:**
+- **Hikari** — ya estaba: `maximum-pool-size: 20` en auth y core (`application.yaml`), no el default de 10. Se descarta `sslmode=require`: Postgres solo escucha en `pymes-internal-network`, el host no publica el 5432 (solo 22/80/443). Decisión y condición para reabrirla en `docs/persistencia-postgres.md`.
+- **FK de `tenant_id`** — decisión explícita de no crear FK cross-schema `core.tenant_id → auth.tenants`: acopla el orden de migración de los dos servicios sin aportar nada sobre el filtro obligatorio por tenant. "Sin huérfanos" se cumple por construcción porque los tenants no se borran: `TenantServiceImpl.shutdown` hace soft delete (`is_active=false`) y los `ON DELETE CASCADE` solo existen dentro de `auth`.
+- **`docs/persistencia-postgres.md`** — corregidos datos falsos: decía auth 2 migraciones (son 3) y core 13 = `V1..V13` (son 8, última `V8__report_log.sql`); la observación 1 afirmaba "sin ajuste explícito de HikariCP" contradiciendo la sección que lo documenta configurado. Añadido el porqué de no-SSL, no-FK y la condición de reapertura de cada una.
+- **Offline PWA e i18n: siguen abiertas.** Offline tiene solo 1/2 (`axios.ts` no desloguea offline, banner + `pymeq_last_sync` en `MainLayout.vue`); falta cola de escrituras y borrador persistido. i18n solo tiene el scaffold de la plantilla (`locale: 'en-US'`, mensajes vacíos, 0 usos de `$t`). Ambas quedan registradas en `TO_DO.md`; i18n bajada a `Baja` por falta de usuarios no hispanohablantes.
+
+**Verificación:** `grep` de `maximum-pool-size` (2 hits), `sslmode` (0 hits en perfiles), `db/migration/` de auth (3) y core (8), `TenantServiceImpl.shutdown` hace `setIsActive(false)`, 0 usos de `useI18n`/`$t` en `src`.
+
+```
+docs/persistencia-postgres.md · docs/TO_DO.md · docs/DAILY_REPORTS_PROJECT.md
+```
+
+---
+
 ## 2026-10-26 — Branding/SEO + iconos PWA reales — frontend
 
 **Qué se hizo:** `og:image` 1200x630 + `og:url`/`twitter:image` en `index.html` (URL absoluta a `pymeq.dioquincar.dev` por decisión explícita: los crawlers ignoran rutas relativas); `manifest.name/description` alineados con `<title>`/`package.json`; los 14 PNG del PWA y `favicon.ico` regenerados desde `pymeq-app-icon.svg` (antes placeholder azul de Quasar).
