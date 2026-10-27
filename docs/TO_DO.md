@@ -125,15 +125,16 @@ Estrategia completa: → [`E2E_TESTING_STRATEGY.md`](./strategies/E2E_TESTING_ST
 
 **Fase 2 — Playwright E2E (después)**
 
+- [x] [Alta] **Regresión E2E de flujos críticos** — 4 specs nuevos con APIs mockeadas (`e2e/tests/support/mocks.ts`): `auth-session.spec.ts` (login mergea `activeTenant.id → user.tenantId` con `/users/me` lento; logout→re-login con tokens frescos y mismo tenant), `oauth2-callback.spec.ts` (code exchange → dashboard), `invoice-itbms.spec.ts` (ITBMS 0/7/10 por ítem, desglose $100/$200/$17, total $317 y payload con tasas individuales), `pwa-cache.spec.ts` (`auth:401` borra `core-api-cache` desde el scope del SW). OAuth2 real contra Google queda `@manual` (`E2E_MANUAL=1`). **9/9 E2E verde, 24.3 s**; 76 Vitest, lint 0, build PWA 960 KB. (2026-10-26)
 - [ ] [Alta] **Login fixture vía API** — `e2e/fixtures/auth.ts`: login directo via POST /auth/login (no UI), guardar `storageState`. → E2E_TESTING_STRATEGY.md (Fixture)
-- [ ] [Alta] **auth-login.spec.ts** — Login completo → dashboard visible. → E2E_TESTING_STRATEGY.md (P-1)
+- [x] [Alta] **auth-login.spec.ts** — cubierto por `auth-session.spec.ts` (login UI → dashboard + `tenantId`). → E2E_TESTING_STRATEGY.md (P-1)
 - [ ] [Alta] **auth-register.spec.ts** — Registro → verificación → login. → E2E_TESTING_STRATEGY.md (P-2)
 - [ ] [Alta] **setup-onboarding.spec.ts** — Onboarding crear empresa. → E2E_TESTING_STRATEGY.md (P-3)
 - [ ] [Media] **productos.spec.ts** — CRUD productos. → E2E_TESTING_STRATEGY.md (P-4)
-- [ ] [Media] **facturas.spec.ts** — CRUD facturas. → E2E_TESTING_STRATEGY.md (P-5)
+- [ ] [Media] **facturas.spec.ts** — Solo ITBMS cubierto (`invoice-itbms.spec.ts`); falta CRUD completo (crear/editar/eliminar). → E2E_TESTING_STRATEGY.md (P-5)
 - [ ] [Media] **dashboard.spec.ts** — KPIs visibles. → E2E_TESTING_STRATEGY.md (P-6)
 - [ ] [Baja] **navigation.spec.ts** — Sidebar/bottom nav. → E2E_TESTING_STRATEGY.md (P-7)
-- [ ] [Baja] **auth-logout.spec.ts** — Logout → sesión inválida. → E2E_TESTING_STRATEGY.md (P-8)
+- [x] [Baja] **auth-logout.spec.ts** — cubierto por `logout-cycle.spec.ts` + `auth-session.spec.ts` (logout → tokens borrados → re-login). → E2E_TESTING_STRATEGY.md (P-8)
 
 **Fase 3 — CI**
 

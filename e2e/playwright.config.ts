@@ -19,6 +19,8 @@ export default defineConfig({
   fullyParallel: false,
   retries: 1,
   reporter: [['html', { open: 'never' }], ['list']],
+  // @manual (OAuth2 real contra Google) se excluye por defecto; E2E_MANUAL=1 lo habilita.
+  grepInvert: process.env.E2E_MANUAL === '1' ? undefined : /@manual/,
 
   use: {
     baseURL: 'http://localhost:9200',
@@ -34,7 +36,7 @@ export default defineConfig({
       name: 'chromium',
       use: {
         browserName: 'chromium',
-        headless: false,
+        headless: !!process.env.CI,
         launchOptions: {
           args: [
             '--disable-blink-features=AutomationControlled',
@@ -48,7 +50,8 @@ export default defineConfig({
   ],
 
   webServer: {
-    command: 'docker compose up -d',
+    command: 'docker compose up',
+    cwd: path.resolve(__dirname, '..'),
     url: 'http://localhost:9200',
     reuseExistingServer: true,
     timeout: 120_000,

@@ -4,6 +4,25 @@ Registro cronológico de decisiones técnicas, refactors y post-mortems del proy
 
 ---
 
+## 2026-10-26 — Regresión E2E de flujos críticos — frontend
+
+**Qué se hizo:**
+- **4 specs nuevos** sobre la base Playwright existente, con APIs mockeadas (`e2e/tests/support/mocks.ts`): `auth-session.spec.ts` (login → dashboard; el store mergea `activeTenant.id` en `user.tenantId` incluso con `/users/me` lento; logout → re-login con tokens frescos y mismo tenant), `oauth2-callback.spec.ts` (code exchange → `tenantId` → dashboard), `invoice-itbms.spec.ts` (ITBMS 0/7/10 por ítem: desglose $100/$200/$17, total $317, payload con `itbmsTasa` individual), `pwa-cache.spec.ts` (`auth:401` borra `core-api-cache` vía `postMessage` al SW).
+- **OAuth2 real contra Google** queda `@manual` (`grepInvert: /@manual/`; `E2E_MANUAL=1` lo habilita): requiere credenciales y 2FA humana. No se ejecutó.
+- **`e2e/README.md`** con comandos y matriz CI/manual. Fija la separación: lo mockeado corre en CI; lo manual es decisión humana pre-merge.
+- **2 fixes de infraestructura de test:** `webServer.command` pasó de `docker compose up -d` a `docker compose up` (el detached terminaba y Playwright abortaba con `Process from config.webServer exited early`); `disableTutorial()` apaga `pymeq_tour_seen`/`pymeq_hint_seen` porque el overlay del tour interceptaba los selects de Quasar.
+
+**Verificación:**
+- E2E **9/9 passed** (24.3 s) con stack Docker healthy.
+- Frontend: **76/76** Vitest, `lint` 0, `build` PWA 960.31 KB JS / 383.72 KB CSS.
+- Sin cambios de código productivo: solo tests, config E2E y docs.
+
+```
+e2e/playwright.config.ts · e2e/tests/{auth-session,oauth2-callback,invoice-itbms,pwa-cache}.spec.ts · e2e/tests/support/mocks.ts · e2e/README.md
+```
+
+---
+
 ## 2026-09-19 — Fix registro manual (hint + pendingTenant race) — frontend
 
 **Qué se hizo:**
