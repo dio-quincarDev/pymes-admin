@@ -22,22 +22,25 @@ const chartData = computed(() => ({
       type: 'bar' as const,
       data: props.data.map(d => d.ventas),
       backgroundColor: colors.value.bar,
-      borderColor: colors.value.bar,
+      borderColor: 'transparent',
       borderWidth: 0,
-      borderRadius: 3,
-      barPercentage: 0.8,
+      borderRadius: 2,
+      barPercentage: 0.55,
       categoryPercentage: 0.7,
     },
     {
       label: 'Costos',
       type: 'line' as const,
       data: props.data.map(d => d.costos),
-      borderColor: colors.value.negative,
+      borderColor: colors.value.line,
       backgroundColor: 'transparent',
-      borderWidth: 2,
-      tension: 0.3,
-      pointRadius: 2,
-      pointBackgroundColor: colors.value.negative,
+      borderWidth: 1.5,
+      tension: 0.4,
+      pointRadius: 0,
+      pointHoverRadius: 4,
+      pointBackgroundColor: colors.value.line,
+      pointBorderColor: colors.value.tooltipBg,
+      pointBorderWidth: 2,
       fill: false,
     },
   ],
@@ -46,18 +49,23 @@ const chartData = computed(() => ({
 const chartOptions = computed(() => ({
   responsive: true,
   maintainAspectRatio: false,
+  interaction: {
+    mode: 'index' as const,
+    intersect: false,
+  },
   plugins: {
     legend: {
       display: true,
       position: 'bottom' as const,
-      align: 'center' as const,
+      align: 'start' as const,
       labels: {
-        boxWidth: 10,
-        boxHeight: 10,
+        boxWidth: 12,
+        boxHeight: 2,
         usePointStyle: true,
         pointStyle: 'circle',
         padding: 16,
-        font: { family: "'Satoshi', sans-serif", size: 11 },
+        font: { family: "'Satoshi', sans-serif", size: 11, weight: 500 },
+        color: colors.value.text,
       },
     },
     tooltip: {
@@ -74,13 +82,24 @@ const chartOptions = computed(() => ({
   scales: {
     x: {
       grid: { display: false },
-      title: { display: true, text: 'Día', font: { family: "'Satoshi', sans-serif", size: 11 } },
+      border: { display: false },
+      ticks: {
+        color: colors.value.text,
+        font: { family: "'Geist Mono', monospace", size: 10 },
+      },
     },
     y: {
       beginAtZero: true,
-      title: { display: true, text: 'USD', font: { family: "'Satoshi', sans-serif", size: 11 } },
+      border: { display: false },
+      grid: {
+        color: colors.value.grid,
+        lineWidth: 1,
+      },
       ticks: {
+        color: colors.value.text,
+        font: { family: "'Geist Mono', monospace", size: 10 },
         callback: (value: number | string) => formatCurrency(Number(value)),
+        maxTicksLimit: 5,
       },
     },
   },
@@ -90,12 +109,13 @@ const chartOptions = computed(() => ({
 <template>
   <div class="ventas-costos-chart">
     <div class="ventas-costos-chart__header">
-      <span class="ventas-costos-chart__title">Ventas vs Costos (7 días)</span>
+      <span class="ventas-costos-chart__title">Ventas vs Costos</span>
+      <span class="ventas-costos-chart__subtitle">Últimos 7 días</span>
     </div>
 
     <template v-if="loading">
       <div class="ventas-costos-chart__skeleton">
-        <div v-for="n in 7" :key="n" class="skeleton" style="height: 80px; border-radius: 3px" />
+        <div v-for="n in 7" :key="n" class="skeleton" style="height: 80px; border-radius: 2px" />
       </div>
     </template>
 
@@ -110,7 +130,7 @@ const chartOptions = computed(() => ({
         type="bar"
         :data="chartData"
         :options="chartOptions"
-        :height="200"
+        :height="220"
       />
     </template>
   </div>
@@ -118,37 +138,42 @@ const chartOptions = computed(() => ({
 
 <style scoped lang="scss">
 .ventas-costos-chart {
-  background: var(--pq-surface);
   border: 1px solid var(--pq-border);
-  border-radius: 8px;
-  padding: 16px;
+  border-radius: var(--pq-radius-md);
+  padding: 20px 24px;
 
   &__header {
     display: flex;
-    align-items: center;
-    justify-content: space-between;
-    margin-bottom: 16px;
+    align-items: baseline;
+    gap: 8px;
+    margin-bottom: 20px;
   }
 
   &__title {
     font-family: 'Geist', sans-serif;
     font-size: 13px;
-    font-weight: 600;
+    font-weight: 500;
     color: var(--pq-text);
-    text-transform: uppercase;
-    letter-spacing: 0.04em;
+    letter-spacing: -0.01em;
+  }
+
+  &__subtitle {
+    font-family: 'Satoshi', sans-serif;
+    font-size: 11px;
+    color: var(--pq-text-subtle);
   }
 
   &__skeleton {
     display: grid;
     grid-template-columns: repeat(7, 1fr);
     gap: 8px;
-    height: 200px;
+    height: 220px;
+    align-items: end;
   }
 
   &__empty {
     text-align: center;
-    padding: 32px 16px;
+    padding: 48px 16px;
     font-family: 'Satoshi', sans-serif;
     font-size: 13px;
     color: var(--pq-text-muted);

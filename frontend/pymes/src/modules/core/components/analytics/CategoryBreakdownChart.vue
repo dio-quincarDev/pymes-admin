@@ -75,18 +75,19 @@ const chartData = computed(() => {
 const chartOptions = computed(() => ({
   responsive: true,
   maintainAspectRatio: false,
-  cutout: '62%',
+  cutout: '72%',
   plugins: {
     legend: {
       display: true,
       position: 'bottom' as const,
       labels: {
-        boxWidth: 10,
-        boxHeight: 10,
+        boxWidth: 8,
+        boxHeight: 8,
         usePointStyle: true,
         pointStyle: 'circle',
-        padding: 14,
-        font: { family: "'Satoshi', sans-serif", size: 11 },
+        padding: 12,
+        font: { family: "'Satoshi', sans-serif", size: 11, weight: 500 },
+        color: colors.value.text,
       },
     },
     tooltip: {
@@ -110,6 +111,10 @@ const chartOptions = computed(() => ({
 
 <template>
   <div class="cat-chart">
+    <div class="cat-chart__header">
+      <span class="cat-chart__title">Gastos por categoría</span>
+    </div>
+
     <template v-if="loading">
       <div class="cat-chart__skeleton">
         <div class="cat-chart__skeleton-donut">
@@ -136,13 +141,24 @@ const chartOptions = computed(() => ({
 
 <style scoped lang="scss">
 .cat-chart {
-  background: var(--pq-surface);
   border: 1px solid var(--pq-border);
-  border-radius: 8px;
-  padding: 16px;
+  border-radius: var(--pq-radius-md);
+  padding: 20px 24px;
   min-width: 0;
   max-width: 100%;
   overflow: hidden;
+
+  &__header {
+    margin-bottom: 16px;
+  }
+
+  &__title {
+    font-family: 'Geist', sans-serif;
+    font-size: 13px;
+    font-weight: 500;
+    color: var(--pq-text);
+    letter-spacing: -0.01em;
+  }
 
   &__skeleton {
     padding: 8px 0;

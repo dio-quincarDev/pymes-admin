@@ -5,7 +5,6 @@ const emit = defineEmits<{
   start: [name: string];
 }>();
 
-// ponytail: primitive as shallowRef per reactivity.md — avoids deep proxy overhead
 const companyName = shallowRef('');
 
 const trimmedName = computed(() => companyName.value.trim());
@@ -17,171 +16,136 @@ function handleSubmit() {
 </script>
 
 <template>
-  <section class="hero-section q-px-md">
-    <div class="q-monogram" aria-hidden="true">Q</div>
-    <div class="hero-grid container-narrow mx-auto">
-      <!-- Left: copy + onboarding -->
+  <section class="hero-section">
+    <div class="hero-grid container">
       <div class="hero-left">
-        <div class="stagger-children">
-          <div class="hero-badge">
-            <span class="badge-label">FINANCIAL OS FOR PYMES</span>
-          </div>
+        <div class="hero-badge">
+          <span class="badge-label">Sistema operativo financiero</span>
+        </div>
 
-          <h1 class="hero-headline">
-            El sistema operativo<br>
-            financiero para tu PyME
-          </h1>
+        <h1 class="hero-title">
+          El sistema operativo<br>
+          financiero para tu PyME
+        </h1>
 
-          <p class="hero-copy">
-            Registrá tus compras. El sistema calcula márgenes, encuentra fugas
-            de dinero y te dice si tu negocio está saludable.
-          </p>
+        <p class="hero-copy">
+          Registrá tus compras. El sistema calcula márgenes, encuentra fugas
+          de dinero y te dice si tu negocio está saludable.
+        </p>
 
-          <form class="onboarding-row" @submit.prevent="handleSubmit" novalidate>
-            <q-input
-              v-model="companyName"
-              placeholder="Nombre de tu negocio"
-              aria-label="Nombre de tu negocio"
-              dark
-              filled
-              color="primary"
-              class="company-input focus-ring"
-            >
-              <template v-slot:prepend>
-                <q-icon name="store" style="color: var(--pq-accent)" aria-hidden="true" />
-              </template>
-            </q-input>
+        <form class="onboarding-row" @submit.prevent="handleSubmit" novalidate>
+          <q-input
+            v-model="companyName"
+            placeholder="Nombre de tu negocio"
+            aria-label="Nombre de tu negocio"
+            dark
+            filled
+            color="primary"
+            class="company-input focus-ring"
+          >
+            <template v-slot:prepend>
+              <q-icon name="store" style="color: var(--pq-accent)" aria-hidden="true" />
+            </template>
+          </q-input>
 
-            <q-btn
-              color="primary"
-              type="submit"
-              class="onboarding-btn"
-              :disable="!trimmedName"
-            >
-              CREAR MI ESPACIO
-            </q-btn>
-          </form>
+          <q-btn
+            color="primary"
+            type="submit"
+            class="onboarding-btn"
+            :disable="!trimmedName"
+          >
+            CREAR MI ESPACIO
+          </q-btn>
+        </form>
 
-          <div class="hero-fine-print">
-            Sin complicaciones · Diseñado para la realidad de LATAM
-          </div>
+        <div class="hero-fine-print">
+          Sin complicaciones · Diseñado para la realidad de LATAM
         </div>
       </div>
 
-      <!-- Right: KPI strip — real numbers, no fabrication -->
-      <div class="hero-right">
-        <div class="kpi-strip stagger-children">
-          <div class="kpi-block">
-            <div class="kpi-number" aria-label="Ocho industrias precargadas">8</div>
-            <div class="kpi-label">Industrias precargadas</div>
-          </div>
-          <div class="kpi-divider" />
-          <div class="kpi-block">
-            <div class="kpi-number" aria-label="Diez motores de análisis">10</div>
-            <div class="kpi-label">Motores de análisis</div>
-          </div>
-          <div class="kpi-divider" />
-          <div class="kpi-block">
-            <div class="kpi-number">24/7</div>
-            <div class="kpi-label">Siempre disponible</div>
-          </div>
+      <aside class="hero-mayor" aria-label="Datos del producto">
+        <div class="mayor-block">
+          <div class="mayor-number" aria-label="Ocho industrias precargadas">8</div>
+          <div class="mayor-label">Industrias precargadas</div>
         </div>
-      </div>
+        <div class="mayor-rule" />
+        <div class="mayor-block">
+          <div class="mayor-number" aria-label="Diez motores de análisis">10</div>
+          <div class="mayor-label">Motores de análisis</div>
+        </div>
+        <div class="mayor-rule" />
+        <div class="mayor-block">
+          <div class="mayor-number">24/7</div>
+          <div class="mayor-label">Siempre disponible</div>
+        </div>
+      </aside>
     </div>
   </section>
 </template>
 
 <style lang="scss" scoped>
 .hero-section {
-  min-height: 90vh;
+  min-height: 90dvh;
   display: flex;
   align-items: center;
+  padding: clamp(24px, 4vw, 64px) 0;
+}
+
+.container {
+  max-width: 1120px;
+  margin: 0 auto;
+  padding: 0 clamp(16px, 4vw, 24px);
+  width: 100%;
 }
 
 .hero-grid {
   display: grid;
   grid-template-columns: 1fr;
   gap: 48px;
-  align-items: center;
+  align-items: start;
 
   @media (min-width: 768px) {
-    grid-template-columns: 3fr 2fr;
-    gap: 64px;
+    grid-template-columns: 9fr 3fr;
+    gap: 24px;
   }
 }
 
-.container-narrow {
-  max-width: 1000px;
-}
-
-.mx-auto {
-  margin-left: auto;
-  margin-right: auto;
-}
-
-/* --------------------------------------------------
-   Q monogram — brand stamp (Signature)
--------------------------------------------------- */
-.q-monogram {
-  position: absolute;
-  font-family: 'Geist', sans-serif;
-  font-weight: 800;
-  font-size: 240px;
-  color: var(--pq-accent);
-  opacity: 0.035;
-  pointer-events: none;
-  right: 2%;
-  top: 8%;
-  z-index: 0;
-  line-height: 1;
-  user-select: none;
-
-  @media (max-width: 767px) {
-    display: none;
-  }
-}
-
-/* --------------------------------------------------
-   Left — copy
--------------------------------------------------- */
 .hero-badge {
   margin-bottom: 24px;
 }
 
 .badge-label {
   display: inline-block;
-  font-family: 'Satoshi', sans-serif;
+  font-family: var(--pq-font-utility);
   font-size: 11px;
-  font-weight: 700;
+  font-weight: 500;
   text-transform: uppercase;
-  letter-spacing: 0.1em;
+  letter-spacing: 0.08em;
   color: var(--pq-accent);
-  padding: 4px 16px;
-  border: 1px solid var(--pq-border);
-  border-radius: var(--pq-radius-full);
+  padding: 4px 0;
+  border-bottom: 1px solid var(--pq-border);
 }
 
-.hero-headline {
-  font-family: 'Geist', sans-serif;
-  font-size: 32px;
-  font-weight: 800;
-  line-height: 1.2;
+.hero-title {
+  font-family: var(--pq-font-display);
+  font-size: clamp(2.75rem, 6vw, 5rem);
+  font-weight: 700;
+  line-height: 0.98;
+  letter-spacing: -0.035em;
   color: var(--pq-text);
-  margin: 0 0 16px;
-
-  @media (min-width: 768px) {
-    font-size: 40px;
-  }
+  margin: 0 0 24px;
+  text-wrap: balance;
 }
 
 .hero-copy {
-  font-family: 'Satoshi', sans-serif;
+  font-family: var(--pq-font-body);
   font-size: 16px;
   font-weight: 400;
   line-height: 1.6;
   color: var(--pq-text-muted);
-  max-width: 500px;
+  max-width: 520px;
   margin: 0 0 32px;
+  text-wrap: pretty;
 }
 
 .onboarding-row {
@@ -190,9 +154,8 @@ function handleSubmit() {
   gap: 12px;
   width: 100%;
   max-width: 480px;
-  // ponytail: shared container — fixes asymmetric widths on mobile (320 vs 100%)
 
-  @media (min-width: 600px) {
+  @media (min-width: 640px) {
     flex-direction: row;
     align-items: stretch;
     max-width: none;
@@ -203,120 +166,107 @@ function handleSubmit() {
   width: 100%;
   flex: 1 1 auto;
 
-  @media (min-width: 600px) {
+  @media (min-width: 640px) {
     max-width: 320px;
   }
 
-  @media (max-width: 599px) {
+  @media (max-width: 639px) {
     max-width: none;
   }
 
   :deep(.q-field__control) {
-    min-height: 56px;
-    height: 56px;
+    min-height: 48px;
+    height: 48px;
     box-sizing: border-box;
     border-radius: var(--pq-radius-sm);
-    background: rgba(255, 255, 255, 0.04);
+    background: rgba(0, 0, 0, 0.25);
     border: 1px solid var(--pq-border);
     transition: all var(--pq-motion-base);
 
     &:hover {
-      border-color: rgba(200, 150, 62, 0.4);
-      background: rgba(255, 255, 255, 0.06);
+      border-color: rgba(163, 120, 94, 0.4);
+      background: rgba(0, 0, 0, 0.35);
     }
   }
 }
 
 .onboarding-btn {
-  min-height: 56px;
-  height: 56px;
+  min-height: 48px;
+  height: 48px;
   box-sizing: border-box;
   min-width: 180px;
   white-space: nowrap;
+  border-radius: var(--pq-radius-sm);
 
-  @media (max-width: 599px) {
+  @media (max-width: 639px) {
     width: 100%;
   }
 
-  @media (min-width: 600px) {
+  @media (min-width: 640px) {
     flex: 0 0 180px;
   }
 }
 
 .hero-fine-print {
-  font-family: 'Satoshi', sans-serif;
+  font-family: var(--pq-font-body);
   font-size: 12px;
   color: var(--pq-text-subtle);
   margin-top: 16px;
 }
 
-/* --------------------------------------------------
-   Right — KPI strip
--------------------------------------------------- */
-.kpi-strip {
+.hero-mayor {
   display: flex;
-  flex-direction: column;
+  flex-direction: row;
   gap: 0;
+  border-left: 1px solid var(--pq-accent);
+  padding-left: 24px;
 
-  @media (min-width: 768px) {
-    align-items: flex-end;
-    text-align: right;
+  @media (max-width: 767px) {
+    flex-direction: row;
+    border-left: none;
+    border-top: 1px solid var(--pq-accent);
+    padding-left: 0;
+    padding-top: 24px;
+    gap: 24px;
   }
 }
 
-.kpi-block {
-  padding: 24px 0;
+.mayor-block {
+  flex: 1;
+  padding: 0 16px 0 0;
 
-  @media (min-width: 768px) {
-    padding: 28px 0;
+  @media (max-width: 767px) {
+    padding: 0;
   }
 }
 
-.kpi-number {
-  font-family: 'Geist Mono', monospace;
-  font-size: 32px;
+.mayor-number {
+  font-family: var(--pq-font-utility);
+  font-size: clamp(2rem, 4vw, 3rem);
   font-weight: 500;
   color: var(--pq-accent);
   font-variant-numeric: tabular-nums;
   line-height: 1;
-
-  @media (min-width: 768px) {
-    font-size: 40px;
-  }
+  margin-bottom: 6px;
 }
 
-.kpi-label {
-  font-family: 'Satoshi', sans-serif;
+.mayor-label {
+  font-family: var(--pq-font-body);
   font-size: 12px;
   color: var(--pq-text-subtle);
-  margin-top: 6px;
+  line-height: 1.4;
 }
 
-.kpi-divider {
-  width: 48px;
-  height: 1px;
+.mayor-rule {
+  width: 1px;
+  height: 48px;
   background: var(--pq-border);
+  align-self: center;
+  margin: 0 16px;
 
-  @media (min-width: 768px) {
-    margin-left: auto;
+  @media (max-width: 767px) {
+    width: 1px;
+    height: 32px;
   }
-}
-
-/* --------------------------------------------------
-   Stagger animation
--------------------------------------------------- */
-.stagger-children > * {
-  opacity: 0;
-  animation: fadeInUp 0.4s ease forwards;
-  &:nth-child(1) { animation-delay: 0.05s; }
-  &:nth-child(2) { animation-delay: 0.1s; }
-  &:nth-child(3) { animation-delay: 0.15s; }
-  &:nth-child(4) { animation-delay: 0.2s; }
-  &:nth-child(5) { animation-delay: 0.25s; }
-}
-
-@keyframes fadeInUp {
-  from { opacity: 0; transform: translateY(16px); }
-  to { opacity: 1; transform: translateY(0); }
 }
 </style>
