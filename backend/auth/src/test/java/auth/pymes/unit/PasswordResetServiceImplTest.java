@@ -1,5 +1,6 @@
 package auth.pymes.unit;
 
+import auth.pymes.common.config.RateLimitService;
 import auth.pymes.common.models.entities.UserEntity;
 import auth.pymes.common.models.enums.AuthProvider;
 import auth.pymes.repositories.UserEntityRepository;
@@ -19,6 +20,7 @@ import org.mockito.Mock;
 import org.mockito.junit.jupiter.MockitoExtension;
 import org.springframework.data.redis.core.RedisTemplate;
 import org.springframework.data.redis.core.ValueOperations;
+import jakarta.servlet.http.HttpServletRequest;
 import org.springframework.security.crypto.password.PasswordEncoder;
 import org.springframework.test.util.ReflectionTestUtils;
 
@@ -29,6 +31,7 @@ import static org.assertj.core.api.Assertions.assertThat;
 import static org.assertj.core.api.Assertions.assertThatThrownBy;
 import static org.mockito.ArgumentMatchers.*;
 import static org.mockito.Mockito.*;
+import static org.mockito.Mockito.lenient;
 
 @ExtendWith(MockitoExtension.class)
 @DisplayName("PasswordResetService Unit Tests")
@@ -49,6 +52,9 @@ class PasswordResetServiceImplTest {
     @Mock
     private EmailService emailService;
 
+    @Mock
+    private RateLimitService rateLimitService;
+
     @InjectMocks
     private PasswordResetServiceImpl passwordResetService;
 
@@ -67,6 +73,7 @@ class PasswordResetServiceImplTest {
                 .build();
 
         ReflectionTestUtils.setField(passwordResetService, "frontendUrl", "http://localhost:9200");
+        lenient().when(rateLimitService.isAllowed(anyString())).thenReturn(true);
     }
 
     // ==================== generateResetToken ====================
@@ -81,7 +88,9 @@ class PasswordResetServiceImplTest {
             when(userRepository.findByEmail("user@example.com")).thenReturn(Optional.of(testUser));
             when(redisTemplate.opsForValue()).thenReturn(valueOperations);
 
-            boolean result = passwordResetService.generateResetToken("user@example.com");
+            HttpServletRequest httpRequest = mock(HttpServletRequest.class);
+            when(httpRequest.getRemoteAddr()).thenReturn("127.0.0.1");
+            boolean result = passwordResetService.generateResetToken("user@example.com", httpRequest);
 
             assertThat(result).isTrue();
 
@@ -103,7 +112,9 @@ class PasswordResetServiceImplTest {
         void generateResetToken_NonExistentEmail_ReturnsFalse() {
             when(userRepository.findByEmail("nonexistent@example.com")).thenReturn(Optional.empty());
 
-            boolean result = passwordResetService.generateResetToken("nonexistent@example.com");
+            HttpServletRequest httpRequest = mock(HttpServletRequest.class);
+            when(httpRequest.getRemoteAddr()).thenReturn("127.0.0.1");
+            boolean result = passwordResetService.generateResetToken("nonexistent@example.com", httpRequest);
 
             assertThat(result).isFalse();
             verifyNoInteractions(redisTemplate);

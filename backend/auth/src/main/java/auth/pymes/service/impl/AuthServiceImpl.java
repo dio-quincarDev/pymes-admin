@@ -70,6 +70,12 @@ public class AuthServiceImpl implements AuthService {
     @Override
     @Transactional
     public AuthResponse register(RegisterRequest request, HttpServletRequest httpRequest) {
+        // Rate limit: prevent registration spam (by IP)
+        String rateLimitKey = "register:" + httpRequest.getRemoteAddr();
+        if (!rateLimitService.isAllowed(rateLimitKey)) {
+            throw new InvalidInputException(RATE_LIMIT_EXCEEDED, rateLimitService.getRemainingAttempts(rateLimitKey));
+        }
+
         if (userRepository.existsByEmail(request.email())) {
             throw new DuplicateResourceException(USER_ALREADY_EXISTS, request.email());
         }
@@ -146,8 +152,11 @@ public class AuthServiceImpl implements AuthService {
             throw new InvalidInputException(RATE_LIMIT_EXCEEDED, rateLimitService.getRemainingAttempts(rateLimitKey));
         }
 
-        UserEntity user = userRepository.findByEmail(request.email())
-                .orElseThrow(() -> new AuthenticationException(INVALID_CREDENTIALS));
+        UserEntity user = userRepository.findByEmail(request.email()).orElse(null);
+        if (user == null) {
+            auditSecurityEvent(null, null, "LOGIN_FAILED", "AUTH", httpRequest, "email=" + request.email());
+            throw new AuthenticationException(INVALID_CREDENTIALS);
+        }
 
         if (!user.isEnabled()) {
             throw new AuthorizationException(USER_INACTIVE);
@@ -163,6 +172,7 @@ public class AuthServiceImpl implements AuthService {
                     new UsernamePasswordAuthenticationToken(request.email(), request.password())
             );
         } catch (org.springframework.security.core.AuthenticationException e) {
+            auditSecurityEvent(user.getId(), null, "LOGIN_FAILED", "AUTH", httpRequest, "bad credentials");
             throw new AuthenticationException(INVALID_CREDENTIALS);
         }
 
@@ -327,6 +337,27 @@ public class AuthServiceImpl implements AuthService {
 
         auditLogRepository.save(audit);
         log.info("Auditoría {}: user={} ip={}", action, user.getEmail(), ipAddress);
+    }
+
+    private void auditSecurityEvent(UUID userId, UUID tenantId, String action, String resource,
+                                    jakarta.servlet.http.HttpServletRequest httpRequest, String details) {
+        try {
+            String ipAddress = httpRequest != null ? extractIpAddress(httpRequest) : null;
+            String userAgent = httpRequest != null ? httpRequest.getHeader("User-Agent") : null;
+            AuditLog audit = AuditLog.builder()
+                    .tenantId(tenantId)
+                    .userId(userId)
+                    .action(action)
+                    .resource(resource)
+                    .details(details != null ? java.util.Map.of("detail", details) : null)
+                    .ipAddress(ipAddress)
+                    .userAgent(userAgent)
+                    .createdAt(ZonedDateTime.now())
+                    .build();
+            auditLogRepository.save(audit);
+        } catch (Exception e) {
+            log.warn("No se pudo persistir evento de seguridad {}: {}", action, e.getMessage());
+        }
     }
 
     private String extractIpAddress(jakarta.servlet.http.HttpServletRequest request) {

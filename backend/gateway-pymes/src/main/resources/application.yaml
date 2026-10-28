@@ -51,11 +51,6 @@ spring:
       default-filters:
         # CORS deduplication — gateway globalcors + auth service ambos agregan ACAO
         - DedupeResponseHeader=Access-Control-Allow-Origin Access-Control-Allow-Credentials, RETAIN_FIRST
-        # Security headers
-        - AddResponseHeader=Strict-Transport-Security, max-age=31536000; includeSubDomains
-        - AddResponseHeader=X-Frame-Options, DENY
-        - AddResponseHeader=X-Content-Type-Options, nosniff
-        - AddResponseHeader=Referrer-Policy, strict-origin-when-cross-origin
 
 jwt:
   secret: ${jwt.secret}
@@ -85,7 +80,7 @@ management:
     prometheus:
       enabled: true
     health:
-      show-details: always
+      show-details: when_authorized
   metrics:
     tags:
       application: ${spring.application.name}
