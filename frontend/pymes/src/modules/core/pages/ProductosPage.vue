@@ -538,11 +538,17 @@ function handleKeydown(e: KeyboardEvent) {
     display: block;
     flex: 1;
   }
+  /* desktop: búsqueda crece (max 560) + q-space empuja el botón a la derecha */
+  .toolbar-search {
+    flex: 1 1 320px;
+    min-width: 280px;
+    max-width: 560px;
+  }
 }
 
-/* Nuevo button — filled cobre con shadow + lift */
+/* Nuevo button — filled cobre con shadow + lift; 40px = alto input dense filled */
 .toolbar-new {
-  min-height: 36px;
+  min-height: 40px;
   background: var(--pq-accent) !important;
   color: var(--pq-background) !important;
   font-weight: 600;
@@ -566,6 +572,13 @@ function handleKeydown(e: KeyboardEvent) {
   outline-offset: 2px;
 }
 
+/* tablet táctil ≥640px: escala táctil 44px */
+@media (pointer: coarse) {
+  .toolbar-new {
+    min-height: 44px;
+  }
+}
+
 @media (max-width: 639px) {
   .productos-toolbar {
     display: grid;
@@ -577,9 +590,7 @@ function handleKeydown(e: KeyboardEvent) {
   .toolbar-new {
     width: 100%;
     min-width: 0;
-  }
-  .toolbar-spacer {
-    display: none;
+    max-width: none;
   }
 }
 
