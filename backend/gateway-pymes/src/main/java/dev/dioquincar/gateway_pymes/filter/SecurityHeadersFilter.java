@@ -14,10 +14,11 @@ public class SecurityHeadersFilter implements WebFilter, Ordered {
     @Override
     public Mono<Void> filter(ServerWebExchange exchange, WebFilterChain chain) {
         HttpHeaders headers = exchange.getResponse().getHeaders();
-        headers.set("Content-Security-Policy",
-                "default-src 'self'; script-src 'self'; style-src 'self' 'unsafe-inline'; " +
-                "img-src 'self' data:; font-src 'self'; connect-src 'self'; " +
-                "frame-ancestors 'none'; form-action 'self'; base-uri 'self'");
+        // Dev: permite conexion al gateway (localhost:8080); Produccion: connect-src 'self' como base
+        String csp = "default-src 'self'; script-src 'self'; style-src 'self' 'unsafe-inline'; " +
+                "img-src 'self' data:; font-src 'self'; connect-src 'self' http://localhost:8080; " +
+                "frame-ancestors 'none'; form-action 'self'; base-uri 'self'";
+        headers.set("Content-Security-Policy", csp);
         headers.set("Permissions-Policy", "geolocation=(), microphone=(), camera=(), payment=()");
         headers.set("X-Content-Type-Options", "nosniff");
         headers.set("X-Frame-Options", "DENY");
