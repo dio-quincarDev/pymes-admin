@@ -35,6 +35,10 @@ const filtrados = computed(() => {
 const sortedFiltrados = computed(() =>
   [...filtrados.value].sort((a, b) => a.name.toLowerCase().localeCompare(b.name.toLowerCase())),
 )
+
+const emptyMessage = computed(() =>
+  search.value ? 'Sin resultados para tu búsqueda.' : 'Agrega tu primer proveedor para asociarlo a productos y facturas.',
+)
 const totalPages = computed(() => Math.max(1, Math.ceil(sortedFiltrados.value.length / PAGE_SIZE)))
 const paginated = computed(() =>
   sortedFiltrados.value.slice((page.value - 1) * PAGE_SIZE, page.value * PAGE_SIZE),
@@ -209,15 +213,10 @@ function handleKeydown(e: KeyboardEvent) {
       <EmptyState
         icon="sym_r_people"
         title="Sin proveedores"
-        message="Agrega tu primer proveedor para asociarlo a productos y facturas."
+        :message="emptyMessage"
       >
-        <q-btn
-          color="primary"
-          label="Nuevo Proveedor"
-          no-caps
-          @click="openCreate"
-          class="q-mt-sm"
-        />
+        <q-btn color="primary" label="Nuevo Proveedor" no-caps @click="openCreate" class="q-mt-sm" />
+        <q-btn v-if="search" flat dense no-caps label="Limpiar filtro" color="accent" class="q-mt-sm q-ml-sm" @click="search = ''" />
       </EmptyState>
     </div>
 

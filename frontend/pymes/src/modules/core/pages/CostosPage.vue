@@ -181,12 +181,19 @@ onUnmounted(() => window.removeEventListener('keydown', handleKeydown));
 </script>
 
 <template>
-  <q-page class="core-page">
-    <div class="q-mb-md" data-tour="costos">
-      <h1 class="text-h4 text-primary font-bold q-ma-none">Estructura de Costos</h1>
-      <p class="text-subtitle1 text-accent q-mt-xs">Equipo, gastos fijos recurrentes y configuración laboral</p>
+  <q-page class="core-page costos-page">
+    <!-- Header con firma cobre -->
+    <div class="page-header" data-tour="costos">
+      <div class="page-header__main">
+        <h1 class="page-title">Estructura de Costos</h1>
+        <p class="page-subtitle">Equipo, gastos fijos recurrentes y configuración laboral</p>
+      </div>
+      <div class="page-header__signature" aria-hidden="true">
+        <span class="signature-dot" />
+        <span class="signature-line" />
+      </div>
     </div>
-
+ 
     <CostSummaryBar
       :diario="diario"
       :costo-fijo-diario="costoFijoDiario"
@@ -199,8 +206,9 @@ onUnmounted(() => window.removeEventListener('keydown', handleKeydown));
       @update:config="(v) => { configForm.diasLaborales = v; }"
       @save-config="saveConfig"
     />
-
-    <q-tabs v-model="tab" dark align="left" narrow-indicator active-color="primary" class="cost-tabs q-mb-md">
+    <div class="rule" />
+ 
+    <q-tabs v-model="tab" dark align="left" narrow-indicator active-color="accent" indicator-color="accent" class="cost-tabs q-mb-md">
       <q-tab name="colaboradores" label="Equipo" icon="sym_r_groups" />
       <q-tab name="gastosFijos" label="Gastos Fijos" icon="sym_r_receipt" />
     </q-tabs>
@@ -214,8 +222,8 @@ onUnmounted(() => window.removeEventListener('keydown', handleKeydown));
 
     <!-- dialogs — kept thin, emit up via page actions (component-data-flow.md) -->
     <q-dialog v-model="colabDialog" dark>
-      <q-card dark class="bg-surface-pine" style="width: 90vw; max-width: 480px">
-        <q-card-section><div class="text-h6 text-primary">{{ editingColabId ? 'Editar' : 'Nuevo' }} Integrante</div></q-card-section>
+      <q-card dark class="dialog-surface" style="width: 90vw; max-width: 480px">
+        <q-card-section><div class="dialog-title">{{ editingColabId ? 'Editar' : 'Nuevo' }} Integrante</div></q-card-section>
         <q-separator dark />
         <q-card-section>
           <q-form ref="colabFormRef" @submit.prevent="saveColab" class="q-gutter-y-md">
@@ -229,8 +237,8 @@ onUnmounted(() => window.removeEventListener('keydown', handleKeydown));
     </q-dialog>
 
     <q-dialog v-model="gastoDialog" dark>
-      <q-card dark class="bg-surface-pine" style="width: 90vw; max-width: 480px">
-        <q-card-section><div class="text-h6 text-primary">{{ editingGastoId ? 'Editar' : 'Nuevo' }} Gasto Fijo</div></q-card-section>
+      <q-card dark class="dialog-surface" style="width: 90vw; max-width: 480px">
+        <q-card-section><div class="dialog-title">{{ editingGastoId ? 'Editar' : 'Nuevo' }} Gasto Fijo</div></q-card-section>
         <q-separator dark />
         <q-card-section>
           <q-form ref="gastoFormRef" @submit.prevent="saveGasto" class="q-gutter-y-md">
@@ -243,7 +251,7 @@ onUnmounted(() => window.removeEventListener('keydown', handleKeydown));
             <q-select dark filled v-model="gastoForm.metodoPago" :options="metodoPagoOptions" label="Método de pago" clearable />
             <div class="gasto-proveedor-row">
               <q-select dark filled v-model="gastoForm.proveedorId" :options="proveedorOptions" label="Proveedor" clearable map-options emit-value class="gasto-proveedor-row__select" />
-              <q-btn outline color="primary" icon="sym_r_add" label="Nuevo" size="sm" no-caps type="button" @click="openNewProveedor" />
+              <q-btn outline color="primary" label="Nuevo" size="sm" no-caps type="button" @click="openNewProveedor" />
             </div>
             <div class="row justify-end q-gutter-x-sm"><q-btn flat label="Cancelar" color="accent" v-close-popup /><q-btn type="submit" label="Guardar" color="primary" :loading="saving" /></div>
           </q-form>
@@ -252,21 +260,21 @@ onUnmounted(() => window.removeEventListener('keydown', handleKeydown));
     </q-dialog>
 
     <q-dialog v-model="newProveedorDialog" dark>
-      <q-card dark class="bg-surface-pine" style="min-width: 320px">
-        <q-card-section><div class="text-h6 text-primary">Nuevo Proveedor</div></q-card-section>
+      <q-card dark class="dialog-surface" style="width: 90vw; max-width: 480px">
+        <q-card-section><div class="dialog-title">Nuevo Proveedor</div></q-card-section>
         <q-card-section><q-input dark filled v-model="newProveedorName" label="Nombre" autofocus :rules="[(v) => !!v || 'Requerido']" @keyup.enter="saveNewProveedor" /></q-card-section>
         <q-card-actions align="right"><q-btn flat label="Cancelar" color="accent" v-close-popup /><q-btn label="Crear" color="primary" :loading="savingNewProveedor" @click="saveNewProveedor" /></q-card-actions>
       </q-card>
     </q-dialog>
 
     <q-dialog v-model="colabDelete" dark>
-      <q-card dark class="bg-surface-pine">
+      <q-card dark class="dialog-surface">
         <q-card-section class="row items-center q-gutter-x-md"><q-icon name="warning" color="negative" size="md" /><span>Eliminar integrante <strong>{{ deletingColab?.nombre }}</strong>?</span></q-card-section>
         <q-card-actions align="right"><q-btn flat label="Cancelar" color="accent" v-close-popup /><q-btn label="Eliminar" color="negative" :loading="deleting" @click="removeColab" /></q-card-actions>
       </q-card>
     </q-dialog>
     <q-dialog v-model="gastoDelete" dark>
-      <q-card dark class="bg-surface-pine">
+      <q-card dark class="dialog-surface">
         <q-card-section class="row items-center q-gutter-x-md"><q-icon name="warning" color="negative" size="md" /><span>Eliminar gasto fijo <strong>{{ deletingGasto?.descripcion || deletingGasto?.categoria }}</strong>?</span></q-card-section>
         <q-card-actions align="right"><q-btn flat label="Cancelar" color="accent" v-close-popup /><q-btn label="Eliminar" color="negative" :loading="deleting" @click="removeGasto" /></q-card-actions>
       </q-card>
@@ -275,13 +283,111 @@ onUnmounted(() => window.removeEventListener('keydown', handleKeydown));
 </template>
 
 <style scoped lang="scss">
-.cost-tabs { border-bottom: 1px solid rgba(113,131,127,0.12); overflow-x: auto; -webkit-overflow-scrolling: touch; }
-.cost-tabs :deep(.q-tabs__content) { flex-wrap: nowrap; }
+.costos-page {
+  max-width: 1280px;
+  margin: 0 auto;
+  padding: clamp(24px, 4vw, 64px);
+}
+
+/* Header con firma cobre (sin glow — brief Mayor) */
+.page-header {
+  display: flex;
+  align-items: flex-end;
+  justify-content: space-between;
+  gap: 24px;
+  margin-bottom: 8px;
+}
+
+.page-title {
+  font-family: var(--pq-font-display);
+  font-weight: 700;
+  font-size: clamp(22px, 4vw, 28px);
+  line-height: 1.15;
+  letter-spacing: -0.02em;
+  color: var(--pq-text);
+  margin: 0;
+}
+
+.page-subtitle {
+  font-family: var(--pq-font-body);
+  font-weight: 500;
+  font-size: 13px;
+  line-height: 1.5;
+  color: var(--pq-text-muted);
+  margin: 4px 0 0;
+}
+
+.page-header__signature {
+  display: none;
+  align-items: center;
+  gap: 8px;
+}
+
+@media (min-width: 1024px) {
+  .page-header__signature {
+    display: flex;
+  }
+}
+
+.signature-dot {
+  width: 6px;
+  height: 6px;
+  border-radius: 50%;
+  background: var(--pq-accent);
+}
+
+.signature-line {
+  width: 40px;
+  height: 1px;
+  background: var(--pq-accent);
+  opacity: 0.4;
+}
+
+.rule {
+  height: 1px;
+  background: var(--pq-border);
+  margin: 24px 0;
+  opacity: 0.4;
+}
+
+.dialog-surface {
+  background: var(--pq-elevated) !important;
+  border-radius: var(--pq-radius-xl) !important;
+  box-shadow: var(--pq-shadow-lg) !important;
+  border: 1px solid rgba(77, 112, 99, 0.3);
+}
+
+.dialog-title {
+  font-family: var(--pq-font-display);
+  font-weight: 600;
+  font-size: 18px;
+  color: var(--pq-text);
+}
+
+/* Tabs — cobre activo, hairline inferior */
+.cost-tabs {
+  border-bottom: 1px solid var(--pq-border);
+  overflow-x: auto;
+  -webkit-overflow-scrolling: touch;
+}
+
+.cost-tabs :deep(.q-tabs__content) {
+  flex-wrap: nowrap;
+}
+
+.cost-tabs :deep(.q-tab--active .q-tab__label) {
+  color: var(--pq-accent);
+}
+
+.cost-tabs :deep(.q-tab__indicator) {
+  background: var(--pq-accent);
+}
+
 .gasto-proveedor-row { display: flex; align-items: center; gap: 8px; }
 .gasto-proveedor-row__select { flex: 1; min-width: 0; }
-/* ponytail: en xs el select se encoge — apilado con Nuevo full-width debajo */
-@media (max-width: 599px) {
+/* mobile: apilado con Nuevo full-width debajo */
+@media (max-width: 639px) {
   .gasto-proveedor-row { display: grid; grid-template-columns: 1fr; }
-  .gasto-proveedor-row .q-btn { width: 100%; white-space: nowrap; }
+  .gasto-proveedor-row .q-btn { width: 100%; white-space: nowrap; min-height: 44px; }
 }
 </style>
