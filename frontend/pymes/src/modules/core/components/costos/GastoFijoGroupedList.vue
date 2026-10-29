@@ -70,7 +70,8 @@ const summaryLabel = computed(() => {
 }
 
 .toolbar-new {
-  min-height: 36px;
+  min-height: 40px;
+  margin-left: auto;
   background: var(--pq-accent) !important;
   color: var(--pq-background) !important;
   font-weight: 600;
@@ -90,6 +91,11 @@ const summaryLabel = computed(() => {
 .toolbar-new:focus-visible {
   outline: 2px solid var(--pq-accent);
   outline-offset: 2px;
+}
+
+/* tablet táctil ≥640px: escala táctil 44px */
+@media (pointer: coarse) {
+  .toolbar-new { min-height: 44px; }
 }
 
 @media (max-width: 639px) {

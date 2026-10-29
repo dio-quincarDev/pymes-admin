@@ -386,7 +386,6 @@ const navGroups = computed<NavGroup[]>(() => {
         { title: 'Proveedores', icon: 'people', path: '/dashboard/proveedores' },
         { title: 'Facturas', icon: 'receipt_long', path: '/dashboard/facturas' },
         { title: 'Ventas', icon: 'point_of_sale', path: '/dashboard/ventas' },
-        { title: 'Costos', icon: 'money_off', path: '/dashboard/costos' },
       ],
     },
     {
@@ -394,6 +393,8 @@ const navGroups = computed<NavGroup[]>(() => {
       items: [
         { title: 'Análisis', icon: 'analytics', path: '/dashboard/analisis-gastos' },
         { title: 'Préstamos', icon: 'account_balance', path: '/dashboard/prestamos' },
+        { title: 'Costos', icon: 'money_off', path: '/dashboard/costos' },
+        { title: 'Inversión', icon: 'savings', path: '/dashboard/patrimonio' },
       ],
     },
     {

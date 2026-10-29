@@ -14,7 +14,7 @@ import {
   createHandlerBoundToURL,
 } from 'workbox-precaching';
 import { registerRoute, NavigationRoute } from 'workbox-routing';
-import { StaleWhileRevalidate } from 'workbox-strategies';
+import { NetworkFirst } from 'workbox-strategies';
 
 void self.skipWaiting();
 void clientsClaim();
@@ -35,12 +35,13 @@ self.addEventListener('message', (event) => {
   }
 });
 
-// ponytail: StaleWhileRevalidate for GET API calls
-// serves cached on offline, fetches fresh when online
+// NetworkFirst: una sola request de red por visita (datos frescos), fallback a cache si offline.
+// (Antes StaleWhileRevalidate duplicaba cada GET: stale + revalidación en paralelo.)
 registerRoute(
   /\/api\/v1\/core\/.*/,
-  new StaleWhileRevalidate({
+  new NetworkFirst({
     cacheName: 'core-api-cache',
+    networkTimeoutSeconds: 10,
   }),
   'GET'
 );

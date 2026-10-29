@@ -62,7 +62,8 @@ const countLabel = computed(() =>
 
 /* Nuevo button — filled cobre (mismo patrón que Proveedores) */
 .toolbar-new {
-  min-height: 36px;
+  min-height: 40px;
+  margin-left: auto;
   background: var(--pq-accent) !important;
   color: var(--pq-background) !important;
   font-weight: 600;
@@ -84,7 +85,11 @@ const countLabel = computed(() =>
   outline-offset: 2px;
 }
 
-/* ponytail: sin search — izquierda en desktop, full-width en xs */
+/* tablet táctil ≥640px: escala táctil 44px */
+@media (pointer: coarse) {
+  .toolbar-new { min-height: 44px; }
+}
+
 @media (max-width: 639px) {
   .toolbar { display: grid; grid-template-columns: 1fr; gap: 8px; }
   .toolbar .q-btn { width: 100%; white-space: nowrap; min-height: 44px; }
