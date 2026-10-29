@@ -6,7 +6,6 @@ interface Props {
   diario: CostoDiario | null;
   costoFijoDiario: number;
   costoSalariosDiario: number;
-  costoPrestamosDiario: number;
   costoOperativoDiario: number;
   gananciaPositiva: boolean;
   configForm: ConfigLaboral;
@@ -33,10 +32,6 @@ defineEmits<Emits>();
         <div class="summary-item">
           <span class="summary-label">Salarios / día</span>
           <span class="summary-value font-mono">{{ diario ? formatCurrency(costoSalariosDiario) : '—' }}</span>
-        </div>
-        <div v-if="costoPrestamosDiario > 0" class="summary-item">
-          <span class="summary-label">Préstamos / día</span>
-          <span class="summary-value font-mono">{{ diario ? formatCurrency(costoPrestamosDiario) : '—' }}</span>
         </div>
         <div class="summary-item">
           <span class="summary-label">Total costo del día</span>

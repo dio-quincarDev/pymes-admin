@@ -41,18 +41,24 @@ defineProps<{
 }
 
 .stat-strip__grid {
-  display: flex;
-  flex-wrap: wrap;
-  align-items: center;
-  gap: 8px 12px;
+  display: grid;
+  grid-template-columns: 1fr 1fr;
+  gap: 8px;
 }
 
 .summary-item {
   display: flex;
   flex-direction: column;
-  gap: 2px;
-  padding: 4px 8px;
+  gap: 4px;
+  padding: 12px 16px;
   min-width: 0;
+}
+
+/* Mobile: "Venta promedio" ocupa ambas columnas, separado por hairline, centrado */
+.summary-item:nth-child(3) {
+  grid-column: 1 / -1;
+  border-top: 1px solid rgba(77, 112, 99, 0.2);
+  align-items: center;
 }
 
 .summary-label {
@@ -65,7 +71,7 @@ defineProps<{
 
 .summary-value {
   font-family: var(--pq-font-utility);
-  font-size: 1.1rem;
+  font-size: 1.15rem;
   font-weight: 600;
   font-variant-numeric: tabular-nums;
   color: var(--pq-text);
@@ -73,6 +79,7 @@ defineProps<{
 
 .summary-value--total {
   color: var(--pq-accent);
+  font-size: 1.35rem;
 }
 
 .summary-sub {
@@ -81,16 +88,33 @@ defineProps<{
   color: var(--pq-text-muted);
 }
 
-/* mobile: grid 2 cols, total + promedio arriba y más grandes (la respuesta primero) */
-@media (max-width: 639px) {
+/* Desktop: 3 columnas iguales con hairlines verticales, sin amontonar */
+@media (min-width: 640px) {
   .stat-strip__grid {
-    display: grid;
-    grid-template-columns: 1fr 1fr;
-    gap: 8px;
+    grid-template-columns: repeat(3, 1fr);
+    gap: 0;
   }
-  /* Total mes es el dato decisivo: domina en móvil */
+
+  .summary-item {
+    padding: 16px 24px;
+  }
+
+  .summary-item:not(:first-child) {
+    border-left: 1px solid rgba(77, 112, 99, 0.2);
+  }
+
+  .summary-item:nth-child(3) {
+    border-top: 0;
+    grid-column: auto; /* reset del span full-row del mobile */
+    align-items: flex-start; /* reset del centrado mobile */
+  }
+
+  .summary-value {
+    font-size: 1.25rem;
+  }
+
   .summary-value--total {
-    font-size: 1.35rem;
+    font-size: 1.45rem;
   }
 }
 </style>

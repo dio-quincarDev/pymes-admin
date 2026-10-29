@@ -22,7 +22,7 @@ const { showForCurrentRoute } = useTutorial();
 // composable is single source of truth — page is composition surface (sfc.md + composables.md)
 const {
   colaboradores, catGroups, loading, diario, configForm, configSaving,
-  proveedorOptions, costoFijoDiario, costoSalariosDiario, costoPrestamosDiario,
+  proveedorOptions, costoFijoDiario, costoSalariosDiario,
   costoOperativoDiario, gananciaPositiva, loadAll, saveConfig, createProveedor,
   upsertLocalColaborador, removeLocalColaborador, upsertLocalGasto, removeLocalGasto,
 } = useCostos();
@@ -198,7 +198,6 @@ onUnmounted(() => window.removeEventListener('keydown', handleKeydown));
       :diario="diario"
       :costo-fijo-diario="costoFijoDiario"
       :costo-salarios-diario="costoSalariosDiario"
-      :costo-prestamos-diario="costoPrestamosDiario"
       :costo-operativo-diario="costoOperativoDiario"
       :ganancia-positiva="gananciaPositiva"
       :config-form="configForm"
