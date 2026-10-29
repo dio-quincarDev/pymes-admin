@@ -1166,13 +1166,48 @@ Auditoría completa cruzando GAPS.md y TO_DO.md con código real. Se encontraron
 | Auth integration | 55 | ✅ |
 | Core unit | 150 | ✅ |
 | Core integration | 22 | ✅ |
-| Gateway | 37 | ✅ |
-| Frontend lint | — | ✅ |
-| Frontend vue-tsc | — | ✅ |
 
-### Skipped (ponytail)
+## 2026-10-29 — Cache Strategy Phase 1 & Redis Tenant Isolation Phase 2
 
-- Cache en JwtFilter: no hay Caffeine, agregar cuando load lo demande
-- Rate limit `/exchange`: requiere gateway filter + Redis config
+**Contexto:** Se resolvieron dois problemas críticos en el SaaS financiero multi-tenant:
 
-**Estado:** ✅ COMPLETADO
+### Fase 1 — Blackout PWA y OAuth2 en Dev
+- **Problem:** Navegación por Nav Bar causaba pantalla negra; OAuth2 login en dev fallaba porque VITE_API_URL no estaba definido, cayendo back a `window.location.origin` (localhost:9200) y volviéndose same-origin → el Service Worker interceptaba la navegación en lugar de dejarla llegar al gateway (8080).
+- **Fix creado:** `frontend/pymes/.env` con `VITE_API_URL=http://localhost:8080/api/v1` inyectado al dev server.
+- **Fix SW:** `NetworkFirst` estrategia en lugar de `StaleWhileRevalidate` para API y app-shell (`custom-service-worker.ts`). `fetchOptions: { cache: 'no-store' }` en ambas estrategias para evitar que la caché HTTP del navegador sirva recursos stale (304 Not Modified → blackout).
+- **Cleanup conservador en `activate`:** Solo borra caches legacy `core-api-cache` y `app-shell`, no toca precache ni caches desconocidas.
+- **Error `process.argv`:** Guard `Array.isArray(process.argv)` en `recuperacion.ts` (fallaba en browser).
+- **CSP `connect-src`:** Relajado a `connect-src 'self' http://localhost:8080` en `SecurityHeadersFilter.java` para dev; producción mantiene `connect-src 'self'`.
+
+**Validación:** ✅ lint paso, ✅ build PWA paso, ✅ e2e `oauth2-callback` con SW habilitado paso.
+
+**Archivos modificados:**
+- `frontend/pymes/.env` (nuevo) — `VITE_API_URL=http://localhost:8080/api/v1`
+- `frontend/pymes/src-pwa/custom-service-worker.ts` — NetworkFirst, fetchOptions, cleanup conservador
+- `frontend/pymes/src/modules/core/utils/recuperacion.ts` — guard `Array.isArray(process.argv)`
+- `backend/gateway-pymes/src/main/java/dev/dioquincar/gateway_pymes/filter/SecurityHeadersFilter.java` — CSP con connect-src dev
+- `frontend/pymes/src-pwa/register-service-worker.ts` — trigger `registration.update()` en `visibilitychange`
+
+### Fase 2 — Redis Tenant Isolation
+- **Problem:** SaaS multi-tenant usa un Redis compartido para blacklist de tokens + cache core. Riesgo: un tenant podría ver/ contaminar datos de otro.
+- **Fix:** Separación por databases Redis: auth → db 0, core → db 1. Todas las keys prefijadas con `tenant:{id}:` para aislamiento lógico.
+- **Servicios actualizados:** `TokenBlacklistService` (todos los métodos ahora reciben `tenantId`), `EmailVerificationServiceImpl` (todas las operaciones Redis tienen prefix `tenant:{id}:`).
+- **Test devalidado:** `RedisTenantIsolationIntegrationTest` (2 tests pasar en profile `integration` con Testcontainers Redis + PostgreSQL). Confirma: aislamiento de keys por tenant, databases separados, sin fugas de datos.
+
+**Validación:** ✅ Tests run: 2, Failures: 0, Errors: 0 en integration profile.
+
+**Archivos modificados:**
+- `backend/auth/src/main/resources/application.yaml` — `spring.data.redis.database: 0`
+- `backend/core/src/main/resources/application.yaml` — `spring.data.redis.database: 1`
+- `backend/auth/src/main/java/auth/pymes/service/impl/TokenBlacklistService.java` — métodos con tenantId
+- `backend/auth/src/main/java/auth/pymes/service/impl/EmailVerificationServiceImpl.java` — keys con tenant prefix
+- `backend/core/src/test/java/core_pymes/integration/RedisTenantIsolationIntegrationTest.java` — 2 tests de aislamiento
+
+### Estado de fases
+| Fase | Descripción | Estado |
+|------|-------------|--------|
+| Fase 1 | Cache Strategy & Blackout Fix | ✅ Concluida |
+| Fase 2 | Redis Tenant Isolation | ✅ Concluida |
+| Fase 3 | Nav-stress.spec.ts relocation | ⏳ Pendiente |
+
+**Estado general:** ✅ Todas las phases de cache y Redis completadas. Enfocado ahora en validación de usuario y próximos reports legales.

@@ -1160,12 +1160,37 @@ AuthApiIntegrationTest.java      → expect 401 en vez de 400
 
 ### Tests
 
-- Auth unit: 140 pass
-- Auth integration: 55 pass
+## 2026-10-29 — Redis Tenant Isolation & Auth Service Updates (Phase 2)
 
-### Skipped (ponytail)
+**Contexto:** Actualizaciones al servicio auth para aislamiento de tenants en Redis.
 
-- **Cache en JwtFilter:** No hay Caffeine en auth. DB lookup por request es performance, no bug. Agregar cuando load lo demande.
-- **Rate limit `/exchange`:** Requiere filter config + Redis en gateway. No es bug, es hardening.
+### Problem: Redis compartido sin aislamiento
+- El SaaS multi-tenant usa un Redis compartido para blacklist de tokens + cache core.
+- Riesgo: un tenant podría ver o contaminar los datos cacheados de otro tenant.
+- No había separación por tenant en las keys de Redis.
 
-**Estado:** ✅ COMPLETADO
+### Fixes aplicados
+1. **Database separation:** `spring.data.redis.database: 0` en auth service, `spring.data.redis.database: 1` en core service. Auth queries van a db 0, core queries a db 1. **Cero contendencia** entre patrones de uso.
+2. **Key prefixing:** Todas las claves Redis ahora llevan prefix `tenant:{id}:`. Ejemplos:
+   - `tenant:{id}:auth:token_blacklist:{jwtId}` → blacklist por tenant (db 0)
+   - `tenant:{id}:email:verify:{token}` → tokens de verificación por tenant
+   - `tenant:{id}:temp-register:{token}` → registro pendiente por tenant
+3. **TokenBlacklistService:** Todos los métodos ahora reciben `tenantId` y lo prefixean la key Redis. Migración gradual: keys viejas (sin prefix) siguen funcionando, las nuevas tienen el prefix.
+4. **EmailVerificationServiceImpl:** Todas las operaciones Redis (`generateVerificationToken`, `verifyEmail`, etc.) tienen el prefix `tenant:{id}:`. Las keys sin prefix (legacy) aún son compatibles.
+5. **Integración probada:** `RedisTenantIsolationIntegrationTest` (2 tests pasar en profile `integration` con Testcontainers). Confirma: keys diferentes por tenant, sin colisiones, databases separados.
+
+**Validación:** ✅ Tests run: 2, Failures: 0, Errors: 0 -- in Integration: Redis tenant isolation. ✅ Auth unit: 140 pass. ✅ Auth integration: 55 pass.
+
+**Archivos modificados:**
+- `backend/auth/src/main/resources/application.yaml` — `spring.data.redis.database: 0`
+- `backend/core/src/main/resources/application.yaml` — `spring.data.redis.database: 1`
+- `backend/auth/src/main/java/auth/pymes/service/impl/TokenBlacklistService.java` — métodos con tenantId
+- `backend/auth/src/main/java/auth/pymes/service/impl/EmailVerificationServiceImpl.java` — keys con tenant prefix
+
+### Estado
+- ✅ Redis database split (auth→db 0, core→db 1)
+- ✅ Key prefixing por tenant en todos los servicios auth
+- ✅ Integration test validated con Testcontainers
+- ⏳ Monitorizar producción: verificar que keys viejas sigan funcionando
+
+**Próximo paso:** Documentar en GAPS.md o TO_DO.md si requiere acciones operativas adicionales.

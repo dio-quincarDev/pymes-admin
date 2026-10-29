@@ -11,6 +11,7 @@ import java.util.concurrent.TimeUnit;
 /**
  * Servicio para gestionar la blacklist de tokens JWT en Redis.
  * Los tokens revocados (logout) se almacenan aquí hasta que expiran.
+ * Cada tenant tiene su propio espacio de nombres aislado.
  */
 @Service
 @RequiredArgsConstructor
@@ -20,26 +21,27 @@ public class TokenBlacklistService {
     private final RedisTemplate<String, Object> redisTemplate;
 
     private static final String BLACKLIST_PREFIX = "auth:token_blacklist:";
-    private static final String REVOKED_VALUE = "revoked";
 
     /**
      * Añade un token a la blacklist (logout).
      * @param token El token JWT a revocar
-     * @param expirationMs Tiempo de expiración del token en milisegundos (para que Redis lo elimine automáticamente)
+     * @param expirationMs Tiempo de expiración del token en milisegundos
+     * @param tenantId Identificador del tenant (para aislamiento multi-tenant)
      */
-    public void revokeToken(String token, long expirationMs) {
-        String key = BLACKLIST_PREFIX + token;
-        redisTemplate.opsForValue().set(key, REVOKED_VALUE, expirationMs, TimeUnit.MILLISECONDS);
+    public void revokeToken(String token, long expirationMs, String tenantId) {
+        String key = "tenant:" + tenantId + ":auth:token_blacklist:" + token;
+        redisTemplate.opsForValue().set(key, "revoked", expirationMs, TimeUnit.MILLISECONDS);
         log.debug("Token revocado añadido a blacklist: {}", key);
     }
 
     /**
      * Verifica si un token está en la blacklist.
      * @param token El token JWT a verificar
+     * @param tenantId Identificador del tenant
      * @return true si el token está revocado, false si no
      */
-    public boolean isTokenRevoked(String token) {
-        String key = BLACKLIST_PREFIX + token;
+    public boolean isTokenRevoked(String token, String tenantId) {
+        String key = "tenant:" + tenantId + ":auth:token_blacklist:" + token;
         Boolean exists = redisTemplate.hasKey(key);
         return exists != null && exists;
     }
@@ -47,20 +49,21 @@ public class TokenBlacklistService {
     /**
      * Elimina un token de la blacklist (útil para re-login antes de expiración).
      * @param token El token JWT a remover
+     * @param tenantId Identificador del tenant
      */
-    public void removeFromBlacklist(String token) {
-        String key = BLACKLIST_PREFIX + token;
+    public void removeFromBlacklist(String token, String tenantId) {
+        String key = "tenant:" + tenantId + ":auth:token_blacklist:" + token;
         redisTemplate.delete(key);
         log.debug("Token eliminado de blacklist: {}", key);
     }
 
     /**
-     * Limpia tokens expirados de la blacklist (tarea de mantenimiento opcional).
-     * Redis ya maneja la expiración automáticamente con TTL, pero este método
-     * puede usarse para logging o métricas.
+     * Limpia tokens expirados de la blacklist.
+     * Redis ya maneja la expiración automáticamente con TTL.
+     * @param tenantId Identificador del tenant
      */
-    public void cleanupExpiredTokens() {
+    public void cleanupExpiredTokens(String tenantId) {
         // Redis maneja la expiración automáticamente con TTL
-        log.debug("Limpieza de tokens expirados: Redis maneja TTL automáticamente");
+        log.debug("Limpieza de tokens expirados para tenant {}: Redis maneja TTL automáticamente", tenantId);
     }
 }
