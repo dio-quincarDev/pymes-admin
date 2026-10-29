@@ -2,6 +2,7 @@ package auth.pymes.service.impl;
 
 import auth.pymes.common.models.dto.request.RegisterRequest;
 import auth.pymes.common.models.dto.request.VerifyEmailRequest;
+import auth.pymes.common.models.dto.response.AuthResponse;
 import auth.pymes.common.models.entities.UserEntity;
 import auth.pymes.repositories.UserEntityRepository;
 import auth.pymes.service.AuthService;
@@ -11,10 +12,9 @@ import auth.pymes.common.config.RateLimitService;
 import auth.pymes.utils.exception.CodigoError;
 import auth.pymes.utils.exception.auth.AuthenticationException;
 import auth.pymes.utils.exception.auth.EmailVerificationTokenInvalidException;
-auth.pymes.utils.exception.custom.DuplicateResourceException;
+import auth.pymes.utils.exception.custom.DuplicateResourceException;
 import auth.pymes.utils.exception.custom.InvalidInputException;
 import jakarta.servlet.http.HttpServletRequest;
-import lombok.RequiredArgsConstructor;
 import lombok.extern.slf4j.Slf4j;
 import org.springframework.beans.factory.annotation.Value;
 import org.springframework.context.annotation.Lazy;
@@ -22,23 +22,19 @@ import org.springframework.data.redis.core.RedisTemplate;
 import org.springframework.stereotype.Service;
 import org.springframework.transaction.annotation.Transactional;
 
+import java.security.SecureRandom;
+import java.time.Duration;
 import java.util.HexFormat;
 import java.util.Map;
-import java.util.concurrent.TimeUnit;
 
-/**
- * Servicio para gestión de emails y tokens de verificación con aislamiento por tenant en Redis.
- * Cada tenant tiene su propio espacio de nombres de claves.
- */
 @Service
-@RequiredArgsConstructor
 @Slf4j
 public class EmailVerificationServiceImpl implements EmailVerificationService {
 
     private static final String VERIFY_KEY_PREFIX = "email:verify:";
     private static final String PENDING_REG_PREFIX = "temp-register:";
     private static final Duration TOKEN_TTL = Duration.ofMinutes(15);
-    private final SecureRandom SECURE_RANDOM = new SecureRandom();
+    private static final SecureRandom SECURE_RANDOM = new SecureRandom();
 
     private final RedisTemplate<String, Object> redisTemplate;
     private final UserEntityRepository userRepository;
@@ -63,39 +59,45 @@ public class EmailVerificationServiceImpl implements EmailVerificationService {
     }
 
     @Override
-    public void generateAndSendPendingRegistrationEmail(RegisterRequest request, String tenantId) {
+    public void generateAndSendPendingRegistrationEmail(RegisterRequest request) {
         String token = generateSecureToken();
         String key = PENDING_REG_PREFIX + token;
 
-        // Guardar el DTO completo en Redis con prefix de tenant
-        redisTemplate.opsForValue().set("tenant:" + tenantId + ":" + key, request, TOKEN_TTL.toMillis(), TimeUnit.MILLISECONDS);
-        // Índice por email para detección rápida de duplicados, también con prefix de tenant
-        redisTemplate.opsForValue().set("tenant:" + tenantId + ":" + PENDING_REG_PREFIX + "email:" + request.email(), token, TOKEN_TTL.toMillis(), TimeUnit.MILLISECONDS);
-        log.info("Registro pendiente guardado en Redis para tenant {} y email: {}", tenantId, request.email());
+        // Guardar el DTO completo en Redis
+        redisTemplate.opsForValue().set(key, request, TOKEN_TTL);
+        // Índice por email para detección rápida de duplicados
+        redisTemplate.opsForValue().set(PENDING_REG_PREFIX + "email:" + request.email(), token, TOKEN_TTL);
+        log.info("Registro pendiente guardado en Redis para: {}", request.email());
 
         sendVerificationEmail(request.name(), request.email(), token);
     }
 
     @Override
-    public boolean existsPendingRegistration(String email, String tenantId) {
-        String key = "tenant:" + tenantId + ":" + PENDING_REG_PREFIX + "email:" + email;
+    public boolean existsPendingRegistration(String email) {
+        String key = PENDING_REG_PREFIX + "email:" + email;
         return Boolean.TRUE.equals(redisTemplate.hasKey(key));
     }
 
     @Override
-    public String generateVerificationToken(UserEntity user, String tenantId) {
+    public String generateVerificationToken(UserEntity user) {
         String token = generateSecureToken();
         String key = VERIFY_KEY_PREFIX + token;
 
-        redisTemplate.opsForValue().set("tenant:" + tenantId + ":" + key, user.getEmail(), TOKEN_TTL.toMillis(), TimeUnit.MILLISECONDS);
-        log.info("Token de verificación generado para usuario: {} (TTL: {} min) en tenant {}", user.getEmail(), TOKEN_TTL.toMinutes(), tenantId);
+        redisTemplate.opsForValue().set(key, user.getEmail(), TOKEN_TTL);
+        log.info("Token de verificación generado para usuario: {} (TTL: {} min)", user.getEmail(), TOKEN_TTL.toMinutes());
 
         return token;
     }
 
     @Override
     @Transactional
-    public auth.pymes.common.models.dto.response.AuthResponse verifyEmail(VerifyEmailRequest request, String tenantId, HttpServletRequest httpRequest) {
+    public AuthResponse verifyEmail(VerifyEmailRequest request, HttpServletRequest httpRequest) {
+        // Rate limit: prevent email verification spam (by IP)
+        String rateLimitKey = "verify:" + httpRequest.getRemoteAddr();
+        if (!rateLimitService.isAllowed(rateLimitKey)) {
+            throw new InvalidInputException(CodigoError.RATE_LIMIT_EXCEEDED, rateLimitService.getRemainingAttempts(rateLimitKey));
+        }
+
         String token = request.token();
         String email = request.email();
 
@@ -104,27 +106,27 @@ public class EmailVerificationServiceImpl implements EmailVerificationService {
             throw new EmailVerificationTokenInvalidException();
         }
 
-        // 1. Intentar flujo PENDING REGISTRATION (con tenant isolation)
-        String pendingKey = "tenant:" + tenantId + ":" + PENDING_REG_PREFIX + token;
+        // 1. Intentar flujo PENDING REGISTRATION
+        String pendingKey = PENDING_REG_PREFIX + token;
         Object pendingData = redisTemplate.opsForValue().get(pendingKey);
 
         if (pendingData instanceof RegisterRequest regRequest) {
             // Validar que el email coincida (SECURITY FIX)
             if (!regRequest.email().equalsIgnoreCase(email)) {
-                log.warn("Email mismatch en pending registration tenant {}: expected={}, actual={}", tenantId, regRequest.email(), email);
+                log.warn("Email mismatch en pending registration: expected={}, actual={}", regRequest.email(), email);
                 throw new EmailVerificationTokenInvalidException();
             }
 
             // Completar registro y login automático
-            auth.pymes.common.models.dto.response.AuthResponse response = authService.completeRegistration(regRequest, httpRequest);
+            AuthResponse response = authService.completeRegistration(regRequest, httpRequest);
             redisTemplate.delete(pendingKey);
-            redisTemplate.delete("tenant:" + tenantId + ":" + PENDING_REG_PREFIX + "email:" + regRequest.email());
-            log.info("Registro completado y email verificado vía Redis para tenant {} y email: {}", tenantId, email);
+            redisTemplate.delete(PENDING_REG_PREFIX + "email:" + regRequest.email());
+            log.info("Registro completado y email verificado vía Redis para: {}", email);
             return response;
         }
 
-        // 2. Intentar flujo LEGACY (Usuario ya en DB), también con tenant isolation
-        String verifyKey = "tenant:" + tenantId + ":" + VERIFY_KEY_PREFIX + token;
+        // 2. Intentar flujo LEGACY (Usuario ya en DB)
+        String verifyKey = VERIFY_KEY_PREFIX + token;
         Object storedEmail = redisTemplate.opsForValue().get(verifyKey);
 
         if (storedEmail == null) {
@@ -134,7 +136,7 @@ public class EmailVerificationServiceImpl implements EmailVerificationService {
         String emailInRedis = storedEmail.toString();
         // Validar que el email coincida (SECURITY FIX)
         if (!emailInRedis.equalsIgnoreCase(email)) {
-            log.warn("Email mismatch en legacy verification tenant {}: expected={}, actual={}", tenantId, emailInRedis, email);
+            log.warn("Email mismatch en legacy verification: expected={}, actual={}", emailInRedis, email);
             throw new EmailVerificationTokenInvalidException();
         }
 
@@ -149,7 +151,7 @@ public class EmailVerificationServiceImpl implements EmailVerificationService {
         userRepository.save(user);
 
         redisTemplate.delete(verifyKey);
-        log.info("Email verificado exitosamente (Legacy) para tenant {} y usuario: {}", tenantId, email);
+        log.info("Email verificado exitosamente (Legacy) para usuario: {}", email);
 
         // Para usuarios legacy, no tenemos el password para el login automático inmediato vía completeRegistration,
         // pero podemos generar tokens si el flujo lo permite o simplemente retornar tokens si el usuario es válido.
@@ -159,16 +161,16 @@ public class EmailVerificationServiceImpl implements EmailVerificationService {
         return generateAuthResponseForLegacyUser(user, httpRequest);
     }
 
-    private auth.pymes.common.models.dto.response.AuthResponse generateAuthResponseForLegacyUser(UserEntity user, HttpServletRequest httpRequest) {
+    private AuthResponse generateAuthResponseForLegacyUser(UserEntity user, HttpServletRequest httpRequest) {
         // Implementación simplificada: buscar primer tenant o lanzar excepción pidiendo login
         // En este proyecto, el flujo normal será PENDING REGISTRATION de ahora en adelante.
         log.info("Usuario legacy verificado. Se requiere login manual para obtener tokens de sesión.");
-        return new auth.pymes.common.models.dto.response.AuthResponse(null, null, null, null);
+        return new AuthResponse(null, null, null, null);
     }
 
     @Override
     @Transactional
-    public String resendVerificationToken(String email, String tenantId) {
+    public String resendVerificationToken(String email) {
         UserEntity user = userRepository.findByEmail(email)
                 .orElseThrow(() -> new AuthenticationException(CodigoError.USER_NOT_FOUND_BY_EMAIL, email));
 
@@ -176,17 +178,17 @@ public class EmailVerificationServiceImpl implements EmailVerificationService {
             throw new DuplicateResourceException(CodigoError.EMAIL_ALREADY_VERIFIED);
         }
 
-        String token = generateVerificationToken(user, tenantId);
+        String token = generateVerificationToken(user);
         sendVerificationEmail(user.getName(), user.getEmail(), token);
         return token;
     }
 
     @Override
     @Transactional
-    public void createAndSendVerificationEmail(UserEntity user, String tenantId) {
-        String token = generateVerificationToken(user, tenantId);
+    public void createAndSendVerificationEmail(UserEntity user) {
+        String token = generateVerificationToken(user);
         sendVerificationEmail(user.getName(), user.getEmail(), token);
-        log.info("Email de verificación enviado a: {} para tenant {}", user.getEmail(), tenantId);
+        log.info("Email de verificación enviado a: {}", user.getEmail());
     }
 
     private void sendVerificationEmail(String name, String email, String token) {
