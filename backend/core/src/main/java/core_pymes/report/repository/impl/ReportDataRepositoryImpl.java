@@ -318,6 +318,32 @@ public class ReportDataRepositoryImpl implements ReportDataRepository {
                 + ((Number) prevGastos.get("n")).longValue();
         BigDecimal prevIngresos = (BigDecimal) prevVentas.get("total");
 
+        List<ReportData.MetodoTotal> ingresosPorMetodo = jdbc.query(
+                """
+                SELECT dsp.metodo, SUM(dsp.monto) AS total
+                FROM core.daily_sale_payments dsp
+                JOIN core.daily_sales ds ON ds.id = dsp.sale_id
+                WHERE ds.tenant_id = ? AND ds.is_active
+                  AND ds.sale_date >= ? AND ds.sale_date < ?
+                GROUP BY dsp.metodo ORDER BY total DESC
+                """,
+                (rs, row) -> new ReportData.MetodoTotal(
+                        rs.getString("metodo"), rs.getBigDecimal("total")),
+                tenantId, desde, hasta);
+
+        List<ReportData.MetodoTotal> egresosPorMetodo = jdbc.query(
+                """
+                SELECT COALESCE(NULLIF(payment_method, ''), 'Sin método') AS metodo,
+                       SUM(total) AS total
+                FROM core.invoices
+                WHERE tenant_id = ? AND status = 'PAGADA' AND is_active
+                  AND issue_date >= ? AND issue_date < ?
+                GROUP BY metodo ORDER BY total DESC
+                """,
+                (rs, row) -> new ReportData.MetodoTotal(
+                        rs.getString("metodo"), rs.getBigDecimal("total")),
+                tenantId, desde, hasta);
+
         BigDecimal capital;
         try {
             capital = jdbc.queryForObject(
@@ -330,7 +356,9 @@ public class ReportDataRepositoryImpl implements ReportDataRepository {
 
         String periodo = "T" + fin.toString().replace("-", "");
         return new QuarterlyReportData(periodo, ingresos, compras, gastos,
-                ingresos.subtract(compras).subtract(gastos), itbms, diasCargados,
+                ingresos.subtract(compras).subtract(gastos), itbms,
+                ingresosPorMetodo, egresosPorMetodo,
+                diasCargados,
                 ventasCount, facturasCount, meses, topProductos, topProveedores,
                 List.of(
                         new QuarterlyReportData.Comparativa("Ingresos", ingresos, prevIngresos),

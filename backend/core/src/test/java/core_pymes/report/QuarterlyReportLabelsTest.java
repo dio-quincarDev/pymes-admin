@@ -52,7 +52,7 @@ class QuarterlyReportLabelsTest {
     private static QuarterlyReportData data(BigDecimal compras, BigDecimal gastos, BigDecimal neto,
             List<ReportData.TopProveedor> proveedores, List<ReportData.TopProducto> productos) {
         return new QuarterlyReportData("T202609", BigDecimal.ZERO, compras, gastos, neto,
-                BigDecimal.ZERO, 0, 0, 1, List.of(), productos, proveedores, List.of(), false,
+                BigDecimal.ZERO, List.of(), List.of(), 0, 0, 1, List.of(), productos, proveedores, List.of(), false,
                 null, null);
     }
 }

@@ -3,6 +3,7 @@ package core_pymes.report.dto;
 import java.math.BigDecimal;
 import java.util.List;
 
+import core_pymes.report.dto.ReportData.MetodoTotal;
 import core_pymes.report.dto.ReportData.TopProducto;
 import core_pymes.report.dto.ReportData.TopProveedor;
 
@@ -14,6 +15,8 @@ public record QuarterlyReportData(
         BigDecimal gastosOperativos,
         BigDecimal neto,
         BigDecimal itbms,
+        List<MetodoTotal> ingresosPorMetodo,
+        List<MetodoTotal> egresosPorMetodo,
         int diasCargados,
         long ventasCount,
         long facturasCount,
