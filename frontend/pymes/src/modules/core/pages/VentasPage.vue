@@ -389,11 +389,10 @@ onUnmounted(() => window.removeEventListener('keydown', handleKeydown));
 }
 
 @media (max-width: 639px) {
-  /* mobile: CTA full-width, mismo patrón que antes */
-  .stats-cta .toolbar-new {
-    flex-basis: 100%;
+  .ventas-toolbar .toolbar-new {
     width: 100%;
-    white-space: nowrap;
+    min-width: 0;
+    max-width: none;
   }
 }
 </style>
