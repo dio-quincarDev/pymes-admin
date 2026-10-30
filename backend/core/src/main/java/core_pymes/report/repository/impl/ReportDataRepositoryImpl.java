@@ -140,6 +140,19 @@ public class ReportDataRepositoryImpl implements ReportDataRepository {
                         rs.getString("nombre"), rs.getBigDecimal("total"), rs.getLong("facturas")),
                 tenantId, from, to);
 
+        List<ReportData.MetodoTotal> egresosPorMetodo = jdbc.query(
+                """
+                SELECT COALESCE(NULLIF(payment_method, ''), 'Sin método') AS metodo,
+                       SUM(total) AS total
+                FROM core.invoices
+                WHERE tenant_id = ? AND status = 'PAGADA' AND is_active
+                  AND issue_date >= ? AND issue_date < ?
+                GROUP BY metodo ORDER BY total DESC
+                """,
+                (rs, row) -> new ReportData.MetodoTotal(
+                        rs.getString("metodo"), rs.getBigDecimal("total")),
+                tenantId, from, to);
+
         BigDecimal capital;
         try {
             capital = jdbc.queryForObject(
@@ -154,7 +167,7 @@ public class ReportDataRepositoryImpl implements ReportDataRepository {
                 ingresos.subtract(costoCompras).subtract(gastosOper),
                 ((Number) ventas.get("dias")).intValue(), ym.lengthOfMonth(),
                 ((Number) ventas.get("n")).longValue(), ((Number) compras.get("n")).longValue(),
-                semanas, top, productos, gastos, capital);
+                semanas, top, productos, gastos, egresosPorMetodo, capital);
     }
 
     @Override
