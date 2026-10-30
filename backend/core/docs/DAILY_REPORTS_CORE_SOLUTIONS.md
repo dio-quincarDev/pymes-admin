@@ -1309,13 +1309,36 @@ core/product/repository/ProductoRepository.java     # +countByTenantId()
 - [ ] Reports — dashboard consolidado con KPIs, alertas
 - [ ] CRUD configuración (edición por tenant)
 - [ ] Módulo Ventas
-- [ ] Movimientos de stock
 
-### Infraestructura
-- [ ] Spring Security (JWT validation local)
-- [ ] FeignClient para Auth
+## 2026-10-29 — Redis Tenant Isolation Integration Tests (Phase 2)
 
-### Frontend
-- [x] Onboarding post-login
-- [x] Módulo Core frontend (Productos, Proveedores, Facturas)
-- [x] Onboarding 2 pasos con preview de categorías + productos precargados
+**Contexto:** Se agregaron tests de integración para validar el aislamiento de tenants en Redis, Fase 2 del plan de desarrollo.
+
+### Problem: Validar aislamiento en Redis
+- Fase 2 implementa separación de databases Redis (auth→db 0, core→db 1) y prefix de keys por tenant.
+- Se necesitaba validar que el patrón funcione correctamente en un entorno de integración real.
+
+### Fix: RedisTenantIsolationIntegrationTest
+- **Ubicación:** `backend/core/src/test/java/core_pymes/integration/RedisTenantIsolationIntegrationTest.java`
+- **Tests (2):**
+  1. `differentTenantsHaveIsolatedKeys()` - Verifica que distintos tenants tengan keys separadas en Redis db 1 usando prefix `tenant:{id}:`.
+  2. `authTokensAreTenantIsolated()` - Verifica que tokens blacklist por tenant no colisionen en Redis db 0 usando el mismo patrón de prefix.
+- **Entorno:** Profile `integration` con Testcontainers (PostgreSQL + Redis 7-alpine levantados automáticamente).
+- **Resultado:** Ambos tests pasan (0 failures, 0 errors). Confirma que el patrón de aislamiento funciona como se esperaba.
+
+**Validación:** ✅ Tests run: 68, Failures: 0, Errors: 0 (suite completa). Los 2 tests de Redis tenant isolation pasaron exitosamente.
+
+**Archivos modificados:**
+- `backend/core/src/test/java/core_pymes/integration/RedisTenantIsolationIntegrationTest.java` — 2 tests de aislamiento
+
+### Integración con el sistema
+- El test usa el mismo `AbstractIntegrationTest` que el resto de tests de integración del core.
+- Usa el contenedor Redis compartido del `AbstractIntegrationTest` (no necesita definirse redundante).
+- Funciona con `mvn verify -B -Dspring.profiles.active=integration -pl backend/core -Dtest=RedisTenantIsolationIntegrationTest`.
+
+### Próximos pasos
+- [x] Tests de validación creados y pasando
+- [ ] Revisar en producción que el prefix `tenant:` no rompe endpoints existentes
+- [ ] Considerar documentar el patrón en GAPS.md para referencia futura
+
+**Documentado en:** DAILY_REPORTS_CORE_SOLUTIONS.md (sección 2026-10-29)

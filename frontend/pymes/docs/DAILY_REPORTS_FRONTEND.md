@@ -3313,8 +3313,33 @@ docs/strategies/INFRA_STRATEGY.md
 AGENTS.md
 ```
 
-### Verificación
 
+## 2026-10-29 — PWA Blackout Fix & OAuth2 Dev Login (Phase 1)
+
+**Contexto:** Se resolvieron dos problemas críticos en el frontend PWA:
+
+### Problem: Blackout en navegación y OAuth2 en dev
+- **Blackout:** Navegar con la Nav Bar causaba pantalla negra porque el SW viejo servía `index.html` precacheado referenciando bundles JS que ya no existían.
+- **OAuth2 dev:** `VITE_API_URL` no definido → `gatewayBase` caía a `window.location.origin` (localhost:9200) → navegación a `/oauth2/authorization/google` era same-origin → SW la interceptaba → nunca llegaba a Google.
+
+### Fixes aplicados
+1. **`.env` creado** en `frontend/pymes/` con `VITE_API_URL=http://localhost:8080/api/v1` → OAuth2 va cross-origin (8080) y SW no lo interjeta.
+2. **SW changed:** `StaleWhileRevalidate` → `NetworkFirst` para `core-api-cache` y `app-shell`. `fetchOptions: { cache: 'no-store' }` en ambas estrategias → evita caché HTTP stale del navegador.
+3. **Cleanup conservador:** `activate` solo borra `core-api-cache` y `app-shell` (legacy), no toca precache.
+4. **`process.argv` fix:** Guard `Array.isArray(process.argv)` en `recuperacion.ts` (undefined en browser).
+5. **CSP `connect-src`:** Relajado en gateway para dev (`http://localhost:8080`).
+
+**Validación:** ✅ lint 0, ✅ build PWA OK, ✅ e2e `oauth2-callback` con SW habilitado.
+
+**Archivos modificados:**
+- `frontend/pymes/.env` (nuevo)
+- `frontend/pymes/src-pwa/custom-service-worker.ts` — NetworkFirst, fetchOptions, cleanup
+- `frontend/pymes/src-pwa/register-service-worker.ts` — visibilitychange trigger
+- `frontend/pymes/src/modules/core/utils/recuperacion.ts` — guard `Array.isArray(process.argv)`
+
+### Verificación
 - Frontend lint: clean
+- Build PWA: success
+- E2e oauth2-callback: passed
 
 **Estado:** ✅ COMPLETADO

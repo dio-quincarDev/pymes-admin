@@ -63,10 +63,10 @@ async function onSave() {
 </script>
 
 <template>
-  <q-dialog v-model="open">
-    <q-card dark class="bg-surface-pine venta-dialog">
+  <q-dialog v-model="open" dark>
+    <q-card dark class="dialog-surface venta-dialog">
       <q-card-section>
-        <div class="text-h6 text-primary">{{ editing ? 'Editar' : 'Nueva' }} Venta</div>
+        <div class="dialog-title">{{ editing ? 'Editar' : 'Nueva' }} Venta</div>
       </q-card-section>
       <q-separator dark />
       <q-card-section>
@@ -74,7 +74,7 @@ async function onSave() {
           <q-input
             v-model="draft.fecha"
             dark
-            filled
+            outlined
             label="Fecha"
             type="date"
             :rules="[(v) => !!v || 'Requerido']"
@@ -82,7 +82,7 @@ async function onSave() {
           <q-input
             :model-value="montoBrutoStr"
             dark
-            filled
+            outlined
             label="Monto Bruto"
             type="text"
             inputmode="decimal"
@@ -91,7 +91,7 @@ async function onSave() {
             @update:model-value="onGrossAmountInput"
             @blur="formatGrossAmount"
           />
-          <q-input v-model="draft.descripcion" dark filled label="Descripción" />
+          <q-input v-model="draft.descripcion" dark outlined label="Descripción" />
           <div class="row justify-end q-gutter-x-sm">
             <q-btn v-close-popup flat label="Cancelar" color="accent" />
             <q-btn type="submit" label="Guardar" color="primary" :loading="saving" />
@@ -103,13 +103,27 @@ async function onSave() {
 </template>
 
 <style scoped>
+.dialog-surface {
+  background: var(--pq-elevated) !important;
+  border-radius: var(--pq-radius-xl) !important;
+  box-shadow: var(--pq-shadow-lg) !important;
+  border: 1px solid rgba(77, 112, 99, 0.3);
+}
+
+.dialog-title {
+  font-family: var(--pq-font-display);
+  font-weight: 600;
+  font-size: 18px;
+  color: var(--pq-text);
+}
+
 .venta-dialog {
   width: 90vw;
   max-width: 460px;
 }
 
-/* quasar-skilld: responsive CSS en vez de Screen plugin en JS */
-@media (max-width: 599px) {
+/* mobile: full-screen con dvh */
+@media (max-width: 639px) {
   .venta-dialog {
     width: 100vw;
     max-width: 100vw;

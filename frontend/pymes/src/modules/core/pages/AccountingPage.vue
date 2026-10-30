@@ -265,7 +265,7 @@ onMounted(() => { if (tenantId) void load() })
     }
 
     &--result {
-      background: rgba(200, 150, 62, 0.08);
+      background: rgba(163, 120, 94, 0.08);
     }
   }
 

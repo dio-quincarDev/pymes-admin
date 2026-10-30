@@ -20,7 +20,6 @@ defineEmits<{
       v-for="group in groups"
       :key="group.date"
       default-opened
-      expand-separator
       class="day-group"
       header-class="day-group__header"
     >
@@ -44,7 +43,7 @@ defineEmits<{
             icon="sym_r_edit"
             color="primary"
             size="md"
-            aria-label="Editar"
+            aria-label="Editar venta"
             @click="$emit('edit', v)"
           />
           <q-btn
@@ -54,7 +53,7 @@ defineEmits<{
             icon="sym_r_delete"
             color="negative"
             size="md"
-            aria-label="Eliminar"
+            aria-label="Eliminar venta"
             @click="$emit('delete', v)"
           />
         </div>
@@ -64,21 +63,41 @@ defineEmits<{
 </template>
 
 <style scoped>
+/* Grupo de día — solo hairlines, sin card background (brief Mayor) */
 .day-group {
-  margin-bottom: 12px;
-  border-radius: 6px;
-  background: rgba(27, 38, 36, 0.3);
+  margin-bottom: 16px;
+}
+
+.day-group :deep(.q-item) {
+  min-height: 48px;
+  border-top: 1px solid var(--pq-border);
+}
+
+.day-group :deep(.q-expansion-item__content) {
+  border-bottom: 1px solid var(--pq-border);
+}
+
+.day-group :deep(.q-item__section--main) {
+  color: var(--pq-text-muted);
+}
+
+.day-group :deep(.day-group__header:hover) {
+  background: var(--pq-surface);
 }
 
 .day-group__label {
+  font-family: var(--pq-font-display);
   font-size: 0.9rem;
   font-weight: 600;
+  letter-spacing: -0.01em;
+  color: var(--pq-text);
   text-transform: capitalize;
 }
 
 .day-group__total {
   font-family: var(--pq-font-utility);
-  font-weight: 700;
+  font-weight: 600;
+  font-variant-numeric: tabular-nums;
   color: var(--pq-accent);
 }
 
@@ -88,12 +107,19 @@ defineEmits<{
   align-items: center;
   gap: 12px;
   padding: 10px 12px;
-  border-top: 1px solid rgba(113, 131, 127, 0.12);
+  border-top: 1px solid rgba(77, 112, 99, 0.2);
   min-height: 56px;
+  transition: background 0.16s cubic-bezier(0.22, 1, 0.36, 1);
+}
+
+.sale-row:hover {
+  background: var(--pq-surface);
 }
 
 .sale-row__desc {
+  font-family: var(--pq-font-body);
   font-size: 0.9rem;
+  color: var(--pq-text);
   white-space: nowrap;
   overflow: hidden;
   text-overflow: ellipsis;
@@ -101,11 +127,47 @@ defineEmits<{
 
 .sale-row__amount {
   font-family: var(--pq-font-utility);
+  font-size: 0.9rem;
   font-weight: 600;
+  font-variant-numeric: tabular-nums;
+  color: var(--pq-text);
 }
 
 .sale-row__actions {
   display: flex;
   gap: 4px;
+}
+
+/* mobile: descripción arriba, monto + acciones abajo (sin apretar a 320px) */
+@media (max-width: 639px) {
+  .sale-row {
+    grid-template-columns: 1fr auto;
+    grid-template-areas: 'desc desc' 'amount actions';
+    gap: 6px;
+    padding: 12px;
+  }
+  .sale-row__desc {
+    grid-area: desc;
+  }
+  .sale-row__amount {
+    grid-area: amount;
+    align-self: center;
+  }
+  .sale-row__actions {
+    grid-area: actions;
+    justify-content: flex-end;
+  }
+  .sale-row__actions :deep(.q-btn) {
+    min-width: 44px;
+    min-height: 44px;
+  }
+}
+
+/* tablet táctil: escala táctil 44px */
+@media (pointer: coarse) {
+  .sale-row__actions :deep(.q-btn) {
+    min-width: 44px;
+    min-height: 44px;
+  }
 }
 </style>

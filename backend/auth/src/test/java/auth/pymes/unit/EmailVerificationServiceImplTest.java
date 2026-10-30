@@ -3,6 +3,7 @@ package auth.pymes.unit;
 import auth.pymes.common.models.dto.request.RegisterRequest;
 import auth.pymes.common.models.dto.request.VerifyEmailRequest;
 import auth.pymes.common.models.dto.response.AuthResponse;
+import auth.pymes.common.config.RateLimitService;
 import auth.pymes.service.AuthService;
 import auth.pymes.repositories.UserEntityRepository;
 import auth.pymes.service.EmailService;
@@ -34,6 +35,7 @@ import static org.mockito.ArgumentMatchers.any;
 import static org.mockito.ArgumentMatchers.anyString;
 import static org.mockito.ArgumentMatchers.eq;
 import static org.mockito.Mockito.*;
+import static org.mockito.Mockito.lenient;
 
 @ExtendWith(MockitoExtension.class)
 class EmailVerificationServiceImplTest {
@@ -53,6 +55,9 @@ class EmailVerificationServiceImplTest {
     @Mock
     private AuthService authService;
 
+    @Mock
+    private RateLimitService rateLimitService;
+
     @InjectMocks
     private EmailVerificationServiceImpl emailVerificationService;
 
@@ -61,8 +66,9 @@ class EmailVerificationServiceImplTest {
 
     @BeforeEach
     void setUp() {
-        emailVerificationService = new EmailVerificationServiceImpl(redisTemplate, userRepository, emailService, authService);
+        emailVerificationService = new EmailVerificationServiceImpl(redisTemplate, userRepository, emailService, authService, rateLimitService);
         ReflectionTestUtils.setField(emailVerificationService, "frontendUrl", "http://localhost:9200");
+        lenient().when(rateLimitService.isAllowed(anyString())).thenReturn(true);
 
         unverifiedUser = UserEntity.builder()
                 .id(UUID.randomUUID())

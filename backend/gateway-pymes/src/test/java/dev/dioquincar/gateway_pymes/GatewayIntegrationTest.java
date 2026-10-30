@@ -210,6 +210,25 @@ class GatewayIntegrationTest {
     }
 
     @Test
+    @DisplayName("G-IT9: header X-User-Role spoofeado por el cliente no sobrescribe el del JWT")
+    void headerSpoofeadoNoSobrescribeJwt() throws Exception {
+        while (coreServer.takeRequest(1, TimeUnit.MILLISECONDS) != null) { }
+        enqueueJson(coreServer, "{\"ok\":true}");
+        String userId = UUID.randomUUID().toString();
+        String tenantId = UUID.randomUUID().toString();
+
+        webTestClient.get().uri("/api/v1/core/setup/config")
+                .header(HttpHeaders.AUTHORIZATION, "Bearer " + accessToken(userId, tenantId))
+                .header("X-User-Role", "ADMIN") // intento de spoofing
+                .exchange()
+                .expectStatus().isOk();
+
+        RecordedRequest upstream = coreServer.takeRequest(5, TimeUnit.SECONDS);
+        assertThat(upstream).isNotNull();
+        assertThat(upstream.getHeader("X-User-Role")).isEqualTo("OWNER");
+    }
+
+    @Test
     @DisplayName("Actuator: /actuator/health es público y responde UP")
     void actuatorHealthPublico() {
         webTestClient.get().uri("/actuator/health")

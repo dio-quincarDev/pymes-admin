@@ -1,5 +1,5 @@
 <script setup lang="ts">
-import { computed, shallowRef, onMounted } from 'vue';
+import { computed, onMounted } from 'vue';
 import { useMeta } from 'quasar';
 import { useAuthStore } from 'src/modules/auth/store';
 import { useTutorial } from 'src/composables/useTutorial';
@@ -12,7 +12,6 @@ import CategoryBreakdownChart from 'src/modules/core/components/analytics/Catego
 import ActivityPanel from 'src/modules/core/components/dashboard/ActivityPanel.vue';
 import FinancialHealthPanel from 'src/modules/core/components/dashboard/FinancialHealthPanel.vue';
 import KpiStrip from 'src/modules/core/components/dashboard/KpiStrip.vue';
-import RegistrarVentaInlineBar from 'src/modules/core/components/dashboard/RegistrarVentaInlineBar.vue';
 import VentasVsCostosChart from 'src/modules/core/components/dashboard/VentasVsCostosChart.vue';
 import { usePullToRefresh } from 'src/composables/usePullToRefresh';
 
@@ -20,7 +19,6 @@ useMeta({ title: 'Dashboard — PYMEQ' });
 
 const authStore = useAuthStore();
 const hasTenant = computed(() => !!authStore.user?.tenantId);
-const isWriter = computed(() => ['OWNER', 'ADMIN'].includes(authStore.user?.role ?? ''));
 const { formatCurrency } = useNumberFormat();
 const { showForCurrentRoute } = useTutorial();
 
@@ -47,14 +45,6 @@ const {
 const { financialHealth, supplierRecommendations, loading: analyticsLoading } = useAnalytics();
 const { pullDistance, isRefreshing } = usePullToRefresh({ onRefresh: fetch });
 
-// Inline quick capture — composition surface only (logic lives in RegistrarVentaInlineBar + useRegistrarVenta)
-const showInline = shallowRef(false);
-
-function onVentaCreada() {
-  void fetch();
-}
-
-// KPIs for strip — always 3 slots so layout doesn't jump when API is slow/empty (ponytail: derived, no extra state)
 const stripKpis = computed(() => {
   const m = metricas.value;
   const cd = costoDiario.value;
@@ -80,9 +70,6 @@ const stripKpis = computed(() => {
   ];
 });
 
-
-
-// Chart data — últimos 7 días (Panamá UTC-5 local, no UTC)
 const chartData = computed(() => {
   const days: { label: string; ventas: number; costos: number }[] = [];
   const now = new Date();
@@ -100,7 +87,6 @@ const chartData = computed(() => {
   return days;
 });
 
-// Category items
 const categoryItems = computed(() =>
   gastosPorCategoria.value.map((g) => {
     const prev = gastosPorCategoriaPrev.value.find((p) => p.categoria === g.categoria);
@@ -159,63 +145,47 @@ const categoryItems = computed(() =>
         <q-btn flat dense no-caps label="Reintentar" class="dashboard-error-banner__retry" @click="recalcular" />
       </div>
 
-      <!-- Quick actions — hierarchy: 1 primary gold, 2 secondary -->
-      <div class="dashboard-actions">
-        <q-btn
-          no-caps
-          icon="sym_r_add"
-          label="Registrar venta"
-          color="primary"
-          text-color="dark"
-          class="dashboard-actions__btn dashboard-actions__btn--primary"
-          :disable="!isWriter"
-          @click="showInline = !showInline"
-        >
-          <q-tooltip v-if="!isWriter">Solo OWNER/ADMIN</q-tooltip>
-        </q-btn>
-        <div class="dashboard-actions__secondary">
-          <q-btn
-            no-caps
-            icon="sym_r_analytics"
-            label="Análisis"
-            outline
-            class="dashboard-actions__btn dashboard-actions__btn--secondary"
-            @click="$router.push('/dashboard/analisis-gastos')"
-          />
-          <q-btn
-            no-caps
-            icon="sym_r_account_balance"
-            label="Inversión"
-            outline
-            class="dashboard-actions__btn dashboard-actions__btn--secondary"
-            @click="$router.push('/dashboard/patrimonio')"
-          />
-        </div>
-      </div>
-
-      <!-- Inline quick capture — extracted component (props down, events up) -->
-      <RegistrarVentaInlineBar v-if="hasTenant" v-model="showInline" @created="onVentaCreada" />
-
-      <!-- KPI Strip -->
+      <!-- KPI Strip — full width, no card background, editorial -->
       <KpiStrip :kpis="stripKpis" :loading="loading" />
 
-      <!-- Chart -->
+      <!-- Hairline separator -->
+      <div class="rule" />
+
+      <!-- Chart — single, full width -->
       <VentasVsCostosChart :data="chartData" :loading="loading" />
 
-      <!-- Secondary section -->
+      <!-- Hairline separator -->
+      <div class="rule" />
+
+      <!-- Secondary panels — 2 cols desktop, 1 col mobile. Hairlines, no cards -->
       <div class="dashboard-secondary">
         <CategoryBreakdownChart
           :items="categoryItems"
           :loading="loading"
           :empty="categoryItems.length === 0"
         />
-        <ActivityPanel
-          :actividades="actividadReciente"
-          :facturas="facturasPendientes"
-          :loading="loading"
-        />
         <FinancialHealthPanel :data="financialHealth" :loading="analyticsLoading" :recommendations="supplierRecommendations" />
       </div>
+
+      <!-- Hairline separator -->
+      <div class="rule" />
+
+      <!-- Activity — table, not cards -->
+      <ActivityPanel
+        :actividades="actividadReciente"
+        :facturas="facturasPendientes"
+        :loading="loading"
+      />
+
+      <!-- Nav links — text, not buttons -->
+      <nav class="dashboard-nav" aria-label="Accesos rápidos">
+        <a class="dashboard-nav__link" @click="$router.push('/dashboard/analisis-gastos')">
+          Análisis de gastos →
+        </a>
+        <a class="dashboard-nav__link" @click="$router.push('/dashboard/patrimonio')">
+          Inversión y patrimonio →
+        </a>
+      </nav>
     </template>
   </q-page>
 </template>
@@ -269,80 +239,68 @@ const categoryItems = computed(() =>
     margin-left: auto;
     color: var(--pq-danger);
     font-weight: 500;
+    min-height: 32px;
+    display: inline-flex;
+    align-items: center;
   }
 }
 
-.dashboard-actions {
-  display: grid;
-  grid-template-columns: auto 1fr;
-  gap: 12px;
-  margin-bottom: 20px;
-  align-items: center;
-
-  &__btn {
-    font-family: 'Satoshi', sans-serif;
-    font-weight: 600;
-    border-radius: 6px;
-  }
-
-  &__btn--primary {
-    font-weight: 700;
-  }
-
-  &__btn--secondary {
-    opacity: 0.9;
-  }
-
-  &__secondary {
-    display: flex;
-    gap: 10px;
-    flex-wrap: wrap;
-    justify-content: flex-end;
-  }
-
-  @media (max-width: 600px) {
-    grid-template-columns: 1fr;
-
-    &__btn--primary {
-      width: 100%;
-    }
-
-    &__secondary {
-      display: grid;
-      grid-template-columns: 1fr 1fr;
-      gap: 8px;
-      width: 100%;
-      justify-content: stretch;
-    }
-
-    &__btn--secondary {
-      width: 100%;
-    }
-  }
+/* --------------------------------------------------
+   Hairline rule — separador editorial
+   -------------------------------------------------- */
+.rule {
+  height: 1px;
+  background: var(--pq-border);
+  margin: 32px 0;
+  opacity: 0.4;
 }
 
+/* --------------------------------------------------
+   Secondary panels — 2 cols desktop, 1 col mobile
+   -------------------------------------------------- */
 .dashboard-secondary {
   display: grid;
-  grid-template-columns: repeat(3, 1fr);
-  gap: 16px;
-  margin-top: 24px;
-  align-items: stretch;
-  min-width: 0;
-  max-width: 100%;
+  grid-template-columns: 1fr;
+  gap: 24px;
+  align-items: start;
 
-  > * {
-    height: 100%;
-    min-width: 0;
-    max-width: 100%;
-    overflow: hidden;
+  @media (min-width: 768px) {
+    grid-template-columns: 1fr 1fr;
+    gap: 32px;
   }
+}
 
-  @media (max-width: 1023px) {
-    grid-template-columns: repeat(2, 1fr);
+/* --------------------------------------------------
+   Nav links — texto, no botones
+   -------------------------------------------------- */
+.dashboard-nav {
+  display: flex;
+  flex-direction: column;
+  gap: 8px;
+  margin-top: 32px;
+  padding-top: 24px;
+  border-top: 1px solid var(--pq-border);
+
+  @media (min-width: 640px) {
+    flex-direction: row;
+    gap: 24px;
   }
+}
 
-  @media (max-width: 599px) {
-    grid-template-columns: 1fr;
+.dashboard-nav__link {
+  font-family: 'Satoshi', sans-serif;
+  font-size: 14px;
+  font-weight: 500;
+  color: var(--pq-text-muted);
+  cursor: pointer;
+  transition: color var(--pq-motion-fast);
+  min-height: 44px;
+  display: inline-flex;
+  align-items: center;
+  padding: 0 4px;
+
+  &:hover {
+    color: var(--pq-accent);
   }
 }
 
@@ -352,7 +310,7 @@ const categoryItems = computed(() =>
   align-items: center;
   justify-content: center;
   text-align: center;
-  min-height: 60vh;
+  min-height: 60dvh;
   gap: 20px;
   max-width: 480px;
   margin: 0 auto;

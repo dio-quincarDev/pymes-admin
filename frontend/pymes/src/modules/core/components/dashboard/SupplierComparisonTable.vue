@@ -179,7 +179,7 @@ function filterFn(rows: readonly any[], terms: any) {
     transition: background 0.2s ease;
 
     &:hover {
-      background: rgba(200, 150, 62, 0.06) !important;
+      background: rgba(163, 120, 94, 0.06) !important;
     }
   }
 

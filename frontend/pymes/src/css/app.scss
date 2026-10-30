@@ -15,10 +15,10 @@
   --pq-accent: #A3785E;
   --pq-accent-hover: #B78B70;
   --pq-accent-muted: #7A5B48;
-  --pq-success: #3D7A5A;
-  --pq-warning: #C8A042;
-  --pq-danger: #A04038;
-  --pq-info: #6E8BB8;
+  --pq-success: #4E8A6D;
+  --pq-warning: #C49A52;
+  --pq-danger: #C06A60;
+  --pq-info: #6F94A8;
   --pq-radius-xs: 2px;
   --pq-radius-sm: 4px;
   --pq-radius-md: 6px;
@@ -36,19 +36,19 @@
   --pq-font-utility: 'Geist Mono', ui-monospace, 'SF Mono', monospace;
 
   // Chart tokens
-  --pq-chart-bar: #C8963E;
-  --pq-chart-bar-hover: #D4A552;
-  --pq-chart-line: #6E8BB8;
-  --pq-chart-area: rgba(110, 139, 184, 0.15);
-  --pq-chart-grid: rgba(138, 158, 153, 0.08);
-  --pq-chart-text: #8A9E99;
-  --pq-chart-tooltip-bg: #1B2624;
+  --pq-chart-bar: #A3785E;
+  --pq-chart-bar-hover: #B78B70;
+  --pq-chart-line: #6F94A8;
+  --pq-chart-area: rgba(111, 148, 168, 0.15);
+  --pq-chart-grid: rgba(130, 145, 137, 0.08);
+  --pq-chart-text: #A9B6AF;
+  --pq-chart-tooltip-bg: #1B2C26;
   --pq-chart-tooltip-border: rgba(163, 120, 94, 0.3);
-  --pq-chart-positive: #3D7A5A;
-  --pq-chart-negative: #A04038;
-  --pq-chart-abc-a: #C8963E;
-  --pq-chart-abc-b: #6E8BB8;
-  --pq-chart-abc-c: #8A9E99;
+  --pq-chart-positive: #4E8A6D;
+  --pq-chart-negative: #C06A60;
+  --pq-chart-abc-a: #A3785E;
+  --pq-chart-abc-b: #6F94A8;
+  --pq-chart-abc-c: #829189;
 }
 
 body {
@@ -149,9 +149,9 @@ body {
 .skeleton {
   background: linear-gradient(
     90deg,
-    rgba(18, 20, 26, 0.6) 0%,
-    rgba(30, 33, 41, 0.8) 50%,
-    rgba(18, 20, 26, 0.6) 100%
+    rgba(20, 33, 29, 0.6) 0%,
+    rgba(27, 44, 38, 0.8) 50%,
+    rgba(20, 33, 29, 0.6) 100%
   );
   background-size: 200% 100%;
   animation: shimmer 1.2s ease-in-out infinite;
@@ -194,7 +194,7 @@ body {
 .interactive {
   cursor: pointer;
   transition: all $transition-base;
-  &:hover { background: rgba(200, 150, 62, 0.06); }
+  &:hover { background: rgba(163, 120, 94, 0.06); }
   &:active { transform: scale(0.98); }
 }
 
@@ -233,7 +233,7 @@ body {
   z-index: 800;
   padding: 0.75rem 1.5rem;
   background: $primary;
-  color: #08090D;
+  color: #0B1210;
   font-weight: 700;
   text-decoration: none;
   border-radius: 0 0 $pq-radius-sm 0;
@@ -273,13 +273,13 @@ body {
   transition: all 0.16s ease;
   &:hover {
     background: rgba(0, 0, 0, 0.35);
-    border-color: rgba(200, 150, 62, 0.3);
+    border-color: rgba(163, 120, 94, 0.3);
   }
 }
 
 :deep(.q-field--focused .q-field__control) {
   border-color: $primary;
-  box-shadow: 0 0 0 1px rgba(200, 150, 62, 0.2);
+  box-shadow: 0 0 0 1px rgba(163, 120, 94, 0.2);
 }
 
 // --------------------------------------------------
@@ -358,7 +358,7 @@ input[type="date"]::-webkit-calendar-picker-indicator {
 // Signature: dark text on gold (matches skip-link, DESIGN.md accent rule).
 // Quasar defaults to white text on color — 2.1:1 on gold, illegible.
 .q-btn.bg-primary {
-  color: #08090D;
+  color: #0B1210;
 }
 
 // Disabled CTA — differentiate grey disabled from primary gold (fixes “botón en gris” confusion)
@@ -398,10 +398,10 @@ input[type="date"]::-webkit-calendar-picker-indicator {
 ::-webkit-scrollbar { width: 6px; height: 6px; }
 ::-webkit-scrollbar-track { background: transparent; }
 ::-webkit-scrollbar-thumb {
-  background: rgba(53, 57, 69, 0.5);
+  background: rgba(77, 112, 99, 0.5);
   border-radius: 3px;
   transition: background 0.16s ease;
-  &:hover { background: rgba(200, 150, 62, 0.4); }
+  &:hover { background: rgba(163, 120, 94, 0.4); }
 }
 
 // --------------------------------------------------
@@ -426,10 +426,10 @@ input[type="date"]::-webkit-calendar-picker-indicator {
 // Tutorial Tour — driver.js overrides to match PYMEQ dark theme
 // --------------------------------------------------
 .pymeq-tour-popover {
-  background: #12141A !important;
-  border: 1px solid #353945 !important;
+  background: #14211D !important;
+  border: 1px solid #4D7063 !important;
   border-radius: 8px !important;
-  color: #F5F3EF !important;
+  color: #F2F5F1 !important;
   max-width: min(360px, calc(100vw - 32px)) !important;
   margin-bottom: env(safe-area-inset-bottom) !important;
 
@@ -437,13 +437,13 @@ input[type="date"]::-webkit-calendar-picker-indicator {
     font-family: 'Geist', sans-serif !important;
     font-size: 14px !important;
     font-weight: 700 !important;
-    color: #C8963E !important;
+    color: #A3785E !important;
   }
   .driver-popover-description {
     font-family: 'Satoshi', sans-serif !important;
     font-size: 13px !important;
     line-height: 1.5 !important;
-    color: #9B9790 !important;
+    color: #A9B6AF !important;
   }
   .driver-popover-footer {
     gap: 8px !important;
@@ -456,22 +456,22 @@ input[type="date"]::-webkit-calendar-picker-indicator {
     text-transform: none !important;
   }
   .driver-popover-next-btn {
-    background: #C8963E !important;
-    color: #08090D !important;
+    background: #A3785E !important;
+    color: #0B1210 !important;
     border: none !important;
   }
   .driver-popover-prev-btn {
     background: transparent !important;
-    color: #9B9790 !important;
-    border: 1px solid #353945 !important;
+    color: #A9B6AF !important;
+    border: 1px solid #4D7063 !important;
   }
   .driver-popover-close-btn {
-    color: #6B6863 !important;
+    color: #829189 !important;
   }
 }
 
 .driver-overlay path {
-  fill: rgba(10, 18, 16, 0.82) !important;
+  fill: rgba(11, 18, 16, 0.82) !important;
 }
 
 // driver active: prevent sticky CostSummaryBar from covering popover
@@ -483,8 +483,8 @@ input[type="date"]::-webkit-calendar-picker-indicator {
 // Tutorial Hint — mini popover anchored to help button (?)
 // --------------------------------------------------
 .tour-hint {
-  background: #12141A;
-  border: 1px solid #353945;
+  background: #14211D;
+  border: 1px solid #4D7063;
   border-radius: 8px;
   padding: 12px 14px;
   max-width: min(320px, calc(100vw - 32px));
@@ -498,9 +498,9 @@ input[type="date"]::-webkit-calendar-picker-indicator {
     right: 18px;
     width: 10px;
     height: 10px;
-    background: #12141A;
-    border-left: 1px solid #353945;
-    border-top: 1px solid #353945;
+    background: #14211D;
+    border-left: 1px solid #4D7063;
+    border-top: 1px solid #4D7063;
     transform: rotate(45deg);
   }
 
@@ -508,14 +508,14 @@ input[type="date"]::-webkit-calendar-picker-indicator {
     font-family: 'Geist', sans-serif;
     font-size: 13px;
     font-weight: 700;
-    color: #C8963E;
+    color: #A3785E;
     margin-bottom: 4px;
   }
   &__desc {
     font-family: 'Satoshi', sans-serif;
     font-size: 12.5px;
     line-height: 1.5;
-    color: #9B9790;
+    color: #A9B6AF;
     margin-bottom: 10px;
   }
   &__actions {
@@ -541,5 +541,5 @@ input[type="date"]::-webkit-calendar-picker-indicator {
 // --------------------------------------------------
 // Selection Color
 // --------------------------------------------------
-::selection { background: rgba(200, 150, 62, 0.25); color: inherit; }
-::-moz-selection { background: rgba(200, 150, 62, 0.25); color: inherit; }
+::selection { background: rgba(163, 120, 94, 0.25); color: inherit; }
+::-moz-selection { background: rgba(163, 120, 94, 0.25); color: inherit; }

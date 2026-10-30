@@ -7,7 +7,7 @@ test('logout event clears core-api-cache from the service worker scope', async (
   await expect.poll(() => page.evaluate(() => !!navigator.serviceWorker.controller)).toBe(true);
 
   await page.evaluate(async () => {
-    const cache = await caches.open('core-api-cache');
+    const cache = await caches.open('core-api-cache-v1');
     await cache.put('/e2e-core-cache-marker', new Response('{}'));
   });
   await expect.poll(() => page.evaluate(() => caches.match('/e2e-core-cache-marker').then(Boolean))).toBe(true);

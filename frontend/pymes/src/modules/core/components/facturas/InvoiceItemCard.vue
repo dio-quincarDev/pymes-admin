@@ -108,11 +108,8 @@ const precioUnitario = computed(() => {
   return conv > 0 ? val / conv : val
 })
 
-// ponytail: aclara en que unidad esta el Valor (Bulto, Caja, Kg...) — agnostico al producto
-const valorLabel = computed(() => {
-  const u = props.unitOptions.find(o => o.value === props.item.presentacionId)?.label
-  return u ? `Valor $ · ${u}` : 'Valor $'
-})
+// ponytail: la unidad ya se ve en "Presentación"; etiqueta fija evita duplicado y saltos de layout
+const valorLabel = 'Valor $'
 
 const subtotal = computed(() => calcNeto(props.item.cantidad, props.item.valor, props.item.descuento))
 
@@ -199,7 +196,7 @@ function fmt(n: number | null) {
       </div>
 
       <div class="item-card__field item-card__field--unit">
-        <span class="item-card__label">Unidad</span>
+        <span class="item-card__label">Presentación</span>
         <q-select
           dark dense outlined
           :model-value="item.presentacionId"
@@ -272,11 +269,17 @@ function fmt(n: number | null) {
   border: 1px solid color-mix(in srgb, var(--pq-border) 15%, transparent);
   border-radius: var(--pq-radius-md);
   padding: 8px 10px 10px;
-  transition: border-color var(--pq-motion-fast);
+  transition: border-color var(--pq-motion-fast), transform var(--pq-motion-fast), box-shadow var(--pq-motion-fast);
+}
+
+.item-card:hover {
+  transform: translateY(-1px);
+  box-shadow: 0 4px 12px color-mix(in srgb, var(--pq-accent) 10%, transparent);
 }
 
 .item-card:focus-within {
   border-color: color-mix(in srgb, var(--pq-accent) 50%, transparent);
+  box-shadow: 0 0 0 2px color-mix(in srgb, var(--pq-accent) 25%, transparent);
 }
 
 .item-card__top {
@@ -384,6 +387,10 @@ function fmt(n: number | null) {
   letter-spacing: 0.08em;
   color: color-mix(in srgb, var(--pq-accent) 50%, transparent);
   padding-left: 2px;
+  white-space: nowrap;
+  overflow: hidden;
+  text-overflow: ellipsis;
+  line-height: 1.2;
 }
 
 .item-card__field--unit { width: 110px; }.item-card__field--valor { width: 96px; }
@@ -482,6 +489,18 @@ function fmt(n: number | null) {
   .item-card__field--disc {
     width: auto;
     flex: 0 1 54px;
+  }
+}
+
+/* ponytail: respeta preferencia de movimiento reducido */
+@media (prefers-reduced-motion: reduce) {
+  .item-card,
+  .item-card__remove {
+    transition: none !important;
+  }
+  .item-card:hover {
+    transform: none;
+    box-shadow: none;
   }
 }
 

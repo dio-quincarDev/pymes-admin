@@ -7,6 +7,8 @@ const scrollTo = (id: string) => {
   const el = document.getElementById(id);
   if (el) {
     el.scrollIntoView({ behavior: 'smooth' });
+  } else {
+    void router.push({ path: '/', hash: `#${id}` });
   }
 };
 </script>
@@ -15,27 +17,27 @@ const scrollTo = (id: string) => {
   <q-layout view="lHh Lpr lFf" class="landing-layout">
     <a href="#main-content" class="skip-link">Saltar al contenido principal</a>
 
-    <!-- Header -->
     <q-header class="landing-header">
-      <q-toolbar class="container-narrow mx-auto q-px-md">
+      <q-toolbar class="container mx-auto q-px-md">
         <q-toolbar-title class="logo-text cursor-pointer row items-center no-wrap" @click="router.push('/')">
-          <img src="/icons/logo.svg" alt="" width="28" height="28" class="q-mr-sm" />
-          PYMEQ <q-badge color="accent" text-color="dark" label="BETA v0.1" class="q-ml-sm" style="font-size: 10px; font-weight: 700;" />
+          <img src="/icons/logo.svg" alt="" width="24" height="24" class="q-mr-sm" />
+          PYMEQ
         </q-toolbar-title>
 
         <q-space />
 
         <nav class="gt-xs row items-center q-mr-md" aria-label="Navegación principal">
-          <q-btn flat color="accent" size="sm" @click="scrollTo('features')">Funciones</q-btn>
-          <q-btn flat color="accent" size="sm" @click="scrollTo('trust')">Sectores</q-btn>
+          <q-btn flat size="sm" no-caps class="nav-link" @click="scrollTo('features')">Funciones</q-btn>
+          <q-btn flat size="sm" no-caps class="nav-link" @click="scrollTo('trust')">Sectores</q-btn>
         </nav>
 
         <q-btn
           color="primary"
           size="md"
+          no-caps
           @click="router.push('/login')"
         >
-          LOGIN
+          Iniciar sesión
         </q-btn>
       </q-toolbar>
     </q-header>
@@ -50,9 +52,8 @@ const scrollTo = (id: string) => {
       </main>
     </q-page-container>
 
-    <!-- Footer -->
     <q-footer class="landing-footer">
-      <div class="container-narrow mx-auto q-pa-lg">
+      <div class="container mx-auto q-pa-lg">
         <div class="row q-col-gutter-md justify-between items-center">
           <div class="col-12 col-md-4 text-center text-md-left">
             <div class="logo-text q-mb-xs">PymeQ</div>
@@ -67,9 +68,9 @@ const scrollTo = (id: string) => {
           </div>
           <div class="col-12 col-md-4 text-center text-md-right">
              <div class="row justify-center justify-md-end gap-sm">
-                <q-btn flat color="accent" size="xs" to="/terminos">Términos</q-btn>
-                <q-btn flat color="accent" size="xs" to="/privacidad">Privacidad</q-btn>
-                <q-btn flat color="accent" size="xs" href="mailto:dio-quincar@outlook.com">Contacto</q-btn>
+                <q-btn flat size="xs" no-caps to="/terminos" class="footer-link">Términos</q-btn>
+                <q-btn flat size="xs" no-caps to="/privacidad" class="footer-link">Privacidad</q-btn>
+                <q-btn flat size="xs" no-caps href="mailto:dio-quincar@outlook.com" class="footer-link">Contacto</q-btn>
              </div>
           </div>
         </div>
@@ -84,7 +85,7 @@ const scrollTo = (id: string) => {
 }
 
 .landing-header {
-  background: var(--pq-surface);
+  background: var(--pq-background);
   border-bottom: 1px solid var(--pq-border);
 }
 
@@ -94,19 +95,46 @@ const scrollTo = (id: string) => {
 }
 
 .logo-text {
-  font-family: 'Geist', sans-serif;
-  font-weight: 800;
+  font-family: var(--pq-font-display);
+  font-weight: 700;
   font-size: 16px;
   color: var(--pq-accent);
 }
 
-.container-narrow {
-  max-width: 1000px;
+.container {
+  max-width: 1120px;
+  margin: 0 auto;
+  width: 100%;
 }
 
 .mx-auto {
   margin-left: auto;
   margin-right: auto;
+}
+
+.nav-link {
+  color: var(--pq-text-muted);
+  font-family: var(--pq-font-body);
+  font-size: 14px;
+  font-weight: 500;
+  letter-spacing: 0.01em;
+  text-transform: none;
+
+  &:hover {
+    color: var(--pq-text);
+    background: rgba(163, 120, 94, 0.04);
+  }
+}
+
+.footer-link {
+  color: var(--pq-text-subtle);
+  font-family: var(--pq-font-body);
+  font-size: 12px;
+  text-transform: none;
+
+  &:hover {
+    color: var(--pq-text-muted);
+  }
 }
 
 .gap-sm {

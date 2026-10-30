@@ -39,7 +39,10 @@ public class OAuth2IntentCookieFilter extends OncePerRequestFilter {
                 Cookie cookie = new Cookie(COOKIE_NAME, intentId);
                 cookie.setMaxAge(COOKIE_MAX_AGE);
                 cookie.setHttpOnly(true);
-                cookie.setSecure(request.isSecure());
+                // Fail-safe behind reverse proxy (Caddy/Cloudflare): X-Forwarded-Proto
+            boolean isSecure = request.isSecure()
+                    || "https".equalsIgnoreCase(request.getHeader("X-Forwarded-Proto"));
+            cookie.setSecure(isSecure);
                 cookie.setPath("/");
                 cookie.setAttribute("SameSite", "Lax");
                 response.addCookie(cookie);

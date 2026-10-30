@@ -75,6 +75,7 @@ public class AuthenticationFilter extends AbstractGatewayFilterFactory<Authentic
                         }
 
                         ServerHttpRequest.Builder builder = exchange.getRequest().mutate();
+                        // set (not add): sobrescribe cualquier header spoofeado por el cliente
                         addIfNotNull(builder, "X-User-Id", claims.get("userId", String.class));
                         addIfNotNull(builder, "X-User-Email", claims.getSubject());
                         addIfNotNull(builder, "X-Tenant-Id", claims.get("tenantId", String.class));
@@ -82,13 +83,25 @@ public class AuthenticationFilter extends AbstractGatewayFilterFactory<Authentic
                         addIfNotNull(builder, "X-User-Plan", claims.get("plan", String.class));
 
                         return chain.filter(exchange.mutate().request(builder.build()).build());
+                    })
+                    // Fail-open: si Redis no está disponible, permitir el request
+                    .onErrorResume(e -> {
+                        log.warn("Redis no disponible para verificar blacklist en gateway, permitiendo request: {}", e.getMessage());
+                        ServerHttpRequest.Builder builder = exchange.getRequest().mutate();
+                        addIfNotNull(builder, "X-User-Id", claims.get("userId", String.class));
+                        addIfNotNull(builder, "X-User-Email", claims.getSubject());
+                        addIfNotNull(builder, "X-Tenant-Id", claims.get("tenantId", String.class));
+                        addIfNotNull(builder, "X-User-Role", claims.get("role", String.class));
+                        addIfNotNull(builder, "X-User-Plan", claims.get("plan", String.class));
+                        return chain.filter(exchange.mutate().request(builder.build()).build());
                     });
         };
     }
 
     private static void addIfNotNull(ServerHttpRequest.Builder builder, String name, String value) {
         if (value != null) {
-            builder.header(name, value);
+            // set() reemplaza cualquier valor previo enviado por el cliente (anti header-spoofing)
+            builder.headers(h -> h.set(name, value));
         }
     }
 
