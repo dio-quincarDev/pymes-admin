@@ -1,6 +1,7 @@
 <script setup lang="ts">
 import { formatCurrency } from 'src/utils/format';
 import type { VentaDiaria } from '../../types';
+import { labelMetodoPago } from '../../utils/metodosPago';
 import type { DayGroup } from '../../composables/useVentas';
 
 defineProps<{
@@ -57,6 +58,11 @@ defineEmits<{
             @click="$emit('delete', v)"
           />
         </div>
+      </div>
+      <div v-if="group.byMethod && Object.keys(group.byMethod).length" class="day-breakdown">
+        <span v-for="(amt, metodo) in group.byMethod" :key="metodo" class="day-breakdown__chip">
+          {{ labelMetodoPago(metodo as any) }}: {{ formatCurrency(amt as number) }}
+        </span>
       </div>
     </q-expansion-item>
   </div>

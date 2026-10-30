@@ -57,6 +57,7 @@ function openCreate() {
     fecha: toLocalISODate(new Date()),
     montoBruto: 0,
     descripcion: null,
+    desglose: undefined,
   });
   dialogOpen.value = true;
 }
@@ -69,6 +70,7 @@ function openEdit(v: VentaDiaria) {
     fecha: v.fecha,
     montoBruto: v.montoBruto,
     descripcion: v.descripcion,
+    desglose: v.desglose,
   });
   dialogOpen.value = true;
 }
