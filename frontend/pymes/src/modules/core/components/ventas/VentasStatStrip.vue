@@ -1,10 +1,13 @@
 <script setup lang="ts">
 import { formatCurrency } from 'src/utils/format';
+import type { MetodoPago } from '../../types';
+import { labelMetodoPago } from '../../utils/metodosPago';
 
-defineProps<{
+const props = defineProps<{
   total: number;
   count: number;
   average: number;
+  metodoTotals?: Partial<Record<MetodoPago, number>>;
 }>();
 </script>
 
@@ -24,6 +27,11 @@ defineProps<{
         <div class="summary-value">{{ formatCurrency(average) }}</div>
         <div class="summary-sub">por registro, este mes</div>
       </div>
+    </div>
+    <div v-if="props.metodoTotals && Object.keys(props.metodoTotals).length" class="stat-strip__methods">
+      <span v-for="(amt, metodo) in props.metodoTotals" :key="metodo" class="method-chip">
+        {{ labelMetodoPago(metodo as MetodoPago) }}: {{ formatCurrency(amt as number) }}
+      </span>
     </div>
   </q-card>
 </template>
@@ -116,5 +124,24 @@ defineProps<{
   .summary-value--total {
     font-size: 1.45rem;
   }
+}
+
+.stat-strip__methods {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 6px;
+  padding: 8px 16px 12px;
+  border-top: 1px solid rgba(77, 112, 99, 0.2);
+}
+
+.method-chip {
+  font-family: var(--pq-font-utility);
+  font-size: 11px;
+  padding: 4px 8px;
+  border-radius: var(--pq-radius-sm);
+  background: rgba(77, 112, 99, 0.12);
+  border: 1px solid rgba(77, 112, 99, 0.25);
+  color: var(--pq-text);
+  white-space: nowrap;
 }
 </style>

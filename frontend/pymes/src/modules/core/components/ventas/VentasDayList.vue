@@ -176,4 +176,23 @@ defineEmits<{
     min-height: 44px;
   }
 }
+
+.day-breakdown {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 6px;
+  padding: 8px 12px 12px;
+  border-top: 1px solid rgba(77, 112, 99, 0.15);
+}
+
+.day-breakdown__chip {
+  font-family: var(--pq-font-utility);
+  font-size: 11px;
+  padding: 3px 8px;
+  border-radius: var(--pq-radius-sm);
+  background: rgba(163, 120, 94, 0.1);
+  border: 1px solid rgba(163, 120, 94, 0.25);
+  color: var(--pq-accent);
+  white-space: nowrap;
+}
 </style>

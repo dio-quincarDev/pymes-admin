@@ -1,5 +1,5 @@
 <script setup lang="ts">
-import { reactive, shallowRef, useTemplateRef, watch } from 'vue';
+import { computed, reactive, shallowRef, useTemplateRef, watch } from 'vue';
 import type { VentaRequest, VentaPago } from '../../types';
 import { METODOS_PAGO } from '../../utils/metodosPago';
 import type { MetodoPago } from '../../types';
@@ -51,10 +51,12 @@ function parseMonto(s: string): number {
   return Number.isFinite(n) ? n : 0;
 }
 
-const total = shallowRef(0);
-watch(montos, (m) => {
-  total.value = (Object.keys(m) as MetodoPago[]).reduce((s, k) => s + parseMonto(m[k] ?? ''), 0);
-}, { deep: true, immediate: true });
+const total = computed(() =>
+  (Object.keys(montos.value) as MetodoPago[]).reduce(
+    (s, k) => s + parseMonto(montos.value[k] ?? ''),
+    0,
+  ),
+);
 
 async function onSave() {
   if (!(await formRef.value?.validate())) return;
@@ -148,6 +150,12 @@ async function onSave() {
   display: grid;
   grid-template-columns: 1fr 1fr;
   gap: 8px;
+}
+
+@media (max-width: 639px) {
+  .desglose-grid {
+    grid-template-columns: 1fr;
+  }
 }
 
 .total-row {

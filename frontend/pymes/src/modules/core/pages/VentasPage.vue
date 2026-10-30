@@ -27,6 +27,7 @@ const {
   totalMes,
   registroCount,
   ticketPromedio,
+  metodoTotals,
   prevMonth,
   nextMonth,
   goToday,
@@ -153,36 +154,22 @@ onUnmounted(() => window.removeEventListener('keydown', handleKeydown));
       </div>
     </div>
 
-    <div class="stats-row">
+    <div v-if="dayGroups.length" class="stats-row">
       <span class="stat"
         >{{ dayGroups.length }} {{ dayGroups.length === 1 ? 'día con registro' : 'días con registro' }}</span
       >
-      <q-btn
-        v-if="canEdit && dayGroups.length"
-        color="primary"
-        label="Nuevo"
-        no-caps
-        class="toolbar-new toolbar-new--top"
-        @click="openCreate"
-      />
     </div>
     <div class="rule" />
+
+    <div v-if="canEdit && dayGroups.length" class="ventas-toolbar">
+      <q-space />
+      <q-btn color="primary" label="Nuevo" no-caps class="toolbar-new" @click="openCreate" />
+    </div>
 
     <q-pull-to-refresh @refresh="onRefresh">
       <VentasMonthPager :label="monthLabel" @prev="prevMonth" @next="nextMonth" @today="goToday" />
 
-      <VentasStatStrip :total="totalMes" :count="registroCount" :average="ticketPromedio" />
-
-      <!-- CTA entre la franja de stats y la lista de días -->
-      <div v-if="canEdit && dayGroups.length" class="stats-cta">
-        <q-btn color="primary" label="Nuevo" no-caps class="toolbar-new" @click="openCreate" />
-      </div>
-
-      <div v-if="error" class="error-banner" role="alert">
-        <q-icon name="error" size="1.25rem" class="q-mr-sm" />
-        <span>{{ error }}</span>
-        <q-btn flat dense no-caps label="Reintentar" color="accent" class="q-ml-sm" @click="load" />
-      </div>
+      <VentasStatStrip :total="totalMes" :count="registroCount" :average="ticketPromedio" :metodo-totals="metodoTotals" />
 
       <div v-if="loading" class="q-gutter-y-md">
         <q-skeleton v-for="n in 4" :key="n" type="rect" dark animation="pulse" height="48px" />
@@ -212,6 +199,12 @@ onUnmounted(() => window.removeEventListener('keydown', handleKeydown));
         @edit="openEdit"
         @delete="confirmDelete"
       />
+
+      <div v-if="error" class="error-banner" role="alert">
+        <q-icon name="error" size="1.25rem" class="q-mr-sm" />
+        <span>{{ error }}</span>
+        <q-btn flat dense no-caps label="Reintentar" color="accent" class="q-ml-sm" @click="load" />
+      </div>
     </q-pull-to-refresh>
 
     <VentaFormDialog
@@ -310,17 +303,6 @@ onUnmounted(() => window.removeEventListener('keydown', handleKeydown));
   margin: 16px 0 8px;
 }
 
-/* CTA superior: solo desktop; en mobile va entre stats y lista */
-.toolbar-new--top {
-  display: none;
-}
-
-@media (min-width: 640px) {
-  .toolbar-new--top {
-    display: inline-flex;
-  }
-}
-
 .stat {
   font-family: var(--pq-font-utility);
   font-size: 12px;
@@ -336,17 +318,11 @@ onUnmounted(() => window.removeEventListener('keydown', handleKeydown));
   opacity: 0.4;
 }
 
-/* CTA entre stats y lista — solo mobile; en desktop va en la franja superior */
-.stats-cta {
+/* Toolbar con Nuevo (mismo patrón que Productos/Proveedores) */
+.ventas-toolbar {
   display: flex;
   justify-content: flex-end;
   margin: 16px 0 8px;
-}
-
-@media (min-width: 640px) {
-  .stats-cta {
-    display: none;
-  }
 }
 
 /* Nuevo button — filled cobre (mismo patrón que Productos) */
