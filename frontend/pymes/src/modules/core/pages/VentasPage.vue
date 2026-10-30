@@ -161,15 +161,15 @@ onUnmounted(() => window.removeEventListener('keydown', handleKeydown));
     </div>
     <div class="rule" />
 
-    <div v-if="canEdit && dayGroups.length" class="ventas-toolbar">
-      <q-space />
-      <q-btn color="primary" label="Nuevo" no-caps class="toolbar-new" @click="openCreate" />
-    </div>
-
     <q-pull-to-refresh @refresh="onRefresh">
       <VentasMonthPager :label="monthLabel" @prev="prevMonth" @next="nextMonth" @today="goToday" />
 
       <VentasStatStrip :total="totalMes" :count="registroCount" :average="ticketPromedio" :metodo-totals="metodoTotals" />
+
+      <div v-if="canEdit && dayGroups.length" class="ventas-toolbar">
+        <q-space />
+        <q-btn color="primary" label="Nuevo" no-caps class="toolbar-new" @click="openCreate" />
+      </div>
 
       <div v-if="loading" class="q-gutter-y-md">
         <q-skeleton v-for="n in 4" :key="n" type="rect" dark animation="pulse" height="48px" />
