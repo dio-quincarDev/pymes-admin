@@ -48,6 +48,12 @@ public class QuarterlyReportServiceImpl implements QuarterlyReportService {
             params.put("egresosPorMetodoDs", new JRMapCollectionDataSource(egresosPorMetodo(data.egresosPorMetodo())));
             params.put("tieneIngresosPorMetodo", !data.ingresosPorMetodo().isEmpty());
             params.put("tieneEgresosPorMetodo", !data.egresosPorMetodo().isEmpty());
+            BigDecimal ingresosTotal = data.ingresosPorMetodo().stream()
+                    .map(core_pymes.report.dto.ReportData.MetodoTotal::total).reduce(BigDecimal.ZERO, BigDecimal::add);
+            params.put("ingresosTotal", ingresosTotal);
+            BigDecimal egresosTotal = data.egresosPorMetodo().stream()
+                    .map(core_pymes.report.dto.ReportData.MetodoTotal::total).reduce(BigDecimal.ZERO, BigDecimal::add);
+            params.put("egresosTotal", egresosTotal);
             params.put("sinVentas", data.esParcial());
             params.put("mesesDs", new JRMapCollectionDataSource(meses(data.meses())));
             params.put("productosDs", new JRMapCollectionDataSource(productos(data.topProductos())));
