@@ -237,7 +237,7 @@
     </element>
   </title>
 
-  <summary height="740" splitType="Prevent">
+  <summary height="760" splitType="Stretch">
     <element kind="staticText" x="0" y="0" width="515" height="22" forecolor="#1E2129" fontName="DejaVu Sans" fontSize="13" bold="true">
       <printWhenExpression><![CDATA[$P{tieneProductos}]]></printWhenExpression>
       <text><![CDATA[Lo que más compraste]]></text>
