@@ -140,6 +140,19 @@ public class ReportDataRepositoryImpl implements ReportDataRepository {
                         rs.getString("nombre"), rs.getBigDecimal("total"), rs.getLong("facturas")),
                 tenantId, from, to);
 
+        List<ReportData.MetodoTotal> ingresosPorMetodo = jdbc.query(
+                """
+                SELECT dsp.metodo, SUM(dsp.monto) AS total
+                FROM core.daily_sale_payments dsp
+                JOIN core.daily_sales ds ON ds.id = dsp.sale_id
+                WHERE ds.tenant_id = ? AND ds.is_active
+                  AND ds.sale_date >= ? AND ds.sale_date < ?
+                GROUP BY dsp.metodo ORDER BY total DESC
+                """,
+                (rs, row) -> new ReportData.MetodoTotal(
+                        rs.getString("metodo"), rs.getBigDecimal("total")),
+                tenantId, from, to);
+
         List<ReportData.MetodoTotal> egresosPorMetodo = jdbc.query(
                 """
                 SELECT COALESCE(NULLIF(payment_method, ''), 'Sin método') AS metodo,
@@ -167,7 +180,7 @@ public class ReportDataRepositoryImpl implements ReportDataRepository {
                 ingresos.subtract(costoCompras).subtract(gastosOper),
                 ((Number) ventas.get("dias")).intValue(), ym.lengthOfMonth(),
                 ((Number) ventas.get("n")).longValue(), ((Number) compras.get("n")).longValue(),
-                semanas, top, productos, gastos, egresosPorMetodo, capital);
+                semanas, top, productos, gastos, ingresosPorMetodo, egresosPorMetodo, capital);
     }
 
     @Override

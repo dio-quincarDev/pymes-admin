@@ -17,6 +17,7 @@ public record ReportData(
         List<TopProveedor> topProveedores,
         List<TopProducto> topProductos,
         List<TopGasto> topGastos,
+        List<MetodoTotal> ingresosPorMetodo,
         List<MetodoTotal> egresosPorMetodo,
         BigDecimal capital
 ) {

@@ -54,6 +54,11 @@ public class MonthlyReportServiceImpl implements MonthlyReportService {
             params.put("proveedoresDs", new JRMapCollectionDataSource(proveedores(data.topProveedores())));
             params.put("productosDs", new JRMapCollectionDataSource(productos(data.topProductos())));
             params.put("gastosDs", new JRMapCollectionDataSource(gastos(data.topGastos())));
+            params.put("ingresosPorMetodoDs", new JRMapCollectionDataSource(ingresosPorMetodo(data.ingresosPorMetodo())));
+            params.put("tieneIngresosPorMetodo", !data.ingresosPorMetodo().isEmpty());
+            BigDecimal ingresosTotal = data.ingresosPorMetodo().stream()
+                    .map(ReportData.MetodoTotal::total).reduce(BigDecimal.ZERO, BigDecimal::add);
+            params.put("ingresosTotal", ingresosTotal);
             params.put("egresosPorMetodoDs", new JRMapCollectionDataSource(egresosPorMetodo(data.egresosPorMetodo())));
             params.put("tieneEgresosPorMetodo", !data.egresosPorMetodo().isEmpty());
             BigDecimal egresosTotal = data.egresosPorMetodo().stream()
@@ -127,6 +132,14 @@ public class MonthlyReportServiceImpl implements MonthlyReportService {
         List<Map<String, ?>> out = new ArrayList<>();
         for (ReportData.TopGasto g : rows) {
             out.add(Map.of("nombre", g.nombre(), "total", g.total(), "facturas", g.facturas()));
+        }
+        return out;
+    }
+
+    private Collection<Map<String, ?>> ingresosPorMetodo(List<ReportData.MetodoTotal> rows) {
+        List<Map<String, ?>> out = new ArrayList<>();
+        for (ReportData.MetodoTotal m : rows) {
+            out.add(Map.of("metodo", m.metodo(), "total", m.total()));
         }
         return out;
     }

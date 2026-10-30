@@ -26,6 +26,9 @@
   <parameter name="egresosPorMetodoDs" class="net.sf.jasperreports.engine.JRDataSource"/>
   <parameter name="tieneEgresosPorMetodo" class="java.lang.Boolean"/>
   <parameter name="egresosTotal" class="java.math.BigDecimal"/>
+  <parameter name="ingresosPorMetodoDs" class="net.sf.jasperreports.engine.JRDataSource"/>
+  <parameter name="tieneIngresosPorMetodo" class="java.lang.Boolean"/>
+  <parameter name="ingresosTotal" class="java.math.BigDecimal"/>
   <parameter name="tieneProductos" class="java.lang.Boolean"/>
   <parameter name="tieneGastos" class="java.lang.Boolean"/>
   <parameter name="tieneProveedores" class="java.lang.Boolean"/>
@@ -61,6 +64,12 @@
   </dataset>
 
   <dataset name="EgresosPorMetodoDS">
+    <parameter name="moneda" class="java.lang.String"/>
+    <field name="metodo" class="java.lang.String"/>
+    <field name="total" class="java.math.BigDecimal"/>
+  </dataset>
+
+  <dataset name="IngresosPorMetodoDS">
     <parameter name="moneda" class="java.lang.String"/>
     <field name="metodo" class="java.lang.String"/>
     <field name="total" class="java.math.BigDecimal"/>
@@ -228,7 +237,7 @@
     </element>
   </title>
 
-  <summary height="600" splitType="Prevent">
+  <summary height="740" splitType="Prevent">
     <element kind="staticText" x="0" y="0" width="515" height="22" forecolor="#1E2129" fontName="DejaVu Sans" fontSize="13" bold="true">
       <printWhenExpression><![CDATA[$P{tieneProductos}]]></printWhenExpression>
       <text><![CDATA[Lo que más compraste]]></text>
@@ -334,10 +343,58 @@
     </element>
 
     <element kind="staticText" x="0" y="336" width="515" height="22" forecolor="#1E2129" fontName="DejaVu Sans" fontSize="13" bold="true" removeLineWhenBlank="true">
+      <printWhenExpression><![CDATA[$P{tieneIngresosPorMetodo}]]></printWhenExpression>
+      <text><![CDATA[Recibiste este mes]]></text>
+    </element>
+    <element kind="component" x="0" y="364" width="515" height="80" removeLineWhenBlank="true">
+      <printWhenExpression><![CDATA[$P{tieneIngresosPorMetodo}]]></printWhenExpression>
+      <component kind="table" xmlns:jr="http://jasperreports.sourceforge.net/jasperreports/components">
+        <datasetRun subDataset="IngresosPorMetodoDS">
+          <parameter name="moneda">
+            <expression><![CDATA[$P{moneda}]]></expression>
+          </parameter>
+          <dataSourceExpression><![CDATA[$P{ingresosPorMetodoDs}]]></dataSourceExpression>
+        </datasetRun>
+        <column kind="single" width="355">
+          <columnHeader style="TableHeader" height="24">
+            <element kind="staticText" x="8" y="0" width="347" height="24">
+              <text><![CDATA[MÉTODO]]></text>
+            </element>
+          </columnHeader>
+          <detailCell style="TableCell" height="20">
+            <element kind="textField" x="8" y="0" width="347" height="20" blankWhenNull="true">
+              <expression><![CDATA[$F{metodo}]]></expression>
+            </element>
+          </detailCell>
+        </column>
+        <column kind="single" width="160">
+          <columnHeader style="TableHeader" height="24">
+            <element kind="staticText" x="0" y="0" width="152" height="24" hTextAlign="Right">
+              <text><![CDATA[TOTAL]]></text>
+            </element>
+          </columnHeader>
+          <detailCell style="TableCell" height="20">
+            <element kind="textField" x="0" y="0" width="152" height="20" hTextAlign="Right">
+              <expression><![CDATA[$P{moneda} + " " + new java.text.DecimalFormat("#,##0.00").format($F{total})]]></expression>
+            </element>
+          </detailCell>
+        </column>
+      </component>
+    </element>
+    <element kind="textField" x="0" y="444" width="515" height="18" forecolor="#8B6B3A" fontName="DejaVu Sans" fontSize="12" bold="true" hTextAlign="Right" removeLineWhenBlank="true">
+      <printWhenExpression><![CDATA[$P{tieneIngresosPorMetodo}]]></printWhenExpression>
+      <expression><![CDATA["Total recibido: " + $P{moneda} + " " + new java.text.DecimalFormat("#,##0.00").format($P{ingresosTotal})]]></expression>
+    </element>
+    <element kind="staticText" x="0" y="462" width="515" height="14" forecolor="#9B9790" fontName="DejaVu Sans" fontSize="9" removeLineWhenBlank="true">
+      <printWhenExpression><![CDATA[$P{tieneIngresosPorMetodo}]]></printWhenExpression>
+      <text><![CDATA[Incluye ventas sin desglose por método.]]></text>
+    </element>
+
+    <element kind="staticText" x="0" y="480" width="515" height="22" forecolor="#1E2129" fontName="DejaVu Sans" fontSize="13" bold="true" removeLineWhenBlank="true">
       <printWhenExpression><![CDATA[$P{tieneEgresosPorMetodo}]]></printWhenExpression>
       <text><![CDATA[Pagaste este mes]]></text>
     </element>
-    <element kind="component" x="0" y="364" width="515" height="90" removeLineWhenBlank="true">
+    <element kind="component" x="0" y="508" width="515" height="80" removeLineWhenBlank="true">
       <printWhenExpression><![CDATA[$P{tieneEgresosPorMetodo}]]></printWhenExpression>
       <component kind="table" xmlns:jr="http://jasperreports.sourceforge.net/jasperreports/components">
         <datasetRun subDataset="EgresosPorMetodoDS">
@@ -373,24 +430,24 @@
       </component>
     </element>
 
-    <element kind="textField" x="0" y="462" width="515" height="18" forecolor="#8B6B3A" fontName="DejaVu Sans" fontSize="12" bold="true" hTextAlign="Right" removeLineWhenBlank="true">
+    <element kind="textField" x="0" y="596" width="515" height="18" forecolor="#8B6B3A" fontName="DejaVu Sans" fontSize="12" bold="true" hTextAlign="Right" removeLineWhenBlank="true">
       <printWhenExpression><![CDATA[$P{tieneEgresosPorMetodo}]]></printWhenExpression>
       <expression><![CDATA["Total pagado: " + $P{moneda} + " " + new java.text.DecimalFormat("#,##0.00").format($P{egresosTotal})]]></expression>
     </element>
-    <element kind="staticText" x="0" y="480" width="515" height="14" forecolor="#9B9790" fontName="DejaVu Sans" fontSize="9" removeLineWhenBlank="true">
+    <element kind="staticText" x="0" y="614" width="515" height="14" forecolor="#9B9790" fontName="DejaVu Sans" fontSize="9" removeLineWhenBlank="true">
       <printWhenExpression><![CDATA[$P{tieneEgresosPorMetodo}]]></printWhenExpression>
       <text><![CDATA[Solo facturas pagadas del mes.]]></text>
     </element>
 
-    <element kind="staticText" x="0" y="498" width="515" height="22" forecolor="#1E2129" fontName="DejaVu Sans" fontSize="13" bold="true">
+    <element kind="staticText" x="0" y="632" width="515" height="22" forecolor="#1E2129" fontName="DejaVu Sans" fontSize="13" bold="true">
       <printWhenExpression><![CDATA[$P{retornoLinea1} != null]]></printWhenExpression>
       <text><![CDATA[Recupera tu inversión]]></text>
     </element>
-    <element kind="textField" x="0" y="526" width="515" height="34" forecolor="#2E3138" fontName="DejaVu Sans" fontSize="11" textAdjust="StretchHeight">
+    <element kind="textField" x="0" y="660" width="515" height="34" forecolor="#2E3138" fontName="DejaVu Sans" fontSize="11" textAdjust="StretchHeight">
       <printWhenExpression><![CDATA[$P{retornoLinea1} != null]]></printWhenExpression>
       <expression><![CDATA[$P{retornoLinea1}]]></expression>
     </element>
-    <element kind="textField" x="0" y="560" width="515" height="34" forecolor="#2E3138" fontName="DejaVu Sans" fontSize="11" positionType="Float" textAdjust="StretchHeight">
+    <element kind="textField" x="0" y="694" width="515" height="34" forecolor="#2E3138" fontName="DejaVu Sans" fontSize="11" positionType="Float" textAdjust="StretchHeight">
       <printWhenExpression><![CDATA[$P{retornoLinea2} != null]]></printWhenExpression>
       <expression><![CDATA[$P{retornoLinea2}]]></expression>
     </element>
