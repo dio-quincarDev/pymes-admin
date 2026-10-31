@@ -1,11 +1,9 @@
 package auth.pymes.service.impl;
 
-import lombok.RequiredArgsConstructor;
 import lombok.extern.slf4j.Slf4j;
 import org.springframework.data.redis.core.RedisTemplate;
 import org.springframework.stereotype.Service;
 
-import java.time.Duration;
 import java.util.concurrent.TimeUnit;
 
 /**
@@ -13,7 +11,6 @@ import java.util.concurrent.TimeUnit;
  * Los tokens revocados (logout) se almacenan aquí hasta que expiran.
  */
 @Service
-@RequiredArgsConstructor
 @Slf4j
 public class TokenBlacklistService {
 
@@ -21,6 +18,10 @@ public class TokenBlacklistService {
 
     private static final String BLACKLIST_PREFIX = "auth:token_blacklist:";
     private static final String REVOKED_VALUE = "revoked";
+
+    public TokenBlacklistService(RedisTemplate<String, Object> redisTemplate) {
+        this.redisTemplate = redisTemplate;
+    }
 
     /**
      * Añade un token a la blacklist (logout).

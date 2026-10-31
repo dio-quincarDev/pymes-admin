@@ -1,0 +1,23 @@
+$kind: http-request
+name: Change status missing vehicle -> 404
+description: Returns 404 VEHICLE_NOT_FOUND when updating status of non-existent vehicle ID.
+url: "{{baseUrl}}/api/vehicles/00000000-0000-0000-0000-000000000000/status"
+method: PATCH
+headers:
+  Content-Type: application/json
+body:
+  type: json
+  content: |-
+    {
+      "status": "IN_USE"
+    }
+scripts:
+  - type: afterResponse
+    code: |-
+      pm.test("Change status missing vehicle -> 404 Not Found", function () {
+          pm.response.to.have.status(404);
+          var json = pm.response.json();
+          pm.expect(json.error).to.eql("VEHICLE_NOT_FOUND");
+      });
+    language: text/javascript
+order: 14000

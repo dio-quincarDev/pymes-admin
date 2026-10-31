@@ -1,0 +1,18 @@
+$kind: http-request
+description: Returns a paginated list of drivers.
+url: "{{baseUrl}}/api/drivers?page=0&size=20"
+method: GET
+queryParams:
+  page: "0"
+  size: "20"
+scripts:
+  - type: afterResponse
+    code: |-
+      pm.test("List drivers -> 200 OK", function () {
+          pm.response.to.have.status(200);
+          var json = pm.response.json();
+          pm.expect(json.content).to.be.an("array");
+          pm.expect(json).to.have.property("totalElements");
+      });
+    language: text/javascript
+order: 1000

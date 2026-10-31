@@ -1,0 +1,30 @@
+$kind: http-request
+name: Create duplicate plate -> 409
+description: Returns 409 VEHICLE_ALREADY_EXISTS when using a plate that already exists.
+url: "{{baseUrl}}/api/vehicles"
+method: POST
+headers:
+  Content-Type: application/json
+body:
+  type: json
+  content: |-
+    {
+      "plate": "2137KLM",
+      "make": "Postman",
+      "model": "Dup",
+      "year": 2024,
+      "type": "CAR",
+      "fuelType": "GASOLINE",
+      "tankCapacityL": 50,
+      "odometerKm": 0
+    }
+scripts:
+  - type: afterResponse
+    code: |-
+      pm.test("Create duplicate plate -> 409 Conflict", function () {
+          pm.response.to.have.status(409);
+          var json = pm.response.json();
+          pm.expect(json.error).to.eql("VEHICLE_ALREADY_EXISTS");
+      });
+    language: text/javascript
+order: 7000

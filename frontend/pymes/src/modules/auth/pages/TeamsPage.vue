@@ -1,78 +1,156 @@
 <template>
   <div class="teams-page">
-    <div class="page-header q-mb-lg">
-      <div>
-        <h1 class="text-h5 text-weight-bold">Equipo</h1>
-        <p class="text-body2" style="color: var(--pq-text-muted);">Gestiona los miembros de tu empresa</p>
+    <!-- Header editorial con firma cobre -->
+    <div class="page-header" data-tour="teams">
+      <div class="page-header__main">
+        <h1 class="page-title">Equipo</h1>
+        <p class="page-subtitle">Gestiona los miembros de tu empresa</p>
       </div>
+      <div class="page-header__signature" aria-hidden="true">
+        <span class="signature-dot" />
+        <span class="signature-line" />
+      </div>
+    </div>
+
+    <div class="rule" />
+
+    <!-- Toolbar -->
+    <div class="teams-toolbar">
+      <q-space />
       <q-btn
-        v-if="isOwner"
-        label="INVITAR MIEMBRO"
+        v-if="isOwner && members.length"
+        color="primary" label="Invitar" no-caps
         icon="sym_r_person_add"
         @click="showInviteDialog = true"
+        class="toolbar-new"
       />
     </div>
 
-    <BaseCard>
-      <q-table
-        :rows="members"
-        :columns="columns"
-        row-key="user.id"
-        :loading="loading"
-        flat
-        hide-bottom
-        :pagination="{ rowsPerPage: 0 }"
-      >
-        <template v-slot:body-cell-role="props">
+    <BaseCard class="teams-card">
+      <!-- Desktop/tablet: tabla completa -->
+      <div class="teams-table-wrap">
+        <q-table
+          :rows="members"
+          :columns="columns"
+          row-key="user.id"
+          :loading="loading"
+          flat
+          hide-bottom
+          :pagination="{ rowsPerPage: 0 }"
+        >
+          <template v-slot:body-cell-name="props">
           <q-td :props="props">
+            <div class="team-cell-name">{{ props.row.user.name }}</div>
+            <div class="team-cell-email">{{ props.row.user.email }}</div>
+          </q-td>
+        </template>
+        <template v-slot:body-cell-role="props">
+            <q-td :props="props">
+              <q-chip
+                :color="roleColor(props.row.role)"
+                text-color="white"
+                dense
+                size="sm"
+              >
+                {{ props.row.role }}
+              </q-chip>
+            </q-td>
+          </template>
+          <template v-slot:body-cell-actions="props">
+            <q-td :props="props">
+              <div class="row no-wrap q-gutter-xs">
+                <q-btn
+                  v-if="isOwner && props.row.user.id !== currentUserId"
+                  flat
+                  round
+                  dense
+                  icon="sym_r_edit"
+                  size="sm"
+                  @click="openRoleDialog(props.row)"
+                >
+                  <q-tooltip>Cambiar rol</q-tooltip>
+                </q-btn>
+                <q-btn
+                  v-if="isOwner && props.row.user.id !== currentUserId"
+                  flat
+                  round
+                  dense
+                  icon="sym_r_person_remove"
+                  size="sm"
+                  color="negative"
+                  @click="confirmRemove(props.row)"
+                >
+                  <q-tooltip>Remover del equipo</q-tooltip>
+                </q-btn>
+              </div>
+            </q-td>
+          </template>
+        </q-table>
+      </div>
+
+      <!-- Mobile: lista de cards (sin scroll horizontal) -->
+      <div class="teams-mobile-list">
+        <div
+          v-for="member in members"
+          :key="member.user.id"
+          class="team-member-card"
+        >
+          <div class="team-member-card__row">
+            <div class="team-member-card__name">{{ member.user.name }}</div>
             <q-chip
-              :color="roleColor(props.row.role)"
+              :color="roleColor(member.role)"
               text-color="white"
               dense
               size="sm"
             >
-              {{ props.row.role }}
+              {{ member.role }}
             </q-chip>
-          </q-td>
-        </template>
-        <template v-slot:body-cell-actions="props">
-          <q-td :props="props">
-            <div class="row no-wrap q-gutter-xs">
-              <q-btn
-                v-if="isOwner && props.row.user.id !== currentUserId"
-                flat
-                round
-                dense
-                icon="sym_r_edit"
-                size="sm"
-                @click="openRoleDialog(props.row)"
-              >
-                <q-tooltip>Cambiar rol</q-tooltip>
-              </q-btn>
-              <q-btn
-                v-if="isOwner && props.row.user.id !== currentUserId"
-                flat
-                round
-                dense
-                icon="sym_r_person_remove"
-                size="sm"
-                color="negative"
-                @click="confirmRemove(props.row)"
-              >
-                <q-tooltip>Remover del equipo</q-tooltip>
-              </q-btn>
-            </div>
-          </q-td>
-        </template>
-      </q-table>
+          </div>
+          <div class="team-member-card__email">{{ member.user.email }}</div>
+          <div
+            v-if="isOwner && member.user.id !== currentUserId"
+            class="team-member-card__actions"
+          >
+            <q-btn
+              flat
+              dense
+              icon="sym_r_edit"
+              size="sm"
+              label="Rol"
+              no-caps
+              @click="openRoleDialog(member)"
+            />
+            <q-btn
+              flat
+              dense
+              icon="sym_r_person_remove"
+              size="sm"
+              color="negative"
+              label="Remover"
+              no-caps
+              @click="confirmRemove(member)"
+            />
+          </div>
+        </div>
+      </div>
+
+      <div v-if="!loading && !members.length" class="q-mt-lg">
+        <EmptyState icon="sym_r_groups" title="Sin miembros" message="Invita a tu equipo para empezar.">
+          <q-btn
+            v-if="isOwner"
+            color="primary" label="Invitar Miembro" no-caps
+            @click="showInviteDialog = true"
+            class="q-mt-sm"
+          />
+        </EmptyState>
+      </div>
     </BaseCard>
 
     <!-- Invite Dialog -->
     <q-dialog v-model="showInviteDialog" persistent>
-      <q-card style="min-width: 380px; background: var(--pq-surface); border: 1px solid var(--pq-border);">
-        <q-card-section>
-          <div class="text-h6">Invitar Miembro</div>
-        </q-card-section>
+      <q-card class="dialog-surface" style="width: 90vw; max-width: 420px">
+        <q-card-section><div class="dialog-title">Invitar Miembro</div></q-card-section>
+        <q-separator dark />
         <q-card-section class="q-gutter-md">
           <q-input
             v-model="inviteForm.email"
@@ -96,7 +174,7 @@
           />
         </q-card-section>
         <q-card-actions align="right">
-          <q-btn flat label="Cancelar" v-close-popup />
+          <q-btn flat label="Cancelar" color="accent" v-close-popup />
           <q-btn
             color="primary"
             label="Enviar Invitación"
@@ -109,14 +187,13 @@
 
     <!-- Role Change Dialog -->
     <q-dialog v-model="showRoleDialog" persistent>
-      <q-card style="min-width: 320px; background: var(--pq-surface); border: 1px solid var(--pq-border);">
+      <q-card class="dialog-surface" style="width: 90vw; max-width: 360px">
+        <q-card-section><div class="dialog-title">Cambiar Rol</div></q-card-section>
+        <q-separator dark />
         <q-card-section>
-          <div class="text-h6">Cambiar Rol</div>
-          <div class="text-body2" style="color: var(--pq-text-muted);">
+          <div class="text-body2 q-mb-sm" style="color: var(--pq-text-muted);">
             {{ selectedMember?.user.name }}
           </div>
-        </q-card-section>
-        <q-card-section>
           <q-select
             v-model="newRole"
             :options="roleOptions"
@@ -129,7 +206,7 @@
           />
         </q-card-section>
         <q-card-actions align="right">
-          <q-btn flat label="Cancelar" v-close-popup />
+          <q-btn flat label="Cancelar" color="accent" v-close-popup />
           <q-btn
             color="primary"
             label="Guardar"
@@ -149,6 +226,7 @@ import { useAuthStore } from '../store';
 import { memberService } from '../services/member.service';
 import { invitationService } from '../services/invitation.service';
 import BaseCard from 'src/components/base/BaseCard.vue';
+import EmptyState from 'src/components/ui/EmptyState.vue';
 import type { ApiResponse, MemberResponse } from '../types';
 
 useMeta({ title: 'Equipo — PYMEQ' });
@@ -174,7 +252,6 @@ const isOwner = computed(() => userRole.value === 'OWNER');
 
 const columns = [
   { name: 'name', label: 'Nombre', field: (row: MemberResponse) => row.user.name, align: 'left' as const },
-  { name: 'email', label: 'Email', field: (row: MemberResponse) => row.user.email, align: 'left' as const },
   { name: 'role', label: 'Rol', field: 'role', align: 'center' as const },
   { name: 'actions', label: '', field: 'actions', align: 'right' as const },
 ];
@@ -273,12 +350,240 @@ onMounted(loadMembers);
 
 <style lang="scss" scoped>
 .teams-page {
-  width: 100%;
+  max-width: 1280px;
+  margin: 0 auto;
+  padding: clamp(24px, 4vw, 64px);
 }
 
 .page-header {
+  margin-bottom: 8px;
+}
+
+.page-header__main {
+  display: flex;
+  align-items: flex-end;
+  justify-content: space-between;
+  gap: 24px;
+}
+
+.page-header__main h1 { margin: 0; }
+
+.page-title {
+  font-family: var(--pq-font-display);
+  font-weight: 700;
+  font-size: clamp(22px, 4vw, 28px);
+  line-height: 1.15;
+  letter-spacing: -0.02em;
+  color: var(--pq-text);
+  margin: 0;
+}
+
+.page-subtitle {
+  font-family: var(--pq-font-body);
+  font-weight: 500;
+  font-size: 13px;
+  line-height: 1.5;
+  color: var(--pq-text-muted);
+  margin: 4px 0 0;
+}
+
+.page-header__signature {
+  display: none;
+  align-items: center;
+  gap: 8px;
+}
+
+@media (min-width: 1024px) {
+  .page-header__signature {
+    display: flex;
+  }
+}
+
+.page-title {
+  font-size: clamp(1.5rem, 3vw, 2rem);
+  font-weight: 700;
+  color: var(--pq-text);
+  margin: 0;
+  letter-spacing: -0.02em;
+}
+
+.page-subtitle {
+  color: var(--pq-text-muted);
+  margin: 4px 0 0;
+  font-size: 0.9rem;
+}
+
+.page-header__signature {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+  margin-left: auto;
+}
+
+.signature-dot {
+  width: 8px;
+  height: 8px;
+  border-radius: 50%;
+  background: var(--pq-accent);
+}
+
+.signature-line {
+  width: 40px;
+  height: 1px;
+  background: var(--pq-accent);
+  opacity: 0.6;
+}
+
+.rule {
+  height: 1px;
+  background: var(--pq-border);
+  margin: 16px 0 24px;
+}
+
+.teams-toolbar {
+  display: flex;
+  align-items: center;
+  gap: 12px;
+  margin-bottom: 16px;
+}
+
+@media (max-width: 639px) {
+  .teams-toolbar {
+    display: grid;
+    grid-template-columns: 1fr;
+    gap: 8px;
+  }
+  .teams-toolbar .toolbar-new {
+    width: 100%;
+  }
+}
+
+/* toolbar-new (mismo patrón que Productos) */
+.toolbar-new {
+  min-height: 40px;
+  background: var(--pq-accent) !important;
+  color: var(--pq-background) !important;
+  font-weight: 600;
+  border-radius: var(--pq-radius-sm);
+  box-shadow: 0 2px 8px rgba(163, 120, 94, 0.25);
+  transition: background-color 0.16s cubic-bezier(0.22, 1, 0.36, 1), box-shadow 0.16s ease, transform 0.1s ease;
+}
+
+.toolbar-new:hover {
+  background: var(--pq-accent-hover) !important;
+  box-shadow: 0 4px 16px rgba(163, 120, 94, 0.35);
+  transform: translateY(-1px);
+}
+
+.toolbar-new:active { transform: scale(0.985) translateY(0); }
+
+.toolbar-new:focus-visible {
+  outline: 2px solid var(--pq-accent);
+  outline-offset: 2px;
+}
+
+@media (pointer: coarse) {
+  .toolbar-new { min-height: 44px; }
+}
+
+.teams-card {
+  padding: 0;
+  overflow: hidden;
+}
+
+.team-cell-name {
+  font-weight: 600;
+  color: var(--pq-text);
+  font-size: 0.9rem;
+  line-height: 1.2;
+}
+
+.team-cell-email {
+  font-size: 0.75rem;
+  color: var(--pq-text-muted);
+  line-height: 1.3;
+  margin-top: 2px;
+}
+
+.teams-mobile-list {
+  display: none;
+  flex-direction: column;
+  gap: 12px;
+  padding: 12px;
+}
+
+.team-member-card {
+  display: flex;
+  flex-direction: column;
+  gap: 6px;
+  padding: 12px;
+  border: 1px solid var(--pq-border);
+  border-radius: var(--pq-radius-sm);
+  background: var(--pq-surface);
+}
+
+.team-member-card__row {
   display: flex;
   align-items: center;
   justify-content: space-between;
+  gap: 8px;
+}
+
+.team-member-card__name {
+  font-weight: 600;
+  color: var(--pq-text);
+  font-size: 0.95rem;
+}
+
+.team-member-card__email {
+  font-size: 0.8rem;
+  color: var(--pq-text-muted);
+  word-break: break-all;
+}
+
+.team-member-card__actions {
+  display: flex;
+  gap: 8px;
+  margin-top: 4px;
+}
+
+@media (max-width: 639px) {
+  .teams-page {
+    padding: 16px;
+  }
+  .teams-table-wrap {
+    display: none;
+  }
+  .teams-mobile-list {
+    display: flex;
+  }
+}
+
+.teams-card :deep(.q-table__top),
+.teams-card :deep(thead tr th) {
+  color: var(--pq-text-subtle);
+  font-size: 0.75rem;
+  text-transform: uppercase;
+  letter-spacing: 0.08em;
+}
+
+.teams-card :deep(tbody tr) {
+  border-bottom: 1px solid var(--pq-border);
+}
+
+.teams-card :deep(tbody tr:hover) {
+  background: rgba(27, 44, 38, 0.3);
+}
+
+.dialog-surface {
+  background: var(--pq-surface);
+  border: 1px solid var(--pq-border);
+  border-radius: var(--pq-radius-md);
+}
+
+.dialog-title {
+  font-size: 1.1rem;
+  font-weight: 600;
+  color: var(--pq-text);
 }
 </style>

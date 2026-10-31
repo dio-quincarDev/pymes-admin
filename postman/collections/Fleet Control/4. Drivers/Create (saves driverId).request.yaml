@@ -1,0 +1,35 @@
+$kind: http-request
+description: Registers a driver (always created in ACTIVE status). Generates dynamic license & email per run to avoid 409 collisions.
+url: "{{baseUrl}}/api/drivers"
+method: POST
+headers:
+  Content-Type: application/json
+body:
+  type: json
+  content: |-
+    {
+      "fullName": "Postman Tester",
+      "email": "{{newDriverEmail}}",
+      "phone": "+34 600 444 555",
+      "licenseNumber": "{{newDriverLicense}}",
+      "licenseCategory": "B",
+      "licenseExpiresAt": "2028-05-01"
+    }
+scripts:
+  - type: beforeRequest
+    code: |-
+      var rand = Math.floor(Math.random() * 89999) + 10000;
+      pm.variables.set("newDriverLicense", "DL-PM-" + rand);
+      pm.variables.set("newDriverEmail", "driver." + rand + "@example.com");
+    language: text/javascript
+  - type: afterResponse
+    code: |-
+      pm.test("Create driver -> 201 Created", function () {
+          pm.response.to.have.status(201);
+          var json = pm.response.json();
+          pm.expect(json.status).to.eql("ACTIVE");
+          pm.expect(json.licenseCategory).to.eql("B");
+          pm.environment.set("driverId", json.id);
+      });
+    language: text/javascript
+order: 6000

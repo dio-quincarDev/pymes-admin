@@ -1,0 +1,30 @@
+$kind: http-request
+description: Updates descriptive data of the created vehicle (requires {{vehicleId}}).
+url: "{{baseUrl}}/api/vehicles/{{vehicleId}}"
+method: PUT
+headers:
+  Content-Type: application/json
+body:
+  type: json
+  content: |-
+    {
+      "make": "Postman",
+      "model": "Collection v2",
+      "year": 2024,
+      "type": "CAR",
+      "fuelType": "HYBRID",
+      "tankCapacityL": 55
+    }
+scripts:
+  - type: afterResponse
+    code: |-
+      pm.test("Update vehicle -> 200 OK", function () {
+          pm.response.to.have.status(200);
+          var json = pm.response.json();
+          pm.expect(json.model).to.eql("Collection v2");
+          pm.expect(json.fuelType).to.eql("HYBRID");
+          pm.expect(json.tankCapacityL).to.eql(55);
+
+      });
+    language: text/javascript
+order: 9000

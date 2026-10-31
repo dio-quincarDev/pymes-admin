@@ -1,0 +1,36 @@
+$kind: http-request
+description: Registers a vehicle (always in AVAILABLE status). Generates dynamic plate per run to avoid 409 collisions.
+url: "{{baseUrl}}/api/vehicles"
+method: POST
+headers:
+  Content-Type: application/json
+body:
+  type: json
+  content: |-
+    {
+      "plate": "{{newVehiclePlate}}",
+      "make": "Postman",
+      "model": "Collection",
+      "year": 2024,
+      "type": "CAR",
+      "fuelType": "GASOLINE",
+      "tankCapacityL": 50,
+      "odometerKm": 5
+    }
+scripts:
+  - type: beforeRequest
+    code: |-
+      var rand = Math.floor(Math.random() * 89999) + 10000;
+      pm.variables.set("newVehiclePlate", "V" + rand + "TST");
+    language: text/javascript
+  - type: afterResponse
+    code: |-
+      pm.test("Create vehicle -> 201 Created", function () {
+          pm.response.to.have.status(201);
+          var json = pm.response.json();
+          pm.expect(json.status).to.eql("AVAILABLE");
+          pm.expect(json.odometerKm).to.eql(5);
+          pm.environment.set("vehicleId", json.id);
+      });
+    language: text/javascript
+order: 6000

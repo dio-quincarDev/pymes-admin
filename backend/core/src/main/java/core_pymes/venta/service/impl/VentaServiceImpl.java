@@ -1,6 +1,10 @@
 package core_pymes.venta.service.impl;
 
+import core_pymes.venta.domain.DailySalePayment;
+import core_pymes.venta.domain.MetodoPago;
 import core_pymes.venta.domain.VentaDiaria;
+import core_pymes.venta.dto.VentaPagoRequest;
+import core_pymes.venta.dto.VentaPagoResponse;
 import core_pymes.venta.dto.VentaRequest;
 import core_pymes.venta.dto.VentaResponse;
 import core_pymes.venta.event.VentaCreadaEvent;
@@ -15,6 +19,7 @@ import org.springframework.context.ApplicationEventPublisher;
 import org.springframework.stereotype.Service;
 import org.springframework.transaction.annotation.Transactional;
 
+import java.math.BigDecimal;
 import java.util.List;
 import java.util.UUID;
 
@@ -46,12 +51,14 @@ public class VentaServiceImpl implements VentaService {
     @Transactional
     @CacheEvict(cacheNames = "ventas", allEntries = true)
     public VentaResponse create(VentaRequest request) {
+        BigDecimal grossAmount = resolveGrossAmount(request);
         var venta = VentaDiaria.builder()
                 .tenantId(request.tenantId())
                 .saleDate(request.fecha())
-                .grossAmount(request.montoBruto())
+                .grossAmount(grossAmount)
                 .description(request.descripcion())
                 .build();
+        applyDesglose(venta, request.desglose());
         venta = repository.save(venta);
         eventPublisher.publishEvent(new VentaCreadaEvent(
                 venta.getTenantId(), venta.getSaleDate(), venta.getGrossAmount()));
@@ -64,8 +71,10 @@ public class VentaServiceImpl implements VentaService {
     public VentaResponse update(UUID id, UUID tenantId, VentaRequest request) {
         var venta = getVenta(id, tenantId);
         venta.setSaleDate(request.fecha());
-        venta.setGrossAmount(request.montoBruto());
+        venta.setGrossAmount(resolveGrossAmount(request));
         venta.setDescription(request.descripcion());
+        venta.getPayments().clear();
+        applyDesglose(venta, request.desglose());
         venta = repository.save(venta);
         return toResponse(venta);
     }
@@ -78,6 +87,31 @@ public class VentaServiceImpl implements VentaService {
         repository.delete(venta);
     }
 
+    private BigDecimal resolveGrossAmount(VentaRequest request) {
+        List<VentaPagoRequest> desglose = request.desglose();
+        if (desglose != null && !desglose.isEmpty()) {
+            return desglose.stream()
+                    .map(VentaPagoRequest::monto)
+                    .reduce(BigDecimal.ZERO, BigDecimal::add);
+        }
+        if (request.montoBruto() == null || request.montoBruto().signum() <= 0) {
+            throw new IllegalArgumentException("montoBruto es obligatorio cuando no hay desglose");
+        }
+        return request.montoBruto();
+    }
+
+    private void applyDesglose(VentaDiaria venta, List<VentaPagoRequest> desglose) {
+        if (desglose == null) return;
+        for (VentaPagoRequest p : desglose) {
+            var payment = DailySalePayment.builder()
+                    .venta(venta)
+                    .metodo(p.metodo())
+                    .monto(p.monto())
+                    .build();
+            venta.getPayments().add(payment);
+        }
+    }
+
     private VentaDiaria getVenta(UUID id, UUID tenantId) {
         var venta = repository.findById(id)
                 .orElseThrow(() -> new ResourceNotFoundException("VentaDiaria not found: " + id));
@@ -88,8 +122,11 @@ public class VentaServiceImpl implements VentaService {
     }
 
     private VentaResponse toResponse(VentaDiaria v) {
+        List<VentaPagoResponse> desglose = v.getPayments().stream()
+                .map(p -> new VentaPagoResponse(p.getId(), p.getMetodo(), p.getMonto()))
+                .toList();
         return new VentaResponse(
                 v.getId(), v.getTenantId(), v.getSaleDate(),
-                v.getGrossAmount(), v.getDescription(), v.getCreatedAt());
+                v.getGrossAmount(), v.getDescription(), desglose, v.getCreatedAt());
     }
 }

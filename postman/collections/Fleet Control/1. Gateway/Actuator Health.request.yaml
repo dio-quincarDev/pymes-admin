@@ -1,0 +1,14 @@
+$kind: http-request
+description: Spring Boot Actuator health endpoint on the Gateway (:8080).
+url: "{{baseUrl}}/actuator/health"
+method: GET
+scripts:
+  - type: afterResponse
+    code: |-
+      pm.test("Actuator health status is 200", function () {
+          pm.response.to.have.status(200);
+          var json = pm.response.json();
+          pm.expect(json.status).to.eql("UP");
+      });
+    language: text/javascript
+order: 2000

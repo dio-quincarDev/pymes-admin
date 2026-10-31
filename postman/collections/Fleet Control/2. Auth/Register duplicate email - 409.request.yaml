@@ -1,0 +1,25 @@
+$kind: http-request
+name: Register duplicate email -> 409
+description: Attempting to register with an already existing email (admin) returns 409 Conflict.
+url: "{{baseUrl}}/api/auth/register"
+method: POST
+headers:
+  Content-Type: application/json
+body:
+  type: json
+  content: |-
+    {
+      "username": "admin_dup",
+      "email": "{{adminEmail}}",
+      "password": "Password123"
+    }
+scripts:
+  - type: afterResponse
+    code: |-
+      pm.test("Register duplicate -> 409 Conflict", function () {
+          pm.response.to.have.status(409);
+          var json = pm.response.json();
+          pm.expect(json.error).to.eql("USER_ALREADY_EXISTS");
+      });
+    language: text/javascript
+order: 2000

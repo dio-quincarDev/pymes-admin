@@ -1,0 +1,13 @@
+$kind: http-request
+description: Verifies that the Gateway injects the X-Request-Id header in responses.
+url: "{{baseUrl}}/health"
+method: GET
+scripts:
+  - type: afterResponse
+    code: |-
+      pm.test("Status is 200 and X-Request-Id header is present", function () {
+          pm.response.to.have.status(200);
+          pm.expect(pm.response.headers.has("X-Request-Id")).to.be.true;
+      });
+    language: text/javascript
+order: 3000

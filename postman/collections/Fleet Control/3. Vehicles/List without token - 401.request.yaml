@@ -1,0 +1,20 @@
+$kind: http-request
+name: List without token -> 401
+description: Returns 401 UNAUTHORIZED when Bearer token is omitted.
+url: "{{baseUrl}}/api/vehicles?page=0&size=1"
+method: GET
+queryParams:
+  page: "0"
+  size: "1"
+auth:
+  type: noauth
+scripts:
+  - type: afterResponse
+    code: |-
+      pm.test("List without token -> 401 Unauthorized", function () {
+          pm.response.to.have.status(401);
+          var json = pm.response.json();
+          pm.expect(json.error).to.eql("UNAUTHORIZED");
+      });
+    language: text/javascript
+order: 15000

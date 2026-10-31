@@ -8,6 +8,49 @@ Registro de lo implementado y lo pendiente.
 
 ---
 
+## 2026-10-26 — Reporte mensual: página 1 dejó de estar vacía (rebalanceo de bandas)
+
+**Contexto:** el dueño abrió el PDF mensual y la página 1 estaba prácticamente en
+blanco. Causa: `summary` medía 742pt y no cabía en los ~452pt que dejaba el `title`
+(310pt), así que Jasper mandaba la banda entera a la página 2 y la 1 quedaba con
+header + números + ~450pt de aire.
+
+**Qué se hizo:**
+- `title` 310 → **680**: el header y los 3 totales + "Ventas por semana" +
+  "Principales proveedores" + la nota del neto (movidos desde el `summary`).
+  Todo el "cómo te fue" del mes vive en la página 1.
+- `summary` 742 → **490** con `splitType="Prevent"`: productos + gastos + cierre,
+  con separación entre secciones (antes iban pegadas como continuación).
+- Cierre intacto: `textAdjust="StretchHeight"` en la línea 1 y
+  `positionType="Float"` en la 2 (para eso ya había test propio).
+- Cero cambios Java: mismos parámetros, mismos datasets, solo layout.
+
+**Mes parcial sin ventas (mismo día, cierre del hueco):** cuando hay facturas pero
+cero ventas (`esParcial`), la tabla "Ventas por semana" salía con solo encabezados y
+dejaba un hueco de 126pt en medio de la página 1. Ahora:
+- La nota "Sin ventas registradas en el periodo." se pinta siempre (texto condicional,
+  no `printWhen`) para que su espacio no se colapse en los meses normales.
+- "Ventas por semana" (título + tabla) lleva `printWhenExpression="!sinVentas"` +
+  `removeLineWhenBlank="true"`: si no hay ventas no se pinta y lo de abajo sube.
+- "Principales proveedores" igual pero con `tieneProveedores` (param nuevo, una línea
+  en `MonthlyReportServiceImpl`): mes con solo gastos ya no pinta tabla vacía.
+- Sin `positionType="Float"` ni cambios de `y`: `removeLineWhenBlank` colapsa el
+  hueco y arrastra lo siguiente, que es justo lo que se quería.
+
+**Tests:** `MonthlyReportTemplateTest` ahora exige **2 páginas exactas** y verifica
+qué secciones caen en cada una (antes solo `>= 2`, que dejaba pasar justo este bug).
+Dos tests nuevos: `mesParcialSinVentas` (sin tabla vacía, proveedores suben al hueco)
+y `sinProveedoresNoPintaTablaVacia`. Suite **248** verde; render de cada caso revisado.
+
+```
+backend/core/src/main/resources/reports/MonthlyReport.jrxml    # title 680 / summary 490 Prevent
+backend/core/src/main/java/core_pymes/report/service/impl/MonthlyReportServiceImpl.java # tieneProveedores
+backend/core/src/test/java/core_pymes/report/MonthlyReportTemplateTest.java # asserts por pagina + casos vacios
+backend/core/docs/strategies/MONTHLY_REPORT_STRATEGY.md        # etapa 2: que trae cada pagina
+```
+
+---
+
 ## 2026-10-15 — Reporte mensual página 2: top productos + top gastos + cierre de retorno
 
 **Contexto:** etapa 2 del mensual (diseñada 2026-10-10). Decisión del dueño: el
@@ -1266,13 +1309,36 @@ core/product/repository/ProductoRepository.java     # +countByTenantId()
 - [ ] Reports — dashboard consolidado con KPIs, alertas
 - [ ] CRUD configuración (edición por tenant)
 - [ ] Módulo Ventas
-- [ ] Movimientos de stock
 
-### Infraestructura
-- [ ] Spring Security (JWT validation local)
-- [ ] FeignClient para Auth
+## 2026-10-29 — Redis Tenant Isolation Integration Tests (Phase 2)
 
-### Frontend
-- [x] Onboarding post-login
-- [x] Módulo Core frontend (Productos, Proveedores, Facturas)
-- [x] Onboarding 2 pasos con preview de categorías + productos precargados
+**Contexto:** Se agregaron tests de integración para validar el aislamiento de tenants en Redis, Fase 2 del plan de desarrollo.
+
+### Problem: Validar aislamiento en Redis
+- Fase 2 implementa separación de databases Redis (auth→db 0, core→db 1) y prefix de keys por tenant.
+- Se necesitaba validar que el patrón funcione correctamente en un entorno de integración real.
+
+### Fix: RedisTenantIsolationIntegrationTest
+- **Ubicación:** `backend/core/src/test/java/core_pymes/integration/RedisTenantIsolationIntegrationTest.java`
+- **Tests (2):**
+  1. `differentTenantsHaveIsolatedKeys()` - Verifica que distintos tenants tengan keys separadas en Redis db 1 usando prefix `tenant:{id}:`.
+  2. `authTokensAreTenantIsolated()` - Verifica que tokens blacklist por tenant no colisionen en Redis db 0 usando el mismo patrón de prefix.
+- **Entorno:** Profile `integration` con Testcontainers (PostgreSQL + Redis 7-alpine levantados automáticamente).
+- **Resultado:** Ambos tests pasan (0 failures, 0 errors). Confirma que el patrón de aislamiento funciona como se esperaba.
+
+**Validación:** ✅ Tests run: 68, Failures: 0, Errors: 0 (suite completa). Los 2 tests de Redis tenant isolation pasaron exitosamente.
+
+**Archivos modificados:**
+- `backend/core/src/test/java/core_pymes/integration/RedisTenantIsolationIntegrationTest.java` — 2 tests de aislamiento
+
+### Integración con el sistema
+- El test usa el mismo `AbstractIntegrationTest` que el resto de tests de integración del core.
+- Usa el contenedor Redis compartido del `AbstractIntegrationTest` (no necesita definirse redundante).
+- Funciona con `mvn verify -B -Dspring.profiles.active=integration -pl backend/core -Dtest=RedisTenantIsolationIntegrationTest`.
+
+### Próximos pasos
+- [x] Tests de validación creados y pasando
+- [ ] Revisar en producción que el prefix `tenant:` no rompe endpoints existentes
+- [ ] Considerar documentar el patrón en GAPS.md para referencia futura
+
+**Documentado en:** DAILY_REPORTS_CORE_SOLUTIONS.md (sección 2026-10-29)

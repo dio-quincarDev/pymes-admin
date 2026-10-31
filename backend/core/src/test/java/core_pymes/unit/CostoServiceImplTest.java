@@ -8,6 +8,7 @@ import core_pymes.costos.domain.TipoPago;
 import core_pymes.costos.repository.CollaboradorRepository;
 import core_pymes.costos.repository.ConfigLaboralRepository;
 import core_pymes.costos.repository.GastoFijoRepository;
+import core_pymes.prestamo.repository.PrestamoRepository;
 import core_pymes.costos.service.impl.CostoServiceImpl;
 import core_pymes.gasto.domain.CategoriaGasto;
 import core_pymes.venta.domain.VentaDiaria;
@@ -33,6 +34,7 @@ class CostoServiceImplTest {
 
     @Mock CollaboradorRepository collaboradorRepository;
     @Mock GastoFijoRepository gastoFijoRepository;
+    @Mock PrestamoRepository prestamoRepository;
     @Mock ConfigLaboralRepository configLaboralRepository;
     @Mock VentaRepository ventaRepository;
     @Mock MetricasRepository metricasRepository;
@@ -55,6 +57,7 @@ class CostoServiceImplTest {
         when(ventaRepository.findByTenantIdAndSaleDateBetweenOrderBySaleDateDesc(any(), any(), any()))
                 .thenReturn(List.of(VentaDiaria.builder().grossAmount(new BigDecimal("580.00")).build()));
         when(metricasRepository.findByTenantIdAndPeriod(eq(tenantId), any())).thenReturn(Optional.empty());
+        when(prestamoRepository.findByTenantIdAndStatus(eq(tenantId), any())).thenReturn(List.of());
 
         var result = service.calcularDiario(tenantId);
 
@@ -76,6 +79,7 @@ class CostoServiceImplTest {
         when(ventaRepository.findByTenantIdAndSaleDateBetweenOrderBySaleDateDesc(any(), any(), any()))
                 .thenReturn(List.of());
         when(metricasRepository.findByTenantIdAndPeriod(eq(tenantId), any())).thenReturn(Optional.empty());
+        when(prestamoRepository.findByTenantIdAndStatus(eq(tenantId), any())).thenReturn(List.of());
 
         var result = service.calcularDiario(tenantId);
 

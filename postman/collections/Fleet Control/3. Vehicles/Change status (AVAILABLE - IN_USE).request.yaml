@@ -1,0 +1,25 @@
+$kind: http-request
+name: Change status (AVAILABLE -> IN_USE)
+description: Transitions vehicle from AVAILABLE to IN_USE and advances odometer to 100.
+url: "{{baseUrl}}/api/vehicles/{{vehicleId}}/status"
+method: PATCH
+headers:
+  Content-Type: application/json
+body:
+  type: json
+  content: |-
+    {
+      "status": "IN_USE",
+      "odometerKm": 100
+    }
+scripts:
+  - type: afterResponse
+    code: |-
+      pm.test("Change status -> 200 OK", function () {
+          pm.response.to.have.status(200);
+          var json = pm.response.json();
+          pm.expect(json.status).to.eql("IN_USE");
+          pm.expect(json.odometerKm).to.eql(100);
+      });
+    language: text/javascript
+order: 11000

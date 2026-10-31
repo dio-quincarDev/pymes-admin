@@ -194,6 +194,9 @@ public class JwtServiceImpl implements JwtService {
         try {
             return tokenBlacklistService.isTokenRevoked(token);
         } catch (Exception e) {
+            // Fail-open: si Redis no está disponible, permitir el token
+            // (evita lockout global de todos los usuarios). Documentado en
+            // docs/strategies/LOCAL_AUTH_STRATEGY.md y DAILY_REPORTS_AUTH_SOLUTIONS.md.
             log.warn("Redis no disponible para verificar blacklist, permitiendo token: {}", e.getMessage());
             return false;
         }

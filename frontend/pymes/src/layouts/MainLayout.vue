@@ -386,7 +386,6 @@ const navGroups = computed<NavGroup[]>(() => {
         { title: 'Proveedores', icon: 'people', path: '/dashboard/proveedores' },
         { title: 'Facturas', icon: 'receipt_long', path: '/dashboard/facturas' },
         { title: 'Ventas', icon: 'point_of_sale', path: '/dashboard/ventas' },
-        { title: 'Costos', icon: 'money_off', path: '/dashboard/costos' },
       ],
     },
     {
@@ -394,6 +393,8 @@ const navGroups = computed<NavGroup[]>(() => {
       items: [
         { title: 'Análisis', icon: 'analytics', path: '/dashboard/analisis-gastos' },
         { title: 'Préstamos', icon: 'account_balance', path: '/dashboard/prestamos' },
+        { title: 'Costos', icon: 'money_off', path: '/dashboard/costos' },
+        { title: 'Inversión', icon: 'savings', path: '/dashboard/patrimonio' },
       ],
     },
     {
@@ -419,7 +420,7 @@ function navigateTo(path: string) {
    Header
 -------------------------------------------------- */
 .main-header {
-  background: var(--pq-surface) !important;
+  background: var(--pq-background) !important;
   border-bottom: 1px solid var(--pq-border);
 }
 
@@ -481,11 +482,11 @@ function navigateTo(path: string) {
   border-left: 3px solid transparent;
 
   &:hover {
-    background: rgba(200, 150, 62, 0.04);
+    background: rgba(163, 120, 94, 0.04);
   }
 
   &--active {
-    background: rgba(200, 150, 62, 0.06);
+    background: rgba(163, 120, 94, 0.06);
     color: var(--pq-text);
     border-left-color: var(--pq-accent);
     font-weight: 600;
@@ -529,7 +530,7 @@ function navigateTo(path: string) {
 }
 
 .offline-chip {
-  background: rgba(8, 9, 13, 0.15) !important;
+  background: rgba(11, 18, 16, 0.15) !important;
   color: var(--pq-background) !important;
   font-weight: 700;
 }

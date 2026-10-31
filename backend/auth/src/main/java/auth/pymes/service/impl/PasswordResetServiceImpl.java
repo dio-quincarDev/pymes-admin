@@ -1,12 +1,16 @@
 package auth.pymes.service.impl;
 
+import auth.pymes.common.config.RateLimitService;
 import auth.pymes.common.models.entities.UserEntity;
+import auth.pymes.repositories.RefreshTokenRepository;
 import auth.pymes.repositories.UserEntityRepository;
 import auth.pymes.service.PasswordResetService;
 import auth.pymes.service.EmailService;
 import auth.pymes.utils.exception.CodigoError;
 import auth.pymes.utils.exception.auth.AuthenticationException;
 import auth.pymes.utils.exception.auth.PasswordResetTokenInvalidException;
+import auth.pymes.utils.exception.custom.InvalidInputException;
+import jakarta.servlet.http.HttpServletRequest;
 import lombok.RequiredArgsConstructor;
 import lombok.extern.slf4j.Slf4j;
 import org.springframework.beans.factory.annotation.Value;
@@ -31,15 +35,24 @@ public class PasswordResetServiceImpl implements PasswordResetService {
 
     private final RedisTemplate<String, Object> redisTemplate;
     private final UserEntityRepository userRepository;
+    private final RefreshTokenRepository refreshTokenRepository;
     private final PasswordEncoder passwordEncoder;
     private final EmailService emailService;
+    private final RateLimitService rateLimitService;
 
     @Value("${app.frontend.url}")
     private String frontendUrl;
 
     @Override
     @Transactional
-    public boolean generateResetToken(String email) {
+    public boolean generateResetToken(String email, HttpServletRequest httpRequest) {
+        // Rate limit: prevent password reset spam (by IP)
+        String rateLimitKey = "forgot:" + httpRequest.getRemoteAddr();
+        if (!rateLimitService.isAllowed(rateLimitKey)) {
+            log.warn("Rate limit excedido para solicitud de reset de contraseña desde IP: {}", httpRequest.getRemoteAddr());
+            return false;
+        }
+
         UserEntity user = userRepository.findByEmail(email).orElse(null);
 
         if (user == null) {
@@ -74,6 +87,10 @@ public class PasswordResetServiceImpl implements PasswordResetService {
     @Override
     @Transactional
     public void resetPassword(String token, String newPassword) {
+        // Validar tamaño del token para evitar claves Redis gigantes / DoS
+        if (token == null || token.isBlank() || token.length() > 128) {
+            throw new PasswordResetTokenInvalidException();
+        }
         String key = RESET_KEY_PREFIX + token;
         Object emailObj = redisTemplate.opsForValue().get(key);
 
@@ -87,6 +104,13 @@ public class PasswordResetServiceImpl implements PasswordResetService {
 
         user.setPassword(passwordEncoder.encode(newPassword));
         userRepository.save(user);
+
+        // Revocar todas las sesiones activas tras cambio de contraseña
+        try {
+            refreshTokenRepository.deleteByUserId(user.getId());
+        } catch (Exception e) {
+            log.warn("No se pudieron revocar refresh tokens tras reset: {}", e.getMessage());
+        }
 
         redisTemplate.delete(key);
         log.info("Contraseña actualizada exitosamente para usuario: {}", email);

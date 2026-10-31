@@ -1,0 +1,36 @@
+$kind: http-request
+description: Updates driver data, sets status to ON_LEAVE and renews license expiration (uses {{driverId}}).
+url: "{{baseUrl}}/api/drivers/{{driverId}}"
+method: PUT
+headers:
+  Content-Type: application/json
+body:
+  type: json
+  content: |-
+    {
+      "fullName": "Postman Tester Updated",
+      "email": "postman.driver.updated@example.com",
+      "phone": "+34 600 444 555",
+      "licenseNumber": "{{newDriverLicense}}",
+      "licenseCategory": "C",
+      "licenseExpiresAt": "2029-01-01",
+      "status": "ON_LEAVE"
+    }
+scripts:
+  - type: beforeRequest
+    code: |-
+      if (!pm.variables.get("newDriverLicense")) {
+          pm.variables.set("newDriverLicense", "DL-PM-0001");
+      }
+    language: text/javascript
+  - type: afterResponse
+    code: |-
+      pm.test("Update driver -> 200 OK", function () {
+          pm.response.to.have.status(200);
+          var json = pm.response.json();
+          pm.expect(json.status).to.eql("ON_LEAVE");
+          pm.expect(json.licenseCategory).to.eql("C");
+          pm.expect(json.licenseExpiresAt).to.eql("2029-01-01");
+      });
+    language: text/javascript
+order: 10000

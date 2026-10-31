@@ -31,6 +31,7 @@ spring:
     redis:
       host: ${REDIS_HOST}
       port: ${REDIS_PORT}
+      database: 0
 
   mail:
     host: ${SPRING_MAIL_HOST:smtp.gmail.com}
@@ -79,6 +80,7 @@ server:
   port: ${SERVER_PORT:8081}
   servlet:
     context-path: /
+  forward-headers-strategy: native
 
 management:
   endpoints:

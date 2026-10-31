@@ -1,0 +1,24 @@
+$kind: http-request
+name: Change status lower odometer -> 409
+description: Odometer cannot decrease below the current value (100 -> 50 returns 409 INVALID_ODOMETER).
+url: "{{baseUrl}}/api/vehicles/{{vehicleId}}/status"
+method: PATCH
+headers:
+  Content-Type: application/json
+body:
+  type: json
+  content: |-
+    {
+      "status": "IN_USE",
+      "odometerKm": 50
+    }
+scripts:
+  - type: afterResponse
+    code: |-
+      pm.test("Lower odometer -> 409 Conflict", function () {
+          pm.response.to.have.status(409);
+          var json = pm.response.json();
+          pm.expect(json.error).to.eql("INVALID_ODOMETER");
+      });
+    language: text/javascript
+order: 13000

@@ -226,6 +226,7 @@ Cada sub-score tiene drivers que explican *por qué* está en ese nivel. No es u
 |---------|---------|
 | Tabla | `core.report_log` — PK `(tenant_id, period, format)`, status `SENDING\|SENT\|FAILED\|SKIPPED` |
 | Endpoint | `POST /reportes/monthly?period=YYYY-MM&dryRun=true` — `@PreAuthorize('OWNER\|ADMIN')` |
+| Trimestral | `POST /reportes/quarterly?period=YYYY-MM&dryRun=true` (`period` = mes que cierra el ciclo). Periodo `T`+`yyyyMM` en `report_log`; cron día 1 06:30; ancla al primer registro del tenant; ITBMS solo de facturas `PAGADA` tipo `FACTURA`; top 5 artículos; comparativa solo si el trimestre anterior tiene datos |
 | Cron | `@Scheduled(cron="0 0 6 1 * *", zone="America/Panama")` → envía el mes anterior |
 | Dueños | Query batch cross-schema `auth.user_tenants/users/tenants` (rol OWNER activo) |
 | Reglas | `0 ventas + 0 facturas → SKIP (SKIPPED)`; facturas sin ventas → PDF parcial con banner; facturas **solo `PAGADA`** |
@@ -495,9 +496,12 @@ POST   /api/v1/core/analytics/recalcular?tenantId={uuid}&periodo=YYYY-MM
 
 ```
 POST   /api/v1/core/reportes/monthly?period=YYYY-MM&dryRun=true
+POST   /api/v1/core/reportes/quarterly?period=YYYY-MM&dryRun=true
 ```
 > `dryRun=true` (default) solo valida y genera sin enviar. `X-User-Role: OWNER|ADMIN`.
 > 400 si `period` no es `YYYY-MM` (`InvalidInputException` → `GlobalExceptionHandler`).
+> En el trimestral `period` es el mes que cierra el ciclo; solo envía si ese mes es el tercero
+> desde el primer registro del tenant (si no, no hace nada).
 
 ---
 
@@ -559,6 +563,7 @@ Ver `SEED_TEMPLATES.md` para detalle completo.
 - [x] **Cleanup seed: remover stock** — `template_locations` + `template_movement_reasons` eliminadas, industry codes → constantes (java:S1192). Flyway V18 para DDL. Ver `SEED_TEMPLATES.md` → Cleanup 2026-07.
 - [x] **Financial Health Engine** — Motor #10: scoring compuesto + alertas críticas + señales inversión/expansión. V4 (columna `financial_health JSONB`), `analisisSaludFinanciera()` en AnalyticsServiceImpl. Pendiente: `FinancialHealthResponse` DTO + `useAnalytics` + `AnalisisGastosPage.vue`.
 - [x] **Reporte mensual fase 1 (PDF)** — `core_pymes/report/`: cron día 1 06:00 Panama, PDF Jasper 7, mail a OWNERs, idempotencia V8, `POST /reportes/monthly` con dryRun. Ver `strategies/MONTHLY_REPORT_STRATEGY.md`.
+- [x] **Reporte trimestral al dueño (PDF, 2 páginas)** — `QuarterlyReport.jrxml` + `POST /reportes/quarterly` con dryRun; rango rodante de 3 meses cerrados, ITBMS pagado en compras, top 5 artículos, recuperación acumulada y comparativa solo si existe. Sin migración nueva (`report_log.period = 'T' + yyyyMM`).
 - [ ] **Reporte mensual fase 2 (XLSX)** — `JRXlsxExporter` + 3 hojas (`Resumen`/`Semanal`/`Detalle`, `detectCellType=true`); `jasperreports-excel-poi` ya en POM y `format='XLSX'` ya soportado en `report_log` (sin migración).
 
 ### Mediate

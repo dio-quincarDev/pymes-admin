@@ -2,6 +2,7 @@ package auth.pymes.controller;
 
 import auth.pymes.common.constants.ApiPathConstants;
 import auth.pymes.common.models.dto.request.ForgotPasswordRequest;
+import auth.pymes.common.models.dto.request.OAuth2ExchangeRequest;
 import auth.pymes.common.models.dto.request.LoginRequest;
 import auth.pymes.common.models.dto.request.RegisterRequest;
 import auth.pymes.common.models.dto.request.ResendVerificationRequest;
@@ -61,7 +62,8 @@ public interface AuthApi {
     @Operation(summary = "Forgot password", description = "Solicita un enlace de recuperación de contraseña al email del usuario")
     @PostMapping(ApiPathConstants.AUTH_FORGOT_PASSWORD)
     ResponseEntity<ApiResponse<Void>> forgotPassword(
-            @Valid @RequestBody ForgotPasswordRequest request);
+            @Valid @RequestBody ForgotPasswordRequest request,
+            HttpServletRequest httpRequest);
 
     @Operation(summary = "Reset password", description = "Establece una nueva contraseña usando el token de recuperación recibido por email")
     @PostMapping(ApiPathConstants.AUTH_RESET_PASSWORD)
@@ -70,5 +72,5 @@ public interface AuthApi {
 
     @Operation(summary = "OAuth2 exchange", description = "Intercambia un código de un solo uso por los tokens JWT (OAuth2 callback)")
     @PostMapping(ApiPathConstants.AUTH_EXCHANGE)
-    ResponseEntity<ApiResponse<AuthResponse>> exchange(@RequestBody Map<String, String> body);
+    ResponseEntity<ApiResponse<AuthResponse>> exchange(@Valid @RequestBody OAuth2ExchangeRequest request);
 }

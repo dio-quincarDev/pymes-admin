@@ -81,6 +81,6 @@ export function verificarRecuperacion(): void {
   if (p5.estado !== 'sin-datos') fail('sin capital: sin-datos');
 }
 
-if (typeof process !== 'undefined' && process.argv[1]?.endsWith('recuperacion.ts')) {
+if (typeof process !== 'undefined' && Array.isArray(process.argv) && process.argv[1]?.endsWith('recuperacion.ts')) {
   verificarRecuperacion();
 }

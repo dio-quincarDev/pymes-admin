@@ -1,0 +1,8 @@
+$kind: collection
+auth:
+  - id: 27fa3962-39a0-4964-be6a-2406e25080c9
+    type: bearer
+    name: bearer auth
+    credentials:
+      token: "{{jwtToken}}"
+order: 3000

@@ -1,0 +1,28 @@
+$kind: http-request
+name: Update missing vehicle -> 404
+description: Returns 404 VEHICLE_NOT_FOUND when updating non-existent vehicle ID.
+url: "{{baseUrl}}/api/vehicles/00000000-0000-0000-0000-000000000000"
+method: PUT
+headers:
+  Content-Type: application/json
+body:
+  type: json
+  content: |-
+    {
+      "make": "Postman",
+      "model": "Collection v2",
+      "year": 2024,
+      "type": "CAR",
+      "fuelType": "HYBRID",
+      "tankCapacityL": 55
+    }
+scripts:
+  - type: afterResponse
+    code: |-
+      pm.test("Update missing vehicle -> 404 Not Found", function () {
+          pm.response.to.have.status(404);
+          var json = pm.response.json();
+          pm.expect(json.error).to.eql("VEHICLE_NOT_FOUND");
+      });
+    language: text/javascript
+order: 10000

@@ -247,8 +247,9 @@ Flujo 2 pasos post-registro:
 |----------------------|--------------------------------------------------|
 | `lang`               | `es-MX`                                          |
 | `robots`             | `index, follow`                                  |
-| Open Graph           | `og:title`, `og:description`, `og:type`, `og:site_name`, `og:locale` |
-| Twitter Card         | `summary_large_image`                            |
+| Open Graph           | `og:title`, `og:description`, `og:type`, `og:site_name`, `og:locale`, `og:url` + `og:image` 1200x630 (`width`/`height`/`alt`) |
+| Twitter Card         | `summary_large_image` + `twitter:image`/`image:alt` |
+| Social image         | `public/og-image.png` (URL absoluta a `pymeq.dioquincar.dev`; los crawlers ignoran rutas relativas) |
 | Viewport             | Sin bloqueo de zoom (`user-scalable=no` eliminado) |
 | PWA                  | `apple-mobile-web-app-capable`, `theme-color`     |
 
@@ -259,6 +260,7 @@ Flujo 2 pasos post-registro:
 - **Actualizacion disponible:** Auto-update silencioso via `SKIP_WAITING` (sin dialog de confirmacion)
 - **Cache limpieza logout:** `postMessage({type:'CLEAR_API_CACHE'})` al SW scope (no `caches.delete` main thread, 2026-08-29) + manifest `extendManifestJson ?v=Date.now()` cache-busting icons + `nginx/caddy no-cache` para `*.svg` (2026-08-27 `path_regexp \.svg$` + Cloudflare purge)
 - **Cache API:** Redis en backend (core service, TTL 5min, `@Cacheable`/`@CacheEvict` facturas+productos)
+- **Iconos:** 14 PNG + `favicon.ico` de marca rasterizados desde `public/icons/pymeq-app-icon.svg` (fondo `#08090D`, 2026-10-26). Cambiarlos exige purgar Cloudflare: `apple-icon-*`/`favicon-*` no llevan query de versión, solo los `icon-*` del manifest (`?v=<ts>`)
 - **Viewport PWA:** `index.html` `viewport-fit=cover` siempre (no solo Cordova, 2026-09-18) + `env(safe-area-inset-bottom)` en `mobile-bottom-nav` y `pymeq-tour-popover`
 
 ### Tutorial Guiado
