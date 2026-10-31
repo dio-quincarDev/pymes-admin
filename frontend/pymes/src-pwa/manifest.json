@@ -1,7 +1,7 @@
 {
-  "name": "PYMEQ - Auditoría Inteligente",
+  "name": "PYMEQ — Gestión Financiera Inteligente",
   "short_name": "PYMEQ",
-  "description": "Sistema de auditoría inteligente para pequeñas y medianas empresas. Gestiona tus finanzas, controla gastos y recibe alertas de seguridad.",
+  "description": "PYMEQ — Gestión Financiera Inteligente para PYMES. Organiza facturas, productos y gastos.",
   "orientation": "portrait",
   "start_url": "/",
   "display": "standalone",

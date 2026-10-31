@@ -34,20 +34,10 @@
 .auth-layout {
   background: var(--pq-background);
   position: relative;
-
-  &::before {
-    content: '';
-    position: absolute;
-    inset: 0;
-    background:
-      radial-gradient(ellipse 80% 60% at 50% -20%, rgba(#C8963E, 0.10) 0%, transparent 70%),
-      radial-gradient(ellipse 40% 30% at 80% 80%, rgba(#C8A042, 0.06) 0%, transparent 60%);
-    pointer-events: none;
-  }
 }
 
 .auth-layout-wrapper {
-  min-height: 100vh;
+  min-height: 100dvh;
   position: relative;
   z-index: 1;
 }

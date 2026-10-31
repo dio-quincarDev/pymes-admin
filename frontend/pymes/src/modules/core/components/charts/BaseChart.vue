@@ -41,7 +41,7 @@ Chart.register(
 interface Props {
   type: 'bar' | 'line' | 'doughnut';
   data: Chart['data'];
-  options?: Chart['options'];
+  options?: Record<string, unknown>;
   height?: number;
 }
 
@@ -123,7 +123,7 @@ function createChart() {
         },
       },
       scales: defaultScales,
-      ...(props.options as Record<string, unknown>),
+      ...(props.options),
     },
   });
 }

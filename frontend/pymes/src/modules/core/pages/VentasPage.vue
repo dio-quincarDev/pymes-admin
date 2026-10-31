@@ -27,6 +27,7 @@ const {
   totalMes,
   registroCount,
   ticketPromedio,
+  metodoTotals,
   prevMonth,
   nextMonth,
   goToday,
@@ -57,6 +58,7 @@ function openCreate() {
     fecha: toLocalISODate(new Date()),
     montoBruto: 0,
     descripcion: null,
+    desglose: undefined,
   });
   dialogOpen.value = true;
 }
@@ -69,6 +71,7 @@ function openEdit(v: VentaDiaria) {
     fecha: v.fecha,
     montoBruto: v.montoBruto,
     descripcion: v.descripcion,
+    desglose: v.desglose,
   });
   dialogOpen.value = true;
 }
@@ -138,36 +141,37 @@ onUnmounted(() => window.removeEventListener('keydown', handleKeydown));
 </script>
 
 <template>
-  <q-page class="core-page">
-    <div class="q-mb-md">
-      <h1 class="text-h4 text-primary font-bold q-ma-none">Ventas</h1>
-      <p class="text-subtitle1 text-accent q-mt-xs">Registro diario de ventas</p>
+  <q-page class="core-page ventas-page">
+    <!-- Header editorial con firma cobre (sin glow — brief Mayor) -->
+    <div class="page-header">
+      <div class="page-header__main">
+        <h1 class="page-title">Ventas</h1>
+        <p class="page-subtitle">Registro diario de ventas</p>
+      </div>
+      <div class="page-header__signature" aria-hidden="true">
+        <span class="signature-dot" />
+        <span class="signature-line" />
+      </div>
     </div>
+
+    <div v-if="dayGroups.length" class="stats-row">
+      <span class="stat"
+        >{{ dayGroups.length }} {{ dayGroups.length === 1 ? 'día con registro' : 'días con registro' }}</span
+      >
+    </div>
+    <div class="rule" />
 
     <q-pull-to-refresh @refresh="onRefresh">
       <VentasMonthPager :label="monthLabel" @prev="prevMonth" @next="nextMonth" @today="goToday" />
 
-      <VentasStatStrip :total="totalMes" :count="registroCount" :average="ticketPromedio" />
+      <VentasStatStrip :total="totalMes" :count="registroCount" :average="ticketPromedio" :metodo-totals="metodoTotals" />
 
-      <div class="toolbar">
-        <q-btn
-          v-if="canEdit && dayGroups.length"
-          color="primary"
-          icon="sym_r_add"
-          label="Nuevo"
-          no-caps
-          @click="openCreate"
-        />
+      <div v-if="canEdit && dayGroups.length" class="ventas-toolbar">
+        <q-space />
+        <q-btn color="primary" label="Nuevo" no-caps class="toolbar-new" @click="openCreate" />
       </div>
 
-      <q-banner v-if="error" dense class="bg-negative text-white q-mb-sm">
-        {{ error }}
-        <template #action>
-          <q-btn flat dense label="Reintentar" @click="load" />
-        </template>
-      </q-banner>
-
-      <div v-if="loading" class="q-gutter-y-md q-mt-md">
+      <div v-if="loading" class="q-gutter-y-md">
         <q-skeleton v-for="n in 4" :key="n" type="rect" dark animation="pulse" height="48px" />
       </div>
 
@@ -180,8 +184,8 @@ onUnmounted(() => window.removeEventListener('keydown', handleKeydown));
           <q-btn
             v-if="canEdit"
             color="primary"
-            icon="sym_r_add"
             label="Nueva Venta"
+            no-caps
             class="q-mt-sm"
             @click="openCreate"
           />
@@ -195,6 +199,12 @@ onUnmounted(() => window.removeEventListener('keydown', handleKeydown));
         @edit="openEdit"
         @delete="confirmDelete"
       />
+
+      <div v-if="error" class="error-banner" role="alert">
+        <q-icon name="error" size="1.25rem" class="q-mr-sm" />
+        <span>{{ error }}</span>
+        <q-btn flat dense no-caps label="Reintentar" color="accent" class="q-ml-sm" @click="load" />
+      </div>
     </q-pull-to-refresh>
 
     <VentaFormDialog
@@ -205,7 +215,7 @@ onUnmounted(() => window.removeEventListener('keydown', handleKeydown));
     />
 
     <q-dialog v-model="deleteDialog" dark>
-      <q-card dark class="bg-surface-pine">
+      <q-card dark class="dialog-surface">
         <q-card-section class="row items-center q-gutter-x-md">
           <q-icon name="warning" color="negative" size="md" />
           <span
@@ -223,25 +233,166 @@ onUnmounted(() => window.removeEventListener('keydown', handleKeydown));
 </template>
 
 <style scoped>
-.toolbar {
+.ventas-page {
+  max-width: 1280px;
+  margin: 0 auto;
+  padding: clamp(24px, 4vw, 64px);
+}
+
+/* Header con firma cobre (sin glow — brief Mayor) */
+.page-header {
+  display: flex;
+  align-items: flex-end;
+  justify-content: space-between;
+  gap: 24px;
+  margin-bottom: 8px;
+}
+
+.page-title {
+  font-family: var(--pq-font-display);
+  font-weight: 700;
+  font-size: clamp(22px, 4vw, 28px);
+  line-height: 1.15;
+  letter-spacing: -0.02em;
+  color: var(--pq-text);
+  margin: 0;
+}
+
+.page-subtitle {
+  font-family: var(--pq-font-body);
+  font-weight: 500;
+  font-size: 13px;
+  line-height: 1.5;
+  color: var(--pq-text-muted);
+  margin: 4px 0 0;
+}
+
+.page-header__signature {
+  display: none;
+  align-items: center;
+  gap: 8px;
+}
+
+@media (min-width: 1024px) {
+  .page-header__signature {
+    display: flex;
+  }
+}
+
+.signature-dot {
+  width: 6px;
+  height: 6px;
+  border-radius: 50%;
+  background: var(--pq-accent);
+}
+
+.signature-line {
+  width: 40px;
+  height: 1px;
+  background: var(--pq-accent);
+  opacity: 0.4;
+}
+
+/* Franja de contexto: dato a la izquierda, CTA al borde de salida (desktop) */
+.stats-row {
   display: flex;
   align-items: center;
   flex-wrap: wrap;
-  gap: 12px;
-  margin: 16px 0;
+  justify-content: space-between;
+  gap: 8px 12px;
+  margin: 16px 0 8px;
 }
 
-/* ponytail: mismo patrón que Proveedores/Facturas — Nuevo full-width en xs */
-@media (max-width: 599px) {
-  .toolbar {
-    display: grid;
-    grid-template-columns: 1fr;
-    gap: 8px;
-  }
+.stat {
+  font-family: var(--pq-font-utility);
+  font-size: 12px;
+  letter-spacing: 0.08em;
+  color: var(--pq-text-subtle);
+  text-transform: uppercase;
+}
 
-  .toolbar .q-btn {
+.rule {
+  height: 1px;
+  background: var(--pq-border);
+  margin: 24px 0;
+  opacity: 0.4;
+}
+
+/* Toolbar con Nuevo (mismo patrón que Productos/Proveedores) */
+.ventas-toolbar {
+  display: flex;
+  justify-content: flex-end;
+  margin: 16px 0 8px;
+}
+
+/* Nuevo button — filled cobre (mismo patrón que Productos) */
+.toolbar-new {
+  min-height: 36px;
+  background: var(--pq-accent) !important;
+  color: var(--pq-background) !important;
+  font-weight: 600;
+  border-radius: var(--pq-radius-sm);
+  box-shadow: 0 2px 8px rgba(163, 120, 94, 0.25);
+  transition: background-color 0.16s cubic-bezier(0.22, 1, 0.36, 1), box-shadow 0.16s ease, transform 0.1s ease;
+}
+
+.toolbar-new:hover {
+  background: var(--pq-accent-hover) !important;
+  box-shadow: 0 4px 16px rgba(163, 120, 94, 0.35);
+  transform: translateY(-1px);
+}
+
+.toolbar-new:active {
+  transform: scale(0.985) translateY(0);
+}
+
+.toolbar-new:focus-visible {
+  outline: 2px solid var(--pq-accent);
+  outline-offset: 2px;
+}
+
+/* tablet táctil: escala táctil 44px */
+@media (pointer: coarse) {
+  .toolbar-new {
+    min-height: 44px;
+  }
+}
+
+/* Banner de error — franja fina, sin bloque de color completo */
+.error-banner {
+  display: flex;
+  align-items: center;
+  height: 40px;
+  padding: 0 16px;
+  border: 1px solid rgba(192, 106, 96, 0.4);
+  border-left: 3px solid var(--pq-danger);
+  border-radius: var(--pq-radius-md);
+  color: var(--pq-danger);
+  font-family: var(--pq-font-body);
+  font-size: 13px;
+  margin-bottom: 24px;
+  background: rgba(192, 106, 96, 0.04);
+}
+
+.dialog-surface {
+  background: var(--pq-elevated) !important;
+  border-radius: var(--pq-radius-xl) !important;
+  box-shadow: var(--pq-shadow-lg) !important;
+  border: 1px solid rgba(77, 112, 99, 0.3);
+}
+
+.dialog-title {
+  font-family: var(--pq-font-display);
+  font-weight: 600;
+  font-size: 18px;
+  color: var(--pq-text);
+}
+
+@media (max-width: 639px) {
+  .ventas-toolbar .toolbar-new {
     width: 100%;
-    white-space: nowrap;
+    min-width: 0;
+    max-width: none;
   }
 }
 </style>

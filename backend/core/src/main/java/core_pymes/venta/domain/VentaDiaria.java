@@ -9,6 +9,8 @@ import org.hibernate.annotations.Where;
 
 import java.math.BigDecimal;
 import java.time.LocalDate;
+import java.util.ArrayList;
+import java.util.List;
 import java.time.ZonedDateTime;
 import java.util.UUID;
 
@@ -49,4 +51,8 @@ public class VentaDiaria {
     @UpdateTimestamp
     @Column(name = "updated_at", nullable = false)
     private ZonedDateTime updatedAt;
+
+    @OneToMany(mappedBy = "venta", cascade = CascadeType.ALL, orphanRemoval = true, fetch = FetchType.LAZY)
+    @Builder.Default
+    private List<DailySalePayment> payments = new ArrayList<>();
 }

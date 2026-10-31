@@ -40,6 +40,17 @@ spring:
           predicates:
             - Path=/v3/api-docs/auth
 
+# Swagger deshabilitado en producción
+springdoc:
+  swagger-ui:
+    enabled: ${SWAGGER_ENABLED:false}
+
+# Actuator: no revelar detalles en producción
+management:
+  endpoint:
+    health:
+      show-details: never
+
 logging:
   level:
     root: WARN

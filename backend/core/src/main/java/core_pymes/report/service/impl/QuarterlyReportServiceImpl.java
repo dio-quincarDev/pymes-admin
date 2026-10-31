@@ -44,6 +44,16 @@ public class QuarterlyReportServiceImpl implements QuarterlyReportService {
             params.put("gastosOperativos", data.gastosOperativos());
             params.put("neto", data.neto());
             params.put("itbms", data.itbms());
+            params.put("ingresosPorMetodoDs", new JRMapCollectionDataSource(ingresosPorMetodo(data.ingresosPorMetodo())));
+            params.put("egresosPorMetodoDs", new JRMapCollectionDataSource(egresosPorMetodo(data.egresosPorMetodo())));
+            params.put("tieneIngresosPorMetodo", !data.ingresosPorMetodo().isEmpty());
+            params.put("tieneEgresosPorMetodo", !data.egresosPorMetodo().isEmpty());
+            BigDecimal ingresosTotal = data.ingresosPorMetodo().stream()
+                    .map(core_pymes.report.dto.ReportData.MetodoTotal::total).reduce(BigDecimal.ZERO, BigDecimal::add);
+            params.put("ingresosTotal", ingresosTotal);
+            BigDecimal egresosTotal = data.egresosPorMetodo().stream()
+                    .map(core_pymes.report.dto.ReportData.MetodoTotal::total).reduce(BigDecimal.ZERO, BigDecimal::add);
+            params.put("egresosTotal", egresosTotal);
             params.put("sinVentas", data.esParcial());
             params.put("mesesDs", new JRMapCollectionDataSource(meses(data.meses())));
             params.put("productosDs", new JRMapCollectionDataSource(productos(data.topProductos())));
@@ -105,6 +115,22 @@ public class QuarterlyReportServiceImpl implements QuarterlyReportService {
         for (var p : rows) {
             out.add(Map.of("nombre", p.nombre(), "cantidad", p.cantidad(),
                     "unidad", p.unidad(), "total", p.total()));
+        }
+        return out;
+    }
+
+    private Collection<Map<String, ?>> ingresosPorMetodo(List<core_pymes.report.dto.ReportData.MetodoTotal> rows) {
+        List<Map<String, ?>> out = new ArrayList<>();
+        for (var m : rows) {
+            out.add(Map.of("metodo", m.metodo(), "total", m.total()));
+        }
+        return out;
+    }
+
+    private Collection<Map<String, ?>> egresosPorMetodo(List<core_pymes.report.dto.ReportData.MetodoTotal> rows) {
+        List<Map<String, ?>> out = new ArrayList<>();
+        for (var m : rows) {
+            out.add(Map.of("metodo", m.metodo(), "total", m.total()));
         }
         return out;
     }

@@ -4,6 +4,59 @@ Registro cronológico de decisiones técnicas, refactors y post-mortems del proy
 
 ---
 
+## 2026-10-27 — Revisión de las 4 tareas Media: 2 cerradas por decisión, 2 siguen abiertas
+
+**Contexto:** las 4 tareas `[Media]` pendientes del proyecto eran "Postgres: Hikari + SSL", "Postgres: FK de tenant_id + Flyway", "Frontend: cerrar offline PWA" y "Frontend: i18n base". Ninguna estaba enlazada desde `TO_DO.md`, así que el trabajo hecho no aparecía en la documentación del repo.
+
+**Qué se hizo:**
+- **Hikari** — ya estaba: `maximum-pool-size: 20` en auth y core (`application.yaml`), no el default de 10. Se descarta `sslmode=require`: Postgres solo escucha en `pymes-internal-network`, el host no publica el 5432 (solo 22/80/443). Decisión y condición para reabrirla en `docs/persistencia-postgres.md`.
+- **FK de `tenant_id`** — decisión explícita de no crear FK cross-schema `core.tenant_id → auth.tenants`: acopla el orden de migración de los dos servicios sin aportar nada sobre el filtro obligatorio por tenant. "Sin huérfanos" se cumple por construcción porque los tenants no se borran: `TenantServiceImpl.shutdown` hace soft delete (`is_active=false`) y los `ON DELETE CASCADE` solo existen dentro de `auth`.
+- **`docs/persistencia-postgres.md`** — corregidos datos falsos: decía auth 2 migraciones (son 3) y core 13 = `V1..V13` (son 8, última `V8__report_log.sql`); la observación 1 afirmaba "sin ajuste explícito de HikariCP" contradiciendo la sección que lo documenta configurado. Añadido el porqué de no-SSL, no-FK y la condición de reapertura de cada una.
+- **Offline PWA e i18n: siguen abiertas.** Offline tiene solo 1/2 (`axios.ts` no desloguea offline, banner + `pymeq_last_sync` en `MainLayout.vue`); falta cola de escrituras y borrador persistido. i18n solo tiene el scaffold de la plantilla (`locale: 'en-US'`, mensajes vacíos, 0 usos de `$t`). Ambas quedan registradas en `TO_DO.md`; i18n bajada a `Baja` por falta de usuarios no hispanohablantes.
+
+**Verificación:** `grep` de `maximum-pool-size` (2 hits), `sslmode` (0 hits en perfiles), `db/migration/` de auth (3) y core (8), `TenantServiceImpl.shutdown` hace `setIsActive(false)`, 0 usos de `useI18n`/`$t` en `src`.
+
+**Incidencia de Auth corregida (misma fecha):** la lista de "Incidencias abiertas" del proyecto daba a entender que auth estaba sin cubrir. Auditoría `endpoint × test`: `POST /exchange` es el único sin ningún test (no hay unit de `AuthServiceImpl.exchange` ni IT); `POST /tenants/select`, `GET /invitations`, `DELETE /invitations/{id}` y `GET /tenants/{id}/shutdown` ya tienen unit de servicio y solo les falta la capa HTTP. Sin unit siguen `PermissionCacheService`, `RateLimitService` (solo mockeado) y `CustomOAuth2UserService`. En `TO_DO.md` se eliminó la sección `### Auth` duplicada y la entrada que aún listaba `TokenBlacklistService` como pendiente. Corrida real: `./mvnw test -B` → **168/168**, `./mvnw verify -B -Dspring.profiles.active=integration` → **56/56**, BUILD SUCCESS.
+
+```
+docs/persistencia-postgres.md · docs/TO_DO.md · docs/DAILY_REPORTS_PROJECT.md
+```
+
+---
+
+## 2026-10-26 — Branding/SEO + iconos PWA reales — frontend
+
+**Qué se hizo:** `og:image` 1200x630 + `og:url`/`twitter:image` en `index.html` (URL absoluta a `pymeq.dioquincar.dev` por decisión explícita: los crawlers ignoran rutas relativas); `manifest.name/description` alineados con `<title>`/`package.json`; los 14 PNG del PWA y `favicon.ico` regenerados desde `pymeq-app-icon.svg` (antes placeholder azul de Quasar).
+
+**Verificación:** `og-image.png` 1200x630 · bronce `#CC9639` dominante en los 15 iconos · `build` PWA verde. Detalle en `frontend/pymes/docs/DAILY_REPORTS_FRONTEND.md 2026-10-26`.
+
+**Pendiente fuera del repo:** purgar Cloudflare para `apple-icon-*`/`favicon-*` (sin query de versión); confirmar el recorte maskable instalando la PWA en un dispositivo real.
+
+```
+frontend/pymes/index.html · frontend/pymes/src-pwa/manifest.json · frontend/pymes/public/og-image.png · frontend/pymes/public/icons/*.png · frontend/pymes/public/favicon.ico
+```
+
+---
+
+## 2026-10-26 — Regresión E2E de flujos críticos — frontend
+
+**Qué se hizo:**
+- **4 specs nuevos** sobre la base Playwright existente, con APIs mockeadas (`e2e/tests/support/mocks.ts`): `auth-session.spec.ts` (login → dashboard; el store mergea `activeTenant.id` en `user.tenantId` incluso con `/users/me` lento; logout → re-login con tokens frescos y mismo tenant), `oauth2-callback.spec.ts` (code exchange → `tenantId` → dashboard), `invoice-itbms.spec.ts` (ITBMS 0/7/10 por ítem: desglose $100/$200/$17, total $317, payload con `itbmsTasa` individual), `pwa-cache.spec.ts` (`auth:401` borra `core-api-cache` vía `postMessage` al SW).
+- **OAuth2 real contra Google** queda `@manual` (`grepInvert: /@manual/`; `E2E_MANUAL=1` lo habilita): requiere credenciales y 2FA humana. No se ejecutó.
+- **`e2e/README.md`** con comandos y matriz CI/manual. Fija la separación: lo mockeado corre en CI; lo manual es decisión humana pre-merge.
+- **2 fixes de infraestructura de test:** `webServer.command` pasó de `docker compose up -d` a `docker compose up` (el detached terminaba y Playwright abortaba con `Process from config.webServer exited early`); `disableTutorial()` apaga `pymeq_tour_seen`/`pymeq_hint_seen` porque el overlay del tour interceptaba los selects de Quasar.
+
+**Verificación:**
+- E2E **9/9 passed** (24.3 s) con stack Docker healthy.
+- Frontend: **76/76** Vitest, `lint` 0, `build` PWA 960.31 KB JS / 383.72 KB CSS.
+- Sin cambios de código productivo: solo tests, config E2E y docs.
+
+```
+e2e/playwright.config.ts · e2e/tests/{auth-session,oauth2-callback,invoice-itbms,pwa-cache}.spec.ts · e2e/tests/support/mocks.ts · e2e/README.md
+```
+
+---
+
 ## 2026-09-19 — Fix registro manual (hint + pendingTenant race) — frontend
 
 **Qué se hizo:**
@@ -1004,7 +1057,7 @@ docs/DAILY_REPORTS_PROJECT.md                                                   
 
 ### Próximo
 
-1. Frontend CORS test real desde navegador
+1. ~~Frontend CORS test real desde navegador~~ ✅ verificado en producción 2026-10-26 (preflight 200, POST 400 sin 403)
 2. Retomar gaps 🟡 (N+1, rate limit, etc.)
 3. Si aplica, mergar a `develop`
 
@@ -1113,13 +1166,48 @@ Auditoría completa cruzando GAPS.md y TO_DO.md con código real. Se encontraron
 | Auth integration | 55 | ✅ |
 | Core unit | 150 | ✅ |
 | Core integration | 22 | ✅ |
-| Gateway | 37 | ✅ |
-| Frontend lint | — | ✅ |
-| Frontend vue-tsc | — | ✅ |
 
-### Skipped (ponytail)
+## 2026-10-29 — Cache Strategy Phase 1 & Redis Tenant Isolation Phase 2
 
-- Cache en JwtFilter: no hay Caffeine, agregar cuando load lo demande
-- Rate limit `/exchange`: requiere gateway filter + Redis config
+**Contexto:** Se resolvieron dois problemas críticos en el SaaS financiero multi-tenant:
 
-**Estado:** ✅ COMPLETADO
+### Fase 1 — Blackout PWA y OAuth2 en Dev
+- **Problem:** Navegación por Nav Bar causaba pantalla negra; OAuth2 login en dev fallaba porque VITE_API_URL no estaba definido, cayendo back a `window.location.origin` (localhost:9200) y volviéndose same-origin → el Service Worker interceptaba la navegación en lugar de dejarla llegar al gateway (8080).
+- **Fix creado:** `frontend/pymes/.env` con `VITE_API_URL=http://localhost:8080/api/v1` inyectado al dev server.
+- **Fix SW:** `NetworkFirst` estrategia en lugar de `StaleWhileRevalidate` para API y app-shell (`custom-service-worker.ts`). `fetchOptions: { cache: 'no-store' }` en ambas estrategias para evitar que la caché HTTP del navegador sirva recursos stale (304 Not Modified → blackout).
+- **Cleanup conservador en `activate`:** Solo borra caches legacy `core-api-cache` y `app-shell`, no toca precache ni caches desconocidas.
+- **Error `process.argv`:** Guard `Array.isArray(process.argv)` en `recuperacion.ts` (fallaba en browser).
+- **CSP `connect-src`:** Relajado a `connect-src 'self' http://localhost:8080` en `SecurityHeadersFilter.java` para dev; producción mantiene `connect-src 'self'`.
+
+**Validación:** ✅ lint paso, ✅ build PWA paso, ✅ e2e `oauth2-callback` con SW habilitado paso.
+
+**Archivos modificados:**
+- `frontend/pymes/.env` (nuevo) — `VITE_API_URL=http://localhost:8080/api/v1`
+- `frontend/pymes/src-pwa/custom-service-worker.ts` — NetworkFirst, fetchOptions, cleanup conservador
+- `frontend/pymes/src/modules/core/utils/recuperacion.ts` — guard `Array.isArray(process.argv)`
+- `backend/gateway-pymes/src/main/java/dev/dioquincar/gateway_pymes/filter/SecurityHeadersFilter.java` — CSP con connect-src dev
+- `frontend/pymes/src-pwa/register-service-worker.ts` — trigger `registration.update()` en `visibilitychange`
+
+### Fase 2 — Redis Tenant Isolation
+- **Problem:** SaaS multi-tenant usa un Redis compartido para blacklist de tokens + cache core. Riesgo: un tenant podría ver/ contaminar datos de otro.
+- **Fix:** Separación por databases Redis: auth → db 0, core → db 1. Todas las keys prefijadas con `tenant:{id}:` para aislamiento lógico.
+- **Servicios actualizados:** `TokenBlacklistService` (todos los métodos ahora reciben `tenantId`), `EmailVerificationServiceImpl` (todas las operaciones Redis tienen prefix `tenant:{id}:`).
+- **Test devalidado:** `RedisTenantIsolationIntegrationTest` (2 tests pasar en profile `integration` con Testcontainers Redis + PostgreSQL). Confirma: aislamiento de keys por tenant, databases separados, sin fugas de datos.
+
+**Validación:** ✅ Tests run: 2, Failures: 0, Errors: 0 en integration profile.
+
+**Archivos modificados:**
+- `backend/auth/src/main/resources/application.yaml` — `spring.data.redis.database: 0`
+- `backend/core/src/main/resources/application.yaml` — `spring.data.redis.database: 1`
+- `backend/auth/src/main/java/auth/pymes/service/impl/TokenBlacklistService.java` — métodos con tenantId
+- `backend/auth/src/main/java/auth/pymes/service/impl/EmailVerificationServiceImpl.java` — keys con tenant prefix
+- `backend/core/src/test/java/core_pymes/integration/RedisTenantIsolationIntegrationTest.java` — 2 tests de aislamiento
+
+### Estado de fases
+| Fase | Descripción | Estado |
+|------|-------------|--------|
+| Fase 1 | Cache Strategy & Blackout Fix | ✅ Concluida |
+| Fase 2 | Redis Tenant Isolation | ✅ Concluida |
+| Fase 3 | Nav-stress.spec.ts relocation | ⏳ Pendiente |
+
+**Estado general:** ✅ Todas las phases de cache y Redis completadas. Enfocado ahora en validación de usuario y próximos reports legales.

@@ -52,6 +52,11 @@ class MonthlyReportTemplateTest {
         assertTrue(text.contains("Pechuga"), "fila de producto pintada");
         assertTrue(text.contains("40 kg"), "cantidad con unidad pintada");
         assertTrue(text.contains("Salarios"), "fila de gasto pintada");
+        assertTrue(text.contains("Pagaste este mes"), "seccion de egresos pintada");
+        assertTrue(text.contains("Recibiste este mes"), "seccion de ingresos pintada");
+        assertTrue(text.contains("Total recibido"), "total de ingresos pintado");
+        assertTrue(text.contains("TRANSFERENCIA"), "metodo de egreso pintado");
+        assertTrue(text.contains("Total pagado"), "total de egresos pintado");
         assertTrue(text.contains("aparta USD 1,666.67"), "linea 1 de retorno pintada");
         assertTrue(text.contains("entre 8 y 10 días"), "linea 2 de retorno pintada");
         assertFalse(text.contains("null"), "sin 'null' pintado");
@@ -150,6 +155,12 @@ class MonthlyReportTemplateTest {
         params.put("proveedoresDs", new JRMapCollectionDataSource(proveedores()));
         params.put("productosDs", new JRMapCollectionDataSource(productos()));
         params.put("gastosDs", new JRMapCollectionDataSource(gastos()));
+        params.put("egresosPorMetodoDs", new JRMapCollectionDataSource(egresosPorMetodo()));
+        params.put("tieneEgresosPorMetodo", true);
+        params.put("egresosTotal", new BigDecimal("976.51"));
+        params.put("ingresosPorMetodoDs", new JRMapCollectionDataSource(ingresosPorMetodo()));
+        params.put("tieneIngresosPorMetodo", true);
+        params.put("ingresosTotal", new BigDecimal("8248.99"));
         params.put("tieneProductos", true);
         params.put("tieneGastos", true);
         params.put("tieneProveedores", true);
@@ -218,6 +229,20 @@ class MonthlyReportTemplateTest {
     private static Collection<Map<String, ?>> gastos() {
         List<Map<String, ?>> out = new ArrayList<>();
         out.add(Map.of("nombre", "Salarios", "total", new BigDecimal("1750.00"), "facturas", 2L));
+        return out;
+    }
+
+    private static Collection<Map<String, ?>> egresosPorMetodo() {
+        List<Map<String, ?>> out = new ArrayList<>();
+        out.add(Map.of("metodo", "EFECTIVO", "total", new BigDecimal("750.75")));
+        out.add(Map.of("metodo", "TRANSFERENCIA", "total", new BigDecimal("225.76")));
+        return out;
+    }
+
+    private static Collection<Map<String, ?>> ingresosPorMetodo() {
+        List<Map<String, ?>> out = new ArrayList<>();
+        out.add(Map.of("metodo", "EFECTIVO", "total", new BigDecimal("6967.28")));
+        out.add(Map.of("metodo", "YAPPY", "total", new BigDecimal("5372.37")));
         return out;
     }
 }

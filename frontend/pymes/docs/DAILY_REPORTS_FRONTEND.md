@@ -4,6 +4,21 @@ Registro cronológico de decisiones, problemas resueltos y estado del frontend.
 
 ---
 
+## 2026-10-26 — Branding/SEO: og:image + marca unificada + iconos PWA reales
+
+**Contexto:** la alerta Baja de Notion "Frontend: branding y SEO pendiente" seguía abierta. `index.html` no tenía `og:image` (compartir el link no mostraba imagen) y `manifest.name`/`description` diferían del `<title>`/`package.json`. Hallazgo extra: los PNG del PWA seguían siendo el placeholder azul de Quasar (`#00B8FF`), así que un install mostraba el icono equivocado.
+
+**Qué se hizo:**
+- **`index.html`** — `og:image` 1200x630 (`public/og-image.png`) + `og:image:width/height/alt`, `og:url`, `twitter:image`/`image:alt`. URL absoluta a `https://pymeq.dioquincar.dev`: los crawlers no resuelven rutas relativas y es el único host de despliegue aceptado.
+- **`src-pwa/manifest.json`** — `name`/`description` alineados con `<title>`, `productName` y `package.json`.
+- **Iconos** — 14 PNG (`icon-128/192/256/384/512`, `apple-icon-120/152/167/180`, `favicon-16/32/96/128`, `ms-icon-144`) + `favicon.ico` multi-tamaño (16–256) rasterizados desde `public/icons/pymeq-app-icon.svg` con Chromium headless a 1024 px y Pillow LANCZOS, fondo aplanado `#08090D` para maskable/iOS.
+
+**Verificación:** `identify` 1200x630 · color dominante bronce `#CC9639` en los 15 archivos · favicon 32 px legible al ampliar · `dist/pwa` recibe los assets · `npm run build` verde (960 KB JS / 383 KB CSS). OAuth2 real y recorte maskable en dispositivo **no** verificados.
+
+**Estado:** ✅ COMPLETADO — pendiente push `feature/refactor` y purga de Cloudflare (`apple-icon-*`/`favicon-*` van sin query de versión)
+
+---
+
 ## 2026-10-10 — Botones +Nuevo acoplados (Proveedores/Costos) + UUID fuera del onboarding
 
 **Contexto:** con datos cargados, el `Nuevo` de Proveedores quedaba chico a la derecha en mobile (solo tenía `flex-wrap`, sin el patrón full-width de Facturas), y el `Nuevo` de Costos (Equipo/Gastos Fijos) flotaba en la esquina derecha por un `q-space` sin search que lo balanceara. Además el preview del onboarding mostraba el `baseUnit` crudo (UUID canónico desde backend V7).
@@ -3298,8 +3313,33 @@ docs/strategies/INFRA_STRATEGY.md
 AGENTS.md
 ```
 
-### Verificación
 
+## 2026-10-29 — PWA Blackout Fix & OAuth2 Dev Login (Phase 1)
+
+**Contexto:** Se resolvieron dos problemas críticos en el frontend PWA:
+
+### Problem: Blackout en navegación y OAuth2 en dev
+- **Blackout:** Navegar con la Nav Bar causaba pantalla negra porque el SW viejo servía `index.html` precacheado referenciando bundles JS que ya no existían.
+- **OAuth2 dev:** `VITE_API_URL` no definido → `gatewayBase` caía a `window.location.origin` (localhost:9200) → navegación a `/oauth2/authorization/google` era same-origin → SW la interceptaba → nunca llegaba a Google.
+
+### Fixes aplicados
+1. **`.env` creado** en `frontend/pymes/` con `VITE_API_URL=http://localhost:8080/api/v1` → OAuth2 va cross-origin (8080) y SW no lo interjeta.
+2. **SW changed:** `StaleWhileRevalidate` → `NetworkFirst` para `core-api-cache` y `app-shell`. `fetchOptions: { cache: 'no-store' }` en ambas estrategias → evita caché HTTP stale del navegador.
+3. **Cleanup conservador:** `activate` solo borra `core-api-cache` y `app-shell` (legacy), no toca precache.
+4. **`process.argv` fix:** Guard `Array.isArray(process.argv)` en `recuperacion.ts` (undefined en browser).
+5. **CSP `connect-src`:** Relajado en gateway para dev (`http://localhost:8080`).
+
+**Validación:** ✅ lint 0, ✅ build PWA OK, ✅ e2e `oauth2-callback` con SW habilitado.
+
+**Archivos modificados:**
+- `frontend/pymes/.env` (nuevo)
+- `frontend/pymes/src-pwa/custom-service-worker.ts` — NetworkFirst, fetchOptions, cleanup
+- `frontend/pymes/src-pwa/register-service-worker.ts` — visibilitychange trigger
+- `frontend/pymes/src/modules/core/utils/recuperacion.ts` — guard `Array.isArray(process.argv)`
+
+### Verificación
 - Frontend lint: clean
+- Build PWA: success
+- E2e oauth2-callback: passed
 
 **Estado:** ✅ COMPLETADO

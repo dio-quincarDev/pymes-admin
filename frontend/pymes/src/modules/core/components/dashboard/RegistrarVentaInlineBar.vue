@@ -1,6 +1,7 @@
 <script setup lang="ts">
 import { useTemplateRef } from 'vue';
 import { useRegistrarVenta } from '../../composables/useRegistrarVenta';
+import { METODOS_PAGO } from '../../utils/metodosPago';
 
 interface Props {
   modelValue: boolean;
@@ -13,7 +14,7 @@ const emit = defineEmits<{
   created: [];
 }>();
 
-const { montoStr, descripcion, fecha, saving, error, isValid, save } = useRegistrarVenta();
+const { montoStr, metodo, descripcion, fecha, saving, error, isValid, save } = useRegistrarVenta();
 
 // ponytail: native date picker only opens on indicator; expand hit-area via showPicker() — useTemplateRef per sfc.md (Vue 3.5+)
 const fechaInputRef = useTemplateRef<{ $el: HTMLElement }>('fechaInputRef');
@@ -55,6 +56,17 @@ async function onSave() {
         :error="!!error"
         :error-message="error"
         @keyup.enter="onSave"
+      />
+      <q-select
+        v-model="metodo"
+        :options="METODOS_PAGO"
+        option-value="value"
+        option-label="label"
+        emit-value
+        map-options
+        outlined
+        dense
+        class="venta-inline-bar__field venta-inline-bar__field--metodo"
       />
       <q-input
         ref="fechaInputRef"
@@ -114,6 +126,10 @@ async function onSave() {
 
     &--fecha {
       flex: 1 1 160px;
+    }
+
+    &--metodo {
+      flex: 1 1 150px;
     }
 
     &--desc {
