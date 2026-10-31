@@ -274,6 +274,9 @@ function onTotalInput(val: string | number | null) {
   totalStr.value = String(val ?? '')
     .replace(/[^0-9.]/g, '')
     .replace(/(\..*)\./g, '$1');
+  const n = parseFloat(totalStr.value);
+  if (Number.isFinite(n)) form.value.total = n;
+  else form.value.total = null;
 }
 
 function formatTotal() {
@@ -342,8 +345,9 @@ function applyCategoria() {
   if (form.value.tipo !== 'GASTO_OPERATIVO') return;
   form.value.colaboradorId = null;
   const gf = gastoFijoCategorias.value.find((c) => c.value === form.value.categoria);
-  form.value.total = gf?.monto ?? null;
-  form.value.proveedorId = gf?.proveedorId ?? null;
+  if (!gf) return;   // 'Otro' o categoría personalizada: respetar monto que ya hay escrito
+  form.value.total = gf.monto;
+  form.value.proveedorId = gf.proveedorId ?? null;
   providerFilteredOptions.value = [...providerOptions.value];
   totalStr.value = rawTotal(form.value.total);
 }
