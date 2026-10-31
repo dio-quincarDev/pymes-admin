@@ -22,6 +22,9 @@ const montos = shallowRef<Record<MetodoPago, string>>({
   EFECTIVO: '', ACH: '', YAPPY: '', TARJETA: '', CHEQUE: '', CREDITO: '',
 });
 
+// rehidratar al abrir el diálogo, no al cambiar la prop props.initial
+watch(open, (isOpen) => { if (isOpen) populateFromInitial(props.initial); }, { immediate: true });
+
 function rawAmount(val: number) {
   return val
     ? val.toLocaleString('en-US', { minimumFractionDigits: 2, maximumFractionDigits: 2 })
