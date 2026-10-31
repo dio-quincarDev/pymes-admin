@@ -25,16 +25,10 @@ const montos = shallowRef<Record<MetodoPago, string>>({
 // rehidratar al abrir el diálogo, no al cambiar la prop props.initial
 watch(open, (isOpen) => { if (isOpen) populateFromInitial(props.initial); }, { immediate: true });
 
-watch(() => props.initial, (val) => populateFromInitial(val), { immediate: true, deep: true });
-
-function onMontoInput(metodo: MetodoPago, val: string | number | null) {
-  const s = String(val ?? '').replace(/[^0-9.]/g, '').replace(/(\..*)\./g, '$1');
-  montos.value = { ...montos.value, [metodo]: s };
-}
-
-function parseMonto(s: string): number {
-  const n = parseFloat(s.replace(',', '.'));
-  return Number.isFinite(n) ? n : 0;
+function rawAmount(val: number) {
+  return val
+    ? val.toLocaleString('en-US', { minimumFractionDigits: 2, maximumFractionDigits: 2 })
+    : '';
 }
 
 function populateFromInitial(val: VentaRequest) {
@@ -47,8 +41,6 @@ function populateFromInitial(val: VentaRequest) {
   }
   montos.value = next;
 }
-
-watch(() => props.initial, (val) => populateFromInitial(val), { immediate: true, deep: true });
 
 function onMontoInput(metodo: MetodoPago, val: string | number | null) {
   const s = String(val ?? '').replace(/[^0-9.]/g, '').replace(/(\..*)\./g, '$1');
