@@ -204,7 +204,10 @@ function fmt(n: number | null) {
           :options="unitOptions"
           map-options emit-value
           :disable="!item.productoId"
-          placeholder="Elegir…"
+          placeholfile ./manual-backup.dump 
+./manual-backup.dump: PostgreSQL custom database dump - v1.14-0
+ubuntu@vm2-test2:~/pymes-admin$ 
+der="Elegir…"
         />
       </div>
 

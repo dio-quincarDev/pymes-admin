@@ -172,7 +172,10 @@
             </element>
           </columnHeader>
           <detailCell style="TableCell" height="20">
-            <element kind="textField" x="0" y="0" width="307" height="20" hTextAlign="Right">
+            <elemefile ./manual-backup.dump 
+./manual-backup.dump: PostgreSQL custom database dump - v1.14-0
+ubuntu@vm2-test2:~/pymes-admin$ 
+nt kind="textField" x="0" y="0" width="307" height="20" hTextAlign="Right">
               <expression><![CDATA[$P{moneda} + " " + new java.text.DecimalFormat("#,##0.00").format($F{total})]]></expression>
             </element>
           </detailCell>

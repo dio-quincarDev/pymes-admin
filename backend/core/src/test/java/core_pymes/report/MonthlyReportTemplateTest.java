@@ -184,6 +184,62 @@ class MonthlyReportTemplateTest {
         }
     }
 
+    @Test
+    @DisplayName("Cierre de retorno no se corta con cifras largas")
+    void retornoNoSeCortaConCifrasLargas() throws Exception {
+        JasperReport template;
+        try (InputStream jrxml = getClass().getResourceAsStream("/reports/MonthlyReport.jrxml")) {
+            template = JasperCompileManager.compileReport(jrxml);
+        }
+        Map<String, Object> params = new HashMap<>();
+        params.put("tenantName", "Mi Rinconcito Criollo");
+        params.put("periodoLabel", "Septiembre 2026");
+        params.put("moneda", "USD");
+        params.put("ingresos", new BigDecimal("12460500.00"));
+        params.put("costoCompras", new BigDecimal("2109.12"));
+        params.put("gastosOperativos", new BigDecimal("2474.18"));
+        params.put("neto", new BigDecimal("12456000.00"));
+        params.put("diasCargados", 26);
+        params.put("diasDelMes", 30);
+        params.put("sinVentas", false);
+        params.put("semanasDs", new JRMapCollectionDataSource(semanas()));
+        params.put("proveedoresDs", new JRMapCollectionDataSource(proveedores()));
+        params.put("productosDs", new JRMapCollectionDataSource(productos()));
+        params.put("gastosDs", new JRMapCollectionDataSource(gastos()));
+        params.put("tieneProductos", true);
+        params.put("tieneGastos", true);
+        // ponytail: linea duplicada a proposito — fuerza 3+ renglones para probar
+        // que el campo se estira (textAdjust) en vez de cortar el texto.
+        String larga1 = "Te quedaron USD 1,234,567,890.00: aparta USD 864,197,523.00 para el retorno de tu inversión inicial (USD 15,000,000,000.00) (ritmo 18 meses).";
+        String larga2 = "Con USD 370,370,367.00 te alcanza para operar entre 1,280 y 1,400 días (1,490% del gasto mensual).";
+        params.put("retornoLinea1", larga1 + " " + larga1);
+        params.put("retornoLinea2", larga2 + " " + larga2);
+
+        JasperPrint print;
+        try (InputStream logo = getClass().getResourceAsStream("/reports/pymeq-logo.svg")) {
+            params.put("logoStream", logo);
+            print = JasperFillManager.fillReport(template, params, new JREmptyDataSource(1));
+        }
+
+        List<JRPrintText> texts = new ArrayList<>();
+        print.getPages().forEach(p -> collectTexts(p.getElements(), texts));
+        JRPrintText l1 = texts.stream()
+                .filter(t -> t.getFullText() != null && t.getFullText().contains("aparta USD"))
+                .findFirst().orElseThrow(() -> new AssertionError("linea 1 no pintada"));
+        JRPrintText l2 = texts.stream()
+                .filter(t -> t.getFullText() != null && t.getFullText().contains("te alcanza para operar"))
+                .findFirst().orElseThrow(() -> new AssertionError("linea 2 no pintada"));
+        assertTrue(l1.getHeight() > 34, "linea 1 se estira en vez de cortarse (h=" + l1.getHeight() + ", y=" + l1.getY() + ")");
+        assertTrue(l2.getY() >= l1.getY() + l1.getHeight(), "linea 2 no se monta sobre la 1 (l1 y=" + l1.getY() + " h=" + l1.getHeight() + ", l2 y=" + l2.getY() + ")");
+    }
+
+    private static void collectTexts(Collection<JRPrintElement> elements, List<JRPrintText> out) {
+        for (JRPrintElement e : elements) {
+            if (e instanceof JRPrintFrame f) collectTexts(f.getElements(), out);
+            else if (e instanceof JRPrintText t) out.add(t);
+        }
+    }
+
     private static String printedText(JasperPrint print) {
         StringBuilder sb = new StringBuilder();
         print.getPages().forEach(p -> collect(p.getElements(), sb));
