@@ -8,6 +8,51 @@ Registro de lo implementado y lo pendiente.
 
 ---
 
+## 2026-11-02 — Reporte mensual/trimestral: productos por dinero, ROI de un día promedio y layout sin solapes
+
+**Contexto:** tres quejas sobre el PDF: (1) "Lo que más compraste" encabezaba con productos
+por peso (granos, salsas) en vez de los que se llevaron el dinero; (2) el cierre decía
+"te alcanza para operar entre 1 y 95 días" porque usaba el día más barato y el más caro;
+(3) con 4 métodos de pago la tabla crecía y el "Total" se montaba encima.
+
+**Qué se hizo:**
+- **Productos** (`ReportDataRepositoryImpl`, mensual y trimestral): `ORDER BY SUM(ii.subtotal) DESC`
+  (dinero primero). `cantidad` pasa a `SUM(ii.quantity)`: el ítem ya guarda la cantidad en
+  unidad base, así que `* ii.conversion_factor` multiplicaba de más. La unidad sale de
+  `LEFT JOIN core.template_units tu ON tu.id::text = p.base_unit` en vez de una subconsulta
+  correlacionada por fila. Mismo criterio en las dos queries para que mensual y trimestral
+  no se contradigan.
+- **ROI** (`RetornoInversion.lineaResto`): un solo número de días con `gastoDiario`
+  (gasto del mes / días con gasto). Se eliminan `gastoMin`/`gastoMax`: son días atípicos y
+  producían rangos absurdos. Formato:
+  `Con USD X te alcanza para operar ~N días al gasto promedio (USD D/día) (P% del gasto mensual).`
+- **Layout** (`MonthlyReport.jrxml`, `QuarterlyReport.jrxml`): filas de métodos 20 → 16pt,
+  columnas de precio rebalanceadas y los bloques siguientes con `positionType="Float"`, para
+  que el total baje solo cuando la tabla crece. Cero cambios de datos o de parámetros.
+  Trimestral mantiene el `shortcut: caben hasta 5 métodos` (con 6+ hay que mover el bloque al
+  `summary`).
+
+**Tests:** `RetornoInversionTest` con la línea nueva; `MonthlyReportTemplateTest` con fixtures
+de 4 métodos (efectivo / transferencia / sin método / tarjeta) y asserts geométricos
+(`total.getY() >= ultimoMetodo.getY() + height`) para que el solape no vuelva.
+Suite **257 unit** verde y **74 integration** (Testcontainers PostgreSQL) verde, incluido
+`MonthlyReportIntegrationTest`.
+
+**Verificación en stg:** `dryRun=true` sobre un periodo real devolvió 200 sin errores y sin
+escribir en `report_log`; el reenvío real (ver runbook en `docs/DAILY_REPORTS_PROJECT.md`,
+misma fecha) dejó la fila en `SENT` sin `error_msg`.
+
+```
+backend/core/src/main/java/core_pymes/report/repository/impl/ReportDataRepositoryImpl.java
+backend/core/src/main/java/core_pymes/report/support/RetornoInversion.java
+backend/core/src/main/resources/reports/MonthlyReport.jrxml
+backend/core/src/main/resources/reports/QuarterlyReport.jrxml
+backend/core/src/test/java/core_pymes/report/MonthlyReportTemplateTest.java
+backend/core/src/test/java/core_pymes/report/RetornoInversionTest.java
+```
+
+---
+
 ## 2026-10-26 — Reporte mensual: página 1 dejó de estar vacía (rebalanceo de bandas)
 
 **Contexto:** el dueño abrió el PDF mensual y la página 1 estaba prácticamente en

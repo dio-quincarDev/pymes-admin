@@ -4,6 +4,64 @@ Registro cronológico de decisiones técnicas, refactors y post-mortems del proy
 
 ---
 
+## 2026-11-02 — Reportes: ranking por dinero, ROI de un número y reenvío sin credenciales
+
+**Contexto:** el PDF mensual de octubre llegó con tres defectos: el ranking de productos
+ordenaba por peso en vez de por dinero, el cierre de ROI daba un rango "1 a 95 días" y las
+tablas de métodos de pago se montaban sobre el total. Detalle técnico en
+`backend/core/docs/DAILY_REPORTS_CORE_SOLUTIONS.md 2026-11-02`.
+
+**Qué se hizo:** PR #106 → `develop`. Productos por `SUM(ii.subtotal)`, ROI con gasto diario
+promedio y plantillas mensual/trimestral con los bloques posteriores en `Float`.
+CI 7/7 (257 unit, 74 integration); CD staging publicó `20261102-3be41b6` y los 4 servicios
+quedaron healthy.
+
+**Operación — reenviar un periodo ya enviado (staging)**
+El scheduler corre solo el día 1 a las 06:00 Panamá (`0 0 6 1 * *`) y `claim()` solo retoma
+filas `FAILED`: un periodo `SENT` no se regenera solo. El procedimiento no usa usuario ni
+contraseña; se ejecuta desde el host de staging y habla con el core por la red interna de
+Docker (8082 no está publicado, el único público es el gateway 8080, que valida JWT).
+
+1. Marcar la fila como `FAILED`:
+```sql
+-- docker exec -i pymes-postgres-db sh -c 'psql -U "$POSTGRES_USER" -d "$POSTGRES_DB"'
+update core.report_log r
+   set status = 'FAILED', error_msg = null
+  from auth.tenants t
+ where t.id = r.tenant_id
+   and t.name = '<TENANT>'
+   and r.period = '<YYYY-MM>' and r.format = 'PDF'
+returning r.tenant_id, r.period, r.status;
+```
+
+2. Validar sin enviar (genera el PDF en memoria, no escribe ni manda correo):
+```bash
+IP=$(docker inspect -f '{{range .NetworkSettings.Networks}}{{.IPAddress}}{{end}}' pymes-core-service)
+curl -s -w '\nHTTP %{http_code}\n' -X POST \
+  "http://$IP:8082/api/v1/core/reportes/monthly?period=<YYYY-MM>&dryRun=true" \
+  -H "X-User-Role: ADMIN"
+```
+
+3. Reenviar: mismo comando con `dryRun=false`. `claim` pasa la fila a `SENDING`, genera el
+   PDF, lo envía al OWNER del tenant y deja `SENT`; si falla, queda `FAILED` + `error_msg`.
+
+4. Confirmar:
+```sql
+select tenant_id, period, status, error_msg from core.report_log where period = '<YYYY-MM>';
+```
+
+Trimestral: mismo flujo con `POST /api/v1/core/reportes/quarterly` y el mes que cierra el ciclo.
+
+**Notas:** `X-User-Role` solo tiene efecto dentro de la red interna (el gateway inyecta ese
+header después de validar el JWT); no exponer 8082. `updateStatus` no toca `sent_at`, así que
+el registro conserva la fecha del primer envío aunque el correo se reenvíe.
+
+```
+backend/core/docs/DAILY_REPORTS_CORE_SOLUTIONS.md · docs/DAILY_REPORTS_PROJECT.md
+```
+
+---
+
 ## 2026-10-27 — Revisión de las 4 tareas Media: 2 cerradas por decisión, 2 siguen abiertas
 
 **Contexto:** las 4 tareas `[Media]` pendientes del proyecto eran "Postgres: Hikari + SSL", "Postgres: FK de tenant_id + Flyway", "Frontend: cerrar offline PWA" y "Frontend: i18n base". Ninguna estaba enlazada desde `TO_DO.md`, así que el trabajo hecho no aparecía en la documentación del repo.
