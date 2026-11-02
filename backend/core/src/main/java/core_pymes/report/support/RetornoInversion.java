@@ -69,20 +69,17 @@ public final class RetornoInversion {
     }
 
     private static String lineaResto(String moneda, BigDecimal resto, ProyeccionOperativa op) {
-        if (op == null || op.gastoMensual() == null || op.gastoMensual().signum() <= 0
-                || op.gastoMin() == null || op.gastoMin().signum() <= 0
-                || op.gastoMax() == null || op.gastoMax().signum() <= 0) {
+        if (op == null || op.gastoDiario() == null || op.gastoDiario().signum() <= 0
+                || op.gastoMensual() == null || op.gastoMensual().signum() <= 0) {
             return null;
         }
-        long diasMax = resto.divide(op.gastoMin(), 0, RoundingMode.FLOOR).longValue();
-        long diasMin = resto.divide(op.gastoMax(), 0, RoundingMode.FLOOR).longValue();
+        // ponytail: un dia promedio; gastoMin/gastoMax son dias atipicos y daban rangos sin sentido (1-95 dias)
+        long dias = resto.divide(op.gastoDiario(), 0, RoundingMode.FLOOR).longValue();
         long pct = resto.multiply(BigDecimal.valueOf(100))
                 .divide(op.gastoMensual(), 0, RoundingMode.HALF_UP).longValue();
-        String dias = diasMin == diasMax
-                ? "para operar " + diasMin + " días"
-                : "para operar entre " + diasMin + " y " + diasMax + " días";
-        return "Con " + money(moneda, resto) + " te alcanza " + dias
-                + " (" + pct + "% del gasto mensual).";
+        return "Con " + money(moneda, resto) + " te alcanza para operar ~" + dias
+                + " días al gasto promedio (" + money(moneda, op.gastoDiario()) + "/día) ("
+                + pct + "% del gasto mensual).";
     }
 
     private static String money(String moneda, BigDecimal v) {
