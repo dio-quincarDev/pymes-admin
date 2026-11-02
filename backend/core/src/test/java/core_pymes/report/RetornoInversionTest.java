@@ -26,7 +26,7 @@ class RetornoInversionTest {
         assertThat(lineas.linea1()).isEqualTo(
                 "Te quedaron USD 4,600.00: aparta USD 1,666.67 para el retorno de tu inversión inicial (USD 10,000.00) (ritmo 6 meses).");
         assertThat(lineas.linea2()).isEqualTo(
-                "Con USD 2,933.33 te alcanza para operar entre 8 y 10 días (39% del gasto mensual).");
+                "Con USD 2,933.33 te alcanza para operar ~9 días al gasto promedio (USD 300.00/día) (39% del gasto mensual).");
     }
 
     @Test
