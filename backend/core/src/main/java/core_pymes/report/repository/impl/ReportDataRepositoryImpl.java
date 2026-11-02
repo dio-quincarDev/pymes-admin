@@ -110,17 +110,17 @@ public class ReportDataRepositoryImpl implements ReportDataRepository {
         List<ReportData.TopProducto> productos = jdbc.query(
                 """
                 SELECT COALESCE(p.name, MAX(ii.product_name)) AS nombre,
-                       SUM(ii.quantity * ii.conversion_factor) AS cantidad,
-                       COALESCE((SELECT tu.name FROM core.template_units tu
-                                 WHERE tu.id::text = MAX(p.base_unit) LIMIT 1), 'Unidad') AS unidad,
-                       SUM(ii.subtotal) AS total
+                       SUM(ii.subtotal) AS total,
+                       SUM(ii.quantity) AS cantidad,
+                       COALESCE(tu.name, 'Unidad') AS unidad
                 FROM core.invoice_items ii
                 JOIN core.invoices i ON i.id = ii.invoice_id
                 LEFT JOIN core.products p ON p.id = ii.product_id
+                LEFT JOIN core.template_units tu ON tu.id::text = p.base_unit
                 WHERE i.tenant_id = ? AND i.type = 'FACTURA' AND i.status = 'PAGADA'
                   AND i.is_active AND i.issue_date >= ? AND i.issue_date < ?
-                GROUP BY p.id, p.name, p.base_unit
-                ORDER BY cantidad DESC, total DESC LIMIT 5
+                GROUP BY p.id, p.name, p.base_unit, tu.name
+                ORDER BY total DESC LIMIT 5
                 """,
                 (rs, row) -> new ReportData.TopProducto(
                         rs.getString("nombre"), rs.getBigDecimal("cantidad"),
@@ -253,17 +253,17 @@ public class ReportDataRepositoryImpl implements ReportDataRepository {
         List<ReportData.TopProducto> topProductos = jdbc.query(
                 """
                 SELECT COALESCE(p.name, MAX(ii.product_name)) AS nombre,
-                       SUM(ii.quantity * ii.conversion_factor) AS cantidad,
-                       COALESCE((SELECT tu.name FROM core.template_units tu
-                                 WHERE tu.id::text = MAX(p.base_unit) LIMIT 1), 'Unidad') AS unidad,
-                       SUM(ii.subtotal) AS total
+                       SUM(ii.subtotal) AS total,
+                       SUM(ii.quantity) AS cantidad,
+                       COALESCE(tu.name, 'Unidad') AS unidad
                 FROM core.invoice_items ii
                 JOIN core.invoices i ON i.id = ii.invoice_id
                 LEFT JOIN core.products p ON p.id = ii.product_id
+                LEFT JOIN core.template_units tu ON tu.id::text = p.base_unit
                 WHERE i.tenant_id = ? AND i.type = 'FACTURA' AND i.status = 'PAGADA'
                   AND i.is_active AND i.issue_date >= ? AND i.issue_date < ?
-                GROUP BY p.id, p.name, p.base_unit
-                ORDER BY cantidad DESC, total DESC LIMIT 5
+                GROUP BY p.id, p.name, p.base_unit, tu.name
+                ORDER BY total DESC LIMIT 5
                 """,
                 (rs, row) -> new ReportData.TopProducto(
                         rs.getString("nombre"), rs.getBigDecimal("cantidad"),

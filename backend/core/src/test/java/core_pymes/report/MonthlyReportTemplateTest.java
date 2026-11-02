@@ -58,8 +58,19 @@ class MonthlyReportTemplateTest {
         assertTrue(text.contains("TRANSFERENCIA"), "metodo de egreso pintado");
         assertTrue(text.contains("Total pagado"), "total de egresos pintado");
         assertTrue(text.contains("aparta USD 1,666.67"), "linea 1 de retorno pintada");
-        assertTrue(text.contains("entre 8 y 10 días"), "linea 2 de retorno pintada");
+        assertTrue(text.contains("días al gasto promedio"), "linea 2 de retorno pintada");
         assertFalse(text.contains("null"), "sin 'null' pintado");
+        // regresion: con 4 metodos la tabla crece y el total no debe montarse encima
+        JRPrintText ach = textAt(print, 1, "ACH");
+        JRPrintText totalRecibido = textAt(print, 1, "Total recibido");
+        assertTrue(totalRecibido.getY() >= ach.getY() + ach.getHeight(),
+                "total recibido no se monta sobre la tabla (ach y=" + ach.getY() + " h=" + ach.getHeight()
+                        + ", total y=" + totalRecibido.getY() + ")");
+        JRPrintText sinMetodo = textAt(print, 1, "Sin método");
+        JRPrintText totalPagado = textAt(print, 1, "Total pagado");
+        assertTrue(totalPagado.getY() >= sinMetodo.getY() + sinMetodo.getHeight(),
+                "total pagado no se monta sobre la tabla (sin metodo y=" + sinMetodo.getY()
+                        + " h=" + sinMetodo.getHeight() + ", total y=" + totalPagado.getY() + ")");
     }
 
     @Test
@@ -71,7 +82,7 @@ class MonthlyReportTemplateTest {
         // ponytail: linea duplicada a proposito — fuerza 3+ renglones para probar
         // que el campo se estira (textAdjust) en vez de cortar el texto.
         String larga1 = "Te quedaron USD 1,234,567,890.00: aparta USD 864,197,523.00 para el retorno de tu inversión inicial (USD 15,000,000,000.00) (ritmo 18 meses).";
-        String larga2 = "Con USD 370,370,367.00 te alcanza para operar entre 1,280 y 1,400 días (1,490% del gasto mensual).";
+        String larga2 = "Con USD 370,370,367.00 te alcanza para operar ~1,280 días al gasto promedio (USD 289,351.00/día) (1,490% del gasto mensual).";
         params.put("retornoLinea1", larga1 + " " + larga1);
         params.put("retornoLinea2", larga2 + " " + larga2);
 
@@ -165,7 +176,7 @@ class MonthlyReportTemplateTest {
         params.put("tieneGastos", true);
         params.put("tieneProveedores", true);
         params.put("retornoLinea1", "Te quedaron USD 4,600.00: aparta USD 1,666.67 para el retorno de tu inversión inicial (USD 10,000.00) (ritmo 6 meses).");
-        params.put("retornoLinea2", "Con USD 2,933.33 te alcanza para operar entre 8 y 10 días (39% del gasto mensual).");
+        params.put("retornoLinea2", "Con USD 2,933.33 te alcanza para operar ~9 días al gasto promedio (USD 300.00/día) (39% del gasto mensual).");
         return params;
     }
 
@@ -234,15 +245,19 @@ class MonthlyReportTemplateTest {
 
     private static Collection<Map<String, ?>> egresosPorMetodo() {
         List<Map<String, ?>> out = new ArrayList<>();
-        out.add(Map.of("metodo", "EFECTIVO", "total", new BigDecimal("750.75")));
-        out.add(Map.of("metodo", "TRANSFERENCIA", "total", new BigDecimal("225.76")));
+        out.add(Map.of("metodo", "EFECTIVO", "total", new BigDecimal("3284.28")));
+        out.add(Map.of("metodo", "TRANSFERENCIA", "total", new BigDecimal("1886.93")));
+        out.add(Map.of("metodo", "Sin método", "total", new BigDecimal("854.06")));
+        out.add(Map.of("metodo", "TARJETA", "total", new BigDecimal("194.76")));
         return out;
     }
 
     private static Collection<Map<String, ?>> ingresosPorMetodo() {
         List<Map<String, ?>> out = new ArrayList<>();
-        out.add(Map.of("metodo", "EFECTIVO", "total", new BigDecimal("6967.28")));
-        out.add(Map.of("metodo", "YAPPY", "total", new BigDecimal("5372.37")));
+        out.add(Map.of("metodo", "EFECTIVO", "total", new BigDecimal("3943.78")));
+        out.add(Map.of("metodo", "YAPPY", "total", new BigDecimal("3381.39")));
+        out.add(Map.of("metodo", "TARJETA", "total", new BigDecimal("755.73")));
+        out.add(Map.of("metodo", "ACH", "total", new BigDecimal("60.80")));
         return out;
     }
 }
