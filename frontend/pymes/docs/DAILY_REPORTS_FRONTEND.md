@@ -19,6 +19,11 @@ Registro cronológico de decisiones, problemas resueltos y estado del frontend.
 
 **Verificación:** `npm run lint` 0 + `npm run build` PWA verde en cada fase (último: post-KPI). PWA puede servir bundle viejo en Android — limpiar datos del sitio para ver cambios.
 
+**Fixes post-reporte (2026-11-09 tarde, sesión de prueba en dispositivo):**
+- **Donut tachado roto** — la leyenda HTML nueva perdió el "tocar para apagar tajada" que la leyenda interna de Chart.js daba gratis. Arreglo: `BaseChart` expone solo `toggleSlice`/`showSlice` (API con intención, sin filtrar la instancia de Chart.js); los puntos de la leyenda son `<button>` (44px táctil, `aria-pressed`) con espejo `hidden` local para el tachado; cambio de datos (mes nuevo) limpia los tachados para que el índice oculto no "persiga" a otro producto.
+- **FacturasPage strip: totales separados + insumo diario** — "Factura promedio" mezclaba insumos con gasto rápido (renta $500 con mayonesa $12): se partió en 4 tarjetas Insumos pagados · Gasto rápido pagado · Insumo diario (insumos÷días, mes en curso÷transcurridos) · Pendiente, con conteo de facturas como subtexto en cada una; grid mobile-first 2×2, 4 columnas desde 900px. Cuadra al centavo con `costoMercaderia`+`gastosOperativos` de Análisis (misma receta SQL: PAGADA + issue_date; la diferencia con `totalGastos` es solo `pagosPrestamos`, que no es factura). Decisión futura anotada: frecuencia de gasto rápido (diario/semanal/mensual/único) en registro → habilita promedio diario real y revive el OpexGauge con límite de verdad.
+- **Auditoría vue-best-practices + responsive-design + chart-designer** — correcciones internas: API imperativa con intención (`toggleSlice`/`showSlice` en vez de la instancia cruda), `useTemplateRef` (Vue 3.5, patrón ya usado en `VentaFormDialog`), `:key` por índice (nombres de producto duplicados rompían el render), y strip mobile-first con breakpoint de contenido (900px). Lint 0 + build verde.
+
 **Estado:** ✅ COMPLETADO (código + docs) — pendiente verificación en dispositivo real: banner PWA desde `/#/login`, barras de alertas, total centrado de la dona, zonas del tacómetro, KPI en dinero.
 
 ---

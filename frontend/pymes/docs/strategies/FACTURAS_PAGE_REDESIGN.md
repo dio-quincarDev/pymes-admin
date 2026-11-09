@@ -29,10 +29,12 @@ Siguiendo la regla de diseño y coherencia con [`VentasPage.vue`](file:///home/d
 
 - **Cero archivos nuevos**: Todo se integra inline en `FacturasPage.vue`.
 - **Navegación por Mes**: Selector `< Mes Año >` con botón "Hoy" para centrarse siempre en el período relevante.
-- **Stat Strip de KPIs del Mes**:
-  - **Factura Promedio**: Total pagado ÷ cantidad de facturas pagadas del mes (mismo patrón que `ticketPromedio` en Ventas).
-  - **Pendiente de Pago**: Monto y cantidad de facturas en estado `REGISTRADA` (alerta).
-  - **Total Pagado**: Monto y cantidad de facturas en estado `PAGADA`.
+- **Stat Strip de KPIs del Mes** (actualizado 2026-11-09 — el "Factura Promedio" viejo mezclaba insumos con gasto rápido en un promedio sin significado; se separó por tipo):
+  - **Insumos pagados**: monto + cantidad de `PAGADA` de tipo `FACTURA`.
+  - **Gasto rápido pagado**: monto + cantidad de `PAGADA` de tipo `GASTO_OPERATIVO` (cuadrado con `costoMercaderia`/`gastosOperativos` de Análisis: misma receta PAGADA + fecha de emisión).
+  - **Insumo diario**: insumos pagados ÷ días del período (mes en curso: días transcurridos; mes cerrado: días del mes) — subtexto "en N días" muestra el divisor.
+  - **Pendiente de Pago**: monto y cantidad de facturas en estado `REGISTRADA` (alerta).
+  - "Total Pagado" como tarjeta murió: es la suma visible de las dos primeras. Grid mobile-first: 2×2 base, 4 columnas desde 900px.
 - **Filtros Rápidos de Estado**: Pestañas o chips compactos:
   - `Todas (N)`
   - `Pendientes (N)`
@@ -97,8 +99,9 @@ const totalPendiente = computed(() =>
 const pagadasList = computed(() =>
   currentMonthInvoices.value.filter((r) => r.status === 'PAGADA')
 );
-const totalPagado = computed(() =>
-  pagadasList.value.reduce((acc, r) => acc + (r.total || 0), 0)
+// 2026-11-09: el strip separa por tipo — insumos = PAGADA type 'FACTURA', gasto rápido = PAGADA type 'GASTO_OPERATIVO'
+const totalInsumos = computed(() =>
+  pagadasList.value.filter((r) => r.type === 'FACTURA').reduce((acc, r) => acc + (r.total || 0), 0)
 );
 
 // 5. Facturas filtradas para la vista
@@ -158,5 +161,5 @@ cd frontend/pymes && npm run build
 2. **Filtros de estado**:
    - Click en `Pendientes`: se ocultan las facturas pagadas.
    - Click en `Pagadas`: se ocultan las pendientes.
-3. **Pagar factura**: Al presionar "Pagar", el estado cambia inmediatamente a `PAGADA` y el Stat Strip descuenta el monto de Pendiente y lo suma a Pagado en tiempo real.
+3. **Pagar factura**: Al presionar "Pagar", el estado cambia inmediatamente a `PAGADA` y el Stat Strip descuenta el monto de Pendiente y lo suma a "Insumos pagados" o "Gasto rápido pagado" según el tipo, en tiempo real.
 4. **Buscador**: Filtrar por nombre de proveedor o número de factura dentro del período.

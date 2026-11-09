@@ -104,12 +104,28 @@ const pendientesList = computed(() =>
 );
 const pagadasList = computed(() => currentMonthInvoices.value.filter((r) => r.status === 'PAGADA'));
 
-// Factura promedio = total pagado ÷ facturas pagadas del mes (mismo patrón que ticketPromedio en Ventas)
-const facturaPromedio = computed(() =>
-  pagadasList.value.length ? totalPagado.value / pagadasList.value.length : 0,
+// Totales separados por tipo (misma receta que Análisis: PAGADA + fecha de emisión del mes)
+const insumosPagadas = computed(() => pagadasList.value.filter((r) => r.type === 'FACTURA'));
+const gastosRapidosPagadas = computed(() =>
+  pagadasList.value.filter((r) => r.type === 'GASTO_OPERATIVO'),
 );
+const totalInsumos = computed(() => insumosPagadas.value.reduce((s, r) => s + r.total, 0));
+const totalGastoRapido = computed(() => gastosRapidosPagadas.value.reduce((s, r) => s + r.total, 0));
+
+// Insumo diario: mes en curso ÷ días transcurridos, mes cerrado ÷ días del mes (incluye días sin compra)
+const diasDelPeriodo = computed(() => {
+  const parts = selectedMonthKey.value.split('-');
+  const y = Number(parts[0]);
+  const m = Number(parts[1]);
+  const now = new Date();
+  if (now.getFullYear() === y && now.getMonth() + 1 === m) return now.getDate();
+  return new Date(y, m, 0).getDate();
+});
+const insumoDiario = computed(() => totalInsumos.value / (diasDelPeriodo.value || 1));
+
+const pluralFacturas = (n: number) => `${n} factura${n !== 1 ? 's' : ''}`;
+
 const totalPendiente = computed(() => pendientesList.value.reduce((acc, r) => acc + r.total, 0));
-const totalPagado = computed(() => pagadasList.value.reduce((acc, r) => acc + r.total, 0));
 
 const statusOptions: { label: string; value: StatusFilter }[] = [
   { label: 'Todas', value: 'TODAS' },
@@ -820,22 +836,24 @@ function handleKeydown(e: KeyboardEvent) {
     <q-card dark class="facturas-stat-strip" role="status" aria-live="polite">
       <div class="facturas-stat-strip__grid">
         <div class="fss-item">
-          <div class="fss-label">Factura promedio</div>
-          <div class="fss-value fss-value--total">{{ formatCurrency(facturaPromedio) }}</div>
+          <div class="fss-label">Insumos pagados</div>
+          <div class="fss-value fss-value--total">{{ formatCurrency(totalInsumos) }}</div>
+          <div class="fss-sub">{{ pluralFacturas(insumosPagadas.length) }}</div>
+        </div>
+        <div class="fss-item">
+          <div class="fss-label">Gasto rápido pagado</div>
+          <div class="fss-value">{{ formatCurrency(totalGastoRapido) }}</div>
+          <div class="fss-sub">{{ pluralFacturas(gastosRapidosPagadas.length) }}</div>
+        </div>
+        <div class="fss-item">
+          <div class="fss-label">Insumo diario</div>
+          <div class="fss-value">{{ formatCurrency(insumoDiario) }}</div>
+          <div class="fss-sub">en {{ diasDelPeriodo }} días</div>
         </div>
         <div class="fss-item">
           <div class="fss-label">Pendiente</div>
           <div class="fss-value">{{ formatCurrency(totalPendiente) }}</div>
-          <div class="fss-sub"
-            >{{ pendientesList.length }} factura{{ pendientesList.length !== 1 ? 's' : '' }}</div
-          >
-        </div>
-        <div class="fss-item">
-          <div class="fss-label">Pagado</div>
-          <div class="fss-value">{{ formatCurrency(totalPagado) }}</div>
-          <div class="fss-sub"
-            >{{ pagadasList.length }} factura{{ pagadasList.length !== 1 ? 's' : '' }}</div
-          >
+          <div class="fss-sub">{{ pluralFacturas(pendientesList.length) }}</div>
         </div>
       </div>
     </q-card>
@@ -1655,7 +1673,7 @@ function handleKeydown(e: KeyboardEvent) {
 
 .facturas-stat-strip__grid {
   display: grid;
-  grid-template-columns: repeat(3, 1fr);
+  grid-template-columns: repeat(2, 1fr);
 }
 
 .fss-item {
@@ -1664,9 +1682,14 @@ function handleKeydown(e: KeyboardEvent) {
   gap: 4px;
   padding: 12px 16px;
   min-width: 0;
+  border-top: 1px solid var(--pq-border);
 }
 
-.fss-item:not(:first-child) {
+.fss-item:nth-child(-n + 2) {
+  border-top: 0;
+}
+
+.fss-item:nth-child(even) {
   border-left: 1px solid var(--pq-border);
 }
 
@@ -1697,14 +1720,18 @@ function handleKeydown(e: KeyboardEvent) {
   color: var(--pq-text-muted);
 }
 
-@media (max-width: 639px) {
+@media (min-width: 900px) {
   .facturas-stat-strip__grid {
-    grid-template-columns: 1fr;
+    grid-template-columns: repeat(4, 1fr);
   }
 
-  .fss-item:not(:first-child) {
+  .fss-item {
+    border-top: 0;
+    border-left: 1px solid var(--pq-border);
+  }
+
+  .fss-item:first-child {
     border-left: 0;
-    border-top: 1px solid var(--pq-border);
   }
 }
 
