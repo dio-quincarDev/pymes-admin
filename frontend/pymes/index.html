@@ -47,6 +47,16 @@
     <meta name="twitter:description" content="Organiza tu empresa y toma el control. Gestión de facturas, productos y gastos en un solo lugar." />
     <meta name="twitter:image" content="https://pymeq.dioquincar.dev/og-image.png" />
     <meta name="twitter:image:alt" content="PYMEQ — Gestión Financiera Inteligente para PYMES" />
+
+    <!-- Captura temprana: el prompt de Chromium puede dispararse antes del montaje del SPA (race en /login y /) -->
+    <script>
+      window.__deferredPwaPrompt = null;
+      window.addEventListener('beforeinstallprompt', function (e) {
+        e.preventDefault();
+        window.__deferredPwaPrompt = e;
+        window.dispatchEvent(new CustomEvent('pwa-prompt-ready'));
+      });
+    </script>
   </head>
   <body>
     <!-- quasar:entry-point -->

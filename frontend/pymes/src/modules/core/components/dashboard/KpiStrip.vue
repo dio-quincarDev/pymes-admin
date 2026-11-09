@@ -2,6 +2,7 @@
 interface Kpi {
   label: string;
   value: string;
+  sub?: string | undefined;
   delta?: number;
   accent: 'gold' | 'green' | 'red' | 'blue';
 }
@@ -26,6 +27,7 @@ defineProps<{ kpis: Kpi[]; loading?: boolean }>();
       >
         <span class="kpi-strip__label">{{ kpi.label }}</span>
         <span class="kpi-strip__value">{{ kpi.value }}</span>
+        <span v-if="kpi.sub" class="kpi-strip__sub">{{ kpi.sub }}</span>
         <span v-if="kpi.delta !== undefined" class="kpi-strip__delta">
           {{ kpi.delta > 0 ? '+' : '' }}{{ kpi.delta }}%
         </span>
@@ -82,6 +84,12 @@ defineProps<{ kpis: Kpi[]; loading?: boolean }>();
     font-weight: 500;
     color: var(--pq-text);
     font-variant-numeric: tabular-nums;
+  }
+
+  &__sub {
+    font-family: 'Satoshi', sans-serif;
+    font-size: 11px;
+    color: var(--pq-text-muted);
   }
 
   &__delta {

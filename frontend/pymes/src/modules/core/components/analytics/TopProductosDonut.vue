@@ -11,10 +11,15 @@ interface Props {
   empty?: boolean;
 }
 const props = withDefaults(defineProps<Props>(), { loading: false, empty: false });
-const { formatCurrency } = useNumberFormat();
+const { formatCurrency, formatCompactCurrency } = useNumberFormat();
 const { colors } = useChartTheme();
 
 const total = computed(() => props.items.reduce((s, i) => s + (i.spend ?? 0), 0));
+
+// paleta compartida por arcos y leyenda (mismo orden, datos mismos índices)
+const palette = computed(() => [
+  colors.value.abcA, colors.value.abcB, colors.value.abcC, colors.value.info, colors.value.positive, colors.value.bar,
+]);
 
 const chartData = computed(() => {
   const sorted = [...props.items].sort((a, b) => b.spend - a.spend);
@@ -30,7 +35,7 @@ const chartData = computed(() => {
     labels,
     datasets: [{
       data,
-      backgroundColor: [colors.value.abcA, colors.value.abcB, colors.value.abcC, colors.value.info, colors.value.positive, colors.value.bar].slice(0, data.length),
+      backgroundColor: palette.value.slice(0, data.length),
       borderColor: 'transparent',
       borderWidth: 0,
       hoverOffset: 4,
@@ -38,12 +43,20 @@ const chartData = computed(() => {
   };
 });
 
+// leyenda en HTML (fuera del canvas): el donut queda centrado en vertical y el "Total" cae en el hueco
+const legendItems = computed(() => {
+  const sorted = [...props.items].sort((a, b) => b.spend - a.spend);
+  const items = sorted.slice(0, 5).map((i, idx) => ({ label: i.productName, color: palette.value[idx] }));
+  if (sorted.length > 5) items.push({ label: 'Otros', color: palette.value[5] });
+  return items;
+});
+
 const chartOptions = computed(() => ({
   responsive: true,
   maintainAspectRatio: false,
   cutout: '62%',
   plugins: {
-    legend: { display: true, position: 'bottom' as const, labels: { boxWidth: 10, boxHeight: 10, usePointStyle: true, pointStyle: 'circle', padding: 14, font: { family: "'Satoshi', sans-serif", size: 11 } } },
+    legend: { display: false },
     tooltip: {
       callbacks: {
         // eslint-disable-next-line @typescript-eslint/no-explicit-any
@@ -62,9 +75,16 @@ const chartOptions = computed(() => ({
   <BaseChart type="doughnut" :data="chartData" :options="chartOptions" :height="260" />
   <div class="donut-center">
     <span class="donut-center__label">Total</span>
-    <span class="donut-center__value">{{ formatCurrency(total) }}</span>
+    <span class="donut-center__value donut-center__value--full">{{ formatCurrency(total) }}</span>
+    <span class="donut-center__value donut-center__value--compact">{{ formatCompactCurrency(total) }}</span>
   </div>
 </div>
+  <ul v-if="legendItems.length" class="donut-legend">
+    <li v-for="item in legendItems" :key="item.label" class="donut-legend__item" :title="item.label">
+      <span class="donut-legend__dot" :style="{ background: item.color }" />
+      <span class="donut-legend__name">{{ item.label }}</span>
+    </li>
+  </ul>
   </div>
 </template>
 
@@ -109,11 +129,49 @@ const chartOptions = computed(() => ({
   line-height: 1.1;
 }
 
+.donut-legend {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 6px 16px;
+  justify-content: center;
+  list-style: none;
+  margin: 10px 0 0;
+  padding: 0;
+  min-width: 0;
+}
+
+.donut-legend__item {
+  display: flex;
+  align-items: center;
+  gap: 6px;
+  min-width: 0;
+}
+
+.donut-legend__dot {
+  width: 10px;
+  height: 10px;
+  border-radius: 50%;
+  flex-shrink: 0;
+}
+
+.donut-legend__name {
+  font-family: 'Satoshi', sans-serif;
+  font-size: 11px;
+  color: var(--pq-text-muted);
+  overflow: hidden;
+  text-overflow: ellipsis;
+  white-space: nowrap;
+  max-width: 140px;
+}
+
 @media (max-width: 600px) {
   .donut-wrap :deep(.base-chart) {
     height: 200px !important;
   }
-  .donut-center__value {
+  // en pantalla chica el hueco es de ~70px: monto completo fuera, corto dentro
+  .donut-center__value--full { display: none; }
+  .donut-center__value--compact {
+    display: block;
     font-size: 0.95rem;
   }
 }

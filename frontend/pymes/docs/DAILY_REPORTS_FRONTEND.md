@@ -4,6 +4,25 @@ Registro cronológico de decisiones, problemas resueltos y estado del frontend.
 
 ---
 
+## 2026-11-09 — Cierre de estrategia frontend: alertas accionables + tacómetros con zonas + dona + KPI en dinero + PWA banner
+
+**Contexto:** batch de varias sesiones para poner al día las estrategias documentadas contra la UI real: `ALERTS_SYSTEM_STRATEGY` (alertas que el tendero entienda), health panel desbalanceado con leyenda redundante, dona con "Total" descentrado en móvil, KPI "Rentabilidad" solo en % (regla del dueño: dinero primero), PWA sin banner de instalación, y `FRONTEND_PENDIENTES_STRATEGY` secciones 0-2 ya ejecutadas pero sin marcar.
+
+**Qué se hizo:**
+- **Alertas (4 fases, doc `ALERTS_SYSTEM_STRATEGY.md`)** — renombres ("Riesgos del Negocio", "Desvíos en Precios de Insumos"); layout de Análisis con panel de salud full-width y `AlertsPanel`+`SupplierRecommendationsCard` en grilla `.analysis-insights`; barras de precio "Pagaste" (rojo/amarillo) vs "Suele costar" (verde) con delta en dinero en vez de badge %; botón de acción → `productos?buscar=<producto>` con `ProductosPage` leyendo `route.query.buscar`; pill de riesgos en Dashboard (rojo NEGATIVE/OVER_LEVERAGED, amarillo el resto, verde "Sin riesgos críticos" no-clicable).
+- **Tacómetros (doc `FINANCIAL_HEALTH_STRATEGY.md`)** — `TraderGauge`: zonas permanentes rojo 0-39 / amarillo 40-69 / verde 70-100 en el arco (`conic-gradient`, 72°/126°), aguja las cruza; fila de leyenda de bandas eliminada del panel (menos altura). `OpexGauge` (huérfano): token inexistente `--pq-chart-warning` → `--pq-warning`, marcadores alineados a la geometría del arco, transición muerta fuera. Decisión del dueño: **dejarlo como está** (no borrar, no revivir — revive cuando exista la sección "Costo Operativo" con presupuesto diario en backend; sin límite guardado la aguja no tiene contra qué medir).
+- **Dona `TopProductosDonut`** — leyenda fuera del canvas (HTML `ul.donut-legend`, paleta compartida con los arcos), "Total" centrado cae en el hueco real; móvil: altura 200px + total compacto (`formatCompactCurrency`, Intl `notation: compact`) vía par de spans alternados por media query, sin listeners de resize.
+- **KPI Rentabilidad en dinero** — `KpiStrip` gana `sub?: string` opcional (línea gris bajo el valor); Dashboard: "Rentabilidad" mantiene su nombre (decisión del dueño) pero muestra `formatCurrency(margenNeto)` grande + % como subtexto. Verde ≥ 0, rojo < 0.
+- **PWA fase 1 (doc `PWA_OFFLINE.md`)** — captura temprana de `beforeinstallprompt` en `index.html`, banner en `MainLayout` con cooldown 7 días (`pwa_install_dismissed_until`), detección standalone universal/iPadOS, íconos manifest split `any`/`maskable`, tipado `pwa-env.d.ts`.
+- **Facturas mensual (doc `FACTURAS_PAGE_REDESIGN.md`)** — pager mensual reusando `VentasMonthPager`, strip "Factura promedio | Pendiente | Pagado", chips de estado, sticky bajo header.
+- **Docs de estrategia** — nuevos `ALERTS_SYSTEM_STRATEGY.md` / `FACTURAS_PAGE_REDESIGN.md` / `FINANCIAL_HEALTH_STRATEGY.md`; `FRONTEND_PENDIENTES_STRATEGY.md` secciones 0-2 marcadas ✅ con decisiones del dueño grabadas: **menú con 10 ítems (NO re-proponer recorte 12→8)** y KPI con nombre "Rentabilidad".
+
+**Verificación:** `npm run lint` 0 + `npm run build` PWA verde en cada fase (último: post-KPI). PWA puede servir bundle viejo en Android — limpiar datos del sitio para ver cambios.
+
+**Estado:** ✅ COMPLETADO (código + docs) — pendiente verificación en dispositivo real: banner PWA desde `/#/login`, barras de alertas, total centrado de la dona, zonas del tacómetro, KPI en dinero.
+
+---
+
 ## 2026-10-26 — Branding/SEO: og:image + marca unificada + iconos PWA reales
 
 **Contexto:** la alerta Baja de Notion "Frontend: branding y SEO pendiente" seguía abierta. `index.html` no tenía `og:image` (compartir el link no mostraba imagen) y `manifest.name`/`description` diferían del `<title>`/`package.json`. Hallazgo extra: los PNG del PWA seguían siendo el placeholder azul de Quasar (`#00B8FF`), así que un install mostraba el icono equivocado.
@@ -382,6 +401,7 @@ Usuario pidió: quitar `Ventas hoy` del Dashboard (margen/costo ya cubren), quit
 - **Dashboard `DashboardPage.vue:58`** borrado `items.push Ventas hoy` del `stripKpis` (quedan `Costos día + Margen + ROI mes`).
 - **AnalisisPage `AnalisisGastosPage.vue:1,33`** — `byCategory` ya no se usa para card; `MetricCard Categorías` borrada, entra `MetricCard Ventas semanales = sum(ventas.filter(fecha >= lunes))` con `ventasLoading`, rango `{{monday}} → {{sunday}} lun-dom` vía `toLocalISODate`/`getMondayStr()` (Panamá). 1 fetch `ventaService.getAll(tenantId)` + `computed ventasSemanales`.
 - **AnalisisPage `AnalisisGastosPage.vue:82`** — `AbcGastosChart` → `TopProductosDonut.vue` nuevo `doughnut cutout 62%` top5 `abc.spend` + `Otros`, reusa `BaseChart`/`useChartTheme` (colores `abcA/B/positive/negative/info/text`), height 260, tooltip `formatCurrency`.
+- **Nuevo `TopProductosDonut` rework 2026-11-09:** leyenda fuera del canvas (HTML `ul.donut-legend` debajo, paleta compartida `useChartTheme`), el "Total" centrado cae en el hueco real (la leyenda Chart.js interna desplazaba el centro); móvil: altura 200px + total compacto (`formatCompactCurrency` en `useNumberFormat`, Intl `notation: compact`) vía par de spans alternados por CSS media query — sin listeners de resize.
 - **Nuevo `TopProductosDonut.vue:1`** 45 líneas, ponytail sin nueva dep.
 
 ### Verificación

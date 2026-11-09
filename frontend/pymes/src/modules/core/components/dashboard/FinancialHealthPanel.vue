@@ -53,13 +53,6 @@ const guide = computed(() => overallGuide(props.data?.overallHealth ?? 0));
         <span class="fh-panel__guide">{{ guide.band }} — {{ guide.action }}</span>
       </div>
 
-      <div class="fh-panel__bands" role="group" aria-label="Guía de bandas">
-        <span class="fh-panel__band fh-panel__band--danger">0-39 Crítico</span>
-        <span class="fh-panel__band fh-panel__band--warning">40-69 En desarrollo</span>
-        <span class="fh-panel__band fh-panel__band--success">70-84 Óptimo</span>
-        <span class="fh-panel__band fh-panel__band--success">85-100 Excelente</span>
-      </div>
-
       <FinancialHealthBreakdown :breakdown="data.breakdown" class="fh-panel__breakdown" />
 
       <FinancialHealthAlerts :alerts="data.criticalAlerts" :health="data" :recommendations="recommendations" />
@@ -124,26 +117,6 @@ const guide = computed(() => overallGuide(props.data?.overallHealth ?? 0));
     color: var(--pq-text);
     margin-top: 4px;
     text-align: center;
-  }
-
-  &__bands {
-    display: flex;
-    flex-wrap: wrap;
-    gap: 6px;
-    margin-bottom: 16px;
-    justify-content: center;
-  }
-
-  &__band {
-    font-family: 'Satoshi', sans-serif;
-    font-size: 10px;
-    padding: 3px 6px;
-    border-radius: 4px;
-    border: 1px solid var(--pq-border);
-
-    &--danger { color: var(--pq-danger); background: rgba(160,64,56,0.08); }
-    &--warning { color: var(--pq-warning, #b7791f); background: rgba(183,121,31,0.08); }
-    &--success { color: var(--pq-success); background: rgba(56,120,60,0.08); }
   }
 
   &__breakdown {
