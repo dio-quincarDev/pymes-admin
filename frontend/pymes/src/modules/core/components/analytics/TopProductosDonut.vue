@@ -1,5 +1,5 @@
 <script setup lang="ts">
-import { computed } from 'vue';
+import { computed, ref, useTemplateRef, watch } from 'vue';
 import { useNumberFormat } from 'src/modules/core/composables/useNumberFormat';
 import { useChartTheme } from 'src/modules/core/composables/useChartTheme';
 import BaseChart from 'src/modules/core/components/charts/BaseChart.vue';
@@ -65,6 +65,25 @@ const chartOptions = computed(() => ({
     },
   },
 }));
+
+// leyenda táctil: tocar tacha la tajada (era gratis con la leyenda Chart.js; al moverla a HTML hay que conectarla)
+const base = useTemplateRef<InstanceType<typeof BaseChart>>('base');
+const hidden = ref<Set<number>>(new Set());
+
+function toggleLegend(idx: number) {
+  if (!base.value) return;
+  base.value.toggleSlice(idx);
+  const next = new Set(hidden.value);
+  if (next.has(idx)) next.delete(idx);
+  else next.add(idx);
+  hidden.value = next;
+}
+
+// datos nuevos (otro mes): limpiar tachados, si no el índice oculto "persigue" a otro producto
+watch(chartData, () => {
+  hidden.value.forEach((i) => base.value?.showSlice(i));
+  hidden.value = new Set();
+});
 </script>
 
 <template>
@@ -72,7 +91,7 @@ const chartOptions = computed(() => ({
     <div v-if="loading" class="flex flex-center q-pa-md"><q-spinner color="primary" size="24px" /></div>
     <div v-else-if="empty || items.length===0" class="flex flex-center column q-pa-md" style="color: var(--pq-text-muted)"><q-icon name="donut_large" size="28px" /><span class="text-caption">Sin datos</span></div>
     <div v-else class="donut-wrap">
-  <BaseChart type="doughnut" :data="chartData" :options="chartOptions" :height="260" />
+  <BaseChart ref="base" type="doughnut" :data="chartData" :options="chartOptions" :height="260" />
   <div class="donut-center">
     <span class="donut-center__label">Total</span>
     <span class="donut-center__value donut-center__value--full">{{ formatCurrency(total) }}</span>
@@ -80,9 +99,18 @@ const chartOptions = computed(() => ({
   </div>
 </div>
   <ul v-if="legendItems.length" class="donut-legend">
-    <li v-for="item in legendItems" :key="item.label" class="donut-legend__item" :title="item.label">
-      <span class="donut-legend__dot" :style="{ background: item.color }" />
-      <span class="donut-legend__name">{{ item.label }}</span>
+    <li v-for="(item, idx) in legendItems" :key="idx">
+      <button
+        type="button"
+        class="donut-legend__item"
+        :class="{ 'donut-legend__item--off': hidden.has(idx) }"
+        :title="item.label"
+        :aria-pressed="hidden.has(idx)"
+        @click="toggleLegend(idx)"
+      >
+        <span class="donut-legend__dot" :style="{ background: item.color }" />
+        <span class="donut-legend__name">{{ item.label }}</span>
+      </button>
     </li>
   </ul>
   </div>
@@ -145,6 +173,19 @@ const chartOptions = computed(() => ({
   align-items: center;
   gap: 6px;
   min-width: 0;
+  min-height: 44px;
+  padding: 0 8px;
+  background: none;
+  border: 0;
+  cursor: pointer;
+
+  &--off {
+    opacity: 0.45;
+  }
+
+  &--off .donut-legend__name {
+    text-decoration: line-through;
+  }
 }
 
 .donut-legend__dot {
