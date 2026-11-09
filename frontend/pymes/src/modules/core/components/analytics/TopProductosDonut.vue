@@ -11,7 +11,7 @@ interface Props {
   empty?: boolean;
 }
 const props = withDefaults(defineProps<Props>(), { loading: false, empty: false });
-const { formatCurrency, formatCompactCurrency } = useNumberFormat();
+const { formatCurrency } = useNumberFormat();
 const { colors } = useChartTheme();
 
 const total = computed(() => props.items.reduce((s, i) => s + (i.spend ?? 0), 0));
@@ -94,8 +94,7 @@ watch(chartData, () => {
   <BaseChart ref="base" type="doughnut" :data="chartData" :options="chartOptions" :height="260" />
   <div class="donut-center">
     <span class="donut-center__label">Total</span>
-    <span class="donut-center__value donut-center__value--full">{{ formatCurrency(total) }}</span>
-    <span class="donut-center__value donut-center__value--compact">{{ formatCompactCurrency(total) }}</span>
+    <span class="donut-center__value">{{ formatCurrency(total) }}</span>
   </div>
 </div>
   <ul v-if="legendItems.length" class="donut-legend">
@@ -209,10 +208,7 @@ watch(chartData, () => {
   .donut-wrap :deep(.base-chart) {
     height: 200px !important;
   }
-  // en pantalla chica el hueco es de ~70px: monto completo fuera, corto dentro
-  .donut-center__value--full { display: none; }
-  .donut-center__value--compact {
-    display: block;
+  .donut-center__value {
     font-size: 0.95rem;
   }
 }
