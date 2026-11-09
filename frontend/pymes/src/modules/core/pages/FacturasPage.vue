@@ -31,6 +31,7 @@ import CategoryTabs from '../components/facturas/CategoryTabs.vue';
 import InvoiceItemCard from '../components/facturas/InvoiceItemCard.vue';
 import InvoiceDetailDialog from '../components/facturas/InvoiceDetailDialog.vue';
 import ConfirmDialog from '../components/facturas/ConfirmDialog.vue';
+import VentasMonthPager from '../components/ventas/VentasMonthPager.vue';
 
 useMeta({ title: 'Facturas — PYMEQ' });
 
@@ -58,37 +59,91 @@ const statusColor = (s: string) =>
 const statusLabel = (s: string) =>
   s === 'REGISTRADA' ? 'Pendiente' : s === 'PAGADA' ? 'Pagada' : s === 'ANULADA' ? 'Anulada' : s;
 
-const filteredRows = computed(() => {
-  if (!filter.value) return rows.value;
-  const q = filter.value.toLowerCase();
-  return rows.value.filter(
-    (r) =>
-      r.invoiceNumber.toLowerCase().includes(q) || (r.providerName ?? '').toLowerCase().includes(q),
-  );
+type StatusFilter = 'TODAS' | 'REGISTRADA' | 'PAGADA';
+
+// Período y filtro de la vista (navegación mensual, mismo patrón que VentasPage)
+const selectedDate = shallowRef(new Date());
+const statusFilter = shallowRef<StatusFilter>('TODAS');
+
+// ponytail: key por texto YYYY-MM — new Date() cambiaba de mes en UTC-5
+const selectedMonthKey = computed(() => {
+  const d = selectedDate.value;
+  return `${d.getFullYear()}-${String(d.getMonth() + 1).padStart(2, '0')}`;
 });
 
-interface MonthGroup {
-  label: string;
-  items: Factura[];
+const monthLabel = computed(() =>
+  selectedDate.value.toLocaleDateString('es-ES', { month: 'long', year: 'numeric' }),
+);
+
+function prevMonth() {
+  const d = new Date(selectedDate.value);
+  d.setDate(1); // fija el día: evita el salto 31→02 al restar meses
+  d.setMonth(d.getMonth() - 1);
+  selectedDate.value = d;
 }
 
-const monthGroups = computed(() => {
-  const groups = new Map<string, Factura[]>();
-  for (const inv of filteredRows.value) {
-    // ponytail: key por texto YYYY-MM — new Date() cambiaba de mes en UTC-5
-    const key = inv.issueDate.slice(0, 7);
-    if (!groups.has(key)) groups.set(key, []);
-    groups.get(key)!.push(inv);
+function nextMonth() {
+  const d = new Date(selectedDate.value);
+  d.setDate(1);
+  d.setMonth(d.getMonth() + 1);
+  selectedDate.value = d;
+}
+
+function goToday() {
+  selectedDate.value = new Date();
+}
+
+const currentMonthInvoices = computed(() =>
+  rows.value
+    .filter((r) => r.issueDate.startsWith(selectedMonthKey.value))
+    .sort((a, b) => b.issueDate.localeCompare(a.issueDate)),
+);
+
+const pendientesList = computed(() =>
+  currentMonthInvoices.value.filter((r) => r.status === 'REGISTRADA'),
+);
+const pagadasList = computed(() => currentMonthInvoices.value.filter((r) => r.status === 'PAGADA'));
+
+// Factura promedio = total pagado ÷ facturas pagadas del mes (mismo patrón que ticketPromedio en Ventas)
+const facturaPromedio = computed(() =>
+  pagadasList.value.length ? totalPagado.value / pagadasList.value.length : 0,
+);
+const totalPendiente = computed(() => pendientesList.value.reduce((acc, r) => acc + r.total, 0));
+const totalPagado = computed(() => pagadasList.value.reduce((acc, r) => acc + r.total, 0));
+
+const statusOptions: { label: string; value: StatusFilter }[] = [
+  { label: 'Todas', value: 'TODAS' },
+  { label: 'Pendientes', value: 'REGISTRADA' },
+  { label: 'Pagadas', value: 'PAGADA' },
+];
+
+const chipCounts = computed<Record<StatusFilter, number>>(() => ({
+  TODAS: currentMonthInvoices.value.length,
+  REGISTRADA: pendientesList.value.length,
+  PAGADA: pagadasList.value.length,
+}));
+
+const displayedInvoices = computed(() => {
+  let list = currentMonthInvoices.value;
+  if (statusFilter.value !== 'TODAS') list = list.filter((r) => r.status === statusFilter.value);
+  const q = filter.value.toLowerCase().trim();
+  if (q) {
+    list = list.filter(
+      (r) =>
+        r.invoiceNumber.toLowerCase().includes(q) ||
+        (r.providerName ?? '').toLowerCase().includes(q),
+    );
   }
-  const result: (MonthGroup & { key: string })[] = [];
-  for (const [key, list] of groups.entries()) {
-    const date = new Date(key + '-01T00:00:00');
-    const label = date.toLocaleDateString('es-ES', { month: 'long', year: 'numeric' });
-    result.push({ key, label, items: list });
-  }
-  // sort by key YYYY-MM desc (estable, no depende de locale)
-  result.sort((a, b) => b.key.localeCompare(a.key));
-  return result;
+  return list;
+});
+
+const emptyTitle = computed(() => (rows.value.length ? 'Sin resultados' : 'Sin facturas'));
+const emptyMessage = computed(() => {
+  if (!rows.value.length) return 'Registra tu primera factura de proveedor para comenzar.';
+  if (!currentMonthInvoices.value.length)
+    return `No hay facturas registradas en ${monthLabel.value}.`;
+  if (filter.value.trim()) return 'Ninguna factura coincide con la búsqueda en este mes.';
+  return `Ningún resultado con el filtro de estado seleccionado en ${monthLabel.value}.`;
 });
 
 const allProducts = ref<ProductOption[]>([]);
@@ -760,6 +815,45 @@ function handleKeydown(e: KeyboardEvent) {
       </div>
     </div>
 
+    <VentasMonthPager :label="monthLabel" @prev="prevMonth" @next="nextMonth" @today="goToday" />
+
+    <q-card dark class="facturas-stat-strip" role="status" aria-live="polite">
+      <div class="facturas-stat-strip__grid">
+        <div class="fss-item">
+          <div class="fss-label">Factura promedio</div>
+          <div class="fss-value fss-value--total">{{ formatCurrency(facturaPromedio) }}</div>
+        </div>
+        <div class="fss-item">
+          <div class="fss-label">Pendiente</div>
+          <div class="fss-value">{{ formatCurrency(totalPendiente) }}</div>
+          <div class="fss-sub"
+            >{{ pendientesList.length }} factura{{ pendientesList.length !== 1 ? 's' : '' }}</div
+          >
+        </div>
+        <div class="fss-item">
+          <div class="fss-label">Pagado</div>
+          <div class="fss-value">{{ formatCurrency(totalPagado) }}</div>
+          <div class="fss-sub"
+            >{{ pagadasList.length }} factura{{ pagadasList.length !== 1 ? 's' : '' }}</div
+          >
+        </div>
+      </div>
+    </q-card>
+
+    <div class="facturas-status-chips" role="group" aria-label="Filtrar por estado">
+      <button
+        v-for="opt in statusOptions"
+        :key="opt.value"
+        type="button"
+        class="status-chip"
+        :class="{ 'status-chip--active': statusFilter === opt.value }"
+        :aria-pressed="statusFilter === opt.value"
+        @click="statusFilter = opt.value"
+      >
+        {{ opt.label }} ({{ chipCounts[opt.value] }})
+      </button>
+    </div>
+
     <div class="facturas-toolbar">
       <q-input
         dark
@@ -790,12 +884,8 @@ function handleKeydown(e: KeyboardEvent) {
       />
     </div>
 
-    <div v-if="!loading && !filteredRows.length" class="q-my-lg">
-      <EmptyState
-        icon="sym_r_receipt_long"
-        title="Sin facturas"
-        message="Registra tu primera factura de proveedor para comenzar."
-      />
+    <div v-if="!loading && !displayedInvoices.length" class="q-my-lg">
+      <EmptyState icon="sym_r_receipt_long" :title="emptyTitle" :message="emptyMessage" />
     </div>
 
     <div v-if="loading" class="q-gutter-y-md">
@@ -806,15 +896,7 @@ function handleKeydown(e: KeyboardEvent) {
       </div>
     </div>
 
-    <div v-for="group in monthGroups" :key="group.label" class="q-mb-lg">
-      <div class="month-group-header">
-        <span class="month-group-label">{{ group.label }}</span>
-        <span class="month-group-count"
-          >{{ group.items.length }} factura{{ group.items.length !== 1 ? 's' : '' }}</span
-        >
-      </div>
-
-      <div v-for="inv in group.items" :key="inv.id" class="invoice-row">
+    <div v-for="inv in displayedInvoices" :key="inv.id" class="invoice-row">
         <div class="invoice-row__info">
           <div class="invoice-row__number">{{ inv.invoiceNumber }}</div>
           <div class="invoice-row__provider">{{ inv.providerName || '—' }}</div>
@@ -872,7 +954,6 @@ function handleKeydown(e: KeyboardEvent) {
           />
         </div>
       </div>
-    </div>
 
     <!-- Create Invoice Dialog -->
     <q-dialog
@@ -1560,25 +1641,111 @@ function handleKeydown(e: KeyboardEvent) {
   }
 }
 
-.month-group-header {
+/* Stat strip del mes — patrón visual de VentasStatStrip reutilizado (tokens --pq-*) */
+.facturas-stat-strip {
+  position: sticky;
+  top: 56px; /* top 56px = min-height del sticky month-pager, para no solaparse */
+  z-index: 9;
+  border-radius: var(--pq-radius-md);
+  background: var(--pq-surface);
+  border: 1px solid var(--pq-border);
+  box-shadow: var(--pq-shadow-subtle);
+  margin-bottom: 12px;
+}
+
+.facturas-stat-strip__grid {
+  display: grid;
+  grid-template-columns: repeat(3, 1fr);
+}
+
+.fss-item {
   display: flex;
-  align-items: baseline;
-  gap: 8px;
-  padding-bottom: 6px;
-  border-bottom: 1px solid color-mix(in srgb, var(--pq-border) 15%, transparent);
-  margin-bottom: 8px;
+  flex-direction: column;
+  gap: 4px;
+  padding: 12px 16px;
+  min-width: 0;
 }
 
-.month-group-label {
-  font-weight: 700;
-  text-transform: capitalize;
+.fss-item:not(:first-child) {
+  border-left: 1px solid var(--pq-border);
+}
+
+.fss-label {
+  font-family: var(--pq-font-utility);
+  font-size: 11px;
+  text-transform: uppercase;
+  letter-spacing: 0.08em;
+  color: var(--pq-text-subtle);
+}
+
+.fss-value {
+  font-family: var(--pq-font-utility);
+  font-size: 1.15rem;
+  font-weight: 600;
+  font-variant-numeric: tabular-nums;
   color: var(--pq-text);
-  font-size: 0.95rem;
 }
 
-.month-group-count {
+.fss-value--total {
+  color: var(--pq-accent);
+  font-size: 1.35rem;
+}
+
+.fss-sub {
+  font-family: var(--pq-font-utility);
+  font-size: 10px;
   color: var(--pq-text-muted);
-  font-size: 0.8rem;
+}
+
+@media (max-width: 639px) {
+  .facturas-stat-strip__grid {
+    grid-template-columns: 1fr;
+  }
+
+  .fss-item:not(:first-child) {
+    border-left: 0;
+    border-top: 1px solid var(--pq-border);
+  }
+}
+
+/* Chips de filtro por estado */
+.facturas-status-chips {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 8px;
+  margin-bottom: 12px;
+}
+
+.status-chip {
+  font-family: var(--pq-font-utility);
+  font-size: 12px;
+  padding: 4px 12px;
+  border-radius: var(--pq-radius-sm);
+  border: 1px solid var(--pq-border);
+  background: transparent;
+  color: var(--pq-text-muted);
+  cursor: pointer;
+  transition:
+    color var(--pq-motion-fast),
+    background var(--pq-motion-fast),
+    border-color var(--pq-motion-fast);
+}
+
+.status-chip:hover {
+  color: var(--pq-text);
+  border-color: var(--pq-text-muted);
+}
+
+.status-chip:focus-visible {
+  outline: 2px solid var(--pq-accent);
+  outline-offset: 2px;
+}
+
+.status-chip--active {
+  background: var(--pq-accent);
+  border-color: var(--pq-accent);
+  color: var(--pq-background);
+  font-weight: 600;
 }
 
 .invoice-row {

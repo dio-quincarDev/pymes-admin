@@ -1,6 +1,7 @@
 <script setup lang="ts">
 import { ref, shallowRef, computed, watch, onMounted, onUnmounted } from 'vue'
 import { useQuasar, useMeta } from 'quasar'
+import { useRoute } from 'vue-router'
 import { useAuthStore } from 'src/modules/auth/store'
 import { useTutorial } from 'src/composables/useTutorial'
 import { api } from 'src/boot/axios'
@@ -14,6 +15,7 @@ import EmptyState from 'src/components/ui/EmptyState.vue'
 useMeta({ title: 'Productos — PYMEQ' })
 
 const $q = useQuasar()
+const route = useRoute()
 const authStore = useAuthStore()
 const tenantId = authStore.user?.tenantId
 const { showForCurrentRoute } = useTutorial()
@@ -222,7 +224,12 @@ async function remove() {
 
 onMounted(async () => {
   await loadSetup()
-  await load(1)
+  const q = route.query.buscar
+  if (typeof q === 'string' && q) {
+    search.value = q // el watch de search ya dispara load(1) con el filtro
+  } else {
+    await load(1)
+  }
   void showForCurrentRoute()
   window.addEventListener('keydown', handleKeydown)
 })

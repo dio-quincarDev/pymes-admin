@@ -154,8 +154,10 @@ onMounted(() => {
     <!-- B) Ahorro por proveedor — cuánto te ahorras -->
     <SupplierRecommendationsCard :items="enrichedRecommendations" class="q-mb-lg" />
 
-    <div class="analysis-vital">
-      <FinancialHealthPanel :data="financialHealth" :loading="analyticsLoading" :recommendations="supplierRecommendations" />
+    <FinancialHealthPanel :data="financialHealth" :loading="analyticsLoading" :recommendations="supplierRecommendations" />
+
+    <div class="analysis-insights">
+      <SupplierRecommendationsCard :items="enrichedRecommendations" />
       <AlertsPanel :items="enrichedAlerts" />
     </div>
   </q-page>
@@ -204,7 +206,7 @@ onMounted(() => {
   }
 }
 
-.analysis-vital {
+.analysis-insights {
   display: grid;
   grid-template-columns: 1fr 1fr;
   gap: 20px;

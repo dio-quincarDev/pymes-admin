@@ -60,14 +60,16 @@ Objetivo: depurar la info visual, quitar redundancias, dejarlo "casi para dummie
 
 **Ejecución por secciones (cada una cierra con `npm run lint` + `npm run build`):**
 
-### Sección 0 — Spec de consolidación
+### Sección 0 — Spec de consolidación ✅
 `docs/.ulpi/design/workflow-consolidation.md` (contrato, vincula a `.ulpi/design/DESIGN.md`): tabla de jargon (GASTO_OPERATIVO→"Gasto", REGISTRADA→"Pendiente", Colaboradores→"Equipo", Margen Operativo→"Ganancia bruta", costo operativo diario→"Costo del día"), specs de los componentes nuevos (ActivityPanel, KPI Ganancia del mes, secciones colapsables) y la decisión de navegación.
 
-### Sección 1 — Dashboard (4a)
+### Sección 1 — Dashboard (4a) ✅ (2026-11-09)
 QuickActions fuera (borrar archivo) · 3 KPIs de margen → 1 "Ganancia del mes" = `formatCurrency(margenNeto)` con delta vs prev (KPI row 7→5: Ingresos, Costos, Gastos Operativos, Ganancia del mes, Costo/Día) · sparklines fuera (`sparkline()` y SVG en KpiCard) · merge RecentActivity+PendingInvoices → **ActivityPanel** (borrar PendingInvoices; formatDate pasa a `utils/format.ts`) · CSS duplicado → clases globales en `app.scss`.
+> **Estado real:** todo ejecutado. El KPI conserva el nombre **"Rentabilidad"** (decisión del dueño 2026-11-09, sobre el "Ganancia del mes" del spec) y muestra **dinero grande** (`margenNeto`) + % como `sub` gris en `KpiStrip` (el "delta vs prev" del spec no se implementó — decisión: monto primero, % de apoyo, sin deltas).
 
-### Sección 2 — Navegación (4b)
+### Sección 2 — Navegación (4b) ✅ (2026-11-09)
 Sidebar 12→8 items (Operaciones: Dashboard, Productos, Proveedores, Facturas, Costos; Análisis: Análisis, Préstamos; Sistema: Equipo). Ventas/Patrimonio/Contabilidad conservan ruta+archivo pero salen del sidebar; **ConfiguracionPage se borra** (ruta + archivo, read-only). Bottom nav mobile: Dashboard, Productos, Facturas, Costos.
+> **Estado real + decisión del dueño (2026-11-09):** ConfiguracionPage borrada, bottom nav existe, jargon aplicado. **El sidebar queda con sus 10 ítems (Ventas e Inversión visibles) — decisión DELIBERADA Y FINAL del dueño. NO re-proponer el recorte 12→8 en ninguna sesión futura.**
 
 ### Sección 3 — AnalisisGastosPage: vital + todo bajo demanda (4c-3)
 Default visible: métricas de inversión + chart de categorías + top productos. **Colapsados por defecto** (`q-expansion-item`): ABC, Tendencias/Impacto márgenes (tabs), Costo Operativo, Proyección, Alertas (motor backend, reemplaza las locales), y supplier (comparativa/recomendaciones/predicciones). Refurbish de los 6 componentes huérfanos al design system actual.

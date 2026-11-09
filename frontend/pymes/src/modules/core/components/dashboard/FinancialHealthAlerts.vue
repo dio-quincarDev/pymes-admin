@@ -32,7 +32,7 @@ function alertColor(alert: FinancialHealthAlert): string {
   <div v-if="alerts.length" class="fh-alerts">
     <h4 class="fh-alerts__title">
       <q-icon name="warning" size="14px" :style="{ color: 'var(--pq-warning)' }" />
-      Alertas ({{ alerts.length }})
+      Riesgos del Negocio ({{ alerts.length }})
     </h4>
     <ul class="fh-alerts__list" role="list">
       <li

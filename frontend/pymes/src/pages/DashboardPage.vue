@@ -43,6 +43,14 @@ const {
 } = useFinancialDashboard();
 
 const { financialHealth, supplierRecommendations, loading: analyticsLoading } = useAnalytics();
+
+// ponytail: semáforo del mes — mismo criterio de color que FinancialHealthAlerts (NEGATIVE/OVER_LEVERAGED → rojo)
+const topRisk = computed(() => financialHealth.value?.criticalAlerts?.[0] ?? null);
+const topRiskIsRed = computed(() => {
+  const code = topRisk.value?.code ?? '';
+  return code.includes('NEGATIVE') || code.includes('OVER_LEVERAGED');
+});
+
 const { pullDistance, isRefreshing } = usePullToRefresh({ onRefresh: fetch });
 
 const stripKpis = computed(() => {
@@ -64,8 +72,9 @@ const stripKpis = computed(() => {
     },
     {
       label: 'Rentabilidad',
-      value: m ? `${(m.margenNetoPct ?? 0).toFixed(1)}%` : '—',
-      accent: !m ? ('gold' as const) : m.margenNetoPct >= 0 ? ('green' as const) : ('red' as const),
+      value: m ? formatCurrency(m.margenNeto) : '—',
+      sub: m ? `${(m.margenNetoPct ?? 0).toFixed(1)}%` : undefined,
+      accent: !m ? ('gold' as const) : m.margenNeto >= 0 ? ('green' as const) : ('red' as const),
     },
   ];
 });
@@ -164,7 +173,18 @@ const categoryItems = computed(() =>
           :loading="loading"
           :empty="categoryItems.length === 0"
         />
-        <FinancialHealthPanel :data="financialHealth" :loading="analyticsLoading" :recommendations="supplierRecommendations" />
+        <div class="health-cell">
+          <a v-if="topRisk" class="risk-pill" :class="topRiskIsRed ? 'risk-pill--red' : 'risk-pill--yellow'" href="#/dashboard/analisis-gastos">
+            <span class="risk-pill__dot" />
+            <span class="risk-pill__text">{{ topRisk.title }}</span>
+            <span class="risk-pill__go">Revisar →</span>
+          </a>
+          <span v-else class="risk-pill risk-pill--ok">
+            <span class="risk-pill__dot" />
+            <span class="risk-pill__text">Sin riesgos críticos este mes</span>
+          </span>
+          <FinancialHealthPanel :data="financialHealth" :loading="analyticsLoading" :recommendations="supplierRecommendations" />
+        </div>
       </div>
 
       <!-- Hairline separator -->
@@ -267,6 +287,55 @@ const categoryItems = computed(() =>
   @media (min-width: 768px) {
     grid-template-columns: 1fr 1fr;
     gap: 32px;
+  }
+}
+
+.health-cell {
+  display: flex;
+  flex-direction: column;
+  gap: 10px;
+  min-width: 0;
+}
+
+.risk-pill {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+  padding: 8px 12px;
+  min-height: 44px; // touch target móvil
+  border-radius: 8px;
+  font-family: 'Satoshi', sans-serif;
+  font-size: 13px;
+  cursor: pointer;
+  text-decoration: none;
+  transition: background var(--pq-motion-fast);
+
+  &--red { background: color-mix(in srgb, var(--pq-danger) 14%, transparent); color: var(--pq-text); }
+  &--yellow { background: color-mix(in srgb, var(--pq-warning) 14%, transparent); color: var(--pq-text); }
+  &--ok { background: color-mix(in srgb, var(--pq-success) 14%, transparent); cursor: default; }
+
+  &__dot {
+    width: 8px;
+    height: 8px;
+    border-radius: 50%;
+    flex-shrink: 0;
+  }
+  &--red &__dot { background: var(--pq-danger); }
+  &--yellow &__dot { background: var(--pq-warning); }
+  &--ok &__dot { background: var(--pq-success); }
+
+  &__text {
+    min-width: 0;
+    overflow: hidden;
+    text-overflow: ellipsis;
+    white-space: nowrap;
+  }
+
+  &__go {
+    margin-left: auto;
+    flex-shrink: 0;
+    font-size: 12px;
+    color: var(--pq-text-muted);
   }
 }
 

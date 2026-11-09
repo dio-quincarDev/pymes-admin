@@ -25,9 +25,6 @@ const color = computed(() => {
 const containerStyle = computed(() => ({ width: props.size + 'px' }));
 const arcStyle = computed(() => ({ width: props.size + 'px', height: props.size / 2 + 'px' }));
 const innerStyle = computed(() => ({ width: props.size - 12 + 'px', height: (props.size - 12) / 2 + 'px' }));
-const fillStyle = computed(() => ({
-  background: `conic-gradient(from 270deg at 50% 100%, ${color.value} 0deg, ${color.value} ${clamped.value * 1.8}deg, var(--pq-elevated) ${clamped.value * 1.8}deg, var(--pq-elevated) 180deg)`,
-}));
 const needleStyle = computed(() => ({ transform: `translateX(-50%) rotate(${rotation.value}deg)` }));
 const valueStyle = computed(() => ({ color: color.value }));
 </script>
@@ -41,7 +38,6 @@ const valueStyle = computed(() => ({ color: color.value }));
   >
     <div class="trader-gauge__arc" :style="arcStyle">
       <div class="trader-gauge__bg" />
-      <div class="trader-gauge__fill" :style="fillStyle" />
       <div class="trader-gauge__inner" :style="innerStyle" />
       <div class="trader-gauge__needle" :style="needleStyle" aria-hidden="true" />
       <div class="trader-gauge__center-dot" aria-hidden="true" />
@@ -66,7 +62,6 @@ const valueStyle = computed(() => ({ color: color.value }));
   }
 
   &__bg,
-  &__fill,
   &__inner {
     position: absolute;
     left: 0;
@@ -75,16 +70,19 @@ const valueStyle = computed(() => ({ color: color.value }));
     border-radius: 9999px 9999px 0 0;
   }
 
+  // zonas permanentes: rojo 0-39 · amarillo 40-69 · verde 70-100 (72° y 126° = 1.8° por punto)
   &__bg {
     height: 100%;
-    background: var(--pq-elevated);
+    background: conic-gradient(
+      from 270deg at 50% 100%,
+      var(--pq-danger) 0deg,
+      var(--pq-danger) 72deg,
+      var(--pq-warning) 72deg,
+      var(--pq-warning) 126deg,
+      var(--pq-success) 126deg 180deg
+    );
     border: 1px solid var(--pq-border);
     border-bottom: none;
-  }
-
-  &__fill {
-    height: 100%;
-    border-radius: 9999px 9999px 0 0;
   }
 
   &__inner {
