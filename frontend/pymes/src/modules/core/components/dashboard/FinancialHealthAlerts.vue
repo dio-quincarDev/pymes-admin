@@ -1,7 +1,17 @@
 <script setup lang="ts">
 import { computed } from 'vue';
+import { useRouter } from 'vue-router';
 import type { FinancialHealthAlert, FinancialHealth, SupplierRecommendationItem } from 'src/modules/core/types/analytics';
 import { isGoodDependence } from 'src/modules/core/utils/financialGuide';
+import { useNumberFormat } from 'src/modules/core/composables/useNumberFormat';
+
+const router = useRouter();
+const { formatCurrency } = useNumberFormat();
+
+// Mismo destino que AlertsPanel: el producto con su nombre ya en el buscador
+function goToProduct(productName: string) {
+  void router.push({ name: 'productos', query: { buscar: productName } });
+}
 
 interface Props {
   alerts: FinancialHealthAlert[];
@@ -43,6 +53,18 @@ function alertColor(alert: FinancialHealthAlert): string {
         <span class="fh-alerts__dot" :style="{ background: alertColor(alert) }" />
         <div class="fh-alerts__info">
           <span class="fh-alerts__name">{{ alert.title }}</span>
+          <span v-if="alert.description" class="fh-alerts__desc">{{ alert.description }}</span>
+          <span v-if="alert.code === 'DEAD_INVENTORY' && alert.current > 0" class="fh-alerts__money">
+            {{ formatCurrency(alert.current) }} parados en total
+          </span>
+          <ul v-if="alert.code === 'DEAD_INVENTORY' && alert.items?.length" class="fh-alerts__products" role="list">
+            <li v-for="item in alert.items" :key="item.id">
+              <button type="button" class="fh-alerts__product" @click="goToProduct(item.name)">
+                <span class="fh-alerts__product-name">{{ item.name }}</span>
+                <span class="fh-alerts__product-amount">{{ formatCurrency(item.totalInvestment) }}</span>
+              </button>
+            </li>
+          </ul>
           <span class="fh-alerts__action">{{ alert.action }}</span>
         </div>
       </li>
@@ -105,6 +127,66 @@ function alertColor(alert: FinancialHealthAlert): string {
     font-family: 'Satoshi', sans-serif;
     font-size: 12px;
     color: var(--pq-text-muted);
+  }
+
+  &__desc {
+    font-family: 'Satoshi', sans-serif;
+    font-size: 12px;
+    color: var(--pq-text);
+  }
+
+  &__money {
+    font-family: 'Satoshi', sans-serif;
+    font-size: 13px;
+    font-weight: 600;
+    font-variant-numeric: tabular-nums;
+    color: var(--pq-text);
+  }
+
+  &__products {
+    list-style: none;
+    padding: 0;
+    margin: 2px 0 0;
+    width: 100%;
+  }
+
+  &__product {
+    display: flex;
+    align-items: center;
+    justify-content: space-between;
+    gap: 8px;
+    width: 100%;
+    min-height: 44px;
+    padding: 6px 8px;
+    margin: 0 -8px;
+    border: 0;
+    border-radius: var(--pq-radius-sm, 6px);
+    background: transparent;
+    cursor: pointer;
+    text-align: left;
+
+    &:hover,
+    &:focus-visible {
+      background: var(--pq-elevated);
+    }
+  }
+
+  &__product-name {
+    font-family: 'Satoshi', sans-serif;
+    font-size: 12px;
+    color: var(--pq-text);
+    overflow: hidden;
+    text-overflow: ellipsis;
+    white-space: nowrap;
+    min-width: 0;
+  }
+
+  &__product-amount {
+    font-family: 'Satoshi', sans-serif;
+    font-size: 12px;
+    font-variant-numeric: tabular-nums;
+    color: var(--pq-text-muted);
+    white-space: nowrap;
   }
 }
 </style>

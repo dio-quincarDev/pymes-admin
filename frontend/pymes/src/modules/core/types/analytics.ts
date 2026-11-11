@@ -138,6 +138,15 @@ export interface FinancialHealthAlert {
   current: number;
   threshold: number;
   action: string;
+  // Solo DEAD_INVENTORY: los productos que ya trae calculados el backend
+  items?: DeadInventoryItem[] | undefined;
+}
+
+export interface DeadInventoryItem {
+  id: string;
+  name: string;
+  totalInvestment: number;
+  lastPurchaseDate: string;
 }
 
 // Wire: backend manda type/message/metric (AnalyticsServiceImpl.java:830)

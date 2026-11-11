@@ -40,7 +40,7 @@ const hiddenCount = computed(() => filteredAlerts.value.length - visibleAlerts.v
 
 const hasCritical = computed(() => filteredAlerts.value.some((a) => a.severity === 'critical'));
 
-// shortcut: cada fila usa su propia escala (max pagaste/suele costar) — no compares longitudes entre productos;
+// shortcut: cada fila usa su propia escala (max antes/ahora o pagaste/suele costar) — no compares longitudes entre productos;
 // upgrade a escala global solo si se pide comparar montos absolutos entre filas
 interface RowVm {
   key: string;
@@ -48,36 +48,79 @@ interface RowVm {
   detail: string;
   iconName: 'error' | 'warning';
   iconColor: 'negative' | 'warning';
-  fillClass: 'alerts-panel__fill--ok' | 'alerts-panel__fill--red' | 'alerts-panel__fill--yellow';
-  paidWidth: string;
-  fairWidth: string;
-  paidLabel: string;
-  fairLabel: string;
+  hasBars: boolean;
+  topLabel: string;
+  topWidth: string;
+  topAmount: string;
+  topFill: 'alerts-panel__fill--ok' | 'alerts-panel__fill--red' | 'alerts-panel__fill--yellow';
+  bottomLabel: string;
+  bottomWidth: string;
+  bottomAmount: string;
+  bottomFill: 'alerts-panel__fill--ok' | 'alerts-panel__fill--red' | 'alerts-panel__fill--yellow';
   overpay: string;
   critical: boolean;
 }
 
 const rows = computed<RowVm[]>(() =>
   visibleAlerts.value.map((alert) => {
-    const paid = toNumber(alert.currentPrice);
-    const fair = toNumber(alert.avgPrice);
-    const max = Math.max(paid, fair, 1);
     const critical = alert.severity === 'critical';
-    const over = paid > fair ? paid - fair : 0;
-    return {
+    const trail = alert.priceTrail;
+    // PRICE_VARIATION nunca trae currentPrice real: barras solo con el recorrido de facturas
+    // (primera vs última compra, mismo carril); sin historial → texto solo
+    const trailBars =
+      alert.alertKind !== 'SUPPLIER_PREMIUM' &&
+      !!trail && trail.singleLane && trail.count >= 2 && trail.firstPrice !== trail.lastPrice;
+
+    const vm: RowVm = {
       key: alert.productId,
       name: alert.productName,
       detail: alertDummyText(alert) || alertFallbackText(alert),
       iconName: critical ? 'error' : 'warning',
       iconColor: critical ? 'negative' : 'warning',
-      fillClass: over > 0 ? (critical ? 'alerts-panel__fill--red' : 'alerts-panel__fill--yellow') : 'alerts-panel__fill--ok',
-      paidWidth: `${Math.min(100, (paid / max) * 100)}%`,
-      fairWidth: `${Math.min(100, (fair / max) * 100)}%`,
-      paidLabel: formatCurrency(paid),
-      fairLabel: formatCurrency(fair),
-      overpay: over > 0 ? formatCurrency(over) : '',
+      hasBars: false,
+      topLabel: '',
+      topWidth: '0%',
+      topAmount: '',
+      topFill: 'alerts-panel__fill--ok',
+      bottomLabel: '',
+      bottomWidth: '0%',
+      bottomAmount: '',
+      bottomFill: 'alerts-panel__fill--ok',
+      overpay: '',
       critical,
     };
+
+    if (trailBars && trail) {
+      const up = trail.lastPrice > trail.firstPrice;
+      const max = Math.max(trail.firstPrice, trail.lastPrice, 1);
+      vm.hasBars = true;
+      vm.topLabel = 'Antes';
+      vm.topWidth = `${Math.min(100, (trail.firstPrice / max) * 100)}%`;
+      vm.topAmount = formatCurrency(trail.firstPrice);
+      vm.bottomLabel = 'Ahora';
+      vm.bottomWidth = `${Math.min(100, (trail.lastPrice / max) * 100)}%`;
+      vm.bottomAmount = formatCurrency(trail.lastPrice);
+      vm.bottomFill = up ? (critical ? 'alerts-panel__fill--red' : 'alerts-panel__fill--yellow') : 'alerts-panel__fill--ok';
+      vm.overpay = `${up ? 'Subió' : 'Bajó'} ${formatCurrency(Math.abs(trail.lastPrice - trail.firstPrice))}`;
+      return vm;
+    }
+
+    if (alert.alertKind === 'SUPPLIER_PREMIUM') {
+      const paid = toNumber(alert.currentPrice);
+      const fair = toNumber(alert.avgPrice);
+      const max = Math.max(paid, fair, 1);
+      const over = paid > fair ? paid - fair : 0;
+      vm.hasBars = true;
+      vm.topLabel = 'Pagaste';
+      vm.topWidth = `${Math.min(100, (paid / max) * 100)}%`;
+      vm.topAmount = formatCurrency(paid);
+      vm.topFill = over > 0 ? (critical ? 'alerts-panel__fill--red' : 'alerts-panel__fill--yellow') : 'alerts-panel__fill--ok';
+      vm.bottomLabel = 'Suele costar';
+      vm.bottomWidth = `${Math.min(100, (fair / max) * 100)}%`;
+      vm.bottomAmount = formatCurrency(fair);
+      vm.overpay = over > 0 ? `Estás pagando ${formatCurrency(over)} de más` : '';
+    }
+    return vm;
   }),
 );
 </script>
@@ -104,19 +147,19 @@ const rows = computed<RowVm[]>(() =>
         </q-item-section>
         <q-item-section>
           <q-item-label class="alerts-panel__name">{{ row.name }}</q-item-label>
-          <div class="alerts-panel__bars">
+          <div v-if="row.hasBars" class="alerts-panel__bars">
             <div class="alerts-panel__bar-row">
-              <span class="alerts-panel__bar-label">Pagaste</span>
-              <div class="alerts-panel__track"><span class="alerts-panel__fill" :class="row.fillClass" :style="{ width: row.paidWidth }" /></div>
-              <span class="alerts-panel__bar-amount">{{ row.paidLabel }}</span>
+              <span class="alerts-panel__bar-label">{{ row.topLabel }}</span>
+              <div class="alerts-panel__track"><span class="alerts-panel__fill" :class="row.topFill" :style="{ width: row.topWidth }" /></div>
+              <span class="alerts-panel__bar-amount">{{ row.topAmount }}</span>
             </div>
             <div class="alerts-panel__bar-row">
-              <span class="alerts-panel__bar-label">Suele costar</span>
-              <div class="alerts-panel__track"><span class="alerts-panel__fill alerts-panel__fill--ok" :style="{ width: row.fairWidth }" /></div>
-              <span class="alerts-panel__bar-amount">{{ row.fairLabel }}</span>
+              <span class="alerts-panel__bar-label">{{ row.bottomLabel }}</span>
+              <div class="alerts-panel__track"><span class="alerts-panel__fill" :class="row.bottomFill" :style="{ width: row.bottomWidth }" /></div>
+              <span class="alerts-panel__bar-amount">{{ row.bottomAmount }}</span>
             </div>
             <div v-if="row.overpay" class="alerts-panel__overpay">
-              Estás pagando {{ row.overpay }} de más
+              {{ row.overpay }}
             </div>
           </div>
           <q-item-label caption class="alerts-panel__detail">{{ row.detail }}</q-item-label>

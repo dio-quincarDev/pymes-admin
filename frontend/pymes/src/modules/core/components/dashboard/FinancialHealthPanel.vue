@@ -57,7 +57,8 @@ const guide = computed(() => overallGuide(props.data?.overallHealth ?? 0));
 
       <FinancialHealthAlerts :alerts="data.criticalAlerts" :health="data" :recommendations="recommendations" />
 
-      <div v-if="data.recommendations.length" class="fh-panel__section">
+      <!-- Dedup: con alertas críticas arriba, esta lista repite lo mismo casi textual -->
+      <div v-if="data.recommendations.length && !data.criticalAlerts.length" class="fh-panel__section">
         <h4 class="fh-panel__section-title">
           <q-icon name="lightbulb" size="14px" :style="{ color: 'var(--pq-accent)' }" />
           Recomendaciones

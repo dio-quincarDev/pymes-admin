@@ -693,12 +693,22 @@ public class AnalyticsServiceImpl implements AnalyticsService {
                 .sorted(Comparator.comparing(Producto::getTotalInvestment).reversed())
                 .limit(5)
                 .toList();
-        if (!dead.isEmpty()) {
-            criticals.add(alert("DEAD_INVENTORY", "Inventario Muerto",
-                    dead.size() + " productos con inversión alta y sin compras en 60+ días. Capital estancado.",
-                    dead.stream().map(p -> nz(p.getTotalInvestment())).reduce(BigDecimal.ZERO, BigDecimal::add),
-                    BigDecimal.ZERO, "Liquida o negocia devoluciones para liberar capital."));
-            recommendations.add("Capital estancado en " + dead.size() + " productos sin compra en 60+ días — liquida inventario.");
+        var deadCapital = dead.stream().map(p -> nz(p.getTotalInvestment())).reduce(BigDecimal.ZERO, BigDecimal::add);
+        // shortcut: piso fijo $50 — menos capital parado es ruido presentado como riesgo crítico
+        // (caso real Mi Rinconcito: $26 en 5 productos); configurable por tenant cuando exista esa config
+        if (deadCapital.compareTo(new BigDecimal("50")) >= 0) {
+            var alerta = alert("DEAD_INVENTORY", "Productos parados",
+                    dead.size() + " productos llevan más de 60 días sin compra.",
+                    deadCapital, BigDecimal.ZERO, "Liquida o negocia devoluciones para liberar capital.");
+            // la lista ya está calculada: enviarla evita que la UI tenga que adivinar cuáles son
+            alerta.put("items", dead.stream().map(p -> Map.<String, Object>of(
+                    "id", String.valueOf(p.getId()),
+                    "name", p.getName(),
+                    "totalInvestment", nz(p.getTotalInvestment()),
+                    "lastPurchaseDate", p.getLastPurchaseDate() == null ? "" : p.getLastPurchaseDate().toString()
+            )).toList());
+            criticals.add(alerta);
+            recommendations.add("Capital parado en " + dead.size() + " productos sin compra en 60+ días — liquida inventario.");
         }
 
         // ---- 💸 Costo operativo diario vs ingreso diario ----
@@ -734,10 +744,10 @@ public class AnalyticsServiceImpl implements AnalyticsService {
         if (plataARecuperar.signum() > 0) {
             var gananciaMensual = revenue.multiply(netMarginPct).divide(BigDecimal.valueOf(100), 4, RoundingMode.HALF_UP);
             if (gananciaMensual.signum() <= 0) {
-                criticals.add(alert("PAYBACK_RECOVERY", "Recuperación de Inversión",
-                        "Estás perdiendo dinero y no recuperas tu inversión.",
-                        BigDecimal.valueOf(-1), BigDecimal.ZERO, "Sube tus ventas o baja gastos."));
-                recommendations.add("Estás perdiendo dinero y no recuperas tu inversión.");
+                criticals.add(alert("PAYBACK_RECOVERY", "Cerraste el mes en pérdida",
+                        "Gastaste más de lo que vendiste este mes.",
+                        BigDecimal.valueOf(-1), BigDecimal.ZERO, "Sube tus ventas o baja tus gastos fijos."));
+                recommendations.add("Este mes gastaste más de lo que vendiste — sube ventas o baja gastos.");
             } else {
                 var meses = plataARecuperar.divide(gananciaMensual, 2, RoundingMode.HALF_UP);
                 if (meses.compareTo(BigDecimal.valueOf(12)) <= 0) {

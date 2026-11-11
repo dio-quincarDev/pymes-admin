@@ -10,6 +10,7 @@ import core_pymes.inversion.domain.Patrimonio;
 import core_pymes.prestamo.domain.EstadoPrestamo;
 import core_pymes.prestamo.domain.Prestamo;
 import core_pymes.prestamo.repository.PrestamoRepository;
+import core_pymes.product.domain.Producto;
 import core_pymes.product.repository.ProductoRepository;
 import org.junit.jupiter.api.BeforeEach;
 import org.junit.jupiter.api.Test;
@@ -197,6 +198,48 @@ class AnalyticsServiceImplTest {
 
         var criticals = (List<Map<String, Object>>) result.get("criticalAlerts");
         assertThat(criticals).extracting(m -> m.get("type")).contains("PAYBACK_RECOVERY");
+    }
+
+    @Test
+    void saludFinanciera_capitalParado_respetaPiso50YAdjuntaItems() {
+        var tenantId = UUID.randomUUID();
+        var metric = MetricasFinanciera.builder()
+                .tenantId(tenantId)
+                .period("2026-06")
+                .totalIncome(new BigDecimal("100000"))
+                .netMarginPct(new BigDecimal("10"))
+                .build();
+        when(metricasRepository.findByTenantIdAndPeriodLessThanEqualOrderByPeriodDesc(tenantId, "2026-06"))
+                .thenReturn(List.of(metric));
+        when(jdbc.query(anyString(), any(RowMapper.class), any(), any(), any())).thenReturn(List.of());
+        when(productoRepository.findByTenantId(tenantId)).thenReturn(List.of(
+                Producto.builder().tenantId(tenantId).name("Fiambreras").totalInvestment(new BigDecimal("20"))
+                        .lastPurchaseDate(LocalDate.parse("2026-01-01")).build(),
+                Producto.builder().tenantId(tenantId).name("Bolsas").totalInvestment(new BigDecimal("6.06"))
+                        .lastPurchaseDate(LocalDate.parse("2026-01-02")).build()));
+
+        var bajoPiso = service.analisisSaludFinanciera(tenantId, "2026-06",
+                LocalDate.parse("2026-06-01"), LocalDate.parse("2026-07-01"),
+                List.of(), List.of(), List.of());
+
+        assertThat((List<Map<String, Object>>) bajoPiso.get("criticalAlerts"))
+                .extracting(m -> m.get("type")).doesNotContain("DEAD_INVENTORY");
+
+        when(productoRepository.findByTenantId(tenantId)).thenReturn(List.of(
+                Producto.builder().tenantId(tenantId).id(UUID.randomUUID()).name("Fiambreras")
+                        .totalInvestment(new BigDecimal("60"))
+                        .lastPurchaseDate(LocalDate.parse("2026-01-01")).build(),
+                Producto.builder().tenantId(tenantId).name("Sin inversión").totalInvestment(BigDecimal.ZERO)
+                        .lastPurchaseDate(LocalDate.parse("2026-01-02")).build()));
+
+        var sobrePiso = service.analisisSaludFinanciera(tenantId, "2026-06",
+                LocalDate.parse("2026-06-01"), LocalDate.parse("2026-07-01"),
+                List.of(), List.of(), List.of());
+
+        var dead = ((List<Map<String, Object>>) sobrePiso.get("criticalAlerts")).stream()
+                .filter(m -> "DEAD_INVENTORY".equals(m.get("type"))).findFirst().orElseThrow();
+        assertThat(dead.get("title")).isEqualTo("Productos parados");
+        assertThat((List<?>) dead.get("items")).hasSize(1);
     }
 
     @Test
