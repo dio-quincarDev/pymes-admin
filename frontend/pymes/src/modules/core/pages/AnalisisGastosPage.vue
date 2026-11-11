@@ -151,9 +151,6 @@ onMounted(() => {
       <TopProductosDonut :items="abc" :loading="analyticsLoading" :empty="abc.length===0" />
     </div>
 
-    <!-- B) Ahorro por proveedor — cuánto te ahorras -->
-    <SupplierRecommendationsCard :items="enrichedRecommendations" class="q-mb-lg" />
-
     <FinancialHealthPanel :data="financialHealth" :loading="analyticsLoading" :recommendations="supplierRecommendations" />
 
     <div class="analysis-insights">

@@ -14,6 +14,7 @@ Registro cronológico de decisiones, problemas resueltos y estado del frontend.
 - **`FinancialHealthAlerts.vue`** — muestra `description`, el monto parado y cada producto como botón ≥44px → `productos?buscar=<nombre>`.
 - **`FinancialHealthPanel.vue`** — "Recomendaciones" oculta cuando hay alertas críticas (dedup); visible en el estado sin métricas.
 - **`AlertsPanel.vue`** — `RowVm` con `hasBars/top*/bottom*`; `PRICE_VARIATION` pinta "Antes/Ahora" desde `priceTrail` (solo `singleLane`, `count ≥ 2`, precios distintos; sube rojo/amarillo con "Subió $X", baja verde con "Bajó $X"); sin historial → texto solo. `SUPPLIER_PREMIUM` conserva "Pagaste/Suele costar".
+- **`AnalisisGastosPage.vue`** — se eliminó el render duplicado de `SupplierRecommendationsCard` (quedaba una suelta arriba y otra vez en la grilla `.analysis-insights` desde el rework de layout del 2026-11-09).
 
 **Verificación:** backend/core `./mvnw test -B` → 258 tests verdes (nuevo `saludFinanciera_capitalParado_respetaPiso50YAdjuntaItems`); frontend `npm run lint` 0 + `npm run build` PWA verde. Pendiente: prueba en dispositivo (limpiar datos del sitio por caché PWA).
 
