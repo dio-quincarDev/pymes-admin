@@ -4,6 +4,21 @@ Registro cronológico de decisiones, problemas resueltos y estado del frontend.
 
 ---
 
+## 2026-11-11 — Alertas de salud con dinero y productos reales + barras Antes/Ahora
+
+**Contexto:** reproducción contra staging (tenant Mi Rinconcito Criollo, período 2026-11) vía API confirmó cuatro bugs de las alertas: "Inventario Muerto" disparaba por **$26** en 5 productos sin nombres ni montos; `PAYBACK_RECOVERY` mostraba "Recuperación de Inversión" con métrica `-1` (centinela); "Recomendaciones" repetía las mismas alertas; y en "Desvíos en Precios de Insumos" las barras "Pagaste/Suele costar" mostraban el mismo número dos veces en verde (el backend nunca manda `currentPrice` para `PRICE_VARIATION`; el normalizador copiaba `avgPrice` en ambas).
+
+**Qué se hizo:**
+- **Backend `AnalyticsServiceImpl`** — `DEAD_INVENTORY` ahora exige ≥ $50 de capital parado (`shortcut:` fijo, antes disparaba con $1), se renombra a "Productos parados" y adjunta `items` (id/name/totalInvestment/lastPurchaseDate) con la lista ya calculada. `PAYBACK_RECOVERY` → "Cerraste el mes en pérdida" / "Gastaste más de lo que vendiste este mes."
+- **Tipos + `analyticsNormalize`** — `DeadInventoryItem` y `items?` en `FinancialHealthAlert`; `normalizeFinancialHealth` los conserva (monto normalizado).
+- **`FinancialHealthAlerts.vue`** — muestra `description`, el monto parado y cada producto como botón ≥44px → `productos?buscar=<nombre>`.
+- **`FinancialHealthPanel.vue`** — "Recomendaciones" oculta cuando hay alertas críticas (dedup); visible en el estado sin métricas.
+- **`AlertsPanel.vue`** — `RowVm` con `hasBars/top*/bottom*`; `PRICE_VARIATION` pinta "Antes/Ahora" desde `priceTrail` (solo `singleLane`, `count ≥ 2`, precios distintos; sube rojo/amarillo con "Subió $X", baja verde con "Bajó $X"); sin historial → texto solo. `SUPPLIER_PREMIUM` conserva "Pagaste/Suele costar".
+
+**Verificación:** backend/core `./mvnw test -B` → 258 tests verdes (nuevo `saludFinanciera_capitalParado_respetaPiso50YAdjuntaItems`); frontend `npm run lint` 0 + `npm run build` PWA verde. Pendiente: prueba en dispositivo (limpiar datos del sitio por caché PWA).
+
+---
+
 ## 2026-11-09 — Cierre de estrategia frontend: alertas accionables + tacómetros con zonas + dona + KPI en dinero + PWA banner
 
 **Contexto:** batch de varias sesiones para poner al día las estrategias documentadas contra la UI real: `ALERTS_SYSTEM_STRATEGY` (alertas que el tendero entienda), health panel desbalanceado con leyenda redundante, dona con "Total" descentrado en móvil, KPI "Rentabilidad" solo en % (regla del dueño: dinero primero), PWA sin banner de instalación, y `FRONTEND_PENDIENTES_STRATEGY` secciones 0-2 ya ejecutadas pero sin marcar.
