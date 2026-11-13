@@ -1,5 +1,5 @@
 <script setup lang="ts">
-import { computed } from 'vue';
+import { computed, ref, useTemplateRef, watch } from 'vue';
 import type { TooltipItem } from 'chart.js';
 import { useNumberFormat } from 'src/modules/core/composables/useNumberFormat';
 import { useChartTheme } from 'src/modules/core/composables/useChartTheme';
@@ -31,39 +31,34 @@ const { colors } = useChartTheme();
 // ponytail: donut 5+Otros — evita barras horizontales y scroll-x en móvil (Panamá UTC-5)
 const MAX_SLICES = 5;
 
+// total del período = todas las categorías incluida "Otros" (el donut recorta a 5, el monto no)
+const total = computed(() => props.items.reduce((s, i) => s + i.currentAmount, 0));
+
+// paleta compartida por arcos y leyenda (mismo orden, datos mismos índices)
+const palette = computed(() => [
+  colors.value.abcA, colors.value.abcB, colors.value.positive, colors.value.negative, colors.value.info, colors.value.text,
+]);
+
 const chartData = computed(() => {
   const sorted = [...props.items].sort((a, b) => b.currentAmount - a.currentAmount);
   const top = sorted.slice(0, MAX_SLICES);
   const rest = sorted.slice(MAX_SLICES);
   const othersTotal = rest.reduce((s, i) => s + i.currentAmount, 0);
-  const othersPct = rest.reduce((s, i) => s + i.percentage, 0);
 
   const labels = top.map(i => i.category);
   const data = top.map(i => i.currentAmount);
-  const pcts = top.map(i => i.percentage);
 
   if (rest.length) {
     labels.push('Otros');
     data.push(othersTotal);
-    pcts.push(othersPct);
   }
-
-  // store pcts for tooltip
-  ;(chartData as unknown as { _pcts: number[] })._pcts = pcts;
 
   return {
     labels,
     datasets: [
       {
         data,
-        backgroundColor: [
-          colors.value.abcA,
-          colors.value.abcB,
-          colors.value.positive,
-          colors.value.negative,
-          colors.value.info,
-          colors.value.text,
-        ].slice(0, data.length),
+        backgroundColor: palette.value.slice(0, data.length),
         borderColor: 'transparent',
         borderWidth: 0,
         hoverOffset: 4,
@@ -77,19 +72,7 @@ const chartOptions = computed(() => ({
   maintainAspectRatio: false,
   cutout: '72%',
   plugins: {
-    legend: {
-      display: true,
-      position: 'bottom' as const,
-      labels: {
-        boxWidth: 8,
-        boxHeight: 8,
-        usePointStyle: true,
-        pointStyle: 'circle',
-        padding: 12,
-        font: { family: "'Satoshi', sans-serif", size: 11, weight: 500 },
-        color: colors.value.text,
-      },
-    },
+    legend: { display: false },
     tooltip: {
       callbacks: {
         label: (context: TooltipItem<'doughnut'>) => {
@@ -107,6 +90,33 @@ const chartOptions = computed(() => ({
     },
   },
 }));
+
+// leyenda en HTML (fuera del canvas): el donut queda centrado en vertical y el "Total" cae en el hueco
+const legendItems = computed(() => {
+  const sorted = [...props.items].sort((a, b) => b.currentAmount - a.currentAmount);
+  const items = sorted.slice(0, MAX_SLICES).map((i, idx) => ({ label: i.category, color: palette.value[idx] }));
+  if (sorted.length > MAX_SLICES) items.push({ label: 'Otros', color: palette.value[MAX_SLICES] });
+  return items;
+});
+
+// leyenda táctil: tocar tacha la tajada (la leyenda Chart.js lo traía gratis; al moverla a HTML hay que conectarla)
+const base = useTemplateRef<InstanceType<typeof BaseChart>>('base');
+const hidden = ref<Set<number>>(new Set());
+
+function toggleLegend(idx: number) {
+  if (!base.value) return;
+  base.value.toggleSlice(idx);
+  const next = new Set(hidden.value);
+  if (next.has(idx)) next.delete(idx);
+  else next.add(idx);
+  hidden.value = next;
+}
+
+// datos nuevos (otro mes): limpiar tachados, si no el índice oculto "persigue" a otra categoría
+watch(chartData, () => {
+  hidden.value.forEach((i) => base.value?.showSlice(i));
+  hidden.value = new Set();
+});
 </script>
 
 <template>
@@ -134,7 +144,28 @@ const chartOptions = computed(() => ({
     </template>
 
     <template v-else>
-      <BaseChart type="doughnut" :data="chartData" :options="chartOptions" :height="260" />
+      <div class="donut-wrap">
+        <BaseChart ref="base" type="doughnut" :data="chartData" :options="chartOptions" :height="260" />
+        <div class="donut-center">
+          <span class="donut-center__label">Total</span>
+          <span class="donut-center__value">{{ formatCurrency(total) }}</span>
+        </div>
+      </div>
+      <ul v-if="legendItems.length" class="donut-legend">
+        <li v-for="(item, idx) in legendItems" :key="item.label">
+          <button
+            type="button"
+            class="donut-legend__item"
+            :class="{ 'donut-legend__item--off': hidden.has(idx) }"
+            :title="item.label"
+            :aria-pressed="hidden.has(idx)"
+            @click="toggleLegend(idx)"
+          >
+            <span class="donut-legend__dot" :style="{ background: item.color }" />
+            <span class="donut-legend__name">{{ item.label }}</span>
+          </button>
+        </li>
+      </ul>
     </template>
   </div>
 </template>
@@ -192,6 +223,97 @@ const chartOptions = computed(() => ({
       color: var(--pq-text-muted);
       margin: 0;
     }
+  }
+}
+
+.donut-wrap {
+  position: relative;
+  min-width: 0;
+  max-width: 100%;
+}
+
+.donut-center {
+  position: absolute;
+  top: 50%;
+  left: 50%;
+  transform: translate(-50%, -50%);
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  pointer-events: none;
+  text-align: center;
+}
+
+.donut-center__label {
+  font-family: var(--pq-font-utility);
+  font-size: 10px;
+  text-transform: uppercase;
+  letter-spacing: 0.08em;
+  color: var(--pq-text-subtle);
+}
+
+.donut-center__value {
+  font-family: var(--pq-font-display);
+  font-size: 1.1rem;
+  font-weight: 700;
+  color: var(--pq-text);
+  line-height: 1.1;
+}
+
+.donut-legend {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 6px 16px;
+  justify-content: center;
+  list-style: none;
+  margin: 10px 0 0;
+  padding: 0;
+  min-width: 0;
+}
+
+.donut-legend__item {
+  display: flex;
+  align-items: center;
+  gap: 6px;
+  min-width: 0;
+  min-height: 44px;
+  padding: 0 8px;
+  background: none;
+  border: 0;
+  cursor: pointer;
+
+  &--off {
+    opacity: 0.45;
+  }
+
+  &--off .donut-legend__name {
+    text-decoration: line-through;
+  }
+}
+
+.donut-legend__dot {
+  width: 10px;
+  height: 10px;
+  border-radius: 50%;
+  flex-shrink: 0;
+}
+
+.donut-legend__name {
+  font-family: 'Satoshi', sans-serif;
+  font-size: 11px;
+  color: var(--pq-text-muted);
+  overflow: hidden;
+  text-overflow: ellipsis;
+  white-space: nowrap;
+  max-width: 140px;
+}
+
+@media (max-width: 600px) {
+  .donut-wrap :deep(.base-chart) {
+    height: 200px !important;
+  }
+  .donut-center__value {
+    font-size: 0.95rem;
   }
 }
 

@@ -33,6 +33,7 @@ const {
   ventas,
   actividadReciente,
   facturasPendientes,
+  itbmsMes,
   costoDiario,
   loading,
   error,
@@ -57,8 +58,6 @@ const stripKpis = computed(() => {
   const m = metricas.value;
   const cd = costoDiario.value;
 
-  const pendientes = facturasPendientes.value.length;
-
   return [
     {
       label: 'Costos día',
@@ -66,9 +65,9 @@ const stripKpis = computed(() => {
       accent: 'red' as const,
     },
     {
-      label: 'Facturas pendientes',
-      value: String(pendientes),
-      accent: pendientes > 0 ? ('red' as const) : ('green' as const),
+      label: 'ITBMS del mes',
+      value: formatCurrency(itbmsMes.value),
+      accent: 'blue' as const,
     },
     {
       label: 'Rentabilidad',
