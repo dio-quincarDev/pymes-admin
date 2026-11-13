@@ -95,6 +95,13 @@ export function useFinancialDashboard() {
     facturas.value.filter((f) => f.status !== 'PAGADA'),
   );
 
+  // caja: ITBMS del mes = suma de itbmsTotal de facturas FACTURA PAGADA del período (misma regla que FacturasPage)
+  const itbmsMes = computed(() =>
+    facturas.value
+      .filter((f) => f.type === 'FACTURA' && f.status === 'PAGADA' && f.issueDate.startsWith(period.value))
+      .reduce((s, f) => s + (f.itbmsTotal ?? 0), 0),
+  );
+
   async function fetch() {
     const tenantId = authStore.user?.tenantId;
     if (!tenantId) return;
@@ -151,6 +158,7 @@ export function useFinancialDashboard() {
     gastosPorCategoriaPrev,
     actividadReciente,
     facturasPendientes,
+    itbmsMes,
     loading,
     error,
     periodo: period,
