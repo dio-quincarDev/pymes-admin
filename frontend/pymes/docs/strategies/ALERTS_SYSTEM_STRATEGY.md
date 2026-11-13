@@ -154,3 +154,56 @@ No implementado del doc §3 (tabla completa de accionabilidad por código): los 
 1. **`DAILY_COST_CONTROL` → "Los gastos fijos superan tus ventas".** El mes en curso se compara contra **días transcurridos** (dividir las ventas del mes entre los 30 días dispara falsas alarmas: caso real nov-2026, costo fijo $139.80/día vs "$69.60/día" calculado, cuando el ritmo real era ~$174/día ≈ 80%). Meses cerrados siguen comparando el mes completo. Umbral 1.2 se mantiene. Mensaje en dinero: "Gastas $139.80 al día en costos fijos y vendes $174.01 al día."
 2. **`MARGIN_EROSION` solo con meses cerrados.** El mes en curso tiene compras a medias y no es comparable. Crítica solo si el margen bruto actual **< 30%** (mismo piso de margen sano que ya usa la app); si está sano pero cayó >15% relativo, va como **recomendación**, no como riesgo crítico. Mensaje: "De cada $100 que vendes te quedan $54 después de pagar la mercancía; hace 3 meses eran $74."
 3. **Regla de caja explícita:** todos los cálculos de salud usan `status = 'PAGADA'` (no devengado) — misma base que la dona y FacturasPage; editar/anular facturas REGISTRADAS no mueve ningún número.
+
+---
+
+## 8. Estrategia de corrección total de alertas (diseño 2026-11-13)
+
+Auditoría del motor completo: de 10 avisos, 1 bien planteado (`MARGIN_EROSION`), 1 a medias (`DAILY_COST_CONTROL`) y 8 con defectos. Los defectos se reducen a 3 patrones: **mes a medias** (comparar el mes en curso contra meses cerrados), **porcentajes sin piso en dinero** (un 22% sobre $1.10 es calderilla) y **umbrales calibrados para empresa grande** (una pulpería con un proveedor principal dispara "concentración" todos los meses).
+
+### Reglas base (aplican a todos los avisos)
+
+1. **Caja:** solo facturas `PAGADA`. Los gastos fijos configurados en Costos **no** se suman a los márgenes (doble conteo si también se registran como factura); la única excepción es el costo diario, que pasa a compararse contra la ganancia real.
+2. **Mes cerrado:** todo aviso que compara meses solo evalúa meses terminados. El mes en curso solo se usa para avisos "hasta hoy" y para el costo diario prorrateado.
+3. **Piso de dinero:** $50 de gasto/inversión (mismo piso que ya tiene `DEAD_INVENTORY`). Un porcentaje sobre un monto menor no dispara nada.
+
+### Lote 1 — los que mienten con datos reales
+
+| Aviso | Regla nueva | Mensaje | Severidad |
+|---|---|---|---|
+| `NEGATIVE_OPERATING_MARGIN` | Ventas = 0 y gastos > 0 → avisa (hoy `safePct` devuelve 0 y no avisa). Margen < 0 → la pérdida en dinero; en mes en curso el texto dice "hasta hoy". | "No registraste ventas este mes y tienes $500 en gastos." / "Hasta hoy, este mes gastaste $300 más de lo que vendiste." | Crítica |
+| `SUPPLIER_CONCENTRATION` | Solo con 2+ proveedores, uno > 70% y compras ≥ $500. Con un solo proveedor no avisa: no hay alternativa, es un hecho, no un riesgo. | "El 78% de tus compras ($1,240) van a un solo proveedor." | Advertencia |
+| `OPEX_CREEP` | Solo meses cerrados; exige que los gastos hayan subido ≥ $50 en 3 meses **y** suban más que las ventas (hoy dispara aunque ambos hayan caído). | "Tus gastos subieron $320 en 3 meses y tus ventas $80." | Advertencia |
+| `DAILY_COST_CONTROL` | Costo fijo del mes vs **ganancia del mes** (ventas − mercancía), con los mismos días (hoy compara contra ventas y divide por 30 un costo que es por día laboral). En curso: prorratear el fijo por días transcurridos. Sin colchón 1.2: si el fijo supera la ganancia, se pierde plata. | "Ganas $94 al día después de pagar la mercancía y tus costos fijos son $139 al día." | Crítica |
+| `PAYBACK_RECOVERY` | Solo meses cerrados; pérdida solo con margen neto **negativo** (no cero — hoy dispara con 0 ventas); métrica = pérdida real, no centinela `-1`. | "Este mes gastaste $450 más de lo que vendiste." | Crítica |
+
+### Lote 2 — ruido y casos raros
+
+| Aviso | Regla nueva | Mensaje | Severidad |
+|---|---|---|---|
+| `OVER_LEVERAGED` | Deuda del mes / ventas > 15% y deuda ≥ $100 (hoy `deuda/margenOperativo` explota con margen positivo chico). La señal `DEBT_CUSHION` sigue en < 10% de ventas. | "La deuda se lleva $18 de cada $100 que vendes ($240 al mes)." | Crítica |
+| `DEAD_INVENTORY` | Excluir productos nunca comprados (`lastPurchaseDate == null` hoy cuenta como "60+ días sin compra"). Título "Productos que dejaste de comprar"; el monto se presenta como inversión histórica. `shortcut:` sin control de stock, el monto es lo comprado en la vida del producto, no lo parado en estantería. | "Dejaste de comprar 4 productos. Invertiste $260 en ellos." | Advertencia |
+| `PRICE_VARIATION` | Mismo 15% CV y 3 compras, más piso: el producto debe mover ≥ $50 en el período. | La UI arma el texto con precio antes/ahora (sin cambios). | La que ya calcula la UI (50%/30%) |
+| `SUPPLIER_PREMIUM` | Comparar contra el **proveedor más barato**, no contra el promedio ponderado (que incluye al caro y diluye la señal). 15%, 3 compras y gasto ≥ $50 por proveedor-producto. No se borra: 24 referencias en UI y tests. | "En X pagaste $12 y el más barato es $10: $2 de más por unidad." | La actual |
+
+### Lote 3 — lo que se ve y la casa
+
+- **Color por `severity` del backend** (rojo crítico / amarillo advertencia): hoy 5 avisos críticos (`MARGIN_EROSION`, `DAILY_COST_CONTROL`, `DEAD_INVENTORY`, `OPEX_CREEP`, `PAYBACK_RECOVERY`) salen amarillos porque el frontend ignora `severity` y colorea por código.
+- **Borrar `isGoodDependence`** (`financialGuide.ts`): parche que convertía la concentración en amarillo con cualquier recomendación < 10% de ahorro, sin mirar quién es el proveedor dominante. Con la regla nueva del backend, sobra.
+- **Normalizar `severity`** en `analyticsNormalize` + 1 test (el wire lo manda y se descarta).
+- **Documentar** en este archivo + `DAILY_REPORTS_FRONTEND.md`.
+
+### No se toca
+
+- `MARGIN_EROSION`: ya quedó bien planteada.
+- No se suman gastos fijos/salarios configurados a los márgenes (doble conteo con facturas).
+- Sin migraciones: todo es código y SQL existente.
+
+### Orden y verificación
+
+1. Lote 1 (5 avisos) + tests unitarios → `./mvnw test -B`.
+2. Lote 2 (4 avisos) + tests + 2 de integración para los pisos de $50 → `./mvnw verify -B -Dspring.profiles.active=integration`.
+3. Lote 3 → `npm run test`, `npm run lint`, `npm run build`.
+4. Staging: recalcular 2026-11 y 2026-10, revisar qué avisos quedan, probar en dispositivo tras limpiar datos del sitio.
+
+**Pendiente de validar con staging:** los umbrales (70%, 15%, $50, $100) son los actuales o los más cercanos; se ajustan con avisos reales. Riesgo conocido: el cambio de costo diario puede exponer la pérdida real que hoy el motor oculta (nov-2026: ganancia tras mercancía ~$94/día vs $139.80/día de fijos).
