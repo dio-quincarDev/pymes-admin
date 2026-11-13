@@ -95,14 +95,25 @@ public class AnalyticsServiceImpl implements AnalyticsService {
     // -- 6 motores analíticos --
 
     List<Map<String, Object>> analisisABC(UUID tenantId, LocalDate start, LocalDate end) {
+        // ponytail: reparte el total real de cada factura (ITBMS y descuento global incluidos) entre sus items,
+        // proporcional al subtotal del item; base = SUM(items.subtotal) porque 14 facturas legadas tienen encabezado en 0
         var sql = """
-                WITH product_spend AS (
+                WITH invoice_base AS (
+                    SELECT i.id, i.total,
+                           SUM(ii.subtotal) AS items_subtotal
+                    FROM core.invoices i
+                    JOIN core.invoice_items ii ON ii.invoice_id = i.id
+                    WHERE i.tenant_id = ? AND i.status = 'PAGADA' AND i.type = 'FACTURA'
+                      AND i.issue_date >= ? AND i.issue_date < ?
+                    GROUP BY i.id, i.total
+                ), product_spend AS (
                     SELECT ii.product_id, p.name AS product_name,
-                           SUM(ii.subtotal) AS total_spend
+                           SUM(CASE WHEN ib.items_subtotal <> 0
+                                    THEN ib.total * ii.subtotal / ib.items_subtotal
+                                    ELSE 0 END) AS total_spend
                     FROM core.invoice_items ii
-                    JOIN core.invoices i ON ii.invoice_id = i.id
+                    JOIN invoice_base ib ON ib.id = ii.invoice_id
                     JOIN core.products p ON ii.product_id = p.id
-                    WHERE i.tenant_id = ? AND i.status = 'PAGADA' AND i.issue_date >= ? AND i.issue_date < ?
                     GROUP BY ii.product_id, p.name
                 ), ranked AS (
                     SELECT *, SUM(total_spend) OVER (ORDER BY total_spend DESC) AS running_total,
@@ -114,8 +125,8 @@ public class AnalyticsServiceImpl implements AnalyticsService {
                             THEN ROUND(total_spend * 100.0 / grand_total, 2)
                             ELSE 0 END AS pct,
                        CASE
-                           WHEN grand_total > 0 AND SUM(total_spend) OVER (ORDER BY total_spend DESC) / grand_total <= 0.80 THEN 'A'
-                           WHEN grand_total > 0 AND SUM(total_spend) OVER (ORDER BY total_spend DESC) / grand_total <= 0.95 THEN 'B'
+                           WHEN grand_total > 0 AND running_total / grand_total <= 0.80 THEN 'A'
+                           WHEN grand_total > 0 AND running_total / grand_total <= 0.95 THEN 'B'
                            ELSE 'C'
                        END AS category
                 FROM ranked
