@@ -17,6 +17,7 @@ import core_pymes.product.domain.Producto;
 import core_pymes.product.repository.PresentacionRepository;
 import core_pymes.common.exception.custom.InvalidInputException;
 import core_pymes.common.exception.custom.ResourceNotFoundException;
+import core_pymes.common.service.RecomputeDebounceService;
 import org.junit.jupiter.api.Test;
 import org.junit.jupiter.api.extension.ExtendWith;
 import org.mockito.ArgumentCaptor;
@@ -50,6 +51,7 @@ class FacturaServiceImplTest {
     @Mock ApplicationEventPublisher eventPublisher;
     @Mock JdbcTemplate jdbc;
     @Mock PresentacionRepository presentacionRepository;
+    @Mock RecomputeDebounceService recomputeService;
     @InjectMocks FacturaServiceImpl service;
 
     private Presentacion mockPresentacion(UUID productId, BigDecimal conversion) {
@@ -225,7 +227,8 @@ class FacturaServiceImplTest {
     @Test
     void deleteFactura_whenPaid_succeeds() {
         var tenantId = UUID.randomUUID();
-        var factura = Factura.builder().id(UUID.randomUUID()).tenantId(tenantId).status(EstadoFactura.PAGADA).items(List.of()).build();
+        var factura = Factura.builder().id(UUID.randomUUID()).tenantId(tenantId).status(EstadoFactura.PAGADA)
+                .issueDate(LocalDate.of(2026, 6, 10)).items(List.of()).build();
         when(facturaRepository.findById(factura.getId())).thenReturn(Optional.of(factura));
 
         service.deleteFactura(factura.getId(), tenantId);
@@ -233,12 +236,15 @@ class FacturaServiceImplTest {
         assertThat(factura.getStatus()).isEqualTo(EstadoFactura.ANULADA);
         verify(facturaRepository).save(factura);
         verify(facturaRepository, never()).delete(any());
+        verify(recomputeService).markMetricsDirty(tenantId, "2026-06");
+        verify(recomputeService).markAnalyticsDirty(tenantId, "2026-06");
     }
 
     @Test
     void deleteFactura_whenRegistrada_succeeds() {
         var tenantId = UUID.randomUUID();
-        var factura = Factura.builder().id(UUID.randomUUID()).tenantId(tenantId).status(EstadoFactura.REGISTRADA).items(List.of()).build();
+        var factura = Factura.builder().id(UUID.randomUUID()).tenantId(tenantId).status(EstadoFactura.REGISTRADA)
+                .issueDate(LocalDate.of(2026, 6, 10)).items(List.of()).build();
         when(facturaRepository.findById(factura.getId())).thenReturn(Optional.of(factura));
 
         service.deleteFactura(factura.getId(), tenantId);

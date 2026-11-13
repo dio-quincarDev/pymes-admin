@@ -11,6 +11,7 @@ import core_pymes.venta.event.VentaCreadaEvent;
 import core_pymes.venta.repository.VentaRepository;
 import core_pymes.venta.service.VentaService;
 import core_pymes.common.exception.custom.ResourceNotFoundException;
+import core_pymes.common.service.RecomputeDebounceService;
 import lombok.RequiredArgsConstructor;
 import lombok.extern.slf4j.Slf4j;
 import org.springframework.cache.annotation.CacheEvict;
@@ -20,6 +21,7 @@ import org.springframework.stereotype.Service;
 import org.springframework.transaction.annotation.Transactional;
 
 import java.math.BigDecimal;
+import java.time.YearMonth;
 import java.util.List;
 import java.util.UUID;
 
@@ -30,6 +32,7 @@ public class VentaServiceImpl implements VentaService {
 
     private final VentaRepository repository;
     private final ApplicationEventPublisher eventPublisher;
+    private final RecomputeDebounceService recomputeService;
 
     @Override
     @Transactional(readOnly = true)
@@ -70,12 +73,16 @@ public class VentaServiceImpl implements VentaService {
     @CacheEvict(cacheNames = "ventas", allEntries = true)
     public VentaResponse update(UUID id, UUID tenantId, VentaRequest request) {
         var venta = getVenta(id, tenantId);
+        var periodoAnterior = YearMonth.from(venta.getSaleDate()).toString();
         venta.setSaleDate(request.fecha());
         venta.setGrossAmount(resolveGrossAmount(request));
         venta.setDescription(request.descripcion());
         venta.getPayments().clear();
         applyDesglose(venta, request.desglose());
         venta = repository.save(venta);
+        // editar/borrar no pasa por ningun listener: sin esto el cache de metricas queda con el monto viejo
+        recomputeService.markMetricsDirty(tenantId, periodoAnterior);
+        recomputeService.markMetricsDirty(tenantId, YearMonth.from(venta.getSaleDate()).toString());
         return toResponse(venta);
     }
 
@@ -84,7 +91,9 @@ public class VentaServiceImpl implements VentaService {
     @CacheEvict(cacheNames = "ventas", allEntries = true)
     public void delete(UUID id, UUID tenantId) {
         var venta = getVenta(id, tenantId);
+        var periodo = YearMonth.from(venta.getSaleDate()).toString();
         repository.delete(venta);
+        recomputeService.markMetricsDirty(tenantId, periodo);
     }
 
     private BigDecimal resolveGrossAmount(VentaRequest request) {

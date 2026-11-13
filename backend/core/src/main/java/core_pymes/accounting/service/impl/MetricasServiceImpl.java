@@ -78,21 +78,23 @@ public class MetricasServiceImpl implements MetricasService {
             BigDecimal netMargin, BigDecimal netMarginPct, BigDecimal costoOperativoDiario) {}
 
     private MetricsResult computeMetrics(UUID tenantId, LocalDate start, LocalDate end) {
+        // SQL nativo no pasa por @Where(is_active=true) de Hibernate: sin el filtro, ventas/facturas
+        // borradas siguen contando (bug oct-2026: dashboard 2,996.92 vs reporte 2,625.71)
         var sql = """
                 WITH sales AS (
                     SELECT COALESCE(SUM(gross_amount), 0) AS total
                     FROM core.daily_sales
-                    WHERE tenant_id = ? AND sale_date >= ? AND sale_date < ?
+                    WHERE tenant_id = ? AND is_active AND sale_date >= ? AND sale_date < ?
                 ),
                 invoices_cost AS (
                     SELECT COALESCE(SUM(total), 0) AS total
                     FROM core.invoices
-                    WHERE tenant_id = ? AND issue_date >= ? AND issue_date < ? AND type = 'FACTURA' AND status = 'PAGADA'
+                    WHERE tenant_id = ? AND is_active AND issue_date >= ? AND issue_date < ? AND type = 'FACTURA' AND status = 'PAGADA'
                 ),
                 invoices_opex AS (
                     SELECT COALESCE(SUM(total), 0) AS total
                     FROM core.invoices
-                    WHERE tenant_id = ? AND issue_date >= ? AND issue_date < ?
+                    WHERE tenant_id = ? AND is_active AND issue_date >= ? AND issue_date < ?
                       AND type = 'GASTO_OPERATIVO' AND status = 'PAGADA'
                 ),
                 loan_pay AS (
