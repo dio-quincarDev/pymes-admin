@@ -651,13 +651,21 @@ public class AnalyticsServiceImpl implements AnalyticsService {
             recommendations.add("Tu margen operativo es negativo — ajusta precios y costos antes de escalar.");
         }
 
+        // ponytail: solo meses cerrados — el mes en curso tiene compras a medias y no es comparable;
+        // crítico solo bajo el piso de margen sano (30%), si está sano la caída va como recomendación
+        var mesEnCurso = YearMonth.now(ZoneOffset.UTC).equals(YearMonth.parse(periodo));
         var gross3m = firstN(metricas, 3, m -> nz(m.getGrossMarginPct()));
-        if (gross3m.size() >= 3 && gross3m.get(0).signum() > 0 && gross3m.get(2).signum() >= 0
+        if (!mesEnCurso && gross3m.size() >= 3 && gross3m.get(0).signum() > 0 && gross3m.get(2).signum() >= 0
                 && gross3m.get(0).compareTo(gross3m.get(2).multiply(BigDecimal.valueOf(0.85))) < 0) {
-            criticals.add(alert("MARGIN_EROSION", "Erosión de Margen Bruto",
-                    "El margen bruto cayó más de 15% en 3 meses. Pierdes poder de fijación de precios.",
-                    gross3m.get(0), gross3m.get(2), "Reevalúa precios de venta y negocia costos de insumos."));
-            recommendations.add("Margen bruto en caída >15% — negocia costos de insumos o sube precios.");
+            var msg = "De cada $100 que vendes te quedan $" + gross3m.get(0).setScale(0, RoundingMode.HALF_UP)
+                    + " después de pagar la mercancía; hace 3 meses eran $" + gross3m.get(2).setScale(0, RoundingMode.HALF_UP) + ".";
+            if (gross3m.get(0).compareTo(new BigDecimal("30")) < 0) {
+                criticals.add(alert("MARGIN_EROSION", "Erosión de Margen Bruto", msg,
+                        gross3m.get(0), gross3m.get(2), "Reevalúa precios de venta y negocia costos de insumos."));
+                recommendations.add("De cada $100 que vendes te quedan menos de $30 — sube precios o negocia costos de insumos.");
+            } else {
+                recommendations.add(msg);
+            }
         }
 
         if (supplierShare.get("maxPct") != null && ((BigDecimal) supplierShare.get("maxPct")).compareTo(new BigDecimal("50")) > 0) {
@@ -724,14 +732,16 @@ public class AnalyticsServiceImpl implements AnalyticsService {
 
         // ---- 💸 Costo operativo diario vs ingreso diario ----
         var costPerDay = nz(current.getCostoOperativoDiario());
-        var daysInMonth = start.lengthOfMonth();
-        var revenuePerDay = revenue.divide(BigDecimal.valueOf(daysInMonth), 4, RoundingMode.HALF_UP);
+        // ponytail: mes en curso se compara con días transcurridos — dividir por el mes completo dispara falsas alarmas
+        var dias = mesEnCurso ? LocalDate.now(ZoneOffset.UTC).getDayOfMonth() : start.lengthOfMonth();
+        var revenuePerDay = revenue.divide(BigDecimal.valueOf(dias), 4, RoundingMode.HALF_UP);
         if (costPerDay.signum() > 0 && revenuePerDay.signum() > 0) {
             if (costPerDay.compareTo(revenuePerDay.multiply(new BigDecimal("1.2"))) > 0) {
-                criticals.add(alert("DAILY_COST_CONTROL", "Costo Diario Sobre Ingreso Diario",
-                        "Tu costo operativo diario supera en 20%+ el ingreso diario. Estás quemando capital cada día.",
+                criticals.add(alert("DAILY_COST_CONTROL", "Los gastos fijos superan tus ventas",
+                        "Gastas $" + costPerDay.setScale(2, RoundingMode.HALF_UP).toPlainString() + " al día en costos fijos y vendes $"
+                                + revenuePerDay.setScale(2, RoundingMode.HALF_UP).toPlainString() + " al día.",
                         costPerDay, revenuePerDay, "Reduce costos fijos o sube el ticket promedio de venta."));
-                recommendations.add("El costo operativo diario supera el ingreso diario en 20%+ — recorta gastos fijos ya.");
+                recommendations.add("Los gastos fijos superan lo que vendes por día — recorta gastos fijos o sube ventas.");
             } else if (costPerDay.compareTo(revenuePerDay.multiply(new BigDecimal("0.8"))) < 0) {
                 expansions.add(signal("DAILY_COST_COVERED", "Costo Diario Cubierto",
                         "Costo diario vs ingreso diario", costPerDay, "costo < 80% del ingreso diario"));
