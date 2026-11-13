@@ -4,6 +4,21 @@ Registro cronológico de decisiones, problemas resueltos y estado del frontend.
 
 ---
 
+## 2026-11-13 — Dona ABC cuadra con FacturasPage + ITBMS del mes en el Dashboard + alertas sin falsas alarmas
+
+**Contexto:** la dona "Top productos por gasto" no cuadraba con FacturasPage (nov $949.79 vs $957.47; la diferencia exacta era el ITBMS). Las alertas de salud financiera disparaban falsas alarmas con datos reales: "Costo Diario Sobre Ingreso Diario" dividía las ventas del mes en curso entre los 30 días del mes (centinela ~200% cuando el ritmo real era ~80%), y "Erosión de Margen Bruto" comparaba un mes a medias (nov 54%) contra meses cerrados y marcaba crítico un margen sano (>30%).
+
+**Qué se hizo:**
+- **Backend `analisisABC`** — reparte el total real de cada factura PAGADA (ITBMS y descuento global incluidos) entre sus items proporcional al subtotal; base = `SUM(invoice_items.subtotal)` por factura (14 facturas legadas de septiembre tienen encabezado en 0). Filtro `type = 'FACTURA'` para alinear con FacturasPage. Test de integración: $100 base + $7 ITBMS = $107.
+- **Backend `DAILY_COST_CONTROL`** — mes en curso se compara contra días transcurridos; meses cerrados siguen con el mes completo. Título "Los gastos fijos superan tus ventas"; mensaje con montos: "Gastas $139.80 al día en costos fijos y vendes $174.01 al día." Umbral 1.2 se mantiene.
+- **Backend `MARGIN_EROSION`** — solo se evalúa con meses cerrados; crítica solo si el margen bruto actual < 30% (piso de margen sano que ya usa la app); si está sano, la caída va como recomendación. Mensaje: "De cada $100 que vendes te quedan $54 después de pagar la mercancía; hace 3 meses eran $74."
+- **Frontend Dashboard** — KPI "Facturas pendientes" → "ITBMS del mes" (`itbmsMes` en `useFinancialDashboard`: suma `itbmsTotal` de FACTURA PAGADA del período, misma regla de caja; accent azul). La lista de pendientes sigue en `ActivityPanel`.
+- **Frontend `CategoryBreakdownChart`** — total centrado + leyenda HTML táctil (mismo patrón que `TopProductosDonut`): leyenda Chart.js desactivada, paleta compartida arcos/leyenda, toque tacha la tajada, total = todas las categorías incluida "Otros". Código muerto `_pcts` eliminado.
+
+**Verificación:** backend/core `./mvnw test -B` → 263 unitarios verdes (nuevos: `abc_reparteTotalDeFacturaConItbms` + 5 de salud financiera) e `./mvnw verify -B -Dspring.profiles.active=integration` verde; frontend `npm run lint` 0 + `npm run build` PWA verde. Pendiente: recalcular 2026-11 y 2026-10 en staging tras el deploy y verificar dona $957.47 / $3,431.36.
+
+---
+
 ## 2026-11-11 — Alertas de salud con dinero y productos reales + barras Antes/Ahora
 
 **Contexto:** reproducción contra staging (tenant Mi Rinconcito Criollo, período 2026-11) vía API confirmó cuatro bugs de las alertas: "Inventario Muerto" disparaba por **$26** en 5 productos sin nombres ni montos; `PAYBACK_RECOVERY` mostraba "Recuperación de Inversión" con métrica `-1` (centinela); "Recomendaciones" repetía las mismas alertas; y en "Desvíos en Precios de Insumos" las barras "Pagaste/Suele costar" mostraban el mismo número dos veces en verde (el backend nunca manda `currentPrice` para `PRICE_VARIATION`; el normalizador copiaba `avgPrice` en ambas).
