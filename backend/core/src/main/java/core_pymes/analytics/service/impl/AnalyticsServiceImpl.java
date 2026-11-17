@@ -643,17 +643,28 @@ public class AnalyticsServiceImpl implements AnalyticsService {
         var productShare = maxShare(abc);
         var hasPriceVariation = alerts.stream().anyMatch(a -> "PRICE_VARIATION".equals(a.get("type")));
 
+        // ponytail: el mes en curso solo sirve para "hasta hoy" y prorrateo — comparar meses exige meses cerrados
+        var mesEnCurso = YearMonth.now(ZoneOffset.UTC).equals(YearMonth.parse(periodo));
+
         // ---- 🔴 Señales críticas ----
-        if (opMarginPct.signum() < 0) {
+        // ponytail: 0 ventas con gastos era invisible (safePct → 0 no dispara); la pérdida se dice en dinero, no en %
+        if (revenue.signum() == 0 && opex.signum() > 0) {
+            criticals.add(alert("NEGATIVE_OPERATING_MARGIN", "Sin ventas registradas",
+                    "No registraste ventas este mes y tienes $" + nz(current.getTotalExpenses())
+                            .setScale(2, RoundingMode.HALF_UP).toPlainString() + " en gastos.",
+                    opex, BigDecimal.ZERO, "Registra las ventas del mes o revisa si los gastos corresponden."));
+            recommendations.add("No registraste ventas este mes — registra tus ventas o revisa los gastos del período.");
+        } else if (opMarginPct.signum() < 0) {
+            var perdida = nz(current.getOperatingMargin()).abs().setScale(2, RoundingMode.HALF_UP).toPlainString();
             criticals.add(alert("NEGATIVE_OPERATING_MARGIN", "Margen Operativo Negativo",
-                    "Tu negocio pierde dinero por cada venta. A este ritmo el capital se agota.",
+                    (mesEnCurso ? "Hasta hoy, este mes gastaste $" : "Este mes gastaste $")
+                            + perdida + " más de lo que vendiste.",
                     opMarginPct, BigDecimal.ZERO, "Revisa tu estructura de precios o reduce gastos operativos."));
             recommendations.add("Tu margen operativo es negativo — ajusta precios y costos antes de escalar.");
         }
 
         // ponytail: solo meses cerrados — el mes en curso tiene compras a medias y no es comparable;
         // crítico solo bajo el piso de margen sano (30%), si está sano la caída va como recomendación
-        var mesEnCurso = YearMonth.now(ZoneOffset.UTC).equals(YearMonth.parse(periodo));
         var gross3m = firstN(metricas, 3, m -> nz(m.getGrossMarginPct()));
         if (!mesEnCurso && gross3m.size() >= 3 && gross3m.get(0).signum() > 0 && gross3m.get(2).signum() >= 0
                 && gross3m.get(0).compareTo(gross3m.get(2).multiply(BigDecimal.valueOf(0.85))) < 0) {
@@ -668,10 +679,19 @@ public class AnalyticsServiceImpl implements AnalyticsService {
             }
         }
 
-        if (supplierShare.get("maxPct") != null && ((BigDecimal) supplierShare.get("maxPct")).compareTo(new BigDecimal("50")) > 0) {
-            criticals.add(alert("SUPPLIER_CONCENTRATION", "Concentración de Proveedor",
-                    "Un solo proveedor concentra más del 50% del gasto. Riesgo de interrupción.",
-                    (BigDecimal) supplierShare.get("maxPct"), new BigDecimal("50"),
+        // ponytail: piso $500 y 2+ proveedores — con uno solo no hay alternativa (es un hecho, no un riesgo);
+        // una pulpería con proveedor dominante disparaba ">50% del gasto" todos los meses
+        var supplierTotal = supplierSpend.stream()
+                .map(r -> nz((BigDecimal) r.getOrDefault("totalSpend", BigDecimal.ZERO)))
+                .reduce(BigDecimal.ZERO, BigDecimal::add);
+        if (supplierSpend.size() >= 2 && supplierShare.get("maxPct") != null
+                && ((BigDecimal) supplierShare.get("maxPct")).compareTo(new BigDecimal("70")) > 0
+                && supplierTotal.compareTo(new BigDecimal("500")) >= 0) {
+            criticals.add(alert("SUPPLIER_CONCENTRATION", "WARNING", "Concentración de Proveedor",
+                    "El " + ((BigDecimal) supplierShare.get("maxPct")).setScale(2, RoundingMode.HALF_UP).toPlainString()
+                            + "% de tus compras ($" + supplierTotal.setScale(2, RoundingMode.HALF_UP).toPlainString()
+                            + ") van a un solo proveedor.",
+                    (BigDecimal) supplierShare.get("maxPct"), new BigDecimal("70"),
                     "Busca al menos 2 alternativas para el proveedor dominante."));
             recommendations.add("El proveedor " + supplierShare.get("name") + " concentra el " + supplierShare.get("maxPct")
                     + "% del gasto — negocia con 2 alternativas.");
@@ -689,14 +709,21 @@ public class AnalyticsServiceImpl implements AnalyticsService {
             }
         }
 
+        // ponytail: solo meses cerrados y piso $50 — un 22% sobre $1.10 es calderilla, y si ambos cayeron no hay "crecimiento"
         var revenue3m = firstN(metricas, 3, m -> nz(m.getTotalIncome()));
         var opex3m = firstN(metricas, 3, m -> nz(m.getOperatingExpenses()));
-        if (revenue3m.size() >= 3 && opex3m.size() >= 3 && revenue3m.get(0).signum() > 0 && revenue3m.get(2).signum() > 0) {
+        if (!mesEnCurso && revenue3m.size() >= 3 && opex3m.size() >= 3 && revenue3m.get(0).signum() > 0 && revenue3m.get(2).signum() > 0) {
             var revGrowth = growthPct(revenue3m.get(0), revenue3m.get(2));
             var opexGrowth = growthPct(opex3m.get(0), opex3m.get(2));
-            if (opexGrowth.compareTo(revGrowth) > 0) {
-                criticals.add(alert("OPEX_CREEP", "Crecimiento de Gastos Operativos",
-                        "Los gastos operativos crecen más rápido que los ingresos. Ineficiencia creciente.",
+            var opexDelta = opex3m.get(0).subtract(opex3m.get(2));
+            var revDelta = revenue3m.get(0).subtract(revenue3m.get(2));
+            if (opexDelta.compareTo(new BigDecimal("50")) >= 0 && opexGrowth.compareTo(revGrowth) > 0) {
+                var ritmoVentas = revDelta.signum() >= 0
+                        ? "subieron $" + revDelta.setScale(2, RoundingMode.HALF_UP).toPlainString()
+                        : "bajaron $" + revDelta.abs().setScale(2, RoundingMode.HALF_UP).toPlainString();
+                criticals.add(alert("OPEX_CREEP", "WARNING", "Crecimiento de Gastos Operativos",
+                        "Tus gastos subieron $" + opexDelta.setScale(2, RoundingMode.HALF_UP).toPlainString()
+                                + " en 3 meses y tus ventas " + ritmoVentas + ".",
                         opexGrowth, revGrowth, "Revisa partidas de gasto operativo y presupuesto."));
                 recommendations.add("El gasto operativo crece más rápido que los ingresos — audita partidas fijas.");
             } else if (opexGrowth.compareTo(revGrowth) < 0) {
@@ -730,21 +757,26 @@ public class AnalyticsServiceImpl implements AnalyticsService {
             recommendations.add("Capital parado en " + dead.size() + " productos sin compra en 60+ días — liquida inventario.");
         }
 
-        // ---- 💸 Costo operativo diario vs ingreso diario ----
+        // ---- 💸 Costo fijo diario vs ganancia diaria tras mercancía ----
+        // ponytail: comparar contra ventas con colchón 1.2 ocultaba la pérdida real (nov-2026: fijos $139.80/día vs ganancia $94/día)
         var costPerDay = nz(current.getCostoOperativoDiario());
         // ponytail: mes en curso se compara con días transcurridos — dividir por el mes completo dispara falsas alarmas
         var dias = mesEnCurso ? LocalDate.now(ZoneOffset.UTC).getDayOfMonth() : start.lengthOfMonth();
         var revenuePerDay = revenue.divide(BigDecimal.valueOf(dias), 4, RoundingMode.HALF_UP);
+        var gananciaPerDay = revenue.subtract(nz(current.getCostOfGoods()))
+                .divide(BigDecimal.valueOf(dias), 4, RoundingMode.HALF_UP);
         if (costPerDay.signum() > 0 && revenuePerDay.signum() > 0) {
-            if (costPerDay.compareTo(revenuePerDay.multiply(new BigDecimal("1.2"))) > 0) {
-                criticals.add(alert("DAILY_COST_CONTROL", "Los gastos fijos superan tus ventas",
-                        "Gastas $" + costPerDay.setScale(2, RoundingMode.HALF_UP).toPlainString() + " al día en costos fijos y vendes $"
-                                + revenuePerDay.setScale(2, RoundingMode.HALF_UP).toPlainString() + " al día.",
-                        costPerDay, revenuePerDay, "Reduce costos fijos o sube el ticket promedio de venta."));
-                recommendations.add("Los gastos fijos superan lo que vendes por día — recorta gastos fijos o sube ventas.");
-            } else if (costPerDay.compareTo(revenuePerDay.multiply(new BigDecimal("0.8"))) < 0) {
+            if (costPerDay.compareTo(gananciaPerDay) > 0) {
+                var ritmo = gananciaPerDay.signum() > 0
+                        ? "Ganas $" + gananciaPerDay.setScale(2, RoundingMode.HALF_UP).toPlainString() + " al día después de pagar la mercancía"
+                        : "Después de pagar la mercancía no te queda ganancia";
+                criticals.add(alert("DAILY_COST_CONTROL", "Los costos fijos se comen tu ganancia",
+                        ritmo + " y tus costos fijos son $" + costPerDay.setScale(2, RoundingMode.HALF_UP).toPlainString() + " al día.",
+                        costPerDay, gananciaPerDay, "Reduce costos fijos o sube el margen de tus ventas."));
+                recommendations.add("Tus costos fijos diarios superan lo que ganas por día — recorta gastos fijos o sube ventas.");
+            } else if (gananciaPerDay.signum() > 0 && costPerDay.compareTo(gananciaPerDay.multiply(new BigDecimal("0.8"))) < 0) {
                 expansions.add(signal("DAILY_COST_COVERED", "Costo Diario Cubierto",
-                        "Costo diario vs ingreso diario", costPerDay, "costo < 80% del ingreso diario"));
+                        "Costo diario vs ganancia diaria", costPerDay, "costo < 80% de la ganancia diaria"));
             }
         }
 
@@ -764,12 +796,8 @@ public class AnalyticsServiceImpl implements AnalyticsService {
 
         if (plataARecuperar.signum() > 0) {
             var gananciaMensual = revenue.multiply(netMarginPct).divide(BigDecimal.valueOf(100), 4, RoundingMode.HALF_UP);
-            if (gananciaMensual.signum() <= 0) {
-                criticals.add(alert("PAYBACK_RECOVERY", "Cerraste el mes en pérdida",
-                        "Gastaste más de lo que vendiste este mes.",
-                        BigDecimal.valueOf(-1), BigDecimal.ZERO, "Sube tus ventas o baja tus gastos fijos."));
-                recommendations.add("Este mes gastaste más de lo que vendiste — sube ventas o baja gastos.");
-            } else {
+            // ponytail: solo meses cerrados y pérdida real — neto 0 (mes sin ventas ni gastos) no es pérdida
+            if (gananciaMensual.signum() > 0) {
                 var meses = plataARecuperar.divide(gananciaMensual, 2, RoundingMode.HALF_UP);
                 if (meses.compareTo(BigDecimal.valueOf(12)) <= 0) {
                     expansions.add(signal("PAYBACK_RECOVERY", "Recuperación de Inversión",
@@ -780,6 +808,12 @@ public class AnalyticsServiceImpl implements AnalyticsService {
                 } else {
                     recommendations.add("A este ritmo, recuperarás tu inversión en ~" + meses + " meses.");
                 }
+            } else if (!mesEnCurso && gananciaMensual.signum() < 0) {
+                var perdida = nz(current.getNetMargin()).abs();
+                criticals.add(alert("PAYBACK_RECOVERY", "Cerraste el mes en pérdida",
+                        "Este mes gastaste $" + perdida.setScale(2, RoundingMode.HALF_UP).toPlainString() + " más de lo que vendiste.",
+                        perdida, BigDecimal.ZERO, "Sube tus ventas o baja tus gastos fijos."));
+                recommendations.add("Este mes gastaste más de lo que vendiste — sube ventas o baja gastos.");
             }
         }
 
@@ -934,9 +968,13 @@ public class AnalyticsServiceImpl implements AnalyticsService {
     }
 
     private static Map<String, Object> alert(String type, String title, String message, BigDecimal metric, BigDecimal threshold, String action) {
+        return alert(type, "CRITICAL", title, message, metric, threshold, action);
+    }
+
+    private static Map<String, Object> alert(String type, String severity, String title, String message, BigDecimal metric, BigDecimal threshold, String action) {
         var m = new LinkedHashMap<String, Object>();
         m.put("type", type);
-        m.put("severity", "CRITICAL");
+        m.put("severity", severity);
         m.put("title", title);
         m.put("message", message);
         m.put("metric", metric);

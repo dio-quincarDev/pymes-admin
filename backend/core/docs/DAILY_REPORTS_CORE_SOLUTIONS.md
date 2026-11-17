@@ -8,6 +8,32 @@ Registro de lo implementado y lo pendiente.
 
 ---
 
+## 2026-11-16 — Alertas Lote 1: los 5 que mienten con datos reales (§8 estrategia frontend)
+
+**Contexto:** auditoría del motor de salud (`ALERTS_SYSTEM_STRATEGY.md` §8): 5 avisos mentían con datos reales — 0 ventas era invisible, un proveedor único "disparaba" concentración cada mes, OPEX gritaba cuando ambos caían, el costo diario se comparaba contra ventas (ocultaba pérdida tras mercancía) y el payback contaba pérdida con mes en 0.
+
+**Qué se hizo (`AnalyticsServiceImpl.analisisSaludFinanciera`):**
+- **`NEGATIVE_OPERATING_MARGIN`** — 0 ventas + gastos > 0 ahora avisa ("No registraste ventas este mes y tienes $X en gastos", título "Sin ventas registradas"); con margen negativo la pérdida se dice en dinero (`|operatingMargin|`) y en mes en curso el texto dice "Hasta hoy".
+- **`SUPPLIER_CONCENTRATION`** — exige 2+ proveedores, dominante > 70% **y** compras ≥ $500. Mensaje con % y monto ("El 78.00% de tus compras ($1000.00) van a un solo proveedor"). `severity: WARNING`.
+- **`OPEX_CREEP`** — solo meses cerrados; exige delta de gastos ≥ $50 en 3 meses y que suban más que las ventas. Mensaje en dinero con delta de ambos ("Tus gastos subieron $320.00 en 3 meses y tus ventas subieron $80.00", variante "bajaron" si las ventas caen). `severity: WARNING`.
+- **`DAILY_COST_CONTROL`** — compara costo fijo/día contra **ganancia/día tras mercancía** ((ventas − costOfGoods)/días), sin colchón 1.2. Título "Los costos fijos se comen tu ganancia"; variante "Después de pagar la mercancía no te queda ganancia" si el margen tras mercancía es ≤ 0. Señal verde `DAILY_COST_COVERED` ahora usa la misma ganancia (< 80%).
+- **`PAYBACK_RECOVERY`** — solo meses cerrados; pérdida solo con margen neto **< 0** (neto 0 ya no dispara); `metric` = pérdida real `|netMargin|` (adiós centinela `-1`).
+- **`alert()`** — overload con `severity`; los otros 3 avisos siguen `CRITICAL` (su color real llega en Lote 3).
+- `mesEnCurso` sube antes del bloque de críticas (lo usan 3 reglas).
+
+**Skipped:** ordenar `criticalAlerts` por severidad (pill del Dashboard, decisión sin confirmar), integración del color por `severity` en frontend (Lote 3), umbrales de Lote 2 (OVER_LEVERAGED, DEAD_INVENTORY, pisos SQL).
+
+**Ponytail:** cero queries nuevas — `supplierSpend` ya traía las filas para contar proveedores y sumar el piso; `gananciaPerDay` sale de `costOfGoods` ya cargado en métricas.
+
+```
+backend/core/src/main/java/core_pymes/analytics/service/impl/AnalyticsServiceImpl.java # 5 reglas + severity + mesEnCurso arriba
+backend/core/src/test/java/core_pymes/analytics/service/impl/AnalyticsServiceImplTest.java # 9 tests nuevos + 3 fixtures actualizados
+```
+
+**Tests:** unit 272/272 (nuevos: sinVentas, "hasta hoy" en mes en curso, concentración piso $500 + 1 proveedor callado, OPEX ambos-cayeron + subida-real + mes-en-curso, costo diario sin ganancia tras mercancía, payback neto-0 callado) + IT `ModeloGastosIntegrationTest` 5/5 y `AnalyticsIntegrationTest` 10/10 con Testcontainers. Sin commit/push (orden del usuario).
+
+---
+
 ## 2026-11-02 — Reporte mensual/trimestral: productos por dinero, ROI de un día promedio y layout sin solapes
 
 **Contexto:** tres quejas sobre el PDF: (1) "Lo que más compraste" encabezaba con productos

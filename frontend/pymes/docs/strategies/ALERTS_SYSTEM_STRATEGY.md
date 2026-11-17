@@ -157,7 +157,7 @@ No implementado del doc §3 (tabla completa de accionabilidad por código): los 
 
 ---
 
-## 8. Estrategia de corrección total de alertas (diseño 2026-11-13)
+## 8. Estrategia de corrección total de alertas (diseño 2026-11-13) — **Lote 1 implementado 2026-11-16**
 
 Auditoría del motor completo: de 10 avisos, 1 bien planteado (`MARGIN_EROSION`), 1 a medias (`DAILY_COST_CONTROL`) y 8 con defectos. Los defectos se reducen a 3 patrones: **mes a medias** (comparar el mes en curso contra meses cerrados), **porcentajes sin piso en dinero** (un 22% sobre $1.10 es calderilla) y **umbrales calibrados para empresa grande** (una pulpería con un proveedor principal dispara "concentración" todos los meses).
 

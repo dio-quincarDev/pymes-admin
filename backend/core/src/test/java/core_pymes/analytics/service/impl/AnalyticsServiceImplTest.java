@@ -163,6 +163,7 @@ class AnalyticsServiceImplTest {
                 .totalIncome(new BigDecimal("100000"))
                 .costOfGoods(new BigDecimal("65000"))
                 .operatingExpenses(new BigDecimal("90000"))
+                .operatingMargin(new BigDecimal("-55000"))
                 .loanPayments(BigDecimal.ZERO)
                 .grossMarginPct(new BigDecimal("35"))
                 .operatingMarginPct(new BigDecimal("-2.5"))
@@ -189,6 +190,7 @@ class AnalyticsServiceImplTest {
                 .period("2026-06")
                 .totalIncome(new BigDecimal("100000"))
                 .netMarginPct(new BigDecimal("-10"))
+                .netMargin(new BigDecimal("-10000"))
                 .build();
         when(metricasRepository.findByTenantIdAndPeriodLessThanEqualOrderByPeriodDesc(tenantId, "2026-06"))
                 .thenReturn(List.of(metric));
@@ -202,6 +204,10 @@ class AnalyticsServiceImplTest {
 
         var criticals = (List<Map<String, Object>>) result.get("criticalAlerts");
         assertThat(criticals).extracting(m -> m.get("type")).contains("PAYBACK_RECOVERY");
+        var payback = criticals.stream().filter(m -> "PAYBACK_RECOVERY".equals(m.get("type"))).findFirst().orElseThrow();
+        // métrica = pérdida real, no centinela -1
+        assertThat((BigDecimal) payback.get("metric")).isEqualByComparingTo("10000");
+        assertThat(payback.get("message")).isEqualTo("Este mes gastaste $10000.00 más de lo que vendiste.");
     }
 
     @Test
@@ -312,8 +318,8 @@ class AnalyticsServiceImplTest {
 
         var daily = ((List<Map<String, Object>>) result.get("criticalAlerts")).stream()
                 .filter(m -> "DAILY_COST_CONTROL".equals(m.get("type"))).findFirst().orElseThrow();
-        assertThat(daily.get("title")).isEqualTo("Los gastos fijos superan tus ventas");
-        assertThat(daily.get("message")).isEqualTo("Gastas $139.80 al día en costos fijos y vendes $74.58 al día.");
+        assertThat(daily.get("title")).isEqualTo("Los costos fijos se comen tu ganancia");
+        assertThat(daily.get("message")).isEqualTo("Ganas $74.58 al día después de pagar la mercancía y tus costos fijos son $139.80 al día.");
     }
 
     @Test
@@ -444,6 +450,213 @@ class AnalyticsServiceImplTest {
         assertThat(requirements).extracting(r -> r.get("label")).doesNotContain("Recuperación de Inversión");
         assertThat(result.get("recommendations")).asList()
                 .anyMatch(r -> r.toString().contains("Vas lento"));
+    }
+
+    @Test
+    void saludFinanciera_sinVentasConGastos_avisaQueNoHayVentas() {
+        var tenantId = UUID.randomUUID();
+        var periodo = YearMonth.now(ZoneOffset.UTC).toString();
+        when(metricasRepository.findByTenantIdAndPeriodLessThanEqualOrderByPeriodDesc(tenantId, periodo))
+                .thenReturn(List.of(MetricasFinanciera.builder().tenantId(tenantId).period(periodo)
+                        .totalIncome(BigDecimal.ZERO)
+                        .operatingExpenses(new BigDecimal("500"))
+                        .totalExpenses(new BigDecimal("500"))
+                        .build()));
+        when(jdbc.query(anyString(), any(RowMapper.class), any(), any(), any())).thenReturn(List.of());
+
+        var result = service.analisisSaludFinanciera(tenantId, periodo,
+                LocalDate.now(ZoneOffset.UTC).withDayOfMonth(1), LocalDate.now(ZoneOffset.UTC).plusMonths(1).withDayOfMonth(1),
+                List.of(), List.of(), List.of());
+
+        var sinVentas = ((List<Map<String, Object>>) result.get("criticalAlerts")).stream()
+                .filter(m -> "NEGATIVE_OPERATING_MARGIN".equals(m.get("type"))).findFirst().orElseThrow();
+        assertThat(sinVentas.get("title")).isEqualTo("Sin ventas registradas");
+        assertThat(sinVentas.get("message")).isEqualTo("No registraste ventas este mes y tienes $500.00 en gastos.");
+    }
+
+    @Test
+    void saludFinanciera_perdidaEnMesEnCurso_diceHastaHoy() {
+        var tenantId = UUID.randomUUID();
+        var pinned = YearMonth.now(ZoneOffset.UTC).atDay(13);
+        var periodo = YearMonth.from(pinned).toString();
+        when(metricasRepository.findByTenantIdAndPeriodLessThanEqualOrderByPeriodDesc(tenantId, periodo))
+                .thenReturn(List.of(MetricasFinanciera.builder().tenantId(tenantId).period(periodo)
+                        .totalIncome(new BigDecimal("1000"))
+                        .costOfGoods(new BigDecimal("800"))
+                        .operatingExpenses(new BigDecimal("700"))
+                        .operatingMargin(new BigDecimal("-500"))
+                        .operatingMarginPct(new BigDecimal("-50"))
+                        .build()));
+        when(jdbc.query(anyString(), any(RowMapper.class), any(), any(), any())).thenReturn(List.of());
+
+        // ponytail: fechas derivadas ANTES del mockStatic — dentro del bloque, LocalDate queda interceptado
+        var start = pinned.withDayOfMonth(1);
+        var end = pinned.plusMonths(1).withDayOfMonth(1);
+        try (var hoy = mockStatic(LocalDate.class)) {
+            hoy.when(() -> LocalDate.now(any(ZoneId.class))).thenReturn(pinned);
+            hoy.when(() -> LocalDate.now(any(Clock.class))).thenReturn(pinned);
+            var result = service.analisisSaludFinanciera(tenantId, periodo, start, end,
+                    List.of(), List.of(), List.of());
+
+            var negativo = ((List<Map<String, Object>>) result.get("criticalAlerts")).stream()
+                    .filter(m -> "NEGATIVE_OPERATING_MARGIN".equals(m.get("type"))).findFirst().orElseThrow();
+            assertThat(negativo.get("message")).isEqualTo("Hasta hoy, este mes gastaste $500.00 más de lo que vendiste.");
+        }
+    }
+
+    @Test
+    void saludFinanciera_concentracion_piso500YDosProveedores() {
+        var tenantId = UUID.randomUUID();
+        when(metricasRepository.findByTenantIdAndPeriodLessThanEqualOrderByPeriodDesc(tenantId, "2026-06"))
+                .thenReturn(List.of(MetricasFinanciera.builder().tenantId(tenantId).period("2026-06")
+                        .totalIncome(new BigDecimal("1000")).build()));
+        when(jdbc.query(anyString(), any(RowMapper.class), any(), any(), any())).thenReturn(List.of(
+                Map.of("providerId", "p1", "providerName", "Dorado", "totalSpend", new BigDecimal("780")),
+                Map.of("providerId", "p2", "providerName", "Distral", "totalSpend", new BigDecimal("220"))));
+
+        var result = service.analisisSaludFinanciera(tenantId, "2026-06",
+                LocalDate.parse("2026-06-01"), LocalDate.parse("2026-07-01"),
+                List.of(), List.of(), List.of());
+
+        var conc = ((List<Map<String, Object>>) result.get("criticalAlerts")).stream()
+                .filter(m -> "SUPPLIER_CONCENTRATION".equals(m.get("type"))).findFirst().orElseThrow();
+        assertThat(conc.get("severity")).isEqualTo("WARNING");
+        assertThat(conc.get("message")).isEqualTo("El 78.00% de tus compras ($1000.00) van a un solo proveedor.");
+
+        // piso $500: mismo reparto sobre $100 no es riesgo
+        when(jdbc.query(anyString(), any(RowMapper.class), any(), any(), any())).thenReturn(List.of(
+                Map.of("providerId", "p1", "providerName", "Dorado", "totalSpend", new BigDecimal("78")),
+                Map.of("providerId", "p2", "providerName", "Distral", "totalSpend", new BigDecimal("22"))));
+        var chico = service.analisisSaludFinanciera(tenantId, "2026-06",
+                LocalDate.parse("2026-06-01"), LocalDate.parse("2026-07-01"),
+                List.of(), List.of(), List.of());
+
+        assertThat((List<Map<String, Object>>) chico.get("criticalAlerts"))
+                .extracting(m -> m.get("type")).doesNotContain("SUPPLIER_CONCENTRATION");
+    }
+
+    @Test
+    void saludFinanciera_concentracion_conUnSoloProveedor_noAvisa() {
+        var tenantId = UUID.randomUUID();
+        when(metricasRepository.findByTenantIdAndPeriodLessThanEqualOrderByPeriodDesc(tenantId, "2026-06"))
+                .thenReturn(List.of(MetricasFinanciera.builder().tenantId(tenantId).period("2026-06")
+                        .totalIncome(new BigDecimal("1000")).build()));
+        when(jdbc.query(anyString(), any(RowMapper.class), any(), any(), any())).thenReturn(List.of(
+                Map.of("providerId", "p1", "providerName", "Único", "totalSpend", new BigDecimal("1000"))));
+
+        var result = service.analisisSaludFinanciera(tenantId, "2026-06",
+                LocalDate.parse("2026-06-01"), LocalDate.parse("2026-07-01"),
+                List.of(), List.of(), List.of());
+
+        assertThat((List<Map<String, Object>>) result.get("criticalAlerts"))
+                .extracting(m -> m.get("type")).doesNotContain("SUPPLIER_CONCENTRATION");
+    }
+
+    @Test
+    void saludFinanciera_opexCreep_ambosCayeron_noAvisa() {
+        var tenantId = UUID.randomUUID();
+        when(metricasRepository.findByTenantIdAndPeriodLessThanEqualOrderByPeriodDesc(tenantId, "2026-06"))
+                .thenReturn(List.of(
+                        MetricasFinanciera.builder().tenantId(tenantId).period("2026-06")
+                                .totalIncome(new BigDecimal("800")).operatingExpenses(new BigDecimal("400")).build(),
+                        MetricasFinanciera.builder().tenantId(tenantId).period("2026-05")
+                                .totalIncome(new BigDecimal("900")).operatingExpenses(new BigDecimal("450")).build(),
+                        MetricasFinanciera.builder().tenantId(tenantId).period("2026-04")
+                                .totalIncome(new BigDecimal("1000")).operatingExpenses(new BigDecimal("500")).build()));
+        when(jdbc.query(anyString(), any(RowMapper.class), any(), any(), any())).thenReturn(List.of());
+
+        var result = service.analisisSaludFinanciera(tenantId, "2026-06",
+                LocalDate.parse("2026-06-01"), LocalDate.parse("2026-07-01"),
+                List.of(), List.of(), List.of());
+
+        assertThat((List<Map<String, Object>>) result.get("criticalAlerts"))
+                .extracting(m -> m.get("type")).doesNotContain("OPEX_CREEP");
+    }
+
+    @Test
+    void saludFinanciera_opexCreep_subidaReal_avisaConDinero() {
+        var tenantId = UUID.randomUUID();
+        when(metricasRepository.findByTenantIdAndPeriodLessThanEqualOrderByPeriodDesc(tenantId, "2026-06"))
+                .thenReturn(List.of(
+                        MetricasFinanciera.builder().tenantId(tenantId).period("2026-06")
+                                .totalIncome(new BigDecimal("1080")).operatingExpenses(new BigDecimal("820")).build(),
+                        MetricasFinanciera.builder().tenantId(tenantId).period("2026-05")
+                                .totalIncome(new BigDecimal("1040")).operatingExpenses(new BigDecimal("660")).build(),
+                        MetricasFinanciera.builder().tenantId(tenantId).period("2026-04")
+                                .totalIncome(new BigDecimal("1000")).operatingExpenses(new BigDecimal("500")).build()));
+        when(jdbc.query(anyString(), any(RowMapper.class), any(), any(), any())).thenReturn(List.of());
+
+        var result = service.analisisSaludFinanciera(tenantId, "2026-06",
+                LocalDate.parse("2026-06-01"), LocalDate.parse("2026-07-01"),
+                List.of(), List.of(), List.of());
+
+        var creep = ((List<Map<String, Object>>) result.get("criticalAlerts")).stream()
+                .filter(m -> "OPEX_CREEP".equals(m.get("type"))).findFirst().orElseThrow();
+        assertThat(creep.get("severity")).isEqualTo("WARNING");
+        assertThat(creep.get("message")).isEqualTo("Tus gastos subieron $320.00 en 3 meses y tus ventas subieron $80.00.");
+    }
+
+    @Test
+    void saludFinanciera_opexCreep_mesEnCurso_noAvisa() {
+        var tenantId = UUID.randomUUID();
+        var periodo = YearMonth.now(ZoneOffset.UTC).toString();
+        when(metricasRepository.findByTenantIdAndPeriodLessThanEqualOrderByPeriodDesc(tenantId, periodo))
+                .thenReturn(List.of(
+                        MetricasFinanciera.builder().tenantId(tenantId).period(periodo)
+                                .totalIncome(new BigDecimal("1080")).operatingExpenses(new BigDecimal("820")).build(),
+                        MetricasFinanciera.builder().tenantId(tenantId).period("x1")
+                                .totalIncome(new BigDecimal("1040")).operatingExpenses(new BigDecimal("660")).build(),
+                        MetricasFinanciera.builder().tenantId(tenantId).period("x2")
+                                .totalIncome(new BigDecimal("1000")).operatingExpenses(new BigDecimal("500")).build()));
+        when(jdbc.query(anyString(), any(RowMapper.class), any(), any(), any())).thenReturn(List.of());
+
+        var result = service.analisisSaludFinanciera(tenantId, periodo,
+                LocalDate.now(ZoneOffset.UTC).withDayOfMonth(1), LocalDate.now(ZoneOffset.UTC).plusMonths(1).withDayOfMonth(1),
+                List.of(), List.of(), List.of());
+
+        assertThat((List<Map<String, Object>>) result.get("criticalAlerts"))
+                .extracting(m -> m.get("type")).doesNotContain("OPEX_CREEP");
+    }
+
+    @Test
+    void saludFinanciera_costoDiario_sinGananciaTrasMercancia_avisa() {
+        var tenantId = UUID.randomUUID();
+        when(metricasRepository.findByTenantIdAndPeriodLessThanEqualOrderByPeriodDesc(tenantId, "2026-02"))
+                .thenReturn(List.of(MetricasFinanciera.builder().tenantId(tenantId).period("2026-02")
+                        .totalIncome(new BigDecimal("1000"))
+                        .costOfGoods(new BigDecimal("1200"))
+                        .costoOperativoDiario(new BigDecimal("50"))
+                        .build()));
+        when(jdbc.query(anyString(), any(RowMapper.class), any(), any(), any())).thenReturn(List.of());
+
+        var result = service.analisisSaludFinanciera(tenantId, "2026-02",
+                LocalDate.parse("2026-02-01"), LocalDate.parse("2026-03-01"),
+                List.of(), List.of(), List.of());
+
+        var daily = ((List<Map<String, Object>>) result.get("criticalAlerts")).stream()
+                .filter(m -> "DAILY_COST_CONTROL".equals(m.get("type"))).findFirst().orElseThrow();
+        assertThat(daily.get("message"))
+                .isEqualTo("Después de pagar la mercancía no te queda ganancia y tus costos fijos son $50.00 al día.");
+    }
+
+    @Test
+    void saludFinanciera_payback_netoCeroNoEsPerdida() {
+        var tenantId = UUID.randomUUID();
+        when(metricasRepository.findByTenantIdAndPeriodLessThanEqualOrderByPeriodDesc(tenantId, "2026-06"))
+                .thenReturn(List.of(MetricasFinanciera.builder().tenantId(tenantId).period("2026-06")
+                        .totalIncome(BigDecimal.ZERO)
+                        .netMarginPct(BigDecimal.ZERO)
+                        .build()));
+        when(jdbc.query(anyString(), any(RowMapper.class), any(), any(), any())).thenReturn(List.of());
+        when(patrimonioRepository.findByTenantId(tenantId))
+                .thenReturn(Optional.of(Patrimonio.builder().tenantId(tenantId).initialCapital(new BigDecimal("1000")).build()));
+
+        var result = service.analisisSaludFinanciera(tenantId, "2026-06",
+                LocalDate.parse("2026-06-01"), LocalDate.parse("2026-07-01"),
+                List.of(), List.of(), List.of());
+
+        assertThat((List<Map<String, Object>>) result.get("criticalAlerts"))
+                .extracting(m -> m.get("type")).doesNotContain("PAYBACK_RECOVERY");
     }
 
     @Test
