@@ -33,7 +33,6 @@ const {
   ventas,
   actividadReciente,
   facturasPendientes,
-  itbmsMes,
   costoDiario,
   loading,
   error,
@@ -52,6 +51,23 @@ const topRiskIsRed = computed(() => {
   return code.includes('NEGATIVE') || code.includes('OVER_LEVERAGED');
 });
 
+// mejor día del mes = máximo de ventas agrupadas por fecha (ventas ya cargadas, sin llamada extra)
+const mejorDia = computed(() => {
+  const porDia = new Map<string, number>();
+  for (const v of ventas.value) {
+    if (!v.fecha.startsWith(periodo.value)) continue;
+    porDia.set(v.fecha, (porDia.get(v.fecha) ?? 0) + v.montoBruto);
+  }
+  let best: { fecha: string; total: number } | null = null;
+  for (const [fecha, total] of porDia) {
+    if (!best || total > best.total) best = { fecha, total };
+  }
+  return best;
+});
+
+const fechaCorta = (f: string) =>
+  new Date(`${f}T00:00:00`).toLocaleDateString('es-PA', { day: 'numeric', month: 'short' });
+
 const { pullDistance, isRefreshing } = usePullToRefresh({ onRefresh: fetch });
 
 const stripKpis = computed(() => {
@@ -65,9 +81,10 @@ const stripKpis = computed(() => {
       accent: 'red' as const,
     },
     {
-      label: 'ITBMS del mes',
-      value: formatCurrency(itbmsMes.value),
-      accent: 'blue' as const,
+      label: 'Mejor día',
+      value: mejorDia.value ? formatCurrency(mejorDia.value.total) : '—',
+      sub: mejorDia.value ? fechaCorta(mejorDia.value.fecha) : undefined,
+      accent: 'gold' as const,
     },
     {
       label: 'Rentabilidad',
