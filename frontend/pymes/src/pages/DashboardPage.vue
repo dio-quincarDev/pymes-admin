@@ -33,7 +33,6 @@ const {
   ventas,
   actividadReciente,
   facturasPendientes,
-  itbmsMes,
   costoDiario,
   loading,
   error,
