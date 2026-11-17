@@ -138,6 +138,7 @@ export interface FinancialHealthAlert {
   current: number;
   threshold: number;
   action: string;
+  severity: 'CRITICAL' | 'WARNING';
   // Solo DEAD_INVENTORY: los productos que ya trae calculados el backend
   items?: DeadInventoryItem[] | undefined;
 }
@@ -150,7 +151,7 @@ export interface DeadInventoryItem {
 }
 
 // Wire: backend manda type/message/metric (AnalyticsServiceImpl.java:830)
-export type FinancialHealthAlertWire = Omit<FinancialHealthAlert, 'code' | 'description' | 'current'> & {
+export type FinancialHealthAlertWire = Omit<FinancialHealthAlert, 'code' | 'description' | 'current' | 'severity'> & {
   type?: string;
   code?: string;
   message?: string;

@@ -918,6 +918,8 @@ public class AnalyticsServiceImpl implements AnalyticsService {
                         "supplierConcentration: " + supplierMax + "%", "priceStability: " + (hasPriceVariation ? 0.6 : 0.92))),
                 "growth", Map.of("score", growth, "drivers", List.of(
                         "revenueTrend: " + BigDecimal.valueOf(revenueGrowth).setScale(1, RoundingMode.HALF_UP) + "%", "inventoryTurnover: " + dead.size()))));
+        // ponytail: el semáforo del Dashboard lee criticalAlerts[0] — CRITICAL primero para no pintar amarillo con una roja detrás
+        criticals.sort(Comparator.comparingInt(m -> "CRITICAL".equals(m.get("severity")) ? 0 : 1));
         out.put("criticalAlerts", criticals);
         out.put("investmentSignals", investments);
         out.put("expansionReadiness", Map.of("score", expScore, "status", status, "requirements", requirements));

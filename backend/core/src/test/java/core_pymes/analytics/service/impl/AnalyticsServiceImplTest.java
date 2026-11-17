@@ -880,4 +880,28 @@ class AnalyticsServiceImplTest {
         assertThat(dead.get("severity")).isEqualTo("WARNING");
         assertThat(dead.get("message")).isEqualTo("Dejaste de comprar 1 productos. Invertiste $60.00 en ellos.");
     }
+
+    @Test
+    void saludFinanciera_criticalAlertsVanCriticosPrimeroParaElSemaforo() {
+        var tenantId = UUID.randomUUID();
+        when(metricasRepository.findByTenantIdAndPeriodLessThanEqualOrderByPeriodDesc(tenantId, "2026-06"))
+                .thenReturn(List.of(MetricasFinanciera.builder().tenantId(tenantId).period("2026-06")
+                        .totalIncome(new BigDecimal("100000")).netMarginPct(new BigDecimal("-10"))
+                        .netMargin(new BigDecimal("-10000")).build()));
+        when(jdbc.query(anyString(), any(RowMapper.class), any(), any(), any())).thenReturn(List.of());
+        when(patrimonioRepository.findByTenantId(tenantId))
+                .thenReturn(Optional.of(Patrimonio.builder().tenantId(tenantId).initialCapital(new BigDecimal("1000")).build()));
+        when(productoRepository.findByTenantId(tenantId)).thenReturn(List.of(
+                Producto.builder().tenantId(tenantId).name("Dejado").totalInvestment(new BigDecimal("60"))
+                        .lastPurchaseDate(LocalDate.parse("2026-01-01")).build()));
+
+        var result = service.analisisSaludFinanciera(tenantId, "2026-06",
+                LocalDate.parse("2026-06-01"), LocalDate.parse("2026-07-01"),
+                List.of(), List.of(), List.of());
+
+        var severities = ((List<Map<String, Object>>) result.get("criticalAlerts")).stream()
+                .map(m -> m.get("severity")).toList();
+        assertThat(severities).contains("CRITICAL", "WARNING");
+        assertThat(severities.indexOf("CRITICAL")).isLessThan(severities.indexOf("WARNING"));
+    }
 }

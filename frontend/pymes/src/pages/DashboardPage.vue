@@ -42,14 +42,11 @@ const {
   recalcular,
 } = useFinancialDashboard();
 
-const { financialHealth, supplierRecommendations, loading: analyticsLoading } = useAnalytics();
+const { financialHealth, loading: analyticsLoading } = useAnalytics();
 
-// ponytail: semáforo del mes — mismo criterio de color que FinancialHealthAlerts (NEGATIVE/OVER_LEVERAGED → rojo)
+// ponytail: semáforo del mes — color por severity del backend, igual que FinancialHealthAlerts
 const topRisk = computed(() => financialHealth.value?.criticalAlerts?.[0] ?? null);
-const topRiskIsRed = computed(() => {
-  const code = topRisk.value?.code ?? '';
-  return code.includes('NEGATIVE') || code.includes('OVER_LEVERAGED');
-});
+const topRiskIsRed = computed(() => topRisk.value?.severity === 'CRITICAL');
 
 // mejor día del mes = máximo de ventas agrupadas por fecha (ventas ya cargadas, sin llamada extra)
 const mejorDia = computed(() => {
@@ -199,7 +196,7 @@ const categoryItems = computed(() =>
             <span class="risk-pill__dot" />
             <span class="risk-pill__text">Sin riesgos críticos este mes</span>
           </span>
-          <FinancialHealthPanel :data="financialHealth" :loading="analyticsLoading" :recommendations="supplierRecommendations" />
+          <FinancialHealthPanel :data="financialHealth" :loading="analyticsLoading" />
         </div>
       </div>
 

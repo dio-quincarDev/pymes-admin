@@ -4,6 +4,21 @@ Registro cronológico de decisiones, problemas resueltos y estado del frontend.
 
 ---
 
+## 2026-11-17 — Lote 3: el semáforo de alertas deja de mentir (§8 estrategia)
+
+**Contexto:** el backend ya mandaba `severity` (CRITICAL/WARNING) desde los Lotes 1 y 2, pero el frontend la descartaba y coloreaba por código: 5 avisos críticos salían amarillos. Además el pill del Dashboard decidía rojo solo si el código contenía `NEGATIVE` u `OVER_LEVERAGED`, así que una alerta roja detrás de una amarilla pasaba desapercibida.
+
+**Qué se hizo:**
+- **`types/analytics.ts` + `analyticsNormalize.ts`** — `FinancialHealthAlert.severity` tipada ('CRITICAL' | 'WARNING'); el normalizador la copia del wire (`WARNING` solo si dice `WARNING`, si no `CRITICAL` por caché vieja). +1 test.
+- **`FinancialHealthAlerts.vue`** — color por `severity`, adiós mapa por código y adiós `isGoodDependence`. Se eliminó el chain de props muertas `health`/`recommendations` (componente, panel y 2 páginas) que solo alimentaba ese parche.
+- **`financialGuide.ts`** — borrada `isGoodDependence` (heurística que pintaba la concentración de amarillo con cualquier ahorro < 10%).
+- **`DashboardPage.vue`** — pill del semáforo por `severity`, no por código.
+- **Backend `AnalyticsServiceImpl`** — `criticalAlerts` ordenados CRITICAL primero antes de devolverlos; +1 test unitario.
+
+**Verificación:** `npm run test` 80/80, `npm run lint` 0 errores, `npm run build` PWA verde; backend `./mvnw test -B` 275/275. Sin commit/push (orden del usuario).
+
+---
+
 ## 2026-11-13 — Dona ABC cuadra con FacturasPage + ITBMS del mes en el Dashboard + alertas sin falsas alarmas
 
 **Contexto:** la dona "Top productos por gasto" no cuadraba con FacturasPage (nov $949.79 vs $957.47; la diferencia exacta era el ITBMS). Las alertas de salud financiera disparaban falsas alarmas con datos reales: "Costo Diario Sobre Ingreso Diario" dividía las ventas del mes en curso entre los 30 días del mes (centinela ~200% cuando el ritmo real era ~80%), y "Erosión de Margen Bruto" comparaba un mes a medias (nov 54%) contra meses cerrados y marcaba crítico un margen sano (>30%).
