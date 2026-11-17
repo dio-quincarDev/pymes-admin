@@ -4,6 +4,21 @@ Registro cronológico de decisiones, problemas resueltos y estado del frontend.
 
 ---
 
+## 2026-11-17 — Factura: el item nuevo se revela solo + limpieza del merge de develop
+
+**Contexto:** con muchos items, el botón "Agregar item" queda al final del dialog y el card nuevo se inserta por encima de él, fuera del viewport visible (peor en móvil, donde además entra el teclado). Había que hacer scroll manual para llegar al campo "Buscar producto..." y escribir el nombre. Por otro lado, el merge de `develop` (`158daba`) reintrodujo `itbmsMes` — el KPI viejo que esta rama ya había reemplazado por "Mejor día" — y el CI falló por variable sin uso.
+
+**Qué se hizo:**
+- **`InvoiceItemCard.vue`** — `useTemplateRef` al root y al `q-select` de producto; `defineExpose({ reveal })` con `scrollIntoView({ block: 'center', behavior: 'smooth' })` + `focus()` del input. El hijo expone la acción, el padre no hurga el DOM.
+- **`FacturasPage.vue`** — handles imperativos por card (function refs en el `v-for`); `addItem()` ahora es `async`: push → `nextTick()` → `reveal()` del último card. `openCreate()` lo espera. Aplica igual en móvil y desktop.
+- **`useFinancialDashboard.ts` + `DashboardPage.vue`** — eliminadas las 3 huellas de `itbmsMes` (computed, export y destructuring) que `develop` reintrodujo; el KPI vigente es "Mejor día del mes".
+
+**Verificación:** `npm run lint` 0, `npm run test` 80/80, `npm run build` PWA verde, backend `./mvnw test -B` 275/275.
+
+**Pendiente de probar en dispositivo real:** en iOS el `focus()` puede abrir el teclado antes de que termine el scroll suave; si pasa, cambiar `behavior: 'smooth'` por `'instant'`.
+
+---
+
 ## 2026-11-17 — Lote 3: el semáforo de alertas deja de mentir (§8 estrategia)
 
 **Contexto:** el backend ya mandaba `severity` (CRITICAL/WARNING) desde los Lotes 1 y 2, pero el frontend la descartaba y coloreaba por código: 5 avisos críticos salían amarillos. Además el pill del Dashboard decidía rojo solo si el código contenía `NEGATIVE` u `OVER_LEVERAGED`, así que una alerta roja detrás de una amarilla pasaba desapercibida.
