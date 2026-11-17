@@ -268,6 +268,67 @@ class AnalyticsIntegrationTest extends AbstractIntegrationTest {
     }
 
     @Test
+    @DisplayName("Piso $50 en PRICE_VARIATION: CV alto con gasto chico calla, con gasto real avisa")
+    void piso50_priceVariation() throws Exception {
+        var tenantId = UUID.randomUUID();
+        var provA = seedProvider(tenantId, "Distribuidora A");
+        var barato = seedProduct(tenantId, "Barato");
+        var caro = seedProduct(tenantId, "Caro");
+        // mismo CV ~57% en ambos; 1/3/1 = $5 de gasto (calla), 10/30/10 = $50 (avisa)
+        seedInvoice(tenantId, provA, barato, "Barato", JUN_05, new BigDecimal("1.00"));
+        seedInvoice(tenantId, provA, barato, "Barato", JUN_15, new BigDecimal("3.00"));
+        seedInvoice(tenantId, provA, barato, "Barato", JUN_25, new BigDecimal("1.00"));
+        seedInvoice(tenantId, provA, caro, "Caro", JUN_05, new BigDecimal("10.00"));
+        seedInvoice(tenantId, provA, caro, "Caro", JUN_15, new BigDecimal("30.00"));
+        seedInvoice(tenantId, provA, caro, "Caro", JUN_25, new BigDecimal("10.00"));
+        seedMetrics(tenantId, new BigDecimal("100"));
+
+        var result = analyticsService.ejecutarCompleto(tenantId, PERIOD);
+
+        var alerts = objectMapper.readTree(result.getAlerts());
+        assertThat(alerts).filteredOn(a -> "Barato".equals(a.path("productName").asText())).isEmpty();
+        assertThat(alerts).filteredOn(a -> "Caro".equals(a.path("productName").asText()))
+                .anyMatch(a -> "PRICE_VARIATION".equals(a.path("type").asText()));
+    }
+
+    @Test
+    @DisplayName("SUPPLIER_PREMIUM compara contra el más barato con piso $50 por proveedor-producto")
+    void premium_contraMasBaratoConPiso50() throws Exception {
+        var tenantId = UUID.randomUUID();
+        var provA = seedProvider(tenantId, "Caro");
+        var provB = seedProvider(tenantId, "Barato");
+        var arroz = seedProduct(tenantId, "Arroz");
+        var chico = seedProduct(tenantId, "Chico");
+        // Caro: 3×$13 vs Barato: 3×$10 → 30% sobre el más barato, $39 de gasto ⇒ calla (piso $50)
+        for (var d : java.util.List.of(JUN_05, JUN_15, JUN_25)) {
+            seedInvoice(tenantId, provA, chico, "Chico", d, new BigDecimal("13.00"));
+            seedInvoice(tenantId, provB, chico, "Chico", d, new BigDecimal("10.00"));
+        }
+        // 8×$13 vs 8×$10 → $104 de gasto ⇒ avisa; contra promedio ($11.50) sería 13% (callaría)
+        for (int i = 1; i <= 8; i++) {
+            var d = JUN_05.plusDays(i);
+            seedInvoice(tenantId, provA, arroz, "Arroz", d, new BigDecimal("13.00"));
+            seedInvoice(tenantId, provB, arroz, "Arroz", d, new BigDecimal("10.00"));
+        }
+        seedMetrics(tenantId, new BigDecimal("100"));
+
+        var result = analyticsService.ejecutarCompleto(tenantId, PERIOD);
+
+        var alerts = objectMapper.readTree(result.getAlerts());
+        assertThat(alerts).filteredOn(a -> "Chico".equals(a.path("productName").asText())).isEmpty();
+        var premium = new java.util.ArrayList<com.fasterxml.jackson.databind.JsonNode>();
+        alerts.forEach(a -> {
+            if ("Arroz".equals(a.path("productName").asText())
+                    && "SUPPLIER_PREMIUM".equals(a.path("type").asText())) {
+                premium.add(a);
+            }
+        });
+        assertThat(premium).hasSize(1);
+        assertThat(premium.get(0).path("minPrice").asDouble()).isEqualTo(10.0);
+        assertThat(premium.get(0).path("premiumPct").asDouble()).isEqualTo(30.0);
+    }
+
+    @Test
     @DisplayName("ejecutarCompleto updates existing analysis instead of duplicating")
     void ejecutarCompleto_isIdempotent() {
         var tenantId = UUID.randomUUID();

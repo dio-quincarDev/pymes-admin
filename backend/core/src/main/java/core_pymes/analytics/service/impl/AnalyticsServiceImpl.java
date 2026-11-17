@@ -371,8 +371,10 @@ public class AnalyticsServiceImpl implements AnalyticsService {
                 FROM stats
                 WHERE stddev_price IS NOT NULL
                   AND (stddev_price / NULLIF(avg_price, 0)) > 0.15
-                  -- ponytail: regla A también en alertas — con <3 compras el CV es ruido
+                  -- ponytail: regla A también en alertas — con <3 compras el CV es ruido; con < $50 de movimiento también es ruido
                   AND purchases >= %d
+                  -- ponytail: piso $50 de movimiento en el período (total ≈ avg_price * purchases)
+                  AND avg_price * purchases >= 50
                 ORDER BY cv_pct DESC
                 """.formatted(MIN_COMPRAS_POR_PROVEEDOR);
         alerts.addAll(jdbc.query(variationSql, (rs, row) -> Map.<String, Object>of(
@@ -387,7 +389,8 @@ public class AnalyticsServiceImpl implements AnalyticsService {
         var premiumSql = """
                 WITH product_avg AS (
                     SELECT ii.product_id, p.name AS product_name,
-                            AVG(ii.unit_price / NULLIF(ii.conversion_factor, 0)) AS product_avg_price
+                            AVG(ii.unit_price / NULLIF(ii.conversion_factor, 0)) AS product_avg_price,
+                            MIN(ii.unit_price / NULLIF(ii.conversion_factor, 0)) AS min_price
                     FROM core.invoice_items ii
                     JOIN core.invoices i ON ii.invoice_id = i.id
                     JOIN core.products p ON ii.product_id = p.id
@@ -408,17 +411,19 @@ public class AnalyticsServiceImpl implements AnalyticsService {
                 )
                 SELECT sp.product_id, sp.product_name,
                        sp.provider_id, sp.provider_name,
-                       sp.avg_price, pa.product_avg_price,
+                       sp.avg_price, pa.product_avg_price, pa.min_price,
                        -- ponytail: NULLIF — promedio 0 (bonificación/muestra) reventaba con division by zero
                        -- y como ejecutarCompleto no aísla motores, caía el guardado completo del período
-                       ROUND((sp.avg_price - pa.product_avg_price) / NULLIF(pa.product_avg_price, 0) * 100, 2) AS premium_pct
+                       -- y ahora comparamos contra el más barato, no contra el promedio ponderado
+                       ROUND((sp.avg_price - pa.min_price) / NULLIF(pa.min_price, 0) * 100, 2) AS premium_pct
                 FROM supplier_prices sp
                 JOIN product_avg pa ON sp.product_id = pa.product_id
-                WHERE sp.avg_price > pa.product_avg_price * 1.15
-                  -- ponytail: promedio 0 (ajustes/notas de crédito) → la fila se descarta, no viaja con premium NULL
-                  AND pa.product_avg_price <> 0
-                  -- ponytail: regla A también en alertas — una sola compra cara no es "premium"
+                WHERE sp.avg_price > pa.min_price * 1.15
+                  -- ponytail: regla A también en alertas — comparar contra el más barato, no contra el promedio ponderado
+                  -- (el promedio incluye al caro y diluye la señal); 15 3 compras y gasto ≥ $50 por proveedor-producto
                   AND sp.purchases >= %d
+                  -- ponytail: piso $50 de gasto por proveedor-producto
+                  AND sp.avg_price * sp.purchases >= 50
                 ORDER BY premium_pct DESC
                 """.formatted(MIN_COMPRAS_POR_PROVEEDOR);
         alerts.addAll(jdbc.query(premiumSql, (rs, row) -> Map.<String, Object>of(
@@ -428,6 +433,7 @@ public class AnalyticsServiceImpl implements AnalyticsService {
                 "providerName", rs.getString("provider_name"),
                 "currentPrice", rs.getBigDecimal("avg_price"),
                 "avgPrice", rs.getBigDecimal("product_avg_price"),
+                "minPrice", rs.getBigDecimal("min_price"),
                 "premiumPct", rs.getBigDecimal("premium_pct"),
                 "type", "SUPPLIER_PREMIUM"
         ), tenantId, start, end, tenantId, start, end));
@@ -697,15 +703,20 @@ public class AnalyticsServiceImpl implements AnalyticsService {
                     + "% del gasto — negocia con 2 alternativas.");
         }
 
-        if (opMargin.signum() > 0 && loanPayments.signum() > 0) {
-            var ratio = loanPayments.divide(opMargin, 4, RoundingMode.HALF_UP);
-            if (ratio.compareTo(new BigDecimal("0.30")) > 0) {
+        // ponytail: deuda/ventas con piso $100 — contra el margen, un margen chico positivo explotaba el ratio
+        // y una deuda de $4 "consumía" el margen; DEBT_CAPACITY puede seguir en su métrica (opMargin ≤ ventas, sin contradicción)
+        if (revenue.signum() > 0 && loanPayments.signum() > 0) {
+            var ratio = loanPayments.divide(revenue, 4, RoundingMode.HALF_UP);
+            if (loanPayments.compareTo(new BigDecimal("100")) >= 0
+                    && ratio.compareTo(new BigDecimal("0.15")) > 0) {
+                var deCada100 = ratio.multiply(BigDecimal.valueOf(100)).setScale(0, RoundingMode.HALF_UP).toPlainString();
                 criticals.add(alert("OVER_LEVERAGED", "Sobreendeudamiento",
-                        "La deuda consume más del 30% del margen operativo.",
-                        ratio, new BigDecimal("0.30"), "Reestructura pagos o reduce nueva deuda."));
-                recommendations.add("La deuda consume >30% del margen operativo — reestructura pagos.");
+                        "La deuda se lleva $" + deCada100 + " de cada $100 que vendes ($"
+                                + loanPayments.setScale(2, RoundingMode.HALF_UP).toPlainString() + " al mes).",
+                        ratio, new BigDecimal("0.15"), "Reestructura pagos o reduce nueva deuda."));
+                recommendations.add("La deuda se lleva " + deCada100 + " de cada $100 que vendes — reestructura pagos.");
             } else if (ratio.compareTo(new BigDecimal("0.15")) < 0) {
-                investments.add(signal("DEBT_CAPACITY", "Capacidad de Endeudamiento", "Pagos de deuda", ratio, "<15% del margen operativo"));
+                investments.add(signal("DEBT_CAPACITY", "Capacidad de Endeudamiento", "Pagos de deuda", ratio, "<15% de las ventas"));
             }
         }
 
@@ -732,10 +743,12 @@ public class AnalyticsServiceImpl implements AnalyticsService {
             }
         }
 
+        // ponytail: excluir nunca comprados (lastPurchaseDate == null) — son alta de catálogo, no "dejaste de comprar"
         var products = productoRepository.findByTenantId(tenantId);
         var dead = products.stream()
-                .filter(p -> nz(p.getTotalInvestment()).signum() > 0)
-                .filter(p -> p.getLastPurchaseDate() == null || p.getLastPurchaseDate().isBefore(LocalDate.now(ZoneOffset.UTC).minusDays(60)))
+                .filter(p -> nz(p.getTotalInvestment()).signum() > 0)           // sin capital invertido no hay capital parado
+                .filter(p -> p.getLastPurchaseDate() != null
+                        && p.getLastPurchaseDate().isBefore(LocalDate.now(ZoneOffset.UTC).minusDays(60)))
                 .sorted(Comparator.comparing(Producto::getTotalInvestment).reversed())
                 .limit(5)
                 .toList();
@@ -743,8 +756,9 @@ public class AnalyticsServiceImpl implements AnalyticsService {
         // shortcut: piso fijo $50 — menos capital parado es ruido presentado como riesgo crítico
         // (caso real Mi Rinconcito: $26 en 5 productos); configurable por tenant cuando exista esa config
         if (deadCapital.compareTo(new BigDecimal("50")) >= 0) {
-            var alerta = alert("DEAD_INVENTORY", "Productos parados",
-                    dead.size() + " productos llevan más de 60 días sin compra.",
+            var alerta = alert("DEAD_INVENTORY", "WARNING", "Productos que dejaste de comprar",
+                    "Dejaste de comprar " + dead.size() + " productos. Invertiste $"
+                            + deadCapital.setScale(2, RoundingMode.HALF_UP).toPlainString() + " en ellos.",
                     deadCapital, BigDecimal.ZERO, "Liquida o negocia devoluciones para liberar capital.");
             // la lista ya está calculada: enviarla evita que la UI tenga que adivinar cuáles son
             alerta.put("items", dead.stream().map(p -> Map.<String, Object>of(

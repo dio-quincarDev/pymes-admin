@@ -246,9 +246,11 @@ class AnalyticsServiceImplTest {
                 LocalDate.parse("2026-06-01"), LocalDate.parse("2026-07-01"),
                 List.of(), List.of(), List.of());
 
+
         var dead = ((List<Map<String, Object>>) sobrePiso.get("criticalAlerts")).stream()
+
                 .filter(m -> "DEAD_INVENTORY".equals(m.get("type"))).findFirst().orElseThrow();
-        assertThat(dead.get("title")).isEqualTo("Productos parados");
+        assertThat(dead.get("title")).isEqualTo("Productos que dejaste de comprar");
         assertThat((List<?>) dead.get("items")).hasSize(1);
     }
 
@@ -811,12 +813,71 @@ class AnalyticsServiceImplTest {
         then(jdbc).should(atLeastOnce())
                 .query(sqlCaptor.capture(), any(RowMapper.class), any(), any(), any());
         assertThat(sqlCaptor.getAllValues())
-                .anyMatch(s -> s.contains("cv_pct") && s.contains("purchases >= 3"));
+                .anyMatch(s -> s.contains("cv_pct") && s.contains("purchases >= 3")
+                        && s.contains("avg_price * purchases >= 50"));
         then(jdbc).should(atLeastOnce())
                 .query(premiumCaptor.capture(), any(RowMapper.class), any(), any(), any(), any(), any(), any());
         assertThat(premiumCaptor.getAllValues())
                 .anyMatch(s -> s.contains("premium_pct")
                         && s.contains("sp.purchases >= 3")
-                        && s.contains("NULLIF(pa.product_avg_price, 0)"));
+                        && s.contains("NULLIF(pa.min_price, 0)")
+                        && s.contains("pa.min_price * 1.15")
+                        && s.contains("sp.avg_price * sp.purchases >= 50"));
+    }
+
+    @Test
+    void saludFinanciera_deudaVsVentasConPiso100() {
+        var tenantId = UUID.randomUUID();
+        when(metricasRepository.findByTenantIdAndPeriodLessThanEqualOrderByPeriodDesc(tenantId, "2026-06"))
+                .thenReturn(List.of(MetricasFinanciera.builder().tenantId(tenantId).period("2026-06")
+                        .totalIncome(new BigDecimal("1000"))
+                        .loanPayments(new BigDecimal("180"))
+                        .build()));
+        when(jdbc.query(anyString(), any(RowMapper.class), any(), any(), any())).thenReturn(List.of());
+
+        var result = service.analisisSaludFinanciera(tenantId, "2026-06",
+                LocalDate.parse("2026-06-01"), LocalDate.parse("2026-07-01"),
+                List.of(), List.of(), List.of());
+
+        var deuda = ((List<Map<String, Object>>) result.get("criticalAlerts")).stream()
+                .filter(m -> "OVER_LEVERAGED".equals(m.get("type"))).findFirst().orElseThrow();
+        assertThat(deuda.get("message"))
+                .isEqualTo("La deuda se lleva $18 de cada $100 que vendes ($180.00 al mes).");
+
+        // piso $100: $90 de deuda (9% de ventas) calla aunque supere 15% sobre margen chico
+        when(metricasRepository.findByTenantIdAndPeriodLessThanEqualOrderByPeriodDesc(tenantId, "2026-06"))
+                .thenReturn(List.of(MetricasFinanciera.builder().tenantId(tenantId).period("2026-06")
+                        .totalIncome(new BigDecimal("1000"))
+                        .loanPayments(new BigDecimal("90"))
+                        .build()));
+        var chico = service.analisisSaludFinanciera(tenantId, "2026-06",
+                LocalDate.parse("2026-06-01"), LocalDate.parse("2026-07-01"),
+                List.of(), List.of(), List.of());
+        assertThat((List<Map<String, Object>>) chico.get("criticalAlerts"))
+                .extracting(m -> m.get("type")).doesNotContain("OVER_LEVERAGED");
+    }
+
+    @Test
+    void saludFinanciera_nuncaCompradosNoCuentanComoDejasteDeComprar() {
+        var tenantId = UUID.randomUUID();
+        when(metricasRepository.findByTenantIdAndPeriodLessThanEqualOrderByPeriodDesc(tenantId, "2026-06"))
+                .thenReturn(List.of(MetricasFinanciera.builder().tenantId(tenantId).period("2026-06")
+                        .totalIncome(new BigDecimal("100000")).netMarginPct(new BigDecimal("10")).build()));
+        when(jdbc.query(anyString(), any(RowMapper.class), any(), any(), any())).thenReturn(List.of());
+        when(productoRepository.findByTenantId(tenantId)).thenReturn(List.of(
+                Producto.builder().tenantId(tenantId).name("Nunca comprado").totalInvestment(new BigDecimal("200"))
+                        .lastPurchaseDate(null).build(),
+                Producto.builder().tenantId(tenantId).name("Dejado").totalInvestment(new BigDecimal("60"))
+                        .lastPurchaseDate(LocalDate.parse("2026-01-01")).build()));
+
+        var result = service.analisisSaludFinanciera(tenantId, "2026-06",
+                LocalDate.parse("2026-06-01"), LocalDate.parse("2026-07-01"),
+                List.of(), List.of(), List.of());
+
+        var dead = ((List<Map<String, Object>>) result.get("criticalAlerts")).stream()
+                .filter(m -> "DEAD_INVENTORY".equals(m.get("type"))).findFirst().orElseThrow();
+        // solo cuenta el de $60 comprado en enero; el nunca comprado ($200) no dispara
+        assertThat(dead.get("severity")).isEqualTo("WARNING");
+        assertThat(dead.get("message")).isEqualTo("Dejaste de comprar 1 productos. Invertiste $60.00 en ellos.");
     }
 }

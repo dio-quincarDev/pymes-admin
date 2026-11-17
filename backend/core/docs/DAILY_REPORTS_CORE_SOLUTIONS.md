@@ -8,6 +8,31 @@ Registro de lo implementado y lo pendiente.
 
 ---
 
+## 2026-11-16 — Alertas Lote 2: ruido y casos raros (§8 estrategia frontend)
+
+**Contexto:** continuación del Lote 1. 4 avisos seguían disparándose con montos de calderilla o comparaciones diluidas: deuda/margen explotaba con margen chico, productos nunca comprados contaban como "dejaste de comprar", variación de precio y premium gritaban sobre $1.10 de gasto, y el premium se comparaba contra un promedio que incluía al proveedor caro.
+
+**Qué se hizo (`AnalyticsServiceImpl`):**
+- **`OVER_LEVERAGED`** — ahora `deuda del mes / ventas > 15%` con piso **deuda ≥ $100** (antes `deuda / margen operativo > 30%`, que explotaba con margen positivo chico). Mensaje en dinero: "La deuda se lleva $18 de cada $100 que vendes ($180.00 al mes)."
+- **`DEAD_INVENTORY`** — excluir productos nunca comprados (`lastPurchaseDate == null` ya no cuenta). Título "Productos que dejaste de comprar", mensaje con inversión histórica ("Dejaste de comprar 1 productos. Invertiste $60.00 en ellos"). `severity: WARNING`.
+- **`PRICE_VARIATION`** — piso $50 de movimiento en el período (`avg_price * purchases >= 50`), mismo 15% CV y 3 compras.
+- **`SUPPLIER_PREMIUM`** — comparar contra el **proveedor más barato** (`MIN(unit_price / conversion_factor)` por producto), no contra el promedio ponderado que diluía la señal. 15%, 3 compras y piso $50 por proveedor-producto. Wire agrega `minPrice`.
+
+**Skipped:** color por `severity` y pill del Dashboard (Lote 3), `isGoodDependence` (Lote 3), recalcular staging. Sin commit/push (orden del usuario).
+
+**Ponytail:** cero queries nuevas — los pisos se filtran en los CTEs existentes (`avg_price * purchases`, `sp.avg_price * sp.purchases`) y el `min_price` se agrega al CTE `product_avg` ya presente.
+
+```
+backend/core/src/main/java/core_pymes/analytics/service/impl/AnalyticsServiceImpl.java # 4 reglas + piso $50 + min_price
+backend/core/src/test/java/core_pymes/analytics/service/impl/AnalyticsServiceImplTest.java # +2 tests (deuda, nunca comprados) + assertions SQL
+backend/core/src/test/java/core_pymes/integration/AnalyticsIntegrationTest.java # +2 IT para pisos $50
+frontend/pymes/docs/strategies/ALERTS_SYSTEM_STRATEGY.md # §8 marcado Lotes 1 y 2
+```
+
+**Tests:** unit 274/274 + IT 17/17 (Analytics 12, ModeloGastos 5) con Testcontainers.
+
+---
+
 ## 2026-11-16 — Alertas Lote 1: los 5 que mienten con datos reales (§8 estrategia frontend)
 
 **Contexto:** auditoría del motor de salud (`ALERTS_SYSTEM_STRATEGY.md` §8): 5 avisos mentían con datos reales — 0 ventas era invisible, un proveedor único "disparaba" concentración cada mes, OPEX gritaba cuando ambos caían, el costo diario se comparaba contra ventas (ocultaba pérdida tras mercancía) y el payback contaba pérdida con mes en 0.
