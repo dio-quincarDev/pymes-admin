@@ -1,7 +1,6 @@
 <script setup lang="ts">
 import { computed } from 'vue';
 import type { FinancialHealth } from 'src/modules/core/types/analytics';
-import type { SupplierRecommendationItem } from 'src/modules/core/types/analytics';
 import TraderGauge from './TraderGauge.vue';
 import FinancialHealthBreakdown from './FinancialHealthBreakdown.vue';
 import FinancialHealthAlerts from './FinancialHealthAlerts.vue';
@@ -10,10 +9,9 @@ import { overallGuide } from 'src/modules/core/utils/financialGuide';
 interface Props {
   data: FinancialHealth | null;
   loading?: boolean;
-  recommendations?: SupplierRecommendationItem[];
 }
 
-const props = withDefaults(defineProps<Props>(), { loading: false, recommendations: () => [] });
+const props = withDefaults(defineProps<Props>(), { loading: false });
 
 const healthLabel = computed(() => {
   const s = props.data?.overallHealth ?? 0;
@@ -55,7 +53,7 @@ const guide = computed(() => overallGuide(props.data?.overallHealth ?? 0));
 
       <FinancialHealthBreakdown :breakdown="data.breakdown" class="fh-panel__breakdown" />
 
-      <FinancialHealthAlerts :alerts="data.criticalAlerts" :health="data" :recommendations="recommendations" />
+      <FinancialHealthAlerts :alerts="data.criticalAlerts" />
 
       <!-- Dedup: con alertas críticas arriba, esta lista repite lo mismo casi textual -->
       <div v-if="data.recommendations.length && !data.criticalAlerts.length" class="fh-panel__section">

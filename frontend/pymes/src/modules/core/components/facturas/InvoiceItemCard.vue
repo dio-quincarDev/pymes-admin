@@ -1,5 +1,5 @@
 <script setup lang="ts">
-import { computed, ref, shallowRef, watch } from 'vue'
+import { computed, ref, shallowRef, useTemplateRef, watch } from 'vue'
 import { calcItbms, calcNeto } from 'src/modules/core/utils/invoiceMath'
 import { SUELTO } from 'src/modules/core/utils/invoiceItemGuards'
 
@@ -48,6 +48,16 @@ interface Emits {
 
 const props = defineProps<Props>()
 const emit = defineEmits<Emits>()
+
+// ponytail: el padre decide cuándo revelar el item nuevo; el hijo solo expone cómo (contrato explícito)
+const rootEl = useTemplateRef<HTMLElement>('rootEl')
+const productSelect = useTemplateRef<{ focus: () => void }>('productSelect')
+
+function reveal() {
+  rootEl.value?.scrollIntoView({ block: 'center', behavior: 'smooth' })
+  productSelect.value?.focus()
+}
+defineExpose({ reveal })
 
 const selectedLabel = computed(() => {
   const catalog = props.allProductOptions ?? props.productOptions
@@ -128,7 +138,7 @@ function fmt(n: number | null) {
 </script>
 
 <template>
-  <div class="item-card" role="group" :aria-label="`Item ${index + 1}`">
+  <div ref="rootEl" class="item-card" role="group" :aria-label="`Item ${index + 1}`">
     <!-- Top: number + product + remove -->
     <div class="item-card__top">
       <span class="item-card__num">{{ String(index + 1).padStart(2, '0') }}</span>
@@ -144,6 +154,7 @@ function fmt(n: number | null) {
         clearable
         @filter="productFilter"
         @clear="onClear"
+        ref="productSelect"
         class="item-card__product"
         popup-content-class="item-dropdown"
       >

@@ -1,5 +1,5 @@
 // ponytail: deriva guía "mantén" invirtiendo scoring de AnalyticsServiceImpl — sin hardcodear tabla fija
-import type { FinancialHealth, FinancialHealthBreakdown, SupplierRecommendationItem } from '../types/analytics';
+import type { FinancialHealthBreakdown } from '../types/analytics';
 
 function parseDriver(drivers: string[], key: string): number | null {
   const row = drivers.find((d) => d.toLowerCase().includes(key.toLowerCase()));
@@ -74,17 +74,3 @@ export function overallGuide(overallHealth: number): { band: string; action: str
   return { band: '0-39 Crítico', action: 'No inviertas — arreglá lo urgente' };
 }
 
-// ponytail: heurística frontend — si proveedor dominante es el barato, es dependencia eficiente (amarillo) no crítica (rojo)
-// Usa criticalAlerts SUPPLIER_CONCENTRATION + supplierRecommendations (ya disponibles en useAnalytics)
-export function isGoodDependence(health: FinancialHealth | null, recommendations: SupplierRecommendationItem[]): boolean {
-  if (!health) return false;
-  const concAlert = health.criticalAlerts.find((a) => a.code === 'SUPPLIER_CONCENTRATION');
-  if (!concAlert) return false;
-  // title es "Concentración de Proveedor", description contiene proveedor? Usamos threshold/current para detectar, pero necesitamos nombre
-  // Como no tenemos nombre en alert, usamos heurística: si hay al menos 1 recomendación donde el proveedor recomendado aparece como dominante en múltiples productos, es buena dependencia
-  // Simplificado: si existe alguna recomendación con savingsPct bajo (<10) significa que el dominante ya es casi el más barato -> buena dependencia
-  // ponytail: aproximación sin providerId en maxShare; refine con backend providerId si hace falta precisión
-  const hasCheapDominance = recommendations.some((r) => r.savingsPct < 10);
-  const lowSavingsRatio = recommendations.length > 0 ? recommendations.filter((r) => r.savingsPct < 15).length / recommendations.length : 0;
-  return hasCheapDominance || lowSavingsRatio > 0.5;
-}

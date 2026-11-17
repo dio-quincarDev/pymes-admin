@@ -1,8 +1,6 @@
 <script setup lang="ts">
-import { computed } from 'vue';
 import { useRouter } from 'vue-router';
-import type { FinancialHealthAlert, FinancialHealth, SupplierRecommendationItem } from 'src/modules/core/types/analytics';
-import { isGoodDependence } from 'src/modules/core/utils/financialGuide';
+import type { FinancialHealthAlert } from 'src/modules/core/types/analytics';
 import { useNumberFormat } from 'src/modules/core/composables/useNumberFormat';
 
 const router = useRouter();
@@ -13,28 +11,10 @@ function goToProduct(productName: string) {
   void router.push({ name: 'productos', query: { buscar: productName } });
 }
 
-interface Props {
-  alerts: FinancialHealthAlert[];
-  health?: FinancialHealth | null;
-  recommendations?: SupplierRecommendationItem[];
-}
-
-const props = withDefaults(defineProps<Props>(), { health: null, recommendations: () => [] });
-
-const goodDependence = computed(() => isGoodDependence(props.health ?? null, props.recommendations ?? []));
-
-const alertColors = computed(() => {
-  const map = new Map<string, string>();
-  for (const alert of props.alerts) {
-    if (alert.code?.includes('NEGATIVE') || alert.code?.includes('OVER_LEVERAGED')) map.set(alert.code, 'var(--pq-danger)');
-    else if (alert.code?.includes('SUPPLIER_CONCENTRATION')) map.set(alert.code, goodDependence.value ? 'var(--pq-warning)' : 'var(--pq-danger)');
-    else map.set(alert.code, 'var(--pq-warning)');
-  }
-  return map;
-});
+defineProps<{ alerts: FinancialHealthAlert[] }>();
 
 function alertColor(alert: FinancialHealthAlert): string {
-  return alertColors.value.get(alert.code) ?? 'var(--pq-warning)';
+  return alert.severity === 'WARNING' ? 'var(--pq-warning)' : 'var(--pq-danger)';
 }
 </script>
 

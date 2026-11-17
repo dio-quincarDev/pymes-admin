@@ -151,7 +151,7 @@ onMounted(() => {
       <TopProductosDonut :items="abc" :loading="analyticsLoading" :empty="abc.length===0" />
     </div>
 
-    <FinancialHealthPanel :data="financialHealth" :loading="analyticsLoading" :recommendations="supplierRecommendations" />
+    <FinancialHealthPanel :data="financialHealth" :loading="analyticsLoading" />
 
     <div class="analysis-insights">
       <SupplierRecommendationsCard :items="enrichedRecommendations" />

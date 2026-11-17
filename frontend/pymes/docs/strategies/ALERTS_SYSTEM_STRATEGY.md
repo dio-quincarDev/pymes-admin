@@ -157,7 +157,7 @@ No implementado del doc §3 (tabla completa de accionabilidad por código): los 
 
 ---
 
-## 8. Estrategia de corrección total de alertas (diseño 2026-11-13)
+## 8. Estrategia de corrección total de alertas (diseño 2026-11-13) — **Lotes 1, 2 y 3 implementados 2026-11-17**
 
 Auditoría del motor completo: de 10 avisos, 1 bien planteado (`MARGIN_EROSION`), 1 a medias (`DAILY_COST_CONTROL`) y 8 con defectos. Los defectos se reducen a 3 patrones: **mes a medias** (comparar el mes en curso contra meses cerrados), **porcentajes sin piso en dinero** (un 22% sobre $1.10 es calderilla) y **umbrales calibrados para empresa grande** (una pulpería con un proveedor principal dispara "concentración" todos los meses).
 
@@ -186,12 +186,13 @@ Auditoría del motor completo: de 10 avisos, 1 bien planteado (`MARGIN_EROSION`)
 | `PRICE_VARIATION` | Mismo 15% CV y 3 compras, más piso: el producto debe mover ≥ $50 en el período. | La UI arma el texto con precio antes/ahora (sin cambios). | La que ya calcula la UI (50%/30%) |
 | `SUPPLIER_PREMIUM` | Comparar contra el **proveedor más barato**, no contra el promedio ponderado (que incluye al caro y diluye la señal). 15%, 3 compras y gasto ≥ $50 por proveedor-producto. No se borra: 24 referencias en UI y tests. | "En X pagaste $12 y el más barato es $10: $2 de más por unidad." | La actual |
 
-### Lote 3 — lo que se ve y la casa
+### Lote 3 — lo que se ve y la casa (implementado 2026-11-17)
 
-- **Color por `severity` del backend** (rojo crítico / amarillo advertencia): hoy 5 avisos críticos (`MARGIN_EROSION`, `DAILY_COST_CONTROL`, `DEAD_INVENTORY`, `OPEX_CREEP`, `PAYBACK_RECOVERY`) salen amarillos porque el frontend ignora `severity` y colorea por código.
-- **Borrar `isGoodDependence`** (`financialGuide.ts`): parche que convertía la concentración en amarillo con cualquier recomendación < 10% de ahorro, sin mirar quién es el proveedor dominante. Con la regla nueva del backend, sobra.
-- **Normalizar `severity`** en `analyticsNormalize` + 1 test (el wire lo manda y se descarta).
-- **Documentar** en este archivo + `DAILY_REPORTS_FRONTEND.md`.
+- **Color por `severity` del backend** (rojo crítico / amarillo advertencia): antes 5 avisos críticos (`MARGIN_EROSION`, `DAILY_COST_CONTROL`, `DEAD_INVENTORY`, `OPEX_CREEP`, `PAYBACK_RECOVERY`) salían amarillos porque el frontend coloreaba por código. Ahora `FinancialHealthAlerts.vue` y el pill del Dashboard usan `severity`.
+- **Borrar `isGoodDependence`** (`financialGuide.ts`): parche que convertía la concentración en amarillo con cualquier recomendación < 10% de ahorro, sin mirar quién es el proveedor dominante. Con la regla nueva del backend, sobra. Se eliminó también el chain de props `health`/`recommendations` que solo alimentaba ese parche (panel y 2 páginas).
+- **Normalizar `severity`** en `analyticsNormalize` (`WARNING` si el wire lo dice, si no `CRITICAL` — caché vieja) + 1 test.
+- **`criticalAlerts` ordenados CRITICAL primero** en `AnalyticsServiceImpl` + 1 test: el pill lee `[0]`, sin el orden podía salir amarillo con una roja detrás.
+- **Documentado** en este archivo + `DAILY_REPORTS_FRONTEND.md`.
 
 ### No se toca
 

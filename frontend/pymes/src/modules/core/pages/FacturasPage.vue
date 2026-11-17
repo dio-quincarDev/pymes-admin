@@ -292,7 +292,14 @@ const form = ref<{
   fechaHasta: null,
 });
 
-function addItem() {
+// ponytail: handles imperativos de los cards — solo sirven para revelar el item nuevo, sin estado reactivo extra
+type ItemCardHandle = { reveal: () => void };
+const itemCards: ItemCardHandle[] = [];
+function setItemCardRef(el: unknown, i: number) {
+  if (el && typeof (el as ItemCardHandle).reveal === 'function') itemCards[i] = el as ItemCardHandle;
+}
+
+async function addItem() {
   form.value.items.push({
     _key: ++keyCounter,
     productoId: null,
@@ -303,6 +310,8 @@ function addItem() {
     descuento: 0,
     itbmsTasa: 0,
   });
+  await nextTick();
+  itemCards[form.value.items.length - 1]?.reveal();
 }
 
 function onProductoChange(item: ItemForm, productoId: string | null) {
@@ -499,7 +508,7 @@ async function openCreate(tipo: 'FACTURA' | 'GASTO_OPERATIVO' = 'FACTURA') {
   providerFilteredOptions.value = [...providerOptions.value];
   dialogOpen.value = true;
   await nextTick();
-  addItem();
+  await addItem();
 }
 
 async function openEdit(factura: Factura) {
@@ -1167,6 +1176,7 @@ function handleKeydown(e: KeyboardEvent) {
                     <InvoiceItemCard
                       v-for="(item, i) in form.items"
                       :key="item._key"
+                      :ref="(el) => setItemCardRef(el, i)"
                       :item="item"
                       :index="i"
                       :product-options="filteredByCategory"
