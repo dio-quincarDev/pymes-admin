@@ -53,10 +53,10 @@ const emit = defineEmits<Emits>()
 const rootEl = useTemplateRef<HTMLElement>('rootEl')
 const productSelect = useTemplateRef<{ showPopup: () => void }>('productSelect')
 
-function reveal() {
+function reveal(openPopup = true) {
   rootEl.value?.scrollIntoView({ block: 'center', behavior: 'smooth' })
-  // ponytail: focus() no abre el popup de QSelect — escribir filtraba una lista invisible
-  productSelect.value?.showPopup()
+  // ponytail: abrir al crear la factura tapaba el formulario con el listado completo
+  if (openPopup) productSelect.value?.showPopup()
 }
 defineExpose({ reveal })
 
