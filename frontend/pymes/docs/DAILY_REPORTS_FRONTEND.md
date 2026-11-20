@@ -6,10 +6,10 @@ Registro cronológico de decisiones, problemas resueltos y estado del frontend.
 
 ## 2026-11-20 — Factura: caret sí, desplegable no
 
-**Contexto:** para arreglar la búsqueda de producto se cambió `focus()` por `showPopup()`. En pantallas chicas eso abre el menú con **todos** los productos en cuanto se pulsa "Agregar item" y tapa la factura. El problema real era que el caret no quedaba en el campo, no que faltara abrir el desplegable.
+**Contexto:** para arreglar la búsqueda de producto se cambió `focus()` por `showPopup()`. En pantallas chicas eso abre el menú con **todos** los productos en cuanto se pulsa "Agregar item" y tapa la factura. El problema real era que en móvil QSelect ponía el caret en un input que no era el de búsqueda (modo diálogo), no que faltara abrir el desplegable.
 
 **Qué se hizo:**
-- **`InvoiceItemCard.vue`** — `reveal()` vuelve a `focus()` y conserva el `scrollIntoView`. Con `use-input` + `@filter` + slot `no-option`, QSelect no usa el diálogo en móvil: el input queda editable, al teclear corre `filter()` y el menú se abre solo con las coincidencias (`input-debounce="0"`).
+- **`InvoiceItemCard.vue`** — `reveal()` vuelve a `focus()` y conserva el `scrollIntoView`. **Causa real del "escribir no filtra":** en móvil QSelect elige diálogo cuando hay `@filter` + slot `no-option`, y en ese modo el input del campo queda con `no-pointer-events`, así que el caret no era el input de búsqueda. Se agrega `behavior="menu"` para forzar el menú inline: el campo sigue editable, `filter()` corre al teclear y el menú abre solo las coincidencias (`input-debounce="0"`).
 - **`FacturasPage.vue`** — eliminado el parámetro `openPopup` de `addItem()`/`reveal()` y el `@click="addItem()"`. El scroll y el flujo de "Agregar item" siguen igual.
 
 **Verificación:** `npm run build` PWA verde (lint + vue-tsc). Commit local; sin deploy todavía.

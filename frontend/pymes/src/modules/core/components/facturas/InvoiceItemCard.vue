@@ -152,6 +152,7 @@ function fmt(n: number | null) {
         option-label="label"
         :placeholder="selectedLabel ? '' : 'Buscar producto...'"
         map-options emit-value use-input input-debounce="0"
+        behavior="menu"
         clearable
         @filter="productFilter"
         @clear="onClear"
