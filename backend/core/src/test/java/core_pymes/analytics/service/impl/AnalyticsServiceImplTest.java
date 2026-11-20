@@ -281,14 +281,16 @@ class AnalyticsServiceImplTest {
     }
 
     @Test
-    void saludFinanciera_mesEnCurso_costoDiarioUsaDiasTranscurridos() {
+    void saludFinanciera_mesEnCurso_fijosProrrateadosNoDisparanFalsaAlerta() {
         var tenantId = UUID.randomUUID();
-        // caso real Mi Rinconcito nov-2026: $139.80/día fijos vs $2,088.10 vendidos a mitad de mes (~$174/día) → no crítico
-        var pinned = YearMonth.now(ZoneOffset.UTC).atDay(13);
+        // caso real Mi Rinconcito nov-2026: $2,575.40 ganados a mitad de mes → no crítico; mitad de mes evita depender del mes en que corra el test
+        var ym = YearMonth.now(ZoneOffset.UTC);
+        var pinned = ym.atDay(ym.lengthOfMonth() / 2);
         var periodo = YearMonth.from(pinned).toString();
         when(metricasRepository.findByTenantIdAndPeriodLessThanEqualOrderByPeriodDesc(tenantId, periodo))
                 .thenReturn(List.of(MetricasFinanciera.builder().tenantId(tenantId).period(periodo)
-                        .totalIncome(new BigDecimal("2088.10")).costoOperativoDiario(new BigDecimal("139.80")).build()));
+                        .totalIncome(new BigDecimal("4515.71")).costOfGoods(new BigDecimal("1940.31"))
+                        .costoOperativoDiario(new BigDecimal("139.80")).build()));
         when(jdbc.query(anyString(), any(RowMapper.class), any(), any(), any())).thenReturn(List.of());
 
         var start = pinned.withDayOfMonth(1);
@@ -306,7 +308,33 @@ class AnalyticsServiceImplTest {
     }
 
     @Test
-    void saludFinanciera_mesCerrado_costoDiarioDisparaConMontosDiarios() {
+    void saludFinanciera_mesEnCurso_fijosCorridosDisparanAlertaEnTotales() {
+        var tenantId = UUID.randomUUID();
+        var ym = YearMonth.now(ZoneOffset.UTC);
+        var pinned = ym.atDay(ym.lengthOfMonth());
+        var periodo = YearMonth.from(pinned).toString();
+        when(metricasRepository.findByTenantIdAndPeriodLessThanEqualOrderByPeriodDesc(tenantId, periodo))
+                .thenReturn(List.of(MetricasFinanciera.builder().tenantId(tenantId).period(periodo)
+                        .totalIncome(new BigDecimal("3000")).costOfGoods(new BigDecimal("1500"))
+                        .costoOperativoDiario(new BigDecimal("139.80")).build()));
+        when(jdbc.query(anyString(), any(RowMapper.class), any(), any(), any())).thenReturn(List.of());
+
+        var start = pinned.withDayOfMonth(1);
+        var end = pinned.plusMonths(1).withDayOfMonth(1);
+        try (var hoy = mockStatic(LocalDate.class)) {
+            hoy.when(() -> LocalDate.now(any(ZoneId.class))).thenReturn(pinned);
+            hoy.when(() -> LocalDate.now(any(Clock.class))).thenReturn(pinned);
+            var result = service.analisisSaludFinanciera(tenantId, periodo,
+                    start, end, List.of(), List.of(), List.of());
+
+            var daily = ((List<Map<String, Object>>) result.get("criticalAlerts")).stream()
+                    .filter(m -> "DAILY_COST_CONTROL".equals(m.get("type"))).findFirst().orElseThrow();
+            assertThat(daily.get("message")).isEqualTo("Hasta hoy ganaste $1500.00 después de pagar la mercancía. Los fijos que han corrido son $3634.80. Te faltan $2134.80.");
+        }
+    }
+
+    @Test
+    void saludFinanciera_mesCerrado_costoDiarioDisparaConTotalesDelMes() {
         var tenantId = UUID.randomUUID();
         // feb 2026: mes cerrado de 28 días — el resultado no depende del día en que corra el test
         when(metricasRepository.findByTenantIdAndPeriodLessThanEqualOrderByPeriodDesc(tenantId, "2026-02"))
@@ -321,7 +349,7 @@ class AnalyticsServiceImplTest {
         var daily = ((List<Map<String, Object>>) result.get("criticalAlerts")).stream()
                 .filter(m -> "DAILY_COST_CONTROL".equals(m.get("type"))).findFirst().orElseThrow();
         assertThat(daily.get("title")).isEqualTo("Los costos fijos se comen tu ganancia");
-        assertThat(daily.get("message")).isEqualTo("Ganas $74.58 al día después de pagar la mercancía y tus costos fijos son $139.80 al día.");
+        assertThat(daily.get("message")).isEqualTo("Este mes ganaste $2088.10 después de pagar la mercancía. Los fijos que han corrido son $3634.80. Te faltan $1546.70.");
     }
 
     @Test
@@ -638,7 +666,7 @@ class AnalyticsServiceImplTest {
         var daily = ((List<Map<String, Object>>) result.get("criticalAlerts")).stream()
                 .filter(m -> "DAILY_COST_CONTROL".equals(m.get("type"))).findFirst().orElseThrow();
         assertThat(daily.get("message"))
-                .isEqualTo("Después de pagar la mercancía no te queda ganancia y tus costos fijos son $50.00 al día.");
+                .isEqualTo("Después de pagar la mercancía no te queda ganancia. Los fijos que han corrido son $1300.00. Te faltan $1500.00.");
     }
 
     @Test

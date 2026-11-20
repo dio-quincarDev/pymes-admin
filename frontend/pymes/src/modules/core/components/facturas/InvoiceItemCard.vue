@@ -51,11 +51,12 @@ const emit = defineEmits<Emits>()
 
 // ponytail: el padre decide cuándo revelar el item nuevo; el hijo solo expone cómo (contrato explícito)
 const rootEl = useTemplateRef<HTMLElement>('rootEl')
-const productSelect = useTemplateRef<{ focus: () => void }>('productSelect')
+const productSelect = useTemplateRef<{ showPopup: () => void }>('productSelect')
 
 function reveal() {
   rootEl.value?.scrollIntoView({ block: 'center', behavior: 'smooth' })
-  productSelect.value?.focus()
+  // ponytail: focus() no abre el popup de QSelect — escribir filtraba una lista invisible
+  productSelect.value?.showPopup()
 }
 defineExpose({ reveal })
 
