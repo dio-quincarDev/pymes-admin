@@ -4,6 +4,20 @@ Registro cronológico de decisiones, problemas resueltos y estado del frontend.
 
 ---
 
+## 2026-11-20 — Factura: caret sí, desplegable no
+
+**Contexto:** para arreglar la búsqueda de producto se cambió `focus()` por `showPopup()`. En pantallas chicas eso abre el menú con **todos** los productos en cuanto se pulsa "Agregar item" y tapa la factura. El problema real era que el caret no quedaba en el campo, no que faltara abrir el desplegable.
+
+**Qué se hizo:**
+- **`InvoiceItemCard.vue`** — `reveal()` vuelve a `focus()` y conserva el `scrollIntoView`. Con `use-input` + `@filter` + slot `no-option`, QSelect no usa el diálogo en móvil: el input queda editable, al teclear corre `filter()` y el menú se abre solo con las coincidencias (`input-debounce="0"`).
+- **`FacturasPage.vue`** — eliminado el parámetro `openPopup` de `addItem()`/`reveal()` y el `@click="addItem()"`. El scroll y el flujo de "Agregar item" siguen igual.
+
+**Verificación:** `npm run build` PWA verde (lint + vue-tsc). Commit local; sin deploy todavía.
+
+**Pendiente en dispositivo real:** en iOS el navegador puede ignorar el `focus()` programático y el teclado sale con un toque; el filtrado sigue siendo inmediato.
+
+---
+
 ## 2026-11-17 — Factura: el item nuevo se revela solo + limpieza del merge de develop
 
 **Contexto:** con muchos items, el botón "Agregar item" queda al final del dialog y el card nuevo se inserta por encima de él, fuera del viewport visible (peor en móvil, donde además entra el teclado). Había que hacer scroll manual para llegar al campo "Buscar producto..." y escribir el nombre. Por otro lado, el merge de `develop` (`158daba`) reintrodujo `itbmsMes` — el KPI viejo que esta rama ya había reemplazado por "Mejor día" — y el CI falló por variable sin uso.
