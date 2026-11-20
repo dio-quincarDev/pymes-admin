@@ -771,26 +771,35 @@ public class AnalyticsServiceImpl implements AnalyticsService {
             recommendations.add("Capital parado en " + dead.size() + " productos sin compra en 60+ días — liquida inventario.");
         }
 
-        // ---- 💸 Costo fijo diario vs ganancia diaria tras mercancía ----
-        // ponytail: comparar contra ventas con colchón 1.2 ocultaba la pérdida real (nov-2026: fijos $139.80/día vs ganancia $94/día)
+        // ---- 💰 Fijos corridos del mes vs ganancia tras mercancía ----
+        // ponytail: comparar totales del mes — dividir fijos por días laborables y ganancia por días calendario daba pérdida falsa
         var costPerDay = nz(current.getCostoOperativoDiario());
-        // ponytail: mes en curso se compara con días transcurridos — dividir por el mes completo dispara falsas alarmas
-        var dias = mesEnCurso ? LocalDate.now(ZoneOffset.UTC).getDayOfMonth() : start.lengthOfMonth();
-        var revenuePerDay = revenue.divide(BigDecimal.valueOf(dias), 4, RoundingMode.HALF_UP);
-        var gananciaPerDay = revenue.subtract(nz(current.getCostOfGoods()))
-                .divide(BigDecimal.valueOf(dias), 4, RoundingMode.HALF_UP);
-        if (costPerDay.signum() > 0 && revenuePerDay.signum() > 0) {
-            if (costPerDay.compareTo(gananciaPerDay) > 0) {
-                var ritmo = gananciaPerDay.signum() > 0
-                        ? "Ganas $" + gananciaPerDay.setScale(2, RoundingMode.HALF_UP).toPlainString() + " al día después de pagar la mercancía"
+        var diasLaborales = Optional.ofNullable(jdbc.query("""
+                SELECT dias_laborales FROM core.config_laboral WHERE tenant_id = ?
+                """, rs -> rs.next() ? rs.getInt(1) : 26, tenantId)).orElse(26);
+        var gananciaBruta = revenue.subtract(nz(current.getCostOfGoods()));
+        var diasDelMes = start.lengthOfMonth();
+        var diasTranscurridos = mesEnCurso ? LocalDate.now(ZoneOffset.UTC).getDayOfMonth() : diasDelMes;
+        var fijosCorridos = costPerDay.multiply(BigDecimal.valueOf(diasLaborales))
+                .multiply(BigDecimal.valueOf(diasTranscurridos))
+                .divide(BigDecimal.valueOf(diasDelMes), 2, RoundingMode.HALF_UP);
+        if (costPerDay.signum() > 0 && revenue.signum() > 0) {
+            if (fijosCorridos.compareTo(gananciaBruta) > 0) {
+                var faltante = fijosCorridos.subtract(gananciaBruta).setScale(2, RoundingMode.HALF_UP).toPlainString();
+                var ritmo = gananciaBruta.signum() > 0
+                        ? (mesEnCurso ? "Hasta hoy ganaste $" : "Este mes ganaste $")
+                                + gananciaBruta.setScale(2, RoundingMode.HALF_UP).toPlainString()
+                                + " después de pagar la mercancía"
                         : "Después de pagar la mercancía no te queda ganancia";
                 criticals.add(alert("DAILY_COST_CONTROL", "Los costos fijos se comen tu ganancia",
-                        ritmo + " y tus costos fijos son $" + costPerDay.setScale(2, RoundingMode.HALF_UP).toPlainString() + " al día.",
-                        costPerDay, gananciaPerDay, "Reduce costos fijos o sube el margen de tus ventas."));
-                recommendations.add("Tus costos fijos diarios superan lo que ganas por día — recorta gastos fijos o sube ventas.");
-            } else if (gananciaPerDay.signum() > 0 && costPerDay.compareTo(gananciaPerDay.multiply(new BigDecimal("0.8"))) < 0) {
-                expansions.add(signal("DAILY_COST_COVERED", "Costo Diario Cubierto",
-                        "Costo diario vs ganancia diaria", costPerDay, "costo < 80% de la ganancia diaria"));
+                        ritmo + ". Los fijos que han corrido son $"
+                                + fijosCorridos.setScale(2, RoundingMode.HALF_UP).toPlainString()
+                                + ". Te faltan $" + faltante + ".",
+                        fijosCorridos, gananciaBruta, "Reduce costos fijos o sube el margen de tus ventas."));
+                recommendations.add("Tus costos fijos superan lo que ganas — recorta gastos fijos o sube ventas.");
+            } else if (gananciaBruta.signum() > 0 && fijosCorridos.compareTo(gananciaBruta.multiply(new BigDecimal("0.8"))) < 0) {
+                expansions.add(signal("DAILY_COST_COVERED", "Fijos Cubiertos",
+                        "Ganancia vs fijos corridos", fijosCorridos, "fijos < 80% de la ganancia"));
             }
         }
 
