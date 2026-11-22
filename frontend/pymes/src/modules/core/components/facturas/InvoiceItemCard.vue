@@ -53,7 +53,7 @@ const emit = defineEmits<Emits>()
 const rootEl = useTemplateRef<HTMLElement>('rootEl')
 const productSelect = useTemplateRef<{ focus: () => void }>('productSelect')
 
-function reveal(openPopup = true) {
+function reveal() {
   rootEl.value?.scrollIntoView({ block: 'center', behavior: 'smooth' })
   // ponytail: solo el caret — QSelect abre el menú con coincidencias al teclear
   productSelect.value?.focus()
