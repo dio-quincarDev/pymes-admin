@@ -293,13 +293,13 @@ const form = ref<{
 });
 
 // ponytail: handles imperativos de los cards — solo sirven para revelar el item nuevo, sin estado reactivo extra
-type ItemCardHandle = { reveal: (openPopup?: boolean) => void };
+type ItemCardHandle = { reveal: () => void };
 const itemCards: ItemCardHandle[] = [];
 function setItemCardRef(el: unknown, i: number) {
   if (el && typeof (el as ItemCardHandle).reveal === 'function') itemCards[i] = el as ItemCardHandle;
 }
 
-async function addItem(openPopup = true) {
+async function addItem() {
   form.value.items.push({
     _key: ++keyCounter,
     productoId: null,
@@ -311,7 +311,7 @@ async function addItem(openPopup = true) {
     itbmsTasa: 0,
   });
   await nextTick();
-  itemCards[form.value.items.length - 1]?.reveal(openPopup);
+  itemCards[form.value.items.length - 1]?.reveal();
 }
 
 function onProductoChange(item: ItemForm, productoId: string | null) {
@@ -508,7 +508,7 @@ async function openCreate(tipo: 'FACTURA' | 'GASTO_OPERATIVO' = 'FACTURA') {
   providerFilteredOptions.value = [...providerOptions.value];
   dialogOpen.value = true;
   await nextTick();
-  await addItem(false);
+  await addItem();
 }
 
 async function openEdit(factura: Factura) {
@@ -1208,7 +1208,7 @@ function handleKeydown(e: KeyboardEvent) {
                       color="accent"
                       icon="sym_r_add"
                       label="Agregar item"
-                      @click="addItem()"
+                      @click="addItem"
                       no-caps
                       size="sm"
                     />

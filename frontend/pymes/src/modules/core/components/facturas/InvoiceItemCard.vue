@@ -51,12 +51,12 @@ const emit = defineEmits<Emits>()
 
 // ponytail: el padre decide cuándo revelar el item nuevo; el hijo solo expone cómo (contrato explícito)
 const rootEl = useTemplateRef<HTMLElement>('rootEl')
-const productSelect = useTemplateRef<{ showPopup: () => void }>('productSelect')
+const productSelect = useTemplateRef<{ focus: () => void }>('productSelect')
 
-function reveal(openPopup = true) {
+function reveal() {
   rootEl.value?.scrollIntoView({ block: 'center', behavior: 'smooth' })
-  // ponytail: abrir al crear la factura tapaba el formulario con el listado completo
-  if (openPopup) productSelect.value?.showPopup()
+  // ponytail: solo el caret — QSelect abre el menú con coincidencias al teclear
+  productSelect.value?.focus()
 }
 defineExpose({ reveal })
 
@@ -152,6 +152,7 @@ function fmt(n: number | null) {
         option-label="label"
         :placeholder="selectedLabel ? '' : 'Buscar producto...'"
         map-options emit-value use-input input-debounce="0"
+        behavior="menu"
         clearable
         @filter="productFilter"
         @clear="onClear"

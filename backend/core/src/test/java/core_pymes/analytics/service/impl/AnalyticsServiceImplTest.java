@@ -932,4 +932,54 @@ class AnalyticsServiceImplTest {
         assertThat(severities).contains("CRITICAL", "WARNING");
         assertThat(severities.indexOf("CRITICAL")).isLessThan(severities.indexOf("WARNING"));
     }
+
+    @Test
+    void saludFinanciera_crecimientoComparaSoloMesesCerrados() {
+        var tenantId = UUID.randomUUID();
+        when(metricasRepository.findByTenantIdAndPeriodLessThanEqualOrderByPeriodDesc(tenantId, "2026-06"))
+                .thenReturn(List.of(
+                        metrica(tenantId, "2026-06", "1040"),
+                        metrica(tenantId, "2026-05", "1020"),
+                        metrica(tenantId, "2026-04", "1000")));
+        when(jdbc.query(anyString(), any(RowMapper.class), any(), any(), any())).thenReturn(List.of());
+
+        var result = service.analisisSaludFinanciera(tenantId, "2026-06",
+                LocalDate.parse("2026-06-01"), LocalDate.parse("2026-07-01"),
+                List.of(), List.of(), List.of());
+
+        var growth = growthDe(result);
+        var drivers = (List<String>) growth.get("drivers");
+        assertThat(growth.get("score")).isEqualTo(70); // +4% => 50 + 4*5
+        assertThat(drivers).contains("growthFrom: 2026-04", "growthTo: 2026-06", "revenueTrend: 4.0%");
+    }
+
+    @Test
+    void saludFinanciera_mesEnCurso_noCalculaCrecimientoConMesParcial() {
+        var tenantId = UUID.randomUUID();
+        var ym = YearMonth.now(ZoneOffset.UTC);
+        var periodo = ym.toString();
+        when(metricasRepository.findByTenantIdAndPeriodLessThanEqualOrderByPeriodDesc(tenantId, periodo))
+                .thenReturn(List.of(
+                        metrica(tenantId, periodo, "4515.71"),
+                        metrica(tenantId, ym.minusMonths(1).toString(), "8845.74"),
+                        metrica(tenantId, ym.minusMonths(2).toString(), "8255.41")));
+        when(jdbc.query(anyString(), any(RowMapper.class), any(), any(), any())).thenReturn(List.of());
+
+        var result = service.analisisSaludFinanciera(tenantId, periodo,
+                ym.atDay(1), ym.atEndOfMonth(), List.of(), List.of(), List.of());
+
+        var growth = growthDe(result);
+        assertThat(growth.get("score")).isEqualTo(50);
+        assertThat((List<String>) growth.get("drivers")).noneMatch(d -> d.startsWith("revenueTrend"));
+    }
+
+    private static MetricasFinanciera metrica(UUID tenantId, String period, String totalIncome) {
+        return MetricasFinanciera.builder().tenantId(tenantId).period(period)
+                .totalIncome(new BigDecimal(totalIncome)).build();
+    }
+
+    @SuppressWarnings("unchecked")
+    private static Map<String, Object> growthDe(Map<String, Object> result) {
+        return ((Map<String, Map<String, Object>>) result.get("breakdown")).get("growth");
+    }
 }

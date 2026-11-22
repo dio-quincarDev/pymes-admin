@@ -8,6 +8,19 @@ Registro de lo implementado y lo pendiente.
 
 ---
 
+## 2026-11-21 — Crecimiento: excluir el mes en curso del scoring
+
+**Contexto:** `growth` usaba `firstN(metricas, 3, totalIncome)` sobre `period <= solicitado`. Con noviembre abierto eso comparaba 20 días contra un mes completo y daba `revenueTrend: -45.3%`, score 0 y salud 59. Las alertas (`OPEX_CREEP`, margen bruto) ya tenían guard `!mesEnCurso`; el scoring no.
+
+**Qué se hizo (`AnalyticsServiceImpl`):**
+- Si el período pedido es el mes en curso y existe su métrica, se descarta esa fila antes de calcular crecimiento. Con menos de 3 meses cerrados el score queda en **50** y no se emite `revenueTrend`.
+- Cuando sí hay 3 meses cerrados, los drivers pasan los meses y montos (`growthFrom`, `growthTo`, `growthFromAmount`, `growthToAmount`) para que el frontend name el período y no diga "hace 3 meses".
+- Sin queries nuevas: `subList` sobre la lista ya consultada.
+
+**Tests:** +2 unit (`crecimientoComparaSoloMesesCerrados`, `mesEnCurso_noCalculaCrecimientoConMesParcial`). Sin commit/push. Requiere recalcular el snapshot al deployar.
+
+---
+
 ## 2026-11-16 — Alertas Lote 2: ruido y casos raros (§8 estrategia frontend)
 
 **Contexto:** continuación del Lote 1. 4 avisos seguían disparándose con montos de calderilla o comparaciones diluidas: deuda/margen explotaba con margen chico, productos nunca comprados contaban como "dejaste de comprar", variación de precio y premium gritaban sobre $1.10 de gasto, y el premium se comparaba contra un promedio que incluía al proveedor caro.

@@ -897,8 +897,13 @@ public class AnalyticsServiceImpl implements AnalyticsService {
         var priceScore = hasPriceVariation ? 60 : 100;
         var stability = (int) Math.round(supplierScore * 0.5 + priceScore * 0.5);
 
-        var revenueGrowth = revenue3m.size() >= 3 && revenue3m.get(2).signum() > 0
-                ? growthPct(revenue3m.get(0), revenue3m.get(2)).doubleValue() : 0.0;
+        // ponytail: el mes en curso está a medias — compararlo con un mes cerrado daba un -45% falso
+        var closedMetricas = mesEnCurso && periodo.equals(current.getPeriod()) && metricas.size() > 1
+                ? metricas.subList(1, metricas.size()) : metricas;
+        var closedRevenue3m = firstN(closedMetricas, 3, m -> nz(m.getTotalIncome()));
+        var tieneCrecimiento = closedRevenue3m.size() >= 3 && closedRevenue3m.get(2).signum() > 0;
+        var revenueGrowth = tieneCrecimiento
+                ? growthPct(closedRevenue3m.get(0), closedRevenue3m.get(2)).doubleValue() : 0.0;
         var growth = clampScore(BigDecimal.valueOf(50 + revenueGrowth * 5));
 
         var overallHealth = (int) Math.round(profitability * 0.35 + efficiency * 0.25 + stability * 0.25 + growth * 0.15);
@@ -916,6 +921,17 @@ public class AnalyticsServiceImpl implements AnalyticsService {
         if (recommendations.isEmpty() && !criticals.isEmpty()) recommendations.add("Atiende las alertas críticas antes de invertir.");
         if (recommendations.isEmpty()) recommendations.add("Tu salud financiera es estable — evalúa las señales de inversión para crecer.");
 
+        // ponytail: sin 3 meses cerrados no mandar revenueTrend — el frontend distingue "sin datos" de "0%"
+        var growthDrivers = new ArrayList<String>();
+        if (tieneCrecimiento) {
+            growthDrivers.add("revenueTrend: " + BigDecimal.valueOf(revenueGrowth).setScale(1, RoundingMode.HALF_UP) + "%");
+            growthDrivers.add("growthFrom: " + closedMetricas.get(2).getPeriod());
+            growthDrivers.add("growthTo: " + closedMetricas.get(0).getPeriod());
+            growthDrivers.add("growthFromAmount: " + closedRevenue3m.get(2).setScale(2, RoundingMode.HALF_UP));
+            growthDrivers.add("growthToAmount: " + closedRevenue3m.get(0).setScale(2, RoundingMode.HALF_UP));
+        }
+        growthDrivers.add("inventoryTurnover: " + dead.size());
+
         var out = new LinkedHashMap<String, Object>();
         out.put("overallHealth", overallHealth);
         out.put("breakdown", Map.of(
@@ -925,8 +941,7 @@ public class AnalyticsServiceImpl implements AnalyticsService {
                         "opexRatio: " + opexRatio.multiply(BigDecimal.valueOf(100)).setScale(0, RoundingMode.HALF_UP) + "%")),
                 "stability", Map.of("score", stability, "drivers", List.of(
                         "supplierConcentration: " + supplierMax + "%", "priceStability: " + (hasPriceVariation ? 0.6 : 0.92))),
-                "growth", Map.of("score", growth, "drivers", List.of(
-                        "revenueTrend: " + BigDecimal.valueOf(revenueGrowth).setScale(1, RoundingMode.HALF_UP) + "%", "inventoryTurnover: " + dead.size()))));
+                "growth", Map.of("score", growth, "drivers", growthDrivers)));
         // ponytail: el semáforo del Dashboard lee criticalAlerts[0] — CRITICAL primero para no pintar amarillo con una roja detrás
         criticals.sort(Comparator.comparingInt(m -> "CRITICAL".equals(m.get("severity")) ? 0 : 1));
         out.put("criticalAlerts", criticals);

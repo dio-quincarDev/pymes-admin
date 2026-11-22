@@ -4,6 +4,32 @@ Registro cronológico de decisiones, problemas resueltos y estado del frontend.
 
 ---
 
+## 2026-11-21 — Salud financiera: Crecimiento deja de asustar
+
+**Contexto:** la tarjeta mostraba `-45.3% vs hace 3 meses` con gauge rojo en 0. En realidad comparaba noviembre a mitad de mes ($4,515.71) contra un mes cerrado (~$8,255): un -45% falso que bajaba la salud de 64 a 59.
+
+**Qué se hizo:**
+- **`financialGuide.ts`** — si el backend no manda `revenueTrend`, la tarjeta dice `Aún no hay historial` / `Se mide con 3 meses cerrados` (no lo confunde con un 0% real). Con datos, muestra `Octubre vs agosto: +4.6%` y debajo los montos con `formatCurrency`. Corregido el texto "hace 3 meses": el driver trae los meses reales.
+- **`TraderGauge.vue` / `FinancialHealthBreakdown.vue`** — `GuideLine.sinDatos` oculta el número del gauge y cambia el `aria-label` a "sin datos": mostrar un 50 inventado engañaba al usuario y al lector de pantalla (revisión con `chart-designer`). La aguja sigue en el centro.
+
+**Verificación:** `npm run build` PWA verde. Sin commit/push.
+
+---
+
+## 2026-11-20 — Factura: caret sí, desplegable no
+
+**Contexto:** para arreglar la búsqueda de producto se cambió `focus()` por `showPopup()`. En pantallas chicas eso abre el menú con **todos** los productos en cuanto se pulsa "Agregar item" y tapa la factura. El problema real era que en móvil QSelect ponía el caret en un input que no era el de búsqueda (modo diálogo), no que faltara abrir el desplegable.
+
+**Qué se hizo:**
+- **`InvoiceItemCard.vue`** — `reveal()` vuelve a `focus()` y conserva el `scrollIntoView`. **Causa real del "escribir no filtra":** en móvil QSelect elige diálogo cuando hay `@filter` + slot `no-option`, y en ese modo el input del campo queda con `no-pointer-events`, así que el caret no era el input de búsqueda. Se agrega `behavior="menu"` para forzar el menú inline: el campo sigue editable, `filter()` corre al teclear y el menú abre solo las coincidencias (`input-debounce="0"`).
+- **`FacturasPage.vue`** — eliminado el parámetro `openPopup` de `addItem()`/`reveal()` y el `@click="addItem()"`. El scroll y el flujo de "Agregar item" siguen igual.
+
+**Verificación:** `npm run build` PWA verde (lint + vue-tsc). Commit local; sin deploy todavía.
+
+**Pendiente en dispositivo real:** en iOS el navegador puede ignorar el `focus()` programático y el teclado sale con un toque; el filtrado sigue siendo inmediato.
+
+---
+
 ## 2026-11-17 — Factura: el item nuevo se revela solo + limpieza del merge de develop
 
 **Contexto:** con muchos items, el botón "Agregar item" queda al final del dialog y el card nuevo se inserta por encima de él, fuera del viewport visible (peor en móvil, donde además entra el teclado). Había que hacer scroll manual para llegar al campo "Buscar producto..." y escribir el nombre. Por otro lado, el merge de `develop` (`158daba`) reintrodujo `itbmsMes` — el KPI viejo que esta rama ya había reemplazado por "Mejor día" — y el CI falló por variable sin uso.
