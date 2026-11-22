@@ -50,6 +50,8 @@ const items = computed(() => {
         :score="item.score"
         :label="item.label"
         :size="78"
+        :show-value="!item.guide.sinDatos"
+        :aria-label="item.guide.sinDatos ? `${item.label}: sin datos` : undefined"
       />
       <div class="fh-breakdown__guide">
         <span class="fh-breakdown__guide-label">{{ item.guide.label }}</span>

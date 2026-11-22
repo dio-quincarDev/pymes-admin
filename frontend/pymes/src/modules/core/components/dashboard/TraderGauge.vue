@@ -6,6 +6,7 @@ interface Props {
   label?: string;
   size?: number;
   showValue?: boolean;
+  ariaLabel?: string;
 }
 
 const props = withDefaults(defineProps<Props>(), {
@@ -34,7 +35,7 @@ const valueStyle = computed(() => ({ color: color.value }));
     class="trader-gauge"
     :style="containerStyle"
     role="img"
-    :aria-label="`${label} ${clamped} de 100`"
+    :aria-label="ariaLabel ?? `${label} ${clamped} de 100`"
   >
     <div class="trader-gauge__arc" :style="arcStyle">
       <div class="trader-gauge__bg" />
