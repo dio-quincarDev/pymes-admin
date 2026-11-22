@@ -47,12 +47,14 @@ Real signals already wired in `AnalyticsService`. If you see one, act.
 | Frontend | Quasar 2.16 PWA (hash routing, offline cache, auto-update) | 9200 |
 | Gateway | WebFlux gateway — validates JWT, injects identity headers, aggregates Swagger | 8080 |
 | Auth | OAuth2 Google + JWT refresh rotation + RBAC + email (Thymeleaf) | 8081 |
-| Core | Business modules, 44 endpoints `V1..V6`, idempotency + tenant/role checks | 8082 |
+| Core | Business modules, 62 API operations (`docs/api/openapi-core.json`), idempotency + tenant/role checks | 8082 |
 | Data | One PostgreSQL 15 `pymes_db` with two isolated schemas `auth` / `core` + Redis 7 (blacklist, permissions, analytics cache) | 5432 / 6379 |
 
 Gateway forwards `/api/v1/auth/**` to Auth and `/api/v1/core/**` to Core. Auth and Core share the same database instance but never touch each other's schema. See `AGENTS.md` for the full architecture and `docs/strategies/DB_STRATEGY.md` for the single-DB rationale.
 
 More detail per service: [`backend/auth/README.md`](backend/auth/README.md) · [`backend/gateway-pymes/README.md`](backend/gateway-pymes/README.md) · [`backend/core/README.md`](backend/core/README.md) · [`frontend/pymes/README.md`](frontend/pymes/README.md)
+
+API contract (generated from code): [`docs/api/README.md`](docs/api/README.md) · [`openapi-auth.json`](docs/api/openapi-auth.json) · [`openapi-core.json`](docs/api/openapi-core.json)
 
 ---
 
@@ -107,7 +109,7 @@ cd backend/core && ./mvnw test -B
 cd backend/core && ./mvnw verify -B -Dspring.profiles.active=integration
 # Gateway — unit (no Docker)
 cd backend/gateway-pymes && ./mvnw test -B
-# Frontend — unit + e2e
+# Frontend — unit tests (vitest)
 cd frontend/pymes && npm run test
 ```
 
@@ -144,7 +146,7 @@ See `AGENTS.md` for profiles (`dev` default, `stg`, `prod`, `integration`, `test
 
 **Q2 2026 MVP — done:** OAuth2 + JWT + RBAC, invitations, password reset, gateway JWT + Swagger, full core domain (setup, products, suppliers, invoices with ITBMS, costs, loans, sales, accounting, analytics), 536 checks.
 
-**Q3 2026 Beta:** 10-20 pilot businesses, feedback, models with real data. Remaining: invoice QR scan (PWA), basic anomaly detection, monthly owner report (PDF+XLSX — plan: backend/core/docs/strategies/MONTHLY_REPORT_STRATEGY.md).
+**Q3 2026 Beta:** 10-20 pilot businesses, feedback, models with real data. Done: monthly owner report in PDF (auto-sent day 1 06:00 Panama — `backend/core/docs/CORE.md`). Remaining: XLSX export (plan: `backend/core/docs/strategies/MONTHLY_REPORT_STRATEGY.md`), invoice QR scan (PWA), basic anomaly detection.
 
 **Q4 2026 Launch:** Panama/LATAM rollout, Claude API integration, security certifications.
 

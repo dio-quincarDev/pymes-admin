@@ -71,6 +71,8 @@ Motor compuesto, no SQL independiente. Cruza datos de los 9 motores + `MetricasR
 
 Scoring compuesto: `Health = profitability(35%) + efficiency(25%) + stability(25%) + growth(15%)`
 
+> `growth` compara solo **meses cerrados** (excluye el mes en curso); con menos de 3 meses cerrados da 50 neutral y sin driver de tendencia. Con historial, los drivers traen `growthFrom`, `growthTo`, `growthFromAmount` y `growthToAmount`. `Source: AnalyticsServiceImpl.java` (tests `crecimientoComparaSoloMesesCerrados`, `mesEnCurso_noCalculaCrecimientoConMesParcial`).
+
 Ver `CORE.md` §Motor de Salud Financiera para JSON de salida, inputs y diseño completo.
 
 ### Flyway

@@ -8,6 +8,8 @@ Servicio de identidad y multi-tenancy para la plataforma SaaS PyMes Admin. Gesti
 [![Redis](https://img.shields.io/badge/Redis-DC382D?logo=redis&logoColor=ffffff)](https://redis.io/)
 [![JWT](https://img.shields.io/badge/JJWT-0.12.6-000000?logo=json)](https://jwt.io/)
 
+Docs: [API contract generado](../../docs/api/openapi-auth.json) · [cómo regenerarlo](../../docs/api/README.md#regenerar-un-comando-por-servicio)
+
 ---
 
 ## Que Hace
