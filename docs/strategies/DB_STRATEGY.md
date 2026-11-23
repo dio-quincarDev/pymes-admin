@@ -47,6 +47,27 @@ pymes-postgres-auth (instancia única)
 - Facilidad: Backup centralizado de ambos servicios
 - Coherencia: Snapshots consistentes en tiempo
 
+#### Plan en la rama `feature/infra` (Planned)
+
+Un solo `pg_dump -Fc` de `pymes_db` cubre los dos schemas: el formato custom
+ya comprime y permite restaurar por tabla.
+
+| Archivo | Función | Estado |
+|---------|---------|--------|
+| `infra/backup/pg-backup.sh` | `docker exec pymes-postgres-db pg_dump -Fc` → `pymes_db_YYYYmmdd_HHMMSS.dump` en `~/pymes-backups/`, verificación con `pg_restore --list`, retención 7 días, log | **Planned** |
+| `infra/backup/pg-restore.sh` | Restaura a `pymes_restore_check`, compara 6 tablas de `auth` + 24 de `core`, borra la temporal. `pymes_db` solo con `--prod` y confirmación | **Planned** |
+| `infra/backup/pymes-backup.service` + `.timer` | systemd, 03:00 diaria (America/Panama), sin contenedor extra | **Planned** |
+| Offsite a OCI Object Storage | 20 GB del free tier; requiere OCI CLI o rclone (dependencia nueva) | **Planned** |
+
+Sin password en los scripts: `docker exec` conecta por socket Unix, donde la
+imagen `postgres:15-alpine` usa `trust`.
+
+Verificación antes de marcarlo **Implemented**: dump + restore contra el compose
+local y comparar el conteo de tablas (6 + 24). No ejecutar contra producción.
+
+Limitación: el dump vive en el mismo boot volume que los datos de Postgres. Sin
+offsite, la pérdida del disco pierde datos y backups juntos.
+
 ### 4. Escalabilidad Futura
 - Agregar Service 3, 4, 5... sin agregar más PostgreSQL
 - Patrón: 1 DB = N schemas

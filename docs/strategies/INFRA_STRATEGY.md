@@ -145,21 +145,39 @@ Resultados reales:
 | fleet-control (9 backends) | — | 119–151 MB c/u |
 | pymes-frontend | 16 MB | 16 MB (no se toca) |
 
-### Estado en pymes-admin — pendiente de aplicar
+### Estado en pymes-admin — medido 2026-11-23
 
-Los 3 backends siguen grandes: core 472 MB, auth 379 MB, gateway 268 MB
-(1.119 MB en total). El frontend ya pesa 16 MB y no se cambia.
+`docker images` / `docker history --no-trunc` sobre las imágenes locales:
 
-Pasos previstos:
-1. Crear el Dockerfile único en la raíz (Java 21, parámetro SERVICE, Java recortado, sin root).
-2. Crear .dockerignore en la raíz (no meter node_modules, target ni secretos).
-3. Apuntar los 3 bloques de construcción de docker-compose.yml al Dockerfile nuevo.
-4. Actualizar los 6 bloques de publicación de cd-staging.yml y cd-prod.yml
-   (3 en cada uno). El CI no construye imágenes, no se toca.
-5. Borrar los 3 Dockerfiles viejos de backend/auth, backend/core y backend/gateway-pymes.
+| Imagen | Total | `app.jar` | Capa `chown` duplicada | Base JRE |
+|--------|-------|-----------|------------------------|----------|
+| `pymes-core` | 472 MB | 129 MB | 129 MB | 214 MB (158 MB = JRE) |
+| `pymes-auth` | 379 MB | 82,5 MB | 82,5 MB | 214 MB |
+| `pymes-gateway` | 268 MB | 53,8 MB | — | 214 MB |
+| `pymes-frontend` | 16 MB | — | — | nginx-slim |
 
-Resultado esperado: ~150 MB por backend (ahorro de ~650 MB).
-Pendiente de probar: core genera PDFs y la imagen mínima podría necesitar fuentes.
+Causa del exceso: auth y core hacen `COPY app.jar` y luego `RUN chown app.jar`.
+Docker copia el jar a una capa nueva: el mismo archivo aparece dos veces.
+Gateway no lo hace.
+
+Plan acordado en la rama `feature/infra` (nada aplicado todavía):
+
+| Acción | Estado | Ahorro |
+|--------|--------|--------|
+| `COPY --chown=spring:spring` y borrar `RUN chown` en auth y core | **Planned** | −129 MB core, −82,5 MB auth |
+| `jlink` con los módulos necesarios (runtime ~65 MB en vez de 158 MB) | **Planned**, solo si pasa el smoke test | ~−90 MB por backend |
+| Jar por capas (`layertools`) | **Descartado por ahora**: 0 MB de disco, solo reduce el pull | — |
+| Dockerfile único raíz con parámetro `SERVICE` (patrón bytebank) | **Descartado por ahora**: 5 archivos + 6 bloques de CD para el mismo resultado | — |
+
+Objetivo: core ~250 MB, auth ~200 MB, gateway ~175 MB. El frontend no se toca.
+
+Verificación antes de cerrar: `docker build` + `docker images` y smoke test de
+los 3 backends (health, login de auth, una consulta de core). Si `jlink` falla
+por un módulo de reflexión se descarta ese cambio; el fix de `chown` se mantiene
+de todas formas.
+
+Riesgo conocido: core genera PDFs; el runtime recortado podría necesitar fuentes
+o módulos extra (`java.desktop`).
 
 ---
 
