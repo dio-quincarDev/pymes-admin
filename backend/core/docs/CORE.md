@@ -16,7 +16,7 @@ Core Service (8082)
 ├── setup/      configuracion/inventario inicial
 ├── product/    catalogo productos y presentaciones
 ├── invoice/    facturas de compra y proveedores
-├── analytics/  10 motores de analisis + motor de salud financiera
+├── analytics/  9 motores CTE + motor de salud financiera (10)
 ├── gasto/      gastos operativos
 ├── prestamo/   prestamos y pagos
 ├── inversion/  patrimonio
@@ -139,7 +139,11 @@ Health Score = profitability(35%) + efficiency(25%) + stability(25%) + growth(15
 
 Cada sub-score tiene drivers que explican *por qué* está en ese nivel. No es un número mágico — es un diagnóstico con contexto.
 
+> **Crecimiento (2026-11-21):** compara solo **meses cerrados**; el mes en curso se descarta antes de calcular la tendencia para no comparar un mes parcial contra uno completo. Con menos de 3 meses cerrados el sub-score es **50** y no se emite `revenueTrend`. Cuando hay historial, los drivers traen `growthFrom`, `growthTo`, `growthFromAmount` y `growthToAmount` para nombrar el período real. `Source: AnalyticsServiceImpl.java` (tests `crecimientoComparaSoloMesesCerrados`, `mesEnCurso_noCalculaCrecimientoConMesParcial`).
+
 **Salida JSON (`financial_health`):**
+
+> El driver `inventoryTurnover` está mal nombrado: su valor es `dead.size()`, el conteo de productos sin compras recientes (no una rotación de inventario). El frontend no lo consume. `Source: AnalyticsServiceImpl.java:933`.
 
 ```json
 {
@@ -148,7 +152,7 @@ Cada sub-score tiene drivers que explican *por qué* está en ese nivel. No es u
     "profitability": { "score": 65, "drivers": ["grossMarginPct: 32%", "operatingMarginPct: 8%", "netMarginPct: 5%"] },
     "efficiency": { "score": 80, "drivers": ["opexRatio: 22%", "opexGrowth < revenueGrowth: true"] },
     "stability": { "score": 70, "drivers": ["supplierConcentration: 35%", "priceStability: 0.92"] },
-    "growth": { "score": 55, "drivers": ["revenueTrend: +5%", "inventoryTurnover: 0.8"] }
+    "growth": { "score": 55, "drivers": ["revenueTrend: +5%", "inventoryTurnover: 0"] }
   },
   "criticalAlerts": [
     { "type": "NEGATIVE_OPERATING_MARGIN", "severity": "CRITICAL",

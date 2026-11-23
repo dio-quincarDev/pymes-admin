@@ -13,7 +13,7 @@
   - **Rentabilidad (35%)**: Margen bruto (40%), operativo (35%) y neto (25%).
   - **Eficiencia (25%)**: Ratio de OpEx sobre ingresos.
   - **Estabilidad (25%)**: Concentración de proveedores (<50%) y estabilidad de precios.
-  - **Crecimiento (15%)**: Tendencia trimestral de ingresos y rotación de inventario.
+  - **Crecimiento (15%)**: Tendencia de ingresos entre **meses cerrados**; el mes en curso se excluye para no comparar un mes parcial contra uno completo. Con menos de 3 meses cerrados el sub-score es 50 neutral y no se emite driver de tendencia (la tarjeta dice "Aún no hay historial"). `Source: backend/core/src/main/java/core_pymes/analytics/service/impl/AnalyticsServiceImpl.java`.
 - **Señales Avanzadas**: Detección de costo diario vs ingreso (`DAILY_COST_CONTROL`), payback real de capital + deuda activa (`PAYBACK_RECOVERY`), señales de inversión y madurez para expansión.
 - **Normalización**: `analyticsNormalize.ts` sanitiza y tipifica las respuestas del backend sin errores de runtime.
 

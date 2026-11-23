@@ -72,9 +72,9 @@ Estrategia: eliminar redundancia entre Dashboard (4 KPIs duplicados) y Contabili
 
 **Fase 4 — Consolidación del Workflow (2026-08-17)** ✅ CERRADO (2026-08-17)
 
-Objetivo: depurar la info visual, quitar redundancias, dejarlo "casi para dummies" (una pantalla, una pregunta). Ejecución secuencial: primero workflow, depués tutorial guiado sobre el resultado. **Modelo de capas:** Vital (visible) / Bajo demanda (colapsado) / Fuera de UI. Auditoría backend: 6 motores (ABC, tendencias, márgenes, opex, proyección, alertas) calculados pero invisibles → **todos conservados BAJO DEMANDA**. → [`FRONTEND_PENDIENTES_STRATEGY.md`](./frontend/pymes/docs/strategies/FRONTEND_PENDIENTES_STRATEGY.md) (Fase 4 actualizada 2026-08-17) → `DAILY_REPORTS_FRONTEND.md` 2026-08-17 (5 secciones completadas)
+Objetivo: depurar la info visual, quitar redundancias, dejarlo "casi para dummies" (una pantalla, una pregunta). Ejecución secuencial: primero workflow, depués tutorial guiado sobre el resultado. **Modelo de capas:** Vital (visible) / Bajo demanda (colapsado) / Fuera de UI. Auditoría backend: 6 motores (ABC, tendencias, márgenes, opex, proyección, alertas) calculados pero invisibles → **todos conservados BAJO DEMANDA**. → [`FRONTEND_PENDIENTES_STRATEGY.md`](../frontend/pymes/docs/strategies/FRONTEND_PENDIENTES_STRATEGY.md) (Fase 4 actualizada 2026-08-17) → `DAILY_REPORTS_FRONTEND.md` 2026-08-17 (5 secciones completadas)
 
-Estrategia: → [`FRONTEND_PENDIENTES_STRATEGY.md`](./frontend/pymes/docs/strategies/FRONTEND_PENDIENTES_STRATEGY.md) (actualizado con Fase 4)
+Estrategia: → [`FRONTEND_PENDIENTES_STRATEGY.md`](../frontend/pymes/docs/strategies/FRONTEND_PENDIENTES_STRATEGY.md) (actualizado con Fase 4)
 
 **4a — Dashboard: quitar ruido** ✅
 
@@ -165,7 +165,7 @@ Estrategia completa: → [`E2E_TESTING_STRATEGY.md`](./strategies/E2E_TESTING_ST
 ### Core (backend)
 
 - [x] [Alta] **Cleanup seed: remover conceptos de stock** — `template_locations` y `template_movement_reasons` eliminadas. V17 DROP TABLE + V18 Flyway DDL (movido desde SeedDataRunner). Industry codes → 8 constantes + SQL INSERT strings → 5 constantes (java:S1192). SQL optimization: dead LEFT JOIN eliminado + O(n×m) → Collectors.groupingBy(). Ver `backend/core/docs/SEED_TEMPLATES.md`.
-- [x] [Alta] **Exception system (estrategia definida)** — `ErrorResponse`, `ApiResponse`, `CodigoError`, 3 custom exceptions, `GlobalExceptionHandler` (12 handlers). Migrados 18 throws en 7 services (150/150 tests). → [`docs/EXCEPTION_STRATEGY.md`](./backend/core/docs/EXCEPTION_STRATEGY.md)
+- [x] [Alta] **Exception system (estrategia definida)** — `ErrorResponse`, `ApiResponse`, `CodigoError`, 3 custom exceptions, `GlobalExceptionHandler` (12 handlers). Migrados 18 throws en 7 services (150/150 tests). → [`docs/EXCEPTION_STRATEGY.md`](../backend/core/docs/strategies/EXCEPTION_STRATEGY.md)
 - [x] [🔴] **Validar tenantId contra JWT** — `TenantValidationFilter` que compara `X-Tenant-Id` header vs `@RequestParam tenantId`, 403 si difieren. (2026-07-24)
 - [x] [🔴] **`@PreAuthorize` en endpoints sensibles** — agregar `@EnableMethodSecurity` + `@PreAuthorize` en controllers (crear/actualizar/eliminar según rol) (2026-07)
 - [x] [Alta] **OLS de proyección de precios en SQL** — `analisisProyeccionPrecios` usa `regr_slope/regr_intercept/regr_r2` en la query (CTEs `daily_prices` + `ranked`, filtro `data_points>=3`, `predictedPrice = slope*(n+1)+intercept`), ~50 líneas Java menos. (2026-07-31)
@@ -179,7 +179,7 @@ Estrategia completa: → [`E2E_TESTING_STRATEGY.md`](./strategies/E2E_TESTING_ST
 - [x] [Baja] **Enum `GAS` en `CategoriaGasto`** — añadido `GAS` al enum backend. Frontend: `categoriaOptions` en CostosPage ahora incluye `GAS`. (2026-08-04)
 - [x] [Media] **Proveedor vinculable a gasto fijo recurrente** — `V7__gastos_fijos_provider.sql`: `gastos_fijos_recurrentes.provider_id` nullable + FK + índice. `GastoFijoRecurrente` + `GastoFijoRequest`/`GastoFijoResponse` con `proveedorId`/`proveedorName`. `CostoServiceImpl` con validación tenant. Frontend: select "Proveedor" opcional en dialog de gasto fijo, nombre en tarjeta. (2026-08-04)
 
-### Core — Motor de Costos ([COSTOS_ENGINE.md](./backend/core/docs/COSTOS_ENGINE.md))
+### Core — Motor de Costos ([COSTOS_ENGINE.md](../backend/core/docs/COSTOS_ENGINE.md))
 
 - [x] [🔴] **V2 migration: collaboradores, gastos_fijos_recurrentes, config_laboral** — 3 tablas nuevas en schema `core`. Idempotente con `IF NOT EXISTS`. (2026-07-31)
 - [x] [🔴] **V1 consolidado: costo_operativo_diario en tenant_financial_metrics** — Columna para persistir costo diario calculado. (2026-07-31)
@@ -191,7 +191,7 @@ Estrategia completa: → [`E2E_TESTING_STRATEGY.md`](./strategies/E2E_TESTING_ST
 - [x] [Baja] **Dashboard: daily cost strip** — KPI "Costo / Día" en `DashboardPage.vue` (verde/rojo según ventas vs costo). No está en `StatStrip` (el dashboard ya no lo usa), pero el KPI está en pantalla. (2026-08-02)
 - [x] [Media] **Tests: JPA + unit** — `CostosRepositoryTest` (AbstractJpaTest, cubre Collaborador/GastoFijo/ConfigLaboral) + `CostoServiceImplTest` (Mockito). (2026-08-02)
 
-### Core — Modelo de Gastos Operativos ([EXPENSES_MODEL_STRATEGY.md](./backend/core/docs/strategies/EXPENSES_MODEL_STRATEGY.md))
+### Core — Modelo de Gastos Operativos ([EXPENSES_MODEL_STRATEGY.md](../backend/core/docs/strategies/EXPENSES_MODEL_STRATEGY.md))
 
 - [x] [Alta] **Gastos reales solo con facturas PAGADAS** — `MetricasServiceImpl.computeMetrics`: eliminado CTE `opex`, `invoices_opex` filtra por `status='PAGADA'`. Doble conteo eliminado. (2026-08-02)
 - [x] [🔴] **Pago de factura dispara recálculo de métricas** — `FacturaPagadaEvent` + `FacturaPagadaListener` (`@Async` + `AFTER_COMMIT`) → `markMetricsDirty`. (2026-08-02)
@@ -199,11 +199,11 @@ Estrategia completa: → [`E2E_TESTING_STRATEGY.md`](./strategies/E2E_TESTING_ST
 - [x] [Media] **Patrimonio conectado a la salud financiera** — ~~`CAPITAL_BURN`/`CAPITAL_READINESS`~~ implementadas (2026-08-02) pero **reemplazadas el mismo día** por `PAYBACK_RECOVERY` (ver ítem Recuperación de inversión abajo).
 - [x] [Media] **Alinear `analisisGastoVariable` con el modelo** — revisión SQL (2026-08-02): el dashboard de gasto variable solo cuenta gastos `GASTO_OPERATIVO` PAGADA e incluye facturas sin items vía `i.total` (UNION items/header). Antes ignoraba facturas sin items y contaba REGISTRADA. +IT `gastoVariable_alineadoConModelo`. (2026-08-02)
 - [x] [Baja] **Índice covering con `status`** — consolidado en V1: `idx_invoices_tenant_date_type` pasa a `(tenant_id, issue_date, type, status) INCLUDE (total)`. Elimina heap lookup en los CTEs de facturas. (2026-08-02)
-- [x] [Media] **Recuperación de inversión (payback real)** — reemplaza `CAPITAL_BURN`/`CAPITAL_READINESS` por señal `PAYBACK_RECOVERY`: `plata a recuperar = capital inicial + saldo pendiente de préstamos ACTIVOS`, `meses = plata ÷ ganancia mensual` (ingresos × margen neto). Semáforo: ganancia ≤0 rojo (crítica), ≤12 verde (expansión), >24 amarillo (solo recomendación), 12-24 neutro. `PrestamoRepository.findByTenantIdAndStatus` + `financialHealth` expuesto en `AnalyticsResponse`. Tests: 4 unit (rojo/verde/amarillo/deuda ACTIVA suma al tiempo) + 2 IT (rojo, deuda ACTIVA suma al tiempo). → [`backend/core/docs/strategies/INVESTMENT_RECOVERY_STRATEGY.md`](./backend/core/docs/strategies/INVESTMENT_RECOVERY_STRATEGY.md) (2026-08-02)
+- [x] [Media] **Recuperación de inversión (payback real)** — reemplaza `CAPITAL_BURN`/`CAPITAL_READINESS` por señal `PAYBACK_RECOVERY`: `plata a recuperar = capital inicial + saldo pendiente de préstamos ACTIVOS`, `meses = plata ÷ ganancia mensual` (ingresos × margen neto). Semáforo: ganancia ≤0 rojo (crítica), ≤12 verde (expansión), >24 amarillo (solo recomendación), 12-24 neutro. `PrestamoRepository.findByTenantIdAndStatus` + `financialHealth` expuesto en `AnalyticsResponse`. Tests: 4 unit (rojo/verde/amarillo/deuda ACTIVA suma al tiempo) + 2 IT (rojo, deuda ACTIVA suma al tiempo). → [`backend/core/docs/strategies/INVESTMENT_RECOVERY_STRATEGY.md`](../backend/core/docs/strategies/INVESTMENT_RECOVERY_STRATEGY.md) (2026-08-02)
 
 ### Core — Migraciones Flyway
 
-- [x] [Alta] **Consolidar V1–V18 → V1__core_schema.sql único** — Ejecutado 2026-07-30 (estrategia ✅). Re-consolidado 2026-08-05: absorbidas V3–V9 (columnas, indexes, FK). `db/migration/` queda con V1 (consolidado) + V2 (costos) + V3 (performance indexes). → [`docs/strategies/CORE_MIGRATIONS_STRATEGY.md`](./docs/strategies/CORE_MIGRATIONS_STRATEGY.md)
+- [x] [Alta] **Consolidar V1–V18 → V1__core_schema.sql único** — Ejecutado 2026-07-30 (estrategia ✅). Re-consolidado 2026-08-05: absorbidas V3–V9 (columnas, indexes, FK). `db/migration/` queda con V1 (consolidado) + V2 (costos) + V3 (performance indexes). → [`docs/strategies/CORE_MIGRATIONS_STRATEGY.md`](./strategies/CORE_MIGRATIONS_STRATEGY.md)
 
 ### Gateway
 
@@ -218,12 +218,12 @@ Estrategia completa: → [`E2E_TESTING_STRATEGY.md`](./strategies/E2E_TESTING_ST
 - [x] [Baja] **`@Transactional` en métodos Redis-only** — `EmailVerificationServiceImpl.generateVerificationToken()` y `generateAndSendPendingRegistrationEmail()` tenían `@Transactional` pero solo tocan Redis. Quitado. (2026-07-30)
 - [x] [🔴] **AUTH001 retorna 400 no 401** — `CodigoError.INVALID_CREDENTIALS` usaba `HttpStatus.BAD_REQUEST`. Un 401 es semánticamente correcto. Tests de integración actualizados. (2026-07-30)
 - [x] [Media] **CORS `allowed-origins` sin default** — `@Value("${app.cors.allowed-origins}")` sin fallback. App no arranca sin `.env`. Fix: default `http://localhost:9200`. (2026-07-30)
-- [x] [Baja] **JWT `jti` no usado** — cerrado como diseño deliberado: RTR + validación por `jti` única (2026-04-12) + Logout Global multi-session (2026-05-05). → [`backend/auth/docs/DAILY_REPORTS_AUTH_SOLUTIONS.md`](./backend/auth/docs/DAILY_REPORTS_AUTH_SOLUTIONS.md)
+- [x] [Baja] **JWT `jti` no usado** — cerrado como diseño deliberado: RTR + validación por `jti` única (2026-04-12) + Logout Global multi-session (2026-05-05). → [`backend/auth/docs/DAILY_REPORTS_AUTH_SOLUTIONS.md`](../backend/auth/docs/DAILY_REPORTS_AUTH_SOLUTIONS.md)
 - [x] [Baja] **Rediseño templates email** — verification/invitation/password-reset refactorizados a paleta DESIGN.md (bronce/near-black) + layout fragment Thymeleaf compartido (`fragments/layout.html`). (2026-07-15)
 
 ### Auth — Invitación por Email (estrategia definida)
 
-- [x] [Alta] **MVP invitaciones: maxUsers 2 + register+accept + TeamsPage** — `Tenant.java` 1→2, `InvitationRegisterRequest`, `InvitationInfoResponse`, `GET /{token}/info` + `POST /{token}/register` públicos, `InvitationServiceImpl.registerAndAccept()` transaccional, `TeamsPage.vue`, nav por roles. Sin cooldown. → [`docs/strategies/EMAIL_INVITATION_STRATEGY.md`](./docs/strategies/EMAIL_INVITATION_STRATEGY.md)
+- [x] [Alta] **MVP invitaciones: maxUsers 2 + register+accept + TeamsPage** — `Tenant.java` 1→2, `InvitationRegisterRequest`, `InvitationInfoResponse`, `GET /{token}/info` + `POST /{token}/register` públicos, `InvitationServiceImpl.registerAndAccept()` transaccional, `TeamsPage.vue`, nav por roles. Sin cooldown. → [`docs/strategies/EMAIL_INVITATION_STRATEGY.md`](./strategies/EMAIL_INVITATION_STRATEGY.md)
 
 ### Frontend — Completado (Fixes generales 2026-07-21)
 

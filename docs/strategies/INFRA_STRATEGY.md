@@ -128,9 +128,38 @@ healthcheck:
 
 ## Imagenes Docker
 
-- **Base:** `eclipse-temurin:21-jre-alpine` (no JDK completo).
-- **Multi-stage:** compilar con imagen pesada, copiar solo el JAR a Alpine.
-- **Resultado:** ~150MB vs ~400MB. Deploy mas rapido.
+### Patrón bytebank (ya aplicado en fleet-control y arrendadora)
+
+Un solo Dockerfile en la raíz con un parámetro que indica qué servicio construir.
+Primero compila en una imagen pesada, luego genera un Java recortado con lo
+que la app necesita, y por último copia el JAR a una imagen Alpine mínima
+que corre como usuario sin permisos de root. Antes cada servicio tenía su
+propio Dockerfile y una imagen Java completa.
+
+Resultados reales:
+
+| Proyecto | Antes | Después |
+|----------|-------|---------|
+| arrendadora backend | 434 MB | 168 MB |
+| arrendadora frontend | 631 MB | 18,4 MB |
+| fleet-control (9 backends) | — | 119–151 MB c/u |
+| pymes-frontend | 16 MB | 16 MB (no se toca) |
+
+### Estado en pymes-admin — pendiente de aplicar
+
+Los 3 backends siguen grandes: core 472 MB, auth 379 MB, gateway 268 MB
+(1.119 MB en total). El frontend ya pesa 16 MB y no se cambia.
+
+Pasos previstos:
+1. Crear el Dockerfile único en la raíz (Java 21, parámetro SERVICE, Java recortado, sin root).
+2. Crear .dockerignore en la raíz (no meter node_modules, target ni secretos).
+3. Apuntar los 3 bloques de construcción de docker-compose.yml al Dockerfile nuevo.
+4. Actualizar los 6 bloques de publicación de cd-staging.yml y cd-prod.yml
+   (3 en cada uno). El CI no construye imágenes, no se toca.
+5. Borrar los 3 Dockerfiles viejos de backend/auth, backend/core y backend/gateway-pymes.
+
+Resultado esperado: ~150 MB por backend (ahorro de ~650 MB).
+Pendiente de probar: core genera PDFs y la imagen mínima podría necesitar fuentes.
 
 ---
 

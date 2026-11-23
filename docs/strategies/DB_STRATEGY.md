@@ -1,6 +1,6 @@
 # Estrategia: PostgreSQL Compartido con Schemas Separados
 
-> Detalle de implementación del schema `core`: [`backend/core/docs/CORE.md`](/backend/core/docs/CORE.md)
+> Detalle de implementación del schema `core`: [`backend/core/docs/CORE.md`](../../backend/core/docs/CORE.md)
 
 ## Resumen Ejecutivo
 

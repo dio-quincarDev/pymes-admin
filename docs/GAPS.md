@@ -257,13 +257,13 @@
 | 1 | `JAVA_OPTS` sin configurar | INFRA_STRATEGY.md recomienda `-Xmx384m` | docker-compose.yml no tenía límites JVM | Alto — configurado `-Xmx384m -XX:+UseG1GC` en gateway, auth, core | ✅ |
 | 2 | Logging sin límites | INFRA_STRATEGY.md recomienda `max-size: 10m` | docker-compose.yml no tiene bloque logging | Bajo — aceptado (ponytail: logs de PYME no llenan disco rápido) |
 | 3 | Healthchecks más frecuentes que lo recomendado | INFRA_STRATEGY.md sugiere `interval: 30s` | Gateway 10s, Auth/Core 15s | Bajo — aceptado (ponytail: 15s no causa picos medibles) |
-| 4 | Core service sin build en docker-build-check | CI.yml solo construye auth, gateway, frontend | CI no verifica que core construya imagen Docker | Bajo — aceptado (ponytail: gap de CI, no de compose) |
+| 4 | Core service sin build en docker-build-check | AGENTS.md decía "Docker check" en CI | No aplica: CI no construye imágenes (lo hace CD) | Bajo — corregido: drift eliminado | ✅ |
 
 ## GitHub Actions
 
 | # | Gap | Documentación dice | Realidad es | Impacto |
 |---|-----|--------------------|-------------|---------|
-| 1 | Core service ausente de CI | CI.yml testea auth, gateway, frontend | No había jobs para core | **Crítico** — corregido: job unit tests + docker build check | ✅ |
+| 1 | Core service ausente de CI | CI.yml testea auth, gateway, frontend | No había jobs para core | **Crítico** — corregido: jobs unit + integration tests | ✅ |
 | 2 | Core service ausente de CD staging | cd-staging.yml build & test auth + gateway | No corría tests de core ni construía imagen | **Crítico** — corregido: build+test + docker push | ✅ |
 | 3 | Core service ausente de CD production | cd-prod.yml misma estructura | No corría tests de core ni construía imagen | **Crítico** — corregido: build+test + docker push | ✅ |
-| 4 | CI no ejecuta integration tests de core | Solo auth tiene integration tests en CI | Core tiene tests no ejecutados | Medio — aceptado (ponytail: requieren Docker-in-Docker) |
+| 4 | CI no ejecuta integration tests de core | Solo auth tiene integration tests en CI | Job `backend-core-integration-test` corre con Testcontainers | Medio — corregido: drift eliminado | ✅ |

@@ -2,6 +2,8 @@
 
 > Microservicio de negocio del SaaS Pymes Admin. Gestiona operaciones core: setup, productos, facturas, gastos, prestamos, inversiones, ventas, contabilidad y analisis.
 
+Docs: [API contract generado](../../docs/api/openapi-core.json) · [cómo regenerarlo](../../docs/api/README.md#regenerar-un-comando-por-servicio)
+
 ---
 
 ## Tech Stack
@@ -14,7 +16,7 @@
 | Redis | 7 | Caching + debounce para recomputo |
 | MapStruct | 1.6.3 | DTO mapping |
 | Lombok | -- | Boilerplate reduction |
-| OpenFeign | -- | Comunicacion con Auth Service |
+| OpenFeign | -- | Declarado (`@EnableFeignClients`) pero **sin ningún `@FeignClient`** — comunicación real es vía eventos y headers del gateway |
 | Spring Events | -- | Comunicacion entre modulos |
 | Docker | -- | Multi-stage, alpine, non-root |
 
@@ -84,6 +86,20 @@ DTOs: Java records. Mapper: MapStruct.
 
 Ver [docs/CORE.md](./docs/CORE.md) para arquitectura completa.
 
+```mermaid
+flowchart LR
+    H["X-User-* headers del gateway"] --> I["IdempotencyFilter<br/>POST replay 6 h"]
+    I --> TN["TenantValidationFilter<br/>X-Tenant-Id vs JWT"]
+    TN --> RH["RoleHeaderFilter<br/>@PreAuthorize OWNER/ADMIN"]
+    RH --> M["setup · product · invoice · gasto<br/>prestamo · venta · inversion"]
+    M --> DB[("PostgreSQL<br/>schema core")]
+    DB --> AN["analytics<br/>9 motores CTE"]
+    AN --> AC["accounting<br/>métricas consolidadas"]
+    AC --> RE["report<br/>PDF mensual a OWNER"]
+```
+
+Source: `backend/core/src/main/java/core_pymes/common/config/IdempotencyFilter.java`, `TenantValidationFilter.java`, `RoleHeaderFilter.java` + `docs/CORE.md`.
+
 ---
 
 ## Modulos
@@ -102,7 +118,7 @@ Ver [docs/CORE.md](./docs/CORE.md) para arquitectura completa.
 | accounting | 2 | Metricas financieras consolidadas (CTE 1 round-trip) |
 | report | 1 | Reporte mensual a OWNERs: PDF Jasper 7 + mail + idempotencia (`V8 report_log`) — cron día 1 06:00 Panama |
 
-> **Total: 45 endpoints** — Facturas ahora exponen `itbmsTasa/itbmsMonto` por ítem y `subtotalExento/Gravado/itbmsTotal` en header; `Idempotency-Key` header opcional en POST (replay 6h)
+> **Total: 62 operaciones API** (34 paths — fuente: `docs/api/openapi-core.json`). Facturas exponen `itbmsTasa/itbmsMonto` por ítem y `subtotalExento/Gravado/itbmsTotal` en header; `Idempotency-Key` header opcional en POST (replay 6h)
 
 ---
 

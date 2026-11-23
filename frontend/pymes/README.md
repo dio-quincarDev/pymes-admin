@@ -7,6 +7,8 @@
 ![TypeScript](https://img.shields.io/badge/TypeScript-5.9-3178C6?logo=typescript)
 ![License](https://img.shields.io/badge/License-Proprietary-red)
 
+Docs: [API contract (auth + core)](../../docs/api/README.md)
+
 ---
 
 ## Quick Start
@@ -89,6 +91,18 @@ frontend/pymes/
 ---
 
 ## Architecture
+
+```mermaid
+flowchart LR
+    R["Router hash<br/>/#/dashboard"] --> PG["Pages / Layouts"]
+    PG --> ST["Pinia store<br/>tokens en localStorage"]
+    ST --> AX["Axios interceptor<br/>Authorization: Bearer"]
+    AX --> GW["Gateway /api/v1"]
+    GW --> SW["Service Worker<br/>caché offline"]
+    SW --> UI["PWA en el navegador"]
+```
+
+Source: `frontend/pymes/src/router/index.ts`, `src/boot/axios.ts`, `src/stores/`.
 
 ### Routing
 
@@ -407,5 +421,5 @@ Proprietary. Todos los derechos reservados.
 > - [Design System](docs/strategies/DESIGN_SYSTEM.md) — Paleta, tipografia, tokens
 > - [Capacitor Setup](docs/strategies/CAPACITOR_SETUP.md) — Guia Android
 > - [PWA / Offline](docs/PWA_OFFLINE.md) — Service Worker, cache, banner offline
-> - [Analytics Dashboard](docs/ANALYTICS_DASHBOARD_STRATEGY.md) — Estrategia frontend analytics
+> - [Analytics Dashboard](docs/strategies/ANALYTICS_DASHBOARD_STRATEGY.md) — Estrategia frontend analytics
 > - [Daily Reports](docs/DAILY_REPORTS_FRONTEND.md) — Historial de desarrollo
