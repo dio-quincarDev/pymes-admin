@@ -50,6 +50,18 @@ Request externo
        X-User-Role: {role}
 ```
 
+```mermaid
+flowchart LR
+    Q["Request externo"] --> RV["RouterValidator<br/>whitelist"]
+    RV -->|pública| UP["downstream sin JWT"]
+    RV -->|protegida| JW["JwtUtils.getClaims<br/>firma / expiración"]
+    JW --> BL["Redis blacklist<br/>jti revocado"]
+    BL --> IH["X-User-Id / Email / Tenant / Role / Plan"]
+    IH --> DS["auth:8081 · core:8082"]
+```
+
+Source: `backend/gateway-pymes/src/main/java/dev/dioquincar/gateway_pymes/filter/AuthenticationFilter.java`, `RouterValidator.java`, `util/JwtUtils.java`.
+
 ### RouterValidator (Whitelist)
 
 Rutas que no requieren autenticacion JWT:

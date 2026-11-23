@@ -86,6 +86,20 @@ DTOs: Java records. Mapper: MapStruct.
 
 Ver [docs/CORE.md](./docs/CORE.md) para arquitectura completa.
 
+```mermaid
+flowchart LR
+    H["X-User-* headers del gateway"] --> I["IdempotencyFilter<br/>POST replay 6 h"]
+    I --> TN["TenantValidationFilter<br/>X-Tenant-Id vs JWT"]
+    TN --> RH["RoleHeaderFilter<br/>@PreAuthorize OWNER/ADMIN"]
+    RH --> M["setup · product · invoice · gasto<br/>prestamo · venta · inversion"]
+    M --> DB[("PostgreSQL<br/>schema core")]
+    DB --> AN["analytics<br/>9 motores CTE"]
+    AN --> AC["accounting<br/>métricas consolidadas"]
+    AC --> RE["report<br/>PDF mensual a OWNER"]
+```
+
+Source: `backend/core/src/main/java/core_pymes/common/config/IdempotencyFilter.java`, `TenantValidationFilter.java`, `RoleHeaderFilter.java` + `docs/CORE.md`.
+
 ---
 
 ## Modulos

@@ -7,9 +7,41 @@ Instancia unica de PostgreSQL 15 (`postgres:15-alpine`), base de datos `pymes_db
 | Esquema | Servicio | Puerto | Tablas |
 |---------|----------|--------|--------|
 | `auth` | auth (8081) | 8081 | 6: users, tenants, user_tenants, invitations, refresh_tokens, audit_log |
-| `core` | core (8082) | 8082 | 14+: products, invoices, providers, expense_analysis, loans, etc. |
+| `core` | core (8082) | 8082 | 24: tenant_setup, products, invoices, providers, loans, etc. |
 
 Gateway (8080, WebFlux) no tiene persistencia — solo Redis para lista negra de JWT.
+
+### Modelo de datos
+
+Esquema `auth` (6 tablas):
+
+```mermaid
+erDiagram
+    users      ||--o{ user_tenants   : "miembro"
+    tenants    ||--o{ user_tenants   : "tiene"
+    tenants    ||--o{ invitations    : "invita"
+    users      ||--o{ invitations    : "invitado por"
+    users      ||--o{ refresh_tokens : "posee"
+    tenants    ||--o{ refresh_tokens : "contexto"
+    tenants    ||--o{ audit_log      : "registra"
+    users      ||--o| audit_log      : "actor"
+```
+
+Esquema `core` (relaciones centrales; las 24 tablas están en `backend/core/src/main/resources/db/migration/`):
+
+```mermaid
+erDiagram
+    providers             ||--o{ products              : "ofrece"
+    products              ||--o{ product_presentations : "presenta"
+    providers             ||--o{ invoices              : "factura"
+    invoices              ||--o{ invoice_items         : "contiene"
+    products              ||--o{ invoice_items         : "referencia"
+    product_presentations ||--o{ invoice_items         : "presentación"
+    loans                 ||--o{ loan_payments         : "amortiza"
+    daily_sales           ||--o{ daily_sale_payments   : "cobra"
+```
+
+Source: `backend/auth/src/main/resources/db/migration/V1__initial_schema.sql`, `backend/core/src/main/resources/db/migration/V1__initial_schema.sql`…`V8__report_log.sql`.
 
 ## Conexion
 
@@ -46,7 +78,7 @@ Cada servicio tiene su propia secuencia de versiones y su propio `schemas:`. Aut
 ## Multi-Inquilino (Multi-Tenancy)
 
 - **Modelo de columna discriminadora** (nivel de fila), no esquema por inquilino.
-- Toda tabla de `core` tiene `tenant_id UUID NOT NULL`. **Sin FK a `auth.tenants` por decision** (2026-10-27): una FK cross-schema acopla los dos servicios al orden de migracion y no aporta nada que el filtro por `tenant_id` no haga; la validacion vive en la capa de aplicacion (JWT + contexto de seguridad).
+- Las tablas de negocio de `core` tienen `tenant_id UUID NOT NULL`; las plantillas globales (`industries`, `template_*`) y las tablas hija por FK (`product_presentations`, `invoice_items`, `loan_payments`, `daily_sale_payments`) no lo repiten: heredan el tenant por su FK. **Sin FK a `auth.tenants` por decision** (2026-10-27): una FK cross-schema acopla los dos servicios al orden de migracion y no aporta nada que el filtro por `tenant_id` no haga; la validacion vive en la capa de aplicacion (JWT + contexto de seguridad).
 - **Sin huerfanos por construccion:** los tenants no se borran. `shutdown` es soft delete (`TenantServiceImpl.shutdown` → `tenants.is_active = false`) y las tablas de `auth` con `ON DELETE CASCADE` solo se disparan dentro de su propio esquema (`user_tenants`, `invitations`, `audit_log`). Si algun dia se agrega hard delete de tenants, hay que borrar tambien sus filas de `core` en la misma transaccion o agregar la FK.
 - Esquema auth: tabla `user_tenants` con roles (OWNER, ADMIN, CONTABLE, VIEWER).
 

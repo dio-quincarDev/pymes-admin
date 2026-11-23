@@ -92,6 +92,18 @@ frontend/pymes/
 
 ## Architecture
 
+```mermaid
+flowchart LR
+    R["Router hash<br/>/#/dashboard"] --> PG["Pages / Layouts"]
+    PG --> ST["Pinia store<br/>tokens en localStorage"]
+    ST --> AX["Axios interceptor<br/>Authorization: Bearer"]
+    AX --> GW["Gateway /api/v1"]
+    GW --> SW["Service Worker<br/>caché offline"]
+    SW --> UI["PWA en el navegador"]
+```
+
+Source: `frontend/pymes/src/router/index.ts`, `src/boot/axios.ts`, `src/stores/`.
+
 ### Routing
 
 Modo `hash` (`/#/login`, `/#/dashboard`). Rutas definidas en `src/router/index.ts` con meta `requiresAuth: true`.

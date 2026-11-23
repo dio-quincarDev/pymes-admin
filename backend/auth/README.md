@@ -34,6 +34,20 @@ Spring Boot 3.4.3 / Java 21 / PostgreSQL 15 / Redis / JJWT 0.12.6 / MapStruct 1.
 
 ## Como Funciona
 
+```mermaid
+flowchart LR
+    R["POST /register"] --> P["temp-register en Redis<br/>TTL 15 min"]
+    P --> E["Email con link de verificación"]
+    E --> V["POST /verify-email"]
+    V --> D[("User + Tenant + UserTenant<br/>creados en forma atómica")]
+    D --> L["POST /login<br/>rate limit 5/15 min"]
+    L --> T["Access JWT + Refresh<br/>hash SHA-256 en DB"]
+    T --> RR["Refresh rotation<br/>reuso = revocar todo"]
+    RR --> O["Logout<br/>blacklist Redis O(1)"]
+```
+
+Source: `backend/auth/src/main/java/auth/pymes/service/impl/AuthServiceImpl.java`, `JwtServiceImpl.java`, `TokenBlacklistService.java`. Ver secuencia completa en `docs/architecture/architecture.md`.
+
 ### Registro y Verificacion
 
 ```
