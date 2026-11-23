@@ -42,6 +42,22 @@ Real signals already wired in `AnalyticsService`. If you see one, act.
 
 ## How it works
 
+```mermaid
+flowchart LR
+    U(["👤 Owner / equipo"]) --> FE["🌐 Frontend PWA<br/>:9200"]
+    FE --> GW["🚪 Gateway<br/>JWT + blacklist :8080"]
+    GW --> AU["🔐 Auth<br/>OAuth2 + RBAC :8081"]
+    GW --> CO["⚙️ Core<br/>negocio + analytics :8082"]
+    AU --> DB[("💾 PostgreSQL<br/>pymes_db · 2 schemas")]
+    CO --> DB
+    GW --> R[("⚡ Redis")]
+    CO --> R
+    classDef svc fill:#D4EDDA,stroke:#155724,stroke-width:2px,color:#155724
+    classDef data fill:#E6E6FA,stroke:#4B0082,stroke-width:2px,color:#4B0082
+    class FE,GW,AU,CO svc
+    class DB,R data
+```
+
 | Layer | What it does | Port |
 |---|---|---|
 | Frontend | Quasar 2.16 PWA (hash routing, offline cache, auto-update) | 9200 |

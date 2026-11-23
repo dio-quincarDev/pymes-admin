@@ -40,7 +40,11 @@ markdown_extensions:
   - toc:
       permalink: true
   - pymdownx.highlight
-  - pymdownx.superfences
+  - pymdownx.superfences:
+      custom_fences:
+        - name: mermaid
+          class: mermaid
+          format: !!python/name:pymdownx.superfences.fence_code_format
 
 # El nav mapea 1:1 las 6 áreas propuestas. Las páginas sin contenido
 # real aún están marcadas como pendientes en el propio archivo.

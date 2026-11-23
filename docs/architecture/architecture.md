@@ -24,6 +24,24 @@ alertas accionables. Un solo despliegue Docker en Oracle Cloud Free Tier.
 
 **El gateway es WebFlux; Auth y Core son MVC (servlet). No mezclar sus starters.**
 
+```mermaid
+flowchart LR
+    U(["👤 Usuario"]) --> FE["🌐 Frontend :9200"]
+    FE --> GW["🚪 Gateway :8080"]
+    GW --> AU["🔐 Auth :8081"]
+    GW --> CO["⚙️ Core :8082"]
+    AU --> PG[("💾 PostgreSQL<br/>schema auth")]
+    CO --> PG2[("💾 PostgreSQL<br/>schema core")]
+    GW --> RD[("⚡ Redis<br/>blacklist")]
+    CO --> RD
+    classDef svc fill:#D4EDDA,stroke:#155724,stroke-width:2px,color:#155724
+    classDef data fill:#E6E6FA,stroke:#4B0082,stroke-width:2px,color:#4B0082
+    class FE,GW,AU,CO svc
+    class PG,PG2,RD data
+```
+
+> PostgreSQL es **una sola instancia** (`pymes_db`); los dos bloques son esquemas aislados.
+
 `Source: README.md`, `AGENTS.md`, `docker-compose.yml`
 
 ## Flujo de una request
@@ -32,7 +50,8 @@ alertas accionables. Un solo despliegue Docker en Oracle Cloud Free Tier.
 2. El gateway valida el JWT y la blacklist en Redis. Si el token es de refresh
    (sin `role`/`tenantId`/`plan`), lo rechaza con 401 antes de seguir.
 3. El gateway inyecta los headers `X-User-Id`, `X-User-Email`, `X-Tenant-Id`,
-   `X-User-Role` y `X-Plan` (solo si el valor no es nulo).
+   `X-User-Role` y `X-User-Plan` (solo si el valor no es nulo). `set()` sobrescribe
+   cualquier header que el cliente haya intentado falsificar.
 4. Según la ruta, reenvía a Auth (`/api/v1/auth/**`) o Core (`/api/v1/core/**`).
 5. En Core, `TenantValidationFilter` compara `X-Tenant-Id` contra el `?tenantId=`
    de la query (403 si difieren) y `RoleHeaderFilter` arma el `SecurityContext`
@@ -42,6 +61,57 @@ alertas accionables. Un solo despliegue Docker en Oracle Cloud Free Tier.
 
 `Source: backend/gateway-pymes/src/main/java/dev/dioquincar/gateway_pymes/filter/AuthenticationFilter.java`,
 `backend/core/src/main/java/core_pymes/common/config/{TenantValidationFilter,RoleHeaderFilter,IdempotencyFilter}.java`
+
+### Diagrama: `AuthenticationFilter` (gateway)
+
+```mermaid
+flowchart TD
+    A(["🌐 Request externo"]) --> B{"🚪 RouterValidator<br/>isSecured(path)?"}
+    B -->|"Público"| C(["➡️ Downstream sin auth"])
+    B -->|"Protegido"| D{"Authorization<br/>presente?"}
+    D -->|"No"| E["❌ 401 — No authorization header"]
+    D -->|"Sí"| F{"Prefijo Bearer?"}
+    F -->|"No"| G["❌ 401 — Invalid authorization header"]
+    F -->|"Sí"| H{"JWT válido<br/>firma / expiración?"}
+    H -->|"No"| I["❌ 401 — Invalid JWT token"]
+    H -->|"Sí"| J{"Claim role<br/>presente?"}
+    J -->|"No — refresh token"| K["❌ 401 — Access tokens only"]
+    J -->|"Sí"| L{"⚡ Redis<br/>blacklist?"}
+    L -->|"Revocado"| M["❌ 401 — Token is revoked"]
+    L -->|"No revocado"| N["✅ Inyecta headers<br/>X-User-Id, X-User-Email,<br/>X-Tenant-Id, X-User-Role,<br/>X-User-Plan"]
+    L -.->|"Redis caído — fail-open"| N
+    N --> O(["➡️ Auth o Core"])
+    classDef decision fill:#FFF3CD,stroke:#856404,stroke-width:2px,color:#533F03
+    classDef ok fill:#D4EDDA,stroke:#155724,stroke-width:2px,color:#155724
+    classDef err fill:#F8D7DA,stroke:#721C24,stroke-width:2px,color:#721C24
+    class B,D,F,H,J,L decision
+    class C,N,O ok
+    class E,G,I,K,M err
+```
+
+`Source: AuthenticationFilter.java`, `RouterValidator.java`
+
+### Diagrama: secuencia de una request protegida
+
+```mermaid
+sequenceDiagram
+    participant FE as 🌐 Frontend
+    participant GW as 🚪 Gateway
+    participant RD as ⚡ Redis
+    participant CO as ⚙️ Core
+    participant PG as 💾 PostgreSQL
+    FE->>GW: /api/v1/core/facturas + Bearer JWT
+    GW->>GW: AuthenticationFilter (diagrama anterior)
+    GW->>RD: hasKey(blacklist:token)
+    RD-->>GW: false
+    GW->>CO: request + X-Tenant-Id / X-User-Role
+    CO->>CO: TenantValidationFilter compara header vs tenantId
+    CO->>CO: RoleHeaderFilter → SecurityContext ROLE_*
+    CO->>PG: SELECT filtrado por tenant_id
+    PG-->>CO: filas del tenant
+    CO-->>GW: 200 JSON
+    GW-->>FE: 200 JSON
+```
 
 ## Multi-tenancy
 
