@@ -4,13 +4,12 @@ run-name: CI en ${{ github.ref_name }} por @${{ github.actor }}
 permissions: {}
 
 concurrency:
-  group: ${{ github.workflow }}-${{ github.event.pull_request.head.sha || github.sha }}
+  group: ${{ github.workflow }}-${{ github.ref }}
   cancel-in-progress: true
 
 on:
   push:
     branches:
-      - feature/**
       - develop
       - main
     paths:
