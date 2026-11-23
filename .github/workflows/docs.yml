@@ -32,12 +32,7 @@ jobs:
     name: Build and Deploy Docs
     runs-on: ubuntu-latest
     permissions:
-      contents: read
-      pages: write
-      id-token: write
-    environment:
-      name: github-pages
-      url: ${{ steps.deploy.outputs.page_url }}
+      contents: write
 
     steps:
       - name: Checkout code
@@ -58,13 +53,9 @@ jobs:
         env:
           NO_MKDOCS_2_WARNING: '1'
 
-      - name: Upload Pages artifact
+      - name: Publish to GitHub Pages
         if: github.event_name == 'push'
-        uses: actions/upload-pages-artifact@56afc609e74202658d3ffba0e8f6dda462b719fa # v3.0.1
+        uses: peaceiris/actions-gh-pages@84c30a85c19949d7eee79c4ff27748b70285e453 # v4.1.0
         with:
-          path: site/
-
-      - name: Deploy to GitHub Pages
-        id: deploy
-        if: github.event_name == 'push'
-        uses: actions/deploy-pages@d6db90164ac5ed86f2b6aed7e0febac5b3c0c03e # v4.0.5
+          github_token: ${{ secrets.GITHUB_TOKEN }}
+          publish_dir: ./site
