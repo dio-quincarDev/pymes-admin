@@ -103,4 +103,4 @@ Si el `dryRun` sale bien, quita `&dryRun=true` para enviarlo de verdad.
 | Rollback de deploy y recuperación de backup | **Planned** |
 
 Fuentes para escribirlos: `.github/DEPLOYMENT.md`, `docs/strategies/INFRA_STRATEGY.md`,
-`docker-compose.yml`, `infra/monitoring/`.
+`docs/strategies/DB_STRATEGY.md` (plan de backups), `docker-compose.yml`, `infra/monitoring/`.
