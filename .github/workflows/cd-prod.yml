@@ -54,6 +54,7 @@ jobs:
     needs: [build-and-test]
     permissions:
       contents: read
+      actions: write
 
     steps:
       - name: Checkout code
@@ -80,6 +81,8 @@ jobs:
           context: ./backend/auth
           platforms: linux/amd64,linux/arm64
           push: true
+          cache-from: type=gha
+          cache-to: type=gha,mode=max
           tags: |
             ${{ secrets.DOCKER_USERNAME }}/pymes-auth:latest
             ${{ secrets.DOCKER_USERNAME }}/pymes-auth:prod
@@ -91,6 +94,8 @@ jobs:
           context: ./backend/core
           platforms: linux/amd64,linux/arm64
           push: true
+          cache-from: type=gha
+          cache-to: type=gha,mode=max
           tags: |
             ${{ secrets.DOCKER_USERNAME }}/pymes-core:latest
             ${{ secrets.DOCKER_USERNAME }}/pymes-core:prod
@@ -102,6 +107,8 @@ jobs:
           context: ./backend/gateway-pymes
           platforms: linux/amd64,linux/arm64
           push: true
+          cache-from: type=gha
+          cache-to: type=gha,mode=max
           tags: |
             ${{ secrets.DOCKER_USERNAME }}/pymes-gateway:latest
             ${{ secrets.DOCKER_USERNAME }}/pymes-gateway:prod
@@ -115,6 +122,8 @@ jobs:
             VITE_API_URL=/api/v1
           platforms: linux/amd64,linux/arm64
           push: true
+          cache-from: type=gha
+          cache-to: type=gha,mode=max
           tags: |
             ${{ secrets.DOCKER_USERNAME }}/pymes-frontend:latest
             ${{ secrets.DOCKER_USERNAME }}/pymes-frontend:prod
@@ -212,6 +221,9 @@ jobs:
             SPRING_MAIL_USERNAME=${{ secrets.SPRING_MAIL_USERNAME }}
             SPRING_MAIL_PASSWORD=${{ secrets.SPRING_MAIL_PASSWORD }}
             MAIL_FROM=${{ secrets.MAIL_FROM }}
+            S3_ACCESS_KEY_ID=${{ secrets.S3_ACCESS_KEY_ID }}
+            S3_SECRET_ACCESS_KEY=${{ secrets.S3_SECRET_ACCESS_KEY }}
+            S3_PREFIX=pymes/prod
             EOF
 
             docker compose pull

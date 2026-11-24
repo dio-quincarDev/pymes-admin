@@ -267,7 +267,12 @@ En **CI no hace falta**: el `@MockBean ReportEmailService` de
 
 ## Etapa 2 — Página 2: top productos + top gastos + cierre de retorno (construida)
 
-**Concluido con el dueño:** el PDF pasa a 2 páginas. La 1 queda igual; la 2 trae:
+**Concluido con el dueño:** el PDF pasa a 2 páginas. La 1 trae el resultado del
+mes + **ventas por semana** + **principales proveedores** (se movieron desde el
+`summary`: con el `summary` en 742pt la banda entera saltaba a la página 2 y la
+1 quedaba con solo el header). Sección sin datos (mes parcial sin ventas, mes sin
+compras pagadas) **no se pinta**: `removeLineWhenBlank` colapsa el hueco y lo de
+abajo sube, en vez de dejar una tabla con solo encabezados. La 2 trae:
 
 1. **Top 5 productos más comprados**, por cantidad de mayor a menor
    (ej: `Pechuga — 40 kg — $175.00`). Cantidades en unidad base
@@ -291,8 +296,9 @@ datos). Menos de 5/3: se muestran los que haya, sin relleno.
 + `TopGasto(nombre, total, facturas)` + `capital` (`core.patrimony`, null = ausente);
 `LEFT JOIN products` (fallback a snapshot `product_name`) + `template_units` por
 texto vía subquery (`LIMIT 1`, sin fan-out); unidad sin match → `"Unidad"`.
-JRXML extiende `summary` con `printWhen` por sección (fluye a página 2, footer
-ya numera). **Pivot (decisión del dueño):** el rango de días y el % salen del
+JRXML: `title` (680pt) = header + números + semanas + proveedores + nota; `summary`
+(490pt, `splitType="Prevent"`) = productos + gastos + cierre, con `printWhen` por
+sección (footer ya numera). **Pivot (decisión del dueño):** el rango de días y el % salen del
 motor de análisis en proceso — `AnalyticsService.proyeccionOperativa`
 (`gastoMensual, gastoDiario, gastoMin, gastoMax`, 1 query dueña del gasto diario,
 misma JVM sin HTTP). Días = `floor(resto / gastoMax)…floor(resto / gastoMin)`;

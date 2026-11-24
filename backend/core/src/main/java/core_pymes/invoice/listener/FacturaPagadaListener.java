@@ -25,6 +25,8 @@ public class FacturaPagadaListener {
         var factura = event.factura();
         var periodo = YearMonth.from(factura.getIssueDate().atStartOfDay(ZoneOffset.UTC)).toString();
         log.debug("Marking metrics dirty for tenant {} period {}", factura.getTenantId(), periodo);
+        // pagar cambia la base PAGADA (metricas) y la base ABC (analisis): marcar ambas
         recomputeService.markMetricsDirty(factura.getTenantId(), periodo);
+        recomputeService.markAnalyticsDirty(factura.getTenantId(), periodo);
     }
 }

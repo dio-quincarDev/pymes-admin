@@ -242,10 +242,23 @@ const lastSyncLabel = computed(() => {
   } catch { return ''; }
 });
 const deferredPrompt = shallowRef<Event | null>(null);
-const isIOS = typeof window !== 'undefined' && /iphone|ipad|ipod/i.test(navigator.userAgent);
+const isIOS = typeof window !== 'undefined' && (
+  /iphone|ipad|ipod/i.test(navigator.userAgent)
+  || (navigator.platform === 'MacIntel' && navigator.maxTouchPoints > 1) // iPadOS tallea Mac en UA
+);
+// standalone universal: Chromium (display-mode) + iOS Safari (navigator.standalone)
+const isStandalone = typeof window !== 'undefined' && (
+  window.matchMedia('(display-mode: standalone)').matches
+  || Boolean((navigator as unknown as { standalone?: boolean }).standalone)
+);
+const DISMISS_COOLDOWN_MS = 7 * 24 * 60 * 60 * 1000;
+// cooldown de descarte: vuelve a ofrecerse en 14 días, no bloqueo eterno
+const wasInstallDismissed = (() => {
+  try { return Number(localStorage.getItem('pwa_install_dismissed_until')) > Date.now(); }
+  catch { return false; }
+})();
 const showInstallBanner = ref(
-  typeof window !== 'undefined' && !window.matchMedia('(display-mode: standalone)').matches
-    && !localStorage.getItem('pwa_install_dismissed'),
+  typeof window !== 'undefined' && !isStandalone && !wasInstallDismissed,
 );
 
 function onOnline() {
@@ -262,7 +275,15 @@ function onOffline() { online.value = false; }
 function onBeforeInstall(e: Event) {
   e.preventDefault();
   deferredPrompt.value = e;
-  showInstallBanner.value = true;
+  if (!wasInstallDismissed) showInstallBanner.value = true;
+}
+
+function onPwaPromptReady() {
+  // el handle ya fue capturado por index.html antes del montaje; recupéralo sin esperar otro evento
+  if (window.__deferredPwaPrompt && !deferredPrompt.value) {
+    deferredPrompt.value = window.__deferredPwaPrompt;
+    if (!wasInstallDismissed) showInstallBanner.value = true;
+  }
 }
 
 async function installApp() {
@@ -279,11 +300,13 @@ async function installApp() {
   const result = await prompt.userChoice;
   if (result.outcome === 'accepted') showInstallBanner.value = false;
   deferredPrompt.value = null;
+  window.__deferredPwaPrompt = null; // el evento ya fue consumido; un prompt gastado no re-promptea
 }
 
 function dismissInstall() {
   showInstallBanner.value = false;
-  localStorage.setItem('pwa_install_dismissed', 'true');
+  try { localStorage.setItem('pwa_install_dismissed_until', String(Date.now() + DISMISS_COOLDOWN_MS)); }
+  catch { /* ignore */ }
 }
 
 function onSwUpdate() {
@@ -303,6 +326,8 @@ onMounted(() => {
   window.addEventListener('online', onOnline);
   window.addEventListener('offline', onOffline);
   window.addEventListener('sw-update-ready', onSwUpdate);
+  onPwaPromptReady();
+  window.addEventListener('pwa-prompt-ready', onPwaPromptReady);
   window.addEventListener('beforeinstallprompt', onBeforeInstall);
   navigator.serviceWorker?.addEventListener('controllerchange', onSwControllerChange);
   // ponytail: keep lastSync label fresh from interceptor writes
@@ -357,6 +382,7 @@ onUnmounted(() => {
   window.removeEventListener('online', onOnline);
   window.removeEventListener('offline', onOffline);
   window.removeEventListener('sw-update-ready', onSwUpdate);
+  window.removeEventListener('pwa-prompt-ready', onPwaPromptReady);
   window.removeEventListener('beforeinstallprompt', onBeforeInstall);
   navigator.serviceWorker?.removeEventListener('controllerchange', onSwControllerChange);
   if (hintTimer) clearTimeout(hintTimer);
@@ -386,7 +412,6 @@ const navGroups = computed<NavGroup[]>(() => {
         { title: 'Proveedores', icon: 'people', path: '/dashboard/proveedores' },
         { title: 'Facturas', icon: 'receipt_long', path: '/dashboard/facturas' },
         { title: 'Ventas', icon: 'point_of_sale', path: '/dashboard/ventas' },
-        { title: 'Costos', icon: 'money_off', path: '/dashboard/costos' },
       ],
     },
     {
@@ -394,6 +419,8 @@ const navGroups = computed<NavGroup[]>(() => {
       items: [
         { title: 'Análisis', icon: 'analytics', path: '/dashboard/analisis-gastos' },
         { title: 'Préstamos', icon: 'account_balance', path: '/dashboard/prestamos' },
+        { title: 'Costos', icon: 'money_off', path: '/dashboard/costos' },
+        { title: 'Inversión', icon: 'savings', path: '/dashboard/patrimonio' },
       ],
     },
     {
@@ -419,7 +446,7 @@ function navigateTo(path: string) {
    Header
 -------------------------------------------------- */
 .main-header {
-  background: var(--pq-surface) !important;
+  background: var(--pq-background) !important;
   border-bottom: 1px solid var(--pq-border);
 }
 
@@ -481,11 +508,11 @@ function navigateTo(path: string) {
   border-left: 3px solid transparent;
 
   &:hover {
-    background: rgba(200, 150, 62, 0.04);
+    background: rgba(163, 120, 94, 0.04);
   }
 
   &--active {
-    background: rgba(200, 150, 62, 0.06);
+    background: rgba(163, 120, 94, 0.06);
     color: var(--pq-text);
     border-left-color: var(--pq-accent);
     font-weight: 600;
@@ -529,7 +556,7 @@ function navigateTo(path: string) {
 }
 
 .offline-chip {
-  background: rgba(8, 9, 13, 0.15) !important;
+  background: rgba(11, 18, 16, 0.15) !important;
   color: var(--pq-background) !important;
   font-weight: 700;
 }

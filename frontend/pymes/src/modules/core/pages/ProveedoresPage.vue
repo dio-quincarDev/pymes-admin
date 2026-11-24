@@ -35,6 +35,10 @@ const filtrados = computed(() => {
 const sortedFiltrados = computed(() =>
   [...filtrados.value].sort((a, b) => a.name.toLowerCase().localeCompare(b.name.toLowerCase())),
 )
+
+const emptyMessage = computed(() =>
+  search.value ? 'Sin resultados para tu búsqueda.' : 'Agrega tu primer proveedor para asociarlo a productos y facturas.',
+)
 const totalPages = computed(() => Math.max(1, Math.ceil(sortedFiltrados.value.length / PAGE_SIZE)))
 const paginated = computed(() =>
   sortedFiltrados.value.slice((page.value - 1) * PAGE_SIZE, page.value * PAGE_SIZE),
@@ -169,40 +173,50 @@ function handleKeydown(e: KeyboardEvent) {
 </script>
 
 <template>
-  <q-page class="core-page">
-    <div class="q-mb-md" data-tour="proveedores">
-      <h1 class="text-h4 text-primary font-bold q-ma-none">Proveedores</h1>
-      <p class="text-subtitle1 text-accent q-mt-xs">Gestion de proveedores</p>
+  <q-page class="core-page proveedores-page">
+    <!-- Header con firma cobre -->
+    <div class="page-header" data-tour="proveedores">
+      <div class="page-header__main">
+        <h1 class="page-title">Proveedores</h1>
+        <p class="page-subtitle">Gestión de proveedores</p>
+      </div>
+      <div class="page-header__signature" aria-hidden="true">
+        <span class="signature-dot" />
+        <span class="signature-line" />
+      </div>
     </div>
 
-    <div class="toolbar">
-      <q-input dark dense filled v-model="search" placeholder="Buscar..." class="toolbar__search" clearable>
+    <!-- Stats row -->
+    <div v-if="!loading && sortedFiltrados.length" class="stats-row">
+      <span class="stat">{{ sortedFiltrados.length }} {{ sortedFiltrados.length === 1 ? 'proveedor' : 'proveedores' }}</span>
+      <template v-if="totalPages > 1">
+        <span class="stat-sep" aria-hidden="true">·</span>
+        <span class="stat">página {{ page }} de {{ totalPages }}</span>
+      </template>
+    </div>
+    <div class="rule" />
+
+    <!-- Toolbar -->
+    <div class="proveedores-toolbar">
+      <q-input dark dense filled v-model="search" label="Buscar" class="toolbar-search" clearable>
         <template v-slot:prepend><q-icon name="search" /></template>
       </q-input>
-      <q-space />
-      <q-btn v-if="rows.length" color="primary" icon="sym_r_add" label="Nuevo" no-caps @click="openCreate" />
-    </div>
-
-    <div v-if="!loading && sortedFiltrados.length" class="row items-center q-gutter-x-xs q-mb-sm">
-      <span class="text-accent text-caption">{{ sortedFiltrados.length }} {{ sortedFiltrados.length === 1 ? 'proveedor' : 'proveedores' }}</span>
-      <q-icon v-if="totalPages > 1" name="circle" size="0.25rem" color="accent" />
-      <span v-if="totalPages > 1" class="text-accent text-caption">página {{ page }} de {{ totalPages }}</span>
+      <q-space class="toolbar-spacer" />
+      <q-btn
+        v-if="rows.length"
+        color="primary" label="Nuevo" no-caps
+        @click="openCreate" class="toolbar-new"
+      />
     </div>
 
     <div v-if="!loading && !sortedFiltrados.length" class="q-mt-lg">
       <EmptyState
         icon="sym_r_people"
         title="Sin proveedores"
-        message="Agrega tu primer proveedor para asociarlo a productos y facturas."
+        :message="emptyMessage"
       >
-        <q-btn
-          color="primary"
-          icon="sym_r_add"
-          label="Nuevo Proveedor"
-          no-caps
-          @click="openCreate"
-          class="q-mt-sm"
-        />
+        <q-btn color="primary" label="Nuevo Proveedor" no-caps @click="openCreate" class="q-mt-sm" />
+        <q-btn v-if="search" flat dense no-caps label="Limpiar filtro" color="accent" class="q-mt-sm q-ml-sm" @click="search = ''" />
       </EmptyState>
     </div>
 
@@ -266,7 +280,7 @@ function handleKeydown(e: KeyboardEvent) {
     </div>
 
     <q-dialog v-model="dialogOpen" dark>
-      <q-card dark class="bg-surface-pine" style="min-width: 400px">
+      <q-card dark class="bg-surface-pine" style="width: 90vw; max-width: 480px">
         <q-card-section>
           <div class="text-h6 text-primary">{{ editingId ? 'Editar' : 'Nuevo' }} Proveedor</div>
         </q-card-section>
@@ -311,38 +325,178 @@ function handleKeydown(e: KeyboardEvent) {
 </template>
 
 <style scoped>
-.toolbar {
+.proveedores-page {
+  max-width: 1280px;
+  margin: 0 auto;
+  padding: clamp(24px, 4vw, 64px);
+}
+
+/* Header con firma cobre (sin glow — brief Mayor) */
+.page-header {
+  display: flex;
+  align-items: flex-end;
+  justify-content: space-between;
+  gap: 24px;
+  margin-bottom: 8px;
+}
+
+.page-title {
+  font-family: var(--pq-font-display);
+  font-weight: 700;
+  font-size: clamp(22px, 4vw, 28px);
+  line-height: 1.15;
+  letter-spacing: -0.02em;
+  color: var(--pq-text);
+  margin: 0;
+}
+
+.page-subtitle {
+  font-family: var(--pq-font-body);
+  font-weight: 500;
+  font-size: 13px;
+  line-height: 1.5;
+  color: var(--pq-text-muted);
+  margin: 4px 0 0;
+}
+
+.page-header__signature {
+  display: none;
+  align-items: center;
+  gap: 8px;
+}
+
+@media (min-width: 1024px) {
+  .page-header__signature {
+    display: flex;
+  }
+}
+
+.signature-dot {
+  width: 6px;
+  height: 6px;
+  border-radius: 50%;
+  background: var(--pq-accent);
+}
+
+.signature-line {
+  width: 40px;
+  height: 1px;
+  background: var(--pq-accent);
+  opacity: 0.4;
+}
+
+.stats-row {
   display: flex;
   align-items: center;
-  flex-wrap: wrap;
+  gap: 8px;
+  margin: 16px 0 0;
+}
+
+.stat {
+  font-family: var(--pq-font-utility);
+  font-size: 12px;
+  letter-spacing: 0.08em;
+  color: var(--pq-text-subtle);
+  text-transform: uppercase;
+}
+
+.stat-sep {
+  color: var(--pq-text-muted);
+}
+
+.rule {
+  height: 1px;
+  background: var(--pq-border);
+  margin: 24px 0;
+  opacity: 0.4;
+}
+
+.proveedores-toolbar {
+  display: flex;
+  align-items: center;
   gap: 12px;
-  margin-bottom: 16px;
+  flex-wrap: wrap;
+  margin-bottom: 24px;
 }
 
-.toolbar__search {
-  max-width: 250px;
+/* Buscador — mismo patrón que ProductosPage */
+.toolbar-search {
+  flex: 1 1 220px;
+  min-width: 200px;
 }
 
-/* ponytail: mismo patrón que facturas-toolbar — search full-width + Nuevo full-width en xs */
-@media (max-width: 599px) {
-  .toolbar {
+.toolbar-spacer {
+  display: none;
+}
+
+@media (min-width: 640px) {
+  .toolbar-spacer {
+    display: block;
+    flex: 1;
+  }
+  /* desktop: búsqueda crece (max 560) + q-space empuja el botón a la derecha */
+  .toolbar-search {
+    flex: 1 1 320px;
+    min-width: 280px;
+    max-width: 560px;
+  }
+}
+
+/* Nuevo button — filled cobre (mismo patrón que Productos); 40px = alto input dense filled */
+.toolbar-new {
+  min-height: 40px;
+  background: var(--pq-accent) !important;
+  color: var(--pq-background) !important;
+  font-weight: 600;
+  border-radius: var(--pq-radius-sm);
+  box-shadow: 0 2px 8px rgba(163, 120, 94, 0.25);
+  transition: background-color 0.16s cubic-bezier(0.22, 1, 0.36, 1), box-shadow 0.16s ease, transform 0.1s ease;
+}
+
+.toolbar-new:hover {
+  background: var(--pq-accent-hover) !important;
+  box-shadow: 0 4px 16px rgba(163, 120, 94, 0.35);
+  transform: translateY(-1px);
+}
+
+.toolbar-new:active {
+  transform: scale(0.985) translateY(0);
+}
+
+.toolbar-new:focus-visible {
+  outline: 2px solid var(--pq-accent);
+  outline-offset: 2px;
+}
+
+/* tablet táctil ≥640px: escal táctil 44px */
+@media (pointer: coarse) {
+  .toolbar-new {
+    min-height: 44px;
+  }
+}
+
+@media (max-width: 639px) {
+  .proveedores-toolbar {
     display: grid;
     grid-template-columns: 1fr;
     gap: 8px;
   }
 
-  .toolbar__search {
+  .toolbar-search,
+  .toolbar-new {
+    width: 100%;
+    min-width: 0;
     max-width: none;
-    width: 100%;
   }
 
-  .toolbar .q-btn {
-    width: 100%;
-    white-space: nowrap;
+  .toolbar-new {
+    min-height: 44px;
   }
 
-  .toolbar :deep(.q-space) {
-    display: none;
+  /* touch target 44px */
+  .toolbar-new {
+    min-height: 44px;
   }
+
 }
 </style>

@@ -24,24 +24,24 @@ withDefaults(defineProps<Props>(), {
   &.no-padding { padding: 0; }
 
   &.variant-default {
-    background: #12141A;
-    border: 1px solid rgba(53, 57, 69, 0.3);
+    background: #14211D;
+    border: 1px solid rgba(77, 112, 99, 0.3);
   }
 
   &.variant-elevated {
-    background: #12141A;
-    border: 1px solid rgba(53, 57, 69, 0.2);
+    background: #14211D;
+    border: 1px solid rgba(77, 112, 99, 0.2);
     box-shadow: 0 8px 24px rgba(0, 0, 0, 0.25);
   }
 
   &.variant-outlined {
     background: transparent;
-    border: 1px solid rgba(53, 57, 69, 0.5);
+    border: 1px solid rgba(77, 112, 99, 0.5);
   }
 
   &.variant-ghost {
-    background: rgba(200, 150, 62, 0.03);
-    border: 1px solid rgba(200, 150, 62, 0.1);
+    background: rgba(163, 120, 94, 0.03);
+    border: 1px solid rgba(163, 120, 94, 0.1);
   }
 }
 </style>

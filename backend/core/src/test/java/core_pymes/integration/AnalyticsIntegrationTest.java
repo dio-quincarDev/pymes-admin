@@ -148,6 +148,31 @@ class AnalyticsIntegrationTest extends AbstractIntegrationTest {
     }
 
     @Test
+    @DisplayName("ABC reparte el total real de la factura (ITBMS incluido) entre sus items")
+    void abc_reparteTotalDeFacturaConItbms() throws Exception {
+        var tenantId = UUID.randomUUID();
+        var provA = seedProvider(tenantId, "Distribuidora A");
+        var arroz = seedProduct(tenantId, "Arroz");
+        var frijol = seedProduct(tenantId, "Frijol");
+        // factura 1: item base $100, total $107 (ITBMS $7); factura 2: $50 sin ITBMS
+        var conItbms = seedInvoice(tenantId, provA, arroz, "Arroz", JUN_05, new BigDecimal("100.00"));
+        jdbcTemplate.update("UPDATE core.invoices SET itbms_total = 7, total = 107 WHERE id = ?", conItbms);
+        seedInvoice(tenantId, provA, frijol, "Frijol", JUN_15, new BigDecimal("50.00"));
+        seedMetrics(tenantId, new BigDecimal("100"));
+
+        var result = analyticsService.ejecutarCompleto(tenantId, PERIOD);
+
+        var abc = objectMapper.readTree(result.getAbc());
+        assertThat(abc.size()).isEqualTo(2);
+        var first = abc.get(0);
+        var arrozNode = first.get("productName").asText().equals("Arroz") ? first : abc.get(1);
+        var frijolNode = arrozNode == first ? abc.get(1) : first;
+        assertThat(arrozNode.get("totalSpend").asDouble()).isEqualTo(107.0);
+        assertThat(frijolNode.get("totalSpend").asDouble()).isEqualTo(50.0);
+        assertThat(arrozNode.get("pct").asDouble()).isEqualTo(68.15); // 107 / (107+50)
+    }
+
+    @Test
     @DisplayName("Single provider yields comparison but no recommendations")
     void unicoProveedor_supplierRecommendationsEmpty() throws Exception {
         var tenantId = UUID.randomUUID();
@@ -243,6 +268,67 @@ class AnalyticsIntegrationTest extends AbstractIntegrationTest {
     }
 
     @Test
+    @DisplayName("Piso $50 en PRICE_VARIATION: CV alto con gasto chico calla, con gasto real avisa")
+    void piso50_priceVariation() throws Exception {
+        var tenantId = UUID.randomUUID();
+        var provA = seedProvider(tenantId, "Distribuidora A");
+        var barato = seedProduct(tenantId, "Barato");
+        var caro = seedProduct(tenantId, "Caro");
+        // mismo CV ~57% en ambos; 1/3/1 = $5 de gasto (calla), 10/30/10 = $50 (avisa)
+        seedInvoice(tenantId, provA, barato, "Barato", JUN_05, new BigDecimal("1.00"));
+        seedInvoice(tenantId, provA, barato, "Barato", JUN_15, new BigDecimal("3.00"));
+        seedInvoice(tenantId, provA, barato, "Barato", JUN_25, new BigDecimal("1.00"));
+        seedInvoice(tenantId, provA, caro, "Caro", JUN_05, new BigDecimal("10.00"));
+        seedInvoice(tenantId, provA, caro, "Caro", JUN_15, new BigDecimal("30.00"));
+        seedInvoice(tenantId, provA, caro, "Caro", JUN_25, new BigDecimal("10.00"));
+        seedMetrics(tenantId, new BigDecimal("100"));
+
+        var result = analyticsService.ejecutarCompleto(tenantId, PERIOD);
+
+        var alerts = objectMapper.readTree(result.getAlerts());
+        assertThat(alerts).filteredOn(a -> "Barato".equals(a.path("productName").asText())).isEmpty();
+        assertThat(alerts).filteredOn(a -> "Caro".equals(a.path("productName").asText()))
+                .anyMatch(a -> "PRICE_VARIATION".equals(a.path("type").asText()));
+    }
+
+    @Test
+    @DisplayName("SUPPLIER_PREMIUM compara contra el más barato con piso $50 por proveedor-producto")
+    void premium_contraMasBaratoConPiso50() throws Exception {
+        var tenantId = UUID.randomUUID();
+        var provA = seedProvider(tenantId, "Caro");
+        var provB = seedProvider(tenantId, "Barato");
+        var arroz = seedProduct(tenantId, "Arroz");
+        var chico = seedProduct(tenantId, "Chico");
+        // Caro: 3×$13 vs Barato: 3×$10 → 30% sobre el más barato, $39 de gasto ⇒ calla (piso $50)
+        for (var d : java.util.List.of(JUN_05, JUN_15, JUN_25)) {
+            seedInvoice(tenantId, provA, chico, "Chico", d, new BigDecimal("13.00"));
+            seedInvoice(tenantId, provB, chico, "Chico", d, new BigDecimal("10.00"));
+        }
+        // 8×$13 vs 8×$10 → $104 de gasto ⇒ avisa; contra promedio ($11.50) sería 13% (callaría)
+        for (int i = 1; i <= 8; i++) {
+            var d = JUN_05.plusDays(i);
+            seedInvoice(tenantId, provA, arroz, "Arroz", d, new BigDecimal("13.00"));
+            seedInvoice(tenantId, provB, arroz, "Arroz", d, new BigDecimal("10.00"));
+        }
+        seedMetrics(tenantId, new BigDecimal("100"));
+
+        var result = analyticsService.ejecutarCompleto(tenantId, PERIOD);
+
+        var alerts = objectMapper.readTree(result.getAlerts());
+        assertThat(alerts).filteredOn(a -> "Chico".equals(a.path("productName").asText())).isEmpty();
+        var premium = new java.util.ArrayList<com.fasterxml.jackson.databind.JsonNode>();
+        alerts.forEach(a -> {
+            if ("Arroz".equals(a.path("productName").asText())
+                    && "SUPPLIER_PREMIUM".equals(a.path("type").asText())) {
+                premium.add(a);
+            }
+        });
+        assertThat(premium).hasSize(1);
+        assertThat(premium.get(0).path("minPrice").asDouble()).isEqualTo(10.0);
+        assertThat(premium.get(0).path("premiumPct").asDouble()).isEqualTo(30.0);
+    }
+
+    @Test
     @DisplayName("ejecutarCompleto updates existing analysis instead of duplicating")
     void ejecutarCompleto_isIdempotent() {
         var tenantId = UUID.randomUUID();
@@ -296,12 +382,12 @@ class AnalyticsIntegrationTest extends AbstractIntegrationTest {
         return id;
     }
 
-    private void seedInvoice(UUID tenantId, UUID providerId, UUID productId, String productName,
+    private UUID seedInvoice(UUID tenantId, UUID providerId, UUID productId, String productName,
                              LocalDate issueDate, BigDecimal unitPrice) {
-        seedInvoice(tenantId, providerId, productId, productName, issueDate, unitPrice, 1);
+        return seedInvoice(tenantId, providerId, productId, productName, issueDate, unitPrice, 1);
     }
 
-    private void seedInvoice(UUID tenantId, UUID providerId, UUID productId, String productName,
+    private UUID seedInvoice(UUID tenantId, UUID providerId, UUID productId, String productName,
                              LocalDate issueDate, BigDecimal unitPrice, int conversionFactor) {
         var invoiceId = UUID.randomUUID();
         jdbcTemplate.update("""
@@ -317,6 +403,7 @@ class AnalyticsIntegrationTest extends AbstractIntegrationTest {
                         VALUES (?, ?, ?, ?, 1, ?, 0, ?, ?)
                         """,
                 UUID.randomUUID(), invoiceId, productId, productName, unitPrice, unitPrice, conversionFactor);
+        return invoiceId;
     }
 
     private void seedMetrics(UUID tenantId, BigDecimal costoOperativoDiario) {

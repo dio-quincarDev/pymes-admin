@@ -30,6 +30,7 @@ import auth.pymes.utils.exception.custom.DuplicateResourceException;
 import auth.pymes.utils.exception.custom.InvalidInputException;
 import auth.pymes.utils.exception.token.TokenExpiredException;
 import jakarta.servlet.http.HttpServletRequest;
+import org.junit.jupiter.api.BeforeEach;
 import org.junit.jupiter.api.Test;
 import org.junit.jupiter.api.extension.ExtendWith;
 import org.mockito.InjectMocks;
@@ -98,6 +99,8 @@ public class AuthServiceImplTest {
                 "New User", "new@example.com", "password", "New Company", "new-company"
         );
 
+        when(httpRequest.getRemoteAddr()).thenReturn("127.0.0.1");
+        when(rateLimitService.isAllowed(anyString())).thenReturn(true);
         when(userRepository.existsByEmail(request.email())).thenReturn(false);
         doNothing().when(emailVerificationService).generateAndSendPendingRegistrationEmail(any());
 
@@ -271,6 +274,8 @@ public class AuthServiceImplTest {
     @Test
     void register_WhenUserExists_ThrowsDuplicateResourceException() {
         RegisterRequest request = new RegisterRequest("New User", "existing@example.com", "password", "Company", "company");
+        when(httpRequest.getRemoteAddr()).thenReturn("127.0.0.1");
+        when(rateLimitService.isAllowed(anyString())).thenReturn(true);
         when(userRepository.existsByEmail(request.email())).thenReturn(true);
 
         assertThatThrownBy(() -> authService.register(request, httpRequest))

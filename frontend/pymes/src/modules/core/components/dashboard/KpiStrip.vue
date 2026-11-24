@@ -2,6 +2,7 @@
 interface Kpi {
   label: string;
   value: string;
+  sub?: string | undefined;
   delta?: number;
   accent: 'gold' | 'green' | 'red' | 'blue';
 }
@@ -12,7 +13,7 @@ defineProps<{ kpis: Kpi[]; loading?: boolean }>();
 <template>
   <div class="kpi-strip">
     <template v-if="loading">
-      <div v-for="n in 4" :key="n" class="kpi-strip__item">
+      <div v-for="n in 3" :key="n" class="kpi-strip__item">
         <div class="skeleton" style="width: 60px; height: 10px" />
         <div class="skeleton" style="width: 80px; height: 20px; margin-top: 6px" />
       </div>
@@ -26,6 +27,7 @@ defineProps<{ kpis: Kpi[]; loading?: boolean }>();
       >
         <span class="kpi-strip__label">{{ kpi.label }}</span>
         <span class="kpi-strip__value">{{ kpi.value }}</span>
+        <span v-if="kpi.sub" class="kpi-strip__sub">{{ kpi.sub }}</span>
         <span v-if="kpi.delta !== undefined" class="kpi-strip__delta">
           {{ kpi.delta > 0 ? '+' : '' }}{{ kpi.delta }}%
         </span>
@@ -37,16 +39,18 @@ defineProps<{ kpis: Kpi[]; loading?: boolean }>();
 <style scoped lang="scss">
 .kpi-strip {
   display: grid;
-  grid-template-columns: repeat(3, 1fr);
-  gap: 16px;
+  grid-template-columns: 1fr;
+  gap: 12px;
   margin-bottom: 20px;
 
-  @media (max-width: 1023px) {
+  @media (min-width: 640px) {
     grid-template-columns: repeat(2, 1fr);
+    gap: 16px;
   }
 
-  @media (max-width: 599px) {
-    grid-template-columns: 1fr;
+  @media (min-width: 1024px) {
+    grid-template-columns: repeat(3, 1fr);
+    gap: 16px;
   }
 
   &__item {
@@ -80,6 +84,12 @@ defineProps<{ kpis: Kpi[]; loading?: boolean }>();
     font-weight: 500;
     color: var(--pq-text);
     font-variant-numeric: tabular-nums;
+  }
+
+  &__sub {
+    font-family: 'Satoshi', sans-serif;
+    font-size: 11px;
+    color: var(--pq-text-muted);
   }
 
   &__delta {

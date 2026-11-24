@@ -8,6 +8,9 @@ import auth.pymes.controller.OAuth2Api;
 import auth.pymes.service.OAuth2IntentService;
 import auth.pymes.utils.exception.CodigoError;
 import auth.pymes.utils.exception.custom.ResourceNotFoundException;
+import auth.pymes.common.config.RateLimitService;
+import auth.pymes.utils.exception.custom.InvalidInputException;
+import jakarta.servlet.http.HttpServletRequest;
 import jakarta.validation.Valid;
 import lombok.RequiredArgsConstructor;
 import org.springframework.http.HttpStatus;
@@ -23,11 +26,19 @@ import org.springframework.web.bind.annotation.RestController;
 public class LoginOauth2Controller implements OAuth2Api {
 
     private final OAuth2IntentService oauth2IntentService;
+    private final RateLimitService rateLimitService;
 
     @Override
     @org.springframework.web.bind.annotation.PostMapping(ApiPathConstants.OAUTH2_INTENT)
     public ResponseEntity<ApiResponse<OAuth2IntentResponse>> createOAuth2Intent(
-            @Valid @RequestBody OAuth2IntentRequest request) {
+            @Valid @RequestBody OAuth2IntentRequest request,
+            HttpServletRequest httpRequest) {
+        // Rate limit: prevent OAuth2 intent creation spam (by IP)
+        String rateLimitKey = "oauth2_intent:" + httpRequest.getRemoteAddr();
+        if (!rateLimitService.isAllowed(rateLimitKey)) {
+            throw new InvalidInputException(CodigoError.RATE_LIMIT_EXCEEDED, rateLimitService.getRemainingAttempts(rateLimitKey));
+        }
+
         OAuth2IntentResponse response = oauth2IntentService.createIntent(request);
         return ResponseEntity.status(HttpStatus.CREATED).body(ApiResponse.ok(response));
     }

@@ -68,7 +68,7 @@ const pressedState = computed(() => props.selected ? 'true' : 'false')
   position: relative;
 
   &:hover {
-    border-color: rgba(200, 150, 62, 0.25);
+    border-color: rgba(163, 120, 94, 0.25);
     transform: translateY(-2px);
     box-shadow: var(--pq-shadow-md);
   }
@@ -80,11 +80,11 @@ const pressedState = computed(() => props.selected ? 'true' : 'false')
 
   &--selected {
     border-color: var(--pq-accent);
-    background: rgba(200, 150, 62, 0.08);
+    background: rgba(163, 120, 94, 0.08);
     box-shadow: var(--pq-shadow-md);
 
     .industry-card__icon-wrap {
-      background: rgba(200, 150, 62, 0.15);
+      background: rgba(163, 120, 94, 0.15);
     }
   }
 
@@ -96,7 +96,7 @@ const pressedState = computed(() => props.selected ? 'true' : 'false')
     align-items: center;
     justify-content: center;
     margin: 0 auto 12px;
-    background: rgba(200, 150, 62, 0.06);
+    background: rgba(163, 120, 94, 0.06);
     transition: background var(--pq-motion-fast);
     position: relative;
   }

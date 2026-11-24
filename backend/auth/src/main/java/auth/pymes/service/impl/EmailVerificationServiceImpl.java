@@ -8,12 +8,13 @@ import auth.pymes.repositories.UserEntityRepository;
 import auth.pymes.service.AuthService;
 import auth.pymes.service.EmailVerificationService;
 import auth.pymes.service.EmailService;
+import auth.pymes.common.config.RateLimitService;
 import auth.pymes.utils.exception.CodigoError;
 import auth.pymes.utils.exception.auth.AuthenticationException;
 import auth.pymes.utils.exception.auth.EmailVerificationTokenInvalidException;
 import auth.pymes.utils.exception.custom.DuplicateResourceException;
+import auth.pymes.utils.exception.custom.InvalidInputException;
 import jakarta.servlet.http.HttpServletRequest;
-import lombok.RequiredArgsConstructor;
 import lombok.extern.slf4j.Slf4j;
 import org.springframework.beans.factory.annotation.Value;
 import org.springframework.context.annotation.Lazy;
@@ -39,6 +40,7 @@ public class EmailVerificationServiceImpl implements EmailVerificationService {
     private final UserEntityRepository userRepository;
     private final EmailService emailService;
     private final AuthService authService;
+    private final RateLimitService rateLimitService;
 
     @Value("${app.frontend.url}")
     private String frontendUrl;
@@ -47,11 +49,13 @@ public class EmailVerificationServiceImpl implements EmailVerificationService {
             RedisTemplate<String, Object> redisTemplate,
             UserEntityRepository userRepository,
             EmailService emailService,
-            @Lazy AuthService authService) {
+            @Lazy AuthService authService,
+            RateLimitService rateLimitService) {
         this.redisTemplate = redisTemplate;
         this.userRepository = userRepository;
         this.emailService = emailService;
         this.authService = authService;
+        this.rateLimitService = rateLimitService;
     }
 
     @Override
@@ -88,8 +92,19 @@ public class EmailVerificationServiceImpl implements EmailVerificationService {
     @Override
     @Transactional
     public AuthResponse verifyEmail(VerifyEmailRequest request, HttpServletRequest httpRequest) {
+        // Rate limit: prevent email verification spam (by IP)
+        String rateLimitKey = "verify:" + httpRequest.getRemoteAddr();
+        if (!rateLimitService.isAllowed(rateLimitKey)) {
+            throw new InvalidInputException(CodigoError.RATE_LIMIT_EXCEEDED, rateLimitService.getRemainingAttempts(rateLimitKey));
+        }
+
         String token = request.token();
         String email = request.email();
+
+        // Validar tamaño del token para evitar claves Redis gigantes / DoS
+        if (token == null || token.isBlank() || token.length() > 128) {
+            throw new EmailVerificationTokenInvalidException();
+        }
 
         // 1. Intentar flujo PENDING REGISTRATION
         String pendingKey = PENDING_REG_PREFIX + token;

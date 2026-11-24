@@ -2,15 +2,15 @@
 
 Estrategia global de testing para PYMEQ. Cubre 3 capas: unit tests (por servicio), backend integration tests (WebTestClient + Testcontainers), y E2E browser tests (Playwright).
 
-## State actual (2026-09-18)
+## State actual (2026-10-26)
 
 | Servicio | Unit tests | Integration tests | Gaps abiertos |
 |---|---|---|---|
-| Gateway | 37 (9 unit RouterValidator +22 AuthenticationFilter +5 GlobalErrorHandler +1 SwaggerAggregator, 2026-09-17 `grep -c @Test`) | 0 | 0 integration, CORS, route ordering |
-| Auth | 207 (138 unit +56 integration +12 consistency +1 auth, 2026-09-17) | 56 | 5 endpoints sin integration, 4 services sin unit test |
+| Gateway | 48 (5 JwtUtils +22 RouterValidator +9 AuthenticationFilter +1 context +10 GatewayIntegrationTest +1 SwaggerAggregator, 2026-10-26) | 10 (`GatewayIntegrationTest`) | 0 — cerrado 2026-10-26 |
+| Auth | 207 (138 unit +56 integration +12 consistency +1 auth, 2026-09-17) | 56 | 5 endpoints sin integration, 3 services sin unit test |
 | Core | 263 (85 unit +11 analytics +104 JPA +62 integration +1, 2026-09-17, V6 ITBMS 0/7/10) | 62 | C-IT1..4 listos |
-| Frontend | 29 (vitest) + 7 pasos tour 924KB | 0 | Playwright 2+2 specs |
-| **Total** | **507 backend** (`536` con 29 fe) — `377/92` stale 2026-08-05 actualizado | **118** | |
+| Frontend | 76 (vitest) + 7 pasos tour 960KB | 9 E2E Chromium (`e2e/`) + 1 manual | Job `e2e-tests` en CI pendiente; specs de registro/onboarding/productos/dashboard |
+| **Total** | **518 backend + 76 fe** | **118 backend + 9 E2E** | |
 
 ---
 
@@ -18,7 +18,7 @@ Estrategia global de testing para PYMEQ. Cubre 3 capas: unit tests (por servicio
 
 Tests HTTP reales contra DB+Redis vía Testcontainers. Sin frontend.
 
-### Gateway — 9 tests nuevos
+### Gateway — 11 tests nuevos (✅ 2026-10-26)
 
 | # | Test | Qué valida |
 |---|---|---|
@@ -26,11 +26,13 @@ Tests HTTP reales contra DB+Redis vía Testcontainers. Sin frontend.
 | G-IT2 | Proxy routing a auth | `POST /api/v1/auth/login` llega a auth |
 | G-IT3 | Route ordering | `/api/v1/core/products` matchea core, NO auth |
 | G-IT4 | CORS preflight OPTIONS | `OPTIONS` retorna `Access-Control-Allow-Origin` |
+| G-IT4b | CORS origen no permitido → 403 | `Origin` ajeno → `403` |
 | G-IT5 | Security headers | HSTS, X-Frame-Options, X-Content-Type-Options |
 | G-IT6 | JWT missing → 401 | Sin header → 401 JSON |
 | G-IT7 | JWT expired → 401 | Token expirado → 401 JSON |
 | G-IT8 | Identity headers forward | Token válido → X-User-Id, X-Tenant-Id llegan al upstream |
-| G-UT1 | SwaggerAggregatorConfig | URLs de auth y core configuradas |
+| Actuator | Health público | `GET /actuator/health` → 200 UP |
+| G-UT1 | SwaggerAggregatorConfig | URL real de Auth registrada (core pendiente hasta exponer OpenAPI) |
 
 **Infra**: `@SpringBootTest(RANDOM_PORT)` + `WebTestClient` + MockWebServer como upstream mock.
 
@@ -66,7 +68,29 @@ Tests reales:
 
 Flujos de usuario reales: browser → gateway → backend.
 
+### Estado actual (2026-10-26)
+
+9 tests automáticos en Chromium, **9/9 verde en 24.3 s** con el stack Docker completo:
+
+| Spec | Cubre | Backend |
+|---|---|---|
+| `app.spec.ts` | Landing y campo de empresa | Real |
+| `auth-session.spec.ts` | Login UI → dashboard; merge `activeTenant.id → user.tenantId` antes de que resuelva `/users/me`; logout → re-login con tokens frescos y mismo tenant | Mockeado |
+| `oauth2-callback.spec.ts` | Callback OAuth2: code exchange, `tenantId`, dashboard | Mockeado |
+| `invoice-itbms.spec.ts` | ITBMS 0/7/10 por ítem: desglose $100/$200/$17, total $317 y payload con tasas individuales | Mockeado |
+| `pwa-cache.spec.ts` | `auth:401` borra `core-api-cache` desde el scope del SW | Real |
+| `logout-cycle.spec.ts` | `auth:401` limpia localStorage; re-login sin tokens stale | Real |
+| `oauth2.spec.ts` (**@manual**) | Flujo real Google: registro → OAuth2 → onboarding → logout → re-login | Real |
+
+`@manual` se excluye por defecto (`grepInvert: /@manual/`); `E2E_MANUAL=1` lo habilita y requiere `.env` + 2FA humana. Google bloquea headless.
+
 ### Fixture de autenticación
+
+Mocks compartidos en `e2e/tests/support/mocks.ts`: `mockAuth`, `mockCore`, `seedSession`, `disableTutorial`. Login determinista sin datos reales en PostgreSQL; el tenant es fijo (`TENANT_ID`) y `disableTutorial` apaga `pymeq_tour_seen`/`pymeq_hint_seen` para que el overlay no intercepte los selects de Quasar.
+
+### Fixture vía API (pendiente)
+
+Hoy cada spec arma sus mocks; el fixture con `storageState` global sigue sin implementar.
 
 ```
 e2e/fixtures/auth.ts
@@ -79,25 +103,27 @@ e2e/fixtures/auth.ts
 
 ### Flujos
 
-| # | Flujo | Archivo | Prioridad | Depende de |
+| # | Flujo | Archivo | Prioridad | Estado |
 |---|---|---|---|---|
-| P-1 | Login → dashboard | `auth-login.spec.ts` | Alta | Auth funcional |
-| P-2 | Registro → verificación → login | `auth-register.spec.ts` | Alta | Auth + email mock |
-| P-3 | Onboarding (crear empresa) | `setup-onboarding.spec.ts` | Alta | Core setup |
-| P-4 | CRUD Productos | `productos.spec.ts` | Media | Core productos |
-| P-5 | CRUD Facturas | `facturas.spec.ts` | Media | Core facturas |
-| P-6 | Dashboard KPIs visibles | `dashboard.spec.ts` | Media | Core analytics |
-| P-7 | Navegación sidebar/bottom nav | `navigation.spec.ts` | Baja | — |
-| P-8 | Logout → sesión inválida | `auth-logout.spec.ts` | Baja | Auth |
+| P-1 | Login → dashboard | `auth-session.spec.ts` | Alta | ✅ 2026-10-26 |
+| P-2 | Registro → verificación → login | `auth-register.spec.ts` | Alta | Pendiente |
+| P-3 | Onboarding (crear empresa) | `setup-onboarding.spec.ts` | Alta | Pendiente |
+| P-4 | CRUD Productos | `productos.spec.ts` | Media | Pendiente |
+| P-5 | CRUD Facturas | `facturas.spec.ts` | Media | Solo ITBMS (`invoice-itbms.spec.ts`) |
+| P-6 | Dashboard KPIs visibles | `dashboard.spec.ts` | Media | Pendiente |
+| P-7 | Navegación sidebar/bottom nav | `navigation.spec.ts` | Baja | Pendiente |
+| P-8 | Logout → sesión inválida | `auth-session.spec.ts` + `logout-cycle.spec.ts` | Baja | ✅ 2026-10-26 |
 
 ### Configuración Playwright
 
 - **Browser**: Chromium only (post-MVP: Firefox + WebKit)
 - **Base URL**: `http://localhost:9200`
 - **Locale**: `es-VE`, timezone `America/Caracas`
-- **Auth**: `storageState` global desde `e2e/.auth/user.json`
+- **Auth**: mocks por spec (`support/mocks.ts`); `storageState` global descartado por ahora
 - **Retry**: 1 retry on failure
 - **Reporter**: HTML + list
+- **`@manual`**: excluido por defecto (`grepInvert`), `E2E_MANUAL=1` lo habilita
+- **webServer**: `docker compose up` en foreground desde la raíz (`cwd`), `url: http://localhost:9200`; headless automático con `CI`
 
 ---
 
@@ -126,36 +152,41 @@ e2e-tests:
 ## Orden de ejecución
 
 ```
-Fase 1 (ahora)         Fase 2 (después)        Fase 3 (CI)
+Fase 1 (hecha)         Fase 2 (en curso)       Fase 3 (pendiente)
 ─────────────────      ─────────────────       ──────────────
-Auth integration       Gateway integration     Playwright E2E
-(填补 5 gaps)          (9 tests nuevos)        (8 flujos)
+Auth integration       Gateway integration     Playwright en CI
+(pendiente 5 gaps)     (11 tests, ✅)          (job e2e-tests)
 ↓                      ↓                       ↓
 Auth unit              Core integration        Docker compose
-(4 services nuevos)    (pendiente lectura)     + Playwright
+(3 services)           (pendiente lectura)     + Playwright
 ```
 
 ## Archivos a crear/modificar
 
 | Archivo | Acción |
 |---|---|
-| `e2e/playwright.config.ts` | Ajustar `storageState` global |
-| `e2e/fixtures/auth.ts` | Implementar login vía API |
-| `e2e/tests/auth-login.spec.ts` | Crear |
-| `e2e/tests/auth-register.spec.ts` | Crear |
-| `e2e/tests/setup-onboarding.spec.ts` | Crear |
-| `e2e/tests/productos.spec.ts` | Crear |
-| `e2e/tests/facturas.spec.ts` | Crear |
-| `e2e/tests/dashboard.spec.ts` | Crear (reemplazar placeholder) |
-| `e2e/tests/navigation.spec.ts` | Crear |
-| `e2e/tests/auth-logout.spec.ts` | Crear |
-| `backend/gateway-pymes/src/test/.../GatewayIntegrationTest.java` | Crear |
-| `backend/auth/src/test/.../TenantMemberIntegrationTest.java` | Crear |
-| `backend/auth/src/test/.../PermissionCacheServiceTest.java` | Crear |
-| `backend/auth/src/test/.../RateLimitServiceTest.java` | Crear |
-| `backend/auth/src/test/.../CustomOAuth2UserServiceTest.java` | Crear |
-| `backend/auth/src/test/.../TokenBlacklistServiceTest.java` | Crear |
-| `.github/workflows/ci.yml` | Agregar job `e2e-tests` |
+| `e2e/playwright.config.ts` | ✅ `grepInvert @manual`, `cwd` raíz, headless en CI |
+| `e2e/tests/support/mocks.ts` | ✅ mocks auth/core, `seedSession`, `disableTutorial` |
+| `e2e/tests/auth-session.spec.ts` | ✅ P-1 + P-8 |
+| `e2e/tests/oauth2-callback.spec.ts` | ✅ callback OAuth2 |
+| `e2e/tests/invoice-itbms.spec.ts` | ✅ ITBMS 0/7/10 |
+| `e2e/tests/pwa-cache.spec.ts` | ✅ limpieza `core-api-cache` |
+| `e2e/README.md` | ✅ comandos + matriz CI/manual |
+| `e2e/fixtures/auth.ts` | Pendiente: login vía API + `storageState` |
+| `e2e/tests/auth-register.spec.ts` | Pendiente |
+| `e2e/tests/setup-onboarding.spec.ts` | Pendiente |
+| `e2e/tests/productos.spec.ts` | Pendiente |
+| `e2e/tests/facturas.spec.ts` | Pendiente (CRUD; ITBMS ya cubierto) |
+| `e2e/tests/dashboard.spec.ts` | Pendiente |
+| `e2e/tests/navigation.spec.ts` | Pendiente |
+| `backend/gateway-pymes/src/test/.../GatewayIntegrationTest.java` | ✅ 2026-10-26 |
+| `backend/gateway-pymes/src/test/.../config/SwaggerAggregatorConfigTest.java` | ✅ 2026-10-26 |
+| `backend/auth/src/test/.../TokenBlacklistServiceTest.java` | ✅ 2026-10-26 |
+| `backend/auth/src/test/.../TenantMemberIntegrationTest.java` | Pendiente |
+| `backend/auth/src/test/.../PermissionCacheServiceTest.java` | Pendiente |
+| `backend/auth/src/test/.../RateLimitServiceTest.java` | Pendiente |
+| `backend/auth/src/test/.../CustomOAuth2UserServiceTest.java` | Pendiente |
+| `.github/workflows/ci.yml` | Pendiente: job `e2e-tests` |
 
 ## Notas
 

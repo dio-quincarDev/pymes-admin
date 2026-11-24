@@ -207,7 +207,7 @@ async function confirm() {
 
 <style lang="scss" scoped>
 .onboarding-page {
-  min-height: 100vh;
+  min-height: 100dvh;
   display: flex;
   align-items: center;
   justify-content: center;
@@ -255,7 +255,7 @@ async function confirm() {
     width: 8px;
     height: 8px;
     border-radius: var(--pq-radius-full);
-    background: rgba(200, 150, 62, 0.2);
+    background: rgba(163, 120, 94, 0.2);
     transition: background var(--pq-motion-base);
 
     &--active {
@@ -266,7 +266,7 @@ async function confirm() {
   &__line {
     width: 48px;
     height: 2px;
-    background: rgba(200, 150, 62, 0.15);
+    background: rgba(163, 120, 94, 0.15);
     transition: background var(--pq-motion-base);
 
     &--active {

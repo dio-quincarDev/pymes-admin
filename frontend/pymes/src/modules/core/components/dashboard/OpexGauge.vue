@@ -14,7 +14,7 @@
         v-if="normalizedValue < thresholds.critical"
         :d="arcPath(thresholds.warning / max)"
         fill="none"
-        stroke="var(--pq-chart-warning)"
+        stroke="var(--pq-warning)"
         :stroke-width="strokeWidth"
         stroke-linecap="round"
         opacity="0.15"
@@ -26,7 +26,6 @@
         :stroke="gaugeColor"
         :stroke-width="strokeWidth"
         stroke-linecap="round"
-        class="opex-gauge__arc"
       />
       <!-- Center text -->
       <text
@@ -46,16 +45,16 @@
         Costo del día
       </text>
     </svg>
-    <!-- Threshold markers -->
+    <!-- Threshold markers (alineados a la curva del arco) -->
     <div class="opex-gauge__markers">
-      <span class="opex-gauge__marker" style="left: 0%">0</span>
-      <span class="opex-gauge__marker opex-gauge__marker--warning" :style="{ left: warningPct + '%' }">
+      <span class="opex-gauge__marker" :style="{ left: zeroLeft }">0</span>
+      <span class="opex-gauge__marker opex-gauge__marker--warning" :style="{ left: warningPct }">
         {{ thresholds.warning }}
       </span>
-      <span class="opex-gauge__marker opex-gauge__marker--critical" :style="{ left: criticalPct + '%' }">
+      <span class="opex-gauge__marker opex-gauge__marker--critical" :style="{ left: criticalPct }">
         {{ thresholds.critical }}
       </span>
-      <span class="opex-gauge__marker" style="left: 100%">{{ max }}</span>
+      <span class="opex-gauge__marker" :style="{ left: maxLeft }">{{ max }}</span>
     </div>
   </div>
 </template>
@@ -63,6 +62,8 @@
 <script setup lang="ts">
 import { computed } from 'vue';
 
+// shortcut: componente huérfano hoy — nadie lo importa; vuelve con la sección colapsable
+// "Costo Operativo" (FRONTEND_PENDIENTES_STRATEGY fase 4c-3). Si ese plan muere, borrar este archivo.
 interface Props {
   value: number;
   max: number;
@@ -78,14 +79,22 @@ const centerX = size / 2;
 const centerY = size / 2 + 5;
 
 const normalizedValue = computed(() => Math.min(props.value / props.max, 1));
-const warningPct = computed(() => (props.thresholds.warning / props.max) * 100);
-const criticalPct = computed(() => (props.thresholds.critical / props.max) * 100);
+const warningPct = computed(() => markerLeft(props.thresholds.warning / props.max));
+const criticalPct = computed(() => markerLeft(props.thresholds.critical / props.max));
+const zeroLeft = computed(() => markerLeft(0));
+const maxLeft = computed(() => markerLeft(1));
 
 const gaugeColor = computed(() => {
   if (props.value >= props.thresholds.critical) return 'var(--pq-danger)';
   if (props.value >= props.thresholds.warning) return 'var(--pq-warning)';
   return 'var(--pq-chart-bar)';
 });
+
+// posición bajo un semicírculo: x = centerX - radius·cos(π·ratio) — escala lineal NO alinea con el arco
+function markerLeft(ratio: number): string {
+  const clamped = Math.max(0, Math.min(ratio, 1));
+  return `${((centerX - radius * Math.cos(Math.PI * clamped)) / size) * 100}%`;
+}
 
 function arcPath(ratio: number) {
   const clamped = Math.max(0, Math.min(ratio, 1));
@@ -107,10 +116,6 @@ function arcPath(ratio: number) {
   &__svg {
     width: 100%;
     max-width: 200px;
-  }
-
-  &__arc {
-    transition: stroke-dashoffset 0.6s cubic-bezier(0.4, 0, 0.2, 1);
   }
 
   &__value {

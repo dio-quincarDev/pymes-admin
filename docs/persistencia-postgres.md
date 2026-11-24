@@ -7,9 +7,41 @@ Instancia unica de PostgreSQL 15 (`postgres:15-alpine`), base de datos `pymes_db
 | Esquema | Servicio | Puerto | Tablas |
 |---------|----------|--------|--------|
 | `auth` | auth (8081) | 8081 | 6: users, tenants, user_tenants, invitations, refresh_tokens, audit_log |
-| `core` | core (8082) | 8082 | 14+: products, invoices, providers, expense_analysis, loans, etc. |
+| `core` | core (8082) | 8082 | 24: tenant_setup, products, invoices, providers, loans, etc. |
 
 Gateway (8080, WebFlux) no tiene persistencia — solo Redis para lista negra de JWT.
+
+### Modelo de datos
+
+Esquema `auth` (6 tablas):
+
+```mermaid
+erDiagram
+    users      ||--o{ user_tenants   : "miembro"
+    tenants    ||--o{ user_tenants   : "tiene"
+    tenants    ||--o{ invitations    : "invita"
+    users      ||--o{ invitations    : "invitado por"
+    users      ||--o{ refresh_tokens : "posee"
+    tenants    ||--o{ refresh_tokens : "contexto"
+    tenants    ||--o{ audit_log      : "registra"
+    users      ||--o| audit_log      : "actor"
+```
+
+Esquema `core` (relaciones centrales; las 24 tablas están en `backend/core/src/main/resources/db/migration/`):
+
+```mermaid
+erDiagram
+    providers             ||--o{ products              : "ofrece"
+    products              ||--o{ product_presentations : "presenta"
+    providers             ||--o{ invoices              : "factura"
+    invoices              ||--o{ invoice_items         : "contiene"
+    products              ||--o{ invoice_items         : "referencia"
+    product_presentations ||--o{ invoice_items         : "presentación"
+    loans                 ||--o{ loan_payments         : "amortiza"
+    daily_sales           ||--o{ daily_sale_payments   : "cobra"
+```
+
+Source: `backend/auth/src/main/resources/db/migration/V1__initial_schema.sql`, `backend/core/src/main/resources/db/migration/V1__initial_schema.sql`…`V8__report_log.sql`.
 
 ## Conexion
 
@@ -17,7 +49,7 @@ Gateway (8080, WebFlux) no tiene persistencia — solo Redis para lista negra de
 - **Puerto:** `5432` | **Base de datos:** `pymes_db`
 - **Formato JDBC:** `jdbc:postgresql://${host}:${port}/pymes_db?currentSchema=${schema}`
 - **Credenciales:** `${DB_USERNAME}` / `${DB_PASSWORD}` — externalizadas via variables de entorno.
-- **Sin SSL** (`sslmode=require` no configurado en ningun perfil).
+- **Sin SSL, por decision** (2026-10-27) — `sslmode` no se configura en ningun perfil porque Postgres solo escucha en `pymes-internal-network` y no se publica: solo 22/80/443 salen a Internet. Reabrir si la base sale de la red interna, se mueve a un servicio gestionado o el trafico cruza una red no confiable; entonces `sslmode=require` en `stg`/`prod`.
 
 ## Resolucion de Esquema (3 capas redundantes)
 
@@ -30,10 +62,12 @@ Gateway (8080, WebFlux) no tiene persistencia — solo Redis para lista negra de
 
 | Servicio | Archivos | `baseline-on-migrate` | Estado |
 |----------|----------|-----------------------|--------|
-| auth | 2 (`V1__initial_schema.sql`, `V2__index_optimizations.sql`) | true | Estable |
-| core | 13 (`V1`..`V13`) | true | Evolucion activa |
+| auth | 3 (`V1__initial_schema.sql`, `V2__index_optimizations.sql`, `V3__add_role_change_tracking.sql`) | true | Estable |
+| core | 8 (`V1`..`V8`, ultima `V8__report_log.sql`) | true | Evolucion activa |
 
 `baseline-on-migrate: true` implica que V1 siempre se asume como baseline. No hay `baseline-version` personalizado.
+
+Cada servicio tiene su propia secuencia de versiones y su propio `schemas:`. Auth y core nunca comparten numero de migracion, asi que un merge no genera conflicto mientras se copien archivos completos (no merges parciales de una carpeta). Verificar `db/migration/` de ambos servicios tras cada merge.
 
 ## JPA / Hibernate
 
@@ -44,8 +78,8 @@ Gateway (8080, WebFlux) no tiene persistencia — solo Redis para lista negra de
 ## Multi-Inquilino (Multi-Tenancy)
 
 - **Modelo de columna discriminadora** (nivel de fila), no esquema por inquilino.
-- Toda tabla de `core` tiene `tenant_id UUID NOT NULL`. Sin restriccion FK a `auth.tenants` (esquemas cruzados).
-- Validacion de inquilino en capa de aplicacion via claims del JWT + contexto de seguridad.
+- Las tablas de negocio de `core` tienen `tenant_id UUID NOT NULL`; las plantillas globales (`industries`, `template_*`) y las tablas hija por FK (`product_presentations`, `invoice_items`, `loan_payments`, `daily_sale_payments`) no lo repiten: heredan el tenant por su FK. **Sin FK a `auth.tenants` por decision** (2026-10-27): una FK cross-schema acopla los dos servicios al orden de migracion y no aporta nada que el filtro por `tenant_id` no haga; la validacion vive en la capa de aplicacion (JWT + contexto de seguridad).
+- **Sin huerfanos por construccion:** los tenants no se borran. `shutdown` es soft delete (`TenantServiceImpl.shutdown` → `tenants.is_active = false`) y las tablas de `auth` con `ON DELETE CASCADE` solo se disparan dentro de su propio esquema (`user_tenants`, `invitations`, `audit_log`). Si algun dia se agrega hard delete de tenants, hay que borrar tambien sus filas de `core` en la misma transaccion o agregar la FK.
 - Esquema auth: tabla `user_tenants` con roles (OWNER, ADMIN, CONTABLE, VIEWER).
 
 ## Dependencias
@@ -56,9 +90,9 @@ Gateway (8080, WebFlux) no tiene persistencia — solo Redis para lista negra de
 
 ## Observaciones Criticas
 
-1. **Sin ajuste explicito de HikariCP** — 10 conexiones por defecto compartidas entre todos los inquilinos. Bajo carga, una consulta lenta puede agotar el pool. Agregar `spring.datasource.hikari.maximum-pool-size` si aparece contencion de conexiones.
-2. **Sin cifrado en la conexion** — `sslmode=require` ausente. Aceptable en red interna de Docker; obligatorio para despliegues con acceso publico.
-3. **Virtual threads + JDBC bloqueante** — core habilita virtual threads pero usa JDBC (I/O bloqueante). HikariCP debe anclar virtual threads a carrier threads durante llamadas a DB. Monitorear posible inanicion de carrier threads bajo carga concurrente; considerar aumentar `spring.datasource.hikari.maximum-pool-size`.
-4. **Sin FK entre esquemas** — `tenant_id` en tablas de core no tiene FK a `auth.tenants`. Solo validacion en capa de aplicacion. Posibles registros huerfanos si se elimina un inquilino sin limpieza en cascada.
-5. **Riesgo de versionado Flyway** — auth y core usan secuencias de version independientes. Despues de merges, si una migracion agrega V2 a auth y V14 a core simultaneamente, ambas deben llegar sin conflicto. Verificar `db/migration/` tras cada merge.
+1. **Pool fijo de 20 por servicio** — auth y core comparten la misma instancia de Postgres (`max_connections` 100 por defecto): 40 conexiones de aplicacion + pooling de tests dejan margen corto. Si se agrega un tercer servicio o se sube el pool, revisar `max_connections` o pasar a PgBouncer.
+2. **Sin cifrado en la conexion (decision 2026-10-27)** — ver seccion Conexion: aceptable solo mientras Postgres viva en la red interna de Docker.
+3. **Virtual threads + JDBC bloqueante** — core habilita virtual threads pero usa JDBC (I/O bloqueante). HikariCP ancla los virtual threads a carrier threads durante las llamadas a DB. Monitorear inanicion de carriers bajo carga; el pool de 20 ya acota la concurrencia real.
+4. **Sin FK entre esquemas (decision 2026-10-27)** — el riesgo residual es un `tenant_id` valido pero ajeno escrito por un bug de query. Mitigado por el filtro obligatorio por tenant y porque no existe hard delete; no se compensa con FK cross-schema.
+5. **Riesgo de versionado Flyway** — auth y core usan secuencias de version independientes. Despues de merges, si una migracion agrega V4 a auth y V9 a core simultaneamente, ambas deben llegar sin conflicto. Verificar `db/migration/` tras cada merge.
 6. **Mismas credenciales, ambos esquemas** — auth y core comparten usuario de BD. Un compromiso o bug en cualquiera de los servicios puede leer/escribir el esquema del otro (mitigado por aislamiento de esquema, pero no por autenticacion). Considerar usuarios de BD separados por servicio con restricciones via `GRANT`.

@@ -59,6 +59,10 @@ class AuthApiIntegrationTest extends AbstractIntegrationTest {
 
     @BeforeEach
     void setUp() {
+        // Limpiar rate limit keys para evitar 429 en tests
+        java.util.Set<String> rateLimitKeys = redisTemplate.keys("rate_limit:*");
+        if (rateLimitKeys != null) redisTemplate.delete(rateLimitKeys);
+
         uniqueEmail = "test-" + System.currentTimeMillis() + "@example.com";
         uniqueSlug = "test-corp-" + System.currentTimeMillis();
         validRegisterRequest = new RegisterRequest(

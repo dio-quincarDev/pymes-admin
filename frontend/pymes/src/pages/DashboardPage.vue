@@ -1,5 +1,5 @@
 <script setup lang="ts">
-import { computed, shallowRef, onMounted } from 'vue';
+import { computed, onMounted } from 'vue';
 import { useMeta } from 'quasar';
 import { useAuthStore } from 'src/modules/auth/store';
 import { useTutorial } from 'src/composables/useTutorial';
@@ -12,7 +12,6 @@ import CategoryBreakdownChart from 'src/modules/core/components/analytics/Catego
 import ActivityPanel from 'src/modules/core/components/dashboard/ActivityPanel.vue';
 import FinancialHealthPanel from 'src/modules/core/components/dashboard/FinancialHealthPanel.vue';
 import KpiStrip from 'src/modules/core/components/dashboard/KpiStrip.vue';
-import RegistrarVentaInlineBar from 'src/modules/core/components/dashboard/RegistrarVentaInlineBar.vue';
 import VentasVsCostosChart from 'src/modules/core/components/dashboard/VentasVsCostosChart.vue';
 import { usePullToRefresh } from 'src/composables/usePullToRefresh';
 
@@ -20,7 +19,6 @@ useMeta({ title: 'Dashboard — PYMEQ' });
 
 const authStore = useAuthStore();
 const hasTenant = computed(() => !!authStore.user?.tenantId);
-const isWriter = computed(() => ['OWNER', 'ADMIN'].includes(authStore.user?.role ?? ''));
 const { formatCurrency } = useNumberFormat();
 const { showForCurrentRoute } = useTutorial();
 
@@ -44,22 +42,34 @@ const {
   recalcular,
 } = useFinancialDashboard();
 
-const { financialHealth, supplierRecommendations, loading: analyticsLoading } = useAnalytics();
+const { financialHealth, loading: analyticsLoading } = useAnalytics();
+
+// ponytail: semáforo del mes — color por severity del backend, igual que FinancialHealthAlerts
+const topRisk = computed(() => financialHealth.value?.criticalAlerts?.[0] ?? null);
+const topRiskIsRed = computed(() => topRisk.value?.severity === 'CRITICAL');
+
+// mejor día del mes = máximo de ventas agrupadas por fecha (ventas ya cargadas, sin llamada extra)
+const mejorDia = computed(() => {
+  const porDia = new Map<string, number>();
+  for (const v of ventas.value) {
+    if (!v.fecha.startsWith(periodo.value)) continue;
+    porDia.set(v.fecha, (porDia.get(v.fecha) ?? 0) + v.montoBruto);
+  }
+  let best: { fecha: string; total: number } | null = null;
+  for (const [fecha, total] of porDia) {
+    if (!best || total > best.total) best = { fecha, total };
+  }
+  return best;
+});
+
+const fechaCorta = (f: string) =>
+  new Date(`${f}T00:00:00`).toLocaleDateString('es-PA', { day: 'numeric', month: 'short' });
+
 const { pullDistance, isRefreshing } = usePullToRefresh({ onRefresh: fetch });
 
-// Inline quick capture — composition surface only (logic lives in RegistrarVentaInlineBar + useRegistrarVenta)
-const showInline = shallowRef(false);
-
-function onVentaCreada() {
-  void fetch();
-}
-
-// KPIs for strip — always 3 slots so layout doesn't jump when API is slow/empty (ponytail: derived, no extra state)
 const stripKpis = computed(() => {
   const m = metricas.value;
   const cd = costoDiario.value;
-
-  const pendientes = facturasPendientes.value.length;
 
   return [
     {
@@ -68,21 +78,20 @@ const stripKpis = computed(() => {
       accent: 'red' as const,
     },
     {
-      label: 'Facturas pendientes',
-      value: String(pendientes),
-      accent: pendientes > 0 ? ('red' as const) : ('green' as const),
+      label: 'Mejor día',
+      value: mejorDia.value ? formatCurrency(mejorDia.value.total) : '—',
+      sub: mejorDia.value ? fechaCorta(mejorDia.value.fecha) : undefined,
+      accent: 'gold' as const,
     },
     {
       label: 'Rentabilidad',
-      value: m ? `${(m.margenNetoPct ?? 0).toFixed(1)}%` : '—',
-      accent: !m ? ('gold' as const) : m.margenNetoPct >= 0 ? ('green' as const) : ('red' as const),
+      value: m ? formatCurrency(m.margenNeto) : '—',
+      sub: m ? `${(m.margenNetoPct ?? 0).toFixed(1)}%` : undefined,
+      accent: !m ? ('gold' as const) : m.margenNeto >= 0 ? ('green' as const) : ('red' as const),
     },
   ];
 });
 
-
-
-// Chart data — últimos 7 días (Panamá UTC-5 local, no UTC)
 const chartData = computed(() => {
   const days: { label: string; ventas: number; costos: number }[] = [];
   const now = new Date();
@@ -100,7 +109,6 @@ const chartData = computed(() => {
   return days;
 });
 
-// Category items
 const categoryItems = computed(() =>
   gastosPorCategoria.value.map((g) => {
     const prev = gastosPorCategoriaPrev.value.find((p) => p.categoria === g.categoria);
@@ -159,63 +167,58 @@ const categoryItems = computed(() =>
         <q-btn flat dense no-caps label="Reintentar" class="dashboard-error-banner__retry" @click="recalcular" />
       </div>
 
-      <!-- Quick actions — hierarchy: 1 primary gold, 2 secondary -->
-      <div class="dashboard-actions">
-        <q-btn
-          no-caps
-          icon="sym_r_add"
-          label="Registrar venta"
-          color="primary"
-          text-color="dark"
-          class="dashboard-actions__btn dashboard-actions__btn--primary"
-          :disable="!isWriter"
-          @click="showInline = !showInline"
-        >
-          <q-tooltip v-if="!isWriter">Solo OWNER/ADMIN</q-tooltip>
-        </q-btn>
-        <div class="dashboard-actions__secondary">
-          <q-btn
-            no-caps
-            icon="sym_r_analytics"
-            label="Análisis"
-            outline
-            class="dashboard-actions__btn dashboard-actions__btn--secondary"
-            @click="$router.push('/dashboard/analisis-gastos')"
-          />
-          <q-btn
-            no-caps
-            icon="sym_r_account_balance"
-            label="Inversión"
-            outline
-            class="dashboard-actions__btn dashboard-actions__btn--secondary"
-            @click="$router.push('/dashboard/patrimonio')"
-          />
-        </div>
-      </div>
-
-      <!-- Inline quick capture — extracted component (props down, events up) -->
-      <RegistrarVentaInlineBar v-if="hasTenant" v-model="showInline" @created="onVentaCreada" />
-
-      <!-- KPI Strip -->
+      <!-- KPI Strip — full width, no card background, editorial -->
       <KpiStrip :kpis="stripKpis" :loading="loading" />
 
-      <!-- Chart -->
+      <!-- Hairline separator -->
+      <div class="rule" />
+
+      <!-- Chart — single, full width -->
       <VentasVsCostosChart :data="chartData" :loading="loading" />
 
-      <!-- Secondary section -->
+      <!-- Hairline separator -->
+      <div class="rule" />
+
+      <!-- Secondary panels — 2 cols desktop, 1 col mobile. Hairlines, no cards -->
       <div class="dashboard-secondary">
         <CategoryBreakdownChart
           :items="categoryItems"
           :loading="loading"
           :empty="categoryItems.length === 0"
         />
-        <ActivityPanel
-          :actividades="actividadReciente"
-          :facturas="facturasPendientes"
-          :loading="loading"
-        />
-        <FinancialHealthPanel :data="financialHealth" :loading="analyticsLoading" :recommendations="supplierRecommendations" />
+        <div class="health-cell">
+          <a v-if="topRisk" class="risk-pill" :class="topRiskIsRed ? 'risk-pill--red' : 'risk-pill--yellow'" href="#/dashboard/analisis-gastos">
+            <span class="risk-pill__dot" />
+            <span class="risk-pill__text">{{ topRisk.title }}</span>
+            <span class="risk-pill__go">Revisar →</span>
+          </a>
+          <span v-else class="risk-pill risk-pill--ok">
+            <span class="risk-pill__dot" />
+            <span class="risk-pill__text">Sin riesgos críticos este mes</span>
+          </span>
+          <FinancialHealthPanel :data="financialHealth" :loading="analyticsLoading" />
+        </div>
       </div>
+
+      <!-- Hairline separator -->
+      <div class="rule" />
+
+      <!-- Activity — table, not cards -->
+      <ActivityPanel
+        :actividades="actividadReciente"
+        :facturas="facturasPendientes"
+        :loading="loading"
+      />
+
+      <!-- Nav links — text, not buttons -->
+      <nav class="dashboard-nav" aria-label="Accesos rápidos">
+        <a class="dashboard-nav__link" @click="$router.push('/dashboard/analisis-gastos')">
+          Análisis de gastos →
+        </a>
+        <a class="dashboard-nav__link" @click="$router.push('/dashboard/patrimonio')">
+          Inversión y patrimonio →
+        </a>
+      </nav>
     </template>
   </q-page>
 </template>
@@ -269,80 +272,117 @@ const categoryItems = computed(() =>
     margin-left: auto;
     color: var(--pq-danger);
     font-weight: 500;
+    min-height: 32px;
+    display: inline-flex;
+    align-items: center;
   }
 }
 
-.dashboard-actions {
-  display: grid;
-  grid-template-columns: auto 1fr;
-  gap: 12px;
-  margin-bottom: 20px;
-  align-items: center;
-
-  &__btn {
-    font-family: 'Satoshi', sans-serif;
-    font-weight: 600;
-    border-radius: 6px;
-  }
-
-  &__btn--primary {
-    font-weight: 700;
-  }
-
-  &__btn--secondary {
-    opacity: 0.9;
-  }
-
-  &__secondary {
-    display: flex;
-    gap: 10px;
-    flex-wrap: wrap;
-    justify-content: flex-end;
-  }
-
-  @media (max-width: 600px) {
-    grid-template-columns: 1fr;
-
-    &__btn--primary {
-      width: 100%;
-    }
-
-    &__secondary {
-      display: grid;
-      grid-template-columns: 1fr 1fr;
-      gap: 8px;
-      width: 100%;
-      justify-content: stretch;
-    }
-
-    &__btn--secondary {
-      width: 100%;
-    }
-  }
+/* --------------------------------------------------
+   Hairline rule — separador editorial
+   -------------------------------------------------- */
+.rule {
+  height: 1px;
+  background: var(--pq-border);
+  margin: 32px 0;
+  opacity: 0.4;
 }
 
+/* --------------------------------------------------
+   Secondary panels — 2 cols desktop, 1 col mobile
+   -------------------------------------------------- */
 .dashboard-secondary {
   display: grid;
-  grid-template-columns: repeat(3, 1fr);
-  gap: 16px;
-  margin-top: 24px;
-  align-items: stretch;
+  grid-template-columns: 1fr;
+  gap: 24px;
+  align-items: start;
+
+  @media (min-width: 768px) {
+    grid-template-columns: 1fr 1fr;
+    gap: 32px;
+  }
+}
+
+.health-cell {
+  display: flex;
+  flex-direction: column;
+  gap: 10px;
   min-width: 0;
-  max-width: 100%;
+}
 
-  > * {
-    height: 100%;
+.risk-pill {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+  padding: 8px 12px;
+  min-height: 44px; // touch target móvil
+  border-radius: 8px;
+  font-family: 'Satoshi', sans-serif;
+  font-size: 13px;
+  cursor: pointer;
+  text-decoration: none;
+  transition: background var(--pq-motion-fast);
+
+  &--red { background: color-mix(in srgb, var(--pq-danger) 14%, transparent); color: var(--pq-text); }
+  &--yellow { background: color-mix(in srgb, var(--pq-warning) 14%, transparent); color: var(--pq-text); }
+  &--ok { background: color-mix(in srgb, var(--pq-success) 14%, transparent); cursor: default; }
+
+  &__dot {
+    width: 8px;
+    height: 8px;
+    border-radius: 50%;
+    flex-shrink: 0;
+  }
+  &--red &__dot { background: var(--pq-danger); }
+  &--yellow &__dot { background: var(--pq-warning); }
+  &--ok &__dot { background: var(--pq-success); }
+
+  &__text {
     min-width: 0;
-    max-width: 100%;
     overflow: hidden;
+    text-overflow: ellipsis;
+    white-space: nowrap;
   }
 
-  @media (max-width: 1023px) {
-    grid-template-columns: repeat(2, 1fr);
+  &__go {
+    margin-left: auto;
+    flex-shrink: 0;
+    font-size: 12px;
+    color: var(--pq-text-muted);
   }
+}
 
-  @media (max-width: 599px) {
-    grid-template-columns: 1fr;
+/* --------------------------------------------------
+   Nav links — texto, no botones
+   -------------------------------------------------- */
+.dashboard-nav {
+  display: flex;
+  flex-direction: column;
+  gap: 8px;
+  margin-top: 32px;
+  padding-top: 24px;
+  border-top: 1px solid var(--pq-border);
+
+  @media (min-width: 640px) {
+    flex-direction: row;
+    gap: 24px;
+  }
+}
+
+.dashboard-nav__link {
+  font-family: 'Satoshi', sans-serif;
+  font-size: 14px;
+  font-weight: 500;
+  color: var(--pq-text-muted);
+  cursor: pointer;
+  transition: color var(--pq-motion-fast);
+  min-height: 44px;
+  display: inline-flex;
+  align-items: center;
+  padding: 0 4px;
+
+  &:hover {
+    color: var(--pq-accent);
   }
 }
 
@@ -352,7 +392,7 @@ const categoryItems = computed(() =>
   align-items: center;
   justify-content: center;
   text-align: center;
-  min-height: 60vh;
+  min-height: 60dvh;
   gap: 20px;
   max-width: 480px;
   margin: 0 auto;

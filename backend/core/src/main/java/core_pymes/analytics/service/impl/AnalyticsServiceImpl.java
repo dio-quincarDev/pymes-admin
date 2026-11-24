@@ -95,14 +95,25 @@ public class AnalyticsServiceImpl implements AnalyticsService {
     // -- 6 motores analíticos --
 
     List<Map<String, Object>> analisisABC(UUID tenantId, LocalDate start, LocalDate end) {
+        // ponytail: reparte el total real de cada factura (ITBMS y descuento global incluidos) entre sus items,
+        // proporcional al subtotal del item; base = SUM(items.subtotal) porque 14 facturas legadas tienen encabezado en 0
         var sql = """
-                WITH product_spend AS (
+                WITH invoice_base AS (
+                    SELECT i.id, i.total,
+                           SUM(ii.subtotal) AS items_subtotal
+                    FROM core.invoices i
+                    JOIN core.invoice_items ii ON ii.invoice_id = i.id
+                    WHERE i.tenant_id = ? AND i.status = 'PAGADA' AND i.type = 'FACTURA'
+                      AND i.issue_date >= ? AND i.issue_date < ?
+                    GROUP BY i.id, i.total
+                ), product_spend AS (
                     SELECT ii.product_id, p.name AS product_name,
-                           SUM(ii.subtotal) AS total_spend
+                           SUM(CASE WHEN ib.items_subtotal <> 0
+                                    THEN ib.total * ii.subtotal / ib.items_subtotal
+                                    ELSE 0 END) AS total_spend
                     FROM core.invoice_items ii
-                    JOIN core.invoices i ON ii.invoice_id = i.id
+                    JOIN invoice_base ib ON ib.id = ii.invoice_id
                     JOIN core.products p ON ii.product_id = p.id
-                    WHERE i.tenant_id = ? AND i.status = 'PAGADA' AND i.issue_date >= ? AND i.issue_date < ?
                     GROUP BY ii.product_id, p.name
                 ), ranked AS (
                     SELECT *, SUM(total_spend) OVER (ORDER BY total_spend DESC) AS running_total,
@@ -114,8 +125,8 @@ public class AnalyticsServiceImpl implements AnalyticsService {
                             THEN ROUND(total_spend * 100.0 / grand_total, 2)
                             ELSE 0 END AS pct,
                        CASE
-                           WHEN grand_total > 0 AND SUM(total_spend) OVER (ORDER BY total_spend DESC) / grand_total <= 0.80 THEN 'A'
-                           WHEN grand_total > 0 AND SUM(total_spend) OVER (ORDER BY total_spend DESC) / grand_total <= 0.95 THEN 'B'
+                           WHEN grand_total > 0 AND running_total / grand_total <= 0.80 THEN 'A'
+                           WHEN grand_total > 0 AND running_total / grand_total <= 0.95 THEN 'B'
                            ELSE 'C'
                        END AS category
                 FROM ranked
@@ -360,8 +371,10 @@ public class AnalyticsServiceImpl implements AnalyticsService {
                 FROM stats
                 WHERE stddev_price IS NOT NULL
                   AND (stddev_price / NULLIF(avg_price, 0)) > 0.15
-                  -- ponytail: regla A también en alertas — con <3 compras el CV es ruido
+                  -- ponytail: regla A también en alertas — con <3 compras el CV es ruido; con < $50 de movimiento también es ruido
                   AND purchases >= %d
+                  -- ponytail: piso $50 de movimiento en el período (total ≈ avg_price * purchases)
+                  AND avg_price * purchases >= 50
                 ORDER BY cv_pct DESC
                 """.formatted(MIN_COMPRAS_POR_PROVEEDOR);
         alerts.addAll(jdbc.query(variationSql, (rs, row) -> Map.<String, Object>of(
@@ -376,7 +389,8 @@ public class AnalyticsServiceImpl implements AnalyticsService {
         var premiumSql = """
                 WITH product_avg AS (
                     SELECT ii.product_id, p.name AS product_name,
-                            AVG(ii.unit_price / NULLIF(ii.conversion_factor, 0)) AS product_avg_price
+                            AVG(ii.unit_price / NULLIF(ii.conversion_factor, 0)) AS product_avg_price,
+                            MIN(ii.unit_price / NULLIF(ii.conversion_factor, 0)) AS min_price
                     FROM core.invoice_items ii
                     JOIN core.invoices i ON ii.invoice_id = i.id
                     JOIN core.products p ON ii.product_id = p.id
@@ -397,17 +411,19 @@ public class AnalyticsServiceImpl implements AnalyticsService {
                 )
                 SELECT sp.product_id, sp.product_name,
                        sp.provider_id, sp.provider_name,
-                       sp.avg_price, pa.product_avg_price,
+                       sp.avg_price, pa.product_avg_price, pa.min_price,
                        -- ponytail: NULLIF — promedio 0 (bonificación/muestra) reventaba con division by zero
                        -- y como ejecutarCompleto no aísla motores, caía el guardado completo del período
-                       ROUND((sp.avg_price - pa.product_avg_price) / NULLIF(pa.product_avg_price, 0) * 100, 2) AS premium_pct
+                       -- y ahora comparamos contra el más barato, no contra el promedio ponderado
+                       ROUND((sp.avg_price - pa.min_price) / NULLIF(pa.min_price, 0) * 100, 2) AS premium_pct
                 FROM supplier_prices sp
                 JOIN product_avg pa ON sp.product_id = pa.product_id
-                WHERE sp.avg_price > pa.product_avg_price * 1.15
-                  -- ponytail: promedio 0 (ajustes/notas de crédito) → la fila se descarta, no viaja con premium NULL
-                  AND pa.product_avg_price <> 0
-                  -- ponytail: regla A también en alertas — una sola compra cara no es "premium"
+                WHERE sp.avg_price > pa.min_price * 1.15
+                  -- ponytail: regla A también en alertas — comparar contra el más barato, no contra el promedio ponderado
+                  -- (el promedio incluye al caro y diluye la señal); 15 3 compras y gasto ≥ $50 por proveedor-producto
                   AND sp.purchases >= %d
+                  -- ponytail: piso $50 de gasto por proveedor-producto
+                  AND sp.avg_price * sp.purchases >= 50
                 ORDER BY premium_pct DESC
                 """.formatted(MIN_COMPRAS_POR_PROVEEDOR);
         alerts.addAll(jdbc.query(premiumSql, (rs, row) -> Map.<String, Object>of(
@@ -417,6 +433,7 @@ public class AnalyticsServiceImpl implements AnalyticsService {
                 "providerName", rs.getString("provider_name"),
                 "currentPrice", rs.getBigDecimal("avg_price"),
                 "avgPrice", rs.getBigDecimal("product_avg_price"),
+                "minPrice", rs.getBigDecimal("min_price"),
                 "premiumPct", rs.getBigDecimal("premium_pct"),
                 "type", "SUPPLIER_PREMIUM"
         ), tenantId, start, end, tenantId, start, end));
@@ -632,52 +649,92 @@ public class AnalyticsServiceImpl implements AnalyticsService {
         var productShare = maxShare(abc);
         var hasPriceVariation = alerts.stream().anyMatch(a -> "PRICE_VARIATION".equals(a.get("type")));
 
+        // ponytail: el mes en curso solo sirve para "hasta hoy" y prorrateo — comparar meses exige meses cerrados
+        var mesEnCurso = YearMonth.now(ZoneOffset.UTC).equals(YearMonth.parse(periodo));
+
         // ---- 🔴 Señales críticas ----
-        if (opMarginPct.signum() < 0) {
+        // ponytail: 0 ventas con gastos era invisible (safePct → 0 no dispara); la pérdida se dice en dinero, no en %
+        if (revenue.signum() == 0 && opex.signum() > 0) {
+            criticals.add(alert("NEGATIVE_OPERATING_MARGIN", "Sin ventas registradas",
+                    "No registraste ventas este mes y tienes $" + nz(current.getTotalExpenses())
+                            .setScale(2, RoundingMode.HALF_UP).toPlainString() + " en gastos.",
+                    opex, BigDecimal.ZERO, "Registra las ventas del mes o revisa si los gastos corresponden."));
+            recommendations.add("No registraste ventas este mes — registra tus ventas o revisa los gastos del período.");
+        } else if (opMarginPct.signum() < 0) {
+            var perdida = nz(current.getOperatingMargin()).abs().setScale(2, RoundingMode.HALF_UP).toPlainString();
             criticals.add(alert("NEGATIVE_OPERATING_MARGIN", "Margen Operativo Negativo",
-                    "Tu negocio pierde dinero por cada venta. A este ritmo el capital se agota.",
+                    (mesEnCurso ? "Hasta hoy, este mes gastaste $" : "Este mes gastaste $")
+                            + perdida + " más de lo que vendiste.",
                     opMarginPct, BigDecimal.ZERO, "Revisa tu estructura de precios o reduce gastos operativos."));
             recommendations.add("Tu margen operativo es negativo — ajusta precios y costos antes de escalar.");
         }
 
+        // ponytail: solo meses cerrados — el mes en curso tiene compras a medias y no es comparable;
+        // crítico solo bajo el piso de margen sano (30%), si está sano la caída va como recomendación
         var gross3m = firstN(metricas, 3, m -> nz(m.getGrossMarginPct()));
-        if (gross3m.size() >= 3 && gross3m.get(0).signum() > 0 && gross3m.get(2).signum() >= 0
+        if (!mesEnCurso && gross3m.size() >= 3 && gross3m.get(0).signum() > 0 && gross3m.get(2).signum() >= 0
                 && gross3m.get(0).compareTo(gross3m.get(2).multiply(BigDecimal.valueOf(0.85))) < 0) {
-            criticals.add(alert("MARGIN_EROSION", "Erosión de Margen Bruto",
-                    "El margen bruto cayó más de 15% en 3 meses. Pierdes poder de fijación de precios.",
-                    gross3m.get(0), gross3m.get(2), "Reevalúa precios de venta y negocia costos de insumos."));
-            recommendations.add("Margen bruto en caída >15% — negocia costos de insumos o sube precios.");
+            var msg = "De cada $100 que vendes te quedan $" + gross3m.get(0).setScale(0, RoundingMode.HALF_UP)
+                    + " después de pagar la mercancía; hace 3 meses eran $" + gross3m.get(2).setScale(0, RoundingMode.HALF_UP) + ".";
+            if (gross3m.get(0).compareTo(new BigDecimal("30")) < 0) {
+                criticals.add(alert("MARGIN_EROSION", "Erosión de Margen Bruto", msg,
+                        gross3m.get(0), gross3m.get(2), "Reevalúa precios de venta y negocia costos de insumos."));
+                recommendations.add("De cada $100 que vendes te quedan menos de $30 — sube precios o negocia costos de insumos.");
+            } else {
+                recommendations.add(msg);
+            }
         }
 
-        if (supplierShare.get("maxPct") != null && ((BigDecimal) supplierShare.get("maxPct")).compareTo(new BigDecimal("50")) > 0) {
-            criticals.add(alert("SUPPLIER_CONCENTRATION", "Concentración de Proveedor",
-                    "Un solo proveedor concentra más del 50% del gasto. Riesgo de interrupción.",
-                    (BigDecimal) supplierShare.get("maxPct"), new BigDecimal("50"),
+        // ponytail: piso $500 y 2+ proveedores — con uno solo no hay alternativa (es un hecho, no un riesgo);
+        // una pulpería con proveedor dominante disparaba ">50% del gasto" todos los meses
+        var supplierTotal = supplierSpend.stream()
+                .map(r -> nz((BigDecimal) r.getOrDefault("totalSpend", BigDecimal.ZERO)))
+                .reduce(BigDecimal.ZERO, BigDecimal::add);
+        if (supplierSpend.size() >= 2 && supplierShare.get("maxPct") != null
+                && ((BigDecimal) supplierShare.get("maxPct")).compareTo(new BigDecimal("70")) > 0
+                && supplierTotal.compareTo(new BigDecimal("500")) >= 0) {
+            criticals.add(alert("SUPPLIER_CONCENTRATION", "WARNING", "Concentración de Proveedor",
+                    "El " + ((BigDecimal) supplierShare.get("maxPct")).setScale(2, RoundingMode.HALF_UP).toPlainString()
+                            + "% de tus compras ($" + supplierTotal.setScale(2, RoundingMode.HALF_UP).toPlainString()
+                            + ") van a un solo proveedor.",
+                    (BigDecimal) supplierShare.get("maxPct"), new BigDecimal("70"),
                     "Busca al menos 2 alternativas para el proveedor dominante."));
             recommendations.add("El proveedor " + supplierShare.get("name") + " concentra el " + supplierShare.get("maxPct")
                     + "% del gasto — negocia con 2 alternativas.");
         }
 
-        if (opMargin.signum() > 0 && loanPayments.signum() > 0) {
-            var ratio = loanPayments.divide(opMargin, 4, RoundingMode.HALF_UP);
-            if (ratio.compareTo(new BigDecimal("0.30")) > 0) {
+        // ponytail: deuda/ventas con piso $100 — contra el margen, un margen chico positivo explotaba el ratio
+        // y una deuda de $4 "consumía" el margen; DEBT_CAPACITY puede seguir en su métrica (opMargin ≤ ventas, sin contradicción)
+        if (revenue.signum() > 0 && loanPayments.signum() > 0) {
+            var ratio = loanPayments.divide(revenue, 4, RoundingMode.HALF_UP);
+            if (loanPayments.compareTo(new BigDecimal("100")) >= 0
+                    && ratio.compareTo(new BigDecimal("0.15")) > 0) {
+                var deCada100 = ratio.multiply(BigDecimal.valueOf(100)).setScale(0, RoundingMode.HALF_UP).toPlainString();
                 criticals.add(alert("OVER_LEVERAGED", "Sobreendeudamiento",
-                        "La deuda consume más del 30% del margen operativo.",
-                        ratio, new BigDecimal("0.30"), "Reestructura pagos o reduce nueva deuda."));
-                recommendations.add("La deuda consume >30% del margen operativo — reestructura pagos.");
+                        "La deuda se lleva $" + deCada100 + " de cada $100 que vendes ($"
+                                + loanPayments.setScale(2, RoundingMode.HALF_UP).toPlainString() + " al mes).",
+                        ratio, new BigDecimal("0.15"), "Reestructura pagos o reduce nueva deuda."));
+                recommendations.add("La deuda se lleva " + deCada100 + " de cada $100 que vendes — reestructura pagos.");
             } else if (ratio.compareTo(new BigDecimal("0.15")) < 0) {
-                investments.add(signal("DEBT_CAPACITY", "Capacidad de Endeudamiento", "Pagos de deuda", ratio, "<15% del margen operativo"));
+                investments.add(signal("DEBT_CAPACITY", "Capacidad de Endeudamiento", "Pagos de deuda", ratio, "<15% de las ventas"));
             }
         }
 
+        // ponytail: solo meses cerrados y piso $50 — un 22% sobre $1.10 es calderilla, y si ambos cayeron no hay "crecimiento"
         var revenue3m = firstN(metricas, 3, m -> nz(m.getTotalIncome()));
         var opex3m = firstN(metricas, 3, m -> nz(m.getOperatingExpenses()));
-        if (revenue3m.size() >= 3 && opex3m.size() >= 3 && revenue3m.get(0).signum() > 0 && revenue3m.get(2).signum() > 0) {
+        if (!mesEnCurso && revenue3m.size() >= 3 && opex3m.size() >= 3 && revenue3m.get(0).signum() > 0 && revenue3m.get(2).signum() > 0) {
             var revGrowth = growthPct(revenue3m.get(0), revenue3m.get(2));
             var opexGrowth = growthPct(opex3m.get(0), opex3m.get(2));
-            if (opexGrowth.compareTo(revGrowth) > 0) {
-                criticals.add(alert("OPEX_CREEP", "Crecimiento de Gastos Operativos",
-                        "Los gastos operativos crecen más rápido que los ingresos. Ineficiencia creciente.",
+            var opexDelta = opex3m.get(0).subtract(opex3m.get(2));
+            var revDelta = revenue3m.get(0).subtract(revenue3m.get(2));
+            if (opexDelta.compareTo(new BigDecimal("50")) >= 0 && opexGrowth.compareTo(revGrowth) > 0) {
+                var ritmoVentas = revDelta.signum() >= 0
+                        ? "subieron $" + revDelta.setScale(2, RoundingMode.HALF_UP).toPlainString()
+                        : "bajaron $" + revDelta.abs().setScale(2, RoundingMode.HALF_UP).toPlainString();
+                criticals.add(alert("OPEX_CREEP", "WARNING", "Crecimiento de Gastos Operativos",
+                        "Tus gastos subieron $" + opexDelta.setScale(2, RoundingMode.HALF_UP).toPlainString()
+                                + " en 3 meses y tus ventas " + ritmoVentas + ".",
                         opexGrowth, revGrowth, "Revisa partidas de gasto operativo y presupuesto."));
                 recommendations.add("El gasto operativo crece más rápido que los ingresos — audita partidas fijas.");
             } else if (opexGrowth.compareTo(revGrowth) < 0) {
@@ -686,34 +743,63 @@ public class AnalyticsServiceImpl implements AnalyticsService {
             }
         }
 
+        // ponytail: excluir nunca comprados (lastPurchaseDate == null) — son alta de catálogo, no "dejaste de comprar"
         var products = productoRepository.findByTenantId(tenantId);
         var dead = products.stream()
-                .filter(p -> nz(p.getTotalInvestment()).signum() > 0)
-                .filter(p -> p.getLastPurchaseDate() == null || p.getLastPurchaseDate().isBefore(LocalDate.now(ZoneOffset.UTC).minusDays(60)))
+                .filter(p -> nz(p.getTotalInvestment()).signum() > 0)           // sin capital invertido no hay capital parado
+                .filter(p -> p.getLastPurchaseDate() != null
+                        && p.getLastPurchaseDate().isBefore(LocalDate.now(ZoneOffset.UTC).minusDays(60)))
                 .sorted(Comparator.comparing(Producto::getTotalInvestment).reversed())
                 .limit(5)
                 .toList();
-        if (!dead.isEmpty()) {
-            criticals.add(alert("DEAD_INVENTORY", "Inventario Muerto",
-                    dead.size() + " productos con inversión alta y sin compras en 60+ días. Capital estancado.",
-                    dead.stream().map(p -> nz(p.getTotalInvestment())).reduce(BigDecimal.ZERO, BigDecimal::add),
-                    BigDecimal.ZERO, "Liquida o negocia devoluciones para liberar capital."));
-            recommendations.add("Capital estancado en " + dead.size() + " productos sin compra en 60+ días — liquida inventario.");
+        var deadCapital = dead.stream().map(p -> nz(p.getTotalInvestment())).reduce(BigDecimal.ZERO, BigDecimal::add);
+        // shortcut: piso fijo $50 — menos capital parado es ruido presentado como riesgo crítico
+        // (caso real Mi Rinconcito: $26 en 5 productos); configurable por tenant cuando exista esa config
+        if (deadCapital.compareTo(new BigDecimal("50")) >= 0) {
+            var alerta = alert("DEAD_INVENTORY", "WARNING", "Productos que dejaste de comprar",
+                    "Dejaste de comprar " + dead.size() + " productos. Invertiste $"
+                            + deadCapital.setScale(2, RoundingMode.HALF_UP).toPlainString() + " en ellos.",
+                    deadCapital, BigDecimal.ZERO, "Liquida o negocia devoluciones para liberar capital.");
+            // la lista ya está calculada: enviarla evita que la UI tenga que adivinar cuáles son
+            alerta.put("items", dead.stream().map(p -> Map.<String, Object>of(
+                    "id", String.valueOf(p.getId()),
+                    "name", p.getName(),
+                    "totalInvestment", nz(p.getTotalInvestment()),
+                    "lastPurchaseDate", p.getLastPurchaseDate() == null ? "" : p.getLastPurchaseDate().toString()
+            )).toList());
+            criticals.add(alerta);
+            recommendations.add("Capital parado en " + dead.size() + " productos sin compra en 60+ días — liquida inventario.");
         }
 
-        // ---- 💸 Costo operativo diario vs ingreso diario ----
+        // ---- 💰 Fijos corridos del mes vs ganancia tras mercancía ----
+        // ponytail: comparar totales del mes — dividir fijos por días laborables y ganancia por días calendario daba pérdida falsa
         var costPerDay = nz(current.getCostoOperativoDiario());
-        var daysInMonth = start.lengthOfMonth();
-        var revenuePerDay = revenue.divide(BigDecimal.valueOf(daysInMonth), 4, RoundingMode.HALF_UP);
-        if (costPerDay.signum() > 0 && revenuePerDay.signum() > 0) {
-            if (costPerDay.compareTo(revenuePerDay.multiply(new BigDecimal("1.2"))) > 0) {
-                criticals.add(alert("DAILY_COST_CONTROL", "Costo Diario Sobre Ingreso Diario",
-                        "Tu costo operativo diario supera en 20%+ el ingreso diario. Estás quemando capital cada día.",
-                        costPerDay, revenuePerDay, "Reduce costos fijos o sube el ticket promedio de venta."));
-                recommendations.add("El costo operativo diario supera el ingreso diario en 20%+ — recorta gastos fijos ya.");
-            } else if (costPerDay.compareTo(revenuePerDay.multiply(new BigDecimal("0.8"))) < 0) {
-                expansions.add(signal("DAILY_COST_COVERED", "Costo Diario Cubierto",
-                        "Costo diario vs ingreso diario", costPerDay, "costo < 80% del ingreso diario"));
+        var diasLaborales = Optional.ofNullable(jdbc.query("""
+                SELECT dias_laborales FROM core.config_laboral WHERE tenant_id = ?
+                """, rs -> rs.next() ? rs.getInt(1) : 26, tenantId)).orElse(26);
+        var gananciaBruta = revenue.subtract(nz(current.getCostOfGoods()));
+        var diasDelMes = start.lengthOfMonth();
+        var diasTranscurridos = mesEnCurso ? LocalDate.now(ZoneOffset.UTC).getDayOfMonth() : diasDelMes;
+        var fijosCorridos = costPerDay.multiply(BigDecimal.valueOf(diasLaborales))
+                .multiply(BigDecimal.valueOf(diasTranscurridos))
+                .divide(BigDecimal.valueOf(diasDelMes), 2, RoundingMode.HALF_UP);
+        if (costPerDay.signum() > 0 && revenue.signum() > 0) {
+            if (fijosCorridos.compareTo(gananciaBruta) > 0) {
+                var faltante = fijosCorridos.subtract(gananciaBruta).setScale(2, RoundingMode.HALF_UP).toPlainString();
+                var ritmo = gananciaBruta.signum() > 0
+                        ? (mesEnCurso ? "Hasta hoy ganaste $" : "Este mes ganaste $")
+                                + gananciaBruta.setScale(2, RoundingMode.HALF_UP).toPlainString()
+                                + " después de pagar la mercancía"
+                        : "Después de pagar la mercancía no te queda ganancia";
+                criticals.add(alert("DAILY_COST_CONTROL", "Los costos fijos se comen tu ganancia",
+                        ritmo + ". Los fijos que han corrido son $"
+                                + fijosCorridos.setScale(2, RoundingMode.HALF_UP).toPlainString()
+                                + ". Te faltan $" + faltante + ".",
+                        fijosCorridos, gananciaBruta, "Reduce costos fijos o sube el margen de tus ventas."));
+                recommendations.add("Tus costos fijos superan lo que ganas — recorta gastos fijos o sube ventas.");
+            } else if (gananciaBruta.signum() > 0 && fijosCorridos.compareTo(gananciaBruta.multiply(new BigDecimal("0.8"))) < 0) {
+                expansions.add(signal("DAILY_COST_COVERED", "Fijos Cubiertos",
+                        "Ganancia vs fijos corridos", fijosCorridos, "fijos < 80% de la ganancia"));
             }
         }
 
@@ -733,12 +819,8 @@ public class AnalyticsServiceImpl implements AnalyticsService {
 
         if (plataARecuperar.signum() > 0) {
             var gananciaMensual = revenue.multiply(netMarginPct).divide(BigDecimal.valueOf(100), 4, RoundingMode.HALF_UP);
-            if (gananciaMensual.signum() <= 0) {
-                criticals.add(alert("PAYBACK_RECOVERY", "Recuperación de Inversión",
-                        "Estás perdiendo dinero y no recuperas tu inversión.",
-                        BigDecimal.valueOf(-1), BigDecimal.ZERO, "Sube tus ventas o baja gastos."));
-                recommendations.add("Estás perdiendo dinero y no recuperas tu inversión.");
-            } else {
+            // ponytail: solo meses cerrados y pérdida real — neto 0 (mes sin ventas ni gastos) no es pérdida
+            if (gananciaMensual.signum() > 0) {
                 var meses = plataARecuperar.divide(gananciaMensual, 2, RoundingMode.HALF_UP);
                 if (meses.compareTo(BigDecimal.valueOf(12)) <= 0) {
                     expansions.add(signal("PAYBACK_RECOVERY", "Recuperación de Inversión",
@@ -749,6 +831,12 @@ public class AnalyticsServiceImpl implements AnalyticsService {
                 } else {
                     recommendations.add("A este ritmo, recuperarás tu inversión en ~" + meses + " meses.");
                 }
+            } else if (!mesEnCurso && gananciaMensual.signum() < 0) {
+                var perdida = nz(current.getNetMargin()).abs();
+                criticals.add(alert("PAYBACK_RECOVERY", "Cerraste el mes en pérdida",
+                        "Este mes gastaste $" + perdida.setScale(2, RoundingMode.HALF_UP).toPlainString() + " más de lo que vendiste.",
+                        perdida, BigDecimal.ZERO, "Sube tus ventas o baja tus gastos fijos."));
+                recommendations.add("Este mes gastaste más de lo que vendiste — sube ventas o baja gastos.");
             }
         }
 
@@ -809,8 +897,13 @@ public class AnalyticsServiceImpl implements AnalyticsService {
         var priceScore = hasPriceVariation ? 60 : 100;
         var stability = (int) Math.round(supplierScore * 0.5 + priceScore * 0.5);
 
-        var revenueGrowth = revenue3m.size() >= 3 && revenue3m.get(2).signum() > 0
-                ? growthPct(revenue3m.get(0), revenue3m.get(2)).doubleValue() : 0.0;
+        // ponytail: el mes en curso está a medias — compararlo con un mes cerrado daba un -45% falso
+        var closedMetricas = mesEnCurso && periodo.equals(current.getPeriod()) && metricas.size() > 1
+                ? metricas.subList(1, metricas.size()) : metricas;
+        var closedRevenue3m = firstN(closedMetricas, 3, m -> nz(m.getTotalIncome()));
+        var tieneCrecimiento = closedRevenue3m.size() >= 3 && closedRevenue3m.get(2).signum() > 0;
+        var revenueGrowth = tieneCrecimiento
+                ? growthPct(closedRevenue3m.get(0), closedRevenue3m.get(2)).doubleValue() : 0.0;
         var growth = clampScore(BigDecimal.valueOf(50 + revenueGrowth * 5));
 
         var overallHealth = (int) Math.round(profitability * 0.35 + efficiency * 0.25 + stability * 0.25 + growth * 0.15);
@@ -828,6 +921,17 @@ public class AnalyticsServiceImpl implements AnalyticsService {
         if (recommendations.isEmpty() && !criticals.isEmpty()) recommendations.add("Atiende las alertas críticas antes de invertir.");
         if (recommendations.isEmpty()) recommendations.add("Tu salud financiera es estable — evalúa las señales de inversión para crecer.");
 
+        // ponytail: sin 3 meses cerrados no mandar revenueTrend — el frontend distingue "sin datos" de "0%"
+        var growthDrivers = new ArrayList<String>();
+        if (tieneCrecimiento) {
+            growthDrivers.add("revenueTrend: " + BigDecimal.valueOf(revenueGrowth).setScale(1, RoundingMode.HALF_UP) + "%");
+            growthDrivers.add("growthFrom: " + closedMetricas.get(2).getPeriod());
+            growthDrivers.add("growthTo: " + closedMetricas.get(0).getPeriod());
+            growthDrivers.add("growthFromAmount: " + closedRevenue3m.get(2).setScale(2, RoundingMode.HALF_UP));
+            growthDrivers.add("growthToAmount: " + closedRevenue3m.get(0).setScale(2, RoundingMode.HALF_UP));
+        }
+        growthDrivers.add("inventoryTurnover: " + dead.size());
+
         var out = new LinkedHashMap<String, Object>();
         out.put("overallHealth", overallHealth);
         out.put("breakdown", Map.of(
@@ -837,8 +941,9 @@ public class AnalyticsServiceImpl implements AnalyticsService {
                         "opexRatio: " + opexRatio.multiply(BigDecimal.valueOf(100)).setScale(0, RoundingMode.HALF_UP) + "%")),
                 "stability", Map.of("score", stability, "drivers", List.of(
                         "supplierConcentration: " + supplierMax + "%", "priceStability: " + (hasPriceVariation ? 0.6 : 0.92))),
-                "growth", Map.of("score", growth, "drivers", List.of(
-                        "revenueTrend: " + BigDecimal.valueOf(revenueGrowth).setScale(1, RoundingMode.HALF_UP) + "%", "inventoryTurnover: " + dead.size()))));
+                "growth", Map.of("score", growth, "drivers", growthDrivers)));
+        // ponytail: el semáforo del Dashboard lee criticalAlerts[0] — CRITICAL primero para no pintar amarillo con una roja detrás
+        criticals.sort(Comparator.comparingInt(m -> "CRITICAL".equals(m.get("severity")) ? 0 : 1));
         out.put("criticalAlerts", criticals);
         out.put("investmentSignals", investments);
         out.put("expansionReadiness", Map.of("score", expScore, "status", status, "requirements", requirements));
@@ -903,9 +1008,13 @@ public class AnalyticsServiceImpl implements AnalyticsService {
     }
 
     private static Map<String, Object> alert(String type, String title, String message, BigDecimal metric, BigDecimal threshold, String action) {
+        return alert(type, "CRITICAL", title, message, metric, threshold, action);
+    }
+
+    private static Map<String, Object> alert(String type, String severity, String title, String message, BigDecimal metric, BigDecimal threshold, String action) {
         var m = new LinkedHashMap<String, Object>();
         m.put("type", type);
-        m.put("severity", "CRITICAL");
+        m.put("severity", severity);
         m.put("title", title);
         m.put("message", message);
         m.put("metric", metric);

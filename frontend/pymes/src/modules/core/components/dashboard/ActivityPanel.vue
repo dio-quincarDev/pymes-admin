@@ -98,23 +98,21 @@ function statusClass(status: string) {
 .activity-panel {
   display: flex;
   flex-direction: column;
-  background: var(--pq-surface);
   border: 1px solid var(--pq-border);
-  border-radius: 8px;
-  padding: 16px;
+  border-radius: var(--pq-radius-md);
+  padding: 20px 24px;
   height: 100%;
   min-width: 0;
   max-width: 100%;
   overflow: hidden;
 
   &__title {
-    font-family: 'Satoshi', sans-serif;
-    font-size: 11px;
+    font-family: 'Geist', sans-serif;
+    font-size: 13px;
     font-weight: 500;
-    color: var(--pq-text-muted);
-    text-transform: uppercase;
-    letter-spacing: 0.08em;
-    margin: 0 0 12px;
+    color: var(--pq-text);
+    letter-spacing: -0.01em;
+    margin: 0 0 16px;
   }
 
   &__scroll {

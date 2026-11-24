@@ -38,6 +38,7 @@ spring:
     redis:
       host: ${REDIS_HOST}
       port: ${REDIS_PORT}
+      database: 1
 
   mail:
     host: ${SPRING_MAIL_HOST:smtp.gmail.com}

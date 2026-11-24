@@ -33,6 +33,12 @@ public class CustomOAuth2UserService extends DefaultOAuth2UserService {
         String providerId = getProviderId(attributes, registrationId);
         String email = (String) attributes.get("email");
         String name = (String) attributes.get("name");
+
+        // A07: no vincular/crear cuenta si el proveedor no verificó el email
+        Object emailVerified = attributes.get("email_verified");
+        if (emailVerified instanceof Boolean && !(Boolean) emailVerified) {
+            throw new OAuth2AuthenticationException("Email not verified by provider");
+        }
         String picture = getPictureUrl(attributes, registrationId);
 
         // 1. Buscar por provider + providerId (login OAuth2 normal)

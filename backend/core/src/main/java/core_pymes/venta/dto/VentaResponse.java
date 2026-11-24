@@ -3,6 +3,7 @@ package core_pymes.venta.dto;
 import java.math.BigDecimal;
 import java.time.LocalDate;
 import java.time.ZonedDateTime;
+import java.util.List;
 import java.util.UUID;
 
 public record VentaResponse(
@@ -11,5 +12,6 @@ public record VentaResponse(
         LocalDate fecha,
         BigDecimal montoBruto,
         String descripcion,
+        List<VentaPagoResponse> desglose,
         ZonedDateTime createdAt
 ) {}

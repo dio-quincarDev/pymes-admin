@@ -41,7 +41,7 @@ Chart.register(
 interface Props {
   type: 'bar' | 'line' | 'doughnut';
   data: Chart['data'];
-  options?: Chart['options'];
+  options?: Record<string, unknown>;
   height?: number;
 }
 
@@ -123,7 +123,7 @@ function createChart() {
         },
       },
       scales: defaultScales,
-      ...(props.options as Record<string, unknown>),
+      ...(props.options),
     },
   });
 }
@@ -151,6 +151,22 @@ onUnmounted(() => {
   chart.value?.destroy();
   resizeObserver.disconnect();
 });
+
+// API imperativa mínima para padres con leyenda propia (dona) — sin exponer la instancia Chart.js completa
+function toggleSlice(index: number) {
+  chart.value?.toggleDataVisibility(index);
+  chart.value?.update();
+}
+
+function showSlice(index: number) {
+  const c = chart.value;
+  if (c && !c.getDataVisibility(index)) {
+    c.toggleDataVisibility(index);
+    c.update();
+  }
+}
+
+defineExpose({ toggleSlice, showSlice });
 </script>
 
 <style scoped>

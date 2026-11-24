@@ -51,6 +51,9 @@ class PasswordResetIntegrationTest extends AbstractIntegrationTest {
         java.util.Set<String> pendingKeys = redisTemplate.keys("temp-register:*");
         if (pendingKeys != null) redisTemplate.delete(pendingKeys);
 
+        java.util.Set<String> rateLimitKeys = redisTemplate.keys("rate_limit:*");
+        if (rateLimitKeys != null) redisTemplate.delete(rateLimitKeys);
+
         // Limpiar usuario de prueba
         jdbcTemplate.update("DELETE FROM user_tenants WHERE user_id IN (SELECT id FROM users WHERE email = ?)", testEmail);
         jdbcTemplate.update("DELETE FROM users WHERE email = ?", testEmail);

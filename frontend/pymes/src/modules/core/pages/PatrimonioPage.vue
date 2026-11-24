@@ -128,10 +128,16 @@ onMounted(() => {
 </script>
 
 <template>
-  <q-page class="core-page">
-    <div class="q-mb-lg fade-in-up" data-tour="inversion">
-      <h1 class="text-h4 font-bold q-ma-none patrimonio-title">Inversión</h1>
-      <p class="text-subtitle1 text-accent q-mt-xs">Capital inicial y plan de retorno</p>
+  <q-page class="core-page patrimonio-page">
+    <div class="page-header fade-in-up" data-tour="inversion">
+      <div class="page-header__main">
+        <h1 class="page-title">Inversión</h1>
+        <p class="page-subtitle">Capital inicial y plan de retorno</p>
+      </div>
+      <div class="page-header__signature" aria-hidden="true">
+        <span class="signature-dot" />
+        <span class="signature-line" />
+      </div>
     </div>
 
     <div v-if="loading" class="row q-col-gutter-md">
@@ -233,12 +239,69 @@ onMounted(() => {
 </template>
 
 <style scoped lang="scss">
-.patrimonio-title {
-  font-family: 'Outfit', sans-serif;
-  background: linear-gradient(135deg, #a3785e 0%, #c5a059 50%, #a3785e 100%);
-  -webkit-background-clip: text;
-  -webkit-text-fill-color: transparent;
-  background-clip: text;
+.patrimonio-page {
+  max-width: 1280px;
+  margin: 0 auto;
+  padding: clamp(24px, 4vw, 64px);
+}
+
+@media (max-width: 599px) {
+  .patrimonio-page {
+    padding: 16px;
+  }
+}
+
+.page-header {
+  display: flex;
+  align-items: flex-end;
+  justify-content: space-between;
+  gap: 24px;
+  margin-bottom: 8px;
+}
+
+.page-title {
+  font-family: var(--pq-font-display);
+  font-weight: 700;
+  font-size: clamp(22px, 4vw, 28px);
+  line-height: 1.15;
+  letter-spacing: -0.02em;
+  color: var(--pq-text);
+  margin: 0;
+}
+
+.page-subtitle {
+  font-family: var(--pq-font-body);
+  font-weight: 500;
+  font-size: 13px;
+  line-height: 1.5;
+  color: var(--pq-text-muted);
+  margin: 4px 0 0;
+}
+
+.page-header__signature {
+  display: none;
+  align-items: center;
+  gap: 8px;
+}
+
+@media (min-width: 1024px) {
+  .page-header__signature {
+    display: flex;
+  }
+}
+
+.signature-dot {
+  width: 6px;
+  height: 6px;
+  border-radius: 50%;
+  background: var(--pq-accent);
+}
+
+.signature-line {
+  width: 40px;
+  height: 1px;
+  background: var(--pq-accent);
+  opacity: 0.4;
 }
 
 .metric-skeleton {
@@ -254,10 +317,10 @@ onMounted(() => {
 }
 
 .metric-card {
-  background: rgba(27, 38, 36, 0.85);
+  background: var(--pq-surface);
   backdrop-filter: blur(8px);
-  border: 1px solid rgba(113, 131, 127, 0.05);
-  border-radius: 8px;
+  border: 1px solid var(--pq-border);
+  border-radius: var(--pq-radius-sm);
   padding: 1.25rem 1.5rem;
   position: relative;
   overflow: hidden;
@@ -292,17 +355,17 @@ onMounted(() => {
   &__label {
     font-size: 0.72rem;
     font-weight: 500;
-    color: #8a9e99;
+    color: var(--pq-text-subtle);
     text-transform: uppercase;
     letter-spacing: 0.06em;
     margin-bottom: 0.5rem;
   }
 
   &__value {
-    font-family: 'Outfit', sans-serif;
+    font-family: var(--pq-font-display);
     font-size: 1.6rem;
     font-weight: 700;
-    color: #e2e8e4;
+    color: var(--pq-text);
     line-height: 1;
 
     &--date {
@@ -334,21 +397,25 @@ onMounted(() => {
 }
 
 .config-card {
-  border-radius: 10px;
+  border-radius: var(--pq-radius-md);
   overflow: hidden;
+  background: var(--pq-surface);
+  border: 1px solid var(--pq-border);
 
   &__header {
     display: flex;
     align-items: center;
     justify-content: space-between;
     padding: 1.25rem 1.5rem;
-    border-bottom: 1px solid rgba(113, 131, 127, 0.08);
+    border-bottom: 1px solid var(--pq-border);
   }
 
   &__title {
     display: flex;
     align-items: center;
     gap: 0.5rem;
+    color: var(--pq-text);
+    font-family: var(--pq-font-display);
   }
 
   &__body {

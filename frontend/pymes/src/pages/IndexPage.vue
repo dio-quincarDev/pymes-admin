@@ -1,15 +1,8 @@
-<template>
-  <q-page class="index-page">
-    <LandingHero @start="startOnboarding" />
-    <FeatureGrid />
-    <TrustSection />
-  </q-page>
-</template>
-
 <script setup lang="ts">
+import { onMounted } from 'vue';
 import { useMeta } from 'quasar';
 import { useAuthStore } from 'src/modules/auth/store';
-import { useRouter } from 'vue-router';
+import { useRouter, useRoute } from 'vue-router';
 import LandingHero from 'src/components/landing/LandingHero.vue';
 import FeatureGrid from 'src/components/landing/FeatureGrid.vue';
 import TrustSection from 'src/components/landing/TrustSection.vue';
@@ -53,6 +46,7 @@ useMeta({
 
 const authStore = useAuthStore();
 const router = useRouter();
+const route = useRoute();
 
 const startOnboarding = (name: string) => {
   if (!name.trim()) return;
@@ -69,7 +63,27 @@ const startOnboarding = (name: string) => {
   authStore.setPendingTenant(name, slug);
   void router.push('/register');
 };
+
+onMounted(() => {
+  if (route.hash) {
+    const id = route.hash.replace('#', '');
+    setTimeout(() => {
+      const el = document.getElementById(id);
+      if (el) {
+        el.scrollIntoView({ behavior: 'smooth' });
+      }
+    }, 100);
+  }
+});
 </script>
+
+<template>
+  <q-page class="index-page">
+    <LandingHero @start="startOnboarding" />
+    <FeatureGrid />
+    <TrustSection />
+  </q-page>
+</template>
 
 <style scoped>
 .index-page {

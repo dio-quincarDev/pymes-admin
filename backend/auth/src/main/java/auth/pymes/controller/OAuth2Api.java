@@ -6,6 +6,7 @@ import auth.pymes.common.models.dto.response.ApiResponse;
 import auth.pymes.common.models.dto.response.OAuth2IntentResponse;
 import io.swagger.v3.oas.annotations.Operation;
 import io.swagger.v3.oas.annotations.tags.Tag;
+import jakarta.servlet.http.HttpServletRequest;
 import jakarta.validation.Valid;
 import org.springframework.http.ResponseEntity;
 import org.springframework.web.bind.annotation.GetMapping;
@@ -21,7 +22,8 @@ public interface OAuth2Api {
     @Operation(summary = "Create OAuth2 Intent", description = "Crea un intento de registro OAuth2 con datos de empresa para ser procesado tras el login")
     @PostMapping(ApiPathConstants.OAUTH2_INTENT)
     ResponseEntity<ApiResponse<OAuth2IntentResponse>> createOAuth2Intent(
-            @Valid @RequestBody OAuth2IntentRequest request);
+            @Valid @RequestBody OAuth2IntentRequest request,
+            HttpServletRequest httpRequest);
 
     @Operation(summary = "Get OAuth2 Intent", description = "Obtiene los datos de un intento OAuth2 existente")
     @GetMapping(ApiPathConstants.OAUTH2_INTENT_GET)

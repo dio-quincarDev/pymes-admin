@@ -6,6 +6,8 @@ Spring Cloud Gateway (WebFlux). Punto de entrada unico, validador JWT en el edge
 [![Java](https://img.shields.io/badge/Java-21-ED8B00?logo=openjdk&logoColor=ffffff)](https://www.oracle.com/java/technologies/downloads/)
 [![Redis](https://img.shields.io/badge/Redis-DC382D?logo=redis&logoColor=ffffff)](https://redis.io/)
 
+Docs: [API contract](../../docs/api/README.md) · [regenerar specs](../../docs/api/README.md#regenerar-un-comando-por-servicio)
+
 ---
 
 ## Que Hace
@@ -47,6 +49,18 @@ Request externo
        X-Tenant-Id: {tenantId}
        X-User-Role: {role}
 ```
+
+```mermaid
+flowchart LR
+    Q["Request externo"] --> RV["RouterValidator<br/>whitelist"]
+    RV -->|pública| UP["downstream sin JWT"]
+    RV -->|protegida| JW["JwtUtils.getClaims<br/>firma / expiración"]
+    JW --> BL["Redis blacklist<br/>jti revocado"]
+    BL --> IH["X-User-Id / Email / Tenant / Role / Plan"]
+    IH --> DS["auth:8081 · core:8082"]
+```
+
+Source: `backend/gateway-pymes/src/main/java/dev/dioquincar/gateway_pymes/filter/AuthenticationFilter.java`, `RouterValidator.java`, `util/JwtUtils.java`.
 
 ### RouterValidator (Whitelist)
 
@@ -92,7 +106,7 @@ Los microservicios internos deben rechazar trafico que no provenga del Gateway o
 
 | Tipo | Prefijo | Seguridad | Destino |
 |------|---------|-----------|---------|
-| Core | /api/v1/core/** | JWT + Redis | core-service:8082 (~50 endpoints: setup + costos + analytics) |
+| Core | /api/v1/core/** | JWT + Redis | core-service:8082 (62 API operations — `docs/api/openapi-core.json`: setup + costos + analytics) |
 | Publicas Auth | /api/v1/auth/register, /login, /refresh, /verify-email, /resend-verification, /forgot-password, /reset-password, /exchange, /auth/oauth2/intent, /invitations/*/info, /invitations/*/register | Ninguna | auth-service:8081 |
 | Publicas OAuth2 | /oauth2/**, /login/oauth2/**, /login/** | Ninguna | auth-service:8081 |
 | Protegidas | /api/v1/auth/logout, /me, /tenants/**, /invitations/** (excepto `*/info`/`*/register` públicas) | JWT + Redis | auth-service:8081 |

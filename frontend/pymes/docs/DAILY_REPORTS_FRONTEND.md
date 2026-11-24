@@ -4,6 +4,132 @@ Registro cronológico de decisiones, problemas resueltos y estado del frontend.
 
 ---
 
+## 2026-11-21 — Salud financiera: Crecimiento deja de asustar
+
+**Contexto:** la tarjeta mostraba `-45.3% vs hace 3 meses` con gauge rojo en 0. En realidad comparaba noviembre a mitad de mes ($4,515.71) contra un mes cerrado (~$8,255): un -45% falso que bajaba la salud de 64 a 59.
+
+**Qué se hizo:**
+- **`financialGuide.ts`** — si el backend no manda `revenueTrend`, la tarjeta dice `Aún no hay historial` / `Se mide con 3 meses cerrados` (no lo confunde con un 0% real). Con datos, muestra `Octubre vs agosto: +4.6%` y debajo los montos con `formatCurrency`. Corregido el texto "hace 3 meses": el driver trae los meses reales.
+- **`TraderGauge.vue` / `FinancialHealthBreakdown.vue`** — `GuideLine.sinDatos` oculta el número del gauge y cambia el `aria-label` a "sin datos": mostrar un 50 inventado engañaba al usuario y al lector de pantalla (revisión con `chart-designer`). La aguja sigue en el centro.
+
+**Verificación:** `npm run build` PWA verde. Sin commit/push.
+
+---
+
+## 2026-11-20 — Factura: caret sí, desplegable no
+
+**Contexto:** para arreglar la búsqueda de producto se cambió `focus()` por `showPopup()`. En pantallas chicas eso abre el menú con **todos** los productos en cuanto se pulsa "Agregar item" y tapa la factura. El problema real era que en móvil QSelect ponía el caret en un input que no era el de búsqueda (modo diálogo), no que faltara abrir el desplegable.
+
+**Qué se hizo:**
+- **`InvoiceItemCard.vue`** — `reveal()` vuelve a `focus()` y conserva el `scrollIntoView`. **Causa real del "escribir no filtra":** en móvil QSelect elige diálogo cuando hay `@filter` + slot `no-option`, y en ese modo el input del campo queda con `no-pointer-events`, así que el caret no era el input de búsqueda. Se agrega `behavior="menu"` para forzar el menú inline: el campo sigue editable, `filter()` corre al teclear y el menú abre solo las coincidencias (`input-debounce="0"`).
+- **`FacturasPage.vue`** — eliminado el parámetro `openPopup` de `addItem()`/`reveal()` y el `@click="addItem()"`. El scroll y el flujo de "Agregar item" siguen igual.
+
+**Verificación:** `npm run build` PWA verde (lint + vue-tsc). Commit local; sin deploy todavía.
+
+**Pendiente en dispositivo real:** en iOS el navegador puede ignorar el `focus()` programático y el teclado sale con un toque; el filtrado sigue siendo inmediato.
+
+---
+
+## 2026-11-17 — Factura: el item nuevo se revela solo + limpieza del merge de develop
+
+**Contexto:** con muchos items, el botón "Agregar item" queda al final del dialog y el card nuevo se inserta por encima de él, fuera del viewport visible (peor en móvil, donde además entra el teclado). Había que hacer scroll manual para llegar al campo "Buscar producto..." y escribir el nombre. Por otro lado, el merge de `develop` (`158daba`) reintrodujo `itbmsMes` — el KPI viejo que esta rama ya había reemplazado por "Mejor día" — y el CI falló por variable sin uso.
+
+**Qué se hizo:**
+- **`InvoiceItemCard.vue`** — `useTemplateRef` al root y al `q-select` de producto; `defineExpose({ reveal })` con `scrollIntoView({ block: 'center', behavior: 'smooth' })` + `focus()` del input. El hijo expone la acción, el padre no hurga el DOM.
+- **`FacturasPage.vue`** — handles imperativos por card (function refs en el `v-for`); `addItem()` ahora es `async`: push → `nextTick()` → `reveal()` del último card. `openCreate()` lo espera. Aplica igual en móvil y desktop.
+- **`useFinancialDashboard.ts` + `DashboardPage.vue`** — eliminadas las 3 huellas de `itbmsMes` (computed, export y destructuring) que `develop` reintrodujo; el KPI vigente es "Mejor día del mes".
+
+**Verificación:** `npm run lint` 0, `npm run test` 80/80, `npm run build` PWA verde, backend `./mvnw test -B` 275/275.
+
+**Pendiente de probar en dispositivo real:** en iOS el `focus()` puede abrir el teclado antes de que termine el scroll suave; si pasa, cambiar `behavior: 'smooth'` por `'instant'`.
+
+---
+
+## 2026-11-17 — Lote 3: el semáforo de alertas deja de mentir (§8 estrategia)
+
+**Contexto:** el backend ya mandaba `severity` (CRITICAL/WARNING) desde los Lotes 1 y 2, pero el frontend la descartaba y coloreaba por código: 5 avisos críticos salían amarillos. Además el pill del Dashboard decidía rojo solo si el código contenía `NEGATIVE` u `OVER_LEVERAGED`, así que una alerta roja detrás de una amarilla pasaba desapercibida.
+
+**Qué se hizo:**
+- **`types/analytics.ts` + `analyticsNormalize.ts`** — `FinancialHealthAlert.severity` tipada ('CRITICAL' | 'WARNING'); el normalizador la copia del wire (`WARNING` solo si dice `WARNING`, si no `CRITICAL` por caché vieja). +1 test.
+- **`FinancialHealthAlerts.vue`** — color por `severity`, adiós mapa por código y adiós `isGoodDependence`. Se eliminó el chain de props muertas `health`/`recommendations` (componente, panel y 2 páginas) que solo alimentaba ese parche.
+- **`financialGuide.ts`** — borrada `isGoodDependence` (heurística que pintaba la concentración de amarillo con cualquier ahorro < 10%).
+- **`DashboardPage.vue`** — pill del semáforo por `severity`, no por código.
+- **Backend `AnalyticsServiceImpl`** — `criticalAlerts` ordenados CRITICAL primero antes de devolverlos; +1 test unitario.
+
+**Verificación:** `npm run test` 80/80, `npm run lint` 0 errores, `npm run build` PWA verde; backend `./mvnw test -B` 275/275. Sin commit/push (orden del usuario).
+
+---
+
+## 2026-11-13 — Dona ABC cuadra con FacturasPage + ITBMS del mes en el Dashboard + alertas sin falsas alarmas
+
+**Contexto:** la dona "Top productos por gasto" no cuadraba con FacturasPage (nov $949.79 vs $957.47; la diferencia exacta era el ITBMS). Las alertas de salud financiera disparaban falsas alarmas con datos reales: "Costo Diario Sobre Ingreso Diario" dividía las ventas del mes en curso entre los 30 días del mes (centinela ~200% cuando el ritmo real era ~80%), y "Erosión de Margen Bruto" comparaba un mes a medias (nov 54%) contra meses cerrados y marcaba crítico un margen sano (>30%).
+
+**Qué se hizo:**
+- **Backend `analisisABC`** — reparte el total real de cada factura PAGADA (ITBMS y descuento global incluidos) entre sus items proporcional al subtotal; base = `SUM(invoice_items.subtotal)` por factura (14 facturas legadas de septiembre tienen encabezado en 0). Filtro `type = 'FACTURA'` para alinear con FacturasPage. Test de integración: $100 base + $7 ITBMS = $107.
+- **Backend `DAILY_COST_CONTROL`** — mes en curso se compara contra días transcurridos; meses cerrados siguen con el mes completo. Título "Los gastos fijos superan tus ventas"; mensaje con montos: "Gastas $139.80 al día en costos fijos y vendes $174.01 al día." Umbral 1.2 se mantiene.
+- **Backend `MARGIN_EROSION`** — solo se evalúa con meses cerrados; crítica solo si el margen bruto actual < 30% (piso de margen sano que ya usa la app); si está sano, la caída va como recomendación. Mensaje: "De cada $100 que vendes te quedan $54 después de pagar la mercancía; hace 3 meses eran $74."
+- **Frontend Dashboard** — KPI "Facturas pendientes" → "ITBMS del mes" (`itbmsMes` en `useFinancialDashboard`: suma `itbmsTotal` de FACTURA PAGADA del período, misma regla de caja; accent azul). La lista de pendientes sigue en `ActivityPanel`.
+- **Frontend `CategoryBreakdownChart`** — total centrado + leyenda HTML táctil (mismo patrón que `TopProductosDonut`): leyenda Chart.js desactivada, paleta compartida arcos/leyenda, toque tacha la tajada, total = todas las categorías incluida "Otros". Código muerto `_pcts` eliminado.
+
+**Verificación:** backend/core `./mvnw test -B` → 263 unitarios verdes (nuevos: `abc_reparteTotalDeFacturaConItbms` + 5 de salud financiera) e `./mvnw verify -B -Dspring.profiles.active=integration` verde; frontend `npm run lint` 0 + `npm run build` PWA verde. Pendiente: recalcular 2026-11 y 2026-10 en staging tras el deploy y verificar dona $957.47 / $3,431.36.
+
+---
+
+## 2026-11-11 — Alertas de salud con dinero y productos reales + barras Antes/Ahora
+
+**Contexto:** reproducción contra staging (tenant Mi Rinconcito Criollo, período 2026-11) vía API confirmó cuatro bugs de las alertas: "Inventario Muerto" disparaba por **$26** en 5 productos sin nombres ni montos; `PAYBACK_RECOVERY` mostraba "Recuperación de Inversión" con métrica `-1` (centinela); "Recomendaciones" repetía las mismas alertas; y en "Desvíos en Precios de Insumos" las barras "Pagaste/Suele costar" mostraban el mismo número dos veces en verde (el backend nunca manda `currentPrice` para `PRICE_VARIATION`; el normalizador copiaba `avgPrice` en ambas).
+
+**Qué se hizo:**
+- **Backend `AnalyticsServiceImpl`** — `DEAD_INVENTORY` ahora exige ≥ $50 de capital parado (`shortcut:` fijo, antes disparaba con $1), se renombra a "Productos parados" y adjunta `items` (id/name/totalInvestment/lastPurchaseDate) con la lista ya calculada. `PAYBACK_RECOVERY` → "Cerraste el mes en pérdida" / "Gastaste más de lo que vendiste este mes."
+- **Tipos + `analyticsNormalize`** — `DeadInventoryItem` y `items?` en `FinancialHealthAlert`; `normalizeFinancialHealth` los conserva (monto normalizado).
+- **`FinancialHealthAlerts.vue`** — muestra `description`, el monto parado y cada producto como botón ≥44px → `productos?buscar=<nombre>`.
+- **`FinancialHealthPanel.vue`** — "Recomendaciones" oculta cuando hay alertas críticas (dedup); visible en el estado sin métricas.
+- **`AlertsPanel.vue`** — `RowVm` con `hasBars/top*/bottom*`; `PRICE_VARIATION` pinta "Antes/Ahora" desde `priceTrail` (solo `singleLane`, `count ≥ 2`, precios distintos; sube rojo/amarillo con "Subió $X", baja verde con "Bajó $X"); sin historial → texto solo. `SUPPLIER_PREMIUM` conserva "Pagaste/Suele costar".
+- **`AnalisisGastosPage.vue`** — se eliminó el render duplicado de `SupplierRecommendationsCard` (quedaba una suelta arriba y otra vez en la grilla `.analysis-insights` desde el rework de layout del 2026-11-09).
+
+**Verificación:** backend/core `./mvnw test -B` → 258 tests verdes (nuevo `saludFinanciera_capitalParado_respetaPiso50YAdjuntaItems`); frontend `npm run lint` 0 + `npm run build` PWA verde. Pendiente: prueba en dispositivo (limpiar datos del sitio por caché PWA).
+
+---
+
+## 2026-11-09 — Cierre de estrategia frontend: alertas accionables + tacómetros con zonas + dona + KPI en dinero + PWA banner
+
+**Contexto:** batch de varias sesiones para poner al día las estrategias documentadas contra la UI real: `ALERTS_SYSTEM_STRATEGY` (alertas que el tendero entienda), health panel desbalanceado con leyenda redundante, dona con "Total" descentrado en móvil, KPI "Rentabilidad" solo en % (regla del dueño: dinero primero), PWA sin banner de instalación, y `FRONTEND_PENDIENTES_STRATEGY` secciones 0-2 ya ejecutadas pero sin marcar.
+
+**Qué se hizo:**
+- **Alertas (4 fases, doc `ALERTS_SYSTEM_STRATEGY.md`)** — renombres ("Riesgos del Negocio", "Desvíos en Precios de Insumos"); layout de Análisis con panel de salud full-width y `AlertsPanel`+`SupplierRecommendationsCard` en grilla `.analysis-insights`; barras de precio "Pagaste" (rojo/amarillo) vs "Suele costar" (verde) con delta en dinero en vez de badge %; botón de acción → `productos?buscar=<producto>` con `ProductosPage` leyendo `route.query.buscar`; pill de riesgos en Dashboard (rojo NEGATIVE/OVER_LEVERAGED, amarillo el resto, verde "Sin riesgos críticos" no-clicable).
+- **Tacómetros (doc `FINANCIAL_HEALTH_STRATEGY.md`)** — `TraderGauge`: zonas permanentes rojo 0-39 / amarillo 40-69 / verde 70-100 en el arco (`conic-gradient`, 72°/126°), aguja las cruza; fila de leyenda de bandas eliminada del panel (menos altura). `OpexGauge` (huérfano): token inexistente `--pq-chart-warning` → `--pq-warning`, marcadores alineados a la geometría del arco, transición muerta fuera. Decisión del dueño: **dejarlo como está** (no borrar, no revivir — revive cuando exista la sección "Costo Operativo" con presupuesto diario en backend; sin límite guardado la aguja no tiene contra qué medir).
+- **Dona `TopProductosDonut`** — leyenda fuera del canvas (HTML `ul.donut-legend`, paleta compartida con los arcos), "Total" centrado cae en el hueco real; móvil: altura 200px y el mismo monto exacto (un solo span, sin abreviar), sin listeners de resize.
+- **KPI Rentabilidad en dinero** — `KpiStrip` gana `sub?: string` opcional (línea gris bajo el valor); Dashboard: "Rentabilidad" mantiene su nombre (decisión del dueño) pero muestra `formatCurrency(margenNeto)` grande + % como subtexto. Verde ≥ 0, rojo < 0.
+- **PWA fase 1 (doc `PWA_OFFLINE.md`)** — captura temprana de `beforeinstallprompt` en `index.html`, banner en `MainLayout` con cooldown 7 días (`pwa_install_dismissed_until`), detección standalone universal/iPadOS, íconos manifest split `any`/`maskable`, tipado `pwa-env.d.ts`.
+- **Facturas mensual (doc `FACTURAS_PAGE_REDESIGN.md`)** — pager mensual reusando `VentasMonthPager`, strip "Factura promedio | Pendiente | Pagado", chips de estado, sticky bajo header.
+- **Docs de estrategia** — nuevos `ALERTS_SYSTEM_STRATEGY.md` / `FACTURAS_PAGE_REDESIGN.md` / `FINANCIAL_HEALTH_STRATEGY.md`; `FRONTEND_PENDIENTES_STRATEGY.md` secciones 0-2 marcadas ✅ con decisiones del dueño grabadas: **menú con 10 ítems (NO re-proponer recorte 12→8)** y KPI con nombre "Rentabilidad".
+
+**Verificación:** `npm run lint` 0 + `npm run build` PWA verde en cada fase (último: post-KPI). PWA puede servir bundle viejo en Android — limpiar datos del sitio para ver cambios.
+
+**Fixes post-reporte (2026-11-09 tarde, sesión de prueba en dispositivo):**
+- **Donut tachado roto** — la leyenda HTML nueva perdió el "tocar para apagar tajada" que la leyenda interna de Chart.js daba gratis. Arreglo: `BaseChart` expone solo `toggleSlice`/`showSlice` (API con intención, sin filtrar la instancia de Chart.js); los puntos de la leyenda son `<button>` (44px táctil, `aria-pressed`) con espejo `hidden` local para el tachado; cambio de datos (mes nuevo) limpia los tachados para que el índice oculto no "persiga" a otro producto.
+- **FacturasPage strip: totales separados + insumo diario** — "Factura promedio" mezclaba insumos con gasto rápido (renta $500 con mayonesa $12): se partió en 4 tarjetas Insumos pagados · Gasto rápido pagado · Insumo diario (insumos÷días, mes en curso÷transcurridos) · Pendiente, con conteo de facturas como subtexto en cada una; grid mobile-first 2×2, 4 columnas desde 900px. Cuadra al centavo con `costoMercaderia`+`gastosOperativos` de Análisis (misma receta SQL: PAGADA + issue_date; la diferencia con `totalGastos` es solo `pagosPrestamos`, que no es factura). Decisión futura anotada: frecuencia de gasto rápido (diario/semanal/mensual/único) en registro → habilita promedio diario real y revive el OpexGauge con límite de verdad.
+- **Auditoría vue-best-practices + responsive-design + chart-designer** — correcciones internas: API imperativa con intención (`toggleSlice`/`showSlice` en vez de la instancia cruda), `useTemplateRef` (Vue 3.5, patrón ya usado en `VentaFormDialog`), `:key` por índice (nombres de producto duplicados rompían el render), y strip mobile-first con breakpoint de contenido (900px). Lint 0 + build verde.
+
+**Estado:** ✅ COMPLETADO (código + docs) — pendiente verificación en dispositivo real: banner PWA desde `/#/login`, barras de alertas, total centrado de la dona, zonas del tacómetro, KPI en dinero.
+
+---
+
+## 2026-10-26 — Branding/SEO: og:image + marca unificada + iconos PWA reales
+
+**Contexto:** la alerta Baja de Notion "Frontend: branding y SEO pendiente" seguía abierta. `index.html` no tenía `og:image` (compartir el link no mostraba imagen) y `manifest.name`/`description` diferían del `<title>`/`package.json`. Hallazgo extra: los PNG del PWA seguían siendo el placeholder azul de Quasar (`#00B8FF`), así que un install mostraba el icono equivocado.
+
+**Qué se hizo:**
+- **`index.html`** — `og:image` 1200x630 (`public/og-image.png`) + `og:image:width/height/alt`, `og:url`, `twitter:image`/`image:alt`. URL absoluta a `https://pymeq.dioquincar.dev`: los crawlers no resuelven rutas relativas y es el único host de despliegue aceptado.
+- **`src-pwa/manifest.json`** — `name`/`description` alineados con `<title>`, `productName` y `package.json`.
+- **Iconos** — 14 PNG (`icon-128/192/256/384/512`, `apple-icon-120/152/167/180`, `favicon-16/32/96/128`, `ms-icon-144`) + `favicon.ico` multi-tamaño (16–256) rasterizados desde `public/icons/pymeq-app-icon.svg` con Chromium headless a 1024 px y Pillow LANCZOS, fondo aplanado `#08090D` para maskable/iOS.
+
+**Verificación:** `identify` 1200x630 · color dominante bronce `#CC9639` en los 15 archivos · favicon 32 px legible al ampliar · `dist/pwa` recibe los assets · `npm run build` verde (960 KB JS / 383 KB CSS). OAuth2 real y recorte maskable en dispositivo **no** verificados.
+
+**Estado:** ✅ COMPLETADO — pendiente push `feature/refactor` y purga de Cloudflare (`apple-icon-*`/`favicon-*` van sin query de versión)
+
+---
+
 ## 2026-10-10 — Botones +Nuevo acoplados (Proveedores/Costos) + UUID fuera del onboarding
 
 **Contexto:** con datos cargados, el `Nuevo` de Proveedores quedaba chico a la derecha en mobile (solo tenía `flex-wrap`, sin el patrón full-width de Facturas), y el `Nuevo` de Costos (Equipo/Gastos Fijos) flotaba en la esquina derecha por un `q-space` sin search que lo balanceara. Además el preview del onboarding mostraba el `baseUnit` crudo (UUID canónico desde backend V7).
@@ -367,6 +493,7 @@ Usuario pidió: quitar `Ventas hoy` del Dashboard (margen/costo ya cubren), quit
 - **Dashboard `DashboardPage.vue:58`** borrado `items.push Ventas hoy` del `stripKpis` (quedan `Costos día + Margen + ROI mes`).
 - **AnalisisPage `AnalisisGastosPage.vue:1,33`** — `byCategory` ya no se usa para card; `MetricCard Categorías` borrada, entra `MetricCard Ventas semanales = sum(ventas.filter(fecha >= lunes))` con `ventasLoading`, rango `{{monday}} → {{sunday}} lun-dom` vía `toLocalISODate`/`getMondayStr()` (Panamá). 1 fetch `ventaService.getAll(tenantId)` + `computed ventasSemanales`.
 - **AnalisisPage `AnalisisGastosPage.vue:82`** — `AbcGastosChart` → `TopProductosDonut.vue` nuevo `doughnut cutout 62%` top5 `abc.spend` + `Otros`, reusa `BaseChart`/`useChartTheme` (colores `abcA/B/positive/negative/info/text`), height 260, tooltip `formatCurrency`.
+- **Nuevo `TopProductosDonut` rework 2026-11-09:** leyenda fuera del canvas (HTML `ul.donut-legend` debajo, paleta compartida `useChartTheme`), el "Total" centrado cae en el hueco real (la leyenda Chart.js interna desplazaba el centro); móvil: altura 200px y el mismo monto exacto (un solo span; el intento de total compacto se eliminó porque duplicaba la cifra en desktop y redondeaba centavos en móvil) — sin listeners de resize.
 - **Nuevo `TopProductosDonut.vue:1`** 45 líneas, ponytail sin nueva dep.
 
 ### Verificación
@@ -3298,8 +3425,33 @@ docs/strategies/INFRA_STRATEGY.md
 AGENTS.md
 ```
 
-### Verificación
 
+## 2026-10-29 — PWA Blackout Fix & OAuth2 Dev Login (Phase 1)
+
+**Contexto:** Se resolvieron dos problemas críticos en el frontend PWA:
+
+### Problem: Blackout en navegación y OAuth2 en dev
+- **Blackout:** Navegar con la Nav Bar causaba pantalla negra porque el SW viejo servía `index.html` precacheado referenciando bundles JS que ya no existían.
+- **OAuth2 dev:** `VITE_API_URL` no definido → `gatewayBase` caía a `window.location.origin` (localhost:9200) → navegación a `/oauth2/authorization/google` era same-origin → SW la interceptaba → nunca llegaba a Google.
+
+### Fixes aplicados
+1. **`.env` creado** en `frontend/pymes/` con `VITE_API_URL=http://localhost:8080/api/v1` → OAuth2 va cross-origin (8080) y SW no lo interjeta.
+2. **SW changed:** `StaleWhileRevalidate` → `NetworkFirst` para `core-api-cache` y `app-shell`. `fetchOptions: { cache: 'no-store' }` en ambas estrategias → evita caché HTTP stale del navegador.
+3. **Cleanup conservador:** `activate` solo borra `core-api-cache` y `app-shell` (legacy), no toca precache.
+4. **`process.argv` fix:** Guard `Array.isArray(process.argv)` en `recuperacion.ts` (undefined en browser).
+5. **CSP `connect-src`:** Relajado en gateway para dev (`http://localhost:8080`).
+
+**Validación:** ✅ lint 0, ✅ build PWA OK, ✅ e2e `oauth2-callback` con SW habilitado.
+
+**Archivos modificados:**
+- `frontend/pymes/.env` (nuevo)
+- `frontend/pymes/src-pwa/custom-service-worker.ts` — NetworkFirst, fetchOptions, cleanup
+- `frontend/pymes/src-pwa/register-service-worker.ts` — visibilitychange trigger
+- `frontend/pymes/src/modules/core/utils/recuperacion.ts` — guard `Array.isArray(process.argv)`
+
+### Verificación
 - Frontend lint: clean
+- Build PWA: success
+- E2e oauth2-callback: passed
 
 **Estado:** ✅ COMPLETADO

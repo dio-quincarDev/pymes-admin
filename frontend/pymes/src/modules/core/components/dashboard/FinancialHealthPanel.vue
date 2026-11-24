@@ -1,7 +1,6 @@
 <script setup lang="ts">
 import { computed } from 'vue';
 import type { FinancialHealth } from 'src/modules/core/types/analytics';
-import type { SupplierRecommendationItem } from 'src/modules/core/types/analytics';
 import TraderGauge from './TraderGauge.vue';
 import FinancialHealthBreakdown from './FinancialHealthBreakdown.vue';
 import FinancialHealthAlerts from './FinancialHealthAlerts.vue';
@@ -10,10 +9,9 @@ import { overallGuide } from 'src/modules/core/utils/financialGuide';
 interface Props {
   data: FinancialHealth | null;
   loading?: boolean;
-  recommendations?: SupplierRecommendationItem[];
 }
 
-const props = withDefaults(defineProps<Props>(), { loading: false, recommendations: () => [] });
+const props = withDefaults(defineProps<Props>(), { loading: false });
 
 const healthLabel = computed(() => {
   const s = props.data?.overallHealth ?? 0;
@@ -53,18 +51,12 @@ const guide = computed(() => overallGuide(props.data?.overallHealth ?? 0));
         <span class="fh-panel__guide">{{ guide.band }} — {{ guide.action }}</span>
       </div>
 
-      <div class="fh-panel__bands" role="group" aria-label="Guía de bandas">
-        <span class="fh-panel__band fh-panel__band--danger">0-39 Crítico</span>
-        <span class="fh-panel__band fh-panel__band--warning">40-69 En desarrollo</span>
-        <span class="fh-panel__band fh-panel__band--success">70-84 Óptimo</span>
-        <span class="fh-panel__band fh-panel__band--success">85-100 Excelente</span>
-      </div>
-
       <FinancialHealthBreakdown :breakdown="data.breakdown" class="fh-panel__breakdown" />
 
-      <FinancialHealthAlerts :alerts="data.criticalAlerts" :health="data" :recommendations="recommendations" />
+      <FinancialHealthAlerts :alerts="data.criticalAlerts" />
 
-      <div v-if="data.recommendations.length" class="fh-panel__section">
+      <!-- Dedup: con alertas críticas arriba, esta lista repite lo mismo casi textual -->
+      <div v-if="data.recommendations.length && !data.criticalAlerts.length" class="fh-panel__section">
         <h4 class="fh-panel__section-title">
           <q-icon name="lightbulb" size="14px" :style="{ color: 'var(--pq-accent)' }" />
           Recomendaciones
@@ -85,23 +77,21 @@ const guide = computed(() => overallGuide(props.data?.overallHealth ?? 0));
 .fh-panel {
   display: flex;
   flex-direction: column;
-  background: var(--pq-surface);
   border: 1px solid var(--pq-border);
-  border-radius: 8px;
-  padding: 16px;
+  border-radius: var(--pq-radius-md);
+  padding: 20px 24px;
   height: 100%;
   min-width: 0;
   max-width: 100%;
   overflow: hidden;
 
   &__title {
-    font-family: 'Satoshi', sans-serif;
-    font-size: 11px;
+    font-family: 'Geist', sans-serif;
+    font-size: 13px;
     font-weight: 500;
-    color: var(--pq-text-muted);
-    text-transform: uppercase;
-    letter-spacing: 0.08em;
-    margin: 0 0 16px;
+    color: var(--pq-text);
+    letter-spacing: -0.01em;
+    margin: 0 0 20px;
   }
 
   &__trader {
@@ -126,26 +116,6 @@ const guide = computed(() => overallGuide(props.data?.overallHealth ?? 0));
     color: var(--pq-text);
     margin-top: 4px;
     text-align: center;
-  }
-
-  &__bands {
-    display: flex;
-    flex-wrap: wrap;
-    gap: 6px;
-    margin-bottom: 16px;
-    justify-content: center;
-  }
-
-  &__band {
-    font-family: 'Satoshi', sans-serif;
-    font-size: 10px;
-    padding: 3px 6px;
-    border-radius: 4px;
-    border: 1px solid var(--pq-border);
-
-    &--danger { color: var(--pq-danger); background: rgba(160,64,56,0.08); }
-    &--warning { color: var(--pq-warning, #b7791f); background: rgba(183,121,31,0.08); }
-    &--success { color: var(--pq-success); background: rgba(56,120,60,0.08); }
   }
 
   &__breakdown {

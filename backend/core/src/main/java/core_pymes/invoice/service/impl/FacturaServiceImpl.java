@@ -16,6 +16,7 @@ import core_pymes.invoice.service.FacturaService;
 import core_pymes.invoice.service.InvoiceCalculator;
 import core_pymes.common.exception.custom.InvalidInputException;
 import core_pymes.common.exception.custom.ResourceNotFoundException;
+import core_pymes.common.service.RecomputeDebounceService;
 import core_pymes.product.domain.Presentacion;
 import core_pymes.product.repository.PresentacionRepository;
 import lombok.RequiredArgsConstructor;
@@ -30,6 +31,8 @@ import org.springframework.transaction.annotation.Transactional;
 
 import java.math.BigDecimal;
 import java.math.RoundingMode;
+import java.time.YearMonth;
+import java.time.ZoneOffset;
 import java.util.*;
 import java.util.stream.Collectors;
 
@@ -43,6 +46,7 @@ public class FacturaServiceImpl implements FacturaService {
     private final FacturaRepository facturaRepository;
     private final FacturaMapper mapper;
     private final ApplicationEventPublisher eventPublisher;
+    private final RecomputeDebounceService recomputeService;
     private final JdbcTemplate jdbc;
     private final PresentacionRepository presentacionRepository;
 
@@ -455,6 +459,10 @@ public class FacturaServiceImpl implements FacturaService {
         } else {
             facturaRepository.delete(factura);
         }
+        // anular no publica ningun evento: metricas y analisis seguirian contando la factura
+        var periodo = YearMonth.from(factura.getIssueDate().atStartOfDay(ZoneOffset.UTC)).toString();
+        recomputeService.markMetricsDirty(tenantId, periodo);
+        recomputeService.markAnalyticsDirty(tenantId, periodo);
     }
 
     // -- helpers --

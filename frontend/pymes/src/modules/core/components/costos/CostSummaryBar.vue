@@ -6,7 +6,6 @@ interface Props {
   diario: CostoDiario | null;
   costoFijoDiario: number;
   costoSalariosDiario: number;
-  costoPrestamosDiario: number;
   costoOperativoDiario: number;
   gananciaPositiva: boolean;
   configForm: ConfigLaboral;
@@ -24,7 +23,7 @@ defineEmits<Emits>();
 
 <template>
   <div class="q-mb-md">
-    <q-card dark class="glass cost-summary" role="status" aria-live="polite">
+    <q-card dark class="cost-summary" role="status" aria-live="polite">
       <div class="cost-summary__grid q-pa-sm">
         <div class="summary-item">
           <span class="summary-label">Costo fijo / día</span>
@@ -33,10 +32,6 @@ defineEmits<Emits>();
         <div class="summary-item">
           <span class="summary-label">Salarios / día</span>
           <span class="summary-value font-mono">{{ diario ? formatCurrency(costoSalariosDiario) : '—' }}</span>
-        </div>
-        <div v-if="costoPrestamosDiario > 0" class="summary-item">
-          <span class="summary-label">Préstamos / día</span>
-          <span class="summary-value font-mono">{{ diario ? formatCurrency(costoPrestamosDiario) : '—' }}</span>
         </div>
         <div class="summary-item">
           <span class="summary-label">Total costo del día</span>
@@ -65,23 +60,67 @@ defineEmits<Emits>();
 </template>
 
 <style scoped lang="scss">
-.cost-summary { position: sticky; top: 0; z-index: 10; border-radius: 8px; }
-.cost-summary__grid { display: flex; flex-wrap: wrap; align-items: center; gap: 8px 12px; }
-.summary-item { display: flex; flex-direction: column; gap: 2px; padding: 4px 8px; min-width: 0; }
-.summary-label { font-size: 0.7rem; text-transform: uppercase; letter-spacing: 0.06em; color: rgba(163,120,94,0.55); }
-.summary-value { font-size: 1.1rem; font-weight: 700; font-variant-numeric: tabular-nums; }
-.summary-value--total { color: rgba(163,120,94,0.9); }
-.summary-arrow { color: rgba(163,120,94,0.35); }
+.cost-summary {
+  position: sticky;
+  top: 0;
+  z-index: 10;
+  border-radius: var(--pq-radius-md);
+  background: var(--pq-surface);
+  border: 1px solid var(--pq-border);
+  box-shadow: var(--pq-shadow-subtle);
+}
+
+.cost-summary__grid {
+  display: flex;
+  flex-wrap: wrap;
+  align-items: center;
+  gap: 8px 12px;
+}
+
+.summary-item {
+  display: flex;
+  flex-direction: column;
+  gap: 2px;
+  padding: 4px 8px;
+  min-width: 0;
+}
+
+.summary-label {
+  font-family: var(--pq-font-utility);
+  font-size: 11px;
+  text-transform: uppercase;
+  letter-spacing: 0.08em;
+  color: var(--pq-text-subtle);
+}
+
+.summary-value {
+  font-family: var(--pq-font-utility);
+  font-size: 1.1rem;
+  font-weight: 600;
+  font-variant-numeric: tabular-nums;
+  color: var(--pq-text);
+}
+
+.summary-value--total { color: var(--pq-accent); }
+
+.summary-arrow { color: var(--pq-text-muted); }
+
 .config-inline-input :deep(.q-field__control) { min-height: 28px; padding: 0 4px; }
 .config-inline-input :deep(.q-field__native) { font-size: 0.85rem; }
-.config-line { display: flex; align-items: center; justify-content: space-between; gap: 8px; padding: 10px 12px 0; }
 
-// ponytail: mobile ponytail — grid 2 cols tames wrap hell, hide arrows
-@media (max-width: 600px) {
+.config-line {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: 8px;
+  padding: 10px 12px 0;
+}
+
+/* mobile: grid 2 cols, hide arrows, ventas + ganancia primero y más grandes */
+@media (max-width: 639px) {
   .cost-summary { top: 48px; }
   .cost-summary__grid { display: grid; grid-template-columns: 1fr 1fr; gap: 8px; }
   .summary-arrow { display: none; }
-  /* ponytail: la respuesta primero — ventas + ganancia arriba y más grandes, solo orden visual */
   .summary-item--payoff { order: -1; }
   .summary-value--payoff { font-size: 1.35rem; }
 }

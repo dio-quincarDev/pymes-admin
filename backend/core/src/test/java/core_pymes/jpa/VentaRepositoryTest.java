@@ -1,5 +1,7 @@
 package core_pymes.jpa;
 
+import core_pymes.venta.domain.DailySalePayment;
+import core_pymes.venta.domain.MetodoPago;
 import core_pymes.venta.domain.VentaDiaria;
 import core_pymes.venta.repository.VentaRepository;
 import org.junit.jupiter.api.BeforeEach;
@@ -175,6 +177,53 @@ class VentaRepositoryTest extends AbstractJpaTest {
             var result = ventaRepository.findByTenantIdAndSaleDateBetweenOrderBySaleDateDesc(
                     tenantA, from, to);
             assertThat(result).hasSize(1); // venta2 has saleDate=2026-06-15
+        }
+    }
+
+    @Nested
+    @DisplayName("Desglose por activo")
+    class DesgloseTests {
+
+        @Test
+        @DisplayName("guarda y lee el desglose (cascade)")
+        void savesAndReadsDesglose() {
+            var venta = VentaDiaria.builder()
+                    .tenantId(tenantA).saleDate(LocalDate.of(2026, 6, 25))
+                    .grossAmount(new BigDecimal("150.00")).description("mix").build();
+            venta.getPayments().add(DailySalePayment.builder()
+                    .venta(venta).metodo(MetodoPago.EFECTIVO).monto(new BigDecimal("100.00")).build());
+            venta.getPayments().add(DailySalePayment.builder()
+                    .venta(venta).metodo(MetodoPago.YAPPY).monto(new BigDecimal("50.00")).build());
+            var saved = em.persistFlushFind(venta);
+            em.clear();
+
+            var loaded = em.find(VentaDiaria.class, saved.getId());
+            assertThat(loaded.getPayments()).hasSize(2)
+                    .extracting(DailySalePayment::getMetodo)
+                    .containsExactlyInAnyOrder(MetodoPago.EFECTIVO, MetodoPago.YAPPY);
+        }
+
+        @Test
+        @DisplayName("orphanRemoval elimina pagos al vaciar la lista")
+        void orphanRemoval() {
+            var venta = VentaDiaria.builder()
+                    .tenantId(tenantA).saleDate(LocalDate.of(2026, 6, 26))
+                    .grossAmount(new BigDecimal("10.00")).build();
+            venta.getPayments().add(DailySalePayment.builder()
+                    .venta(venta).metodo(MetodoPago.EFECTIVO).monto(new BigDecimal("10.00")).build());
+            var saved = em.persistFlushFind(venta);
+            em.clear();
+
+            var loaded = em.find(VentaDiaria.class, saved.getId());
+            loaded.getPayments().clear();
+            em.persistFlushFind(loaded);
+            em.clear();
+
+            var reloaded = em.find(VentaDiaria.class, saved.getId());
+            assertThat(reloaded.getPayments()).isEmpty();
+            var count = jdbc.queryForObject(
+                    "SELECT count(*) FROM core.daily_sale_payments WHERE sale_id = ?", Integer.class, saved.getId());
+            assertThat(count).isZero();
         }
     }
 }

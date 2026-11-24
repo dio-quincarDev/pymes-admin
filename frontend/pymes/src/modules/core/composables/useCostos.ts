@@ -3,9 +3,7 @@ import { useQuasar } from 'quasar';
 import { useAuthStore } from 'src/modules/auth/store';
 import { costoService } from '../services/costo.service';
 import { proveedorService } from '../services/proveedor.service';
-import { prestamoService } from '../services/prestamo.service';
-import { cuotaMensual } from '../utils/prestamo';
-import type { Collaborador, ConfigLaboral, CostoDiario, GastoFijoRecurrente, Prestamo, Proveedor } from '../types';
+import type { Collaborador, ConfigLaboral, CostoDiario, GastoFijoRecurrente, Proveedor } from '../types';
 
 // ponytail: single source of truth for CostosPage — readonly state + explicit actions per composables.md
 export function useCostos() {
@@ -16,7 +14,6 @@ export function useCostos() {
   const colaboradores = ref<Collaborador[]>([]);
   const gastosFijos = ref<GastoFijoRecurrente[]>([]);
   const proveedores = ref<Proveedor[]>([]);
-  const prestamos = ref<Prestamo[]>([]);
   const diario = ref<CostoDiario | null>(null);
   const configuracion = ref<ConfigLaboral | null>(null);
   const loading = shallowRef(false);
@@ -26,12 +23,9 @@ export function useCostos() {
   const proveedorOptions = computed(() => proveedores.value.map((p) => ({ label: p.name, value: p.id })));
 
   const dias = computed(() => diario.value?.diasLaborales || 1);
-  const prestamosActivos = computed(() => prestamos.value.filter((p) => p.estado === 'ACTIVO'));
-  const cuotaPrestamosMensual = computed(() => prestamosActivos.value.reduce((s, p) => s + cuotaMensual(p.monto, p.tasaInteres, p.plazoMeses), 0));
   const costoFijoDiario = computed(() => (diario.value?.costoFijoMensual ?? 0) / dias.value);
   const costoSalariosDiario = computed(() => (diario.value?.costoSalariosMensual ?? 0) / dias.value);
-  const costoPrestamosDiario = computed(() => cuotaPrestamosMensual.value / dias.value);
-  const costoOperativoDiario = computed(() => costoFijoDiario.value + costoSalariosDiario.value + costoPrestamosDiario.value);
+  const costoOperativoDiario = computed(() => diario.value?.costoOperativoDiario ?? 0);
   const gananciaPositiva = computed(() => (diario.value?.gananciaRealEstimada ?? 0) >= 0);
 
   interface CatGroup { categoria: string; items: GastoFijoRecurrente[]; total: number; }
@@ -66,17 +60,15 @@ export function useCostos() {
     if (!tid) return;
     loading.value = true;
     try {
-      const [colabRes, gastosRes, configRes, provRes, prestamosRes] = await Promise.all([
+      const [colabRes, gastosRes, configRes, provRes] = await Promise.all([
         costoService.getAllCollaboradores(tid),
         costoService.getAllGastosFijos(tid),
         costoService.getConfiguracion(tid),
         proveedorService.getAll(tid),
-        prestamoService.getAll(tid),
       ]);
       colaboradores.value = colabRes.data;
       gastosFijos.value = gastosRes.data;
       proveedores.value = provRes.data;
-      prestamos.value = prestamosRes.data;
       configuracion.value = configRes.data;
       configForm.value = { tenantId: tid, diasLaborales: configRes.data.diasLaborales };
     } catch (err) {
@@ -134,7 +126,6 @@ export function useCostos() {
     colaboradores: readonly(colaboradores),
     gastosFijos: readonly(gastosFijos),
     proveedores: readonly(proveedores),
-    prestamos: readonly(prestamos),
     diario: readonly(diario),
     configuracion: readonly(configuracion),
     loading: readonly(loading),
@@ -144,7 +135,6 @@ export function useCostos() {
     dias: readonly(dias),
     costoFijoDiario: readonly(costoFijoDiario),
     costoSalariosDiario: readonly(costoSalariosDiario),
-    costoPrestamosDiario: readonly(costoPrestamosDiario),
     costoOperativoDiario: readonly(costoOperativoDiario),
     gananciaPositiva: readonly(gananciaPositiva),
     catGroups: readonly(catGroups),

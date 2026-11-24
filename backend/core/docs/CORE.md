@@ -16,7 +16,7 @@ Core Service (8082)
 ├── setup/      configuracion/inventario inicial
 ├── product/    catalogo productos y presentaciones
 ├── invoice/    facturas de compra y proveedores
-├── analytics/  10 motores de analisis + motor de salud financiera
+├── analytics/  9 motores CTE + motor de salud financiera (10)
 ├── gasto/      gastos operativos
 ├── prestamo/   prestamos y pagos
 ├── inversion/  patrimonio
@@ -139,7 +139,11 @@ Health Score = profitability(35%) + efficiency(25%) + stability(25%) + growth(15
 
 Cada sub-score tiene drivers que explican *por qué* está en ese nivel. No es un número mágico — es un diagnóstico con contexto.
 
+> **Crecimiento (2026-11-21):** compara solo **meses cerrados**; el mes en curso se descarta antes de calcular la tendencia para no comparar un mes parcial contra uno completo. Con menos de 3 meses cerrados el sub-score es **50** y no se emite `revenueTrend`. Cuando hay historial, los drivers traen `growthFrom`, `growthTo`, `growthFromAmount` y `growthToAmount` para nombrar el período real. `Source: AnalyticsServiceImpl.java` (tests `crecimientoComparaSoloMesesCerrados`, `mesEnCurso_noCalculaCrecimientoConMesParcial`).
+
 **Salida JSON (`financial_health`):**
+
+> El driver `inventoryTurnover` está mal nombrado: su valor es `dead.size()`, el conteo de productos sin compras recientes (no una rotación de inventario). El frontend no lo consume. `Source: AnalyticsServiceImpl.java:933`.
 
 ```json
 {
@@ -148,7 +152,7 @@ Cada sub-score tiene drivers que explican *por qué* está en ese nivel. No es u
     "profitability": { "score": 65, "drivers": ["grossMarginPct: 32%", "operatingMarginPct: 8%", "netMarginPct: 5%"] },
     "efficiency": { "score": 80, "drivers": ["opexRatio: 22%", "opexGrowth < revenueGrowth: true"] },
     "stability": { "score": 70, "drivers": ["supplierConcentration: 35%", "priceStability: 0.92"] },
-    "growth": { "score": 55, "drivers": ["revenueTrend: +5%", "inventoryTurnover: 0.8"] }
+    "growth": { "score": 55, "drivers": ["revenueTrend: +5%", "inventoryTurnover: 0"] }
   },
   "criticalAlerts": [
     { "type": "NEGATIVE_OPERATING_MARGIN", "severity": "CRITICAL",
@@ -226,6 +230,7 @@ Cada sub-score tiene drivers que explican *por qué* está en ese nivel. No es u
 |---------|---------|
 | Tabla | `core.report_log` — PK `(tenant_id, period, format)`, status `SENDING\|SENT\|FAILED\|SKIPPED` |
 | Endpoint | `POST /reportes/monthly?period=YYYY-MM&dryRun=true` — `@PreAuthorize('OWNER\|ADMIN')` |
+| Trimestral | `POST /reportes/quarterly?period=YYYY-MM&dryRun=true` (`period` = mes que cierra el ciclo). Periodo `T`+`yyyyMM` en `report_log`; cron día 1 06:30; ancla al primer registro del tenant; ITBMS solo de facturas `PAGADA` tipo `FACTURA`; top 5 artículos; comparativa solo si el trimestre anterior tiene datos |
 | Cron | `@Scheduled(cron="0 0 6 1 * *", zone="America/Panama")` → envía el mes anterior |
 | Dueños | Query batch cross-schema `auth.user_tenants/users/tenants` (rol OWNER activo) |
 | Reglas | `0 ventas + 0 facturas → SKIP (SKIPPED)`; facturas sin ventas → PDF parcial con banner; facturas **solo `PAGADA`** |
@@ -495,9 +500,12 @@ POST   /api/v1/core/analytics/recalcular?tenantId={uuid}&periodo=YYYY-MM
 
 ```
 POST   /api/v1/core/reportes/monthly?period=YYYY-MM&dryRun=true
+POST   /api/v1/core/reportes/quarterly?period=YYYY-MM&dryRun=true
 ```
 > `dryRun=true` (default) solo valida y genera sin enviar. `X-User-Role: OWNER|ADMIN`.
 > 400 si `period` no es `YYYY-MM` (`InvalidInputException` → `GlobalExceptionHandler`).
+> En el trimestral `period` es el mes que cierra el ciclo; solo envía si ese mes es el tercero
+> desde el primer registro del tenant (si no, no hace nada).
 
 ---
 
@@ -559,6 +567,7 @@ Ver `SEED_TEMPLATES.md` para detalle completo.
 - [x] **Cleanup seed: remover stock** — `template_locations` + `template_movement_reasons` eliminadas, industry codes → constantes (java:S1192). Flyway V18 para DDL. Ver `SEED_TEMPLATES.md` → Cleanup 2026-07.
 - [x] **Financial Health Engine** — Motor #10: scoring compuesto + alertas críticas + señales inversión/expansión. V4 (columna `financial_health JSONB`), `analisisSaludFinanciera()` en AnalyticsServiceImpl. Pendiente: `FinancialHealthResponse` DTO + `useAnalytics` + `AnalisisGastosPage.vue`.
 - [x] **Reporte mensual fase 1 (PDF)** — `core_pymes/report/`: cron día 1 06:00 Panama, PDF Jasper 7, mail a OWNERs, idempotencia V8, `POST /reportes/monthly` con dryRun. Ver `strategies/MONTHLY_REPORT_STRATEGY.md`.
+- [x] **Reporte trimestral al dueño (PDF, 2 páginas)** — `QuarterlyReport.jrxml` + `POST /reportes/quarterly` con dryRun; rango rodante de 3 meses cerrados, ITBMS pagado en compras, top 5 artículos, recuperación acumulada y comparativa solo si existe. Sin migración nueva (`report_log.period = 'T' + yyyyMM`).
 - [ ] **Reporte mensual fase 2 (XLSX)** — `JRXlsxExporter` + 3 hojas (`Resumen`/`Semanal`/`Detalle`, `detectCellType=true`); `jasperreports-excel-poi` ya en POM y `format='XLSX'` ya soportado en `report_log` (sin migración).
 
 ### Mediate

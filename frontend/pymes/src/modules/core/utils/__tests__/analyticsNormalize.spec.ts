@@ -1,6 +1,6 @@
 import { describe, expect, it } from 'vitest';
-import { alertBadge, alertDummyText, alertEvidence, alertFallbackText, enrichAlert, enrichAlertPrices, enrichRecommendation, firstLastByProduct, normalizeAlerts, resolveUnitLabel, withinTrustedAlertRange, withinTrustedRange } from '../analyticsNormalize';
-import type { AlertItem, AlertItemWire, SupplierComparisonItem, SupplierRecommendationItem } from '../../types/analytics';
+import { alertBadge, alertDummyText, alertEvidence, alertFallbackText, enrichAlert, enrichAlertPrices, enrichRecommendation, firstLastByProduct, normalizeAlerts, normalizeFinancialHealth, resolveUnitLabel, withinTrustedAlertRange, withinTrustedRange } from '../analyticsNormalize';
+import type { AlertItem, AlertItemWire, FinancialHealthWire, SupplierComparisonItem, SupplierRecommendationItem } from '../../types/analytics';
 import type { Factura } from '../../types';
 
 describe('normalizeAlerts', () => {
@@ -340,5 +340,30 @@ describe('alertBadge', () => {
 
   it('sin carril único → % de antes (tolerante)', () => {
     expect(alertBadge(base)).toBe('+140.8%');
+  });
+});
+
+describe('normalizeFinancialHealth', () => {
+  it('conserva severity del wire y critica por defecto si falta (caché vieja)', () => {
+    const wire = {
+      overallHealth: 40,
+      breakdown: {},
+      criticalAlerts: [
+        { type: 'OPEX_CREEP', title: 'Gastos', message: 'subieron', severity: 'WARNING' },
+        { type: 'MARGIN_EROSION', title: 'Margen', message: 'bajó', severity: 'CRITICAL' },
+        { type: 'PAYBACK_RECOVERY', title: 'Pérdida', message: 'gastaste más' },
+      ],
+      investmentSignals: [],
+      expansionReadiness: { score: 0, status: 'SIN_DATOS', requirements: [] },
+      recommendations: [],
+    } as unknown as FinancialHealthWire;
+
+    const result = normalizeFinancialHealth(wire);
+
+    expect(result?.criticalAlerts.map((a) => [a.code, a.severity])).toEqual([
+      ['OPEX_CREEP', 'WARNING'],
+      ['MARGIN_EROSION', 'CRITICAL'],
+      ['PAYBACK_RECOVERY', 'CRITICAL'],
+    ]);
   });
 });

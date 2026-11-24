@@ -267,6 +267,9 @@ export function normalizeFinancialHealth(wire: FinancialHealthWire | FinancialHe
     current: toNumber(a.current ?? a.metric),
     threshold: toNumber(a.threshold),
     action: a.action ?? '',
+    // ponytail: wire manda CRITICAL/WARNING en mayúsculas; si falta (caché vieja) criticar es el seguro
+    severity: a.severity?.toUpperCase() === 'WARNING' ? 'WARNING' : 'CRITICAL',
+    items: (a.items ?? []).map((it) => ({ ...it, totalInvestment: toNumber(it.totalInvestment) })),
   }));
   return {
     overallHealth: toNumber(w.overallHealth),

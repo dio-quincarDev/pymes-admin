@@ -1,0 +1,89 @@
+site_name: Pymeq — Forensic Accounting for Small Business
+site_description: Documentación del producto, arquitectura, API y operación
+site_author: dio-quincarDev
+repo_url: https://github.com/dio-quincarDev/pymes-admin
+repo_name: dio-quincarDev/pymes-admin
+
+docs_dir: docs-site
+site_dir: site
+
+theme:
+  name: material
+  language: es
+  features:
+    - navigation.tabs
+    - navigation.top
+    - search.highlight
+    - content.code.copy
+  palette:
+    - scheme: slate
+      primary: teal
+      accent: amber
+      toggle:
+        icon: material/weather-night
+        name: Cambiar a tema claro
+    - scheme: default
+      primary: teal
+      accent: amber
+      toggle:
+        icon: material/weather-sunny
+        name: Cambiar a tema oscuro
+
+plugins:
+  - search
+  - gen-files:
+      scripts:
+        - docs/scripts/gen_api_pages.py
+
+markdown_extensions:
+  - admonition
+  - toc:
+      permalink: true
+  - pymdownx.highlight
+  - pymdownx.superfences:
+      custom_fences:
+        - name: mermaid
+          class: mermaid
+          format: !!python/name:pymdownx.superfences.fence_code_format
+
+# El nav mapea 1:1 las 6 áreas propuestas. Las páginas sin contenido
+# real aún están marcadas como pendientes en el propio archivo.
+nav:
+  - Inicio: README.md
+  - Producto:
+      - Visión general: README.md
+      - Características: docs/product/features.md
+      - Roadmap: docs/product/roadmap.md
+      - Pendientes: docs/TO_DO.md
+      - Diferencias doc/código: docs/GAPS.md
+  - API Reference:
+      - Contrato (índice): docs/api/README.md
+      - Auth (generado): api/auth.md
+      - Core (generado): api/core.md
+  - Arquitectura:
+      - Arquitectura (mapa): docs/architecture/architecture.md
+      - Servicios:
+          - Auth: backend/auth/README.md
+          - Gateway: backend/gateway-pymes/README.md
+          - Core: backend/core/README.md
+          - Frontend: frontend/pymes/README.md
+      - Base de datos: docs/persistencia-postgres.md
+      - Estrategia multi-schema: docs/strategies/DB_STRATEGY.md
+      - Infraestructura: docs/strategies/INFRA_STRATEGY.md
+  - Operación:
+      - Deploy: deployment/DEPLOYMENT.md
+      - Quick start CI/CD: deployment/QUICK_START.md
+      - Secretos: deployment/SECRETS.md
+      - Reportes diarios: docs/DAILY_REPORTS_PROJECT.md
+  - Guías:
+      - Usuario: docs/guides/user-guide.md
+      - Administración: docs/guides/admin-guide.md
+      - Operación: docs/guides/operations-guide.md
+  - Referencia:
+      - KPIs: backend/core/docs/KPIs.md
+      - Motor de costos: backend/core/docs/COSTOS_ENGINE.md
+      - Analítica: backend/core/docs/ANALYTICS.md
+      - Motor de salud financiera: backend/core/docs/CORE.md
+      - PWA offline: frontend/pymes/docs/PWA_OFFLINE.md
+
+strict: true

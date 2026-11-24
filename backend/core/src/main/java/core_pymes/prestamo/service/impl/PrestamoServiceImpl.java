@@ -8,6 +8,7 @@ import core_pymes.prestamo.dto.PagoPrestamoResponse;
 import core_pymes.prestamo.dto.PrestamoRequest;
 import core_pymes.prestamo.dto.PrestamoResponse;
 import core_pymes.prestamo.event.PrestamoCreadoEvent;
+import core_pymes.costos.event.CostoStructureChangedEvent;
 import core_pymes.prestamo.repository.PagoPrestamoRepository;
 import core_pymes.prestamo.repository.PrestamoRepository;
 import core_pymes.prestamo.service.PrestamoService;
@@ -22,6 +23,8 @@ import org.springframework.transaction.annotation.Transactional;
 
 import java.math.BigDecimal;
 import java.util.List;
+import java.time.YearMonth;
+import java.time.ZoneOffset;
 import java.util.UUID;
 
 @Service
@@ -51,7 +54,7 @@ public class PrestamoServiceImpl implements PrestamoService {
 
     @Override
     @Transactional
-    @CacheEvict(cacheNames = "prestamos", allEntries = true)
+    @CacheEvict(cacheNames = {"prestamos", "costos"}, allEntries = true)
     public PrestamoResponse create(PrestamoRequest request) {
         var prestamo = Prestamo.builder()
                 .tenantId(request.tenantId())
@@ -67,12 +70,14 @@ public class PrestamoServiceImpl implements PrestamoService {
         prestamo = prestamoRepository.save(prestamo);
         eventPublisher.publishEvent(new PrestamoCreadoEvent(
                 prestamo.getTenantId(), prestamo.getStartDate(), prestamo.getAmount()));
+        eventPublisher.publishEvent(new CostoStructureChangedEvent(
+                prestamo.getTenantId(), YearMonth.now(ZoneOffset.UTC).toString()));
         return toResponse(prestamo);
     }
 
     @Override
     @Transactional
-    @CacheEvict(cacheNames = "prestamos", allEntries = true)
+    @CacheEvict(cacheNames = {"prestamos", "costos"}, allEntries = true)
     public PrestamoResponse update(UUID id, UUID tenantId, PrestamoRequest request) {
         var prestamo = getPrestamo(id, tenantId);
         prestamo.setName(request.nombre());
@@ -80,20 +85,24 @@ public class PrestamoServiceImpl implements PrestamoService {
         prestamo.setInterestRate(request.tasaInteres() != null ? request.tasaInteres() : BigDecimal.ZERO);
         prestamo.setTermMonths(request.plazoMeses());
         prestamo = prestamoRepository.save(prestamo);
+        eventPublisher.publishEvent(new CostoStructureChangedEvent(
+                tenantId, YearMonth.now(ZoneOffset.UTC).toString()));
         return toResponse(prestamo);
     }
 
     @Override
     @Transactional
-    @CacheEvict(cacheNames = "prestamos", allEntries = true)
+    @CacheEvict(cacheNames = {"prestamos", "costos"}, allEntries = true)
     public void delete(UUID id, UUID tenantId) {
         var prestamo = getPrestamo(id, tenantId);
         prestamoRepository.delete(prestamo);
+        eventPublisher.publishEvent(new CostoStructureChangedEvent(
+                prestamo.getTenantId(), YearMonth.now(ZoneOffset.UTC).toString()));
     }
 
     @Override
     @Transactional
-    @CacheEvict(cacheNames = "prestamos", allEntries = true)
+    @CacheEvict(cacheNames = {"prestamos", "costos"}, allEntries = true)
     public PagoPrestamoResponse registrarPago(UUID id, UUID tenantId, PagoPrestamoRequest request) {
         var prestamo = getPrestamo(id, tenantId);
 
@@ -114,6 +123,8 @@ public class PrestamoServiceImpl implements PrestamoService {
         }
         prestamoRepository.save(prestamo);
 
+        eventPublisher.publishEvent(new CostoStructureChangedEvent(
+                prestamo.getTenantId(), YearMonth.now(ZoneOffset.UTC).toString()));
         return toPagoResponse(pago);
     }
 

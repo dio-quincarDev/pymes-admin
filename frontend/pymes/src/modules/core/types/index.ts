@@ -62,6 +62,14 @@ export interface ProveedorRequest {
 
 export type EstadoFactura = 'REGISTRADA' | 'PAGADA' | 'ANULADA'
 
+export type MetodoPago = 'EFECTIVO' | 'ACH' | 'YAPPY' | 'TARJETA' | 'CHEQUE' | 'CREDITO'
+
+export interface VentaPago {
+  id?: string
+  metodo: MetodoPago
+  monto: number
+}
+
 export interface Factura {
   id: string
   tenantId: string
@@ -193,13 +201,15 @@ export interface VentaDiaria {
   montoBruto: number
   descripcion: string | null
   isActive: boolean
+  desglose?: VentaPago[]
 }
 
 export interface VentaRequest {
   tenantId: string
   fecha: string
-  montoBruto: number
+  montoBruto?: number
   descripcion?: string | null
+  desglose?: VentaPago[]
 }
 
 export interface Prestamo {

@@ -1,5 +1,5 @@
 <template>
-  <div class="auth-callback flex flex-center" style="min-height: 100vh; background: var(--pq-background);">
+  <div class="auth-callback flex flex-center" style="min-height: 100dvh; background: var(--pq-background);">
     <!-- ponytail: whitelabel duplicate tenant -->
     <q-card v-if="showDuplicate" flat class="q-pa-xl text-center" style="max-width: 420px; background: var(--pq-surface); border: 1px solid var(--pq-border);">
       <q-img src="/icons/logo.svg" width="48px" height="48px" class="q-mb-md" style="margin: 0 auto;" />

@@ -1,5 +1,6 @@
 // ponytail: deriva guía "mantén" invirtiendo scoring de AnalyticsServiceImpl — sin hardcodear tabla fija
-import type { FinancialHealth, FinancialHealthBreakdown, SupplierRecommendationItem } from '../types/analytics';
+import type { FinancialHealthBreakdown } from '../types/analytics';
+import { formatCurrency } from '../../../utils/format';
 
 function parseDriver(drivers: string[], key: string): number | null {
   const row = drivers.find((d) => d.toLowerCase().includes(key.toLowerCase()));
@@ -8,10 +9,19 @@ function parseDriver(drivers: string[], key: string): number | null {
   return m ? Number(m[1]) : null;
 }
 
+function driverText(drivers: string[], key: string): string | null {
+  const prefix = `${key}: `;
+  return drivers.find((d) => d.startsWith(prefix))?.slice(prefix.length) ?? null;
+}
+
+const MESES = ['enero', 'febrero', 'marzo', 'abril', 'mayo', 'junio', 'julio', 'agosto', 'septiembre', 'octubre', 'noviembre', 'diciembre'];
+const nombreMes = (periodo: string) => MESES[Number(periodo.slice(5, 7)) - 1] ?? periodo;
+
 export interface GuideLine {
   label: string;
   detail: string;
   tooltip: string;
+  sinDatos?: boolean;
 }
 
 // thresholds invertidos de AnalyticsServiceImpl.java:724-739 — unica fuente, no tabla hardcodeada
@@ -59,10 +69,19 @@ export function guideForPillar(key: string, bd: FinancialHealthBreakdown | undef
   }
   if (key === 'growth') {
     const rev = parseDriver(drivers, 'revenueTrend');
-    const pct = rev ?? 0;
-    if (score >= 70) return { label: `+${pct.toFixed(1)}% vs hace 3 meses`, detail: 'Mantén +4% para seguir en verde', tooltip: '¿Vendés más que hace 3 meses? +4% para verde' };
-    if (Math.abs(pct) < 0.1) return { label: 'Sin crecimiento', detail: 'Subís a verde si vendés 4% más que hace 3 meses', tooltip: '¿Vendés más que hace 3 meses? Necesitas +4%' };
-    return { label: `${pct > 0 ? '+' : ''}${pct.toFixed(1)}% vs hace 3 meses`, detail: 'Mantén +4% para verde', tooltip: 'Necesitas +4% vs hace 3 meses' };
+    // ponytail: sin el driver no hay 3 meses cerrados — no es 0% de crecimiento
+    if (rev === null) return { label: 'Aún no hay historial', detail: 'Se mide con 3 meses cerrados', tooltip: 'El mes en curso no cuenta: comparamos meses cerrados.', sinDatos: true };
+    const desde = driverText(drivers, 'growthFrom');
+    const hasta = driverText(drivers, 'growthTo');
+    const montoDesde = driverText(drivers, 'growthFromAmount');
+    const montoHasta = driverText(drivers, 'growthToAmount');
+    const ventana = desde && hasta
+      ? `${nombreMes(hasta).replace(/^./, (c) => c.toUpperCase())} vs ${nombreMes(desde)}`
+      : 'vs meses anteriores';
+    const detalle = montoDesde && montoHasta
+      ? `${formatCurrency(Number(montoDesde))} → ${formatCurrency(Number(montoHasta))}`
+      : 'Mantén +4% para verde';
+    return { label: `${ventana}: ${rev > 0 ? '+' : ''}${rev.toFixed(1)}%`, detail: detalle, tooltip: 'Comparamos el último mes cerrado con el de dos meses antes. El mes en curso no cuenta hasta que termine.' };
   }
   return { label: `${score}`, detail: '', tooltip: '' };
 }
@@ -74,17 +93,3 @@ export function overallGuide(overallHealth: number): { band: string; action: str
   return { band: '0-39 Crítico', action: 'No inviertas — arreglá lo urgente' };
 }
 
-// ponytail: heurística frontend — si proveedor dominante es el barato, es dependencia eficiente (amarillo) no crítica (rojo)
-// Usa criticalAlerts SUPPLIER_CONCENTRATION + supplierRecommendations (ya disponibles en useAnalytics)
-export function isGoodDependence(health: FinancialHealth | null, recommendations: SupplierRecommendationItem[]): boolean {
-  if (!health) return false;
-  const concAlert = health.criticalAlerts.find((a) => a.code === 'SUPPLIER_CONCENTRATION');
-  if (!concAlert) return false;
-  // title es "Concentración de Proveedor", description contiene proveedor? Usamos threshold/current para detectar, pero necesitamos nombre
-  // Como no tenemos nombre en alert, usamos heurística: si hay al menos 1 recomendación donde el proveedor recomendado aparece como dominante en múltiples productos, es buena dependencia
-  // Simplificado: si existe alguna recomendación con savingsPct bajo (<10) significa que el dominante ya es casi el más barato -> buena dependencia
-  // ponytail: aproximación sin providerId en maxShare; refine con backend providerId si hace falta precisión
-  const hasCheapDominance = recommendations.some((r) => r.savingsPct < 10);
-  const lowSavingsRatio = recommendations.length > 0 ? recommendations.filter((r) => r.savingsPct < 15).length / recommendations.length : 0;
-  return hasCheapDominance || lowSavingsRatio > 0.5;
-}

@@ -1,6 +1,7 @@
 package auth.pymes.controller.impl;
 
 import auth.pymes.common.models.dto.request.ForgotPasswordRequest;
+import auth.pymes.common.models.dto.request.OAuth2ExchangeRequest;
 import auth.pymes.common.models.dto.request.LoginRequest;
 import auth.pymes.common.models.dto.request.RegisterRequest;
 import auth.pymes.common.models.dto.request.ResendVerificationRequest;
@@ -21,7 +22,6 @@ import org.springframework.http.ResponseEntity;
 import org.springframework.web.bind.annotation.RequestBody;
 import org.springframework.web.bind.annotation.RestController;
 
-import java.util.Map;
 
 @RestController
 @RequiredArgsConstructor
@@ -66,8 +66,8 @@ public class AuthApiController implements AuthApi {
     }
 
     @Override
-    public ResponseEntity<ApiResponse<Void>> forgotPassword(ForgotPasswordRequest request) {
-        passwordResetService.generateResetToken(request.email());
+    public ResponseEntity<ApiResponse<Void>> forgotPassword(ForgotPasswordRequest request, HttpServletRequest httpRequest) {
+        passwordResetService.generateResetToken(request.email(), httpRequest);
         return ResponseEntity.ok(ApiResponse.ok());
     }
 
@@ -78,7 +78,7 @@ public class AuthApiController implements AuthApi {
     }
 
     @Override
-    public ResponseEntity<ApiResponse<AuthResponse>> exchange(@RequestBody Map<String, String> body) {
-        return ResponseEntity.ok(ApiResponse.ok(authService.exchange(body.get("code"))));
+    public ResponseEntity<ApiResponse<AuthResponse>> exchange(OAuth2ExchangeRequest request) {
+        return ResponseEntity.ok(ApiResponse.ok(authService.exchange(request.code())));
     }
 }

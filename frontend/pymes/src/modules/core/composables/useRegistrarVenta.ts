@@ -12,6 +12,7 @@ export function useRegistrarVenta() {
 
   const montoStr = shallowRef('');
   const descripcion = shallowRef('');
+  const metodo = shallowRef<'EFECTIVO' | 'ACH' | 'YAPPY' | 'TARJETA' | 'CHEQUE' | 'CREDITO'>('EFECTIVO');
   const fecha = shallowRef(toLocalISODate(new Date()));
   const saving = shallowRef(false);
   const error = shallowRef('');
@@ -28,6 +29,7 @@ export function useRegistrarVenta() {
     descripcion.value = '';
     fecha.value = toLocalISODate(new Date());
     error.value = '';
+    metodo.value = 'EFECTIVO';
   }
 
   async function save(): Promise<boolean> {
@@ -46,6 +48,7 @@ export function useRegistrarVenta() {
         montoBruto: monto.value!,
         fecha: fecha.value,
         descripcion: descripcion.value || null,
+        desglose: [{ metodo: metodo.value, monto: monto.value! }],
       });
       $q.notify({ type: 'positive', message: `Venta registrada — B/. ${monto.value!.toFixed(2)}` });
       reset();
@@ -62,6 +65,7 @@ export function useRegistrarVenta() {
 
   return {
     montoStr,
+    metodo,
     descripcion,
     fecha,
     saving,

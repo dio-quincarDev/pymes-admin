@@ -16,6 +16,8 @@ import core_pymes.gasto.domain.CategoriaGasto;
 import core_pymes.invoice.domain.Proveedor;
 import core_pymes.invoice.repository.ProveedorRepository;
 import core_pymes.venta.repository.VentaRepository;
+import core_pymes.prestamo.repository.PrestamoRepository;
+import core_pymes.prestamo.domain.EstadoPrestamo;
 import lombok.RequiredArgsConstructor;
 import lombok.extern.slf4j.Slf4j;
 import org.springframework.cache.annotation.CacheEvict;
@@ -45,6 +47,7 @@ public class CostoServiceImpl implements CostoService {
     private final ConfigLaboralRepository configLaboralRepository;
     private final ProveedorRepository proveedorRepository;
     private final VentaRepository ventaRepository;
+    private final PrestamoRepository prestamoRepository;
     private final MetricasRepository metricasRepository;
     private final ApplicationEventPublisher eventPublisher;
 
@@ -192,7 +195,21 @@ public class CostoServiceImpl implements CostoService {
                 .map(c -> c.getMonto().multiply(mensualizarFactor(c.getTipoPago(), diasLaborales)))
                 .reduce(BigDecimal.ZERO, BigDecimal::add);
 
-        var costoOperativoMensual = costoFijoMensual.add(costoSalariosMensual);
+        // shortcut: simple interest amortization (monto + monto*tasa/100*plazo)/plazo mirrors frontend cuotaMensual; upgrade to French amortization (P*r*(1+r)^n/((1+r)^n-1)) when Fase 7 (AMORTIZACION_PRESTAMOS_STRATEGY.md) is implemented
+        var costoPrestamosMensual = prestamoRepository.findByTenantIdAndStatus(tenantId, EstadoPrestamo.ACTIVO).stream()
+                .map(p -> {
+                    var monto = p.getAmount();
+                    var tasa = p.getInterestRate() == null ? BigDecimal.ZERO : p.getInterestRate();
+                    var plazo = p.getTermMonths() == null ? 0 : p.getTermMonths();
+                    if (plazo <= 0) return BigDecimal.ZERO;
+                    // mirror frontend cuotaMensual: (monto + monto * tasa/100 * plazo) / plazo
+                    var interesTotal = monto.multiply(tasa).divide(new BigDecimal("100"), 6, RoundingMode.HALF_UP)
+                            .multiply(BigDecimal.valueOf(plazo));
+                    return monto.add(interesTotal).divide(BigDecimal.valueOf(plazo), 6, RoundingMode.HALF_UP);
+                })
+                .reduce(BigDecimal.ZERO, BigDecimal::add);
+
+        var costoOperativoMensual = costoFijoMensual.add(costoSalariosMensual).add(costoPrestamosMensual);
         var costoOperativoDiario = costoOperativoMensual.divide(
                 BigDecimal.valueOf(diasLaborales), 2, RoundingMode.HALF_UP);
 

@@ -1,12 +1,13 @@
 import { computed, ref, shallowRef, watch } from 'vue';
 import { ventaService } from '../services/venta.service';
-import type { VentaDiaria, VentaRequest } from '../types';
+import type { VentaDiaria, VentaRequest, MetodoPago } from '../types';
 
 export interface DayGroup {
   date: string;
   label: string;
   items: VentaDiaria[];
   total: number;
+  byMethod: Partial<Record<MetodoPago, number>>;
 }
 
 const STORAGE_KEY = 'pymeq_ventas_month';
@@ -60,16 +61,37 @@ export function useVentas(tenantId: string | undefined) {
       groups.get(v.fecha)!.push(v);
     }
     return [...groups.entries()]
-      .map(([date, items]) => ({
-        date,
-        label: dayLabel(date),
-        items,
-        total: items.reduce((s, v) => s + v.montoBruto, 0),
-      }))
+      .map(([date, items]) => {
+        const byMethod: Partial<Record<MetodoPago, number>> = {};
+        for (const v of items) {
+          const desglose = v.desglose && v.desglose.length ? v.desglose : [{ metodo: 'EFECTIVO' as MetodoPago, monto: v.montoBruto }];
+          for (const p of desglose) {
+            byMethod[p.metodo] = (byMethod[p.metodo] ?? 0) + p.monto;
+          }
+        }
+        return {
+          date,
+          label: dayLabel(date),
+          items,
+          total: items.reduce((s, v) => s + v.montoBruto, 0),
+          byMethod,
+        };
+      })
       .sort((a, b) => b.date.localeCompare(a.date));
   });
 
   const totalMes = computed(() => monthRows.value.reduce((s, r) => s + r.montoBruto, 0));
+
+  const metodoTotals = computed<Partial<Record<MetodoPago, number>>>(() => {
+    const acc: Partial<Record<MetodoPago, number>> = {};
+    for (const v of monthRows.value) {
+      const desglose = v.desglose && v.desglose.length ? v.desglose : [{ metodo: 'EFECTIVO' as MetodoPago, monto: v.montoBruto }];
+      for (const p of desglose) {
+        acc[p.metodo] = (acc[p.metodo] ?? 0) + p.monto;
+      }
+    }
+    return acc;
+  });
   const registroCount = computed(() => monthRows.value.length);
   const ticketPromedio = computed(() => (registroCount.value ? totalMes.value / registroCount.value : 0));
 
@@ -123,6 +145,7 @@ export function useVentas(tenantId: string | undefined) {
     monthLabel,
     dayGroups,
     totalMes,
+    metodoTotals,
     registroCount,
     ticketPromedio,
     prevMonth,

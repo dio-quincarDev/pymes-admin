@@ -43,6 +43,19 @@ Todos los secrets deben configurarse en **GitHub → Settings → Secrets and va
 
 ---
 
+## 🗄️ Backups (OCI Object Storage)
+
+| Secret | Descripción | Dónde obtenerlo |
+|--------|-------------|-----------------|
+| `S3_ACCESS_KEY_ID` | Access key de la **Customer Secret Key** (no API signing key) | OCI Console → Identity → Users → Customer Secret Keys |
+| `S3_SECRET_ACCESS_KEY` | Secret de la Customer Secret Key | ídem (solo se muestra al crearla) |
+
+El resto (`S3_BUCKET`, `S3_REGION`, `S3_ENDPOINT`, `S3_PREFIX`) no son secretos: bucket/región/endpoint tienen default en `docker-compose.yml` y el prefijo lo fija cada CD (`pymes/stg`, `pymes/prod`).
+
+`.github/workflows/backup-check.yml` usa estas mismas dos llaves para revisar la edad del último backup; no necesita secretos nuevos. Los `schedule` de GitHub solo corren desde `main` (rama default).
+
+---
+
 ## 🔑 JWT (JSON Web Tokens)
 
 | Secret | Descripción | Valor recomendado |
@@ -152,6 +165,10 @@ PROD_SSH_KEY
 DB_NAME
 DB_USERNAME
 DB_PASSWORD
+
+# Backups (OCI Object Storage, S3-compatible)
+S3_ACCESS_KEY_ID
+S3_SECRET_ACCESS_KEY
 
 # JWT
 JWT_SECRET

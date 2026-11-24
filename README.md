@@ -42,17 +42,35 @@ Real signals already wired in `AnalyticsService`. If you see one, act.
 
 ## How it works
 
+```mermaid
+flowchart LR
+    U(["👤 Owner / equipo"]) --> FE["🌐 Frontend PWA<br/>:9200"]
+    FE --> GW["🚪 Gateway<br/>JWT + blacklist :8080"]
+    GW --> AU["🔐 Auth<br/>OAuth2 + RBAC :8081"]
+    GW --> CO["⚙️ Core<br/>negocio + analytics :8082"]
+    AU --> DB[("💾 PostgreSQL<br/>pymes_db · 2 schemas")]
+    CO --> DB
+    GW --> R[("⚡ Redis")]
+    CO --> R
+    classDef svc fill:#D4EDDA,stroke:#155724,stroke-width:2px,color:#155724
+    classDef data fill:#E6E6FA,stroke:#4B0082,stroke-width:2px,color:#4B0082
+    class FE,GW,AU,CO svc
+    class DB,R data
+```
+
 | Layer | What it does | Port |
 |---|---|---|
 | Frontend | Quasar 2.16 PWA (hash routing, offline cache, auto-update) | 9200 |
 | Gateway | WebFlux gateway — validates JWT, injects identity headers, aggregates Swagger | 8080 |
 | Auth | OAuth2 Google + JWT refresh rotation + RBAC + email (Thymeleaf) | 8081 |
-| Core | Business modules, 44 endpoints `V1..V6`, idempotency + tenant/role checks | 8082 |
+| Core | Business modules, 62 API operations (`docs/api/openapi-core.json`), idempotency + tenant/role checks | 8082 |
 | Data | One PostgreSQL 15 `pymes_db` with two isolated schemas `auth` / `core` + Redis 7 (blacklist, permissions, analytics cache) | 5432 / 6379 |
 
 Gateway forwards `/api/v1/auth/**` to Auth and `/api/v1/core/**` to Core. Auth and Core share the same database instance but never touch each other's schema. See `AGENTS.md` for the full architecture and `docs/strategies/DB_STRATEGY.md` for the single-DB rationale.
 
 More detail per service: [`backend/auth/README.md`](backend/auth/README.md) · [`backend/gateway-pymes/README.md`](backend/gateway-pymes/README.md) · [`backend/core/README.md`](backend/core/README.md) · [`frontend/pymes/README.md`](frontend/pymes/README.md)
+
+API contract (generated from code): [`docs/api/README.md`](docs/api/README.md) · [`openapi-auth.json`](docs/api/openapi-auth.json) · [`openapi-core.json`](docs/api/openapi-core.json)
 
 ---
 
@@ -61,8 +79,8 @@ More detail per service: [`backend/auth/README.md`](backend/auth/README.md) · [
 Runs on Oracle Cloud Free Tier and scales without extra database servers.
 
 - **Shape:** `VM.Standard.A1.Flex` ARM — 2 OCPUs, 12 GB RAM, 50 GB storage. Only ports 22/80 open; 443 terminates at Cloudflare (mode Full, Bot Fight Mode off). Caddy listens on `http://` and proxies `gateway:8080` or `frontend:9200`.
-- **Memory:** Each backend runs with `JAVA_OPTS -Xmx384m -Xms256m -XX:MaxMetaspaceSize=128m -XX:+UseG1GC` so three services fit on one small VM.
-- **Networks:** `proxy-caddy-network` (Caddy ↔ frontend/gateway) and `pymes-internal-network` (DB/Redis/backends), both external. Caddy uses `path_regexp \.svg$` and `Cache-Control: no-cache` for the service worker, SVGs and HTML; purge Cloudflare cache after changing logos.
+- **Memory:** Each backend runs with `JAVA_OPTS -Xmx384m -Xms256m -XX:MaxMetaspaceSize=128m -XX:MaxDirectMemorySize=128m -XX:+ExitOnOutOfMemoryError -XX:+UseG1GC` so three services fit on one small VM.
+- **Networks:** `proxy-caddy-network` (Caddy ↔ frontend/gateway, external) and `pymes-internal-network` (DB/Redis/backends, created by Compose as `pymes-admin_pymes-internal-network`). Caddy uses `path_regexp \.svg$` and `Cache-Control: no-cache` for the service worker, SVGs and HTML; purge Cloudflare cache after changing logos.
 - **Delivery:** Every image builds for `linux/amd64,linux/arm64` via QEMU/Buildx. Health checks every 10-15s, `docker image prune -af` and `max-size 10m x3` log rotation after each deploy. `infra/monitoring` ships VictoriaMetrics + Grafana.
 - **Data:** One PostgreSQL holds both `auth` and `core` schemas (Flyway `spring.flyway.schemas: auth` / `core`) — saves ~500 MB RAM and keeps backups to one dump. See `docs/strategies/INFRA_STRATEGY.md`.
 
@@ -107,7 +125,7 @@ cd backend/core && ./mvnw test -B
 cd backend/core && ./mvnw verify -B -Dspring.profiles.active=integration
 # Gateway — unit (no Docker)
 cd backend/gateway-pymes && ./mvnw test -B
-# Frontend — unit + e2e
+# Frontend — unit tests (vitest)
 cd frontend/pymes && npm run test
 ```
 
@@ -144,7 +162,7 @@ See `AGENTS.md` for profiles (`dev` default, `stg`, `prod`, `integration`, `test
 
 **Q2 2026 MVP — done:** OAuth2 + JWT + RBAC, invitations, password reset, gateway JWT + Swagger, full core domain (setup, products, suppliers, invoices with ITBMS, costs, loans, sales, accounting, analytics), 536 checks.
 
-**Q3 2026 Beta:** 10-20 pilot businesses, feedback, models with real data. Remaining: invoice QR scan (PWA), basic anomaly detection, monthly owner report (PDF+XLSX — plan: backend/core/docs/strategies/MONTHLY_REPORT_STRATEGY.md).
+**Q3 2026 Beta:** 10-20 pilot businesses, feedback, models with real data. Done: monthly owner report in PDF (auto-sent day 1 06:00 Panama — `backend/core/docs/CORE.md`). Remaining: XLSX export (plan: `backend/core/docs/strategies/MONTHLY_REPORT_STRATEGY.md`), invoice QR scan (PWA), basic anomaly detection.
 
 **Q4 2026 Launch:** Panama/LATAM rollout, Claude API integration, security certifications.
 

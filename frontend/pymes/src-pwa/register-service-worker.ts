@@ -24,3 +24,14 @@ register(swUrl, {
 
   error () {},
 });
+
+// Re-check for SW updates when the tab becomes visible again.
+if (typeof document !== 'undefined') {
+  document.addEventListener('visibilitychange', () => {
+    if (document.visibilityState === 'visible') {
+      navigator.serviceWorker?.getRegistration().then((reg) => {
+        void reg?.update();
+      }).catch(() => {});
+    }
+  });
+}

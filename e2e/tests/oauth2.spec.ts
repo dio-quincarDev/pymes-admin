@@ -1,6 +1,6 @@
 import { test, expect } from '@playwright/test';
 
-test.describe('Full OAuth2 user flow', () => {
+test.describe('Full OAuth2 user flow [@manual]', () => {
   test('register → onboarding → logout → re-login enters existing tenant', async ({ page }) => {
     // Remove webdriver detection
     await page.addInitScript(() => {

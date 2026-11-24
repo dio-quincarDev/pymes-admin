@@ -402,8 +402,8 @@ function handleKeydown(e: KeyboardEvent) {
 
 <style scoped>
 .deprecation-banner {
-  background: rgba(200, 150, 62, 0.06);
-  border: 1px solid rgba(200, 150, 62, 0.3);
+  background: rgba(163, 120, 94, 0.06);
+  border: 1px solid rgba(163, 120, 94, 0.3);
   border-radius: 6px;
 }
 

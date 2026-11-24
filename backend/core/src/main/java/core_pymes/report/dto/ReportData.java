@@ -17,6 +17,8 @@ public record ReportData(
         List<TopProveedor> topProveedores,
         List<TopProducto> topProductos,
         List<TopGasto> topGastos,
+        List<MetodoTotal> ingresosPorMetodo,
+        List<MetodoTotal> egresosPorMetodo,
         BigDecimal capital
 ) {
     public record Semana(String rango, BigDecimal total) {
@@ -29,6 +31,9 @@ public record ReportData(
     }
 
     public record TopGasto(String nombre, BigDecimal total, long facturas) {
+    }
+
+    public record MetodoTotal(String metodo, BigDecimal total) {
     }
 
     /** Sin ventas ni facturas: no se envía, se loguea SKIPPED. */

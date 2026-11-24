@@ -24,6 +24,8 @@ public class FacturaCreadaListener {
         var factura = event.factura();
         var periodo = YearMonth.from(factura.getIssueDate()).toString();
         log.debug("Marking analytics dirty for tenant {} period {}", factura.getTenantId(), periodo);
+        // crear/editar mueve el ABC (analisis) y, si esta PAGADA, las metricas tambien
         recomputeService.markAnalyticsDirty(factura.getTenantId(), periodo);
+        recomputeService.markMetricsDirty(factura.getTenantId(), periodo);
     }
 }
