@@ -1,0 +1,2442 @@
+
+<!doctype html>
+<html lang="es" class="no-js">
+  <head>
+    
+      <meta charset="utf-8">
+      <meta name="viewport" content="width=device-width,initial-scale=1">
+      
+        <meta name="description" content="Documentación del producto, arquitectura, API y operación">
+      
+      
+        <meta name="author" content="dio-quincarDev">
+      
+      
+      
+      
+      
+        
+      
+      
+      <link rel="icon" href="../../../../assets/images/favicon.png">
+      <meta name="generator" content="mkdocs-1.6.1, mkdocs-material-9.8.2">
+    
+    
+      
+        <title>Módulos Futuros — Blueprints - Pymeq — Forensic Accounting for Small Business</title>
+      
+    
+    
+      <link rel="stylesheet" href="../../../../assets/stylesheets/main.57a0d79d.min.css">
+      
+        
+        <link rel="stylesheet" href="../../../../assets/stylesheets/palette.fb2fffe2.min.css">
+      
+      
+
+
+    
+    
+      
+    
+    
+      
+        
+        
+        <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+        <link rel="stylesheet" href="https://fonts.googleapis.com/css?family=Roboto:300,300i,400,400i,700,700i%7CRoboto+Mono:400,400i,700,700i&display=fallback">
+        <style>:root{--md-text-font:"Roboto";--md-code-font:"Roboto Mono"}</style>
+      
+    
+    
+    <script>__md_scope=new URL("../../../..",location),__md_hash=e=>[...e].reduce(((e,_)=>(e<<5)-e+_.charCodeAt(0)),0),__md_get=(e,_=localStorage,t=__md_scope)=>JSON.parse(_.getItem(t.pathname+"."+e)),__md_set=(e,_,t=localStorage,a=__md_scope)=>{try{t.setItem(a.pathname+"."+e,JSON.stringify(_))}catch(e){}}</script>
+    
+      
+
+    
+    
+  </head>
+  
+  
+    
+    
+      
+    
+    
+    
+    
+    <body dir="ltr" data-md-color-scheme="slate" data-md-color-primary="teal" data-md-color-accent="amber">
+  
+    
+    <input class="md-toggle" data-md-toggle="drawer" type="checkbox" id="__drawer" autocomplete="off">
+    <input class="md-toggle" data-md-toggle="search" type="checkbox" id="__search" autocomplete="off">
+    <label class="md-overlay" for="__drawer"></label>
+    <div data-md-component="skip">
+      
+        
+        <a href="#modulos-futuros-blueprints" class="md-skip">
+          Saltar a contenido
+        </a>
+      
+    </div>
+    <div data-md-component="announce">
+      
+    </div>
+    
+    
+      
+
+<header class="md-header" data-md-component="header">
+  <nav class="md-header__inner md-grid" aria-label="Cabecera">
+    <a href="../../../.." title="Pymeq — Forensic Accounting for Small Business" class="md-header__button md-logo" aria-label="Pymeq — Forensic Accounting for Small Business" data-md-component="logo">
+      
+  
+  <svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 24 24"><path d="M12 8a3 3 0 0 0 3-3 3 3 0 0 0-3-3 3 3 0 0 0-3 3 3 3 0 0 0 3 3m0 3.54C9.64 9.35 6.5 8 3 8v11c3.5 0 6.64 1.35 9 3.54 2.36-2.19 5.5-3.54 9-3.54V8c-3.5 0-6.64 1.35-9 3.54"/></svg>
+
+    </a>
+    <label class="md-header__button md-icon" for="__drawer">
+      
+      <svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 24 24"><path d="M3 6h18v2H3zm0 5h18v2H3zm0 5h18v2H3z"/></svg>
+    </label>
+    <div class="md-header__title" data-md-component="header-title">
+      <div class="md-header__ellipsis">
+        <div class="md-header__topic">
+          <span class="md-ellipsis">
+            Pymeq — Forensic Accounting for Small Business
+          </span>
+        </div>
+        <div class="md-header__topic" data-md-component="header-topic">
+          <span class="md-ellipsis">
+            
+              Módulos Futuros — Blueprints
+            
+          </span>
+        </div>
+      </div>
+    </div>
+    
+      
+        <form class="md-header__option" data-md-component="palette">
+  
+    
+    
+    
+    <input class="md-option" data-md-color-media="" data-md-color-scheme="slate" data-md-color-primary="teal" data-md-color-accent="amber"  aria-label="Cambiar a tema claro"  type="radio" name="__palette" id="__palette_0">
+    
+      <label class="md-header__button md-icon" title="Cambiar a tema claro" for="__palette_1" hidden>
+        <svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 24 24"><path d="m17.75 4.09-2.53 1.94.91 3.06-2.63-1.81-2.63 1.81.91-3.06-2.53-1.94L12.44 4l1.06-3 1.06 3zm3.5 6.91-1.64 1.25.59 1.98-1.7-1.17-1.7 1.17.59-1.98L15.75 11l2.06-.05L18.5 9l.69 1.95zm-2.28 4.95c.83-.08 1.72 1.1 1.19 1.85-.32.45-.66.87-1.08 1.27C15.17 23 8.84 23 4.94 19.07c-3.91-3.9-3.91-10.24 0-14.14.4-.4.82-.76 1.27-1.08.75-.53 1.93.36 1.85 1.19-.27 2.86.69 5.83 2.89 8.02a9.96 9.96 0 0 0 8.02 2.89m-1.64 2.02a12.08 12.08 0 0 1-7.8-3.47c-2.17-2.19-3.33-5-3.49-7.82-2.81 3.14-2.7 7.96.31 10.98 3.02 3.01 7.84 3.12 10.98.31"/></svg>
+      </label>
+    
+  
+    
+    
+    
+    <input class="md-option" data-md-color-media="" data-md-color-scheme="default" data-md-color-primary="teal" data-md-color-accent="amber"  aria-label="Cambiar a tema oscuro"  type="radio" name="__palette" id="__palette_1">
+    
+      <label class="md-header__button md-icon" title="Cambiar a tema oscuro" for="__palette_0" hidden>
+        <svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 24 24"><path d="M12 7a5 5 0 0 1 5 5 5 5 0 0 1-5 5 5 5 0 0 1-5-5 5 5 0 0 1 5-5m0 2a3 3 0 0 0-3 3 3 3 0 0 0 3 3 3 3 0 0 0 3-3 3 3 0 0 0-3-3m0-7 2.39 3.42C13.65 5.15 12.84 5 12 5s-1.65.15-2.39.42zM3.34 7l4.16-.35A7.2 7.2 0 0 0 5.94 8.5c-.44.74-.69 1.5-.83 2.29zm.02 10 1.76-3.77a7.131 7.131 0 0 0 2.38 4.14zM20.65 7l-1.77 3.79a7.02 7.02 0 0 0-2.38-4.15zm-.01 10-4.14.36c.59-.51 1.12-1.14 1.54-1.86.42-.73.69-1.5.83-2.29zM12 22l-2.41-3.44c.74.27 1.55.44 2.41.44.82 0 1.63-.17 2.37-.44z"/></svg>
+      </label>
+    
+  
+</form>
+      
+    
+    
+      <script>var palette=__md_get("__palette");if(palette&&palette.color){if("(prefers-color-scheme)"===palette.color.media){var media=matchMedia("(prefers-color-scheme: light)"),input=document.querySelector(media.matches?"[data-md-color-media='(prefers-color-scheme: light)']":"[data-md-color-media='(prefers-color-scheme: dark)']");palette.color.media=input.getAttribute("data-md-color-media"),palette.color.scheme=input.getAttribute("data-md-color-scheme"),palette.color.primary=input.getAttribute("data-md-color-primary"),palette.color.accent=input.getAttribute("data-md-color-accent")}for(var[key,value]of Object.entries(palette.color))document.body.setAttribute("data-md-color-"+key,value)}</script>
+    
+    
+    
+      
+      
+        <label class="md-header__button md-icon" for="__search">
+          
+          <svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 24 24"><path d="M9.5 3A6.5 6.5 0 0 1 16 9.5c0 1.61-.59 3.09-1.56 4.23l.27.27h.79l5 5-1.5 1.5-5-5v-.79l-.27-.27A6.52 6.52 0 0 1 9.5 16 6.5 6.5 0 0 1 3 9.5 6.5 6.5 0 0 1 9.5 3m0 2C7 5 5 7 5 9.5S7 14 9.5 14 14 12 14 9.5 12 5 9.5 5"/></svg>
+        </label>
+        <div class="md-search" data-md-component="search" role="dialog">
+  <label class="md-search__overlay" for="__search"></label>
+  <div class="md-search__inner" role="search">
+    <form class="md-search__form" name="search">
+      <input type="text" class="md-search__input" name="query" aria-label="Búsqueda" placeholder="Búsqueda" autocapitalize="off" autocorrect="off" autocomplete="off" spellcheck="false" data-md-component="search-query" required>
+      <label class="md-search__icon md-icon" for="__search">
+        
+        <svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 24 24"><path d="M9.5 3A6.5 6.5 0 0 1 16 9.5c0 1.61-.59 3.09-1.56 4.23l.27.27h.79l5 5-1.5 1.5-5-5v-.79l-.27-.27A6.52 6.52 0 0 1 9.5 16 6.5 6.5 0 0 1 3 9.5 6.5 6.5 0 0 1 9.5 3m0 2C7 5 5 7 5 9.5S7 14 9.5 14 14 12 14 9.5 12 5 9.5 5"/></svg>
+        
+        <svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 24 24"><path d="M20 11v2H8l5.5 5.5-1.42 1.42L4.16 12l7.92-7.92L13.5 5.5 8 11z"/></svg>
+      </label>
+      <nav class="md-search__options" aria-label="Buscar">
+        
+        <button type="reset" class="md-search__icon md-icon" title="Limpiar" aria-label="Limpiar" tabindex="-1">
+          
+          <svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 24 24"><path d="M19 6.41 17.59 5 12 10.59 6.41 5 5 6.41 10.59 12 5 17.59 6.41 19 12 13.41 17.59 19 19 17.59 13.41 12z"/></svg>
+        </button>
+      </nav>
+      
+    </form>
+    <div class="md-search__output">
+      <div class="md-search__scrollwrap" tabindex="0" data-md-scrollfix>
+        <div class="md-search-result" data-md-component="search-result">
+          <div class="md-search-result__meta">
+            Inicializando búsqueda
+          </div>
+          <ol class="md-search-result__list" role="presentation"></ol>
+        </div>
+      </div>
+    </div>
+  </div>
+</div>
+      
+    
+    
+      <div class="md-header__source">
+        <a href="https://github.com/dio-quincarDev/pymes-admin" title="Ir al repositorio" class="md-source" data-md-component="source">
+  <div class="md-source__icon md-icon">
+    
+    <svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 448 512"><!--! Font Awesome Free 7.1.0 by @fontawesome - https://fontawesome.com License - https://fontawesome.com/license/free (Icons: CC BY 4.0, Fonts: SIL OFL 1.1, Code: MIT License) Copyright 2025 Fonticons, Inc.--><path d="M439.6 236.1 244 40.5c-5.4-5.5-12.8-8.5-20.4-8.5s-15 3-20.4 8.4L162.5 81l51.5 51.5c27.1-9.1 52.7 16.8 43.4 43.7l49.7 49.7c34.2-11.8 61.2 31 35.5 56.7-26.5 26.5-70.2-2.9-56-37.3L240.3 199v121.9c25.3 12.5 22.3 41.8 9.1 55-6.4 6.4-15.2 10.1-24.3 10.1s-17.8-3.6-24.3-10.1c-17.6-17.6-11.1-46.9 11.2-56v-123c-20.8-8.5-24.6-30.7-18.6-45L142.6 101 8.5 235.1C3 240.6 0 247.9 0 255.5s3 15 8.5 20.4l195.6 195.7c5.4 5.4 12.7 8.4 20.4 8.4s15-3 20.4-8.4l194.7-194.7c5.4-5.4 8.4-12.8 8.4-20.4s-3-15-8.4-20.4"/></svg>
+  </div>
+  <div class="md-source__repository">
+    dio-quincarDev/pymes-admin
+  </div>
+</a>
+      </div>
+    
+  </nav>
+  
+</header>
+    
+    <div class="md-container" data-md-component="container">
+      
+      
+        
+          
+            
+<nav class="md-tabs" aria-label="Pestañas" data-md-component="tabs">
+  <div class="md-grid">
+    <ul class="md-tabs__list">
+      
+        
+  
+  
+  
+  
+    <li class="md-tabs__item">
+      <a href="../../../.." class="md-tabs__link">
+        
+  
+  
+    
+  
+  Inicio
+
+      </a>
+    </li>
+  
+
+      
+        
+  
+  
+  
+  
+    
+    
+      <li class="md-tabs__item">
+        <a href="../../../.." class="md-tabs__link">
+          
+  
+  
+  Producto
+
+        </a>
+      </li>
+    
+  
+
+      
+        
+  
+  
+  
+  
+    
+    
+      <li class="md-tabs__item">
+        <a href="../../../../docs/api/" class="md-tabs__link">
+          
+  
+  
+  API Reference
+
+        </a>
+      </li>
+    
+  
+
+      
+        
+  
+  
+  
+  
+    
+    
+      <li class="md-tabs__item">
+        <a href="../../../../docs/architecture/architecture/" class="md-tabs__link">
+          
+  
+  
+  Arquitectura
+
+        </a>
+      </li>
+    
+  
+
+      
+        
+  
+  
+  
+  
+    
+    
+      <li class="md-tabs__item">
+        <a href="../../../../deployment/DEPLOYMENT/" class="md-tabs__link">
+          
+  
+  
+  Operación
+
+        </a>
+      </li>
+    
+  
+
+      
+        
+  
+  
+  
+  
+    
+    
+      <li class="md-tabs__item">
+        <a href="../../../../docs/guides/user-guide/" class="md-tabs__link">
+          
+  
+  
+  Guías
+
+        </a>
+      </li>
+    
+  
+
+      
+        
+  
+  
+  
+  
+    
+    
+      <li class="md-tabs__item">
+        <a href="../KPIs/" class="md-tabs__link">
+          
+  
+  
+  Referencia
+
+        </a>
+      </li>
+    
+  
+
+      
+    </ul>
+  </div>
+</nav>
+          
+        
+      
+      <main class="md-main" data-md-component="main">
+        <div class="md-main__inner md-grid">
+          
+            
+              
+              <div class="md-sidebar md-sidebar--primary" data-md-component="sidebar" data-md-type="navigation" >
+                <div class="md-sidebar__scrollwrap">
+                  <div class="md-sidebar__inner">
+                    
+
+
+  
+
+
+<nav class="md-nav md-nav--primary md-nav--lifted" aria-label="Navegación" data-md-level="0">
+  <label class="md-nav__title" for="__drawer">
+    <a href="../../../.." title="Pymeq — Forensic Accounting for Small Business" class="md-nav__button md-logo" aria-label="Pymeq — Forensic Accounting for Small Business" data-md-component="logo">
+      
+  
+  <svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 24 24"><path d="M12 8a3 3 0 0 0 3-3 3 3 0 0 0-3-3 3 3 0 0 0-3 3 3 3 0 0 0 3 3m0 3.54C9.64 9.35 6.5 8 3 8v11c3.5 0 6.64 1.35 9 3.54 2.36-2.19 5.5-3.54 9-3.54V8c-3.5 0-6.64 1.35-9 3.54"/></svg>
+
+    </a>
+    Pymeq — Forensic Accounting for Small Business
+  </label>
+  
+    <div class="md-nav__source">
+      <a href="https://github.com/dio-quincarDev/pymes-admin" title="Ir al repositorio" class="md-source" data-md-component="source">
+  <div class="md-source__icon md-icon">
+    
+    <svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 448 512"><!--! Font Awesome Free 7.1.0 by @fontawesome - https://fontawesome.com License - https://fontawesome.com/license/free (Icons: CC BY 4.0, Fonts: SIL OFL 1.1, Code: MIT License) Copyright 2025 Fonticons, Inc.--><path d="M439.6 236.1 244 40.5c-5.4-5.5-12.8-8.5-20.4-8.5s-15 3-20.4 8.4L162.5 81l51.5 51.5c27.1-9.1 52.7 16.8 43.4 43.7l49.7 49.7c34.2-11.8 61.2 31 35.5 56.7-26.5 26.5-70.2-2.9-56-37.3L240.3 199v121.9c25.3 12.5 22.3 41.8 9.1 55-6.4 6.4-15.2 10.1-24.3 10.1s-17.8-3.6-24.3-10.1c-17.6-17.6-11.1-46.9 11.2-56v-123c-20.8-8.5-24.6-30.7-18.6-45L142.6 101 8.5 235.1C3 240.6 0 247.9 0 255.5s3 15 8.5 20.4l195.6 195.7c5.4 5.4 12.7 8.4 20.4 8.4s15-3 20.4-8.4l194.7-194.7c5.4-5.4 8.4-12.8 8.4-20.4s-3-15-8.4-20.4"/></svg>
+  </div>
+  <div class="md-source__repository">
+    dio-quincarDev/pymes-admin
+  </div>
+</a>
+    </div>
+  
+  <ul class="md-nav__list" data-md-scrollfix>
+    
+      
+      
+  
+  
+  
+  
+    <li class="md-nav__item">
+      <a href="../../../.." class="md-nav__link">
+        
+  
+  
+  <span class="md-ellipsis">
+    
+  
+    Inicio
+  
+
+    
+  </span>
+  
+  
+
+      </a>
+    </li>
+  
+
+    
+      
+      
+  
+  
+  
+  
+    
+    
+    
+    
+      
+      
+    
+    
+    <li class="md-nav__item md-nav__item--nested">
+      
+        
+        
+        <input class="md-nav__toggle md-toggle " type="checkbox" id="__nav_2" >
+        
+          
+          <label class="md-nav__link" for="__nav_2" id="__nav_2_label" tabindex="0">
+            
+  
+  
+  <span class="md-ellipsis">
+    
+  
+    Producto
+  
+
+    
+  </span>
+  
+  
+
+            <span class="md-nav__icon md-icon"></span>
+          </label>
+        
+        <nav class="md-nav" data-md-level="1" aria-labelledby="__nav_2_label" aria-expanded="false">
+          <label class="md-nav__title" for="__nav_2">
+            <span class="md-nav__icon md-icon"></span>
+            
+  
+    Producto
+  
+
+          </label>
+          <ul class="md-nav__list" data-md-scrollfix>
+            
+              
+                
+  
+  
+  
+  
+    <li class="md-nav__item">
+      <a href="../../../.." class="md-nav__link">
+        
+  
+  
+  <span class="md-ellipsis">
+    
+  
+    Inicio
+  
+
+    
+  </span>
+  
+  
+
+      </a>
+    </li>
+  
+
+              
+            
+              
+                
+  
+  
+  
+  
+    <li class="md-nav__item">
+      <a href="../../../../docs/product/features/" class="md-nav__link">
+        
+  
+  
+  <span class="md-ellipsis">
+    
+  
+    Características
+  
+
+    
+  </span>
+  
+  
+
+      </a>
+    </li>
+  
+
+              
+            
+              
+                
+  
+  
+  
+  
+    <li class="md-nav__item">
+      <a href="../../../../docs/product/roadmap/" class="md-nav__link">
+        
+  
+  
+  <span class="md-ellipsis">
+    
+  
+    Roadmap
+  
+
+    
+  </span>
+  
+  
+
+      </a>
+    </li>
+  
+
+              
+            
+              
+                
+  
+  
+  
+  
+    <li class="md-nav__item">
+      <a href="../../../../docs/TO_DO/" class="md-nav__link">
+        
+  
+  
+  <span class="md-ellipsis">
+    
+  
+    Pendientes
+  
+
+    
+  </span>
+  
+  
+
+      </a>
+    </li>
+  
+
+              
+            
+              
+                
+  
+  
+  
+  
+    <li class="md-nav__item">
+      <a href="../../../../docs/GAPS/" class="md-nav__link">
+        
+  
+  
+  <span class="md-ellipsis">
+    
+  
+    Diferencias doc/código
+  
+
+    
+  </span>
+  
+  
+
+      </a>
+    </li>
+  
+
+              
+            
+          </ul>
+        </nav>
+      
+    </li>
+  
+
+    
+      
+      
+  
+  
+  
+  
+    
+    
+    
+    
+      
+      
+    
+    
+    <li class="md-nav__item md-nav__item--nested">
+      
+        
+        
+        <input class="md-nav__toggle md-toggle " type="checkbox" id="__nav_3" >
+        
+          
+          <label class="md-nav__link" for="__nav_3" id="__nav_3_label" tabindex="0">
+            
+  
+  
+  <span class="md-ellipsis">
+    
+  
+    API Reference
+  
+
+    
+  </span>
+  
+  
+
+            <span class="md-nav__icon md-icon"></span>
+          </label>
+        
+        <nav class="md-nav" data-md-level="1" aria-labelledby="__nav_3_label" aria-expanded="false">
+          <label class="md-nav__title" for="__nav_3">
+            <span class="md-nav__icon md-icon"></span>
+            
+  
+    API Reference
+  
+
+          </label>
+          <ul class="md-nav__list" data-md-scrollfix>
+            
+              
+                
+  
+  
+  
+  
+    <li class="md-nav__item">
+      <a href="../../../../docs/api/" class="md-nav__link">
+        
+  
+  
+  <span class="md-ellipsis">
+    
+  
+    Contrato (índice)
+  
+
+    
+  </span>
+  
+  
+
+      </a>
+    </li>
+  
+
+              
+            
+              
+                
+  
+  
+  
+  
+    <li class="md-nav__item">
+      <a href="../../../../api/auth/" class="md-nav__link">
+        
+  
+  
+  <span class="md-ellipsis">
+    
+  
+    Auth (generado)
+  
+
+    
+  </span>
+  
+  
+
+      </a>
+    </li>
+  
+
+              
+            
+              
+                
+  
+  
+  
+  
+    <li class="md-nav__item">
+      <a href="../../../../api/core/" class="md-nav__link">
+        
+  
+  
+  <span class="md-ellipsis">
+    
+  
+    Core (generado)
+  
+
+    
+  </span>
+  
+  
+
+      </a>
+    </li>
+  
+
+              
+            
+          </ul>
+        </nav>
+      
+    </li>
+  
+
+    
+      
+      
+  
+  
+  
+  
+    
+    
+    
+    
+      
+      
+    
+    
+    <li class="md-nav__item md-nav__item--nested">
+      
+        
+        
+        <input class="md-nav__toggle md-toggle " type="checkbox" id="__nav_4" >
+        
+          
+          <label class="md-nav__link" for="__nav_4" id="__nav_4_label" tabindex="0">
+            
+  
+  
+  <span class="md-ellipsis">
+    
+  
+    Arquitectura
+  
+
+    
+  </span>
+  
+  
+
+            <span class="md-nav__icon md-icon"></span>
+          </label>
+        
+        <nav class="md-nav" data-md-level="1" aria-labelledby="__nav_4_label" aria-expanded="false">
+          <label class="md-nav__title" for="__nav_4">
+            <span class="md-nav__icon md-icon"></span>
+            
+  
+    Arquitectura
+  
+
+          </label>
+          <ul class="md-nav__list" data-md-scrollfix>
+            
+              
+                
+  
+  
+  
+  
+    <li class="md-nav__item">
+      <a href="../../../../docs/architecture/architecture/" class="md-nav__link">
+        
+  
+  
+  <span class="md-ellipsis">
+    
+  
+    Arquitectura (mapa)
+  
+
+    
+  </span>
+  
+  
+
+      </a>
+    </li>
+  
+
+              
+            
+              
+                
+  
+  
+  
+  
+    
+    
+    
+    
+      
+      
+    
+    
+    <li class="md-nav__item md-nav__item--nested">
+      
+        
+        
+        <input class="md-nav__toggle md-toggle " type="checkbox" id="__nav_4_2" >
+        
+          
+          <label class="md-nav__link" for="__nav_4_2" id="__nav_4_2_label" tabindex="0">
+            
+  
+  
+  <span class="md-ellipsis">
+    
+  
+    Servicios
+  
+
+    
+  </span>
+  
+  
+
+            <span class="md-nav__icon md-icon"></span>
+          </label>
+        
+        <nav class="md-nav" data-md-level="2" aria-labelledby="__nav_4_2_label" aria-expanded="false">
+          <label class="md-nav__title" for="__nav_4_2">
+            <span class="md-nav__icon md-icon"></span>
+            
+  
+    Servicios
+  
+
+          </label>
+          <ul class="md-nav__list" data-md-scrollfix>
+            
+              
+                
+  
+  
+  
+  
+    <li class="md-nav__item">
+      <a href="../../../auth/" class="md-nav__link">
+        
+  
+  
+  <span class="md-ellipsis">
+    
+  
+    Auth
+  
+
+    
+  </span>
+  
+  
+
+      </a>
+    </li>
+  
+
+              
+            
+              
+                
+  
+  
+  
+  
+    <li class="md-nav__item">
+      <a href="../../../gateway-pymes/" class="md-nav__link">
+        
+  
+  
+  <span class="md-ellipsis">
+    
+  
+    Gateway
+  
+
+    
+  </span>
+  
+  
+
+      </a>
+    </li>
+  
+
+              
+            
+              
+                
+  
+  
+  
+  
+    <li class="md-nav__item">
+      <a href="../../" class="md-nav__link">
+        
+  
+  
+  <span class="md-ellipsis">
+    
+  
+    Core
+  
+
+    
+  </span>
+  
+  
+
+      </a>
+    </li>
+  
+
+              
+            
+              
+                
+  
+  
+  
+  
+    <li class="md-nav__item">
+      <a href="../../../../frontend/pymes/" class="md-nav__link">
+        
+  
+  
+  <span class="md-ellipsis">
+    
+  
+    Frontend
+  
+
+    
+  </span>
+  
+  
+
+      </a>
+    </li>
+  
+
+              
+            
+          </ul>
+        </nav>
+      
+    </li>
+  
+
+              
+            
+              
+                
+  
+  
+  
+  
+    <li class="md-nav__item">
+      <a href="../../../../docs/persistencia-postgres/" class="md-nav__link">
+        
+  
+  
+  <span class="md-ellipsis">
+    
+  
+    Base de datos
+  
+
+    
+  </span>
+  
+  
+
+      </a>
+    </li>
+  
+
+              
+            
+              
+                
+  
+  
+  
+  
+    <li class="md-nav__item">
+      <a href="../../../../docs/strategies/DB_STRATEGY/" class="md-nav__link">
+        
+  
+  
+  <span class="md-ellipsis">
+    
+  
+    Estrategia multi-schema
+  
+
+    
+  </span>
+  
+  
+
+      </a>
+    </li>
+  
+
+              
+            
+              
+                
+  
+  
+  
+  
+    <li class="md-nav__item">
+      <a href="../../../../docs/strategies/INFRA_STRATEGY/" class="md-nav__link">
+        
+  
+  
+  <span class="md-ellipsis">
+    
+  
+    Infraestructura
+  
+
+    
+  </span>
+  
+  
+
+      </a>
+    </li>
+  
+
+              
+            
+          </ul>
+        </nav>
+      
+    </li>
+  
+
+    
+      
+      
+  
+  
+  
+  
+    
+    
+    
+    
+      
+      
+    
+    
+    <li class="md-nav__item md-nav__item--nested">
+      
+        
+        
+        <input class="md-nav__toggle md-toggle " type="checkbox" id="__nav_5" >
+        
+          
+          <label class="md-nav__link" for="__nav_5" id="__nav_5_label" tabindex="0">
+            
+  
+  
+  <span class="md-ellipsis">
+    
+  
+    Operación
+  
+
+    
+  </span>
+  
+  
+
+            <span class="md-nav__icon md-icon"></span>
+          </label>
+        
+        <nav class="md-nav" data-md-level="1" aria-labelledby="__nav_5_label" aria-expanded="false">
+          <label class="md-nav__title" for="__nav_5">
+            <span class="md-nav__icon md-icon"></span>
+            
+  
+    Operación
+  
+
+          </label>
+          <ul class="md-nav__list" data-md-scrollfix>
+            
+              
+                
+  
+  
+  
+  
+    <li class="md-nav__item">
+      <a href="../../../../deployment/DEPLOYMENT/" class="md-nav__link">
+        
+  
+  
+  <span class="md-ellipsis">
+    
+  
+    Deploy
+  
+
+    
+  </span>
+  
+  
+
+      </a>
+    </li>
+  
+
+              
+            
+              
+                
+  
+  
+  
+  
+    <li class="md-nav__item">
+      <a href="../../../../deployment/QUICK_START/" class="md-nav__link">
+        
+  
+  
+  <span class="md-ellipsis">
+    
+  
+    Quick start CI/CD
+  
+
+    
+  </span>
+  
+  
+
+      </a>
+    </li>
+  
+
+              
+            
+              
+                
+  
+  
+  
+  
+    <li class="md-nav__item">
+      <a href="../../../../deployment/SECRETS/" class="md-nav__link">
+        
+  
+  
+  <span class="md-ellipsis">
+    
+  
+    Secretos
+  
+
+    
+  </span>
+  
+  
+
+      </a>
+    </li>
+  
+
+              
+            
+              
+                
+  
+  
+  
+  
+    <li class="md-nav__item">
+      <a href="../../../../docs/DAILY_REPORTS_PROJECT/" class="md-nav__link">
+        
+  
+  
+  <span class="md-ellipsis">
+    
+  
+    Reportes diarios
+  
+
+    
+  </span>
+  
+  
+
+      </a>
+    </li>
+  
+
+              
+            
+          </ul>
+        </nav>
+      
+    </li>
+  
+
+    
+      
+      
+  
+  
+  
+  
+    
+    
+    
+    
+      
+      
+    
+    
+    <li class="md-nav__item md-nav__item--nested">
+      
+        
+        
+        <input class="md-nav__toggle md-toggle " type="checkbox" id="__nav_6" >
+        
+          
+          <label class="md-nav__link" for="__nav_6" id="__nav_6_label" tabindex="0">
+            
+  
+  
+  <span class="md-ellipsis">
+    
+  
+    Guías
+  
+
+    
+  </span>
+  
+  
+
+            <span class="md-nav__icon md-icon"></span>
+          </label>
+        
+        <nav class="md-nav" data-md-level="1" aria-labelledby="__nav_6_label" aria-expanded="false">
+          <label class="md-nav__title" for="__nav_6">
+            <span class="md-nav__icon md-icon"></span>
+            
+  
+    Guías
+  
+
+          </label>
+          <ul class="md-nav__list" data-md-scrollfix>
+            
+              
+                
+  
+  
+  
+  
+    <li class="md-nav__item">
+      <a href="../../../../docs/guides/user-guide/" class="md-nav__link">
+        
+  
+  
+  <span class="md-ellipsis">
+    
+  
+    Usuario
+  
+
+    
+  </span>
+  
+  
+
+      </a>
+    </li>
+  
+
+              
+            
+              
+                
+  
+  
+  
+  
+    <li class="md-nav__item">
+      <a href="../../../../docs/guides/admin-guide/" class="md-nav__link">
+        
+  
+  
+  <span class="md-ellipsis">
+    
+  
+    Administración
+  
+
+    
+  </span>
+  
+  
+
+      </a>
+    </li>
+  
+
+              
+            
+              
+                
+  
+  
+  
+  
+    <li class="md-nav__item">
+      <a href="../../../../docs/guides/operations-guide/" class="md-nav__link">
+        
+  
+  
+  <span class="md-ellipsis">
+    
+  
+    Operación
+  
+
+    
+  </span>
+  
+  
+
+      </a>
+    </li>
+  
+
+              
+            
+          </ul>
+        </nav>
+      
+    </li>
+  
+
+    
+      
+      
+  
+  
+  
+  
+    
+    
+    
+    
+      
+      
+    
+    
+    <li class="md-nav__item md-nav__item--nested">
+      
+        
+        
+        <input class="md-nav__toggle md-toggle " type="checkbox" id="__nav_7" >
+        
+          
+          <label class="md-nav__link" for="__nav_7" id="__nav_7_label" tabindex="0">
+            
+  
+  
+  <span class="md-ellipsis">
+    
+  
+    Referencia
+  
+
+    
+  </span>
+  
+  
+
+            <span class="md-nav__icon md-icon"></span>
+          </label>
+        
+        <nav class="md-nav" data-md-level="1" aria-labelledby="__nav_7_label" aria-expanded="false">
+          <label class="md-nav__title" for="__nav_7">
+            <span class="md-nav__icon md-icon"></span>
+            
+  
+    Referencia
+  
+
+          </label>
+          <ul class="md-nav__list" data-md-scrollfix>
+            
+              
+                
+  
+  
+  
+  
+    <li class="md-nav__item">
+      <a href="../KPIs/" class="md-nav__link">
+        
+  
+  
+  <span class="md-ellipsis">
+    
+  
+    KPIs
+  
+
+    
+  </span>
+  
+  
+
+      </a>
+    </li>
+  
+
+              
+            
+              
+                
+  
+  
+  
+  
+    <li class="md-nav__item">
+      <a href="../COSTOS_ENGINE/" class="md-nav__link">
+        
+  
+  
+  <span class="md-ellipsis">
+    
+  
+    Motor de costos
+  
+
+    
+  </span>
+  
+  
+
+      </a>
+    </li>
+  
+
+              
+            
+              
+                
+  
+  
+  
+  
+    <li class="md-nav__item">
+      <a href="../ANALYTICS/" class="md-nav__link">
+        
+  
+  
+  <span class="md-ellipsis">
+    
+  
+    Analítica
+  
+
+    
+  </span>
+  
+  
+
+      </a>
+    </li>
+  
+
+              
+            
+              
+                
+  
+  
+  
+  
+    <li class="md-nav__item">
+      <a href="../CORE/" class="md-nav__link">
+        
+  
+  
+  <span class="md-ellipsis">
+    
+  
+    Motor de salud financiera
+  
+
+    
+  </span>
+  
+  
+
+      </a>
+    </li>
+  
+
+              
+            
+              
+                
+  
+  
+  
+  
+    <li class="md-nav__item">
+      <a href="../../../../frontend/pymes/docs/PWA_OFFLINE/" class="md-nav__link">
+        
+  
+  
+  <span class="md-ellipsis">
+    
+  
+    PWA offline
+  
+
+    
+  </span>
+  
+  
+
+      </a>
+    </li>
+  
+
+              
+            
+          </ul>
+        </nav>
+      
+    </li>
+  
+
+    
+  </ul>
+</nav>
+                  </div>
+                </div>
+              </div>
+            
+            
+              
+              <div class="md-sidebar md-sidebar--secondary" data-md-component="sidebar" data-md-type="toc" >
+                <div class="md-sidebar__scrollwrap">
+                  <div class="md-sidebar__inner">
+                    
+
+<nav class="md-nav md-nav--secondary" aria-label="Tabla de contenidos">
+  
+  
+  
+    
+  
+  
+    <label class="md-nav__title" for="__toc">
+      <span class="md-nav__icon md-icon"></span>
+      Tabla de contenidos
+    </label>
+    <ul class="md-nav__list" data-md-component="toc" data-md-scrollfix>
+      
+        <li class="md-nav__item">
+  <a href="#hito-pivot-de-paradigma-2026-06" class="md-nav__link">
+    <span class="md-ellipsis">
+      
+        Hito: Pivot de Paradigma (2026-06)
+      
+    </span>
+  </a>
+  
+    <nav class="md-nav" aria-label="Hito: Pivot de Paradigma (2026-06)">
+      <ul class="md-nav__list">
+        
+          <li class="md-nav__item">
+  <a href="#que-cambio" class="md-nav__link">
+    <span class="md-ellipsis">
+      
+        Qué cambió
+      
+    </span>
+  </a>
+  
+</li>
+        
+          <li class="md-nav__item">
+  <a href="#por-que" class="md-nav__link">
+    <span class="md-ellipsis">
+      
+        Por qué
+      
+    </span>
+  </a>
+  
+</li>
+        
+          <li class="md-nav__item">
+  <a href="#referencia" class="md-nav__link">
+    <span class="md-ellipsis">
+      
+        Referencia
+      
+    </span>
+  </a>
+  
+</li>
+        
+          <li class="md-nav__item">
+  <a href="#flag-en-tabla-de-decisiones-coremd" class="md-nav__link">
+    <span class="md-ellipsis">
+      
+        Flag en tabla de decisiones (CORE.md)
+      
+    </span>
+  </a>
+  
+</li>
+        
+      </ul>
+    </nav>
+  
+</li>
+      
+        <li class="md-nav__item">
+  <a href="#1-accounting-contabilidad" class="md-nav__link">
+    <span class="md-ellipsis">
+      
+        1. Accounting (Contabilidad)
+      
+    </span>
+  </a>
+  
+    <nav class="md-nav" aria-label="1. Accounting (Contabilidad)">
+      <ul class="md-nav__list">
+        
+          <li class="md-nav__item">
+  <a href="#vision" class="md-nav__link">
+    <span class="md-ellipsis">
+      
+        Visión
+      
+    </span>
+  </a>
+  
+</li>
+        
+          <li class="md-nav__item">
+  <a href="#arquitectura" class="md-nav__link">
+    <span class="md-ellipsis">
+      
+        Arquitectura
+      
+    </span>
+  </a>
+  
+</li>
+        
+          <li class="md-nav__item">
+  <a href="#schema" class="md-nav__link">
+    <span class="md-ellipsis">
+      
+        Schema
+      
+    </span>
+  </a>
+  
+</li>
+        
+          <li class="md-nav__item">
+  <a href="#endpoints" class="md-nav__link">
+    <span class="md-ellipsis">
+      
+        Endpoints
+      
+    </span>
+  </a>
+  
+</li>
+        
+          <li class="md-nav__item">
+  <a href="#eventos-y-listeners" class="md-nav__link">
+    <span class="md-ellipsis">
+      
+        Eventos y Listeners
+      
+    </span>
+  </a>
+  
+</li>
+        
+          <li class="md-nav__item">
+  <a href="#sql-optimizacion-upsert" class="md-nav__link">
+    <span class="md-ellipsis">
+      
+        SQL Optimización — Upsert
+      
+    </span>
+  </a>
+  
+</li>
+        
+          <li class="md-nav__item">
+  <a href="#tests-disenados" class="md-nav__link">
+    <span class="md-ellipsis">
+      
+        Tests (diseñados)
+      
+    </span>
+  </a>
+  
+</li>
+        
+          <li class="md-nav__item">
+  <a href="#configuracion" class="md-nav__link">
+    <span class="md-ellipsis">
+      
+        Configuración
+      
+    </span>
+  </a>
+  
+</li>
+        
+      </ul>
+    </nav>
+  
+</li>
+      
+        <li class="md-nav__item">
+  <a href="#2-ventas-registro-manual" class="md-nav__link">
+    <span class="md-ellipsis">
+      
+        2. Ventas (Registro Manual)
+      
+    </span>
+  </a>
+  
+    <nav class="md-nav" aria-label="2. Ventas (Registro Manual)">
+      <ul class="md-nav__list">
+        
+          <li class="md-nav__item">
+  <a href="#diseno-provisional-opcion-a" class="md-nav__link">
+    <span class="md-ellipsis">
+      
+        Diseño provisional (Opción A)
+      
+    </span>
+  </a>
+  
+</li>
+        
+      </ul>
+    </nav>
+  
+</li>
+      
+        <li class="md-nav__item">
+  <a href="#3-reportes-dashboard" class="md-nav__link">
+    <span class="md-ellipsis">
+      
+        3. Reportes (Dashboard)
+      
+    </span>
+  </a>
+  
+    <nav class="md-nav" aria-label="3. Reportes (Dashboard)">
+      <ul class="md-nav__list">
+        
+          <li class="md-nav__item">
+  <a href="#diseno-provisional" class="md-nav__link">
+    <span class="md-ellipsis">
+      
+        Diseño provisional
+      
+    </span>
+  </a>
+  
+</li>
+        
+      </ul>
+    </nav>
+  
+</li>
+      
+        <li class="md-nav__item">
+  <a href="#4-patrimonio-e-inversion" class="md-nav__link">
+    <span class="md-ellipsis">
+      
+        4. Patrimonio e Inversión
+      
+    </span>
+  </a>
+  
+    <nav class="md-nav" aria-label="4. Patrimonio e Inversión">
+      <ul class="md-nav__list">
+        
+          <li class="md-nav__item">
+  <a href="#entidades" class="md-nav__link">
+    <span class="md-ellipsis">
+      
+        Entidades
+      
+    </span>
+  </a>
+  
+</li>
+        
+          <li class="md-nav__item">
+  <a href="#endpoints_1" class="md-nav__link">
+    <span class="md-ellipsis">
+      
+        Endpoints
+      
+    </span>
+  </a>
+  
+</li>
+        
+          <li class="md-nav__item">
+  <a href="#flujo-de-eventos" class="md-nav__link">
+    <span class="md-ellipsis">
+      
+        Flujo de Eventos
+      
+    </span>
+  </a>
+  
+</li>
+        
+          <li class="md-nav__item">
+  <a href="#calculos" class="md-nav__link">
+    <span class="md-ellipsis">
+      
+        Cálculos
+      
+    </span>
+  </a>
+  
+</li>
+        
+          <li class="md-nav__item">
+  <a href="#validaciones" class="md-nav__link">
+    <span class="md-ellipsis">
+      
+        Validaciones
+      
+    </span>
+  </a>
+  
+</li>
+        
+          <li class="md-nav__item">
+  <a href="#visualizacion" class="md-nav__link">
+    <span class="md-ellipsis">
+      
+        Visualización
+      
+    </span>
+  </a>
+  
+</li>
+        
+      </ul>
+    </nav>
+  
+</li>
+      
+        <li class="md-nav__item">
+  <a href="#5-refactor-motor-de-inteligencia-de-compras" class="md-nav__link">
+    <span class="md-ellipsis">
+      
+        5. Refactor: Motor de Inteligencia de Compras
+      
+    </span>
+  </a>
+  
+    <nav class="md-nav" aria-label="5. Refactor: Motor de Inteligencia de Compras">
+      <ul class="md-nav__list">
+        
+          <li class="md-nav__item">
+  <a href="#cambio-de-paradigma" class="md-nav__link">
+    <span class="md-ellipsis">
+      
+        Cambio de Paradigma
+      
+    </span>
+  </a>
+  
+</li>
+        
+          <li class="md-nav__item">
+  <a href="#algoritmo-core" class="md-nav__link">
+    <span class="md-ellipsis">
+      
+        Algoritmo Core
+      
+    </span>
+  </a>
+  
+</li>
+        
+          <li class="md-nav__item">
+  <a href="#los-6-motores-analiticos" class="md-nav__link">
+    <span class="md-ellipsis">
+      
+        Los 6 Motores Analíticos
+      
+    </span>
+  </a>
+  
+</li>
+        
+          <li class="md-nav__item">
+  <a href="#ruta-de-refactorizacion" class="md-nav__link">
+    <span class="md-ellipsis">
+      
+        Ruta de Refactorización
+      
+    </span>
+  </a>
+  
+</li>
+        
+      </ul>
+    </nav>
+  
+</li>
+      
+        <li class="md-nav__item">
+  <a href="#6-decisiones-pendientes" class="md-nav__link">
+    <span class="md-ellipsis">
+      
+        6. Decisiones Pendientes
+      
+    </span>
+  </a>
+  
+</li>
+      
+    </ul>
+  
+</nav>
+                  </div>
+                </div>
+              </div>
+            
+          
+          
+            <div class="md-content" data-md-component="content">
+              
+              <article class="md-content__inner md-typeset">
+                
+                  
+
+
+
+<h1 id="modulos-futuros-blueprints">Módulos Futuros — Blueprints<a class="headerlink" href="#modulos-futuros-blueprints" title="Permanent link">&para;</a></h1>
+<blockquote>
+<p><strong>Estado (2026-07):</strong> 5 de 6 modulos implementados. Conservar como referencia. Ver <code>FUTURE.md</code> en <code>frontend/pymes/docs/</code> para el plan de pantallas.</p>
+</blockquote>
+<hr />
+<h2 id="hito-pivot-de-paradigma-2026-06">Hito: Pivot de Paradigma (2026-06)<a class="headerlink" href="#hito-pivot-de-paradigma-2026-06" title="Permanent link">&para;</a></h2>
+<blockquote>
+<p><strong>ANTES:</strong> Control de stock físico (Kárdex, existencias, movimientos de almacén).
+<strong>AHORA:</strong> Motor de análisis de gastos + normalización matemática de precios.</p>
+</blockquote>
+<h3 id="que-cambio">Qué cambió<a class="headerlink" href="#que-cambio" title="Permanent link">&para;</a></h3>
+<ul>
+<li>Eliminado: entidad Inventario, stock mínimo, control de existencias</li>
+<li>Agregado: <code>conversionFactor</code> en ItemFactura, normalización <code>Precio Base = Precio Compra / Factor</code></li>
+<li>Catálogo: plantillas por industria (8), productos como <code>InsumoTemplate</code> genérico</li>
+</ul>
+<h3 id="por-que">Por qué<a class="headerlink" href="#por-que" title="Permanent link">&para;</a></h3>
+<ul>
+<li>Pymes no necesitan kárdex — necesitan saber dónde va su dinero</li>
+<li>Stock físico = CRUD complejo, errores de conteo, sobrecarga operativa</li>
+<li>Normalización matemática = comparación exacta entre proveedores, análisis histórico</li>
+</ul>
+<h3 id="referencia">Referencia<a class="headerlink" href="#referencia" title="Permanent link">&para;</a></h3>
+<ul>
+<li><code>STRATEGY_REFACTOR_ANALYSIS.md</code> fue consolidado aquí</li>
+<li>Ya aplicado en código: <code>ItemFactura</code> tiene <code>presentacionId</code> + <code>conversionFactor</code></li>
+</ul>
+<h3 id="flag-en-tabla-de-decisiones-coremd">Flag en tabla de decisiones (CORE.md)<a class="headerlink" href="#flag-en-tabla-de-decisiones-coremd" title="Permanent link">&para;</a></h3>
+<div class="highlight"><pre><span></span><code>| 2026-06 | Pivot: Stock físico → Motor contable | Sin inventario. ItemFactura usa conversionFactor |
+</code></pre></div>
+<hr />
+<h2 id="1-accounting-contabilidad">1. Accounting (Contabilidad)<a class="headerlink" href="#1-accounting-contabilidad" title="Permanent link">&para;</a></h2>
+<blockquote>
+<p><strong>Diseño completo.</strong> IMPLEMENTADO — <code>MetricasServiceImpl.java</code> con CTE consolidado. Falta frontend.</p>
+</blockquote>
+<h3 id="vision">Visión<a class="headerlink" href="#vision" title="Permanent link">&para;</a></h3>
+<p>Motor de cálculo matriz que consume datos de transacciones del Analytics y produce métricas de negocio listos para UI.</p>
+<h3 id="arquitectura">Arquitectura<a class="headerlink" href="#arquitectura" title="Permanent link">&para;</a></h3>
+<div class="highlight"><pre><span></span><code>/core_pymes/accounting/
+├── controller/
+│   ├── MetricasApi (interface)
+│   └── impl/MetricasController
+├── service/
+│   ├── MetricasService (interface)
+│   └── impl/MetricasServiceImpl
+├── mapper/MetricasMapper
+├── dto/MetricasResponse
+├── domain/MetricasFinanciera.java
+└── repository/MetricasRepository
+</code></pre></div>
+<h3 id="schema">Schema<a class="headerlink" href="#schema" title="Permanent link">&para;</a></h3>
+<div class="highlight"><pre><span></span><code><span class="k">CREATE</span><span class="w"> </span><span class="k">TABLE</span><span class="w"> </span><span class="n">core</span><span class="p">.</span><span class="n">tenant_period_metrics</span><span class="w"> </span><span class="p">(</span>
+<span class="w">    </span><span class="n">tenant_id</span><span class="w"> </span><span class="n">UUID</span><span class="w"> </span><span class="k">NOT</span><span class="w"> </span><span class="k">NULL</span><span class="p">,</span>
+<span class="w">    </span><span class="n">periodo</span><span class="w"> </span><span class="nb">VARCHAR</span><span class="p">(</span><span class="mi">7</span><span class="p">)</span><span class="w"> </span><span class="k">NOT</span><span class="w"> </span><span class="k">NULL</span><span class="p">,</span><span class="w"> </span><span class="c1">-- YYYY-MM</span>
+<span class="w">    </span><span class="n">total_ingresos</span><span class="w"> </span><span class="nb">DECIMAL</span><span class="p">(</span><span class="mi">15</span><span class="p">,</span><span class="mi">2</span><span class="p">)</span><span class="w"> </span><span class="k">DEFAULT</span><span class="w"> </span><span class="mi">0</span><span class="p">,</span>
+<span class="w">    </span><span class="n">total_egresos</span><span class="w"> </span><span class="nb">DECIMAL</span><span class="p">(</span><span class="mi">15</span><span class="p">,</span><span class="mi">2</span><span class="p">)</span><span class="w"> </span><span class="k">DEFAULT</span><span class="w"> </span><span class="mi">0</span><span class="p">,</span>
+<span class="w">    </span><span class="n">costo_mercaderia</span><span class="w"> </span><span class="nb">DECIMAL</span><span class="p">(</span><span class="mi">15</span><span class="p">,</span><span class="mi">2</span><span class="p">)</span><span class="w"> </span><span class="k">DEFAULT</span><span class="w"> </span><span class="mi">0</span><span class="p">,</span>
+<span class="w">    </span><span class="n">gastos_operativos</span><span class="w"> </span><span class="nb">DECIMAL</span><span class="p">(</span><span class="mi">15</span><span class="p">,</span><span class="mi">2</span><span class="p">)</span><span class="w"> </span><span class="k">DEFAULT</span><span class="w"> </span><span class="mi">0</span><span class="p">,</span>
+<span class="w">    </span><span class="n">margen_bruto_pct</span><span class="w"> </span><span class="nb">DECIMAL</span><span class="p">(</span><span class="mi">10</span><span class="p">,</span><span class="mi">4</span><span class="p">)</span><span class="w"> </span><span class="k">DEFAULT</span><span class="w"> </span><span class="mi">0</span><span class="p">,</span>
+<span class="w">    </span><span class="n">margen_bruto_usd</span><span class="w"> </span><span class="nb">DECIMAL</span><span class="p">(</span><span class="mi">15</span><span class="p">,</span><span class="mi">2</span><span class="p">)</span><span class="w"> </span><span class="k">DEFAULT</span><span class="w"> </span><span class="mi">0</span><span class="p">,</span>
+<span class="w">    </span><span class="n">margen_operativo_pct</span><span class="w"> </span><span class="nb">DECIMAL</span><span class="p">(</span><span class="mi">10</span><span class="p">,</span><span class="mi">4</span><span class="p">)</span><span class="w"> </span><span class="k">DEFAULT</span><span class="w"> </span><span class="mi">0</span><span class="p">,</span>
+<span class="w">    </span><span class="n">margen_operativo_usd</span><span class="w"> </span><span class="nb">DECIMAL</span><span class="p">(</span><span class="mi">15</span><span class="p">,</span><span class="mi">2</span><span class="p">)</span><span class="w"> </span><span class="k">DEFAULT</span><span class="w"> </span><span class="mi">0</span><span class="p">,</span>
+<span class="w">    </span><span class="n">margen_neto_pct</span><span class="w"> </span><span class="nb">DECIMAL</span><span class="p">(</span><span class="mi">10</span><span class="p">,</span><span class="mi">4</span><span class="p">)</span><span class="w"> </span><span class="k">DEFAULT</span><span class="w"> </span><span class="mi">0</span><span class="p">,</span>
+<span class="w">    </span><span class="n">margen_neto_usd</span><span class="w"> </span><span class="nb">DECIMAL</span><span class="p">(</span><span class="mi">15</span><span class="p">,</span><span class="mi">2</span><span class="p">)</span><span class="w"> </span><span class="k">DEFAULT</span><span class="w"> </span><span class="mi">0</span><span class="p">,</span>
+<span class="w">    </span><span class="n">ebitda</span><span class="w"> </span><span class="nb">DECIMAL</span><span class="p">(</span><span class="mi">15</span><span class="p">,</span><span class="mi">2</span><span class="p">)</span><span class="w"> </span><span class="k">DEFAULT</span><span class="w"> </span><span class="mi">0</span><span class="p">,</span>
+<span class="w">    </span><span class="n">punto_equilibrio</span><span class="w"> </span><span class="nb">INT</span><span class="w"> </span><span class="k">DEFAULT</span><span class="w"> </span><span class="mi">0</span><span class="p">,</span>
+<span class="w">    </span><span class="n">created_at</span><span class="w"> </span><span class="k">TIMESTAMP</span><span class="w"> </span><span class="k">WITH</span><span class="w"> </span><span class="k">TIME</span><span class="w"> </span><span class="k">ZONE</span><span class="w"> </span><span class="k">DEFAULT</span><span class="w"> </span><span class="n">NOW</span><span class="p">(),</span>
+<span class="w">    </span><span class="n">updated_at</span><span class="w"> </span><span class="k">TIMESTAMP</span><span class="w"> </span><span class="k">WITH</span><span class="w"> </span><span class="k">TIME</span><span class="w"> </span><span class="k">ZONE</span><span class="w"> </span><span class="k">DEFAULT</span><span class="w"> </span><span class="n">NOW</span><span class="p">(),</span>
+<span class="w">    </span><span class="k">PRIMARY</span><span class="w"> </span><span class="k">KEY</span><span class="w"> </span><span class="p">(</span><span class="n">tenant_id</span><span class="p">,</span><span class="w"> </span><span class="n">periodo</span><span class="p">),</span>
+<span class="w">    </span><span class="k">CONSTRAINT</span><span class="w"> </span><span class="n">fk_metrics_tenant</span><span class="w"> </span><span class="k">FOREIGN</span><span class="w"> </span><span class="k">KEY</span><span class="w"> </span><span class="p">(</span><span class="n">tenant_id</span><span class="p">)</span><span class="w"> </span><span class="k">REFERENCES</span><span class="w"> </span><span class="n">auth</span><span class="p">.</span><span class="n">tenants</span><span class="p">(</span><span class="n">id</span><span class="p">)</span><span class="w"> </span><span class="k">ON</span><span class="w"> </span><span class="k">DELETE</span><span class="w"> </span><span class="k">CASCADE</span>
+<span class="p">);</span>
+</code></pre></div>
+<div class="highlight"><pre><span></span><code><span class="k">CREATE</span><span class="w"> </span><span class="k">TABLE</span><span class="w"> </span><span class="n">core</span><span class="p">.</span><span class="n">daily_audit_log</span><span class="w"> </span><span class="p">(</span>
+<span class="w">    </span><span class="n">id</span><span class="w"> </span><span class="n">UUID</span><span class="w"> </span><span class="k">PRIMARY</span><span class="w"> </span><span class="k">KEY</span><span class="w"> </span><span class="k">DEFAULT</span><span class="w"> </span><span class="n">gen_random_uuid</span><span class="p">(),</span>
+<span class="w">    </span><span class="n">tenant_id</span><span class="w"> </span><span class="n">UUID</span><span class="w"> </span><span class="k">NOT</span><span class="w"> </span><span class="k">NULL</span><span class="p">,</span>
+<span class="w">    </span><span class="n">evento</span><span class="w"> </span><span class="nb">VARCHAR</span><span class="p">(</span><span class="mi">100</span><span class="p">)</span><span class="w"> </span><span class="k">NOT</span><span class="w"> </span><span class="k">NULL</span><span class="p">,</span>
+<span class="w">    </span><span class="n">entidad</span><span class="w"> </span><span class="nb">VARCHAR</span><span class="p">(</span><span class="mi">50</span><span class="p">)</span><span class="w"> </span><span class="k">NOT</span><span class="w"> </span><span class="k">NULL</span><span class="p">,</span>
+<span class="w">    </span><span class="n">entidad_id</span><span class="w"> </span><span class="n">UUID</span><span class="p">,</span>
+<span class="w">    </span><span class="n">payload</span><span class="w"> </span><span class="n">JSONB</span><span class="p">,</span>
+<span class="w">    </span><span class="n">created_at</span><span class="w"> </span><span class="k">TIMESTAMP</span><span class="w"> </span><span class="k">WITH</span><span class="w"> </span><span class="k">TIME</span><span class="w"> </span><span class="k">ZONE</span><span class="w"> </span><span class="k">DEFAULT</span><span class="w"> </span><span class="n">NOW</span><span class="p">()</span>
+<span class="p">);</span>
+</code></pre></div>
+<h3 id="endpoints">Endpoints<a class="headerlink" href="#endpoints" title="Permanent link">&para;</a></h3>
+<div class="highlight"><pre><span></span><code><span class="kd">public</span><span class="w"> </span><span class="kd">interface</span> <span class="nc">MetricasApi</span><span class="w"> </span><span class="p">{</span>
+<span class="w">    </span><span class="n">ResponseEntity</span><span class="o">&lt;</span><span class="n">MetricasResponse</span><span class="o">&gt;</span><span class="w"> </span><span class="nf">consultar</span><span class="p">(</span><span class="n">UUID</span><span class="w"> </span><span class="n">tenantId</span><span class="p">,</span><span class="w"> </span><span class="n">String</span><span class="w"> </span><span class="n">periodo</span><span class="p">);</span>
+<span class="w">    </span><span class="n">ResponseEntity</span><span class="o">&lt;</span><span class="n">MetricasResponse</span><span class="o">&gt;</span><span class="w"> </span><span class="nf">recalcular</span><span class="p">(</span><span class="n">UUID</span><span class="w"> </span><span class="n">tenantId</span><span class="p">,</span><span class="w"> </span><span class="n">String</span><span class="w"> </span><span class="n">periodo</span><span class="p">);</span>
+<span class="w">    </span><span class="n">ResponseEntity</span><span class="o">&lt;</span><span class="n">MetricasResponse</span><span class="o">&gt;</span><span class="w"> </span><span class="nf">dashboard</span><span class="p">(</span><span class="n">UUID</span><span class="w"> </span><span class="n">tenantId</span><span class="p">,</span><span class="w"> </span><span class="n">String</span><span class="w"> </span><span class="n">periodo</span><span class="p">);</span>
+<span class="p">}</span>
+</code></pre></div>
+<h3 id="eventos-y-listeners">Eventos y Listeners<a class="headerlink" href="#eventos-y-listeners" title="Permanent link">&para;</a></h3>
+<pre class="mermaid"><code>graph TD
+    A[FacturaCreadaEvent] --&gt; B[MetricasService] --&gt; C[TenantPeriodoMetrics]
+    A --&gt; D[AnalisisGastoListener]
+    B --&gt; E[ContabilidadEventListener]
+    B --&gt; F[ReportesEventListener]
+    C --&gt; G[MetricasController consultar()]
+    C --&gt; H[MetricasController dashboard()]
+    I[FacturaPagadaEvent] --&gt; B
+    J[VentaRegistradaEvent] --&gt; B
+    F --&gt; H
+    E --&gt; H
+    E --&gt; K[AlertaMargenBajoEvent]
+    E --&gt; L[AlertaFlujoCajaNegativoEvent]
+    K --&gt; M[ReportesEventListener]
+    L --&gt; M
+    M --&gt; H</code></pre>
+<p><strong>ContabilidadEventListener:</strong> Escucha FacturaCreada, FacturaPagada, VentaRegistrada, GastoOperativoRegistrado → actualiza agregados → publica MetricasCalculadas → evalúa umbrales (margen_neto &lt; 5%)</p>
+<p><strong>ReportesEventListener:</strong> Escucha MetricasCalculadas, AlertaMargenBajo, AlertaFlujoCajaNegativo → actualiza dashboard → publica ReporteActualizado</p>
+<h3 id="sql-optimizacion-upsert">SQL Optimización — Upsert<a class="headerlink" href="#sql-optimizacion-upsert" title="Permanent link">&para;</a></h3>
+<div class="highlight"><pre><span></span><code><span class="nd">@Override</span>
+<span class="nd">@Transactional</span>
+<span class="kd">public</span><span class="w"> </span><span class="n">MetricasFinanciera</span><span class="w"> </span><span class="nf">ejecutarCompleto</span><span class="p">(</span><span class="n">UUID</span><span class="w"> </span><span class="n">tenantId</span><span class="p">,</span><span class="w"> </span><span class="n">String</span><span class="w"> </span><span class="n">periodo</span><span class="p">)</span><span class="w"> </span><span class="p">{</span>
+<span class="w">    </span><span class="kd">var</span><span class="w"> </span><span class="n">existing</span><span class="w"> </span><span class="o">=</span><span class="w"> </span><span class="n">repository</span><span class="p">.</span><span class="na">findByTenantIdAndPeriodo</span><span class="p">(</span><span class="n">tenantId</span><span class="p">,</span><span class="w"> </span><span class="n">periodo</span><span class="p">);</span>
+<span class="w">    </span><span class="k">if</span><span class="w"> </span><span class="p">(</span><span class="n">existing</span><span class="w"> </span><span class="o">!=</span><span class="w"> </span><span class="kc">null</span><span class="p">)</span><span class="w"> </span><span class="p">{</span>
+<span class="w">        </span><span class="n">existing</span><span class="p">.</span><span class="na">setTotalIngresos</span><span class="p">(</span><span class="n">nuevosIngresos</span><span class="p">);</span>
+<span class="w">        </span><span class="n">existing</span><span class="p">.</span><span class="na">setTotalEgresos</span><span class="p">(</span><span class="n">nuevosEgresos</span><span class="p">);</span>
+<span class="w">        </span><span class="c1">// ... recalcula márgenes</span>
+<span class="w">        </span><span class="k">return</span><span class="w"> </span><span class="n">repository</span><span class="p">.</span><span class="na">save</span><span class="p">(</span><span class="n">existing</span><span class="p">);</span>
+<span class="w">    </span><span class="p">}</span>
+<span class="w">    </span><span class="k">return</span><span class="w"> </span><span class="n">repository</span><span class="p">.</span><span class="na">save</span><span class="p">(</span><span class="n">MetricasFinanciera</span><span class="p">.</span><span class="na">builder</span><span class="p">()</span>
+<span class="w">        </span><span class="p">.</span><span class="na">tenantId</span><span class="p">(</span><span class="n">tenantId</span><span class="p">).</span><span class="na">periodo</span><span class="p">(</span><span class="n">periodo</span><span class="p">)...</span><span class="na">build</span><span class="p">());</span>
+<span class="p">}</span>
+</code></pre></div>
+<h3 id="tests-disenados">Tests (diseñados)<a class="headerlink" href="#tests-disenados" title="Permanent link">&para;</a></h3>
+<ul>
+<li><code>MetricasServiceImplTest</code> (12 tests): motores contables + safe lectura + idempotente</li>
+<li><code>MetricasRepositoryTest</code> (10 tests): CRUD + tenant isolation</li>
+<li><code>ContabilidadEventListenerTest</code> (8 tests): FacturaCreada → métricas, idempotencia</li>
+<li><code>ReporteDashboardTest</code> (6 tests): MetricasResponse → DashboardDto</li>
+</ul>
+<h3 id="configuracion">Configuración<a class="headerlink" href="#configuracion" title="Permanent link">&para;</a></h3>
+<table>
+<thead>
+<tr>
+<th>Propiedad</th>
+<th>Valor</th>
+</tr>
+</thead>
+<tbody>
+<tr>
+<td><code>spring.datasource.url</code></td>
+<td><code>jdbc:postgresql://localhost:5432/core</code></td>
+</tr>
+<tr>
+<td><code>spring.flyway.schemas</code></td>
+<td><code>core</code></td>
+</tr>
+<tr>
+<td><code>app.metrics.margen_bajo_umbral</code></td>
+<td><code>5.0</code></td>
+</tr>
+</tbody>
+</table>
+<hr />
+<h2 id="2-ventas-registro-manual">2. Ventas (Registro Manual)<a class="headerlink" href="#2-ventas-registro-manual" title="Permanent link">&para;</a></h2>
+<blockquote>
+<p><strong>Opción A (módulo propio) IMPLEMENTADA.</strong> <code>VentaDiaria.java</code> + CRUD completo. Falta frontend.</p>
+</blockquote>
+<h3 id="diseno-provisional-opcion-a">Diseño provisional (Opción A)<a class="headerlink" href="#diseno-provisional-opcion-a" title="Permanent link">&para;</a></h3>
+<div class="highlight"><pre><span></span><code>POST /api/core/v1/ventas
+  ├── Fecha
+  ├── Monto bruto
+  ├── Notas (opcional)
+  └── Publica: VentaRegistrada
+
+GET /api/core/v1/ventas
+  └── Lista (por rango fecha, totalizado por día/semana/mes)
+
+PUT /api/core/v1/ventas/{id}
+  └── Edita (solo si no está "cerrada")
+
+DELETE /api/core/v1/ventas/{id}
+  └── Elimina
+</code></pre></div>
+<hr />
+<h2 id="3-reportes-dashboard">3. Reportes (Dashboard)<a class="headerlink" href="#3-reportes-dashboard" title="Permanent link">&para;</a></h2>
+<blockquote>
+<p><strong>Sin diseño formal.</strong> Pendiente. Ver <code>frontend/pymes/docs/FUTURE.md</code> para plan de pantallas.</p>
+</blockquote>
+<h3 id="diseno-provisional">Diseño provisional<a class="headerlink" href="#diseno-provisional" title="Permanent link">&para;</a></h3>
+<div class="highlight"><pre><span></span><code>GET /api/core/v1/reportes/dashboard
+  └── Total inversión actual
+  └── Alertas activas (stock crítico, margen bajo)
+  └── Últimas 10 facturas / ventas
+  └── Resumen márgenes mes actual
+
+GET /api/core/v1/reportes/contabilidad
+  └── Márgenes, flujo caja, KPIs
+</code></pre></div>
+<hr />
+<h2 id="4-patrimonio-e-inversion">4. Patrimonio e Inversión<a class="headerlink" href="#4-patrimonio-e-inversion" title="Permanent link">&para;</a></h2>
+<blockquote>
+<p><strong>Diseño completo.</strong> IMPLEMENTADO — <code>Patrimonio.java</code> (get-or-create) + <code>Prestamo.java</code> + <code>PagoPrestamo.java</code>. ROI pendiente.</p>
+</blockquote>
+<h3 id="entidades">Entidades<a class="headerlink" href="#entidades" title="Permanent link">&para;</a></h3>
+<p><strong>Patrimonio</strong> (una por tenant)
+<div class="highlight"><pre><span></span><code>├── tenant_id
+├── capital_inicial (editable)
+├── fecha_inicio
+├── notas
+└── activo (boolean)
+</code></pre></div></p>
+<p><strong>Préstamo</strong> (múltiples por tenant)
+<div class="highlight"><pre><span></span><code>├── id, tenant_id
+├── nombre, monto, tasa_interes_mensual, plazo_meses
+├── fecha_inicio, fecha_vencimiento
+├── estado (activo, pagado, cancelado)
+├── saldo_pendiente, notas
+</code></pre></div></p>
+<p><strong>GastoPréstamo</strong> (registro de pagos)
+<div class="highlight"><pre><span></span><code>├── id, prestamo_id
+├── monto_pago, interes_pagado, capital_pagado
+├── fecha_pago, metodo_pago
+</code></pre></div></p>
+<p><strong>IndicadorROI</strong> (calculada, no editable)
+<div class="highlight"><pre><span></span><code>├── tenant_id, periodo
+├── ganancia_acumulada, roi_porcentaje
+├── capital_comprometido, saldo_deuda_pendiente
+├── meses_para_recuperar, proyeccion_recuperacion_fecha
+</code></pre></div></p>
+<h3 id="endpoints_1">Endpoints<a class="headerlink" href="#endpoints_1" title="Permanent link">&para;</a></h3>
+<div class="highlight"><pre><span></span><code>POST   /api/core/v1/patrimonios
+GET    /api/core/v1/patrimonios/{tenant_id}
+PUT    /api/core/v1/patrimonios/{tenant_id}
+
+POST   /api/core/v1/prestamos
+GET    /api/core/v1/prestamos?tenant_id=...
+GET    /api/core/v1/prestamos/{id}
+PUT    /api/core/v1/prestamos/{id}
+DELETE /api/core/v1/prestamos/{id}
+POST   /api/core/v1/prestamos/{id}/pagos
+GET    /api/core/v1/prestamos/{id}/pagos
+
+GET    /api/core/v1/roi?tenant_id=...&amp;periodo=mensual
+GET    /api/core/v1/roi/timeline
+GET    /api/core/v1/roi/comparativa
+</code></pre></div>
+<h3 id="flujo-de-eventos">Flujo de Eventos<a class="headerlink" href="#flujo-de-eventos" title="Permanent link">&para;</a></h3>
+<div class="highlight"><pre><span></span><code>PatrimonioActualizado → PatrimonioEventListener → recalcula IndicadorROI
+PrestamoAgregado → PrestamoEventListener → suma capital comprometido
+PagoPrestamoProcesado → PrestamoEventListener → actualiza saldo deuda
+MetricasCalculadas → PatrimonioEventListener → lee ganancia + capital + deuda → calcula ROI
+</code></pre></div>
+<h3 id="calculos">Cálculos<a class="headerlink" href="#calculos" title="Permanent link">&para;</a></h3>
+<p><strong>ROI %:</strong>
+<div class="highlight"><pre><span></span><code>ROI % = (Ganancia Acumulada / Capital Comprometido) × 100
+Capital Comprometido = Capital Inicial + Sum(préstamos activos)
+</code></pre></div></p>
+<p><strong>Meses para Recuperar:</strong>
+<div class="highlight"><pre><span></span><code>Velocidad de ganancia = Ganancia Acumulada / Meses Transcurridos
+Meses faltantes = Capital Comprometido / Velocidad
+Total estimado = Transcurridos + faltantes
+</code></pre></div></p>
+<p><strong>Cuota Mensual (Amortización):</strong>
+<div class="highlight"><pre><span></span><code>Cuota = P × [i(1+i)^n] / [(1+i)^n - 1]
+P = Monto préstamo
+i = Tasa mensual
+n = Plazo en meses
+</code></pre></div></p>
+<h3 id="validaciones">Validaciones<a class="headerlink" href="#validaciones" title="Permanent link">&para;</a></h3>
+<table>
+<thead>
+<tr>
+<th>Acción</th>
+<th>Validación</th>
+</tr>
+</thead>
+<tbody>
+<tr>
+<td>Crear Patrimonio</td>
+<td>Capital &gt; 0</td>
+</tr>
+<tr>
+<td>Crear Préstamo</td>
+<td>Monto &gt; 0, Tasa &gt; 0, Plazo &gt; 0</td>
+</tr>
+<tr>
+<td>Editar Préstamo</td>
+<td>Solo si no tiene pagos registrados</td>
+</tr>
+<tr>
+<td>Pagar Préstamo</td>
+<td>Monto &lt;= saldo + interés del mes</td>
+</tr>
+<tr>
+<td>Eliminar Préstamo</td>
+<td>Solo si saldo = monto inicial</td>
+</tr>
+<tr>
+<td>Eliminar Patrimonio</td>
+<td>Solo si no hay préstamos activos</td>
+</tr>
+</tbody>
+</table>
+<h3 id="visualizacion">Visualización<a class="headerlink" href="#visualizacion" title="Permanent link">&para;</a></h3>
+<ul>
+<li>Dashboard Patrimonio: Capital, Apalancamiento, ROI actual, Saldo deuda, Proyección</li>
+<li>Gráfico Timeline ROI: línea ROI % vs 100% (recuperación)</li>
+<li>Gráfico Deuda vs Ganancia: áreas que se cruzan en punto de equilibrio</li>
+<li>Tabla Amortización: mes a mes con desglose interés/capital</li>
+</ul>
+<hr />
+<h2 id="5-refactor-motor-de-inteligencia-de-compras">5. Refactor: Motor de Inteligencia de Compras<a class="headerlink" href="#5-refactor-motor-de-inteligencia-de-compras" title="Permanent link">&para;</a></h2>
+<blockquote>
+<p><strong>Parcialmente aplicado.</strong> <code>ItemFactura</code> tiene <code>presentacionId</code> + <code>conversionFactor</code>. Pendiente renombrar Producto → InsumoTemplate.</p>
+</blockquote>
+<h3 id="cambio-de-paradigma">Cambio de Paradigma<a class="headerlink" href="#cambio-de-paradigma" title="Permanent link">&para;</a></h3>
+<p><strong>ANTES (descartado):</strong>
+- Controlar cantidades físicas en almacenes (Inventario)
+- Registro estricto de entradas, salidas, mermas y ajustes
+- CRUD manual y complejo de productos específicos por cliente</p>
+<p><strong>AHORA (validado):</strong>
+- <strong>Cero Stock:</strong> No se calculan existencias disponibles
+- <strong>Catálogo Precargado:</strong> Cliente selecciona insumo base de plantilla de su industria
+- <strong>Normalización Matemática:</strong> Unidades/presentaciones = factores de conversión para unificar precios históricos</p>
+<h3 id="algoritmo-core">Algoritmo Core<a class="headerlink" href="#algoritmo-core" title="Permanent link">&para;</a></h3>
+<div class="highlight"><pre><span></span><code>Precio Unitario Base = Precio Unitario de Compra / Factor de Conversión
+</code></pre></div>
+<p><strong>Ejemplo:</strong>
+- Proveedor A: 1 Caja de 25 Lb a $48.75, Factor = 25 → $1.95/Lb
+- Proveedor B: Libras sueltas a $1.90, Factor = 1 → $1.90/Lb
+- Resultado: Proveedor B es más barato ($0.05/Lb de ahorro)</p>
+<h3 id="los-6-motores-analiticos">Los 6 Motores Analíticos<a class="headerlink" href="#los-6-motores-analiticos" title="Permanent link">&para;</a></h3>
+<ol>
+<li><strong>ABC de Gastos (Pareto):</strong> Insumos categoría A = 80% del presupuesto</li>
+<li><strong>Tendencia de Precios:</strong> Precio actual vs promedio móvil 90 días</li>
+<li><strong>Impacto en Márgenes:</strong> Fluctuación de precios de compra sobre márgenes</li>
+<li><strong>Costo Operativo % Ventas:</strong> Facturas de compra vs ingresos por ventas</li>
+<li><strong>Proyección de Gastos:</strong> Simulación lineal 30/60/90 días</li>
+<li><strong>Alertas de Anomalías:</strong> Variación &gt; 15%, primer registro de proveedor</li>
+</ol>
+<h3 id="ruta-de-refactorizacion">Ruta de Refactorización<a class="headerlink" href="#ruta-de-refactorizacion" title="Permanent link">&para;</a></h3>
+<p><strong>Fase 1: Limpieza (<code>inventario</code>)</strong>
+- Retirar lógica de existencias, stocks mínimos, almacenes, kárdex
+- Renombrar Producto → InsumoTemplate</p>
+<p><strong>Fase 2: Adaptación (<code>facturas</code>)</strong>
+- ItemFactura vincula a InsumoTemplate (no inventario físico)
+- DTO recibe unidad de compra + factor de conversión</p>
+<p><strong>Fase 3: Motor Analítico (<code>contabilidad</code>)</strong>
+- Persistencia consolidada por tenant/periodo
+- Queries nativos de agregación en PostgreSQL</p>
+<hr />
+<h2 id="6-decisiones-pendientes">6. Decisiones Pendientes<a class="headerlink" href="#6-decisiones-pendientes" title="Permanent link">&para;</a></h2>
+<ul>
+<li>[x] Ventas: Opción A (módulo propio) — implementada</li>
+<li>[x] Accounting: upsert por período — implementado (UNIQUE constraint)</li>
+<li>[ ] Reportes: ¿endpoint dashboard o frontend calcula desde data cruda?</li>
+<li>[ ] Renombrar formalmente Producto → InsumoTemplate</li>
+</ul>
+
+
+
+
+
+
+
+
+
+
+
+
+                
+              </article>
+            </div>
+          
+          
+<script>var target=document.getElementById(location.hash.slice(1));target&&target.name&&(target.checked=target.name.startsWith("__tabbed_"))</script>
+        </div>
+        
+          <button type="button" class="md-top md-icon" data-md-component="top" hidden>
+  
+  <svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 24 24"><path d="M13 20h-2V8l-5.5 5.5-1.42-1.42L12 4.16l7.92 7.92-1.42 1.42L13 8z"/></svg>
+  Volver al principio
+</button>
+        
+      </main>
+      
+        <footer class="md-footer">
+  
+  <div class="md-footer-meta md-typeset">
+    <div class="md-footer-meta__inner md-grid">
+      <div class="md-copyright">
+  
+  
+    Made with
+    <a href="https://squidfunk.github.io/mkdocs-material/" target="_blank" rel="noopener">
+      Material for MkDocs
+    </a>
+  
+</div>
+      
+    </div>
+  </div>
+</footer>
+      
+    </div>
+    <div class="md-dialog" data-md-component="dialog">
+      <div class="md-dialog__inner md-typeset"></div>
+    </div>
+    
+    
+    
+      
+      
+      <script id="__config" type="application/json">{"annotate": null, "base": "../../../..", "features": ["navigation.tabs", "navigation.top", "search.highlight", "content.code.copy"], "search": "../../../../assets/javascripts/workers/search.a7633da7.min.js", "tags": null, "translations": {"clipboard.copied": "Copiado al portapapeles", "clipboard.copy": "Copiar al portapapeles", "search.result.more.one": "1 m\u00e1s en esta p\u00e1gina", "search.result.more.other": "# m\u00e1s en esta p\u00e1gina", "search.result.none": "No se encontraron documentos", "search.result.one": "1 documento encontrado", "search.result.other": "# documentos encontrados", "search.result.placeholder": "Teclee para comenzar b\u00fasqueda", "search.result.term.missing": "Falta", "select.version": "Seleccionar versi\u00f3n"}, "version": null}</script>
+    
+    
+      <script src="../../../../assets/javascripts/bundle.a5f9d56c.min.js"></script>
+      
+    
+  </body>
+</html>

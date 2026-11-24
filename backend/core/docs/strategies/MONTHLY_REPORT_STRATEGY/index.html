@@ -1,0 +1,2349 @@
+
+<!doctype html>
+<html lang="es" class="no-js">
+  <head>
+    
+      <meta charset="utf-8">
+      <meta name="viewport" content="width=device-width,initial-scale=1">
+      
+        <meta name="description" content="Documentación del producto, arquitectura, API y operación">
+      
+      
+        <meta name="author" content="dio-quincarDev">
+      
+      
+      
+      
+      
+        
+      
+      
+      <link rel="icon" href="../../../../../assets/images/favicon.png">
+      <meta name="generator" content="mkdocs-1.6.1, mkdocs-material-9.8.2">
+    
+    
+      
+        <title>Reporte Mensual Automático — Estrategia (Core) - Pymeq — Forensic Accounting for Small Business</title>
+      
+    
+    
+      <link rel="stylesheet" href="../../../../../assets/stylesheets/main.57a0d79d.min.css">
+      
+        
+        <link rel="stylesheet" href="../../../../../assets/stylesheets/palette.fb2fffe2.min.css">
+      
+      
+
+
+    
+    
+      
+    
+    
+      
+        
+        
+        <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+        <link rel="stylesheet" href="https://fonts.googleapis.com/css?family=Roboto:300,300i,400,400i,700,700i%7CRoboto+Mono:400,400i,700,700i&display=fallback">
+        <style>:root{--md-text-font:"Roboto";--md-code-font:"Roboto Mono"}</style>
+      
+    
+    
+    <script>__md_scope=new URL("../../../../..",location),__md_hash=e=>[...e].reduce(((e,_)=>(e<<5)-e+_.charCodeAt(0)),0),__md_get=(e,_=localStorage,t=__md_scope)=>JSON.parse(_.getItem(t.pathname+"."+e)),__md_set=(e,_,t=localStorage,a=__md_scope)=>{try{t.setItem(a.pathname+"."+e,JSON.stringify(_))}catch(e){}}</script>
+    
+      
+
+    
+    
+  </head>
+  
+  
+    
+    
+      
+    
+    
+    
+    
+    <body dir="ltr" data-md-color-scheme="slate" data-md-color-primary="teal" data-md-color-accent="amber">
+  
+    
+    <input class="md-toggle" data-md-toggle="drawer" type="checkbox" id="__drawer" autocomplete="off">
+    <input class="md-toggle" data-md-toggle="search" type="checkbox" id="__search" autocomplete="off">
+    <label class="md-overlay" for="__drawer"></label>
+    <div data-md-component="skip">
+      
+        
+        <a href="#reporte-mensual-automatico-estrategia-core" class="md-skip">
+          Saltar a contenido
+        </a>
+      
+    </div>
+    <div data-md-component="announce">
+      
+    </div>
+    
+    
+      
+
+<header class="md-header" data-md-component="header">
+  <nav class="md-header__inner md-grid" aria-label="Cabecera">
+    <a href="../../../../.." title="Pymeq — Forensic Accounting for Small Business" class="md-header__button md-logo" aria-label="Pymeq — Forensic Accounting for Small Business" data-md-component="logo">
+      
+  
+  <svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 24 24"><path d="M12 8a3 3 0 0 0 3-3 3 3 0 0 0-3-3 3 3 0 0 0-3 3 3 3 0 0 0 3 3m0 3.54C9.64 9.35 6.5 8 3 8v11c3.5 0 6.64 1.35 9 3.54 2.36-2.19 5.5-3.54 9-3.54V8c-3.5 0-6.64 1.35-9 3.54"/></svg>
+
+    </a>
+    <label class="md-header__button md-icon" for="__drawer">
+      
+      <svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 24 24"><path d="M3 6h18v2H3zm0 5h18v2H3zm0 5h18v2H3z"/></svg>
+    </label>
+    <div class="md-header__title" data-md-component="header-title">
+      <div class="md-header__ellipsis">
+        <div class="md-header__topic">
+          <span class="md-ellipsis">
+            Pymeq — Forensic Accounting for Small Business
+          </span>
+        </div>
+        <div class="md-header__topic" data-md-component="header-topic">
+          <span class="md-ellipsis">
+            
+              Reporte Mensual Automático — Estrategia (Core)
+            
+          </span>
+        </div>
+      </div>
+    </div>
+    
+      
+        <form class="md-header__option" data-md-component="palette">
+  
+    
+    
+    
+    <input class="md-option" data-md-color-media="" data-md-color-scheme="slate" data-md-color-primary="teal" data-md-color-accent="amber"  aria-label="Cambiar a tema claro"  type="radio" name="__palette" id="__palette_0">
+    
+      <label class="md-header__button md-icon" title="Cambiar a tema claro" for="__palette_1" hidden>
+        <svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 24 24"><path d="m17.75 4.09-2.53 1.94.91 3.06-2.63-1.81-2.63 1.81.91-3.06-2.53-1.94L12.44 4l1.06-3 1.06 3zm3.5 6.91-1.64 1.25.59 1.98-1.7-1.17-1.7 1.17.59-1.98L15.75 11l2.06-.05L18.5 9l.69 1.95zm-2.28 4.95c.83-.08 1.72 1.1 1.19 1.85-.32.45-.66.87-1.08 1.27C15.17 23 8.84 23 4.94 19.07c-3.91-3.9-3.91-10.24 0-14.14.4-.4.82-.76 1.27-1.08.75-.53 1.93.36 1.85 1.19-.27 2.86.69 5.83 2.89 8.02a9.96 9.96 0 0 0 8.02 2.89m-1.64 2.02a12.08 12.08 0 0 1-7.8-3.47c-2.17-2.19-3.33-5-3.49-7.82-2.81 3.14-2.7 7.96.31 10.98 3.02 3.01 7.84 3.12 10.98.31"/></svg>
+      </label>
+    
+  
+    
+    
+    
+    <input class="md-option" data-md-color-media="" data-md-color-scheme="default" data-md-color-primary="teal" data-md-color-accent="amber"  aria-label="Cambiar a tema oscuro"  type="radio" name="__palette" id="__palette_1">
+    
+      <label class="md-header__button md-icon" title="Cambiar a tema oscuro" for="__palette_0" hidden>
+        <svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 24 24"><path d="M12 7a5 5 0 0 1 5 5 5 5 0 0 1-5 5 5 5 0 0 1-5-5 5 5 0 0 1 5-5m0 2a3 3 0 0 0-3 3 3 3 0 0 0 3 3 3 3 0 0 0 3-3 3 3 0 0 0-3-3m0-7 2.39 3.42C13.65 5.15 12.84 5 12 5s-1.65.15-2.39.42zM3.34 7l4.16-.35A7.2 7.2 0 0 0 5.94 8.5c-.44.74-.69 1.5-.83 2.29zm.02 10 1.76-3.77a7.131 7.131 0 0 0 2.38 4.14zM20.65 7l-1.77 3.79a7.02 7.02 0 0 0-2.38-4.15zm-.01 10-4.14.36c.59-.51 1.12-1.14 1.54-1.86.42-.73.69-1.5.83-2.29zM12 22l-2.41-3.44c.74.27 1.55.44 2.41.44.82 0 1.63-.17 2.37-.44z"/></svg>
+      </label>
+    
+  
+</form>
+      
+    
+    
+      <script>var palette=__md_get("__palette");if(palette&&palette.color){if("(prefers-color-scheme)"===palette.color.media){var media=matchMedia("(prefers-color-scheme: light)"),input=document.querySelector(media.matches?"[data-md-color-media='(prefers-color-scheme: light)']":"[data-md-color-media='(prefers-color-scheme: dark)']");palette.color.media=input.getAttribute("data-md-color-media"),palette.color.scheme=input.getAttribute("data-md-color-scheme"),palette.color.primary=input.getAttribute("data-md-color-primary"),palette.color.accent=input.getAttribute("data-md-color-accent")}for(var[key,value]of Object.entries(palette.color))document.body.setAttribute("data-md-color-"+key,value)}</script>
+    
+    
+    
+      
+      
+        <label class="md-header__button md-icon" for="__search">
+          
+          <svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 24 24"><path d="M9.5 3A6.5 6.5 0 0 1 16 9.5c0 1.61-.59 3.09-1.56 4.23l.27.27h.79l5 5-1.5 1.5-5-5v-.79l-.27-.27A6.52 6.52 0 0 1 9.5 16 6.5 6.5 0 0 1 3 9.5 6.5 6.5 0 0 1 9.5 3m0 2C7 5 5 7 5 9.5S7 14 9.5 14 14 12 14 9.5 12 5 9.5 5"/></svg>
+        </label>
+        <div class="md-search" data-md-component="search" role="dialog">
+  <label class="md-search__overlay" for="__search"></label>
+  <div class="md-search__inner" role="search">
+    <form class="md-search__form" name="search">
+      <input type="text" class="md-search__input" name="query" aria-label="Búsqueda" placeholder="Búsqueda" autocapitalize="off" autocorrect="off" autocomplete="off" spellcheck="false" data-md-component="search-query" required>
+      <label class="md-search__icon md-icon" for="__search">
+        
+        <svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 24 24"><path d="M9.5 3A6.5 6.5 0 0 1 16 9.5c0 1.61-.59 3.09-1.56 4.23l.27.27h.79l5 5-1.5 1.5-5-5v-.79l-.27-.27A6.52 6.52 0 0 1 9.5 16 6.5 6.5 0 0 1 3 9.5 6.5 6.5 0 0 1 9.5 3m0 2C7 5 5 7 5 9.5S7 14 9.5 14 14 12 14 9.5 12 5 9.5 5"/></svg>
+        
+        <svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 24 24"><path d="M20 11v2H8l5.5 5.5-1.42 1.42L4.16 12l7.92-7.92L13.5 5.5 8 11z"/></svg>
+      </label>
+      <nav class="md-search__options" aria-label="Buscar">
+        
+        <button type="reset" class="md-search__icon md-icon" title="Limpiar" aria-label="Limpiar" tabindex="-1">
+          
+          <svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 24 24"><path d="M19 6.41 17.59 5 12 10.59 6.41 5 5 6.41 10.59 12 5 17.59 6.41 19 12 13.41 17.59 19 19 17.59 13.41 12z"/></svg>
+        </button>
+      </nav>
+      
+    </form>
+    <div class="md-search__output">
+      <div class="md-search__scrollwrap" tabindex="0" data-md-scrollfix>
+        <div class="md-search-result" data-md-component="search-result">
+          <div class="md-search-result__meta">
+            Inicializando búsqueda
+          </div>
+          <ol class="md-search-result__list" role="presentation"></ol>
+        </div>
+      </div>
+    </div>
+  </div>
+</div>
+      
+    
+    
+      <div class="md-header__source">
+        <a href="https://github.com/dio-quincarDev/pymes-admin" title="Ir al repositorio" class="md-source" data-md-component="source">
+  <div class="md-source__icon md-icon">
+    
+    <svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 448 512"><!--! Font Awesome Free 7.1.0 by @fontawesome - https://fontawesome.com License - https://fontawesome.com/license/free (Icons: CC BY 4.0, Fonts: SIL OFL 1.1, Code: MIT License) Copyright 2025 Fonticons, Inc.--><path d="M439.6 236.1 244 40.5c-5.4-5.5-12.8-8.5-20.4-8.5s-15 3-20.4 8.4L162.5 81l51.5 51.5c27.1-9.1 52.7 16.8 43.4 43.7l49.7 49.7c34.2-11.8 61.2 31 35.5 56.7-26.5 26.5-70.2-2.9-56-37.3L240.3 199v121.9c25.3 12.5 22.3 41.8 9.1 55-6.4 6.4-15.2 10.1-24.3 10.1s-17.8-3.6-24.3-10.1c-17.6-17.6-11.1-46.9 11.2-56v-123c-20.8-8.5-24.6-30.7-18.6-45L142.6 101 8.5 235.1C3 240.6 0 247.9 0 255.5s3 15 8.5 20.4l195.6 195.7c5.4 5.4 12.7 8.4 20.4 8.4s15-3 20.4-8.4l194.7-194.7c5.4-5.4 8.4-12.8 8.4-20.4s-3-15-8.4-20.4"/></svg>
+  </div>
+  <div class="md-source__repository">
+    dio-quincarDev/pymes-admin
+  </div>
+</a>
+      </div>
+    
+  </nav>
+  
+</header>
+    
+    <div class="md-container" data-md-component="container">
+      
+      
+        
+          
+            
+<nav class="md-tabs" aria-label="Pestañas" data-md-component="tabs">
+  <div class="md-grid">
+    <ul class="md-tabs__list">
+      
+        
+  
+  
+  
+  
+    <li class="md-tabs__item">
+      <a href="../../../../.." class="md-tabs__link">
+        
+  
+  
+    
+  
+  Inicio
+
+      </a>
+    </li>
+  
+
+      
+        
+  
+  
+  
+  
+    
+    
+      <li class="md-tabs__item">
+        <a href="../../../../.." class="md-tabs__link">
+          
+  
+  
+  Producto
+
+        </a>
+      </li>
+    
+  
+
+      
+        
+  
+  
+  
+  
+    
+    
+      <li class="md-tabs__item">
+        <a href="../../../../../docs/api/" class="md-tabs__link">
+          
+  
+  
+  API Reference
+
+        </a>
+      </li>
+    
+  
+
+      
+        
+  
+  
+  
+  
+    
+    
+      <li class="md-tabs__item">
+        <a href="../../../../../docs/architecture/architecture/" class="md-tabs__link">
+          
+  
+  
+  Arquitectura
+
+        </a>
+      </li>
+    
+  
+
+      
+        
+  
+  
+  
+  
+    
+    
+      <li class="md-tabs__item">
+        <a href="../../../../../deployment/DEPLOYMENT/" class="md-tabs__link">
+          
+  
+  
+  Operación
+
+        </a>
+      </li>
+    
+  
+
+      
+        
+  
+  
+  
+  
+    
+    
+      <li class="md-tabs__item">
+        <a href="../../../../../docs/guides/user-guide/" class="md-tabs__link">
+          
+  
+  
+  Guías
+
+        </a>
+      </li>
+    
+  
+
+      
+        
+  
+  
+  
+  
+    
+    
+      <li class="md-tabs__item">
+        <a href="../../KPIs/" class="md-tabs__link">
+          
+  
+  
+  Referencia
+
+        </a>
+      </li>
+    
+  
+
+      
+    </ul>
+  </div>
+</nav>
+          
+        
+      
+      <main class="md-main" data-md-component="main">
+        <div class="md-main__inner md-grid">
+          
+            
+              
+              <div class="md-sidebar md-sidebar--primary" data-md-component="sidebar" data-md-type="navigation" >
+                <div class="md-sidebar__scrollwrap">
+                  <div class="md-sidebar__inner">
+                    
+
+
+  
+
+
+<nav class="md-nav md-nav--primary md-nav--lifted" aria-label="Navegación" data-md-level="0">
+  <label class="md-nav__title" for="__drawer">
+    <a href="../../../../.." title="Pymeq — Forensic Accounting for Small Business" class="md-nav__button md-logo" aria-label="Pymeq — Forensic Accounting for Small Business" data-md-component="logo">
+      
+  
+  <svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 24 24"><path d="M12 8a3 3 0 0 0 3-3 3 3 0 0 0-3-3 3 3 0 0 0-3 3 3 3 0 0 0 3 3m0 3.54C9.64 9.35 6.5 8 3 8v11c3.5 0 6.64 1.35 9 3.54 2.36-2.19 5.5-3.54 9-3.54V8c-3.5 0-6.64 1.35-9 3.54"/></svg>
+
+    </a>
+    Pymeq — Forensic Accounting for Small Business
+  </label>
+  
+    <div class="md-nav__source">
+      <a href="https://github.com/dio-quincarDev/pymes-admin" title="Ir al repositorio" class="md-source" data-md-component="source">
+  <div class="md-source__icon md-icon">
+    
+    <svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 448 512"><!--! Font Awesome Free 7.1.0 by @fontawesome - https://fontawesome.com License - https://fontawesome.com/license/free (Icons: CC BY 4.0, Fonts: SIL OFL 1.1, Code: MIT License) Copyright 2025 Fonticons, Inc.--><path d="M439.6 236.1 244 40.5c-5.4-5.5-12.8-8.5-20.4-8.5s-15 3-20.4 8.4L162.5 81l51.5 51.5c27.1-9.1 52.7 16.8 43.4 43.7l49.7 49.7c34.2-11.8 61.2 31 35.5 56.7-26.5 26.5-70.2-2.9-56-37.3L240.3 199v121.9c25.3 12.5 22.3 41.8 9.1 55-6.4 6.4-15.2 10.1-24.3 10.1s-17.8-3.6-24.3-10.1c-17.6-17.6-11.1-46.9 11.2-56v-123c-20.8-8.5-24.6-30.7-18.6-45L142.6 101 8.5 235.1C3 240.6 0 247.9 0 255.5s3 15 8.5 20.4l195.6 195.7c5.4 5.4 12.7 8.4 20.4 8.4s15-3 20.4-8.4l194.7-194.7c5.4-5.4 8.4-12.8 8.4-20.4s-3-15-8.4-20.4"/></svg>
+  </div>
+  <div class="md-source__repository">
+    dio-quincarDev/pymes-admin
+  </div>
+</a>
+    </div>
+  
+  <ul class="md-nav__list" data-md-scrollfix>
+    
+      
+      
+  
+  
+  
+  
+    <li class="md-nav__item">
+      <a href="../../../../.." class="md-nav__link">
+        
+  
+  
+  <span class="md-ellipsis">
+    
+  
+    Inicio
+  
+
+    
+  </span>
+  
+  
+
+      </a>
+    </li>
+  
+
+    
+      
+      
+  
+  
+  
+  
+    
+    
+    
+    
+      
+      
+    
+    
+    <li class="md-nav__item md-nav__item--nested">
+      
+        
+        
+        <input class="md-nav__toggle md-toggle " type="checkbox" id="__nav_2" >
+        
+          
+          <label class="md-nav__link" for="__nav_2" id="__nav_2_label" tabindex="0">
+            
+  
+  
+  <span class="md-ellipsis">
+    
+  
+    Producto
+  
+
+    
+  </span>
+  
+  
+
+            <span class="md-nav__icon md-icon"></span>
+          </label>
+        
+        <nav class="md-nav" data-md-level="1" aria-labelledby="__nav_2_label" aria-expanded="false">
+          <label class="md-nav__title" for="__nav_2">
+            <span class="md-nav__icon md-icon"></span>
+            
+  
+    Producto
+  
+
+          </label>
+          <ul class="md-nav__list" data-md-scrollfix>
+            
+              
+                
+  
+  
+  
+  
+    <li class="md-nav__item">
+      <a href="../../../../.." class="md-nav__link">
+        
+  
+  
+  <span class="md-ellipsis">
+    
+  
+    Inicio
+  
+
+    
+  </span>
+  
+  
+
+      </a>
+    </li>
+  
+
+              
+            
+              
+                
+  
+  
+  
+  
+    <li class="md-nav__item">
+      <a href="../../../../../docs/product/features/" class="md-nav__link">
+        
+  
+  
+  <span class="md-ellipsis">
+    
+  
+    Características
+  
+
+    
+  </span>
+  
+  
+
+      </a>
+    </li>
+  
+
+              
+            
+              
+                
+  
+  
+  
+  
+    <li class="md-nav__item">
+      <a href="../../../../../docs/product/roadmap/" class="md-nav__link">
+        
+  
+  
+  <span class="md-ellipsis">
+    
+  
+    Roadmap
+  
+
+    
+  </span>
+  
+  
+
+      </a>
+    </li>
+  
+
+              
+            
+              
+                
+  
+  
+  
+  
+    <li class="md-nav__item">
+      <a href="../../../../../docs/TO_DO/" class="md-nav__link">
+        
+  
+  
+  <span class="md-ellipsis">
+    
+  
+    Pendientes
+  
+
+    
+  </span>
+  
+  
+
+      </a>
+    </li>
+  
+
+              
+            
+              
+                
+  
+  
+  
+  
+    <li class="md-nav__item">
+      <a href="../../../../../docs/GAPS/" class="md-nav__link">
+        
+  
+  
+  <span class="md-ellipsis">
+    
+  
+    Diferencias doc/código
+  
+
+    
+  </span>
+  
+  
+
+      </a>
+    </li>
+  
+
+              
+            
+          </ul>
+        </nav>
+      
+    </li>
+  
+
+    
+      
+      
+  
+  
+  
+  
+    
+    
+    
+    
+      
+      
+    
+    
+    <li class="md-nav__item md-nav__item--nested">
+      
+        
+        
+        <input class="md-nav__toggle md-toggle " type="checkbox" id="__nav_3" >
+        
+          
+          <label class="md-nav__link" for="__nav_3" id="__nav_3_label" tabindex="0">
+            
+  
+  
+  <span class="md-ellipsis">
+    
+  
+    API Reference
+  
+
+    
+  </span>
+  
+  
+
+            <span class="md-nav__icon md-icon"></span>
+          </label>
+        
+        <nav class="md-nav" data-md-level="1" aria-labelledby="__nav_3_label" aria-expanded="false">
+          <label class="md-nav__title" for="__nav_3">
+            <span class="md-nav__icon md-icon"></span>
+            
+  
+    API Reference
+  
+
+          </label>
+          <ul class="md-nav__list" data-md-scrollfix>
+            
+              
+                
+  
+  
+  
+  
+    <li class="md-nav__item">
+      <a href="../../../../../docs/api/" class="md-nav__link">
+        
+  
+  
+  <span class="md-ellipsis">
+    
+  
+    Contrato (índice)
+  
+
+    
+  </span>
+  
+  
+
+      </a>
+    </li>
+  
+
+              
+            
+              
+                
+  
+  
+  
+  
+    <li class="md-nav__item">
+      <a href="../../../../../api/auth/" class="md-nav__link">
+        
+  
+  
+  <span class="md-ellipsis">
+    
+  
+    Auth (generado)
+  
+
+    
+  </span>
+  
+  
+
+      </a>
+    </li>
+  
+
+              
+            
+              
+                
+  
+  
+  
+  
+    <li class="md-nav__item">
+      <a href="../../../../../api/core/" class="md-nav__link">
+        
+  
+  
+  <span class="md-ellipsis">
+    
+  
+    Core (generado)
+  
+
+    
+  </span>
+  
+  
+
+      </a>
+    </li>
+  
+
+              
+            
+          </ul>
+        </nav>
+      
+    </li>
+  
+
+    
+      
+      
+  
+  
+  
+  
+    
+    
+    
+    
+      
+      
+    
+    
+    <li class="md-nav__item md-nav__item--nested">
+      
+        
+        
+        <input class="md-nav__toggle md-toggle " type="checkbox" id="__nav_4" >
+        
+          
+          <label class="md-nav__link" for="__nav_4" id="__nav_4_label" tabindex="0">
+            
+  
+  
+  <span class="md-ellipsis">
+    
+  
+    Arquitectura
+  
+
+    
+  </span>
+  
+  
+
+            <span class="md-nav__icon md-icon"></span>
+          </label>
+        
+        <nav class="md-nav" data-md-level="1" aria-labelledby="__nav_4_label" aria-expanded="false">
+          <label class="md-nav__title" for="__nav_4">
+            <span class="md-nav__icon md-icon"></span>
+            
+  
+    Arquitectura
+  
+
+          </label>
+          <ul class="md-nav__list" data-md-scrollfix>
+            
+              
+                
+  
+  
+  
+  
+    <li class="md-nav__item">
+      <a href="../../../../../docs/architecture/architecture/" class="md-nav__link">
+        
+  
+  
+  <span class="md-ellipsis">
+    
+  
+    Arquitectura (mapa)
+  
+
+    
+  </span>
+  
+  
+
+      </a>
+    </li>
+  
+
+              
+            
+              
+                
+  
+  
+  
+  
+    
+    
+    
+    
+      
+      
+    
+    
+    <li class="md-nav__item md-nav__item--nested">
+      
+        
+        
+        <input class="md-nav__toggle md-toggle " type="checkbox" id="__nav_4_2" >
+        
+          
+          <label class="md-nav__link" for="__nav_4_2" id="__nav_4_2_label" tabindex="0">
+            
+  
+  
+  <span class="md-ellipsis">
+    
+  
+    Servicios
+  
+
+    
+  </span>
+  
+  
+
+            <span class="md-nav__icon md-icon"></span>
+          </label>
+        
+        <nav class="md-nav" data-md-level="2" aria-labelledby="__nav_4_2_label" aria-expanded="false">
+          <label class="md-nav__title" for="__nav_4_2">
+            <span class="md-nav__icon md-icon"></span>
+            
+  
+    Servicios
+  
+
+          </label>
+          <ul class="md-nav__list" data-md-scrollfix>
+            
+              
+                
+  
+  
+  
+  
+    <li class="md-nav__item">
+      <a href="../../../../auth/" class="md-nav__link">
+        
+  
+  
+  <span class="md-ellipsis">
+    
+  
+    Auth
+  
+
+    
+  </span>
+  
+  
+
+      </a>
+    </li>
+  
+
+              
+            
+              
+                
+  
+  
+  
+  
+    <li class="md-nav__item">
+      <a href="../../../../gateway-pymes/" class="md-nav__link">
+        
+  
+  
+  <span class="md-ellipsis">
+    
+  
+    Gateway
+  
+
+    
+  </span>
+  
+  
+
+      </a>
+    </li>
+  
+
+              
+            
+              
+                
+  
+  
+  
+  
+    <li class="md-nav__item">
+      <a href="../../../" class="md-nav__link">
+        
+  
+  
+  <span class="md-ellipsis">
+    
+  
+    Core
+  
+
+    
+  </span>
+  
+  
+
+      </a>
+    </li>
+  
+
+              
+            
+              
+                
+  
+  
+  
+  
+    <li class="md-nav__item">
+      <a href="../../../../../frontend/pymes/" class="md-nav__link">
+        
+  
+  
+  <span class="md-ellipsis">
+    
+  
+    Frontend
+  
+
+    
+  </span>
+  
+  
+
+      </a>
+    </li>
+  
+
+              
+            
+          </ul>
+        </nav>
+      
+    </li>
+  
+
+              
+            
+              
+                
+  
+  
+  
+  
+    <li class="md-nav__item">
+      <a href="../../../../../docs/persistencia-postgres/" class="md-nav__link">
+        
+  
+  
+  <span class="md-ellipsis">
+    
+  
+    Base de datos
+  
+
+    
+  </span>
+  
+  
+
+      </a>
+    </li>
+  
+
+              
+            
+              
+                
+  
+  
+  
+  
+    <li class="md-nav__item">
+      <a href="../../../../../docs/strategies/DB_STRATEGY/" class="md-nav__link">
+        
+  
+  
+  <span class="md-ellipsis">
+    
+  
+    Estrategia multi-schema
+  
+
+    
+  </span>
+  
+  
+
+      </a>
+    </li>
+  
+
+              
+            
+              
+                
+  
+  
+  
+  
+    <li class="md-nav__item">
+      <a href="../../../../../docs/strategies/INFRA_STRATEGY/" class="md-nav__link">
+        
+  
+  
+  <span class="md-ellipsis">
+    
+  
+    Infraestructura
+  
+
+    
+  </span>
+  
+  
+
+      </a>
+    </li>
+  
+
+              
+            
+          </ul>
+        </nav>
+      
+    </li>
+  
+
+    
+      
+      
+  
+  
+  
+  
+    
+    
+    
+    
+      
+      
+    
+    
+    <li class="md-nav__item md-nav__item--nested">
+      
+        
+        
+        <input class="md-nav__toggle md-toggle " type="checkbox" id="__nav_5" >
+        
+          
+          <label class="md-nav__link" for="__nav_5" id="__nav_5_label" tabindex="0">
+            
+  
+  
+  <span class="md-ellipsis">
+    
+  
+    Operación
+  
+
+    
+  </span>
+  
+  
+
+            <span class="md-nav__icon md-icon"></span>
+          </label>
+        
+        <nav class="md-nav" data-md-level="1" aria-labelledby="__nav_5_label" aria-expanded="false">
+          <label class="md-nav__title" for="__nav_5">
+            <span class="md-nav__icon md-icon"></span>
+            
+  
+    Operación
+  
+
+          </label>
+          <ul class="md-nav__list" data-md-scrollfix>
+            
+              
+                
+  
+  
+  
+  
+    <li class="md-nav__item">
+      <a href="../../../../../deployment/DEPLOYMENT/" class="md-nav__link">
+        
+  
+  
+  <span class="md-ellipsis">
+    
+  
+    Deploy
+  
+
+    
+  </span>
+  
+  
+
+      </a>
+    </li>
+  
+
+              
+            
+              
+                
+  
+  
+  
+  
+    <li class="md-nav__item">
+      <a href="../../../../../deployment/QUICK_START/" class="md-nav__link">
+        
+  
+  
+  <span class="md-ellipsis">
+    
+  
+    Quick start CI/CD
+  
+
+    
+  </span>
+  
+  
+
+      </a>
+    </li>
+  
+
+              
+            
+              
+                
+  
+  
+  
+  
+    <li class="md-nav__item">
+      <a href="../../../../../deployment/SECRETS/" class="md-nav__link">
+        
+  
+  
+  <span class="md-ellipsis">
+    
+  
+    Secretos
+  
+
+    
+  </span>
+  
+  
+
+      </a>
+    </li>
+  
+
+              
+            
+              
+                
+  
+  
+  
+  
+    <li class="md-nav__item">
+      <a href="../../../../../docs/DAILY_REPORTS_PROJECT/" class="md-nav__link">
+        
+  
+  
+  <span class="md-ellipsis">
+    
+  
+    Reportes diarios
+  
+
+    
+  </span>
+  
+  
+
+      </a>
+    </li>
+  
+
+              
+            
+          </ul>
+        </nav>
+      
+    </li>
+  
+
+    
+      
+      
+  
+  
+  
+  
+    
+    
+    
+    
+      
+      
+    
+    
+    <li class="md-nav__item md-nav__item--nested">
+      
+        
+        
+        <input class="md-nav__toggle md-toggle " type="checkbox" id="__nav_6" >
+        
+          
+          <label class="md-nav__link" for="__nav_6" id="__nav_6_label" tabindex="0">
+            
+  
+  
+  <span class="md-ellipsis">
+    
+  
+    Guías
+  
+
+    
+  </span>
+  
+  
+
+            <span class="md-nav__icon md-icon"></span>
+          </label>
+        
+        <nav class="md-nav" data-md-level="1" aria-labelledby="__nav_6_label" aria-expanded="false">
+          <label class="md-nav__title" for="__nav_6">
+            <span class="md-nav__icon md-icon"></span>
+            
+  
+    Guías
+  
+
+          </label>
+          <ul class="md-nav__list" data-md-scrollfix>
+            
+              
+                
+  
+  
+  
+  
+    <li class="md-nav__item">
+      <a href="../../../../../docs/guides/user-guide/" class="md-nav__link">
+        
+  
+  
+  <span class="md-ellipsis">
+    
+  
+    Usuario
+  
+
+    
+  </span>
+  
+  
+
+      </a>
+    </li>
+  
+
+              
+            
+              
+                
+  
+  
+  
+  
+    <li class="md-nav__item">
+      <a href="../../../../../docs/guides/admin-guide/" class="md-nav__link">
+        
+  
+  
+  <span class="md-ellipsis">
+    
+  
+    Administración
+  
+
+    
+  </span>
+  
+  
+
+      </a>
+    </li>
+  
+
+              
+            
+              
+                
+  
+  
+  
+  
+    <li class="md-nav__item">
+      <a href="../../../../../docs/guides/operations-guide/" class="md-nav__link">
+        
+  
+  
+  <span class="md-ellipsis">
+    
+  
+    Operación
+  
+
+    
+  </span>
+  
+  
+
+      </a>
+    </li>
+  
+
+              
+            
+          </ul>
+        </nav>
+      
+    </li>
+  
+
+    
+      
+      
+  
+  
+  
+  
+    
+    
+    
+    
+      
+      
+    
+    
+    <li class="md-nav__item md-nav__item--nested">
+      
+        
+        
+        <input class="md-nav__toggle md-toggle " type="checkbox" id="__nav_7" >
+        
+          
+          <label class="md-nav__link" for="__nav_7" id="__nav_7_label" tabindex="0">
+            
+  
+  
+  <span class="md-ellipsis">
+    
+  
+    Referencia
+  
+
+    
+  </span>
+  
+  
+
+            <span class="md-nav__icon md-icon"></span>
+          </label>
+        
+        <nav class="md-nav" data-md-level="1" aria-labelledby="__nav_7_label" aria-expanded="false">
+          <label class="md-nav__title" for="__nav_7">
+            <span class="md-nav__icon md-icon"></span>
+            
+  
+    Referencia
+  
+
+          </label>
+          <ul class="md-nav__list" data-md-scrollfix>
+            
+              
+                
+  
+  
+  
+  
+    <li class="md-nav__item">
+      <a href="../../KPIs/" class="md-nav__link">
+        
+  
+  
+  <span class="md-ellipsis">
+    
+  
+    KPIs
+  
+
+    
+  </span>
+  
+  
+
+      </a>
+    </li>
+  
+
+              
+            
+              
+                
+  
+  
+  
+  
+    <li class="md-nav__item">
+      <a href="../../COSTOS_ENGINE/" class="md-nav__link">
+        
+  
+  
+  <span class="md-ellipsis">
+    
+  
+    Motor de costos
+  
+
+    
+  </span>
+  
+  
+
+      </a>
+    </li>
+  
+
+              
+            
+              
+                
+  
+  
+  
+  
+    <li class="md-nav__item">
+      <a href="../../ANALYTICS/" class="md-nav__link">
+        
+  
+  
+  <span class="md-ellipsis">
+    
+  
+    Analítica
+  
+
+    
+  </span>
+  
+  
+
+      </a>
+    </li>
+  
+
+              
+            
+              
+                
+  
+  
+  
+  
+    <li class="md-nav__item">
+      <a href="../../CORE/" class="md-nav__link">
+        
+  
+  
+  <span class="md-ellipsis">
+    
+  
+    Motor de salud financiera
+  
+
+    
+  </span>
+  
+  
+
+      </a>
+    </li>
+  
+
+              
+            
+              
+                
+  
+  
+  
+  
+    <li class="md-nav__item">
+      <a href="../../../../../frontend/pymes/docs/PWA_OFFLINE/" class="md-nav__link">
+        
+  
+  
+  <span class="md-ellipsis">
+    
+  
+    PWA offline
+  
+
+    
+  </span>
+  
+  
+
+      </a>
+    </li>
+  
+
+              
+            
+          </ul>
+        </nav>
+      
+    </li>
+  
+
+    
+  </ul>
+</nav>
+                  </div>
+                </div>
+              </div>
+            
+            
+              
+              <div class="md-sidebar md-sidebar--secondary" data-md-component="sidebar" data-md-type="toc" >
+                <div class="md-sidebar__scrollwrap">
+                  <div class="md-sidebar__inner">
+                    
+
+<nav class="md-nav md-nav--secondary" aria-label="Tabla de contenidos">
+  
+  
+  
+    
+  
+  
+    <label class="md-nav__title" for="__toc">
+      <span class="md-nav__icon md-icon"></span>
+      Tabla de contenidos
+    </label>
+    <ul class="md-nav__list" data-md-component="toc" data-md-scrollfix>
+      
+        <li class="md-nav__item">
+  <a href="#hechos-verificados-en-entorno-staging-2026-09-25" class="md-nav__link">
+    <span class="md-ellipsis">
+      
+        Hechos verificados en entorno staging (2026-09-25)
+      
+    </span>
+  </a>
+  
+</li>
+      
+        <li class="md-nav__item">
+  <a href="#problema" class="md-nav__link">
+    <span class="md-ellipsis">
+      
+        Problema
+      
+    </span>
+  </a>
+  
+</li>
+      
+        <li class="md-nav__item">
+  <a href="#concepto-una-frase-en-el-mail" class="md-nav__link">
+    <span class="md-ellipsis">
+      
+        Concepto (una frase, en el mail)
+      
+    </span>
+  </a>
+  
+</li>
+      
+        <li class="md-nav__item">
+  <a href="#calculo" class="md-nav__link">
+    <span class="md-ellipsis">
+      
+        Cálculo
+      
+    </span>
+  </a>
+  
+    <nav class="md-nav" aria-label="Cálculo">
+      <ul class="md-nav__list">
+        
+          <li class="md-nav__item">
+  <a href="#reglas-de-decision" class="md-nav__link">
+    <span class="md-ellipsis">
+      
+        Reglas de decisión
+      
+    </span>
+  </a>
+  
+</li>
+        
+      </ul>
+    </nav>
+  
+</li>
+      
+        <li class="md-nav__item">
+  <a href="#decisiones-de-diseno-ponytail" class="md-nav__link">
+    <span class="md-ellipsis">
+      
+        Decisiones de diseño (ponytail)
+      
+    </span>
+  </a>
+  
+</li>
+      
+        <li class="md-nav__item">
+  <a href="#plan-de-implementacion-backend" class="md-nav__link">
+    <span class="md-ellipsis">
+      
+        Plan de implementación (backend)
+      
+    </span>
+  </a>
+  
+    <nav class="md-nav" aria-label="Plan de implementación (backend)">
+      <ul class="md-nav__list">
+        
+          <li class="md-nav__item">
+  <a href="#formato-jasper-7-hallazgo-jrxml-v6-no-compila" class="md-nav__link">
+    <span class="md-ellipsis">
+      
+        Formato Jasper 7 (hallazgo — JRXML v6 NO compila)
+      
+    </span>
+  </a>
+  
+</li>
+        
+      </ul>
+    </nav>
+  
+</li>
+      
+        <li class="md-nav__item">
+  <a href="#verificacion" class="md-nav__link">
+    <span class="md-ellipsis">
+      
+        Verificación
+      
+    </span>
+  </a>
+  
+</li>
+      
+        <li class="md-nav__item">
+  <a href="#fuera-de-alcance" class="md-nav__link">
+    <span class="md-ellipsis">
+      
+        Fuera de alcance
+      
+    </span>
+  </a>
+  
+</li>
+      
+        <li class="md-nav__item">
+  <a href="#archivos-afectados-fase-1-pdf" class="md-nav__link">
+    <span class="md-ellipsis">
+      
+        Archivos afectados (fase 1 — PDF)
+      
+    </span>
+  </a>
+  
+    <nav class="md-nav" aria-label="Archivos afectados (fase 1 — PDF)">
+      <ul class="md-nav__list">
+        
+          <li class="md-nav__item">
+  <a href="#paso-0-obligatorio-para-correr-tests-locales" class="md-nav__link">
+    <span class="md-ellipsis">
+      
+        Paso 0 (obligatorio para correr tests locales)
+      
+    </span>
+  </a>
+  
+</li>
+        
+      </ul>
+    </nav>
+  
+</li>
+      
+        <li class="md-nav__item">
+  <a href="#etapa-2-pagina-2-top-productos-top-gastos-cierre-de-retorno-construida" class="md-nav__link">
+    <span class="md-ellipsis">
+      
+        Etapa 2 — Página 2: top productos + top gastos + cierre de retorno (construida)
+      
+    </span>
+  </a>
+  
+</li>
+      
+        <li class="md-nav__item">
+  <a href="#etapa-trimestral-pdf-cara-cliente-2-xlsx-modelado-2026-10-10" class="md-nav__link">
+    <span class="md-ellipsis">
+      
+        Etapa trimestral — PDF cara cliente + 2 XLSX (modelado 2026-10-10)
+      
+    </span>
+  </a>
+  
+</li>
+      
+        <li class="md-nav__item">
+  <a href="#recuperacion-de-inversion-en-reportes-diseno-2026-10-11" class="md-nav__link">
+    <span class="md-ellipsis">
+      
+        Recuperación de inversión en reportes (diseño 2026-10-11)
+      
+    </span>
+  </a>
+  
+</li>
+      
+    </ul>
+  
+</nav>
+                  </div>
+                </div>
+              </div>
+            
+          
+          
+            <div class="md-content" data-md-component="content">
+              
+              <article class="md-content__inner md-typeset">
+                
+                  
+
+
+
+<h1 id="reporte-mensual-automatico-estrategia-core">Reporte Mensual Automático — Estrategia (Core)<a class="headerlink" href="#reporte-mensual-automatico-estrategia-core" title="Permanent link">&para;</a></h1>
+<p>Estado: <strong>fase 1 (PDF 1 página) + etapa 2 (página 2: top productos, top gastos,
+cierre de retorno) implementadas</strong>. <strong>Trimestral en diseño</strong> (sin código).</p>
+<p>Objetivo: el día 1 de cada mes a las 06:00 <code>America/Panama</code>, cada OWNER de cada
+tenant activo recibe por mail el resumen en PDF (lectura del dueño) + XLSX
+(contable), con brand PymeQ. Cero intervención manual, cero proyecciones:
+solo lo realmente cargado en el mes cerrado.</p>
+<p><strong>Hecho hoy:</strong> PDF en 1 página A4 + envío + idempotencia + <code>SKIPPED</code> + endpoint
+<code>POST /api/v1/core/reportes/monthly</code> con <code>dryRun</code>. <strong>Etapa 2 (construida):</strong>
+página 2 con top 5 productos + top 3 gastos + cierre de retorno (ver §Etapa 2).
+<strong>Pendiente:</strong> XLSX (3 hojas) — la dependencia <code>jasperreports-excel-poi</code> ya está
+en el POM, se cambia el exporter y se agrega el test.</p>
+<blockquote>
+<p>Relacionado: <code>ANALYTICS.md</code> (motores CTE que alimentan los datos),
+<code>COSTOS_ENGINE.md</code> (costo operativo diario), <code>FUTURE_MODULES.md</code> §Spring AI
+(fase 2: párrafo IA opcional), <code>CORE_MIGRATIONS_STRATEGY.md</code> (flyway en core).</p>
+</blockquote>
+<h2 id="hechos-verificados-en-entorno-staging-2026-09-25">Hechos verificados en entorno staging (2026-09-25)<a class="headerlink" href="#hechos-verificados-en-entorno-staging-2026-09-25" title="Permanent link">&para;</a></h2>
+<blockquote>
+<p><strong>Actualizado 2026-09-29:</strong> desde esta inspección se aplicaron <strong>V7</strong>
+(<code>V7__normalize_units.sql</code>, unidades) y <strong>V8</strong> (<code>V8__report_log.sql</code>, este
+reporte). La fila <code>Flyway V1–V6 → siguiente V7</code> de abajo quedó histórica;
+la migración de este feature es <strong>V8</strong>, no V7 (V7 se lo llevó el fix de unidades).</p>
+</blockquote>
+<p>Inspección read-only del entorno de staging:</p>
+<table>
+<thead>
+<tr>
+<th>Dato</th>
+<th>Valor verificado</th>
+</tr>
+</thead>
+<tbody>
+<tr>
+<td>Flyway core</td>
+<td><strong>V1–V6</strong> aplicadas → siguiente <code>V7__report_log.sql</code> (NO V2) — <em>hoy: V8</em></td>
+</tr>
+<tr>
+<td>TZ container core</td>
+<td><strong>UTC</strong> → cron requiere <code>zone</code> explícita</td>
+</tr>
+<tr>
+<td><code>core</code> mail</td>
+<td><em>histórico:</em> sin <code>spring-boot-starter-mail</code>. <strong>Hoy sí</strong>: <code>spring-boot-starter-mail</code> en el POM, <code>JavaMailSender</code> en <code>ReportEmailServiceImpl</code>, <code>SPRING_MAIL_*</code> + <code>MAIL_FROM</code> ya en <code>docker-compose.yml</code> (<code>core-service</code>)</td>
+</tr>
+<tr>
+<td><code>auth.tenants</code></td>
+<td><strong>Sin</strong> <code>created_by</code>/<code>owner_id</code> (16 columnas verificadas)</td>
+</tr>
+<tr>
+<td>OWNER</td>
+<td><code>auth.user_tenants.role='OWNER'</code>; 4/4 tenants con exactamente 1 OWNER (invariante por código: <code>AuthServiceImpl:125</code>, <code>TenantServiceImpl:128</code>, bloqueo de segundo OWNER en <code>MemberServiceImpl:94-96</code>)</td>
+</tr>
+<tr>
+<td>Owner query</td>
+<td>EXPLAIN verificado: <code>Index Scan idx_user_tenants_tenant_active</code>, rows=1</td>
+</tr>
+<tr>
+<td>Índices para el reporte</td>
+<td>Ya existen, <strong>cero índices nuevos</strong>: <code>idx_invoices_tenant_date_type</code> (covering <code>INCLUDE total</code>), <code>idx_daily_sales_tenant_date</code>, <code>uk_metrics_tenant_period</code></td>
+</tr>
+<tr>
+<td>Scheduling</td>
+<td><code>@EnableScheduling</code> ya activo (<code>EventConfig.java:13</code>); sin ShedLock</td>
+</tr>
+<tr>
+<td>Feign</td>
+<td><code>@EnableFeignClients</code> activo + <code>services.auth.base-url: ${AUTH_SERVICE_URL}</code> <strong>configurada y sin usar</strong></td>
+</tr>
+<tr>
+<td>Deploy stage</td>
+<td>Entorno de staging sin fuente (solo <code>.env</code>, <code>docker-compose.yml</code>, <code>infra/</code>); CD = scp + <code>docker compose pull</code></td>
+</tr>
+<tr>
+<td>Tenant con data (ejemplo ficticio)</td>
+<td><code>tenant-demo</code>: 15 ventas, 40 facturas, métricas <code>2026-09</code> (ingresos 8,500.00 / COGS 2,100.00 / opex 1,800.00 / neto 4,600.00). <code>tenant-sin-ventas</code>: 4 facturas, 0 ventas. Resto vacío.</td>
+</tr>
+</tbody>
+</table>
+<p>Correo del creador == OWNER (el registro crea <code>user_tenants</code> con <code>RoleName.OWNER</code>
+en el mismo flow). Query batch — <strong>multitenant desde el día 1, cero mails
+hardcodeados</strong>:</p>
+<div class="highlight"><pre><span></span><code><span class="k">SELECT</span><span class="w"> </span><span class="n">ut</span><span class="p">.</span><span class="n">tenant_id</span><span class="p">,</span><span class="w"> </span><span class="n">u</span><span class="p">.</span><span class="n">email</span><span class="p">,</span><span class="w"> </span><span class="n">t</span><span class="p">.</span><span class="n">name</span><span class="p">,</span><span class="w"> </span><span class="n">t</span><span class="p">.</span><span class="n">timezone</span><span class="p">,</span><span class="w"> </span><span class="n">t</span><span class="p">.</span><span class="n">currency</span>
+<span class="k">FROM</span><span class="w"> </span><span class="n">auth</span><span class="p">.</span><span class="n">user_tenants</span><span class="w"> </span><span class="n">ut</span>
+<span class="k">JOIN</span><span class="w"> </span><span class="n">auth</span><span class="p">.</span><span class="n">users</span><span class="w"> </span><span class="n">u</span><span class="w"> </span><span class="k">ON</span><span class="w"> </span><span class="n">u</span><span class="p">.</span><span class="n">id</span><span class="w"> </span><span class="o">=</span><span class="w"> </span><span class="n">ut</span><span class="p">.</span><span class="n">user_id</span>
+<span class="k">JOIN</span><span class="w"> </span><span class="n">auth</span><span class="p">.</span><span class="n">tenants</span><span class="w"> </span><span class="n">t</span><span class="w"> </span><span class="k">ON</span><span class="w"> </span><span class="n">t</span><span class="p">.</span><span class="n">id</span><span class="w"> </span><span class="o">=</span><span class="w"> </span><span class="n">ut</span><span class="p">.</span><span class="n">tenant_id</span>
+<span class="k">WHERE</span><span class="w"> </span><span class="n">ut</span><span class="p">.</span><span class="k">role</span><span class="w"> </span><span class="o">=</span><span class="w"> </span><span class="s1">'OWNER'</span><span class="w"> </span><span class="k">AND</span><span class="w"> </span><span class="n">ut</span><span class="p">.</span><span class="n">is_active</span>
+<span class="w">  </span><span class="k">AND</span><span class="w"> </span><span class="n">u</span><span class="p">.</span><span class="n">is_active</span><span class="w"> </span><span class="k">AND</span><span class="w"> </span><span class="n">u</span><span class="p">.</span><span class="n">deleted_at</span><span class="w"> </span><span class="k">IS</span><span class="w"> </span><span class="k">NULL</span>
+<span class="w">  </span><span class="k">AND</span><span class="w"> </span><span class="n">t</span><span class="p">.</span><span class="n">is_active</span><span class="w"> </span><span class="k">AND</span><span class="w"> </span><span class="n">t</span><span class="p">.</span><span class="n">deleted_at</span><span class="w"> </span><span class="k">IS</span><span class="w"> </span><span class="k">NULL</span><span class="p">;</span>
+</code></pre></div>
+<h2 id="problema">Problema<a class="headerlink" href="#problema" title="Permanent link">&para;</a></h2>
+<p>El dueño no quiere abrir la app para saber cómo le fue el mes. Hoy ningún
+proceso genera ni envía resumenes. El reporte debe llegar solo, leerse en 30
+segundos y servirle a su contable sin pedirle nada más.</p>
+<p>Regla de oro: <strong>nunca proyectar</strong>. Si el mes tiene 13 días cargados, el reporte
+dice "$4,192.61 en 13 días cargados, faltan 17" — no "tu venta mensual es X".</p>
+<h2 id="concepto-una-frase-en-el-mail">Concepto (una frase, en el mail)<a class="headerlink" href="#concepto-una-frase-en-el-mail" title="Permanent link">&para;</a></h2>
+<blockquote>
+<p><strong>"La Cafetería Central — Septiembre 2026: vendiste $8,500, te quedaron $4,600."</strong></p>
+</blockquote>
+<p>PDF bonito para el dueño (1 página A4) + XLSX con detalle para el contable
+(3 hojas). Ver ejemplo: <code>frontend/pymes/docs/DAILY_REPORT_FRONTEND.md 2026-09-19</code>.</p>
+<h2 id="calculo">Cálculo<a class="headerlink" href="#calculo" title="Permanent link">&para;</a></h2>
+<div class="highlight"><pre><span></span><code>periodo        = mes anterior (yyyy-MM), límites sargables [from, to)
+ingresos       = Σ daily_sales.gross_amount en [from, to)
+costo_compras  = Σ invoices.total WHERE type='FACTURA' AND status&lt;&gt;'ANULADA'
+gastos_oper.   = Σ invoices.total WHERE type='GASTO_OPERATIVO' AND status&lt;&gt;'ANULADA'
+neto           = ingresos − costo_compras − gastos_oper.
+semanas        = 1-7, 8-14, 15-21, 22-fin (no lunes-domingo: cualquier dueño lo entiende)
+top_prov       = TOP 5 proveedores por Σ total FACTURA + count
+</code></pre></div>
+<h3 id="reglas-de-decision">Reglas de decisión<a class="headerlink" href="#reglas-de-decision" title="Permanent link">&para;</a></h3>
+<table>
+<thead>
+<tr>
+<th>Condición</th>
+<th>Resultado</th>
+</tr>
+</thead>
+<tbody>
+<tr>
+<td><code>ventas = 0 AND facturas = 0</code> en el período</td>
+<td><strong>SKIP</strong> — no se envía, se loguea <code>SKIPPED</code> (cubre duplicados y tenants sin datos)</td>
+</tr>
+<tr>
+<td>Hay facturas pero <code>ventas = 0</code></td>
+<td>Se envía <strong>parcial</strong>, banner "sin ventas registradas"</td>
+</tr>
+<tr>
+<td>Hay data</td>
+<td>PDF + XLSX completos</td>
+</tr>
+</tbody>
+</table>
+<h2 id="decisiones-de-diseno-ponytail">Decisiones de diseño (ponytail)<a class="headerlink" href="#decisiones-de-diseno-ponytail" title="Permanent link">&para;</a></h2>
+<ol>
+<li><strong>Módulo interno <code>core_pymes/report/</code></strong> — sin microservicio nuevo. Un cron que
+   corre 1 vez/mes no justifica deploy, Flyway, gateway route ni imagen extra.</li>
+<li><strong>Owner vía opción A</strong> — query batch cross-schema directa
+   (<code>// ponytail: cross-schema read (auth), mover a Feign si auth se separa de DB</code>).
+   Feign interno (opción B) queda como upgrade path: <code>@EnableFeignClients</code> y
+   <code>services.auth.base-url</code> ya existen y están sin usar.</li>
+<li><strong>Fuentes DejaVu</strong> (ya en <code>jasperreports-fonts</code>) — acentos OK, cero TTFs embebidos.</li>
+<li><strong>Compilación JRXML en runtime + cache en memoria</strong> — sin <code>jasperreports-maven-plugin</code>
+    (riesgo de compatibilidad con JR 7); el test de integración valida la plantilla.
+    Requiere <code>net.sf.jasperreports:jasperreports-jdt</code> en el POM (misma versión
+    <code>${jasperreports.version}</code>): sin él Jasper usa el <code>javac</code> del sistema, que
+    <strong>no existe</strong> en la imagen <code>eclipse-temurin:21-jre-alpine</code> de producción.
+    <em>Falencia documentada 2026-10-01:</em> el primer fix agregó solo
+    <code>org.eclipse.jdt:ecj</code> suelto y staging siguió fallando con
+    <code>Cannot run program "javac"</code>. Causa: en JR 7 la compilación se modularizó
+    igual que el export a PDF — el núcleo ya no trae <code>JRJdtCompiler</code> y ECJ solo
+    no sirve; se necesita el adaptador oficial <code>jasperreports-jdt</code> (trae ECJ
+    transitivo). Evidencia: <code>JasperCompileManager</code> busca primero
+    <code>net.sf.jasperreports.jdt.JRJdtCompiler</code> y si no está cae a <code>JRJavacCompiler</code>.
+    <em>Optimización futura (no hacer ahora):</em> precompilar <code>.jrxml</code> → <code>.jasper</code> con
+    el plugin Maven en el empaquetado eliminaría ECJ + jdt de producción, pero el
+    ahorro es ~3 MB y segundos por arranque — no justifica la complejidad hoy.
+    Reevaluar solo con decenas de plantillas o memoria muy justa.</li>
+<li><strong>Idempotencia = PK de <code>report_log</code> + <code>ON CONFLICT DO NOTHING RETURNING</code></strong> —
+   atómico y race-safe incluso con 2 réplicas. Sin ShedLock por ahora.</li>
+<li><strong>Sin CSV</strong> — decisión del usuario: solo PDF + XLSX. Sin subreportes. Test IT sí.</li>
+<li><strong>Sin Spring AI</strong> — fase 2: un <code>ChatClient</code> dentro del mismo job que agregue 2
+   bullets al cuerpo del mail. Sin <code>pgvector</code>, sin nuevo deploy.</li>
+</ol>
+<h2 id="plan-de-implementacion-backend">Plan de implementación (backend)<a class="headerlink" href="#plan-de-implementacion-backend" title="Permanent link">&para;</a></h2>
+<ol>
+<li><strong>Deps</strong> <code>backend/core/pom.xml</code> (hecho): <code>jasperreports</code>, <code>jasperreports-json</code>,
+   <code>jasperreports-pdf</code>, <code>jasperreports-fonts</code>, <code>jasperreports-excel-poi</code>
+    (todos <strong>7.0.4</strong>, vía propiedad <code>jasperreports.version</code>),
+    <code>spring-boot-starter-mail</code> + <code>spring-dotenv:4.0.0</code> +
+    <code>net.sf.jasperreports:jasperreports-jdt</code> (adaptador de compilación, ver punto 4).
+   <em>OJO:</em> el artifact de fuentes es <code>jasperreports-fonts</code>, <strong>no</strong> <code>jasperreports-fonts:6.0.0</code>;
+   el de Excel es <code>jasperreports-excel-poi</code>, no <code>jasperreports-poi</code>.</li>
+<li><strong><code>V8__report_log.sql</code></strong> (hecho):
+   <div class="highlight"><pre><span></span><code><span class="k">CREATE</span><span class="w"> </span><span class="k">TABLE</span><span class="w"> </span><span class="n">core</span><span class="p">.</span><span class="n">report_log</span><span class="w"> </span><span class="p">(</span>
+<span class="w">    </span><span class="n">tenant_id</span><span class="w"> </span><span class="n">UUID</span><span class="w">        </span><span class="k">NOT</span><span class="w"> </span><span class="k">NULL</span><span class="p">,</span>
+<span class="w">    </span><span class="k">period</span><span class="w">    </span><span class="nb">VARCHAR</span><span class="p">(</span><span class="mi">7</span><span class="p">)</span><span class="w">  </span><span class="k">NOT</span><span class="w"> </span><span class="k">NULL</span><span class="p">,</span><span class="w">   </span><span class="c1">-- '2026-09'</span>
+<span class="w">    </span><span class="n">format</span><span class="w">    </span><span class="nb">VARCHAR</span><span class="p">(</span><span class="mi">10</span><span class="p">)</span><span class="w"> </span><span class="k">NOT</span><span class="w"> </span><span class="k">NULL</span><span class="p">,</span><span class="w">   </span><span class="c1">-- 'PDF' | 'XLSX'</span>
+<span class="w">    </span><span class="n">status</span><span class="w">    </span><span class="nb">VARCHAR</span><span class="p">(</span><span class="mi">10</span><span class="p">)</span><span class="w"> </span><span class="k">NOT</span><span class="w"> </span><span class="k">NULL</span><span class="w"> </span><span class="k">DEFAULT</span><span class="w"> </span><span class="s1">'SENDING'</span><span class="p">,</span><span class="w"> </span><span class="c1">-- SENDING|SENT|FAILED|SKIPPED</span>
+<span class="w">    </span><span class="n">sent_at</span><span class="w">   </span><span class="n">TIMESTAMPTZ</span><span class="p">,</span>
+<span class="w">    </span><span class="n">error_msg</span><span class="w"> </span><span class="nb">TEXT</span><span class="p">,</span>
+<span class="w">    </span><span class="k">PRIMARY</span><span class="w"> </span><span class="k">KEY</span><span class="w"> </span><span class="p">(</span><span class="n">tenant_id</span><span class="p">,</span><span class="w"> </span><span class="k">period</span><span class="p">,</span><span class="w"> </span><span class="n">format</span><span class="p">)</span>
+<span class="p">);</span>
+<span class="k">CREATE</span><span class="w"> </span><span class="k">INDEX</span><span class="w"> </span><span class="n">idx_report_log_failed</span>
+<span class="w">  </span><span class="k">ON</span><span class="w"> </span><span class="n">core</span><span class="p">.</span><span class="n">report_log</span><span class="w"> </span><span class="p">(</span><span class="n">tenant_id</span><span class="p">,</span><span class="w"> </span><span class="k">period</span><span class="p">)</span><span class="w"> </span><span class="k">WHERE</span><span class="w"> </span><span class="n">status</span><span class="w"> </span><span class="o">=</span><span class="w"> </span><span class="s1">'FAILED'</span><span class="p">;</span>
+</code></pre></div></li>
+<li><strong><code>MonthlyReport.jrxml</code></strong> (hecho — escrito a mano en <strong>formato Jasper 7</strong>,
+   ver §Formato JR7 abajo): bandas background/title/summary/pageFooter;
+   paleta locked de <code>.ulpi/design/DESIGN.md</code>; logo <code>pymeq-logo.svg</code> (recursos
+   del reporte) inyectado como <code>InputStream</code>; fuentes <strong>DejaVu Sans</strong> de
+   <code>jasperreports-fonts</code>. <strong>Sin charts</strong>: JFreeChart no está en <code>.m2</code> y 2
+   tablas (semanas / top proveedores) cubren el contenido. XLSX (fase 2) no
+   exporta charts igual.</li>
+<li><strong><code>ReportDataRepository</code></strong> (hecho) — owners cross-schema (<code>auth.*</code>, opción A)</li>
+<li>mes con solo <code>PAGADA</code> en facturas (consistencia con analytics desde
+   2026-09-08), sargable <code>[from,to)</code>, columnas explícitas.</li>
+<li><strong><code>MonthlyReportService</code></strong> (hecho) — fill PDF (<code>JasperExportManager</code>) con
+   plantilla compilada una vez y cacheada. XLSX con <code>JRXlsxExporter</code> = fase 2.</li>
+<li><strong><code>ReportEmailService</code></strong> (hecho) — <code>JavaMailSender</code> + <code>MimeMessage</code>
+   multipart. <strong>1 adjunto</strong> (PDF) hasta fase 2.</li>
+<li><strong><code>MonthlyReportController</code></strong> (hecho) —
+   <code>POST /api/v1/core/reportes/monthly?period=YYYY-MM&amp;dryRun=true</code>
+   (<code>reportes</code>, no <code>reports</code>; ruta real en <code>CorePath.REPORTES_ROUTE</code>),
+   <code>@PreAuthorize("hasAnyRole('OWNER','ADMIN')")</code> + <code>X-User-Role</code> del gateway.</li>
+<li><strong><code>MonthlyReportScheduler</code></strong> (hecho) —
+   <code>@Scheduled(cron="0 0 6 1 * *", zone="America/Panama")</code>. Flow por tenant:
+   batch owners → <code>INSERT ... ON CONFLICT DO NOTHING</code> → sin fila = skip →
+   data → fill → mail → <code>UPDATE status SENT/FAILED|SKIPPED</code>.
+   Contador <code>pymes_report_monthly_sent</code>.</li>
+<li><strong><code>docker-compose.yml</code></strong> — ya tenía <code>SPRING_MAIL_*</code> + <code>MAIL_FROM</code> en
+   <code>core-service</code> (no hizo falta tocarlo).</li>
+<li><strong>Tests</strong> (hecho) — <code>MonthlyReportIntegrationTest</code> (4: PDF bytes <code>%PDF</code> +
+    idempotencia + SKIP vacío + periodo inválido) y
+    <code>MonthlyReportControllerTest</code> (11: roles 403, periodos 400, dryRun,
+    repetidas). XLSX: test pendiente en fase 2.</li>
+</ol>
+<h3 id="formato-jasper-7-hallazgo-jrxml-v6-no-compila">Formato Jasper 7 (hallazgo — JRXML v6 NO compila)<a class="headerlink" href="#formato-jasper-7-hallazgo-jrxml-v6-no-compila" title="Permanent link">&para;</a></h3>
+<p>El JRXML se escribió a mano y <strong>JR7 rechaza el formato v6</strong>. Los cambios que
+hicieron falta (todos en <code>MonthlyReport.jrxml</code>):</p>
+<table>
+<thead>
+<tr>
+<th>JR6</th>
+<th>JR7</th>
+</tr>
+</thead>
+<tbody>
+<tr>
+<td><code>&lt;jasperReport xmlns=...&gt;</code></td>
+<td>raíz <strong>sin namespace</strong> (el loader exige <code>namespaceURI</code> vacío)</td>
+</tr>
+<tr>
+<td><code>&lt;subDataset&gt;</code> / <code>subDataset="X"</code></td>
+<td><code>&lt;dataset&gt;</code> / <code>datasetName="X"</code></td>
+</tr>
+<tr>
+<td><code>isBold="true"</code></td>
+<td><code>bold="true"</code></td>
+</tr>
+<tr>
+<td><code>&lt;title&gt;&lt;band&gt;...&lt;/band&gt;&lt;/title&gt;</code></td>
+<td>la sección <strong>es</strong> el <code>&lt;band&gt;</code> (sin wrapper)</td>
+</tr>
+<tr>
+<td><code>&lt;reportElement x=... /&gt;</code> dentro de <code>&lt;staticText&gt;</code></td>
+<td>atributos <strong>directos</strong> en el elemento</td>
+</tr>
+<tr>
+<td><code>&lt;textElement&gt;&lt;font size="15"/&gt;&lt;/textElement&gt;</code></td>
+<td><code>fontSize="15"</code> directo en el elemento</td>
+</tr>
+<tr>
+<td><code>&lt;textAlignment="Right"&gt;</code></td>
+<td><code>hTextAlign="Right"</code></td>
+</tr>
+<tr>
+<td><code>&lt;imageExpression&gt;</code> / <code>&lt;textFieldExpression&gt;</code></td>
+<td><code>&lt;expression&gt;</code></td>
+</tr>
+<tr>
+<td>hijo suelto en la banda</td>
+<td><code>&lt;element kind="rectangle\|staticText\|textField\|image\|line\|component"&gt;</code></td>
+</tr>
+<tr>
+<td><code>&lt;jr:table&gt;</code> / <code>&lt;jr:column&gt;</code> / <code>&lt;jr:columnHeader&gt;</code> / <code>&lt;jr:detailCell&gt;</code></td>
+<td><code>&lt;component kind="table"&gt;</code> / <code>&lt;column kind="single"&gt;</code> / <code>&lt;columnHeader&gt;</code> / <code>&lt;detailCell&gt;</code></td>
+</tr>
+<tr>
+<td><code>datasetRun datasetName=</code></td>
+<td><code>datasetRun subDataset=</code></td>
+</tr>
+<tr>
+<td><code>isStretchWithOverflow="true"</code> (JR6, ya no existe)</td>
+<td><code>textAdjust="StretchHeight"</code> (verificado 2026-10-15: el loader JR7 rechaza el nombre viejo con <code>UnrecognizedPropertyException</code>; el valor se confirma en <code>TextAdjustEnum</code>: <code>CutText</code>/<code>StretchHeight</code>/<code>ScaleFont</code>). El elemento siguiente lleva <code>positionType="Float"</code> para que baje cuando el texto se estira. Ojo al probar: una línea de ~150 caracteres cabe en 2 renglones y no se estira — el test usa la línea duplicada (~380) para forzar 3+ renglones y afirmar <code>height &gt; diseño</code> + no-solape.</td>
+</tr>
+</tbody>
+</table>
+<p>Cómo se descubrió (método que vale para cualquier JR7): serializar objetos
+<code>JRDesign*</code> con <code>JacksonUtil.getXmlMapper().writeValueAsString(...)</code> y copiar
+la salida. <code>JacksonReportLoader.detectRootElement</code> solo acepta raíz sin
+namespace — por eso un <code>xmlns</code> tarda en fallar con un error engañoso.</p>
+<blockquote>
+<p><strong>Ojo con el filtrado de Maven:</strong> <code>src/main/resources</code> tiene
+<code>filtering=true</code> en core, así que el JRXML <strong>no puede llevar <code>${}</code></strong> (el único
+que hay está dentro de un comentario).</p>
+</blockquote>
+<h2 id="verificacion">Verificación<a class="headerlink" href="#verificacion" title="Permanent link">&para;</a></h2>
+<div class="highlight"><pre><span></span><code><span class="nb">cd</span><span class="w"> </span>backend/core<span class="w"> </span><span class="o">&amp;&amp;</span><span class="w"> </span>./mvnw<span class="w"> </span><span class="nb">test</span><span class="w"> </span>-B<span class="w">            </span><span class="c1"># unit + integración (Testcontainers)</span>
+<span class="c1"># local/stage: POST /api/v1/core/reportes/monthly?period=2026-09&amp;dryRun=true</span>
+<span class="c1">#   header X-User-Role: OWNER (o ADMIN)</span>
+<span class="c1"># primer mail real solo tras aprobación explícita del dryRun</span>
+</code></pre></div>
+<h2 id="fuera-de-alcance">Fuera de alcance<a class="headerlink" href="#fuera-de-alcance" title="Permanent link">&para;</a></h2>
+<ul>
+<li>Limpieza de tenants de prueba en el entorno de staging (tarea separada).</li>
+<li>JasperReports 2.x legacy / skill <code>etendo-report</code> / skill <code>ihlamury-design-skills-jasper</code>
+  (ninguna aplica a Spring Boot 3 — verificado).</li>
+<li>iText (licencia AGPL incompatible con código comercial).</li>
+<li>Segundo OWNER, borrado de duplicados sin datos (innecesario: quedan SKIP por regla "sin data").</li>
+<li>ShedLock dedicado (add cuando <code>core</code> escale a 2+ réplicas).</li>
+<li>Fuentes custom (Geist/Satoshi) en el PDF — add si el dueño lo pide.</li>
+<li><strong>XLSX = fase 2</strong> (no descartado): <code>jasperreports-excel-poi</code> ya en POM,
+  solo falta cambiar el exporter + 3 hojas + test.</li>
+<li>Chart JFreeChart en el PDF (dependencia no presente; 2 tablas lo cubren).</li>
+</ul>
+<h2 id="archivos-afectados-fase-1-pdf">Archivos afectados (fase 1 — PDF)<a class="headerlink" href="#archivos-afectados-fase-1-pdf" title="Permanent link">&para;</a></h2>
+<p>Nuevos:
+- <code>backend/core/src/main/resources/db/migration/V8__report_log.sql</code>
+- <code>backend/core/src/main/resources/reports/MonthlyReport.jrxml</code>
+- <code>backend/core/src/main/resources/reports/pymeq-logo.svg</code>
+- <code>backend/core/src/main/java/core_pymes/report/</code>
+  (<code>config/MonthlyReportScheduler</code>, <code>controller/MonthlyReportApi</code> +
+  <code>controller/impl/MonthlyReportController</code>, <code>dto/{ReportData,ReportOwner}</code>,
+  <code>exception/ReportGenerationException</code>, <code>repository/{ReportDataRepository,impl}</code>,
+  <code>service/{MonthlyReportService,ReportEmailService,impl}</code>,
+  <code>support/ReportLabels</code>)
+- <code>backend/core/src/test/java/core_pymes/report/MonthlyReportIntegrationTest.java</code>
+- <code>backend/core/src/test/java/core_pymes/report/MonthlyReportControllerTest.java</code>
+- <code>backend/core/.env.example</code> (ver paso 0 abajo)
+- <code>backend/core/docs/strategies/MONTHLY_REPORT_STRATEGY.md</code> (este archivo)</p>
+<p>Modificados:
+- <code>backend/core/pom.xml</code> (deps Jasper 7.0.4 + starter-mail + <code>spring-dotenv</code>)
+- <code>backend/core/README.md</code> (módulo report, <code>.env</code>)
+- <code>backend/core/docs/CORE.md</code> (módulo, paquetes, endpoint, V8)
+- <code>backend/core/docs/DAILY_REPORTS_CORE_SOLUTIONS.md</code> (entrada 2026-09-29)
+- <code>backend/core/src/test/java/core_pymes/integration/AbstractIntegrationTest.java</code>
+  (<code>@MockBean ReportEmailService</code> — sin esto el contexto revienta en CI)
+- <code>backend/core/src/main/java/core_pymes/common/exception/{CodigoError,CoreApiException}.java</code>
+  (1 línea: <code>RPT001</code>; única excepción fuera de <code>report/</code>)</p>
+<h3 id="paso-0-obligatorio-para-correr-tests-locales">Paso 0 (obligatorio para correr tests locales)<a class="headerlink" href="#paso-0-obligatorio-para-correr-tests-locales" title="Permanent link">&para;</a></h3>
+<p><code>./mvnw test -B</code> falla sin <code>.env</code>: el bean <code>ReportEmailServiceImpl</code> resuelve
+<code>${app.mail.from:${spring.mail.username}}</code> al arrancar el contexto.</p>
+<div class="highlight"><pre><span></span><code><span class="nb">cd</span><span class="w"> </span>backend/core<span class="w"> </span><span class="o">&amp;&amp;</span><span class="w"> </span>cp<span class="w"> </span>.env.example<span class="w"> </span>.env<span class="w">   </span><span class="c1"># y pon tus valores de mail/DB</span>
+</code></pre></div>
+<p>En <strong>CI no hace falta</strong>: el <code>@MockBean ReportEmailService</code> de
+<code>AbstractIntegrationTest</code> reemplaza el bean y la property nunca se evalúa.</p>
+<h2 id="etapa-2-pagina-2-top-productos-top-gastos-cierre-de-retorno-construida">Etapa 2 — Página 2: top productos + top gastos + cierre de retorno (construida)<a class="headerlink" href="#etapa-2-pagina-2-top-productos-top-gastos-cierre-de-retorno-construida" title="Permanent link">&para;</a></h2>
+<p><strong>Concluido con el dueño:</strong> el PDF pasa a 2 páginas. La 1 trae el resultado del
+mes + <strong>ventas por semana</strong> + <strong>principales proveedores</strong> (se movieron desde el
+<code>summary</code>: con el <code>summary</code> en 742pt la banda entera saltaba a la página 2 y la
+1 quedaba con solo el header). Sección sin datos (mes parcial sin ventas, mes sin
+compras pagadas) <strong>no se pinta</strong>: <code>removeLineWhenBlank</code> colapsa el hueco y lo de
+abajo sube, en vez de dejar una tabla con solo encabezados. La 2 trae:</p>
+<ol>
+<li><strong>Top 5 productos más comprados</strong>, por cantidad de mayor a menor
+   (ej: <code>Pechuga — 40 kg — $175.00</code>). Cantidades en unidad base
+   (<code>quantity × conversion_factor</code>), sin precios promedio entre presentaciones.
+   Desempate por monto.</li>
+<li><strong>Top 3 gastos operativos</strong>, por monto de mayor a menor
+   (ej: <code>Salarios — $1,750.00</code>). Agrupados por categoría tal cual se registró.</li>
+<li><strong>Cierre "Recupera tu inversión"</strong> (2 líneas, en palabras normales):
+   aporte del mes con ritmo (<code>Te quedaron $4,600: aparta $1,666.67 para el
+   retorno de tu inversión inicial ($10,000) (ritmo 6 meses).</code>) + resto con
+   rango de días y % del gasto (<code>Con $2,933.33 te alcanza para operar entre
+   8 y 10 días (39% del gasto mensual).</code>). Mes que no dio → <code>Este mes no
+   apartes: protege la caja.</code> Sin capital registrado → el bloque no aparece.</li>
+</ol>
+<p><strong>Reglas:</strong> solo lo pagado del mes cerrado, sin proyecciones; mismo correo
+(+1 línea avisando lo nuevo) y mismo adjunto; mes vacío se salta igual.
+Cada sección aparece solo si tiene filas (mes parcial: solo la que tenga
+datos). Menos de 5/3: se muestran los que haya, sin relleno.</p>
+<p><strong>Diseño técnico:</strong> <code>ReportData</code> suma <code>TopProducto(nombre, cantidad, unidad, total)</code>
++ <code>TopGasto(nombre, total, facturas)</code> + <code>capital</code> (<code>core.patrimony</code>, null = ausente);
+<code>LEFT JOIN products</code> (fallback a snapshot <code>product_name</code>) + <code>template_units</code> por
+texto vía subquery (<code>LIMIT 1</code>, sin fan-out); unidad sin match → <code>"Unidad"</code>.
+JRXML: <code>title</code> (680pt) = header + números + semanas + proveedores + nota; <code>summary</code>
+(490pt, <code>splitType="Prevent"</code>) = productos + gastos + cierre, con <code>printWhen</code> por
+sección (footer ya numera). <strong>Pivot (decisión del dueño):</strong> el rango de días y el % salen del
+motor de análisis en proceso — <code>AnalyticsService.proyeccionOperativa</code>
+(<code>gastoMensual, gastoDiario, gastoMin, gastoMax</code>, 1 query dueña del gasto diario,
+misma JVM sin HTTP). Días = <code>floor(resto / gastoMax)…floor(resto / gastoMin)</code>;
+<code>% = resto / gastoMensual</code>. Sin gasto en el mes → solo la línea de aparte.
+Ojo semántico (no es bug): el pivot suma renglones <code>ii.subtotal</code> (sin ITBMS ni
+descuento global), así que <code>gastoMensual</code> puede diferir unos centavos de
+<code>costoCompras + gastosOper</code> de la página 1 — el rango de días usa la misma base
+del pivot, internamente consistente. También filtra <code>i.is_active</code> igual que el
+resto del reporte (aunque hoy una PAGADA jamás se soft-deletea).
+Cálculo del aporte en <code>report/support/RetornoInversion.java</code> (réplica de
+<code>recuperacion.ts</code> del front: bandas 6m ≥ 38% · 12m ≥ 19% · 18m ≥ 13%, tope 70%),
+puro y con unit test sin Docker (<code>RetornoInversionTest</code>, 5 casos).</p>
+<h2 id="etapa-trimestral-pdf-cara-cliente-2-xlsx-modelado-2026-10-10">Etapa trimestral — PDF cara cliente + 2 XLSX (modelado 2026-10-10)<a class="headerlink" href="#etapa-trimestral-pdf-cara-cliente-2-xlsx-modelado-2026-10-10" title="Permanent link">&para;</a></h2>
+<p><strong>Principio:</strong> el trimestral lo lee el cliente (dueño), no el contable. Carta de
+resultados, máx 2 páginas, lista para reenviar por WhatsApp/correo. Rango rodante:
+los 3 meses que cierran el mes de envío.</p>
+<p><strong>Regla dura:</strong> prohibido atribuir ganancia por producto. Las ventas son totales
+del día (sin porcionado por producto), así que no existe rentabilidad por producto.
+La ganancia vale solo a nivel negocio (ventas − compras − gastos). El producto
+estrella se define por volumen de compra, nunca por aporte a la ganancia.</p>
+<p><strong>PDF trimestral (qué + qué hago, para leer en 2 minutos):</strong>
+- Página 1: frase resumen en 1 línea + 3 totales grandes (ingresos, gastos,
+  ganancia del trimestre) + barras mes a mes ingresos vs gastos (mitad de la
+  página, dibujo simple con elementos del template, sin librerías nuevas).
+- Página 2: sección grande de consejos (media página o más), 2–3 consejos con su
+  porqué en 1 línea, en palabras normales, solo sobre compras y gastos medidos.
+  Cierra con comparativa ↑↓ del trimestre.
+- Sin tablas mensuales, sin puntajes, sin tortas (eso vive en el Excel).</p>
+<p><strong>XLSX contable:</strong> 1 hoja <code>Mes | Proveedor | Facturas | Total</code>, una fila por
+proveedor+mes, ordenada por fecha. Cero fórmulas raras.</p>
+<p><strong>XLSX comportamiento + salud (el respaldo, no redundante con el PDF):</strong>
+- <code>Datos</code>: tabla mes a mes (ingresos, compras, gastos, ganancia, días cargados,
+  salud 0–100). El detalle detrás de los totales del PDF.
+- <code>Gráficos</code> (solo lo que el PDF no tiene): torta de composición del gasto del
+  trimestre + línea de tendencia de ganancia. Sin barras ingresos-vs-gastos (ya
+  están en el PDF). Generados con POI vía <code>jasperreports-excel-poi</code> (ya en el POM),
+  sin JFreeChart (ausente).
+- <code>Salud</code>: puntaje + pilares + todas las alertas y recomendaciones en texto simple
+  (diagnóstico completo). Regla: el PDF dice qué hacer, el Excel dice por qué.
+  Mes sin datos → <code>"sin datos"</code>, nunca inventar.
+- Salud del motor existente (<code>core_pymes.analytics</code>) llamado en proceso, sin cableado
+  nuevo: último mes del trimestre + delta vs hace 3 meses. Sin proyecciones.
+- El XLSX mensual pendiente de Fase 2 queda absorbido: el contable lo cubre a nivel trimestre.</p>
+<p><strong>Diseño técnico:</strong> queries del mensual reutilizadas con rango <code>[from, to)</code> de 3 meses;
+<code>period</code> trimestral convive en <code>report_log</code> sin migraciones (mismo tenant, período
+distinto: mensual <code>YYYY-MM</code>, trimestral con formato propio). Cada archivo con su fila
+en <code>report_log</code> (reintento independiente por formato).</p>
+<p><strong>Envío:</strong> el mensual va todos los meses para todos. El trimestral va cada 3 meses
+por tenant, anclado a su primer registro (ej: tenant creado en febrero → cierres en
+abr/jul/oct/ene). El scheduler del día 1 solo genera trimestral (+ 2 XLSX) a los
+tenants que cumplen <code>meses_desde_primer_registro % 3 == 0</code>. El mensual de ese mes se
+envía igual junto al paquete trimestral.</p>
+<h2 id="recuperacion-de-inversion-en-reportes-diseno-2026-10-11">Recuperación de inversión en reportes (diseño 2026-10-11)<a class="headerlink" href="#recuperacion-de-inversion-en-reportes-diseno-2026-10-11" title="Permanent link">&para;</a></h2>
+<p><strong>Idea:</strong> el reporte le dice al dueño <em>"si tomaste las recomendaciones, debes haber
+recuperado $X de $10,000 hasta el momento"</em>. Misma lógica de la tarjeta de
+Patrimonio (<code>PatrimonioPage.vue</code>, sección "Plan de retorno"), repetida sobre meses
+cerrados. Solo lo real: mes sin datos = 0 aportado, nunca inventar.</p>
+<p><strong>Cálculo por mes cerrado (decisión final del dueño: cierre en mensual pág. 2,
+formato corto):</strong> aporte = fijo del plazo (<code>capitalInicial / plazo</code>), con tope
+70% de la rentabilidad del mes; si el mes no dio (rentabilidad ≤ 0 o margen
+&lt; 13%), aporte 0 y línea <code>protege la caja</code>. Resto = rentabilidad − aporte;
+días = <code>floor(resto / gastoMax)…floor(resto / gastoMin)</code> con el gasto
+diario/min/max del pivot; <code>% = resto / gastoMensual</code>. Sin arrastres entre meses
+(decisión del dueño 2026-10-11: la tarjeta es solo mes actual; el acumulado vive
+en el trimestral, en diseño).
+- Mensual pág. 2: <code>Te quedaron $X: aparta $Y para el retorno de tu inversión
+  inicial ($Z) (ritmo N meses).</code> + <code>Con $R te alcanza para operar entre N y M
+  días (P% del gasto mensual).</code>
+- Trimestral pág. 1 (diseño, sin código): <code>recuperaste $Y de $Z</code> + aparte vigente
+  + avance <code>Llevas recuperado $Y de $Z</code> (idea #2 del dueño: suma de aportes del
+  rango, sale del historial guardado).
+- Ritmo vigente = el calificado por el último mes cerrado (bandas 6m ≥ 38% ·
+  12m ≥ 19% · 18m ≥ 13% · &lt; 13% = protege la caja).</p>
+<p><strong>Dónde vive:</strong> PDF trimestral página 1, una línea debajo de los 3 totales
+(es cara cliente y el tema es inversión). El mensual no se toca (lleno con etapa 2).
+XLSX <code>Datos</code>: una columna más por mes (aporte recomendado + recuperado acumulado) —
+el detalle detrás de la línea del PDF. Sin capital registrado → la sección no aparece.</p>
+<p><strong>Diseño técnico (cuando se construya):</strong> replay en proceso sobre
+<code>tenant_financial_metrics</code> (<code>netMargin</code>, <code>netMarginPct</code> por período) + capital de
+<code>core.patrimony</code>; reutiliza el mismo helper de cálculo que la tarjeta (un solo punto
+de verdad). Sin migración, sin endpoint nuevo para la v1.</p>
+
+
+
+
+
+
+
+
+
+
+
+
+                
+              </article>
+            </div>
+          
+          
+<script>var target=document.getElementById(location.hash.slice(1));target&&target.name&&(target.checked=target.name.startsWith("__tabbed_"))</script>
+        </div>
+        
+          <button type="button" class="md-top md-icon" data-md-component="top" hidden>
+  
+  <svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 24 24"><path d="M13 20h-2V8l-5.5 5.5-1.42-1.42L12 4.16l7.92 7.92-1.42 1.42L13 8z"/></svg>
+  Volver al principio
+</button>
+        
+      </main>
+      
+        <footer class="md-footer">
+  
+  <div class="md-footer-meta md-typeset">
+    <div class="md-footer-meta__inner md-grid">
+      <div class="md-copyright">
+  
+  
+    Made with
+    <a href="https://squidfunk.github.io/mkdocs-material/" target="_blank" rel="noopener">
+      Material for MkDocs
+    </a>
+  
+</div>
+      
+    </div>
+  </div>
+</footer>
+      
+    </div>
+    <div class="md-dialog" data-md-component="dialog">
+      <div class="md-dialog__inner md-typeset"></div>
+    </div>
+    
+    
+    
+      
+      
+      <script id="__config" type="application/json">{"annotate": null, "base": "../../../../..", "features": ["navigation.tabs", "navigation.top", "search.highlight", "content.code.copy"], "search": "../../../../../assets/javascripts/workers/search.a7633da7.min.js", "tags": null, "translations": {"clipboard.copied": "Copiado al portapapeles", "clipboard.copy": "Copiar al portapapeles", "search.result.more.one": "1 m\u00e1s en esta p\u00e1gina", "search.result.more.other": "# m\u00e1s en esta p\u00e1gina", "search.result.none": "No se encontraron documentos", "search.result.one": "1 documento encontrado", "search.result.other": "# documentos encontrados", "search.result.placeholder": "Teclee para comenzar b\u00fasqueda", "search.result.term.missing": "Falta", "select.version": "Seleccionar versi\u00f3n"}, "version": null}</script>
+    
+    
+      <script src="../../../../../assets/javascripts/bundle.a5f9d56c.min.js"></script>
+      
+    
+  </body>
+</html>

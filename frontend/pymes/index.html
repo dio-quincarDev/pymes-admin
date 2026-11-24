@@ -1,0 +1,3147 @@
+
+<!doctype html>
+<html lang="es" class="no-js">
+  <head>
+    
+      <meta charset="utf-8">
+      <meta name="viewport" content="width=device-width,initial-scale=1">
+      
+        <meta name="description" content="Documentación del producto, arquitectura, API y operación">
+      
+      
+        <meta name="author" content="dio-quincarDev">
+      
+      
+      
+        <link rel="prev" href="../../backend/core/">
+      
+      
+        <link rel="next" href="../../docs/persistencia-postgres/">
+      
+      
+        
+      
+      
+      <link rel="icon" href="../../assets/images/favicon.png">
+      <meta name="generator" content="mkdocs-1.6.1, mkdocs-material-9.8.2">
+    
+    
+      
+        <title>Frontend - Pymeq — Forensic Accounting for Small Business</title>
+      
+    
+    
+      <link rel="stylesheet" href="../../assets/stylesheets/main.57a0d79d.min.css">
+      
+        
+        <link rel="stylesheet" href="../../assets/stylesheets/palette.fb2fffe2.min.css">
+      
+      
+
+
+    
+    
+      
+    
+    
+      
+        
+        
+        <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+        <link rel="stylesheet" href="https://fonts.googleapis.com/css?family=Roboto:300,300i,400,400i,700,700i%7CRoboto+Mono:400,400i,700,700i&display=fallback">
+        <style>:root{--md-text-font:"Roboto";--md-code-font:"Roboto Mono"}</style>
+      
+    
+    
+    <script>__md_scope=new URL("../..",location),__md_hash=e=>[...e].reduce(((e,_)=>(e<<5)-e+_.charCodeAt(0)),0),__md_get=(e,_=localStorage,t=__md_scope)=>JSON.parse(_.getItem(t.pathname+"."+e)),__md_set=(e,_,t=localStorage,a=__md_scope)=>{try{t.setItem(a.pathname+"."+e,JSON.stringify(_))}catch(e){}}</script>
+    
+      
+
+    
+    
+  </head>
+  
+  
+    
+    
+      
+    
+    
+    
+    
+    <body dir="ltr" data-md-color-scheme="slate" data-md-color-primary="teal" data-md-color-accent="amber">
+  
+    
+    <input class="md-toggle" data-md-toggle="drawer" type="checkbox" id="__drawer" autocomplete="off">
+    <input class="md-toggle" data-md-toggle="search" type="checkbox" id="__search" autocomplete="off">
+    <label class="md-overlay" for="__drawer"></label>
+    <div data-md-component="skip">
+      
+        
+        <a href="#pymes-admin-frontend" class="md-skip">
+          Saltar a contenido
+        </a>
+      
+    </div>
+    <div data-md-component="announce">
+      
+    </div>
+    
+    
+      
+
+<header class="md-header" data-md-component="header">
+  <nav class="md-header__inner md-grid" aria-label="Cabecera">
+    <a href="../.." title="Pymeq — Forensic Accounting for Small Business" class="md-header__button md-logo" aria-label="Pymeq — Forensic Accounting for Small Business" data-md-component="logo">
+      
+  
+  <svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 24 24"><path d="M12 8a3 3 0 0 0 3-3 3 3 0 0 0-3-3 3 3 0 0 0-3 3 3 3 0 0 0 3 3m0 3.54C9.64 9.35 6.5 8 3 8v11c3.5 0 6.64 1.35 9 3.54 2.36-2.19 5.5-3.54 9-3.54V8c-3.5 0-6.64 1.35-9 3.54"/></svg>
+
+    </a>
+    <label class="md-header__button md-icon" for="__drawer">
+      
+      <svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 24 24"><path d="M3 6h18v2H3zm0 5h18v2H3zm0 5h18v2H3z"/></svg>
+    </label>
+    <div class="md-header__title" data-md-component="header-title">
+      <div class="md-header__ellipsis">
+        <div class="md-header__topic">
+          <span class="md-ellipsis">
+            Pymeq — Forensic Accounting for Small Business
+          </span>
+        </div>
+        <div class="md-header__topic" data-md-component="header-topic">
+          <span class="md-ellipsis">
+            
+              Frontend
+            
+          </span>
+        </div>
+      </div>
+    </div>
+    
+      
+        <form class="md-header__option" data-md-component="palette">
+  
+    
+    
+    
+    <input class="md-option" data-md-color-media="" data-md-color-scheme="slate" data-md-color-primary="teal" data-md-color-accent="amber"  aria-label="Cambiar a tema claro"  type="radio" name="__palette" id="__palette_0">
+    
+      <label class="md-header__button md-icon" title="Cambiar a tema claro" for="__palette_1" hidden>
+        <svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 24 24"><path d="m17.75 4.09-2.53 1.94.91 3.06-2.63-1.81-2.63 1.81.91-3.06-2.53-1.94L12.44 4l1.06-3 1.06 3zm3.5 6.91-1.64 1.25.59 1.98-1.7-1.17-1.7 1.17.59-1.98L15.75 11l2.06-.05L18.5 9l.69 1.95zm-2.28 4.95c.83-.08 1.72 1.1 1.19 1.85-.32.45-.66.87-1.08 1.27C15.17 23 8.84 23 4.94 19.07c-3.91-3.9-3.91-10.24 0-14.14.4-.4.82-.76 1.27-1.08.75-.53 1.93.36 1.85 1.19-.27 2.86.69 5.83 2.89 8.02a9.96 9.96 0 0 0 8.02 2.89m-1.64 2.02a12.08 12.08 0 0 1-7.8-3.47c-2.17-2.19-3.33-5-3.49-7.82-2.81 3.14-2.7 7.96.31 10.98 3.02 3.01 7.84 3.12 10.98.31"/></svg>
+      </label>
+    
+  
+    
+    
+    
+    <input class="md-option" data-md-color-media="" data-md-color-scheme="default" data-md-color-primary="teal" data-md-color-accent="amber"  aria-label="Cambiar a tema oscuro"  type="radio" name="__palette" id="__palette_1">
+    
+      <label class="md-header__button md-icon" title="Cambiar a tema oscuro" for="__palette_0" hidden>
+        <svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 24 24"><path d="M12 7a5 5 0 0 1 5 5 5 5 0 0 1-5 5 5 5 0 0 1-5-5 5 5 0 0 1 5-5m0 2a3 3 0 0 0-3 3 3 3 0 0 0 3 3 3 3 0 0 0 3-3 3 3 0 0 0-3-3m0-7 2.39 3.42C13.65 5.15 12.84 5 12 5s-1.65.15-2.39.42zM3.34 7l4.16-.35A7.2 7.2 0 0 0 5.94 8.5c-.44.74-.69 1.5-.83 2.29zm.02 10 1.76-3.77a7.131 7.131 0 0 0 2.38 4.14zM20.65 7l-1.77 3.79a7.02 7.02 0 0 0-2.38-4.15zm-.01 10-4.14.36c.59-.51 1.12-1.14 1.54-1.86.42-.73.69-1.5.83-2.29zM12 22l-2.41-3.44c.74.27 1.55.44 2.41.44.82 0 1.63-.17 2.37-.44z"/></svg>
+      </label>
+    
+  
+</form>
+      
+    
+    
+      <script>var palette=__md_get("__palette");if(palette&&palette.color){if("(prefers-color-scheme)"===palette.color.media){var media=matchMedia("(prefers-color-scheme: light)"),input=document.querySelector(media.matches?"[data-md-color-media='(prefers-color-scheme: light)']":"[data-md-color-media='(prefers-color-scheme: dark)']");palette.color.media=input.getAttribute("data-md-color-media"),palette.color.scheme=input.getAttribute("data-md-color-scheme"),palette.color.primary=input.getAttribute("data-md-color-primary"),palette.color.accent=input.getAttribute("data-md-color-accent")}for(var[key,value]of Object.entries(palette.color))document.body.setAttribute("data-md-color-"+key,value)}</script>
+    
+    
+    
+      
+      
+        <label class="md-header__button md-icon" for="__search">
+          
+          <svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 24 24"><path d="M9.5 3A6.5 6.5 0 0 1 16 9.5c0 1.61-.59 3.09-1.56 4.23l.27.27h.79l5 5-1.5 1.5-5-5v-.79l-.27-.27A6.52 6.52 0 0 1 9.5 16 6.5 6.5 0 0 1 3 9.5 6.5 6.5 0 0 1 9.5 3m0 2C7 5 5 7 5 9.5S7 14 9.5 14 14 12 14 9.5 12 5 9.5 5"/></svg>
+        </label>
+        <div class="md-search" data-md-component="search" role="dialog">
+  <label class="md-search__overlay" for="__search"></label>
+  <div class="md-search__inner" role="search">
+    <form class="md-search__form" name="search">
+      <input type="text" class="md-search__input" name="query" aria-label="Búsqueda" placeholder="Búsqueda" autocapitalize="off" autocorrect="off" autocomplete="off" spellcheck="false" data-md-component="search-query" required>
+      <label class="md-search__icon md-icon" for="__search">
+        
+        <svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 24 24"><path d="M9.5 3A6.5 6.5 0 0 1 16 9.5c0 1.61-.59 3.09-1.56 4.23l.27.27h.79l5 5-1.5 1.5-5-5v-.79l-.27-.27A6.52 6.52 0 0 1 9.5 16 6.5 6.5 0 0 1 3 9.5 6.5 6.5 0 0 1 9.5 3m0 2C7 5 5 7 5 9.5S7 14 9.5 14 14 12 14 9.5 12 5 9.5 5"/></svg>
+        
+        <svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 24 24"><path d="M20 11v2H8l5.5 5.5-1.42 1.42L4.16 12l7.92-7.92L13.5 5.5 8 11z"/></svg>
+      </label>
+      <nav class="md-search__options" aria-label="Buscar">
+        
+        <button type="reset" class="md-search__icon md-icon" title="Limpiar" aria-label="Limpiar" tabindex="-1">
+          
+          <svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 24 24"><path d="M19 6.41 17.59 5 12 10.59 6.41 5 5 6.41 10.59 12 5 17.59 6.41 19 12 13.41 17.59 19 19 17.59 13.41 12z"/></svg>
+        </button>
+      </nav>
+      
+    </form>
+    <div class="md-search__output">
+      <div class="md-search__scrollwrap" tabindex="0" data-md-scrollfix>
+        <div class="md-search-result" data-md-component="search-result">
+          <div class="md-search-result__meta">
+            Inicializando búsqueda
+          </div>
+          <ol class="md-search-result__list" role="presentation"></ol>
+        </div>
+      </div>
+    </div>
+  </div>
+</div>
+      
+    
+    
+      <div class="md-header__source">
+        <a href="https://github.com/dio-quincarDev/pymes-admin" title="Ir al repositorio" class="md-source" data-md-component="source">
+  <div class="md-source__icon md-icon">
+    
+    <svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 448 512"><!--! Font Awesome Free 7.1.0 by @fontawesome - https://fontawesome.com License - https://fontawesome.com/license/free (Icons: CC BY 4.0, Fonts: SIL OFL 1.1, Code: MIT License) Copyright 2025 Fonticons, Inc.--><path d="M439.6 236.1 244 40.5c-5.4-5.5-12.8-8.5-20.4-8.5s-15 3-20.4 8.4L162.5 81l51.5 51.5c27.1-9.1 52.7 16.8 43.4 43.7l49.7 49.7c34.2-11.8 61.2 31 35.5 56.7-26.5 26.5-70.2-2.9-56-37.3L240.3 199v121.9c25.3 12.5 22.3 41.8 9.1 55-6.4 6.4-15.2 10.1-24.3 10.1s-17.8-3.6-24.3-10.1c-17.6-17.6-11.1-46.9 11.2-56v-123c-20.8-8.5-24.6-30.7-18.6-45L142.6 101 8.5 235.1C3 240.6 0 247.9 0 255.5s3 15 8.5 20.4l195.6 195.7c5.4 5.4 12.7 8.4 20.4 8.4s15-3 20.4-8.4l194.7-194.7c5.4-5.4 8.4-12.8 8.4-20.4s-3-15-8.4-20.4"/></svg>
+  </div>
+  <div class="md-source__repository">
+    dio-quincarDev/pymes-admin
+  </div>
+</a>
+      </div>
+    
+  </nav>
+  
+</header>
+    
+    <div class="md-container" data-md-component="container">
+      
+      
+        
+          
+            
+<nav class="md-tabs" aria-label="Pestañas" data-md-component="tabs">
+  <div class="md-grid">
+    <ul class="md-tabs__list">
+      
+        
+  
+  
+  
+  
+    <li class="md-tabs__item">
+      <a href="../.." class="md-tabs__link">
+        
+  
+  
+    
+  
+  Inicio
+
+      </a>
+    </li>
+  
+
+      
+        
+  
+  
+  
+  
+    
+    
+      <li class="md-tabs__item">
+        <a href="../.." class="md-tabs__link">
+          
+  
+  
+  Producto
+
+        </a>
+      </li>
+    
+  
+
+      
+        
+  
+  
+  
+  
+    
+    
+      <li class="md-tabs__item">
+        <a href="../../docs/api/" class="md-tabs__link">
+          
+  
+  
+  API Reference
+
+        </a>
+      </li>
+    
+  
+
+      
+        
+  
+  
+  
+    
+  
+  
+    
+    
+      <li class="md-tabs__item md-tabs__item--active">
+        <a href="../../docs/architecture/architecture/" class="md-tabs__link">
+          
+  
+  
+  Arquitectura
+
+        </a>
+      </li>
+    
+  
+
+      
+        
+  
+  
+  
+  
+    
+    
+      <li class="md-tabs__item">
+        <a href="../../deployment/DEPLOYMENT/" class="md-tabs__link">
+          
+  
+  
+  Operación
+
+        </a>
+      </li>
+    
+  
+
+      
+        
+  
+  
+  
+  
+    
+    
+      <li class="md-tabs__item">
+        <a href="../../docs/guides/user-guide/" class="md-tabs__link">
+          
+  
+  
+  Guías
+
+        </a>
+      </li>
+    
+  
+
+      
+        
+  
+  
+  
+  
+    
+    
+      <li class="md-tabs__item">
+        <a href="../../backend/core/docs/KPIs/" class="md-tabs__link">
+          
+  
+  
+  Referencia
+
+        </a>
+      </li>
+    
+  
+
+      
+    </ul>
+  </div>
+</nav>
+          
+        
+      
+      <main class="md-main" data-md-component="main">
+        <div class="md-main__inner md-grid">
+          
+            
+              
+              <div class="md-sidebar md-sidebar--primary" data-md-component="sidebar" data-md-type="navigation" >
+                <div class="md-sidebar__scrollwrap">
+                  <div class="md-sidebar__inner">
+                    
+
+
+  
+
+
+<nav class="md-nav md-nav--primary md-nav--lifted" aria-label="Navegación" data-md-level="0">
+  <label class="md-nav__title" for="__drawer">
+    <a href="../.." title="Pymeq — Forensic Accounting for Small Business" class="md-nav__button md-logo" aria-label="Pymeq — Forensic Accounting for Small Business" data-md-component="logo">
+      
+  
+  <svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 24 24"><path d="M12 8a3 3 0 0 0 3-3 3 3 0 0 0-3-3 3 3 0 0 0-3 3 3 3 0 0 0 3 3m0 3.54C9.64 9.35 6.5 8 3 8v11c3.5 0 6.64 1.35 9 3.54 2.36-2.19 5.5-3.54 9-3.54V8c-3.5 0-6.64 1.35-9 3.54"/></svg>
+
+    </a>
+    Pymeq — Forensic Accounting for Small Business
+  </label>
+  
+    <div class="md-nav__source">
+      <a href="https://github.com/dio-quincarDev/pymes-admin" title="Ir al repositorio" class="md-source" data-md-component="source">
+  <div class="md-source__icon md-icon">
+    
+    <svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 448 512"><!--! Font Awesome Free 7.1.0 by @fontawesome - https://fontawesome.com License - https://fontawesome.com/license/free (Icons: CC BY 4.0, Fonts: SIL OFL 1.1, Code: MIT License) Copyright 2025 Fonticons, Inc.--><path d="M439.6 236.1 244 40.5c-5.4-5.5-12.8-8.5-20.4-8.5s-15 3-20.4 8.4L162.5 81l51.5 51.5c27.1-9.1 52.7 16.8 43.4 43.7l49.7 49.7c34.2-11.8 61.2 31 35.5 56.7-26.5 26.5-70.2-2.9-56-37.3L240.3 199v121.9c25.3 12.5 22.3 41.8 9.1 55-6.4 6.4-15.2 10.1-24.3 10.1s-17.8-3.6-24.3-10.1c-17.6-17.6-11.1-46.9 11.2-56v-123c-20.8-8.5-24.6-30.7-18.6-45L142.6 101 8.5 235.1C3 240.6 0 247.9 0 255.5s3 15 8.5 20.4l195.6 195.7c5.4 5.4 12.7 8.4 20.4 8.4s15-3 20.4-8.4l194.7-194.7c5.4-5.4 8.4-12.8 8.4-20.4s-3-15-8.4-20.4"/></svg>
+  </div>
+  <div class="md-source__repository">
+    dio-quincarDev/pymes-admin
+  </div>
+</a>
+    </div>
+  
+  <ul class="md-nav__list" data-md-scrollfix>
+    
+      
+      
+  
+  
+  
+  
+    <li class="md-nav__item">
+      <a href="../.." class="md-nav__link">
+        
+  
+  
+  <span class="md-ellipsis">
+    
+  
+    Inicio
+  
+
+    
+  </span>
+  
+  
+
+      </a>
+    </li>
+  
+
+    
+      
+      
+  
+  
+  
+  
+    
+    
+    
+    
+      
+      
+    
+    
+    <li class="md-nav__item md-nav__item--nested">
+      
+        
+        
+        <input class="md-nav__toggle md-toggle " type="checkbox" id="__nav_2" >
+        
+          
+          <label class="md-nav__link" for="__nav_2" id="__nav_2_label" tabindex="0">
+            
+  
+  
+  <span class="md-ellipsis">
+    
+  
+    Producto
+  
+
+    
+  </span>
+  
+  
+
+            <span class="md-nav__icon md-icon"></span>
+          </label>
+        
+        <nav class="md-nav" data-md-level="1" aria-labelledby="__nav_2_label" aria-expanded="false">
+          <label class="md-nav__title" for="__nav_2">
+            <span class="md-nav__icon md-icon"></span>
+            
+  
+    Producto
+  
+
+          </label>
+          <ul class="md-nav__list" data-md-scrollfix>
+            
+              
+                
+  
+  
+  
+  
+    <li class="md-nav__item">
+      <a href="../.." class="md-nav__link">
+        
+  
+  
+  <span class="md-ellipsis">
+    
+  
+    Inicio
+  
+
+    
+  </span>
+  
+  
+
+      </a>
+    </li>
+  
+
+              
+            
+              
+                
+  
+  
+  
+  
+    <li class="md-nav__item">
+      <a href="../../docs/product/features/" class="md-nav__link">
+        
+  
+  
+  <span class="md-ellipsis">
+    
+  
+    Características
+  
+
+    
+  </span>
+  
+  
+
+      </a>
+    </li>
+  
+
+              
+            
+              
+                
+  
+  
+  
+  
+    <li class="md-nav__item">
+      <a href="../../docs/product/roadmap/" class="md-nav__link">
+        
+  
+  
+  <span class="md-ellipsis">
+    
+  
+    Roadmap
+  
+
+    
+  </span>
+  
+  
+
+      </a>
+    </li>
+  
+
+              
+            
+              
+                
+  
+  
+  
+  
+    <li class="md-nav__item">
+      <a href="../../docs/TO_DO/" class="md-nav__link">
+        
+  
+  
+  <span class="md-ellipsis">
+    
+  
+    Pendientes
+  
+
+    
+  </span>
+  
+  
+
+      </a>
+    </li>
+  
+
+              
+            
+              
+                
+  
+  
+  
+  
+    <li class="md-nav__item">
+      <a href="../../docs/GAPS/" class="md-nav__link">
+        
+  
+  
+  <span class="md-ellipsis">
+    
+  
+    Diferencias doc/código
+  
+
+    
+  </span>
+  
+  
+
+      </a>
+    </li>
+  
+
+              
+            
+          </ul>
+        </nav>
+      
+    </li>
+  
+
+    
+      
+      
+  
+  
+  
+  
+    
+    
+    
+    
+      
+      
+    
+    
+    <li class="md-nav__item md-nav__item--nested">
+      
+        
+        
+        <input class="md-nav__toggle md-toggle " type="checkbox" id="__nav_3" >
+        
+          
+          <label class="md-nav__link" for="__nav_3" id="__nav_3_label" tabindex="0">
+            
+  
+  
+  <span class="md-ellipsis">
+    
+  
+    API Reference
+  
+
+    
+  </span>
+  
+  
+
+            <span class="md-nav__icon md-icon"></span>
+          </label>
+        
+        <nav class="md-nav" data-md-level="1" aria-labelledby="__nav_3_label" aria-expanded="false">
+          <label class="md-nav__title" for="__nav_3">
+            <span class="md-nav__icon md-icon"></span>
+            
+  
+    API Reference
+  
+
+          </label>
+          <ul class="md-nav__list" data-md-scrollfix>
+            
+              
+                
+  
+  
+  
+  
+    <li class="md-nav__item">
+      <a href="../../docs/api/" class="md-nav__link">
+        
+  
+  
+  <span class="md-ellipsis">
+    
+  
+    Contrato (índice)
+  
+
+    
+  </span>
+  
+  
+
+      </a>
+    </li>
+  
+
+              
+            
+              
+                
+  
+  
+  
+  
+    <li class="md-nav__item">
+      <a href="../../api/auth/" class="md-nav__link">
+        
+  
+  
+  <span class="md-ellipsis">
+    
+  
+    Auth (generado)
+  
+
+    
+  </span>
+  
+  
+
+      </a>
+    </li>
+  
+
+              
+            
+              
+                
+  
+  
+  
+  
+    <li class="md-nav__item">
+      <a href="../../api/core/" class="md-nav__link">
+        
+  
+  
+  <span class="md-ellipsis">
+    
+  
+    Core (generado)
+  
+
+    
+  </span>
+  
+  
+
+      </a>
+    </li>
+  
+
+              
+            
+          </ul>
+        </nav>
+      
+    </li>
+  
+
+    
+      
+      
+  
+  
+    
+  
+  
+  
+    
+    
+    
+    
+      
+        
+        
+      
+      
+    
+    
+    <li class="md-nav__item md-nav__item--active md-nav__item--section md-nav__item--nested">
+      
+        
+        
+        <input class="md-nav__toggle md-toggle " type="checkbox" id="__nav_4" checked>
+        
+          
+          <label class="md-nav__link" for="__nav_4" id="__nav_4_label" tabindex="">
+            
+  
+  
+  <span class="md-ellipsis">
+    
+  
+    Arquitectura
+  
+
+    
+  </span>
+  
+  
+
+            <span class="md-nav__icon md-icon"></span>
+          </label>
+        
+        <nav class="md-nav" data-md-level="1" aria-labelledby="__nav_4_label" aria-expanded="true">
+          <label class="md-nav__title" for="__nav_4">
+            <span class="md-nav__icon md-icon"></span>
+            
+  
+    Arquitectura
+  
+
+          </label>
+          <ul class="md-nav__list" data-md-scrollfix>
+            
+              
+                
+  
+  
+  
+  
+    <li class="md-nav__item">
+      <a href="../../docs/architecture/architecture/" class="md-nav__link">
+        
+  
+  
+  <span class="md-ellipsis">
+    
+  
+    Arquitectura (mapa)
+  
+
+    
+  </span>
+  
+  
+
+      </a>
+    </li>
+  
+
+              
+            
+              
+                
+  
+  
+    
+  
+  
+  
+    
+    
+    
+    
+      
+      
+    
+    
+    <li class="md-nav__item md-nav__item--active md-nav__item--nested">
+      
+        
+        
+        <input class="md-nav__toggle md-toggle " type="checkbox" id="__nav_4_2" checked>
+        
+          
+          <label class="md-nav__link" for="__nav_4_2" id="__nav_4_2_label" tabindex="0">
+            
+  
+  
+  <span class="md-ellipsis">
+    
+  
+    Servicios
+  
+
+    
+  </span>
+  
+  
+
+            <span class="md-nav__icon md-icon"></span>
+          </label>
+        
+        <nav class="md-nav" data-md-level="2" aria-labelledby="__nav_4_2_label" aria-expanded="true">
+          <label class="md-nav__title" for="__nav_4_2">
+            <span class="md-nav__icon md-icon"></span>
+            
+  
+    Servicios
+  
+
+          </label>
+          <ul class="md-nav__list" data-md-scrollfix>
+            
+              
+                
+  
+  
+  
+  
+    <li class="md-nav__item">
+      <a href="../../backend/auth/" class="md-nav__link">
+        
+  
+  
+  <span class="md-ellipsis">
+    
+  
+    Auth
+  
+
+    
+  </span>
+  
+  
+
+      </a>
+    </li>
+  
+
+              
+            
+              
+                
+  
+  
+  
+  
+    <li class="md-nav__item">
+      <a href="../../backend/gateway-pymes/" class="md-nav__link">
+        
+  
+  
+  <span class="md-ellipsis">
+    
+  
+    Gateway
+  
+
+    
+  </span>
+  
+  
+
+      </a>
+    </li>
+  
+
+              
+            
+              
+                
+  
+  
+  
+  
+    <li class="md-nav__item">
+      <a href="../../backend/core/" class="md-nav__link">
+        
+  
+  
+  <span class="md-ellipsis">
+    
+  
+    Core
+  
+
+    
+  </span>
+  
+  
+
+      </a>
+    </li>
+  
+
+              
+            
+              
+                
+  
+  
+    
+  
+  
+  
+    <li class="md-nav__item md-nav__item--active">
+      
+      <input class="md-nav__toggle md-toggle" type="checkbox" id="__toc">
+      
+      
+        
+      
+      
+        <label class="md-nav__link md-nav__link--active" for="__toc">
+          
+  
+  
+  <span class="md-ellipsis">
+    
+  
+    Frontend
+  
+
+    
+  </span>
+  
+  
+
+          <span class="md-nav__icon md-icon"></span>
+        </label>
+      
+      <a href="./" class="md-nav__link md-nav__link--active">
+        
+  
+  
+  <span class="md-ellipsis">
+    
+  
+    Frontend
+  
+
+    
+  </span>
+  
+  
+
+      </a>
+      
+        
+
+<nav class="md-nav md-nav--secondary" aria-label="Tabla de contenidos">
+  
+  
+  
+    
+  
+  
+    <label class="md-nav__title" for="__toc">
+      <span class="md-nav__icon md-icon"></span>
+      Tabla de contenidos
+    </label>
+    <ul class="md-nav__list" data-md-component="toc" data-md-scrollfix>
+      
+        <li class="md-nav__item">
+  <a href="#quick-start" class="md-nav__link">
+    <span class="md-ellipsis">
+      
+        Quick Start
+      
+    </span>
+  </a>
+  
+</li>
+      
+        <li class="md-nav__item">
+  <a href="#development" class="md-nav__link">
+    <span class="md-ellipsis">
+      
+        Development
+      
+    </span>
+  </a>
+  
+</li>
+      
+        <li class="md-nav__item">
+  <a href="#project-structure" class="md-nav__link">
+    <span class="md-ellipsis">
+      
+        Project Structure
+      
+    </span>
+  </a>
+  
+</li>
+      
+        <li class="md-nav__item">
+  <a href="#architecture" class="md-nav__link">
+    <span class="md-ellipsis">
+      
+        Architecture
+      
+    </span>
+  </a>
+  
+    <nav class="md-nav" aria-label="Architecture">
+      <ul class="md-nav__list">
+        
+          <li class="md-nav__item">
+  <a href="#routing" class="md-nav__link">
+    <span class="md-ellipsis">
+      
+        Routing
+      
+    </span>
+  </a>
+  
+</li>
+        
+          <li class="md-nav__item">
+  <a href="#auth-flow" class="md-nav__link">
+    <span class="md-ellipsis">
+      
+        Auth Flow
+      
+    </span>
+  </a>
+  
+</li>
+        
+          <li class="md-nav__item">
+  <a href="#onboarding" class="md-nav__link">
+    <span class="md-ellipsis">
+      
+        Onboarding
+      
+    </span>
+  </a>
+  
+</li>
+        
+          <li class="md-nav__item">
+  <a href="#design-system-swissgrid-institutional-warmth" class="md-nav__link">
+    <span class="md-ellipsis">
+      
+        Design System (Swiss/Grid + Institutional Warmth)
+      
+    </span>
+  </a>
+  
+</li>
+        
+          <li class="md-nav__item">
+  <a href="#componentes" class="md-nav__link">
+    <span class="md-ellipsis">
+      
+        Componentes
+      
+    </span>
+  </a>
+  
+</li>
+        
+          <li class="md-nav__item">
+  <a href="#analytics" class="md-nav__link">
+    <span class="md-ellipsis">
+      
+        Analytics
+      
+    </span>
+  </a>
+  
+</li>
+        
+          <li class="md-nav__item">
+  <a href="#seo" class="md-nav__link">
+    <span class="md-ellipsis">
+      
+        SEO
+      
+    </span>
+  </a>
+  
+</li>
+        
+          <li class="md-nav__item">
+  <a href="#pwa-offline" class="md-nav__link">
+    <span class="md-ellipsis">
+      
+        PWA / Offline
+      
+    </span>
+  </a>
+  
+</li>
+        
+          <li class="md-nav__item">
+  <a href="#tutorial-guiado" class="md-nav__link">
+    <span class="md-ellipsis">
+      
+        Tutorial Guiado
+      
+    </span>
+  </a>
+  
+</li>
+        
+          <li class="md-nav__item">
+  <a href="#keyboard-shortcuts" class="md-nav__link">
+    <span class="md-ellipsis">
+      
+        Keyboard Shortcuts
+      
+    </span>
+  </a>
+  
+</li>
+        
+          <li class="md-nav__item">
+  <a href="#ux-features" class="md-nav__link">
+    <span class="md-ellipsis">
+      
+        UX Features
+      
+    </span>
+  </a>
+  
+</li>
+        
+      </ul>
+    </nav>
+  
+</li>
+      
+        <li class="md-nav__item">
+  <a href="#configuration" class="md-nav__link">
+    <span class="md-ellipsis">
+      
+        Configuration
+      
+    </span>
+  </a>
+  
+    <nav class="md-nav" aria-label="Configuration">
+      <ul class="md-nav__list">
+        
+          <li class="md-nav__item">
+  <a href="#environment-variables" class="md-nav__link">
+    <span class="md-ellipsis">
+      
+        Environment Variables
+      
+    </span>
+  </a>
+  
+</li>
+        
+          <li class="md-nav__item">
+  <a href="#docker-build" class="md-nav__link">
+    <span class="md-ellipsis">
+      
+        Docker Build
+      
+    </span>
+  </a>
+  
+</li>
+        
+      </ul>
+    </nav>
+  
+</li>
+      
+        <li class="md-nav__item">
+  <a href="#testing" class="md-nav__link">
+    <span class="md-ellipsis">
+      
+        Testing
+      
+    </span>
+  </a>
+  
+    <nav class="md-nav" aria-label="Testing">
+      <ul class="md-nav__list">
+        
+          <li class="md-nav__item">
+  <a href="#e2e-playwright" class="md-nav__link">
+    <span class="md-ellipsis">
+      
+        E2E (Playwright)
+      
+    </span>
+  </a>
+  
+</li>
+        
+      </ul>
+    </nav>
+  
+</li>
+      
+        <li class="md-nav__item">
+  <a href="#build" class="md-nav__link">
+    <span class="md-ellipsis">
+      
+        Build
+      
+    </span>
+  </a>
+  
+    <nav class="md-nav" aria-label="Build">
+      <ul class="md-nav__list">
+        
+          <li class="md-nav__item">
+  <a href="#produccion" class="md-nav__link">
+    <span class="md-ellipsis">
+      
+        Produccion
+      
+    </span>
+  </a>
+  
+</li>
+        
+          <li class="md-nav__item">
+  <a href="#docker" class="md-nav__link">
+    <span class="md-ellipsis">
+      
+        Docker
+      
+    </span>
+  </a>
+  
+</li>
+        
+          <li class="md-nav__item">
+  <a href="#capacitor-android" class="md-nav__link">
+    <span class="md-ellipsis">
+      
+        Capacitor (Android)
+      
+    </span>
+  </a>
+  
+</li>
+        
+      </ul>
+    </nav>
+  
+</li>
+      
+        <li class="md-nav__item">
+  <a href="#cicd" class="md-nav__link">
+    <span class="md-ellipsis">
+      
+        CI/CD
+      
+    </span>
+  </a>
+  
+</li>
+      
+        <li class="md-nav__item">
+  <a href="#known-issues" class="md-nav__link">
+    <span class="md-ellipsis">
+      
+        Known Issues
+      
+    </span>
+  </a>
+  
+</li>
+      
+        <li class="md-nav__item">
+  <a href="#contributing" class="md-nav__link">
+    <span class="md-ellipsis">
+      
+        Contributing
+      
+    </span>
+  </a>
+  
+</li>
+      
+        <li class="md-nav__item">
+  <a href="#license" class="md-nav__link">
+    <span class="md-ellipsis">
+      
+        License
+      
+    </span>
+  </a>
+  
+</li>
+      
+    </ul>
+  
+</nav>
+      
+    </li>
+  
+
+              
+            
+          </ul>
+        </nav>
+      
+    </li>
+  
+
+              
+            
+              
+                
+  
+  
+  
+  
+    <li class="md-nav__item">
+      <a href="../../docs/persistencia-postgres/" class="md-nav__link">
+        
+  
+  
+  <span class="md-ellipsis">
+    
+  
+    Base de datos
+  
+
+    
+  </span>
+  
+  
+
+      </a>
+    </li>
+  
+
+              
+            
+              
+                
+  
+  
+  
+  
+    <li class="md-nav__item">
+      <a href="../../docs/strategies/DB_STRATEGY/" class="md-nav__link">
+        
+  
+  
+  <span class="md-ellipsis">
+    
+  
+    Estrategia multi-schema
+  
+
+    
+  </span>
+  
+  
+
+      </a>
+    </li>
+  
+
+              
+            
+              
+                
+  
+  
+  
+  
+    <li class="md-nav__item">
+      <a href="../../docs/strategies/INFRA_STRATEGY/" class="md-nav__link">
+        
+  
+  
+  <span class="md-ellipsis">
+    
+  
+    Infraestructura
+  
+
+    
+  </span>
+  
+  
+
+      </a>
+    </li>
+  
+
+              
+            
+          </ul>
+        </nav>
+      
+    </li>
+  
+
+    
+      
+      
+  
+  
+  
+  
+    
+    
+    
+    
+      
+      
+    
+    
+    <li class="md-nav__item md-nav__item--nested">
+      
+        
+        
+        <input class="md-nav__toggle md-toggle " type="checkbox" id="__nav_5" >
+        
+          
+          <label class="md-nav__link" for="__nav_5" id="__nav_5_label" tabindex="0">
+            
+  
+  
+  <span class="md-ellipsis">
+    
+  
+    Operación
+  
+
+    
+  </span>
+  
+  
+
+            <span class="md-nav__icon md-icon"></span>
+          </label>
+        
+        <nav class="md-nav" data-md-level="1" aria-labelledby="__nav_5_label" aria-expanded="false">
+          <label class="md-nav__title" for="__nav_5">
+            <span class="md-nav__icon md-icon"></span>
+            
+  
+    Operación
+  
+
+          </label>
+          <ul class="md-nav__list" data-md-scrollfix>
+            
+              
+                
+  
+  
+  
+  
+    <li class="md-nav__item">
+      <a href="../../deployment/DEPLOYMENT/" class="md-nav__link">
+        
+  
+  
+  <span class="md-ellipsis">
+    
+  
+    Deploy
+  
+
+    
+  </span>
+  
+  
+
+      </a>
+    </li>
+  
+
+              
+            
+              
+                
+  
+  
+  
+  
+    <li class="md-nav__item">
+      <a href="../../deployment/QUICK_START/" class="md-nav__link">
+        
+  
+  
+  <span class="md-ellipsis">
+    
+  
+    Quick start CI/CD
+  
+
+    
+  </span>
+  
+  
+
+      </a>
+    </li>
+  
+
+              
+            
+              
+                
+  
+  
+  
+  
+    <li class="md-nav__item">
+      <a href="../../deployment/SECRETS/" class="md-nav__link">
+        
+  
+  
+  <span class="md-ellipsis">
+    
+  
+    Secretos
+  
+
+    
+  </span>
+  
+  
+
+      </a>
+    </li>
+  
+
+              
+            
+              
+                
+  
+  
+  
+  
+    <li class="md-nav__item">
+      <a href="../../docs/DAILY_REPORTS_PROJECT/" class="md-nav__link">
+        
+  
+  
+  <span class="md-ellipsis">
+    
+  
+    Reportes diarios
+  
+
+    
+  </span>
+  
+  
+
+      </a>
+    </li>
+  
+
+              
+            
+          </ul>
+        </nav>
+      
+    </li>
+  
+
+    
+      
+      
+  
+  
+  
+  
+    
+    
+    
+    
+      
+      
+    
+    
+    <li class="md-nav__item md-nav__item--nested">
+      
+        
+        
+        <input class="md-nav__toggle md-toggle " type="checkbox" id="__nav_6" >
+        
+          
+          <label class="md-nav__link" for="__nav_6" id="__nav_6_label" tabindex="0">
+            
+  
+  
+  <span class="md-ellipsis">
+    
+  
+    Guías
+  
+
+    
+  </span>
+  
+  
+
+            <span class="md-nav__icon md-icon"></span>
+          </label>
+        
+        <nav class="md-nav" data-md-level="1" aria-labelledby="__nav_6_label" aria-expanded="false">
+          <label class="md-nav__title" for="__nav_6">
+            <span class="md-nav__icon md-icon"></span>
+            
+  
+    Guías
+  
+
+          </label>
+          <ul class="md-nav__list" data-md-scrollfix>
+            
+              
+                
+  
+  
+  
+  
+    <li class="md-nav__item">
+      <a href="../../docs/guides/user-guide/" class="md-nav__link">
+        
+  
+  
+  <span class="md-ellipsis">
+    
+  
+    Usuario
+  
+
+    
+  </span>
+  
+  
+
+      </a>
+    </li>
+  
+
+              
+            
+              
+                
+  
+  
+  
+  
+    <li class="md-nav__item">
+      <a href="../../docs/guides/admin-guide/" class="md-nav__link">
+        
+  
+  
+  <span class="md-ellipsis">
+    
+  
+    Administración
+  
+
+    
+  </span>
+  
+  
+
+      </a>
+    </li>
+  
+
+              
+            
+              
+                
+  
+  
+  
+  
+    <li class="md-nav__item">
+      <a href="../../docs/guides/operations-guide/" class="md-nav__link">
+        
+  
+  
+  <span class="md-ellipsis">
+    
+  
+    Operación
+  
+
+    
+  </span>
+  
+  
+
+      </a>
+    </li>
+  
+
+              
+            
+          </ul>
+        </nav>
+      
+    </li>
+  
+
+    
+      
+      
+  
+  
+  
+  
+    
+    
+    
+    
+      
+      
+    
+    
+    <li class="md-nav__item md-nav__item--nested">
+      
+        
+        
+        <input class="md-nav__toggle md-toggle " type="checkbox" id="__nav_7" >
+        
+          
+          <label class="md-nav__link" for="__nav_7" id="__nav_7_label" tabindex="0">
+            
+  
+  
+  <span class="md-ellipsis">
+    
+  
+    Referencia
+  
+
+    
+  </span>
+  
+  
+
+            <span class="md-nav__icon md-icon"></span>
+          </label>
+        
+        <nav class="md-nav" data-md-level="1" aria-labelledby="__nav_7_label" aria-expanded="false">
+          <label class="md-nav__title" for="__nav_7">
+            <span class="md-nav__icon md-icon"></span>
+            
+  
+    Referencia
+  
+
+          </label>
+          <ul class="md-nav__list" data-md-scrollfix>
+            
+              
+                
+  
+  
+  
+  
+    <li class="md-nav__item">
+      <a href="../../backend/core/docs/KPIs/" class="md-nav__link">
+        
+  
+  
+  <span class="md-ellipsis">
+    
+  
+    KPIs
+  
+
+    
+  </span>
+  
+  
+
+      </a>
+    </li>
+  
+
+              
+            
+              
+                
+  
+  
+  
+  
+    <li class="md-nav__item">
+      <a href="../../backend/core/docs/COSTOS_ENGINE/" class="md-nav__link">
+        
+  
+  
+  <span class="md-ellipsis">
+    
+  
+    Motor de costos
+  
+
+    
+  </span>
+  
+  
+
+      </a>
+    </li>
+  
+
+              
+            
+              
+                
+  
+  
+  
+  
+    <li class="md-nav__item">
+      <a href="../../backend/core/docs/ANALYTICS/" class="md-nav__link">
+        
+  
+  
+  <span class="md-ellipsis">
+    
+  
+    Analítica
+  
+
+    
+  </span>
+  
+  
+
+      </a>
+    </li>
+  
+
+              
+            
+              
+                
+  
+  
+  
+  
+    <li class="md-nav__item">
+      <a href="../../backend/core/docs/CORE/" class="md-nav__link">
+        
+  
+  
+  <span class="md-ellipsis">
+    
+  
+    Motor de salud financiera
+  
+
+    
+  </span>
+  
+  
+
+      </a>
+    </li>
+  
+
+              
+            
+              
+                
+  
+  
+  
+  
+    <li class="md-nav__item">
+      <a href="docs/PWA_OFFLINE/" class="md-nav__link">
+        
+  
+  
+  <span class="md-ellipsis">
+    
+  
+    PWA offline
+  
+
+    
+  </span>
+  
+  
+
+      </a>
+    </li>
+  
+
+              
+            
+          </ul>
+        </nav>
+      
+    </li>
+  
+
+    
+  </ul>
+</nav>
+                  </div>
+                </div>
+              </div>
+            
+            
+              
+              <div class="md-sidebar md-sidebar--secondary" data-md-component="sidebar" data-md-type="toc" >
+                <div class="md-sidebar__scrollwrap">
+                  <div class="md-sidebar__inner">
+                    
+
+<nav class="md-nav md-nav--secondary" aria-label="Tabla de contenidos">
+  
+  
+  
+    
+  
+  
+    <label class="md-nav__title" for="__toc">
+      <span class="md-nav__icon md-icon"></span>
+      Tabla de contenidos
+    </label>
+    <ul class="md-nav__list" data-md-component="toc" data-md-scrollfix>
+      
+        <li class="md-nav__item">
+  <a href="#quick-start" class="md-nav__link">
+    <span class="md-ellipsis">
+      
+        Quick Start
+      
+    </span>
+  </a>
+  
+</li>
+      
+        <li class="md-nav__item">
+  <a href="#development" class="md-nav__link">
+    <span class="md-ellipsis">
+      
+        Development
+      
+    </span>
+  </a>
+  
+</li>
+      
+        <li class="md-nav__item">
+  <a href="#project-structure" class="md-nav__link">
+    <span class="md-ellipsis">
+      
+        Project Structure
+      
+    </span>
+  </a>
+  
+</li>
+      
+        <li class="md-nav__item">
+  <a href="#architecture" class="md-nav__link">
+    <span class="md-ellipsis">
+      
+        Architecture
+      
+    </span>
+  </a>
+  
+    <nav class="md-nav" aria-label="Architecture">
+      <ul class="md-nav__list">
+        
+          <li class="md-nav__item">
+  <a href="#routing" class="md-nav__link">
+    <span class="md-ellipsis">
+      
+        Routing
+      
+    </span>
+  </a>
+  
+</li>
+        
+          <li class="md-nav__item">
+  <a href="#auth-flow" class="md-nav__link">
+    <span class="md-ellipsis">
+      
+        Auth Flow
+      
+    </span>
+  </a>
+  
+</li>
+        
+          <li class="md-nav__item">
+  <a href="#onboarding" class="md-nav__link">
+    <span class="md-ellipsis">
+      
+        Onboarding
+      
+    </span>
+  </a>
+  
+</li>
+        
+          <li class="md-nav__item">
+  <a href="#design-system-swissgrid-institutional-warmth" class="md-nav__link">
+    <span class="md-ellipsis">
+      
+        Design System (Swiss/Grid + Institutional Warmth)
+      
+    </span>
+  </a>
+  
+</li>
+        
+          <li class="md-nav__item">
+  <a href="#componentes" class="md-nav__link">
+    <span class="md-ellipsis">
+      
+        Componentes
+      
+    </span>
+  </a>
+  
+</li>
+        
+          <li class="md-nav__item">
+  <a href="#analytics" class="md-nav__link">
+    <span class="md-ellipsis">
+      
+        Analytics
+      
+    </span>
+  </a>
+  
+</li>
+        
+          <li class="md-nav__item">
+  <a href="#seo" class="md-nav__link">
+    <span class="md-ellipsis">
+      
+        SEO
+      
+    </span>
+  </a>
+  
+</li>
+        
+          <li class="md-nav__item">
+  <a href="#pwa-offline" class="md-nav__link">
+    <span class="md-ellipsis">
+      
+        PWA / Offline
+      
+    </span>
+  </a>
+  
+</li>
+        
+          <li class="md-nav__item">
+  <a href="#tutorial-guiado" class="md-nav__link">
+    <span class="md-ellipsis">
+      
+        Tutorial Guiado
+      
+    </span>
+  </a>
+  
+</li>
+        
+          <li class="md-nav__item">
+  <a href="#keyboard-shortcuts" class="md-nav__link">
+    <span class="md-ellipsis">
+      
+        Keyboard Shortcuts
+      
+    </span>
+  </a>
+  
+</li>
+        
+          <li class="md-nav__item">
+  <a href="#ux-features" class="md-nav__link">
+    <span class="md-ellipsis">
+      
+        UX Features
+      
+    </span>
+  </a>
+  
+</li>
+        
+      </ul>
+    </nav>
+  
+</li>
+      
+        <li class="md-nav__item">
+  <a href="#configuration" class="md-nav__link">
+    <span class="md-ellipsis">
+      
+        Configuration
+      
+    </span>
+  </a>
+  
+    <nav class="md-nav" aria-label="Configuration">
+      <ul class="md-nav__list">
+        
+          <li class="md-nav__item">
+  <a href="#environment-variables" class="md-nav__link">
+    <span class="md-ellipsis">
+      
+        Environment Variables
+      
+    </span>
+  </a>
+  
+</li>
+        
+          <li class="md-nav__item">
+  <a href="#docker-build" class="md-nav__link">
+    <span class="md-ellipsis">
+      
+        Docker Build
+      
+    </span>
+  </a>
+  
+</li>
+        
+      </ul>
+    </nav>
+  
+</li>
+      
+        <li class="md-nav__item">
+  <a href="#testing" class="md-nav__link">
+    <span class="md-ellipsis">
+      
+        Testing
+      
+    </span>
+  </a>
+  
+    <nav class="md-nav" aria-label="Testing">
+      <ul class="md-nav__list">
+        
+          <li class="md-nav__item">
+  <a href="#e2e-playwright" class="md-nav__link">
+    <span class="md-ellipsis">
+      
+        E2E (Playwright)
+      
+    </span>
+  </a>
+  
+</li>
+        
+      </ul>
+    </nav>
+  
+</li>
+      
+        <li class="md-nav__item">
+  <a href="#build" class="md-nav__link">
+    <span class="md-ellipsis">
+      
+        Build
+      
+    </span>
+  </a>
+  
+    <nav class="md-nav" aria-label="Build">
+      <ul class="md-nav__list">
+        
+          <li class="md-nav__item">
+  <a href="#produccion" class="md-nav__link">
+    <span class="md-ellipsis">
+      
+        Produccion
+      
+    </span>
+  </a>
+  
+</li>
+        
+          <li class="md-nav__item">
+  <a href="#docker" class="md-nav__link">
+    <span class="md-ellipsis">
+      
+        Docker
+      
+    </span>
+  </a>
+  
+</li>
+        
+          <li class="md-nav__item">
+  <a href="#capacitor-android" class="md-nav__link">
+    <span class="md-ellipsis">
+      
+        Capacitor (Android)
+      
+    </span>
+  </a>
+  
+</li>
+        
+      </ul>
+    </nav>
+  
+</li>
+      
+        <li class="md-nav__item">
+  <a href="#cicd" class="md-nav__link">
+    <span class="md-ellipsis">
+      
+        CI/CD
+      
+    </span>
+  </a>
+  
+</li>
+      
+        <li class="md-nav__item">
+  <a href="#known-issues" class="md-nav__link">
+    <span class="md-ellipsis">
+      
+        Known Issues
+      
+    </span>
+  </a>
+  
+</li>
+      
+        <li class="md-nav__item">
+  <a href="#contributing" class="md-nav__link">
+    <span class="md-ellipsis">
+      
+        Contributing
+      
+    </span>
+  </a>
+  
+</li>
+      
+        <li class="md-nav__item">
+  <a href="#license" class="md-nav__link">
+    <span class="md-ellipsis">
+      
+        License
+      
+    </span>
+  </a>
+  
+</li>
+      
+    </ul>
+  
+</nav>
+                  </div>
+                </div>
+              </div>
+            
+          
+          
+            <div class="md-content" data-md-component="content">
+              
+              <article class="md-content__inner md-typeset">
+                
+                  
+
+
+
+<h1 id="pymes-admin-frontend">PyMes Admin — Frontend<a class="headerlink" href="#pymes-admin-frontend" title="Permanent link">&para;</a></h1>
+<blockquote>
+<p>Plataforma SaaS de gestion financiera para PyMEs en Latinoamerica. Modulo frontend construido con Quasar 2 (Vue 3) y Capacitor.</p>
+</blockquote>
+<p><img alt="Vue 3" src="https://img.shields.io/badge/Vue-3.5-42b883?logo=vue.js" />
+<img alt="Quasar 2" src="https://img.shields.io/badge/Quasar-2.16-1976D2?logo=quasar" />
+<img alt="TypeScript" src="https://img.shields.io/badge/TypeScript-5.9-3178C6?logo=typescript" />
+<img alt="License" src="https://img.shields.io/badge/License-Proprietary-red" /></p>
+<p>Docs: <a href="../../docs/api/">API contract (auth + core)</a></p>
+<hr />
+<h2 id="quick-start">Quick Start<a class="headerlink" href="#quick-start" title="Permanent link">&para;</a></h2>
+<div class="highlight"><pre><span></span><code><span class="nb">cd</span><span class="w"> </span>frontend/pymes
+cp<span class="w"> </span>.env.example<span class="w"> </span>.env
+npm<span class="w"> </span>install
+npm<span class="w"> </span>run<span class="w"> </span>dev<span class="w">                  </span><span class="c1"># http://localhost:9200</span>
+</code></pre></div>
+<table>
+<thead>
+<tr>
+<th>Requisito</th>
+<th>Version</th>
+<th>Notas</th>
+</tr>
+</thead>
+<tbody>
+<tr>
+<td>Node.js</td>
+<td>&gt;= 20.x</td>
+<td>LTS recomendada</td>
+</tr>
+<tr>
+<td>npm</td>
+<td>&gt;= 9.x</td>
+<td>Viene con Node</td>
+</tr>
+<tr>
+<td>Android Studio</td>
+<td>2024+</td>
+<td>Solo para Capacitor</td>
+</tr>
+</tbody>
+</table>
+<hr />
+<h2 id="development">Development<a class="headerlink" href="#development" title="Permanent link">&para;</a></h2>
+<div class="highlight"><pre><span></span><code>npm<span class="w"> </span>run<span class="w"> </span>dev<span class="w">          </span><span class="c1"># servidor local (port 9200)</span>
+npm<span class="w"> </span>run<span class="w"> </span>lint<span class="w">         </span><span class="c1"># ESLint</span>
+npm<span class="w"> </span>run<span class="w"> </span>format<span class="w">       </span><span class="c1"># Prettier</span>
+npm<span class="w"> </span>run<span class="w"> </span>build<span class="w">        </span><span class="c1"># produccion (lint + typecheck + build)</span>
+</code></pre></div>
+<blockquote>
+<p>Docker: <code>docker compose up frontend</code> desde la raiz del proyecto.</p>
+</blockquote>
+<hr />
+<h2 id="project-structure">Project Structure<a class="headerlink" href="#project-structure" title="Permanent link">&para;</a></h2>
+<div class="highlight"><pre><span></span><code>frontend/pymes/
+├── src/
+│   ├── assets/              # imagenes, fuentes, iconos
+│   ├── boot/                # scripts de inicializacion
+│   │   ├── axios.ts         # interceptor 401/403, refresh rotation, baseURL + Idempotency-Key per POST (crypto.randomUUID)
+│   │   ├── error-handler.ts # handler global de errores
+│   │   └── i18n.ts          # internacionalizacion
+│   ├── components/
+│   │   ├── base/            # BaseCard, BaseBadge, BaseSkeleton (BaseButton eliminado f31a561)
+│   │   ├── landing/         # LandingHero, FeatureGrid, TrustSection
+│   │   └── ui/              # BrandSplash, EmptyState, SkeletonLoader
+│   ├── composables/         # useAuthForm, useLogout, useScrollReveal, useKeyboardShortcuts, useChartTheme, useTutorial (driver.js 7 pasos + mini hint)
+│   ├── design/              # tokens.ts (Swiss/Grid palette)
+│   ├── i18n/                # locale en-US (placeholder)
+│   ├── layouts/             # LandingLayout, AuthLayout, MainLayout
+│   ├── modules/
+│   │   ├── auth/            # login, register, OAuth2, forgot-password, teams
+│   │   │   ├── pages/       # LoginPage, RegisterPage, OAuthCallback, AcceptInvitationPage, AuthCallback, TeamsPage, etc.
+│   │   │   ├── router/      # rutas protegidas + publicas
+│   │   │   ├── services/    # API: register, login, logout, refresh, invitation
+│   │   │   ├── store/       # Pinia: token, user, tenant
+│   │   │   └── types/       # AuthPayload, LoginCredentials
+│   │   └── core/            # dashboard, productos, facturas, gastos, ventas, prestamos, patrimonio, costos, analisis, contabilidad
+│   │       ├── pages/       # OnboardingPage, CatalogDashboard, ProductosPage, ProveedoresPage, FacturasPage, CostosPage (220l composition surface), etc.
+│   │       ├── components/  # dashboard/, facturas/ (InvoiceItemCard ITBMS 0/7/10), analytics/, onboarding/, costos/ (CostSummaryBar, CollaboratorList, GastoFijoGroupedList)
+│   │       ├── composables/ # useAnalytics, usePeriod, useNumberFormat, useFinancialDashboard, useChartTheme, useCostos, useMonthlyInvestment, useMonthlyProjection, useVentasSemanales
+│   │       ├── services/    # setup, producto, proveedor, factura, gasto, venta, prestamo, patrimonio, accounting, analytics
+│   │       ├── router/      # rutas hijas de dashboard
+│   │       └── types/       # Producto, Factura (itbmsTasa/itbmsMonto, subtotalExento/Gravado), SetupInfo, AnalyticsResponse, etc.
+│   ├── router/              # router principal + guards (hash) + tour 7 rutas /dashboard/*
+│   ├── stores/              # Pinia store principal
+│   ├── styles/
+│   │   ├── variables.scss   # tokens: colores, spacing, radius, shadows
+│   │   └── app.scss         # estilos globales + Swiss/Grid + a11y utilities + .card-grid
+│   ├── types/               # BackendError, ApiError, ERROR_CODES
+│   └── utils/               # parseBackendError, isAuthError, formatCurrency, formatPct, formatDate, toLocalISODate (America/Panama), invoiceMath calcBreakdown, financialGuide isGoodDependence
+├── src-capacitor/           # Capacitor (Android)
+├── src-pwa/                 # PWA: manifest, service worker
+├── public/                  # favicon, iconos
+├── Dockerfile               # multi-stage: node:20 -&gt; nginx:alpine-slim
+├── nginx.conf               # gzip, security headers, SPA fallback
+└── quasar.config.ts         # configuracion Quasar
+</code></pre></div>
+<hr />
+<h2 id="architecture">Architecture<a class="headerlink" href="#architecture" title="Permanent link">&para;</a></h2>
+<pre class="mermaid"><code>flowchart LR
+    R["Router hash&lt;br/&gt;/#/dashboard"] --&gt; PG["Pages / Layouts"]
+    PG --&gt; ST["Pinia store&lt;br/&gt;tokens en localStorage"]
+    ST --&gt; AX["Axios interceptor&lt;br/&gt;Authorization: Bearer"]
+    AX --&gt; GW["Gateway /api/v1"]
+    GW --&gt; SW["Service Worker&lt;br/&gt;caché offline"]
+    SW --&gt; UI["PWA en el navegador"]</code></pre>
+<p>Source: <code>frontend/pymes/src/router/index.ts</code>, <code>src/boot/axios.ts</code>, <code>src/stores/</code>.</p>
+<h3 id="routing">Routing<a class="headerlink" href="#routing" title="Permanent link">&para;</a></h3>
+<p>Modo <code>hash</code> (<code>/#/login</code>, <code>/#/dashboard</code>). Rutas definidas en <code>src/router/index.ts</code> con meta <code>requiresAuth: true</code>.</p>
+<table>
+<thead>
+<tr>
+<th>Ruta</th>
+<th>Componente</th>
+<th>Descripcion</th>
+</tr>
+</thead>
+<tbody>
+<tr>
+<td><code>/</code></td>
+<td>LandingLayout</td>
+<td>Landing page</td>
+</tr>
+<tr>
+<td><code>/login</code></td>
+<td>LoginPage</td>
+<td>Login local + OAuth2 Google</td>
+</tr>
+<tr>
+<td><code>/register</code></td>
+<td>RegisterPage</td>
+<td>Registro (Company First)</td>
+</tr>
+<tr>
+<td><code>/onboarding</code></td>
+<td>OnboardingPage</td>
+<td>Flujo 2 pasos (standalone)</td>
+</tr>
+<tr>
+<td><code>/dashboard</code></td>
+<td>CatalogDashboard</td>
+<td>Panel principal + KPIs</td>
+</tr>
+<tr>
+<td><code>/dashboard/analisis-gastos</code></td>
+<td>AnalisisGastosPage</td>
+<td>Analisis de gastos por categoria</td>
+</tr>
+<tr>
+<td><code>/dashboard/productos</code></td>
+<td>ProductosPage</td>
+<td>CRUD productos + presentaciones</td>
+</tr>
+<tr>
+<td><code>/dashboard/proveedores</code></td>
+<td>ProveedoresPage</td>
+<td>CRUD proveedores</td>
+</tr>
+<tr>
+<td><code>/dashboard/facturas</code></td>
+<td>FacturasPage</td>
+<td>CRUD facturas + pagar + GASTO_OPERATIVO</td>
+</tr>
+<tr>
+<td><code>/dashboard/gastos</code></td>
+<td>→ redirect a costos?tab=gastosFijos</td>
+<td>Redirige a gastos fijos</td>
+</tr>
+<tr>
+<td><code>/dashboard/ventas</code></td>
+<td>VentasPage</td>
+<td>CRUD ventas diarias (toLocalISODate Panama)</td>
+</tr>
+<tr>
+<td><code>/dashboard/prestamos</code></td>
+<td>PrestamosPage</td>
+<td>CRUD prestamos + pagos</td>
+</tr>
+<tr>
+<td><code>/dashboard/patrimonio</code></td>
+<td>PatrimonioPage</td>
+<td>Capital inicial (get-or-create)</td>
+</tr>
+<tr>
+<td><code>/dashboard/costos</code></td>
+<td>CostosPage</td>
+<td>Gastos fijos recurrentes + auto-fill proveedor (composition surface 220l: CostSummaryBar, CollaboratorList, GastoFijoGroupedList + composable useCostos)</td>
+</tr>
+<tr>
+<td><code>/dashboard/accounting</code></td>
+<td>AccountingPage</td>
+<td>Metricas financieras consolidadas (KpiCard importado)</td>
+</tr>
+<tr>
+<td><code>/teams</code></td>
+<td>TeamsPage (<code>modules/auth</code> desde 2026-07-28)</td>
+<td>Gestion de miembros — solo OWNER ve INVITAR/editar rol (RBAC 2026-09-11)</td>
+</tr>
+</tbody>
+</table>
+<h3 id="auth-flow">Auth Flow<a class="headerlink" href="#auth-flow" title="Permanent link">&para;</a></h3>
+<div class="highlight"><pre><span></span><code>1. Usuario completa formulario    -&gt; POST /api/v1/auth/register
+2. Servicio retorna null          (pending registration)
+3. Verifica email                 -&gt; POST /api/v1/auth/verify-email
+4. Verificacion exitosa           -&gt; auto-login -&gt; JWT + refresh token
+5. Pinia store guarda tokens en localStorage
+6. Axios interceptor agrega Authorization header automaticamente
+7. En 401/403                     -&gt; limpia tokens -&gt; redirect a /#/login
+</code></pre></div>
+<p><strong>OAuth2 (Google):</strong></p>
+<div class="highlight"><pre><span></span><code>1. Frontend crea intent   -&gt; POST /api/v1/auth/oauth2/intent (Redis)
+2. Redirect               -&gt; /oauth2/authorization/google?intentId={intentId}
+3. Usuario autoriza en Google
+4. Callback con code      -&gt; redirige a /#/auth/callback?code={uuid}
+5. Frontend intercambia   -&gt; POST /api/v1/auth/exchange {code}
+6. Backend retorna JWT + refresh token
+7. Navegacion a /#/dashboard
+</code></pre></div>
+<blockquote>
+<p>Rutas publicas: <code>/</code>, <code>/login</code>, <code>/register</code>, <code>/verify</code>, <code>/forgot-password</code>, <code>/reset-password</code>, <code>/accept-invitation</code>, <code>/auth/callback</code></p>
+<p>Ruta protegida: <code>/dashboard</code> (requiere JWT valido)</p>
+<p>Onboarding guard: Si <code>onboardingCompleted=false</code> redirige a <code>/onboarding</code> antes de <code>/dashboard</code>.</p>
+</blockquote>
+<h3 id="onboarding">Onboarding<a class="headerlink" href="#onboarding" title="Permanent link">&para;</a></h3>
+<p>Flujo 2 pasos post-registro:</p>
+<div class="highlight"><pre><span></span><code>1. Seleccion de industria
+   8 cards: restaurante, bares, salon_belleza, ferreteria,
+            mini_super, taller_mecanico, farmacia, default
+
+2. Preview interactivo
+   - KPIs: Productos, Categorias, Unidades, Ubicaciones
+   - Busqueda reactiva de productos base
+   - Split layout con q-tabs/q-tab-panels
+
+3. Confirmar
+   POST /core/setup/{tenantId}/onboarding -&gt; /dashboard
+</code></pre></div>
+<h3 id="design-system-swissgrid-institutional-warmth">Design System (Swiss/Grid + Institutional Warmth)<a class="headerlink" href="#design-system-swissgrid-institutional-warmth" title="Permanent link">&para;</a></h3>
+<table>
+<thead>
+<tr>
+<th>Aspecto</th>
+<th>Detalle</th>
+</tr>
+</thead>
+<tbody>
+<tr>
+<td>Paleta</td>
+<td>Near-black <code>#08090D</code> + bronze <code>#C8963E</code></td>
+</tr>
+<tr>
+<td>Tipografia</td>
+<td>Geist (display), Satoshi (body), Geist Mono (numbers)</td>
+</tr>
+<tr>
+<td>Tokens CSS</td>
+<td><code>pq-*</code> prefix para evitar collision con Quasar</td>
+</tr>
+<tr>
+<td>Componentes base</td>
+<td>BaseCard (4 variants), BaseBadge (5 variants) — BaseButton eliminado <code>f31a561</code></td>
+</tr>
+<tr>
+<td>Visual polish</td>
+<td><code>.fade-in-up</code> + <code>.stagger-children</code> (10 hijos) + <code>.card-grid</code> (CSS Grid 3→2→1)</td>
+</tr>
+<tr>
+<td>Animaciones</td>
+<td><code>.stagger-children</code> en KpiCard y AccountingPage</td>
+</tr>
+</tbody>
+</table>
+<p><strong>Accesibilidad (WCAG 2.2):</strong></p>
+<ul>
+<li>Skip links en LandingLayout y MainLayout</li>
+<li><code>prefers-reduced-motion</code> override global en app.scss</li>
+<li><code>.focus-ring</code> (focus-visible outline) en campos de auth</li>
+<li><code>.visually-hidden</code> utilidad screen-reader-only</li>
+<li><code>aria-label</code> en botones, inputs, navegacion</li>
+<li><code>role="alert"</code> offline banner, <code>role="navigation"</code> sidebar, <code>role="tablist"</code> tabs</li>
+<li><code>role="button"</code> + <code>tabindex="0"</code> en IndustryCard, password toggles</li>
+<li><code>aria-expanded</code> en CatalogDashboard tree rows</li>
+<li><code>aria-hidden="true"</code> en iconos decorativos</li>
+</ul>
+<h3 id="componentes">Componentes<a class="headerlink" href="#componentes" title="Permanent link">&para;</a></h3>
+<p><strong>Globales</strong> (<code>src/components/</code>):</p>
+<table>
+<thead>
+<tr>
+<th>Carpeta</th>
+<th>Proposito</th>
+</tr>
+</thead>
+<tbody>
+<tr>
+<td><code>base/</code></td>
+<td>UI atomica reutilizable (BaseButton, BaseCard, BaseBadge)</td>
+</tr>
+<tr>
+<td><code>landing/</code></td>
+<td>Pagina publica (hero, features, trust)</td>
+</tr>
+<tr>
+<td><code>dashboard/</code></td>
+<td>Panel principal (stats, acciones, actividad)</td>
+</tr>
+<tr>
+<td><code>ui/</code></td>
+<td>Utilidades globales (BrandSplash, EmptyState)</td>
+</tr>
+</tbody>
+</table>
+<p><strong>Modulo core</strong> (<code>src/modules/core/components/</code>):</p>
+<table>
+<thead>
+<tr>
+<th>Carpeta</th>
+<th>Proposito</th>
+</tr>
+</thead>
+<tbody>
+<tr>
+<td><code>onboarding/</code></td>
+<td>CategoryTree (arbol jerarquico), IndustryCard</td>
+</tr>
+<tr>
+<td><code>facturas/</code></td>
+<td>InvoiceItemCard, InvoiceDetailDialog, CategoryTabs, ConfirmDialog</td>
+</tr>
+<tr>
+<td><code>analytics/</code></td>
+<td>AnalyticsHeader, KpiCard, MetricCard, CategoryBreakdownChart, DataTable</td>
+</tr>
+<tr>
+<td><code>dashboard/</code></td>
+<td>ActivityPanel, AbcGastosChart, AlertsPanel, ExpenseBreakdown, OpexGauge, PriceTrendSparkline, ProjectionTimeline, SupplierComparisonTable, PricePredictionsTable, PeriodSelector</td>
+</tr>
+<tr>
+<td><code>charts/</code></td>
+<td>BaseChart</td>
+</tr>
+</tbody>
+</table>
+<p><strong>Composables</strong> (<code>src/modules/core/composables/</code>):</p>
+<table>
+<thead>
+<tr>
+<th>Composable</th>
+<th>Funcion</th>
+</tr>
+</thead>
+<tbody>
+<tr>
+<td><code>useAnalytics</code></td>
+<td>Fetch + cache reactivo de analisis por periodo + financialHealth</td>
+</tr>
+<tr>
+<td><code>usePeriod</code></td>
+<td>Selector de periodo con persistencia localStorage</td>
+</tr>
+<tr>
+<td><code>useNumberFormat</code></td>
+<td>Formato moneda USD (en-US)</td>
+</tr>
+<tr>
+<td><code>useFinancialDashboard</code></td>
+<td>KPIs consolidados, gastos por categoria, actividad reciente</td>
+</tr>
+<tr>
+<td><code>useTutorial</code></td>
+<td>Tour 7 pasos <code>driver.js</code> + mini hint <code>pymeq_hint_seen</code> + <code>showForCurrentRoute</code> por <code>data-tour</code></td>
+</tr>
+<tr>
+<td><code>useChartTheme</code></td>
+<td>Design tokens de Chart.js desde CSS variables</td>
+</tr>
+</tbody>
+</table>
+<p><strong>Utils</strong> (<code>src/utils/</code>):</p>
+<table>
+<thead>
+<tr>
+<th>Util</th>
+<th>Funcion</th>
+</tr>
+</thead>
+<tbody>
+<tr>
+<td><code>format.ts</code></td>
+<td><code>formatCurrency()</code>, <code>formatPct()</code>, <code>formatDate()</code>, <code>toLocalISODate()</code> (America/Panama UTC-5 sin DST)</td>
+</tr>
+<tr>
+<td><code>errors.ts</code></td>
+<td><code>isAuthError</code>, <code>isTokenExpiredError</code>, <code>isTokenRevokedError</code>, <code>isValidationError</code></td>
+</tr>
+<tr>
+<td><code>invoiceMath.ts</code></td>
+<td><code>calcNeto()</code>, <code>calcItbms()</code>, <code>calcBreakdown()</code> — Sin/Con ITBMS, default 0 exento, HALF_UP (mirror backend)</td>
+</tr>
+<tr>
+<td><code>financialGuide.ts</code></td>
+<td><code>guideForPillar()</code>, <code>overallGuide()</code>, <code>isGoodDependence()</code> — Salud financiera criolla derivada de breakdown</td>
+</tr>
+</tbody>
+</table>
+<h3 id="analytics">Analytics<a class="headerlink" href="#analytics" title="Permanent link">&para;</a></h3>
+<p>10 motores CTE consumidos desde <code>GET /api/v1/core/analytics</code> (6 visibles por defecto, 4 bajo demanda):</p>
+<table>
+<thead>
+<tr>
+<th>Motor</th>
+<th>Descripcion</th>
+<th>Visible</th>
+</tr>
+</thead>
+<tbody>
+<tr>
+<td>Alertas</td>
+<td>Variacion &gt;15% (CV), primer registro proveedor</td>
+<td>Siempre</td>
+</tr>
+<tr>
+<td>ABC de Gastos</td>
+<td>Pareto: categorias A/B/C por % acumulado de gasto</td>
+<td>Expansion</td>
+</tr>
+<tr>
+<td>Precios y Tendencias</td>
+<td>% cambio vs media movil 90 dias</td>
+<td>Expansion</td>
+</tr>
+<tr>
+<td>Margenes</td>
+<td>Delta precio unitario periodo actual vs anterior</td>
+<td>Expansion</td>
+</tr>
+<tr>
+<td>Costo Operativo</td>
+<td>Gasto operativo % ventas + proyeccion mensual</td>
+<td>Expansion</td>
+</tr>
+<tr>
+<td>Proyeccion</td>
+<td>Forecast lineal 30/60/90 dias</td>
+<td>Expansion</td>
+</tr>
+<tr>
+<td>Gasto vs Ingreso</td>
+<td>Comparativa visual de ingresos vs gastos</td>
+<td>Siempre</td>
+</tr>
+<tr>
+<td>Supplier analytics</td>
+<td>3 motores: comparativa precios, recomendaciones, predicciones OLS</td>
+<td>Expansion</td>
+</tr>
+<tr>
+<td>Financial Health</td>
+<td>Score 0-100 con alertas criticas y recomendaciones</td>
+<td>Dashboard</td>
+</tr>
+</tbody>
+</table>
+<h3 id="seo">SEO<a class="headerlink" href="#seo" title="Permanent link">&para;</a></h3>
+<table>
+<thead>
+<tr>
+<th>Aspecto</th>
+<th>Estado</th>
+</tr>
+</thead>
+<tbody>
+<tr>
+<td><code>lang</code></td>
+<td><code>es-MX</code></td>
+</tr>
+<tr>
+<td><code>robots</code></td>
+<td><code>index, follow</code></td>
+</tr>
+<tr>
+<td>Open Graph</td>
+<td><code>og:title</code>, <code>og:description</code>, <code>og:type</code>, <code>og:site_name</code>, <code>og:locale</code>, <code>og:url</code> + <code>og:image</code> 1200x630 (<code>width</code>/<code>height</code>/<code>alt</code>)</td>
+</tr>
+<tr>
+<td>Twitter Card</td>
+<td><code>summary_large_image</code> + <code>twitter:image</code>/<code>image:alt</code></td>
+</tr>
+<tr>
+<td>Social image</td>
+<td><code>public/og-image.png</code> (URL absoluta a <code>pymeq.dioquincar.dev</code>; los crawlers ignoran rutas relativas)</td>
+</tr>
+<tr>
+<td>Viewport</td>
+<td>Sin bloqueo de zoom (<code>user-scalable=no</code> eliminado)</td>
+</tr>
+<tr>
+<td>PWA</td>
+<td><code>apple-mobile-web-app-capable</code>, <code>theme-color</code></td>
+</tr>
+</tbody>
+</table>
+<h3 id="pwa-offline">PWA / Offline<a class="headerlink" href="#pwa-offline" title="Permanent link">&para;</a></h3>
+<ul>
+<li><strong>Service Worker:</strong> InjectManifest con precaching de assets + <code>StaleWhileRevalidate</code> para <code>GET /api/v1/core/*</code> — <strong>no intercepta</strong> <code>/oauth2/**</code> ni <code>/login/**</code> (<code>denylist /^\/oauth2/,/^\/login/</code> 2026-08-30, evita 200 SW en OAuth) + <code>workbox:skipWaiting</code></li>
+<li><strong>Banner offline:</strong> <code>q-banner</code> amarillo en MainLayout con listener <code>navigator.onLine</code></li>
+<li><strong>Actualizacion disponible:</strong> Auto-update silencioso via <code>SKIP_WAITING</code> (sin dialog de confirmacion)</li>
+<li><strong>Cache limpieza logout:</strong> <code>postMessage({type:'CLEAR_API_CACHE'})</code> al SW scope (no <code>caches.delete</code> main thread, 2026-08-29) + manifest <code>extendManifestJson ?v=Date.now()</code> cache-busting icons + <code>nginx/caddy no-cache</code> para <code>*.svg</code> (2026-08-27 <code>path_regexp \.svg$</code> + Cloudflare purge)</li>
+<li><strong>Cache API:</strong> Redis en backend (core service, TTL 5min, <code>@Cacheable</code>/<code>@CacheEvict</code> facturas+productos)</li>
+<li><strong>Iconos:</strong> 14 PNG + <code>favicon.ico</code> de marca rasterizados desde <code>public/icons/pymeq-app-icon.svg</code> (fondo <code>#08090D</code>, 2026-10-26). Cambiarlos exige purgar Cloudflare: <code>apple-icon-*</code>/<code>favicon-*</code> no llevan query de versión, solo los <code>icon-*</code> del manifest (<code>?v=&lt;ts&gt;</code>)</li>
+<li><strong>Viewport PWA:</strong> <code>index.html</code> <code>viewport-fit=cover</code> siempre (no solo Cordova, 2026-09-18) + <code>env(safe-area-inset-bottom)</code> en <code>mobile-bottom-nav</code> y <code>pymeq-tour-popover</code></li>
+</ul>
+<h3 id="tutorial-guiado">Tutorial Guiado<a class="headerlink" href="#tutorial-guiado" title="Permanent link">&para;</a></h3>
+<ul>
+<li><strong>7 pasos (20 seg):</strong> <code>inversión</code> → <code>gastos/costos</code> → <code>proveedores</code> → <code>productos</code> → <code>facturas</code> (Sin/Con ITBMS) → <code>dashboard</code> → <code>análisis</code> (9 alertas criollas). Tono cercano panameño.</li>
+<li><strong>Implementación:</strong> <code>src/composables/useTutorial.ts</code> <code>TOUR_STEPS</code> + <code>driver.js</code> <code>driver()</code> con <code>setSteps([{element}])</code> + <code>drive()</code> (no <code>highlight</code>, evita bug sin Siguiente) + poll 10×250ms para skeletons + <code>onNextClick→goNext</code>/<code>onPrevClick→goPrev</code> cross-route <code>router.push</code>. Keys <code>localStorage pymeq_tour_seen/active/step</code>.</li>
+<li><strong>Mini popover on-demand:</strong> <code>MainLayout.vue</code> <code>?</code> (<code>sym_r_help</code>) siempre visible <code>startTour(true)</code> forzado. Primera visita con <code>tenantId</code> muestra mini <code>q-menu</code> anclado <code>anchor bottom middle</code> <code>¿Primera vez acá? Recorrido de 7 pasos (20 seg) — inversión → … → análisis.</code> con <code>[Empezar tour →]</code> (<code>hint_seen=true + startTour</code>) y <code>[Ahora no]</code> (<code>hint_seen=true</code>). <code>pymeq_hint_seen</code> evita que reaparezca solo; <code>?</code> queda on-demand.</li>
+<li><strong>Anclajes:</strong> <code>data-tour="inversion|costos|proveedores|productos|facturas|dashboard|analisis"</code> en <code>PatrimonioPage, CostosPage, ProveedoresPage, ProductosPage, FacturasPage, DashboardPage, AnalisisGastosPage</code> + <code>showForCurrentRoute()</code> en cada <code>onMounted</code> y <code>watch(route.path)</code> en <code>MainLayout</code>.</li>
+<li><strong>Estilos:</strong> <code>src/css/app.scss</code> <code>.pymeq-tour-popover</code> dark <code>#12141A/#353945</code> <code>max-width min(360px, calc(100vw-32px))</code> + <code>.tour-hint</code> + <code>.driver-active .cost-summary{position:static}</code> para no tapar <code>CostSummaryBar</code> sticky en mobile. <code>924 KB</code> PWA JS 2026-09-18.</li>
+</ul>
+<h3 id="keyboard-shortcuts">Keyboard Shortcuts<a class="headerlink" href="#keyboard-shortcuts" title="Permanent link">&para;</a></h3>
+<table>
+<thead>
+<tr>
+<th>Shortcut</th>
+<th>Accion</th>
+</tr>
+</thead>
+<tbody>
+<tr>
+<td><code>N</code></td>
+<td>Crear nuevo registro</td>
+</tr>
+<tr>
+<td><code>?</code></td>
+<td>Mostrar ayuda de shortcuts</td>
+</tr>
+<tr>
+<td><code>Esc</code></td>
+<td>Cerrar dialog</td>
+</tr>
+<tr>
+<td><code>Ctrl+K</code></td>
+<td>Busqueda global (placeholder)</td>
+</tr>
+</tbody>
+</table>
+<h3 id="ux-features">UX Features<a class="headerlink" href="#ux-features" title="Permanent link">&para;</a></h3>
+<ul>
+<li><strong>EmptyState</strong>: Componente reutilizable en 6 paginas CRUD</li>
+<li><strong>Unsaved changes guard</strong>: Navigation guard en ProductosPage y FacturasPage</li>
+<li><strong>Dialog animations</strong>: slide-up/slide-down en todos los dialogs CRUD</li>
+<li><strong>Error messages</strong>: Propagados desde interceptor axios a 32 catch blocks</li>
+<li><strong>Currency formatting</strong>: <code>type="text"</code> + <code>inputmode="decimal"</code> + formato al blur</li>
+</ul>
+<hr />
+<h2 id="configuration">Configuration<a class="headerlink" href="#configuration" title="Permanent link">&para;</a></h2>
+<h3 id="environment-variables">Environment Variables<a class="headerlink" href="#environment-variables" title="Permanent link">&para;</a></h3>
+<table>
+<thead>
+<tr>
+<th>Variable</th>
+<th>Requerida</th>
+<th>Descripcion</th>
+</tr>
+</thead>
+<tbody>
+<tr>
+<td><code>VITE_API_URL</code></td>
+<td>Si</td>
+<td>URL del backend (default: <code>http://localhost:8080/api/v1</code>)</td>
+</tr>
+<tr>
+<td><code>VITE_APP_TITLE</code></td>
+<td>No</td>
+<td>Titulo de la app (default: "PyMes Admin")</td>
+</tr>
+</tbody>
+</table>
+<h3 id="docker-build">Docker Build<a class="headerlink" href="#docker-build" title="Permanent link">&para;</a></h3>
+<div class="highlight"><pre><span></span><code>docker<span class="w"> </span>compose<span class="w"> </span>build<span class="w"> </span>frontend<span class="w"> </span>--build-arg<span class="w"> </span><span class="nv">API_URL</span><span class="o">=</span>https://api.tudominio.com
+</code></pre></div>
+<hr />
+<h2 id="testing">Testing<a class="headerlink" href="#testing" title="Permanent link">&para;</a></h2>
+<div class="highlight"><pre><span></span><code>npm<span class="w"> </span>run<span class="w"> </span><span class="nb">test</span><span class="w">          </span><span class="c1"># vitest (errors.spec.ts + store + composables) — 29 tests</span>
+npm<span class="w"> </span>run<span class="w"> </span>test:watch<span class="w">    </span><span class="c1"># vitest en modo watch</span>
+npm<span class="w"> </span>run<span class="w"> </span>build<span class="w">         </span><span class="c1"># incluye lint + vue-tsc</span>
+</code></pre></div>
+<p><strong>Tests existentes</strong>: <strong>29 tests</strong> verificados <code>find *.spec.ts</code> 2026-09-17 — <code>errors 10 + store 6 + composables 3 + errors extendidos 10</code> (vitest)</p>
+<h3 id="e2e-playwright">E2E (Playwright)<a class="headerlink" href="#e2e-playwright" title="Permanent link">&para;</a></h3>
+<div class="highlight"><pre><span></span><code>npx<span class="w"> </span>playwright<span class="w"> </span>install<span class="w"> </span>chromium
+npx<span class="w"> </span>playwright<span class="w"> </span><span class="nb">test</span><span class="w">                     </span><span class="c1"># correr todos</span>
+npx<span class="w"> </span>playwright<span class="w"> </span><span class="nb">test</span><span class="w"> </span>app.spec.ts<span class="w">         </span><span class="c1"># solo tests de carga</span>
+</code></pre></div>
+<ul>
+<li><strong><code>app.spec.ts</code></strong> — 2 tests: landing page carga, input de empresa visible. Corre en CI.</li>
+<li><strong><code>logout-cycle.spec.ts</code></strong> — 2 tests: <code>auth:401</code> limpia localStorage + re-login fresh tokens (2026-08-27).</li>
+<li><strong><code>oauth2.spec.ts</code></strong> — test completo: registro → Google OAuth2 → onboarding → dashboard → logout → re-login. Requiere Chromium headed + 2FA manual. <strong>No corre en CI.</strong></li>
+</ul>
+<blockquote>
+<p>Chromium headless es bloqueado por Google. Para <code>oauth2.spec.ts</code> usar <code>--headed</code> y aprobar 2FA desde celular.</p>
+</blockquote>
+<hr />
+<h2 id="build">Build<a class="headerlink" href="#build" title="Permanent link">&para;</a></h2>
+<h3 id="produccion">Produccion<a class="headerlink" href="#produccion" title="Permanent link">&para;</a></h3>
+<div class="highlight"><pre><span></span><code>npm<span class="w"> </span>run<span class="w"> </span>build
+<span class="c1"># Output: dist/pwa/</span>
+</code></pre></div>
+<p><strong>Bundle:</strong> ~924 KB PWA JS (~385 KB gz), 68 chunks (code splitting automático — 872-898 KB registrado 2026-09-11/12 tras costos + charts; 924 KB tras tour 2026-09-18).</p>
+<h3 id="docker">Docker<a class="headerlink" href="#docker" title="Permanent link">&para;</a></h3>
+<div class="highlight"><pre><span></span><code>docker<span class="w"> </span>compose<span class="w"> </span>up<span class="w"> </span>-d<span class="w"> </span>frontend
+<span class="c1"># Multi-stage: node:20 build -&gt; nginx:alpine-slim</span>
+<span class="c1"># Puerto: 9200</span>
+</code></pre></div>
+<h3 id="capacitor-android">Capacitor (Android)<a class="headerlink" href="#capacitor-android" title="Permanent link">&para;</a></h3>
+<div class="highlight"><pre><span></span><code>npx<span class="w"> </span>quasar<span class="w"> </span>dev<span class="w"> </span>-m<span class="w"> </span>capacitor<span class="w"> </span>-T<span class="w"> </span>android<span class="w"> </span>--ide
+<span class="c1"># Requiere: Android Studio, SDK Android 33+</span>
+</code></pre></div>
+<p>Ver <a href="docs/strategies/CAPACITOR_SETUP/">CAPACITOR_SETUP.md</a> para guia completa.</p>
+<hr />
+<h2 id="cicd">CI/CD<a class="headerlink" href="#cicd" title="Permanent link">&para;</a></h2>
+<p>GitHub Actions ejecuta lint + build en cada PR a main/develop/feature/*. Docker images multi-arch (AMD64/ARM64) se buildean y pushean en CD.</p>
+<table>
+<thead>
+<tr>
+<th>Rama</th>
+<th>Pipeline</th>
+<th>Deploy</th>
+</tr>
+</thead>
+<tbody>
+<tr>
+<td><code>feature/*</code></td>
+<td>CI (lint + build)</td>
+<td>Ninguno</td>
+</tr>
+<tr>
+<td><code>develop</code></td>
+<td>CI + CD</td>
+<td>Staging</td>
+</tr>
+<tr>
+<td><code>main</code></td>
+<td>CI + CD</td>
+<td>Produccion</td>
+</tr>
+</tbody>
+</table>
+<hr />
+<h2 id="known-issues">Known Issues<a class="headerlink" href="#known-issues" title="Permanent link">&para;</a></h2>
+<table>
+<thead>
+<tr>
+<th>Problema</th>
+<th>Estado</th>
+<th>Notas</th>
+</tr>
+</thead>
+<tbody>
+<tr>
+<td>Field name mismatch MetricasFinancieras</td>
+<td>Pendiente</td>
+<td>Frontend usa ingles, backend responde espanol. <code>toLocalISODate</code> Panama 2026-09-11 mitiga desfase fechas; mapping pendiente.</td>
+</tr>
+<tr>
+<td>i18n placeholder</td>
+<td>Pendiente</td>
+<td>Solo locale en-US con 2 strings.</td>
+</tr>
+<tr>
+<td><code>og:image</code> / <code>twitter:image</code></td>
+<td>Pendiente</td>
+<td>Social previews sin imagen.</td>
+</tr>
+<tr>
+<td>ConfiguracionPage CRUD</td>
+<td>Pendiente</td>
+<td>Edición requiere <code>PUT /api/v1/core/setup/{tenantId}</code> backend pendiente (<code>FUTURE.md:110</code>, <code>TO_DO.md:7</code>).</td>
+</tr>
+<tr>
+<td>Color residual 5b</td>
+<td>Pendiente</td>
+<td><code>AuthOptionsPage.vue:25 color="red"→negative + size</code> y <code>AcceptInvitationPage.vue:35 color="amber"→warning</code> (2 líneas, <code>FRONTEND_PENDIENTES_STRATEGY.md</code>).</td>
+</tr>
+</tbody>
+</table>
+<hr />
+<h2 id="contributing">Contributing<a class="headerlink" href="#contributing" title="Permanent link">&para;</a></h2>
+<ol>
+<li>Crear branch desde <code>develop</code></li>
+<li>Hacer cambios</li>
+<li>Ejecutar <code>npm run lint</code> y <code>npm run build</code></li>
+<li>Crear PR a <code>develop</code></li>
+</ol>
+<hr />
+<h2 id="license">License<a class="headerlink" href="#license" title="Permanent link">&para;</a></h2>
+<p>Proprietary. Todos los derechos reservados.</p>
+<hr />
+<blockquote>
+<p>Ver tambien:
+- <a href="docs/strategies/AUTH_STRATEGY/">Auth Strategy</a> — Flujo de autenticacion completo
+- <a href="docs/strategies/DESIGN_SYSTEM/">Design System</a> — Paleta, tipografia, tokens
+- <a href="docs/strategies/CAPACITOR_SETUP/">Capacitor Setup</a> — Guia Android
+- <a href="docs/PWA_OFFLINE/">PWA / Offline</a> — Service Worker, cache, banner offline
+- <a href="docs/strategies/ANALYTICS_DASHBOARD_STRATEGY/">Analytics Dashboard</a> — Estrategia frontend analytics
+- <a href="docs/DAILY_REPORTS_FRONTEND/">Daily Reports</a> — Historial de desarrollo</p>
+</blockquote>
+
+
+
+
+
+
+
+
+
+
+
+
+                
+              </article>
+            </div>
+          
+          
+<script>var target=document.getElementById(location.hash.slice(1));target&&target.name&&(target.checked=target.name.startsWith("__tabbed_"))</script>
+        </div>
+        
+          <button type="button" class="md-top md-icon" data-md-component="top" hidden>
+  
+  <svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 24 24"><path d="M13 20h-2V8l-5.5 5.5-1.42-1.42L12 4.16l7.92 7.92-1.42 1.42L13 8z"/></svg>
+  Volver al principio
+</button>
+        
+      </main>
+      
+        <footer class="md-footer">
+  
+  <div class="md-footer-meta md-typeset">
+    <div class="md-footer-meta__inner md-grid">
+      <div class="md-copyright">
+  
+  
+    Made with
+    <a href="https://squidfunk.github.io/mkdocs-material/" target="_blank" rel="noopener">
+      Material for MkDocs
+    </a>
+  
+</div>
+      
+    </div>
+  </div>
+</footer>
+      
+    </div>
+    <div class="md-dialog" data-md-component="dialog">
+      <div class="md-dialog__inner md-typeset"></div>
+    </div>
+    
+    
+    
+      
+      
+      <script id="__config" type="application/json">{"annotate": null, "base": "../..", "features": ["navigation.tabs", "navigation.top", "search.highlight", "content.code.copy"], "search": "../../assets/javascripts/workers/search.a7633da7.min.js", "tags": null, "translations": {"clipboard.copied": "Copiado al portapapeles", "clipboard.copy": "Copiar al portapapeles", "search.result.more.one": "1 m\u00e1s en esta p\u00e1gina", "search.result.more.other": "# m\u00e1s en esta p\u00e1gina", "search.result.none": "No se encontraron documentos", "search.result.one": "1 documento encontrado", "search.result.other": "# documentos encontrados", "search.result.placeholder": "Teclee para comenzar b\u00fasqueda", "search.result.term.missing": "Falta", "select.version": "Seleccionar versi\u00f3n"}, "version": null}</script>
+    
+    
+      <script src="../../assets/javascripts/bundle.a5f9d56c.min.js"></script>
+      
+    
+  </body>
+</html>

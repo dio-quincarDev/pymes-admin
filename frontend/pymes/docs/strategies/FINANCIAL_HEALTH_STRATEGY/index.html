@@ -1,0 +1,2003 @@
+
+<!doctype html>
+<html lang="es" class="no-js">
+  <head>
+    
+      <meta charset="utf-8">
+      <meta name="viewport" content="width=device-width,initial-scale=1">
+      
+        <meta name="description" content="Documentación del producto, arquitectura, API y operación">
+      
+      
+        <meta name="author" content="dio-quincarDev">
+      
+      
+      
+      
+      
+        
+      
+      
+      <link rel="icon" href="../../../../../assets/images/favicon.png">
+      <meta name="generator" content="mkdocs-1.6.1, mkdocs-material-9.8.2">
+    
+    
+      
+        <title>Estrategia de Salud Financiera (Financial Health) — Frontend - Pymeq — Forensic Accounting for Small Business</title>
+      
+    
+    
+      <link rel="stylesheet" href="../../../../../assets/stylesheets/main.57a0d79d.min.css">
+      
+        
+        <link rel="stylesheet" href="../../../../../assets/stylesheets/palette.fb2fffe2.min.css">
+      
+      
+
+
+    
+    
+      
+    
+    
+      
+        
+        
+        <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+        <link rel="stylesheet" href="https://fonts.googleapis.com/css?family=Roboto:300,300i,400,400i,700,700i%7CRoboto+Mono:400,400i,700,700i&display=fallback">
+        <style>:root{--md-text-font:"Roboto";--md-code-font:"Roboto Mono"}</style>
+      
+    
+    
+    <script>__md_scope=new URL("../../../../..",location),__md_hash=e=>[...e].reduce(((e,_)=>(e<<5)-e+_.charCodeAt(0)),0),__md_get=(e,_=localStorage,t=__md_scope)=>JSON.parse(_.getItem(t.pathname+"."+e)),__md_set=(e,_,t=localStorage,a=__md_scope)=>{try{t.setItem(a.pathname+"."+e,JSON.stringify(_))}catch(e){}}</script>
+    
+      
+
+    
+    
+  </head>
+  
+  
+    
+    
+      
+    
+    
+    
+    
+    <body dir="ltr" data-md-color-scheme="slate" data-md-color-primary="teal" data-md-color-accent="amber">
+  
+    
+    <input class="md-toggle" data-md-toggle="drawer" type="checkbox" id="__drawer" autocomplete="off">
+    <input class="md-toggle" data-md-toggle="search" type="checkbox" id="__search" autocomplete="off">
+    <label class="md-overlay" for="__drawer"></label>
+    <div data-md-component="skip">
+      
+        
+        <a href="#estrategia-de-salud-financiera-financial-health-frontend" class="md-skip">
+          Saltar a contenido
+        </a>
+      
+    </div>
+    <div data-md-component="announce">
+      
+    </div>
+    
+    
+      
+
+<header class="md-header" data-md-component="header">
+  <nav class="md-header__inner md-grid" aria-label="Cabecera">
+    <a href="../../../../.." title="Pymeq — Forensic Accounting for Small Business" class="md-header__button md-logo" aria-label="Pymeq — Forensic Accounting for Small Business" data-md-component="logo">
+      
+  
+  <svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 24 24"><path d="M12 8a3 3 0 0 0 3-3 3 3 0 0 0-3-3 3 3 0 0 0-3 3 3 3 0 0 0 3 3m0 3.54C9.64 9.35 6.5 8 3 8v11c3.5 0 6.64 1.35 9 3.54 2.36-2.19 5.5-3.54 9-3.54V8c-3.5 0-6.64 1.35-9 3.54"/></svg>
+
+    </a>
+    <label class="md-header__button md-icon" for="__drawer">
+      
+      <svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 24 24"><path d="M3 6h18v2H3zm0 5h18v2H3zm0 5h18v2H3z"/></svg>
+    </label>
+    <div class="md-header__title" data-md-component="header-title">
+      <div class="md-header__ellipsis">
+        <div class="md-header__topic">
+          <span class="md-ellipsis">
+            Pymeq — Forensic Accounting for Small Business
+          </span>
+        </div>
+        <div class="md-header__topic" data-md-component="header-topic">
+          <span class="md-ellipsis">
+            
+              Estrategia de Salud Financiera (Financial Health) — Frontend
+            
+          </span>
+        </div>
+      </div>
+    </div>
+    
+      
+        <form class="md-header__option" data-md-component="palette">
+  
+    
+    
+    
+    <input class="md-option" data-md-color-media="" data-md-color-scheme="slate" data-md-color-primary="teal" data-md-color-accent="amber"  aria-label="Cambiar a tema claro"  type="radio" name="__palette" id="__palette_0">
+    
+      <label class="md-header__button md-icon" title="Cambiar a tema claro" for="__palette_1" hidden>
+        <svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 24 24"><path d="m17.75 4.09-2.53 1.94.91 3.06-2.63-1.81-2.63 1.81.91-3.06-2.53-1.94L12.44 4l1.06-3 1.06 3zm3.5 6.91-1.64 1.25.59 1.98-1.7-1.17-1.7 1.17.59-1.98L15.75 11l2.06-.05L18.5 9l.69 1.95zm-2.28 4.95c.83-.08 1.72 1.1 1.19 1.85-.32.45-.66.87-1.08 1.27C15.17 23 8.84 23 4.94 19.07c-3.91-3.9-3.91-10.24 0-14.14.4-.4.82-.76 1.27-1.08.75-.53 1.93.36 1.85 1.19-.27 2.86.69 5.83 2.89 8.02a9.96 9.96 0 0 0 8.02 2.89m-1.64 2.02a12.08 12.08 0 0 1-7.8-3.47c-2.17-2.19-3.33-5-3.49-7.82-2.81 3.14-2.7 7.96.31 10.98 3.02 3.01 7.84 3.12 10.98.31"/></svg>
+      </label>
+    
+  
+    
+    
+    
+    <input class="md-option" data-md-color-media="" data-md-color-scheme="default" data-md-color-primary="teal" data-md-color-accent="amber"  aria-label="Cambiar a tema oscuro"  type="radio" name="__palette" id="__palette_1">
+    
+      <label class="md-header__button md-icon" title="Cambiar a tema oscuro" for="__palette_0" hidden>
+        <svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 24 24"><path d="M12 7a5 5 0 0 1 5 5 5 5 0 0 1-5 5 5 5 0 0 1-5-5 5 5 0 0 1 5-5m0 2a3 3 0 0 0-3 3 3 3 0 0 0 3 3 3 3 0 0 0 3-3 3 3 0 0 0-3-3m0-7 2.39 3.42C13.65 5.15 12.84 5 12 5s-1.65.15-2.39.42zM3.34 7l4.16-.35A7.2 7.2 0 0 0 5.94 8.5c-.44.74-.69 1.5-.83 2.29zm.02 10 1.76-3.77a7.131 7.131 0 0 0 2.38 4.14zM20.65 7l-1.77 3.79a7.02 7.02 0 0 0-2.38-4.15zm-.01 10-4.14.36c.59-.51 1.12-1.14 1.54-1.86.42-.73.69-1.5.83-2.29zM12 22l-2.41-3.44c.74.27 1.55.44 2.41.44.82 0 1.63-.17 2.37-.44z"/></svg>
+      </label>
+    
+  
+</form>
+      
+    
+    
+      <script>var palette=__md_get("__palette");if(palette&&palette.color){if("(prefers-color-scheme)"===palette.color.media){var media=matchMedia("(prefers-color-scheme: light)"),input=document.querySelector(media.matches?"[data-md-color-media='(prefers-color-scheme: light)']":"[data-md-color-media='(prefers-color-scheme: dark)']");palette.color.media=input.getAttribute("data-md-color-media"),palette.color.scheme=input.getAttribute("data-md-color-scheme"),palette.color.primary=input.getAttribute("data-md-color-primary"),palette.color.accent=input.getAttribute("data-md-color-accent")}for(var[key,value]of Object.entries(palette.color))document.body.setAttribute("data-md-color-"+key,value)}</script>
+    
+    
+    
+      
+      
+        <label class="md-header__button md-icon" for="__search">
+          
+          <svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 24 24"><path d="M9.5 3A6.5 6.5 0 0 1 16 9.5c0 1.61-.59 3.09-1.56 4.23l.27.27h.79l5 5-1.5 1.5-5-5v-.79l-.27-.27A6.52 6.52 0 0 1 9.5 16 6.5 6.5 0 0 1 3 9.5 6.5 6.5 0 0 1 9.5 3m0 2C7 5 5 7 5 9.5S7 14 9.5 14 14 12 14 9.5 12 5 9.5 5"/></svg>
+        </label>
+        <div class="md-search" data-md-component="search" role="dialog">
+  <label class="md-search__overlay" for="__search"></label>
+  <div class="md-search__inner" role="search">
+    <form class="md-search__form" name="search">
+      <input type="text" class="md-search__input" name="query" aria-label="Búsqueda" placeholder="Búsqueda" autocapitalize="off" autocorrect="off" autocomplete="off" spellcheck="false" data-md-component="search-query" required>
+      <label class="md-search__icon md-icon" for="__search">
+        
+        <svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 24 24"><path d="M9.5 3A6.5 6.5 0 0 1 16 9.5c0 1.61-.59 3.09-1.56 4.23l.27.27h.79l5 5-1.5 1.5-5-5v-.79l-.27-.27A6.52 6.52 0 0 1 9.5 16 6.5 6.5 0 0 1 3 9.5 6.5 6.5 0 0 1 9.5 3m0 2C7 5 5 7 5 9.5S7 14 9.5 14 14 12 14 9.5 12 5 9.5 5"/></svg>
+        
+        <svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 24 24"><path d="M20 11v2H8l5.5 5.5-1.42 1.42L4.16 12l7.92-7.92L13.5 5.5 8 11z"/></svg>
+      </label>
+      <nav class="md-search__options" aria-label="Buscar">
+        
+        <button type="reset" class="md-search__icon md-icon" title="Limpiar" aria-label="Limpiar" tabindex="-1">
+          
+          <svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 24 24"><path d="M19 6.41 17.59 5 12 10.59 6.41 5 5 6.41 10.59 12 5 17.59 6.41 19 12 13.41 17.59 19 19 17.59 13.41 12z"/></svg>
+        </button>
+      </nav>
+      
+    </form>
+    <div class="md-search__output">
+      <div class="md-search__scrollwrap" tabindex="0" data-md-scrollfix>
+        <div class="md-search-result" data-md-component="search-result">
+          <div class="md-search-result__meta">
+            Inicializando búsqueda
+          </div>
+          <ol class="md-search-result__list" role="presentation"></ol>
+        </div>
+      </div>
+    </div>
+  </div>
+</div>
+      
+    
+    
+      <div class="md-header__source">
+        <a href="https://github.com/dio-quincarDev/pymes-admin" title="Ir al repositorio" class="md-source" data-md-component="source">
+  <div class="md-source__icon md-icon">
+    
+    <svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 448 512"><!--! Font Awesome Free 7.1.0 by @fontawesome - https://fontawesome.com License - https://fontawesome.com/license/free (Icons: CC BY 4.0, Fonts: SIL OFL 1.1, Code: MIT License) Copyright 2025 Fonticons, Inc.--><path d="M439.6 236.1 244 40.5c-5.4-5.5-12.8-8.5-20.4-8.5s-15 3-20.4 8.4L162.5 81l51.5 51.5c27.1-9.1 52.7 16.8 43.4 43.7l49.7 49.7c34.2-11.8 61.2 31 35.5 56.7-26.5 26.5-70.2-2.9-56-37.3L240.3 199v121.9c25.3 12.5 22.3 41.8 9.1 55-6.4 6.4-15.2 10.1-24.3 10.1s-17.8-3.6-24.3-10.1c-17.6-17.6-11.1-46.9 11.2-56v-123c-20.8-8.5-24.6-30.7-18.6-45L142.6 101 8.5 235.1C3 240.6 0 247.9 0 255.5s3 15 8.5 20.4l195.6 195.7c5.4 5.4 12.7 8.4 20.4 8.4s15-3 20.4-8.4l194.7-194.7c5.4-5.4 8.4-12.8 8.4-20.4s-3-15-8.4-20.4"/></svg>
+  </div>
+  <div class="md-source__repository">
+    dio-quincarDev/pymes-admin
+  </div>
+</a>
+      </div>
+    
+  </nav>
+  
+</header>
+    
+    <div class="md-container" data-md-component="container">
+      
+      
+        
+          
+            
+<nav class="md-tabs" aria-label="Pestañas" data-md-component="tabs">
+  <div class="md-grid">
+    <ul class="md-tabs__list">
+      
+        
+  
+  
+  
+  
+    <li class="md-tabs__item">
+      <a href="../../../../.." class="md-tabs__link">
+        
+  
+  
+    
+  
+  Inicio
+
+      </a>
+    </li>
+  
+
+      
+        
+  
+  
+  
+  
+    
+    
+      <li class="md-tabs__item">
+        <a href="../../../../.." class="md-tabs__link">
+          
+  
+  
+  Producto
+
+        </a>
+      </li>
+    
+  
+
+      
+        
+  
+  
+  
+  
+    
+    
+      <li class="md-tabs__item">
+        <a href="../../../../../docs/api/" class="md-tabs__link">
+          
+  
+  
+  API Reference
+
+        </a>
+      </li>
+    
+  
+
+      
+        
+  
+  
+  
+  
+    
+    
+      <li class="md-tabs__item">
+        <a href="../../../../../docs/architecture/architecture/" class="md-tabs__link">
+          
+  
+  
+  Arquitectura
+
+        </a>
+      </li>
+    
+  
+
+      
+        
+  
+  
+  
+  
+    
+    
+      <li class="md-tabs__item">
+        <a href="../../../../../deployment/DEPLOYMENT/" class="md-tabs__link">
+          
+  
+  
+  Operación
+
+        </a>
+      </li>
+    
+  
+
+      
+        
+  
+  
+  
+  
+    
+    
+      <li class="md-tabs__item">
+        <a href="../../../../../docs/guides/user-guide/" class="md-tabs__link">
+          
+  
+  
+  Guías
+
+        </a>
+      </li>
+    
+  
+
+      
+        
+  
+  
+  
+  
+    
+    
+      <li class="md-tabs__item">
+        <a href="../../../../../backend/core/docs/KPIs/" class="md-tabs__link">
+          
+  
+  
+  Referencia
+
+        </a>
+      </li>
+    
+  
+
+      
+    </ul>
+  </div>
+</nav>
+          
+        
+      
+      <main class="md-main" data-md-component="main">
+        <div class="md-main__inner md-grid">
+          
+            
+              
+              <div class="md-sidebar md-sidebar--primary" data-md-component="sidebar" data-md-type="navigation" >
+                <div class="md-sidebar__scrollwrap">
+                  <div class="md-sidebar__inner">
+                    
+
+
+  
+
+
+<nav class="md-nav md-nav--primary md-nav--lifted" aria-label="Navegación" data-md-level="0">
+  <label class="md-nav__title" for="__drawer">
+    <a href="../../../../.." title="Pymeq — Forensic Accounting for Small Business" class="md-nav__button md-logo" aria-label="Pymeq — Forensic Accounting for Small Business" data-md-component="logo">
+      
+  
+  <svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 24 24"><path d="M12 8a3 3 0 0 0 3-3 3 3 0 0 0-3-3 3 3 0 0 0-3 3 3 3 0 0 0 3 3m0 3.54C9.64 9.35 6.5 8 3 8v11c3.5 0 6.64 1.35 9 3.54 2.36-2.19 5.5-3.54 9-3.54V8c-3.5 0-6.64 1.35-9 3.54"/></svg>
+
+    </a>
+    Pymeq — Forensic Accounting for Small Business
+  </label>
+  
+    <div class="md-nav__source">
+      <a href="https://github.com/dio-quincarDev/pymes-admin" title="Ir al repositorio" class="md-source" data-md-component="source">
+  <div class="md-source__icon md-icon">
+    
+    <svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 448 512"><!--! Font Awesome Free 7.1.0 by @fontawesome - https://fontawesome.com License - https://fontawesome.com/license/free (Icons: CC BY 4.0, Fonts: SIL OFL 1.1, Code: MIT License) Copyright 2025 Fonticons, Inc.--><path d="M439.6 236.1 244 40.5c-5.4-5.5-12.8-8.5-20.4-8.5s-15 3-20.4 8.4L162.5 81l51.5 51.5c27.1-9.1 52.7 16.8 43.4 43.7l49.7 49.7c34.2-11.8 61.2 31 35.5 56.7-26.5 26.5-70.2-2.9-56-37.3L240.3 199v121.9c25.3 12.5 22.3 41.8 9.1 55-6.4 6.4-15.2 10.1-24.3 10.1s-17.8-3.6-24.3-10.1c-17.6-17.6-11.1-46.9 11.2-56v-123c-20.8-8.5-24.6-30.7-18.6-45L142.6 101 8.5 235.1C3 240.6 0 247.9 0 255.5s3 15 8.5 20.4l195.6 195.7c5.4 5.4 12.7 8.4 20.4 8.4s15-3 20.4-8.4l194.7-194.7c5.4-5.4 8.4-12.8 8.4-20.4s-3-15-8.4-20.4"/></svg>
+  </div>
+  <div class="md-source__repository">
+    dio-quincarDev/pymes-admin
+  </div>
+</a>
+    </div>
+  
+  <ul class="md-nav__list" data-md-scrollfix>
+    
+      
+      
+  
+  
+  
+  
+    <li class="md-nav__item">
+      <a href="../../../../.." class="md-nav__link">
+        
+  
+  
+  <span class="md-ellipsis">
+    
+  
+    Inicio
+  
+
+    
+  </span>
+  
+  
+
+      </a>
+    </li>
+  
+
+    
+      
+      
+  
+  
+  
+  
+    
+    
+    
+    
+      
+      
+    
+    
+    <li class="md-nav__item md-nav__item--nested">
+      
+        
+        
+        <input class="md-nav__toggle md-toggle " type="checkbox" id="__nav_2" >
+        
+          
+          <label class="md-nav__link" for="__nav_2" id="__nav_2_label" tabindex="0">
+            
+  
+  
+  <span class="md-ellipsis">
+    
+  
+    Producto
+  
+
+    
+  </span>
+  
+  
+
+            <span class="md-nav__icon md-icon"></span>
+          </label>
+        
+        <nav class="md-nav" data-md-level="1" aria-labelledby="__nav_2_label" aria-expanded="false">
+          <label class="md-nav__title" for="__nav_2">
+            <span class="md-nav__icon md-icon"></span>
+            
+  
+    Producto
+  
+
+          </label>
+          <ul class="md-nav__list" data-md-scrollfix>
+            
+              
+                
+  
+  
+  
+  
+    <li class="md-nav__item">
+      <a href="../../../../.." class="md-nav__link">
+        
+  
+  
+  <span class="md-ellipsis">
+    
+  
+    Inicio
+  
+
+    
+  </span>
+  
+  
+
+      </a>
+    </li>
+  
+
+              
+            
+              
+                
+  
+  
+  
+  
+    <li class="md-nav__item">
+      <a href="../../../../../docs/product/features/" class="md-nav__link">
+        
+  
+  
+  <span class="md-ellipsis">
+    
+  
+    Características
+  
+
+    
+  </span>
+  
+  
+
+      </a>
+    </li>
+  
+
+              
+            
+              
+                
+  
+  
+  
+  
+    <li class="md-nav__item">
+      <a href="../../../../../docs/product/roadmap/" class="md-nav__link">
+        
+  
+  
+  <span class="md-ellipsis">
+    
+  
+    Roadmap
+  
+
+    
+  </span>
+  
+  
+
+      </a>
+    </li>
+  
+
+              
+            
+              
+                
+  
+  
+  
+  
+    <li class="md-nav__item">
+      <a href="../../../../../docs/TO_DO/" class="md-nav__link">
+        
+  
+  
+  <span class="md-ellipsis">
+    
+  
+    Pendientes
+  
+
+    
+  </span>
+  
+  
+
+      </a>
+    </li>
+  
+
+              
+            
+              
+                
+  
+  
+  
+  
+    <li class="md-nav__item">
+      <a href="../../../../../docs/GAPS/" class="md-nav__link">
+        
+  
+  
+  <span class="md-ellipsis">
+    
+  
+    Diferencias doc/código
+  
+
+    
+  </span>
+  
+  
+
+      </a>
+    </li>
+  
+
+              
+            
+          </ul>
+        </nav>
+      
+    </li>
+  
+
+    
+      
+      
+  
+  
+  
+  
+    
+    
+    
+    
+      
+      
+    
+    
+    <li class="md-nav__item md-nav__item--nested">
+      
+        
+        
+        <input class="md-nav__toggle md-toggle " type="checkbox" id="__nav_3" >
+        
+          
+          <label class="md-nav__link" for="__nav_3" id="__nav_3_label" tabindex="0">
+            
+  
+  
+  <span class="md-ellipsis">
+    
+  
+    API Reference
+  
+
+    
+  </span>
+  
+  
+
+            <span class="md-nav__icon md-icon"></span>
+          </label>
+        
+        <nav class="md-nav" data-md-level="1" aria-labelledby="__nav_3_label" aria-expanded="false">
+          <label class="md-nav__title" for="__nav_3">
+            <span class="md-nav__icon md-icon"></span>
+            
+  
+    API Reference
+  
+
+          </label>
+          <ul class="md-nav__list" data-md-scrollfix>
+            
+              
+                
+  
+  
+  
+  
+    <li class="md-nav__item">
+      <a href="../../../../../docs/api/" class="md-nav__link">
+        
+  
+  
+  <span class="md-ellipsis">
+    
+  
+    Contrato (índice)
+  
+
+    
+  </span>
+  
+  
+
+      </a>
+    </li>
+  
+
+              
+            
+              
+                
+  
+  
+  
+  
+    <li class="md-nav__item">
+      <a href="../../../../../api/auth/" class="md-nav__link">
+        
+  
+  
+  <span class="md-ellipsis">
+    
+  
+    Auth (generado)
+  
+
+    
+  </span>
+  
+  
+
+      </a>
+    </li>
+  
+
+              
+            
+              
+                
+  
+  
+  
+  
+    <li class="md-nav__item">
+      <a href="../../../../../api/core/" class="md-nav__link">
+        
+  
+  
+  <span class="md-ellipsis">
+    
+  
+    Core (generado)
+  
+
+    
+  </span>
+  
+  
+
+      </a>
+    </li>
+  
+
+              
+            
+          </ul>
+        </nav>
+      
+    </li>
+  
+
+    
+      
+      
+  
+  
+  
+  
+    
+    
+    
+    
+      
+      
+    
+    
+    <li class="md-nav__item md-nav__item--nested">
+      
+        
+        
+        <input class="md-nav__toggle md-toggle " type="checkbox" id="__nav_4" >
+        
+          
+          <label class="md-nav__link" for="__nav_4" id="__nav_4_label" tabindex="0">
+            
+  
+  
+  <span class="md-ellipsis">
+    
+  
+    Arquitectura
+  
+
+    
+  </span>
+  
+  
+
+            <span class="md-nav__icon md-icon"></span>
+          </label>
+        
+        <nav class="md-nav" data-md-level="1" aria-labelledby="__nav_4_label" aria-expanded="false">
+          <label class="md-nav__title" for="__nav_4">
+            <span class="md-nav__icon md-icon"></span>
+            
+  
+    Arquitectura
+  
+
+          </label>
+          <ul class="md-nav__list" data-md-scrollfix>
+            
+              
+                
+  
+  
+  
+  
+    <li class="md-nav__item">
+      <a href="../../../../../docs/architecture/architecture/" class="md-nav__link">
+        
+  
+  
+  <span class="md-ellipsis">
+    
+  
+    Arquitectura (mapa)
+  
+
+    
+  </span>
+  
+  
+
+      </a>
+    </li>
+  
+
+              
+            
+              
+                
+  
+  
+  
+  
+    
+    
+    
+    
+      
+      
+    
+    
+    <li class="md-nav__item md-nav__item--nested">
+      
+        
+        
+        <input class="md-nav__toggle md-toggle " type="checkbox" id="__nav_4_2" >
+        
+          
+          <label class="md-nav__link" for="__nav_4_2" id="__nav_4_2_label" tabindex="0">
+            
+  
+  
+  <span class="md-ellipsis">
+    
+  
+    Servicios
+  
+
+    
+  </span>
+  
+  
+
+            <span class="md-nav__icon md-icon"></span>
+          </label>
+        
+        <nav class="md-nav" data-md-level="2" aria-labelledby="__nav_4_2_label" aria-expanded="false">
+          <label class="md-nav__title" for="__nav_4_2">
+            <span class="md-nav__icon md-icon"></span>
+            
+  
+    Servicios
+  
+
+          </label>
+          <ul class="md-nav__list" data-md-scrollfix>
+            
+              
+                
+  
+  
+  
+  
+    <li class="md-nav__item">
+      <a href="../../../../../backend/auth/" class="md-nav__link">
+        
+  
+  
+  <span class="md-ellipsis">
+    
+  
+    Auth
+  
+
+    
+  </span>
+  
+  
+
+      </a>
+    </li>
+  
+
+              
+            
+              
+                
+  
+  
+  
+  
+    <li class="md-nav__item">
+      <a href="../../../../../backend/gateway-pymes/" class="md-nav__link">
+        
+  
+  
+  <span class="md-ellipsis">
+    
+  
+    Gateway
+  
+
+    
+  </span>
+  
+  
+
+      </a>
+    </li>
+  
+
+              
+            
+              
+                
+  
+  
+  
+  
+    <li class="md-nav__item">
+      <a href="../../../../../backend/core/" class="md-nav__link">
+        
+  
+  
+  <span class="md-ellipsis">
+    
+  
+    Core
+  
+
+    
+  </span>
+  
+  
+
+      </a>
+    </li>
+  
+
+              
+            
+              
+                
+  
+  
+  
+  
+    <li class="md-nav__item">
+      <a href="../../../" class="md-nav__link">
+        
+  
+  
+  <span class="md-ellipsis">
+    
+  
+    Frontend
+  
+
+    
+  </span>
+  
+  
+
+      </a>
+    </li>
+  
+
+              
+            
+          </ul>
+        </nav>
+      
+    </li>
+  
+
+              
+            
+              
+                
+  
+  
+  
+  
+    <li class="md-nav__item">
+      <a href="../../../../../docs/persistencia-postgres/" class="md-nav__link">
+        
+  
+  
+  <span class="md-ellipsis">
+    
+  
+    Base de datos
+  
+
+    
+  </span>
+  
+  
+
+      </a>
+    </li>
+  
+
+              
+            
+              
+                
+  
+  
+  
+  
+    <li class="md-nav__item">
+      <a href="../../../../../docs/strategies/DB_STRATEGY/" class="md-nav__link">
+        
+  
+  
+  <span class="md-ellipsis">
+    
+  
+    Estrategia multi-schema
+  
+
+    
+  </span>
+  
+  
+
+      </a>
+    </li>
+  
+
+              
+            
+              
+                
+  
+  
+  
+  
+    <li class="md-nav__item">
+      <a href="../../../../../docs/strategies/INFRA_STRATEGY/" class="md-nav__link">
+        
+  
+  
+  <span class="md-ellipsis">
+    
+  
+    Infraestructura
+  
+
+    
+  </span>
+  
+  
+
+      </a>
+    </li>
+  
+
+              
+            
+          </ul>
+        </nav>
+      
+    </li>
+  
+
+    
+      
+      
+  
+  
+  
+  
+    
+    
+    
+    
+      
+      
+    
+    
+    <li class="md-nav__item md-nav__item--nested">
+      
+        
+        
+        <input class="md-nav__toggle md-toggle " type="checkbox" id="__nav_5" >
+        
+          
+          <label class="md-nav__link" for="__nav_5" id="__nav_5_label" tabindex="0">
+            
+  
+  
+  <span class="md-ellipsis">
+    
+  
+    Operación
+  
+
+    
+  </span>
+  
+  
+
+            <span class="md-nav__icon md-icon"></span>
+          </label>
+        
+        <nav class="md-nav" data-md-level="1" aria-labelledby="__nav_5_label" aria-expanded="false">
+          <label class="md-nav__title" for="__nav_5">
+            <span class="md-nav__icon md-icon"></span>
+            
+  
+    Operación
+  
+
+          </label>
+          <ul class="md-nav__list" data-md-scrollfix>
+            
+              
+                
+  
+  
+  
+  
+    <li class="md-nav__item">
+      <a href="../../../../../deployment/DEPLOYMENT/" class="md-nav__link">
+        
+  
+  
+  <span class="md-ellipsis">
+    
+  
+    Deploy
+  
+
+    
+  </span>
+  
+  
+
+      </a>
+    </li>
+  
+
+              
+            
+              
+                
+  
+  
+  
+  
+    <li class="md-nav__item">
+      <a href="../../../../../deployment/QUICK_START/" class="md-nav__link">
+        
+  
+  
+  <span class="md-ellipsis">
+    
+  
+    Quick start CI/CD
+  
+
+    
+  </span>
+  
+  
+
+      </a>
+    </li>
+  
+
+              
+            
+              
+                
+  
+  
+  
+  
+    <li class="md-nav__item">
+      <a href="../../../../../deployment/SECRETS/" class="md-nav__link">
+        
+  
+  
+  <span class="md-ellipsis">
+    
+  
+    Secretos
+  
+
+    
+  </span>
+  
+  
+
+      </a>
+    </li>
+  
+
+              
+            
+              
+                
+  
+  
+  
+  
+    <li class="md-nav__item">
+      <a href="../../../../../docs/DAILY_REPORTS_PROJECT/" class="md-nav__link">
+        
+  
+  
+  <span class="md-ellipsis">
+    
+  
+    Reportes diarios
+  
+
+    
+  </span>
+  
+  
+
+      </a>
+    </li>
+  
+
+              
+            
+          </ul>
+        </nav>
+      
+    </li>
+  
+
+    
+      
+      
+  
+  
+  
+  
+    
+    
+    
+    
+      
+      
+    
+    
+    <li class="md-nav__item md-nav__item--nested">
+      
+        
+        
+        <input class="md-nav__toggle md-toggle " type="checkbox" id="__nav_6" >
+        
+          
+          <label class="md-nav__link" for="__nav_6" id="__nav_6_label" tabindex="0">
+            
+  
+  
+  <span class="md-ellipsis">
+    
+  
+    Guías
+  
+
+    
+  </span>
+  
+  
+
+            <span class="md-nav__icon md-icon"></span>
+          </label>
+        
+        <nav class="md-nav" data-md-level="1" aria-labelledby="__nav_6_label" aria-expanded="false">
+          <label class="md-nav__title" for="__nav_6">
+            <span class="md-nav__icon md-icon"></span>
+            
+  
+    Guías
+  
+
+          </label>
+          <ul class="md-nav__list" data-md-scrollfix>
+            
+              
+                
+  
+  
+  
+  
+    <li class="md-nav__item">
+      <a href="../../../../../docs/guides/user-guide/" class="md-nav__link">
+        
+  
+  
+  <span class="md-ellipsis">
+    
+  
+    Usuario
+  
+
+    
+  </span>
+  
+  
+
+      </a>
+    </li>
+  
+
+              
+            
+              
+                
+  
+  
+  
+  
+    <li class="md-nav__item">
+      <a href="../../../../../docs/guides/admin-guide/" class="md-nav__link">
+        
+  
+  
+  <span class="md-ellipsis">
+    
+  
+    Administración
+  
+
+    
+  </span>
+  
+  
+
+      </a>
+    </li>
+  
+
+              
+            
+              
+                
+  
+  
+  
+  
+    <li class="md-nav__item">
+      <a href="../../../../../docs/guides/operations-guide/" class="md-nav__link">
+        
+  
+  
+  <span class="md-ellipsis">
+    
+  
+    Operación
+  
+
+    
+  </span>
+  
+  
+
+      </a>
+    </li>
+  
+
+              
+            
+          </ul>
+        </nav>
+      
+    </li>
+  
+
+    
+      
+      
+  
+  
+  
+  
+    
+    
+    
+    
+      
+      
+    
+    
+    <li class="md-nav__item md-nav__item--nested">
+      
+        
+        
+        <input class="md-nav__toggle md-toggle " type="checkbox" id="__nav_7" >
+        
+          
+          <label class="md-nav__link" for="__nav_7" id="__nav_7_label" tabindex="0">
+            
+  
+  
+  <span class="md-ellipsis">
+    
+  
+    Referencia
+  
+
+    
+  </span>
+  
+  
+
+            <span class="md-nav__icon md-icon"></span>
+          </label>
+        
+        <nav class="md-nav" data-md-level="1" aria-labelledby="__nav_7_label" aria-expanded="false">
+          <label class="md-nav__title" for="__nav_7">
+            <span class="md-nav__icon md-icon"></span>
+            
+  
+    Referencia
+  
+
+          </label>
+          <ul class="md-nav__list" data-md-scrollfix>
+            
+              
+                
+  
+  
+  
+  
+    <li class="md-nav__item">
+      <a href="../../../../../backend/core/docs/KPIs/" class="md-nav__link">
+        
+  
+  
+  <span class="md-ellipsis">
+    
+  
+    KPIs
+  
+
+    
+  </span>
+  
+  
+
+      </a>
+    </li>
+  
+
+              
+            
+              
+                
+  
+  
+  
+  
+    <li class="md-nav__item">
+      <a href="../../../../../backend/core/docs/COSTOS_ENGINE/" class="md-nav__link">
+        
+  
+  
+  <span class="md-ellipsis">
+    
+  
+    Motor de costos
+  
+
+    
+  </span>
+  
+  
+
+      </a>
+    </li>
+  
+
+              
+            
+              
+                
+  
+  
+  
+  
+    <li class="md-nav__item">
+      <a href="../../../../../backend/core/docs/ANALYTICS/" class="md-nav__link">
+        
+  
+  
+  <span class="md-ellipsis">
+    
+  
+    Analítica
+  
+
+    
+  </span>
+  
+  
+
+      </a>
+    </li>
+  
+
+              
+            
+              
+                
+  
+  
+  
+  
+    <li class="md-nav__item">
+      <a href="../../../../../backend/core/docs/CORE/" class="md-nav__link">
+        
+  
+  
+  <span class="md-ellipsis">
+    
+  
+    Motor de salud financiera
+  
+
+    
+  </span>
+  
+  
+
+      </a>
+    </li>
+  
+
+              
+            
+              
+                
+  
+  
+  
+  
+    <li class="md-nav__item">
+      <a href="../../PWA_OFFLINE/" class="md-nav__link">
+        
+  
+  
+  <span class="md-ellipsis">
+    
+  
+    PWA offline
+  
+
+    
+  </span>
+  
+  
+
+      </a>
+    </li>
+  
+
+              
+            
+          </ul>
+        </nav>
+      
+    </li>
+  
+
+    
+  </ul>
+</nav>
+                  </div>
+                </div>
+              </div>
+            
+            
+              
+              <div class="md-sidebar md-sidebar--secondary" data-md-component="sidebar" data-md-type="toc" >
+                <div class="md-sidebar__scrollwrap">
+                  <div class="md-sidebar__inner">
+                    
+
+<nav class="md-nav md-nav--secondary" aria-label="Tabla de contenidos">
+  
+  
+  
+    
+  
+  
+    <label class="md-nav__title" for="__toc">
+      <span class="md-nav__icon md-icon"></span>
+      Tabla de contenidos
+    </label>
+    <ul class="md-nav__list" data-md-component="toc" data-md-scrollfix>
+      
+        <li class="md-nav__item">
+  <a href="#1-diagnostico-del-estado-actual" class="md-nav__link">
+    <span class="md-ellipsis">
+      
+        1. Diagnóstico del Estado Actual
+      
+    </span>
+  </a>
+  
+    <nav class="md-nav" aria-label="1. Diagnóstico del Estado Actual">
+      <ul class="md-nav__list">
+        
+          <li class="md-nav__item">
+  <a href="#lo-que-esta-bien-backend-y-motor-de-scoring" class="md-nav__link">
+    <span class="md-ellipsis">
+      
+        Lo que está bien (Backend y Motor de Scoring)
+      
+    </span>
+  </a>
+  
+</li>
+        
+          <li class="md-nav__item">
+  <a href="#lo-que-esta-mal-frontend" class="md-nav__link">
+    <span class="md-ellipsis">
+      
+        Lo que está mal (Frontend)
+      
+    </span>
+  </a>
+  
+</li>
+        
+      </ul>
+    </nav>
+  
+</li>
+      
+        <li class="md-nav__item">
+  <a href="#registro-del-rework-de-tacometros-2026-11-09" class="md-nav__link">
+    <span class="md-ellipsis">
+      
+        Registro del rework de tacómetros (2026-11-09)
+      
+    </span>
+  </a>
+  
+</li>
+      
+        <li class="md-nav__item">
+  <a href="#2-nueva-arquitectura-y-separacion-de-responsabilidades" class="md-nav__link">
+    <span class="md-ellipsis">
+      
+        2. Nueva Arquitectura y Separación de Responsabilidades
+      
+    </span>
+  </a>
+  
+</li>
+      
+        <li class="md-nav__item">
+  <a href="#3-especificacion-de-componentes" class="md-nav__link">
+    <span class="md-ellipsis">
+      
+        3. Especificación de Componentes
+      
+    </span>
+  </a>
+  
+    <nav class="md-nav" aria-label="3. Especificación de Componentes">
+      <ul class="md-nav__list">
+        
+          <li class="md-nav__item">
+  <a href="#31-dashboardpagevue-widget-ejecutivo-compacto" class="md-nav__link">
+    <span class="md-ellipsis">
+      
+        3.1 DashboardPage.vue — Widget Ejecutivo Compacto
+      
+    </span>
+  </a>
+  
+</li>
+        
+          <li class="md-nav__item">
+  <a href="#32-analisisgastospagevue-diagnostico-profundo-y-estrategico" class="md-nav__link">
+    <span class="md-ellipsis">
+      
+        3.2 AnalisisGastosPage.vue — Diagnóstico Profundo y Estratégico
+      
+    </span>
+  </a>
+  
+</li>
+        
+      </ul>
+    </nav>
+  
+</li>
+      
+        <li class="md-nav__item">
+  <a href="#4-plan-de-implementacion-por-pasos" class="md-nav__link">
+    <span class="md-ellipsis">
+      
+        4. Plan de Implementación por Pasos
+      
+    </span>
+  </a>
+  
+</li>
+      
+        <li class="md-nav__item">
+  <a href="#5-verificacion-y-criterios-de-aceptacion" class="md-nav__link">
+    <span class="md-ellipsis">
+      
+        5. Verificación y Criterios de Aceptación
+      
+    </span>
+  </a>
+  
+    <nav class="md-nav" aria-label="5. Verificación y Criterios de Aceptación">
+      <ul class="md-nav__list">
+        
+          <li class="md-nav__item">
+  <a href="#pruebas-manuales" class="md-nav__link">
+    <span class="md-ellipsis">
+      
+        Pruebas Manuales
+      
+    </span>
+  </a>
+  
+</li>
+        
+      </ul>
+    </nav>
+  
+</li>
+      
+    </ul>
+  
+</nav>
+                  </div>
+                </div>
+              </div>
+            
+          
+          
+            <div class="md-content" data-md-component="content">
+              
+              <article class="md-content__inner md-typeset">
+                
+                  
+
+
+
+<h1 id="estrategia-de-salud-financiera-financial-health-frontend">Estrategia de Salud Financiera (Financial Health) — Frontend<a class="headerlink" href="#estrategia-de-salud-financiera-financial-health-frontend" title="Permanent link">&para;</a></h1>
+<p><strong>Estado:</strong> Plan definido / Pendiente de implementación<br />
+<strong>Ámbito:</strong> <code>DashboardPage.vue</code>, <code>AnalisisGastosPage.vue</code>, componentes <code>dashboard/</code> y <code>types/analytics.ts</code><br />
+<strong>Objetivo:</strong> Eliminar la duplicación entre Dashboard y Análisis de Gastos, crear un widget ejecutivo balanceado en Dashboard y aprovechar los datos ricos del backend (<code>expansionReadiness</code>, <code>investmentSignals</code>, payback) en Análisis.</p>
+<hr />
+<h2 id="1-diagnostico-del-estado-actual">1. Diagnóstico del Estado Actual<a class="headerlink" href="#1-diagnostico-del-estado-actual" title="Permanent link">&para;</a></h2>
+<h3 id="lo-que-esta-bien-backend-y-motor-de-scoring">Lo que está bien (Backend y Motor de Scoring)<a class="headerlink" href="#lo-que-esta-bien-backend-y-motor-de-scoring" title="Permanent link">&para;</a></h3>
+<ul>
+<li><strong>Motor #10 en <code>AnalyticsServiceImpl.java</code></strong>: El backend implementa un scoring compuesto (0 a 100) balanceado en 4 pilares financieros:</li>
+<li><strong>Rentabilidad (35%)</strong>: Margen bruto (40%), operativo (35%) y neto (25%).</li>
+<li><strong>Eficiencia (25%)</strong>: Ratio de OpEx sobre ingresos.</li>
+<li><strong>Estabilidad (25%)</strong>: Concentración de proveedores (&lt;50%) y estabilidad de precios.</li>
+<li><strong>Crecimiento (15%)</strong>: Tendencia de ingresos entre <strong>meses cerrados</strong>; el mes en curso se excluye para no comparar un mes parcial contra uno completo. Con menos de 3 meses cerrados el sub-score es 50 neutral y no se emite driver de tendencia (la tarjeta dice "Aún no hay historial"). <code>Source: backend/core/src/main/java/core_pymes/analytics/service/impl/AnalyticsServiceImpl.java</code>.</li>
+<li><strong>Señales Avanzadas</strong>: Detección de costo diario vs ingreso (<code>DAILY_COST_CONTROL</code>), payback real de capital + deuda activa (<code>PAYBACK_RECOVERY</code>), señales de inversión y madurez para expansión.</li>
+<li><strong>Normalización</strong>: <code>analyticsNormalize.ts</code> sanitiza y tipifica las respuestas del backend sin errores de runtime.</li>
+</ul>
+<h3 id="lo-que-esta-mal-frontend">Lo que está mal (Frontend)<a class="headerlink" href="#lo-que-esta-mal-frontend" title="Permanent link">&para;</a></h3>
+<ol>
+<li><strong>Duplicación Literal</strong>:
+   Tanto <code>DashboardPage.vue</code> como <code>AnalisisGastosPage.vue</code> renderizan exactamente el mismo componente:
+   <div class="highlight"><pre><span></span><code><span class="p">&lt;</span><span class="nt">FinancialHealthPanel</span> <span class="na">:data</span><span class="o">=</span><span class="s">"financialHealth"</span> <span class="na">:loading</span><span class="o">=</span><span class="s">"analyticsLoading"</span> <span class="na">:recommendations</span><span class="o">=</span><span class="s">"supplierRecommendations"</span> <span class="p">/&gt;</span>
+</code></pre></div></li>
+<li><strong>Desbalance en <code>DashboardPage</code></strong>:
+   <code>FinancialHealthPanel</code> incluye un medidor principal, guía de texto, 4 medidores secundarios, lista de alertas y lista de recomendaciones. En el Dashboard se ubica al lado de <code>CategoryBreakdownChart</code>, resultando en una columna desproporcionadamente alta que satura visualmente la pantalla inicial.<blockquote>
+<p><strong>Avance 2026-11-09</strong>: el medidor (<code>TraderGauge</code>) pasó a mostrar las <strong>zonas permanentes</strong> en el arco (rojo 0-39 · amarillo 40-69 · verde 70-100) con aguja que las recorre; la fila de leyenda de bandas del panel se <strong>eliminó</strong> (menos altura, mismo significado). Con esto se reduce parte del desbalance descrito en este punto.</p>
+</blockquote>
+</li>
+</ol>
+<h2 id="registro-del-rework-de-tacometros-2026-11-09">Registro del rework de tacómetros (2026-11-09)<a class="headerlink" href="#registro-del-rework-de-tacometros-2026-11-09" title="Permanent link">&para;</a></h2>
+<table>
+<thead>
+<tr>
+<th>Componente</th>
+<th>Cambio</th>
+<th>Motivo</th>
+</tr>
+</thead>
+<tbody>
+<tr>
+<td><code>TraderGauge.vue</code></td>
+<td><code>__fill</code> eliminado; <code>__bg</code> ahora conic-gradient de 3 zonas fijas (72°/126° = 40/70 puntos)</td>
+<td>Las fronteras de zonas eran invisibles; se pierde info de proximidad al peligro. La leyenda de texto del panel era redundante y se borró</td>
+</tr>
+<tr>
+<td><code>OpexGauge.vue</code></td>
+<td>Token inexistente <code>--pq-chart-warning</code> → <code>--pq-warning</code>; marcadores 0/warning/critical/max alineados a la geometría del arco (<code>cos(π·r)</code>); transición muerta <code>stroke-dashoffset</code> eliminada; <code>shortcut:</code> nota de huérfano</td>
+<td>El aviso amarillo no se dibujaba; las etiquetas caían corridas bajo un semicírculo</td>
+</tr>
+</tbody>
+</table>
+<p>Pendiente en <code>OpexGauge</code> si se reactiva con la sección Costo Operativo (fase 4c-3 de <code>FRONTEND_PENDIENTES_STRATEGY.md</code>): mostrar monto en B/. en el centro en vez de % (regla no-jerga), y confirmar proporción con datos reales.
+3. <strong>Datos Huérfanos del Backend (No Renderizados)</strong>:
+   El backend envía <code>expansionReadiness</code> (score, estado LISTO/EN_DESARROLLO/PREPARACIÓN, checklist de requisitos) e <code>investmentSignals</code> (colchón de deuda, apalancamiento, etc.). El frontend los recibe y normaliza, pero <strong>ningún componente los muestra en pantalla</strong>.
+4. <strong>Competencia de Alertas en <code>AnalisisGastosPage</code></strong>:
+   En la misma pantalla conviven <code>FinancialHealthPanel</code> (que muestra alertas y recomendaciones) junto a <code>&lt;AlertsPanel :items="enrichedAlerts" /&gt;</code> y <code>&lt;SupplierRecommendationsCard :items="enrichedRecommendations" /&gt;</code>, repitiendo la información hasta 3 veces.</p>
+<hr />
+<h2 id="2-nueva-arquitectura-y-separacion-de-responsabilidades">2. Nueva Arquitectura y Separación de Responsabilidades<a class="headerlink" href="#2-nueva-arquitectura-y-separacion-de-responsabilidades" title="Permanent link">&para;</a></h2>
+<pre class="mermaid"><code>flowchart TD
+    subgraph Data ["Backend / useAnalytics"]
+        FH["financialHealth"]
+        Score["Score General (0-100)"]
+        Pilares["4 Pilares + Drivers"]
+        Alertas["Alertas Críticas + Payback"]
+        Expansion["expansionReadiness + investmentSignals"]
+        FH --&gt; Score &amp; Pilares &amp; Alertas &amp; Expansion
+    end
+
+    subgraph VistaDashboard ["DashboardPage.vue (Nivel Ejecutivo)"]
+        W["FinancialHealthWidget (Compacto)"]
+        W --&gt; W1["TraderGauge Score General"]
+        W --&gt; W2["Franja 4 Pilares (Pills/Barras)"]
+        W --&gt; W3["Pill: Alerta Crítica Principal (si hay)"]
+        W --&gt; W4["Enlace: 'Ver diagnóstico completo →'"]
+    end
+
+    subgraph VistaAnalisis ["AnalisisGastosPage.vue (Nivel Diagnóstico Profundo)"]
+        D["Diagnóstico Integral"]
+        D --&gt; D1["Desglose de Pilares con Factores Impulsores (Drivers)"]
+        D --&gt; D2["Semáforo de Recuperación de Inversión / Payback (Meses estimados)"]
+        D --&gt; D3["Preparación para Expansión (Checklist de Requisitos)"]
+        D --&gt; D4["Alertas y Recomendaciones Consolidadas"]
+    end
+
+    Score --&gt; W1
+    Pilares --&gt; W2 &amp; D1
+    Alertas --&gt; W3 &amp; D2 &amp; D4
+    Expansion --&gt; D3</code></pre>
+<hr />
+<h2 id="3-especificacion-de-componentes">3. Especificación de Componentes<a class="headerlink" href="#3-especificacion-de-componentes" title="Permanent link">&para;</a></h2>
+<h3 id="31-dashboardpagevue-widget-ejecutivo-compacto">3.1 <code>DashboardPage.vue</code> — Widget Ejecutivo Compacto<a class="headerlink" href="#31-dashboardpagevue-widget-ejecutivo-compacto" title="Permanent link">&para;</a></h3>
+<ul>
+<li><strong>Objetivo</strong>: Responder en 3 segundos: <em>"¿Cómo está la salud financiera general de mi empresa hoy?"</em>.</li>
+<li><strong>Comportamiento</strong>:</li>
+<li>Altura contenida para equiparar <code>CategoryBreakdownChart</code> (~380-420px).</li>
+<li>Muestra:<ol>
+<li>Medidor <code>TraderGauge</code> con el puntaje general (0-100) y etiqueta de banda ("Saludable", "En desarrollo", "Crítico").</li>
+<li>Resumen horizontal compacto de los 4 pilares (Rentabilidad, Eficiencia, Estabilidad, Crecimiento) con sus porcentajes y colores de estado.</li>
+<li>Alerta crítica principal: si existe una alerta (ej. <em>"Margen operativo negativo"</em> o <em>"Costo diario supera ingresos"</em>), se muestra como un badge destacado.</li>
+<li>Botón de texto al pie: <em>"Ver diagnóstico completo en Análisis →"</em>, con navegación directa a <code>/dashboard/analisis-gastos</code>.</li>
+</ol>
+</li>
+</ul>
+<h3 id="32-analisisgastospagevue-diagnostico-profundo-y-estrategico">3.2 <code>AnalisisGastosPage.vue</code> — Diagnóstico Profundo y Estratégico<a class="headerlink" href="#32-analisisgastospagevue-diagnostico-profundo-y-estrategico" title="Permanent link">&para;</a></h3>
+<ul>
+<li><strong>Objetivo</strong>: Responder: <em>"¿Por qué tengo este puntaje y qué acciones estratégicas debo tomar para crecer o proteger mi capital?"</em>.</li>
+<li><strong>Comportamiento</strong>:</li>
+<li>Mantiene el desglose detallado por pilar con sus factores conductores (<em>drivers</em>: % margen operativo, % opex ratio, % concentración de proveedor).</li>
+<li><strong>Nueva Sección: Recuperación de Inversión (Payback)</strong>:<ul>
+<li>Muestra los meses estimados para recuperar el capital propio invertido y la deuda activa (<code>PAYBACK_RECOVERY</code>).</li>
+</ul>
+</li>
+<li><strong>Nueva Sección: Preparación para Expansión (<code>expansionReadiness</code>)</strong>:<ul>
+<li>Indicador de estado: <code>LISTO</code>, <code>EN_DESARROLLO</code> o <code>PREPARACIÓN</code>.</li>
+<li>Checklist visual de requisitos cumplidos vs pendientes (rentabilidad sostenida 6+ meses, colchón de deuda &lt;10% de ingresos, madurez de proveedores).</li>
+</ul>
+</li>
+<li><strong>Consolidación de Alertas</strong>:<ul>
+<li>Integra las alertas críticas de salud financiera dentro de <code>AlertsPanel</code> para evitar duplicidad de bloques en la página.</li>
+</ul>
+</li>
+</ul>
+<hr />
+<h2 id="4-plan-de-implementacion-por-pasos">4. Plan de Implementación por Pasos<a class="headerlink" href="#4-plan-de-implementacion-por-pasos" title="Permanent link">&para;</a></h2>
+<ol>
+<li><strong>Paso 1 — Refactor del Widget de Dashboard</strong>:</li>
+<li>Ajustar <code>FinancialHealthPanel.vue</code> (o modo compacto vía prop <code>compact?: boolean</code>) para que cuando esté en <code>DashboardPage</code> no renderice las listas extensas de alertas ni recomendaciones, sino el resumen balanceado de pilares y enlace a análisis.</li>
+<li><strong>Paso 2 — Incorporar Señales de Expansión y Payback en Análisis</strong>:</li>
+<li>Agregar el componente/sección de <code>expansionReadiness</code> e <code>investmentSignals</code> en <code>AnalisisGastosPage.vue</code> consumiendo los datos ya provistos por <code>useAnalytics()</code>.</li>
+<li><strong>Paso 3 — Unificación de Alertas en Análisis</strong>:</li>
+<li>Consolidar las alertas de salud financiera en una sola lista junto con <code>enrichedAlerts</code>, evitando elementos repetidos.</li>
+</ol>
+<hr />
+<h2 id="5-verificacion-y-criterios-de-aceptacion">5. Verificación y Criterios de Aceptación<a class="headerlink" href="#5-verificacion-y-criterios-de-aceptacion" title="Permanent link">&para;</a></h2>
+<div class="highlight"><pre><span></span><code><span class="c1"># Linting</span>
+<span class="nb">cd</span><span class="w"> </span>frontend/pymes<span class="w"> </span><span class="o">&amp;&amp;</span><span class="w"> </span>npm<span class="w"> </span>run<span class="w"> </span>lint
+
+<span class="c1"># Build de producción y typecheck</span>
+<span class="nb">cd</span><span class="w"> </span>frontend/pymes<span class="w"> </span><span class="o">&amp;&amp;</span><span class="w"> </span>npm<span class="w"> </span>run<span class="w"> </span>build
+</code></pre></div>
+<h3 id="pruebas-manuales">Pruebas Manuales<a class="headerlink" href="#pruebas-manuales" title="Permanent link">&para;</a></h3>
+<ol>
+<li><strong>Dashboard</strong>:</li>
+<li>La tarjeta de Salud Financiera tiene una altura visual simétrica respecto al gráfico de dona de categorías.</li>
+<li>El enlace inferior redirige a <code>/dashboard/analisis-gastos</code>.</li>
+<li><strong>Análisis de Gastos</strong>:</li>
+<li>Se visualizan las señales de expansión y requisitos calculados por el backend.</li>
+<li>Las alertas y recomendaciones se presentan de forma clara y unificada sin repetirse.</li>
+</ol>
+
+
+
+
+
+
+
+
+
+
+
+
+                
+              </article>
+            </div>
+          
+          
+<script>var target=document.getElementById(location.hash.slice(1));target&&target.name&&(target.checked=target.name.startsWith("__tabbed_"))</script>
+        </div>
+        
+          <button type="button" class="md-top md-icon" data-md-component="top" hidden>
+  
+  <svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 24 24"><path d="M13 20h-2V8l-5.5 5.5-1.42-1.42L12 4.16l7.92 7.92-1.42 1.42L13 8z"/></svg>
+  Volver al principio
+</button>
+        
+      </main>
+      
+        <footer class="md-footer">
+  
+  <div class="md-footer-meta md-typeset">
+    <div class="md-footer-meta__inner md-grid">
+      <div class="md-copyright">
+  
+  
+    Made with
+    <a href="https://squidfunk.github.io/mkdocs-material/" target="_blank" rel="noopener">
+      Material for MkDocs
+    </a>
+  
+</div>
+      
+    </div>
+  </div>
+</footer>
+      
+    </div>
+    <div class="md-dialog" data-md-component="dialog">
+      <div class="md-dialog__inner md-typeset"></div>
+    </div>
+    
+    
+    
+      
+      
+      <script id="__config" type="application/json">{"annotate": null, "base": "../../../../..", "features": ["navigation.tabs", "navigation.top", "search.highlight", "content.code.copy"], "search": "../../../../../assets/javascripts/workers/search.a7633da7.min.js", "tags": null, "translations": {"clipboard.copied": "Copiado al portapapeles", "clipboard.copy": "Copiar al portapapeles", "search.result.more.one": "1 m\u00e1s en esta p\u00e1gina", "search.result.more.other": "# m\u00e1s en esta p\u00e1gina", "search.result.none": "No se encontraron documentos", "search.result.one": "1 documento encontrado", "search.result.other": "# documentos encontrados", "search.result.placeholder": "Teclee para comenzar b\u00fasqueda", "search.result.term.missing": "Falta", "select.version": "Seleccionar versi\u00f3n"}, "version": null}</script>
+    
+    
+      <script src="../../../../../assets/javascripts/bundle.a5f9d56c.min.js"></script>
+      
+    
+  </body>
+</html>

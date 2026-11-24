@@ -1,0 +1,3210 @@
+
+<!doctype html>
+<html lang="es" class="no-js">
+  <head>
+    
+      <meta charset="utf-8">
+      <meta name="viewport" content="width=device-width,initial-scale=1">
+      
+        <meta name="description" content="Documentación del producto, arquitectura, API y operación">
+      
+      
+        <meta name="author" content="dio-quincarDev">
+      
+      
+      
+      
+      
+        
+      
+      
+      <link rel="icon" href="../../../../assets/images/favicon.png">
+      <meta name="generator" content="mkdocs-1.6.1, mkdocs-material-9.8.2">
+    
+    
+      
+        <title>Plantillas Precargadas - Estructura y Configuración - Pymeq — Forensic Accounting for Small Business</title>
+      
+    
+    
+      <link rel="stylesheet" href="../../../../assets/stylesheets/main.57a0d79d.min.css">
+      
+        
+        <link rel="stylesheet" href="../../../../assets/stylesheets/palette.fb2fffe2.min.css">
+      
+      
+
+
+    
+    
+      
+    
+    
+      
+        
+        
+        <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+        <link rel="stylesheet" href="https://fonts.googleapis.com/css?family=Roboto:300,300i,400,400i,700,700i%7CRoboto+Mono:400,400i,700,700i&display=fallback">
+        <style>:root{--md-text-font:"Roboto";--md-code-font:"Roboto Mono"}</style>
+      
+    
+    
+    <script>__md_scope=new URL("../../../..",location),__md_hash=e=>[...e].reduce(((e,_)=>(e<<5)-e+_.charCodeAt(0)),0),__md_get=(e,_=localStorage,t=__md_scope)=>JSON.parse(_.getItem(t.pathname+"."+e)),__md_set=(e,_,t=localStorage,a=__md_scope)=>{try{t.setItem(a.pathname+"."+e,JSON.stringify(_))}catch(e){}}</script>
+    
+      
+
+    
+    
+  </head>
+  
+  
+    
+    
+      
+    
+    
+    
+    
+    <body dir="ltr" data-md-color-scheme="slate" data-md-color-primary="teal" data-md-color-accent="amber">
+  
+    
+    <input class="md-toggle" data-md-toggle="drawer" type="checkbox" id="__drawer" autocomplete="off">
+    <input class="md-toggle" data-md-toggle="search" type="checkbox" id="__search" autocomplete="off">
+    <label class="md-overlay" for="__drawer"></label>
+    <div data-md-component="skip">
+      
+        
+        <a href="#plantillas-precargadas-estructura-y-configuracion" class="md-skip">
+          Saltar a contenido
+        </a>
+      
+    </div>
+    <div data-md-component="announce">
+      
+    </div>
+    
+    
+      
+
+<header class="md-header" data-md-component="header">
+  <nav class="md-header__inner md-grid" aria-label="Cabecera">
+    <a href="../../../.." title="Pymeq — Forensic Accounting for Small Business" class="md-header__button md-logo" aria-label="Pymeq — Forensic Accounting for Small Business" data-md-component="logo">
+      
+  
+  <svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 24 24"><path d="M12 8a3 3 0 0 0 3-3 3 3 0 0 0-3-3 3 3 0 0 0-3 3 3 3 0 0 0 3 3m0 3.54C9.64 9.35 6.5 8 3 8v11c3.5 0 6.64 1.35 9 3.54 2.36-2.19 5.5-3.54 9-3.54V8c-3.5 0-6.64 1.35-9 3.54"/></svg>
+
+    </a>
+    <label class="md-header__button md-icon" for="__drawer">
+      
+      <svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 24 24"><path d="M3 6h18v2H3zm0 5h18v2H3zm0 5h18v2H3z"/></svg>
+    </label>
+    <div class="md-header__title" data-md-component="header-title">
+      <div class="md-header__ellipsis">
+        <div class="md-header__topic">
+          <span class="md-ellipsis">
+            Pymeq — Forensic Accounting for Small Business
+          </span>
+        </div>
+        <div class="md-header__topic" data-md-component="header-topic">
+          <span class="md-ellipsis">
+            
+              Plantillas Precargadas - Estructura y Configuración
+            
+          </span>
+        </div>
+      </div>
+    </div>
+    
+      
+        <form class="md-header__option" data-md-component="palette">
+  
+    
+    
+    
+    <input class="md-option" data-md-color-media="" data-md-color-scheme="slate" data-md-color-primary="teal" data-md-color-accent="amber"  aria-label="Cambiar a tema claro"  type="radio" name="__palette" id="__palette_0">
+    
+      <label class="md-header__button md-icon" title="Cambiar a tema claro" for="__palette_1" hidden>
+        <svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 24 24"><path d="m17.75 4.09-2.53 1.94.91 3.06-2.63-1.81-2.63 1.81.91-3.06-2.53-1.94L12.44 4l1.06-3 1.06 3zm3.5 6.91-1.64 1.25.59 1.98-1.7-1.17-1.7 1.17.59-1.98L15.75 11l2.06-.05L18.5 9l.69 1.95zm-2.28 4.95c.83-.08 1.72 1.1 1.19 1.85-.32.45-.66.87-1.08 1.27C15.17 23 8.84 23 4.94 19.07c-3.91-3.9-3.91-10.24 0-14.14.4-.4.82-.76 1.27-1.08.75-.53 1.93.36 1.85 1.19-.27 2.86.69 5.83 2.89 8.02a9.96 9.96 0 0 0 8.02 2.89m-1.64 2.02a12.08 12.08 0 0 1-7.8-3.47c-2.17-2.19-3.33-5-3.49-7.82-2.81 3.14-2.7 7.96.31 10.98 3.02 3.01 7.84 3.12 10.98.31"/></svg>
+      </label>
+    
+  
+    
+    
+    
+    <input class="md-option" data-md-color-media="" data-md-color-scheme="default" data-md-color-primary="teal" data-md-color-accent="amber"  aria-label="Cambiar a tema oscuro"  type="radio" name="__palette" id="__palette_1">
+    
+      <label class="md-header__button md-icon" title="Cambiar a tema oscuro" for="__palette_0" hidden>
+        <svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 24 24"><path d="M12 7a5 5 0 0 1 5 5 5 5 0 0 1-5 5 5 5 0 0 1-5-5 5 5 0 0 1 5-5m0 2a3 3 0 0 0-3 3 3 3 0 0 0 3 3 3 3 0 0 0 3-3 3 3 0 0 0-3-3m0-7 2.39 3.42C13.65 5.15 12.84 5 12 5s-1.65.15-2.39.42zM3.34 7l4.16-.35A7.2 7.2 0 0 0 5.94 8.5c-.44.74-.69 1.5-.83 2.29zm.02 10 1.76-3.77a7.131 7.131 0 0 0 2.38 4.14zM20.65 7l-1.77 3.79a7.02 7.02 0 0 0-2.38-4.15zm-.01 10-4.14.36c.59-.51 1.12-1.14 1.54-1.86.42-.73.69-1.5.83-2.29zM12 22l-2.41-3.44c.74.27 1.55.44 2.41.44.82 0 1.63-.17 2.37-.44z"/></svg>
+      </label>
+    
+  
+</form>
+      
+    
+    
+      <script>var palette=__md_get("__palette");if(palette&&palette.color){if("(prefers-color-scheme)"===palette.color.media){var media=matchMedia("(prefers-color-scheme: light)"),input=document.querySelector(media.matches?"[data-md-color-media='(prefers-color-scheme: light)']":"[data-md-color-media='(prefers-color-scheme: dark)']");palette.color.media=input.getAttribute("data-md-color-media"),palette.color.scheme=input.getAttribute("data-md-color-scheme"),palette.color.primary=input.getAttribute("data-md-color-primary"),palette.color.accent=input.getAttribute("data-md-color-accent")}for(var[key,value]of Object.entries(palette.color))document.body.setAttribute("data-md-color-"+key,value)}</script>
+    
+    
+    
+      
+      
+        <label class="md-header__button md-icon" for="__search">
+          
+          <svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 24 24"><path d="M9.5 3A6.5 6.5 0 0 1 16 9.5c0 1.61-.59 3.09-1.56 4.23l.27.27h.79l5 5-1.5 1.5-5-5v-.79l-.27-.27A6.52 6.52 0 0 1 9.5 16 6.5 6.5 0 0 1 3 9.5 6.5 6.5 0 0 1 9.5 3m0 2C7 5 5 7 5 9.5S7 14 9.5 14 14 12 14 9.5 12 5 9.5 5"/></svg>
+        </label>
+        <div class="md-search" data-md-component="search" role="dialog">
+  <label class="md-search__overlay" for="__search"></label>
+  <div class="md-search__inner" role="search">
+    <form class="md-search__form" name="search">
+      <input type="text" class="md-search__input" name="query" aria-label="Búsqueda" placeholder="Búsqueda" autocapitalize="off" autocorrect="off" autocomplete="off" spellcheck="false" data-md-component="search-query" required>
+      <label class="md-search__icon md-icon" for="__search">
+        
+        <svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 24 24"><path d="M9.5 3A6.5 6.5 0 0 1 16 9.5c0 1.61-.59 3.09-1.56 4.23l.27.27h.79l5 5-1.5 1.5-5-5v-.79l-.27-.27A6.52 6.52 0 0 1 9.5 16 6.5 6.5 0 0 1 3 9.5 6.5 6.5 0 0 1 9.5 3m0 2C7 5 5 7 5 9.5S7 14 9.5 14 14 12 14 9.5 12 5 9.5 5"/></svg>
+        
+        <svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 24 24"><path d="M20 11v2H8l5.5 5.5-1.42 1.42L4.16 12l7.92-7.92L13.5 5.5 8 11z"/></svg>
+      </label>
+      <nav class="md-search__options" aria-label="Buscar">
+        
+        <button type="reset" class="md-search__icon md-icon" title="Limpiar" aria-label="Limpiar" tabindex="-1">
+          
+          <svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 24 24"><path d="M19 6.41 17.59 5 12 10.59 6.41 5 5 6.41 10.59 12 5 17.59 6.41 19 12 13.41 17.59 19 19 17.59 13.41 12z"/></svg>
+        </button>
+      </nav>
+      
+    </form>
+    <div class="md-search__output">
+      <div class="md-search__scrollwrap" tabindex="0" data-md-scrollfix>
+        <div class="md-search-result" data-md-component="search-result">
+          <div class="md-search-result__meta">
+            Inicializando búsqueda
+          </div>
+          <ol class="md-search-result__list" role="presentation"></ol>
+        </div>
+      </div>
+    </div>
+  </div>
+</div>
+      
+    
+    
+      <div class="md-header__source">
+        <a href="https://github.com/dio-quincarDev/pymes-admin" title="Ir al repositorio" class="md-source" data-md-component="source">
+  <div class="md-source__icon md-icon">
+    
+    <svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 448 512"><!--! Font Awesome Free 7.1.0 by @fontawesome - https://fontawesome.com License - https://fontawesome.com/license/free (Icons: CC BY 4.0, Fonts: SIL OFL 1.1, Code: MIT License) Copyright 2025 Fonticons, Inc.--><path d="M439.6 236.1 244 40.5c-5.4-5.5-12.8-8.5-20.4-8.5s-15 3-20.4 8.4L162.5 81l51.5 51.5c27.1-9.1 52.7 16.8 43.4 43.7l49.7 49.7c34.2-11.8 61.2 31 35.5 56.7-26.5 26.5-70.2-2.9-56-37.3L240.3 199v121.9c25.3 12.5 22.3 41.8 9.1 55-6.4 6.4-15.2 10.1-24.3 10.1s-17.8-3.6-24.3-10.1c-17.6-17.6-11.1-46.9 11.2-56v-123c-20.8-8.5-24.6-30.7-18.6-45L142.6 101 8.5 235.1C3 240.6 0 247.9 0 255.5s3 15 8.5 20.4l195.6 195.7c5.4 5.4 12.7 8.4 20.4 8.4s15-3 20.4-8.4l194.7-194.7c5.4-5.4 8.4-12.8 8.4-20.4s-3-15-8.4-20.4"/></svg>
+  </div>
+  <div class="md-source__repository">
+    dio-quincarDev/pymes-admin
+  </div>
+</a>
+      </div>
+    
+  </nav>
+  
+</header>
+    
+    <div class="md-container" data-md-component="container">
+      
+      
+        
+          
+            
+<nav class="md-tabs" aria-label="Pestañas" data-md-component="tabs">
+  <div class="md-grid">
+    <ul class="md-tabs__list">
+      
+        
+  
+  
+  
+  
+    <li class="md-tabs__item">
+      <a href="../../../.." class="md-tabs__link">
+        
+  
+  
+    
+  
+  Inicio
+
+      </a>
+    </li>
+  
+
+      
+        
+  
+  
+  
+  
+    
+    
+      <li class="md-tabs__item">
+        <a href="../../../.." class="md-tabs__link">
+          
+  
+  
+  Producto
+
+        </a>
+      </li>
+    
+  
+
+      
+        
+  
+  
+  
+  
+    
+    
+      <li class="md-tabs__item">
+        <a href="../../../../docs/api/" class="md-tabs__link">
+          
+  
+  
+  API Reference
+
+        </a>
+      </li>
+    
+  
+
+      
+        
+  
+  
+  
+  
+    
+    
+      <li class="md-tabs__item">
+        <a href="../../../../docs/architecture/architecture/" class="md-tabs__link">
+          
+  
+  
+  Arquitectura
+
+        </a>
+      </li>
+    
+  
+
+      
+        
+  
+  
+  
+  
+    
+    
+      <li class="md-tabs__item">
+        <a href="../../../../deployment/DEPLOYMENT/" class="md-tabs__link">
+          
+  
+  
+  Operación
+
+        </a>
+      </li>
+    
+  
+
+      
+        
+  
+  
+  
+  
+    
+    
+      <li class="md-tabs__item">
+        <a href="../../../../docs/guides/user-guide/" class="md-tabs__link">
+          
+  
+  
+  Guías
+
+        </a>
+      </li>
+    
+  
+
+      
+        
+  
+  
+  
+  
+    
+    
+      <li class="md-tabs__item">
+        <a href="../KPIs/" class="md-tabs__link">
+          
+  
+  
+  Referencia
+
+        </a>
+      </li>
+    
+  
+
+      
+    </ul>
+  </div>
+</nav>
+          
+        
+      
+      <main class="md-main" data-md-component="main">
+        <div class="md-main__inner md-grid">
+          
+            
+              
+              <div class="md-sidebar md-sidebar--primary" data-md-component="sidebar" data-md-type="navigation" >
+                <div class="md-sidebar__scrollwrap">
+                  <div class="md-sidebar__inner">
+                    
+
+
+  
+
+
+<nav class="md-nav md-nav--primary md-nav--lifted" aria-label="Navegación" data-md-level="0">
+  <label class="md-nav__title" for="__drawer">
+    <a href="../../../.." title="Pymeq — Forensic Accounting for Small Business" class="md-nav__button md-logo" aria-label="Pymeq — Forensic Accounting for Small Business" data-md-component="logo">
+      
+  
+  <svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 24 24"><path d="M12 8a3 3 0 0 0 3-3 3 3 0 0 0-3-3 3 3 0 0 0-3 3 3 3 0 0 0 3 3m0 3.54C9.64 9.35 6.5 8 3 8v11c3.5 0 6.64 1.35 9 3.54 2.36-2.19 5.5-3.54 9-3.54V8c-3.5 0-6.64 1.35-9 3.54"/></svg>
+
+    </a>
+    Pymeq — Forensic Accounting for Small Business
+  </label>
+  
+    <div class="md-nav__source">
+      <a href="https://github.com/dio-quincarDev/pymes-admin" title="Ir al repositorio" class="md-source" data-md-component="source">
+  <div class="md-source__icon md-icon">
+    
+    <svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 448 512"><!--! Font Awesome Free 7.1.0 by @fontawesome - https://fontawesome.com License - https://fontawesome.com/license/free (Icons: CC BY 4.0, Fonts: SIL OFL 1.1, Code: MIT License) Copyright 2025 Fonticons, Inc.--><path d="M439.6 236.1 244 40.5c-5.4-5.5-12.8-8.5-20.4-8.5s-15 3-20.4 8.4L162.5 81l51.5 51.5c27.1-9.1 52.7 16.8 43.4 43.7l49.7 49.7c34.2-11.8 61.2 31 35.5 56.7-26.5 26.5-70.2-2.9-56-37.3L240.3 199v121.9c25.3 12.5 22.3 41.8 9.1 55-6.4 6.4-15.2 10.1-24.3 10.1s-17.8-3.6-24.3-10.1c-17.6-17.6-11.1-46.9 11.2-56v-123c-20.8-8.5-24.6-30.7-18.6-45L142.6 101 8.5 235.1C3 240.6 0 247.9 0 255.5s3 15 8.5 20.4l195.6 195.7c5.4 5.4 12.7 8.4 20.4 8.4s15-3 20.4-8.4l194.7-194.7c5.4-5.4 8.4-12.8 8.4-20.4s-3-15-8.4-20.4"/></svg>
+  </div>
+  <div class="md-source__repository">
+    dio-quincarDev/pymes-admin
+  </div>
+</a>
+    </div>
+  
+  <ul class="md-nav__list" data-md-scrollfix>
+    
+      
+      
+  
+  
+  
+  
+    <li class="md-nav__item">
+      <a href="../../../.." class="md-nav__link">
+        
+  
+  
+  <span class="md-ellipsis">
+    
+  
+    Inicio
+  
+
+    
+  </span>
+  
+  
+
+      </a>
+    </li>
+  
+
+    
+      
+      
+  
+  
+  
+  
+    
+    
+    
+    
+      
+      
+    
+    
+    <li class="md-nav__item md-nav__item--nested">
+      
+        
+        
+        <input class="md-nav__toggle md-toggle " type="checkbox" id="__nav_2" >
+        
+          
+          <label class="md-nav__link" for="__nav_2" id="__nav_2_label" tabindex="0">
+            
+  
+  
+  <span class="md-ellipsis">
+    
+  
+    Producto
+  
+
+    
+  </span>
+  
+  
+
+            <span class="md-nav__icon md-icon"></span>
+          </label>
+        
+        <nav class="md-nav" data-md-level="1" aria-labelledby="__nav_2_label" aria-expanded="false">
+          <label class="md-nav__title" for="__nav_2">
+            <span class="md-nav__icon md-icon"></span>
+            
+  
+    Producto
+  
+
+          </label>
+          <ul class="md-nav__list" data-md-scrollfix>
+            
+              
+                
+  
+  
+  
+  
+    <li class="md-nav__item">
+      <a href="../../../.." class="md-nav__link">
+        
+  
+  
+  <span class="md-ellipsis">
+    
+  
+    Inicio
+  
+
+    
+  </span>
+  
+  
+
+      </a>
+    </li>
+  
+
+              
+            
+              
+                
+  
+  
+  
+  
+    <li class="md-nav__item">
+      <a href="../../../../docs/product/features/" class="md-nav__link">
+        
+  
+  
+  <span class="md-ellipsis">
+    
+  
+    Características
+  
+
+    
+  </span>
+  
+  
+
+      </a>
+    </li>
+  
+
+              
+            
+              
+                
+  
+  
+  
+  
+    <li class="md-nav__item">
+      <a href="../../../../docs/product/roadmap/" class="md-nav__link">
+        
+  
+  
+  <span class="md-ellipsis">
+    
+  
+    Roadmap
+  
+
+    
+  </span>
+  
+  
+
+      </a>
+    </li>
+  
+
+              
+            
+              
+                
+  
+  
+  
+  
+    <li class="md-nav__item">
+      <a href="../../../../docs/TO_DO/" class="md-nav__link">
+        
+  
+  
+  <span class="md-ellipsis">
+    
+  
+    Pendientes
+  
+
+    
+  </span>
+  
+  
+
+      </a>
+    </li>
+  
+
+              
+            
+              
+                
+  
+  
+  
+  
+    <li class="md-nav__item">
+      <a href="../../../../docs/GAPS/" class="md-nav__link">
+        
+  
+  
+  <span class="md-ellipsis">
+    
+  
+    Diferencias doc/código
+  
+
+    
+  </span>
+  
+  
+
+      </a>
+    </li>
+  
+
+              
+            
+          </ul>
+        </nav>
+      
+    </li>
+  
+
+    
+      
+      
+  
+  
+  
+  
+    
+    
+    
+    
+      
+      
+    
+    
+    <li class="md-nav__item md-nav__item--nested">
+      
+        
+        
+        <input class="md-nav__toggle md-toggle " type="checkbox" id="__nav_3" >
+        
+          
+          <label class="md-nav__link" for="__nav_3" id="__nav_3_label" tabindex="0">
+            
+  
+  
+  <span class="md-ellipsis">
+    
+  
+    API Reference
+  
+
+    
+  </span>
+  
+  
+
+            <span class="md-nav__icon md-icon"></span>
+          </label>
+        
+        <nav class="md-nav" data-md-level="1" aria-labelledby="__nav_3_label" aria-expanded="false">
+          <label class="md-nav__title" for="__nav_3">
+            <span class="md-nav__icon md-icon"></span>
+            
+  
+    API Reference
+  
+
+          </label>
+          <ul class="md-nav__list" data-md-scrollfix>
+            
+              
+                
+  
+  
+  
+  
+    <li class="md-nav__item">
+      <a href="../../../../docs/api/" class="md-nav__link">
+        
+  
+  
+  <span class="md-ellipsis">
+    
+  
+    Contrato (índice)
+  
+
+    
+  </span>
+  
+  
+
+      </a>
+    </li>
+  
+
+              
+            
+              
+                
+  
+  
+  
+  
+    <li class="md-nav__item">
+      <a href="../../../../api/auth/" class="md-nav__link">
+        
+  
+  
+  <span class="md-ellipsis">
+    
+  
+    Auth (generado)
+  
+
+    
+  </span>
+  
+  
+
+      </a>
+    </li>
+  
+
+              
+            
+              
+                
+  
+  
+  
+  
+    <li class="md-nav__item">
+      <a href="../../../../api/core/" class="md-nav__link">
+        
+  
+  
+  <span class="md-ellipsis">
+    
+  
+    Core (generado)
+  
+
+    
+  </span>
+  
+  
+
+      </a>
+    </li>
+  
+
+              
+            
+          </ul>
+        </nav>
+      
+    </li>
+  
+
+    
+      
+      
+  
+  
+  
+  
+    
+    
+    
+    
+      
+      
+    
+    
+    <li class="md-nav__item md-nav__item--nested">
+      
+        
+        
+        <input class="md-nav__toggle md-toggle " type="checkbox" id="__nav_4" >
+        
+          
+          <label class="md-nav__link" for="__nav_4" id="__nav_4_label" tabindex="0">
+            
+  
+  
+  <span class="md-ellipsis">
+    
+  
+    Arquitectura
+  
+
+    
+  </span>
+  
+  
+
+            <span class="md-nav__icon md-icon"></span>
+          </label>
+        
+        <nav class="md-nav" data-md-level="1" aria-labelledby="__nav_4_label" aria-expanded="false">
+          <label class="md-nav__title" for="__nav_4">
+            <span class="md-nav__icon md-icon"></span>
+            
+  
+    Arquitectura
+  
+
+          </label>
+          <ul class="md-nav__list" data-md-scrollfix>
+            
+              
+                
+  
+  
+  
+  
+    <li class="md-nav__item">
+      <a href="../../../../docs/architecture/architecture/" class="md-nav__link">
+        
+  
+  
+  <span class="md-ellipsis">
+    
+  
+    Arquitectura (mapa)
+  
+
+    
+  </span>
+  
+  
+
+      </a>
+    </li>
+  
+
+              
+            
+              
+                
+  
+  
+  
+  
+    
+    
+    
+    
+      
+      
+    
+    
+    <li class="md-nav__item md-nav__item--nested">
+      
+        
+        
+        <input class="md-nav__toggle md-toggle " type="checkbox" id="__nav_4_2" >
+        
+          
+          <label class="md-nav__link" for="__nav_4_2" id="__nav_4_2_label" tabindex="0">
+            
+  
+  
+  <span class="md-ellipsis">
+    
+  
+    Servicios
+  
+
+    
+  </span>
+  
+  
+
+            <span class="md-nav__icon md-icon"></span>
+          </label>
+        
+        <nav class="md-nav" data-md-level="2" aria-labelledby="__nav_4_2_label" aria-expanded="false">
+          <label class="md-nav__title" for="__nav_4_2">
+            <span class="md-nav__icon md-icon"></span>
+            
+  
+    Servicios
+  
+
+          </label>
+          <ul class="md-nav__list" data-md-scrollfix>
+            
+              
+                
+  
+  
+  
+  
+    <li class="md-nav__item">
+      <a href="../../../auth/" class="md-nav__link">
+        
+  
+  
+  <span class="md-ellipsis">
+    
+  
+    Auth
+  
+
+    
+  </span>
+  
+  
+
+      </a>
+    </li>
+  
+
+              
+            
+              
+                
+  
+  
+  
+  
+    <li class="md-nav__item">
+      <a href="../../../gateway-pymes/" class="md-nav__link">
+        
+  
+  
+  <span class="md-ellipsis">
+    
+  
+    Gateway
+  
+
+    
+  </span>
+  
+  
+
+      </a>
+    </li>
+  
+
+              
+            
+              
+                
+  
+  
+  
+  
+    <li class="md-nav__item">
+      <a href="../../" class="md-nav__link">
+        
+  
+  
+  <span class="md-ellipsis">
+    
+  
+    Core
+  
+
+    
+  </span>
+  
+  
+
+      </a>
+    </li>
+  
+
+              
+            
+              
+                
+  
+  
+  
+  
+    <li class="md-nav__item">
+      <a href="../../../../frontend/pymes/" class="md-nav__link">
+        
+  
+  
+  <span class="md-ellipsis">
+    
+  
+    Frontend
+  
+
+    
+  </span>
+  
+  
+
+      </a>
+    </li>
+  
+
+              
+            
+          </ul>
+        </nav>
+      
+    </li>
+  
+
+              
+            
+              
+                
+  
+  
+  
+  
+    <li class="md-nav__item">
+      <a href="../../../../docs/persistencia-postgres/" class="md-nav__link">
+        
+  
+  
+  <span class="md-ellipsis">
+    
+  
+    Base de datos
+  
+
+    
+  </span>
+  
+  
+
+      </a>
+    </li>
+  
+
+              
+            
+              
+                
+  
+  
+  
+  
+    <li class="md-nav__item">
+      <a href="../../../../docs/strategies/DB_STRATEGY/" class="md-nav__link">
+        
+  
+  
+  <span class="md-ellipsis">
+    
+  
+    Estrategia multi-schema
+  
+
+    
+  </span>
+  
+  
+
+      </a>
+    </li>
+  
+
+              
+            
+              
+                
+  
+  
+  
+  
+    <li class="md-nav__item">
+      <a href="../../../../docs/strategies/INFRA_STRATEGY/" class="md-nav__link">
+        
+  
+  
+  <span class="md-ellipsis">
+    
+  
+    Infraestructura
+  
+
+    
+  </span>
+  
+  
+
+      </a>
+    </li>
+  
+
+              
+            
+          </ul>
+        </nav>
+      
+    </li>
+  
+
+    
+      
+      
+  
+  
+  
+  
+    
+    
+    
+    
+      
+      
+    
+    
+    <li class="md-nav__item md-nav__item--nested">
+      
+        
+        
+        <input class="md-nav__toggle md-toggle " type="checkbox" id="__nav_5" >
+        
+          
+          <label class="md-nav__link" for="__nav_5" id="__nav_5_label" tabindex="0">
+            
+  
+  
+  <span class="md-ellipsis">
+    
+  
+    Operación
+  
+
+    
+  </span>
+  
+  
+
+            <span class="md-nav__icon md-icon"></span>
+          </label>
+        
+        <nav class="md-nav" data-md-level="1" aria-labelledby="__nav_5_label" aria-expanded="false">
+          <label class="md-nav__title" for="__nav_5">
+            <span class="md-nav__icon md-icon"></span>
+            
+  
+    Operación
+  
+
+          </label>
+          <ul class="md-nav__list" data-md-scrollfix>
+            
+              
+                
+  
+  
+  
+  
+    <li class="md-nav__item">
+      <a href="../../../../deployment/DEPLOYMENT/" class="md-nav__link">
+        
+  
+  
+  <span class="md-ellipsis">
+    
+  
+    Deploy
+  
+
+    
+  </span>
+  
+  
+
+      </a>
+    </li>
+  
+
+              
+            
+              
+                
+  
+  
+  
+  
+    <li class="md-nav__item">
+      <a href="../../../../deployment/QUICK_START/" class="md-nav__link">
+        
+  
+  
+  <span class="md-ellipsis">
+    
+  
+    Quick start CI/CD
+  
+
+    
+  </span>
+  
+  
+
+      </a>
+    </li>
+  
+
+              
+            
+              
+                
+  
+  
+  
+  
+    <li class="md-nav__item">
+      <a href="../../../../deployment/SECRETS/" class="md-nav__link">
+        
+  
+  
+  <span class="md-ellipsis">
+    
+  
+    Secretos
+  
+
+    
+  </span>
+  
+  
+
+      </a>
+    </li>
+  
+
+              
+            
+              
+                
+  
+  
+  
+  
+    <li class="md-nav__item">
+      <a href="../../../../docs/DAILY_REPORTS_PROJECT/" class="md-nav__link">
+        
+  
+  
+  <span class="md-ellipsis">
+    
+  
+    Reportes diarios
+  
+
+    
+  </span>
+  
+  
+
+      </a>
+    </li>
+  
+
+              
+            
+          </ul>
+        </nav>
+      
+    </li>
+  
+
+    
+      
+      
+  
+  
+  
+  
+    
+    
+    
+    
+      
+      
+    
+    
+    <li class="md-nav__item md-nav__item--nested">
+      
+        
+        
+        <input class="md-nav__toggle md-toggle " type="checkbox" id="__nav_6" >
+        
+          
+          <label class="md-nav__link" for="__nav_6" id="__nav_6_label" tabindex="0">
+            
+  
+  
+  <span class="md-ellipsis">
+    
+  
+    Guías
+  
+
+    
+  </span>
+  
+  
+
+            <span class="md-nav__icon md-icon"></span>
+          </label>
+        
+        <nav class="md-nav" data-md-level="1" aria-labelledby="__nav_6_label" aria-expanded="false">
+          <label class="md-nav__title" for="__nav_6">
+            <span class="md-nav__icon md-icon"></span>
+            
+  
+    Guías
+  
+
+          </label>
+          <ul class="md-nav__list" data-md-scrollfix>
+            
+              
+                
+  
+  
+  
+  
+    <li class="md-nav__item">
+      <a href="../../../../docs/guides/user-guide/" class="md-nav__link">
+        
+  
+  
+  <span class="md-ellipsis">
+    
+  
+    Usuario
+  
+
+    
+  </span>
+  
+  
+
+      </a>
+    </li>
+  
+
+              
+            
+              
+                
+  
+  
+  
+  
+    <li class="md-nav__item">
+      <a href="../../../../docs/guides/admin-guide/" class="md-nav__link">
+        
+  
+  
+  <span class="md-ellipsis">
+    
+  
+    Administración
+  
+
+    
+  </span>
+  
+  
+
+      </a>
+    </li>
+  
+
+              
+            
+              
+                
+  
+  
+  
+  
+    <li class="md-nav__item">
+      <a href="../../../../docs/guides/operations-guide/" class="md-nav__link">
+        
+  
+  
+  <span class="md-ellipsis">
+    
+  
+    Operación
+  
+
+    
+  </span>
+  
+  
+
+      </a>
+    </li>
+  
+
+              
+            
+          </ul>
+        </nav>
+      
+    </li>
+  
+
+    
+      
+      
+  
+  
+  
+  
+    
+    
+    
+    
+      
+      
+    
+    
+    <li class="md-nav__item md-nav__item--nested">
+      
+        
+        
+        <input class="md-nav__toggle md-toggle " type="checkbox" id="__nav_7" >
+        
+          
+          <label class="md-nav__link" for="__nav_7" id="__nav_7_label" tabindex="0">
+            
+  
+  
+  <span class="md-ellipsis">
+    
+  
+    Referencia
+  
+
+    
+  </span>
+  
+  
+
+            <span class="md-nav__icon md-icon"></span>
+          </label>
+        
+        <nav class="md-nav" data-md-level="1" aria-labelledby="__nav_7_label" aria-expanded="false">
+          <label class="md-nav__title" for="__nav_7">
+            <span class="md-nav__icon md-icon"></span>
+            
+  
+    Referencia
+  
+
+          </label>
+          <ul class="md-nav__list" data-md-scrollfix>
+            
+              
+                
+  
+  
+  
+  
+    <li class="md-nav__item">
+      <a href="../KPIs/" class="md-nav__link">
+        
+  
+  
+  <span class="md-ellipsis">
+    
+  
+    KPIs
+  
+
+    
+  </span>
+  
+  
+
+      </a>
+    </li>
+  
+
+              
+            
+              
+                
+  
+  
+  
+  
+    <li class="md-nav__item">
+      <a href="../COSTOS_ENGINE/" class="md-nav__link">
+        
+  
+  
+  <span class="md-ellipsis">
+    
+  
+    Motor de costos
+  
+
+    
+  </span>
+  
+  
+
+      </a>
+    </li>
+  
+
+              
+            
+              
+                
+  
+  
+  
+  
+    <li class="md-nav__item">
+      <a href="../ANALYTICS/" class="md-nav__link">
+        
+  
+  
+  <span class="md-ellipsis">
+    
+  
+    Analítica
+  
+
+    
+  </span>
+  
+  
+
+      </a>
+    </li>
+  
+
+              
+            
+              
+                
+  
+  
+  
+  
+    <li class="md-nav__item">
+      <a href="../CORE/" class="md-nav__link">
+        
+  
+  
+  <span class="md-ellipsis">
+    
+  
+    Motor de salud financiera
+  
+
+    
+  </span>
+  
+  
+
+      </a>
+    </li>
+  
+
+              
+            
+              
+                
+  
+  
+  
+  
+    <li class="md-nav__item">
+      <a href="../../../../frontend/pymes/docs/PWA_OFFLINE/" class="md-nav__link">
+        
+  
+  
+  <span class="md-ellipsis">
+    
+  
+    PWA offline
+  
+
+    
+  </span>
+  
+  
+
+      </a>
+    </li>
+  
+
+              
+            
+          </ul>
+        </nav>
+      
+    </li>
+  
+
+    
+  </ul>
+</nav>
+                  </div>
+                </div>
+              </div>
+            
+            
+              
+              <div class="md-sidebar md-sidebar--secondary" data-md-component="sidebar" data-md-type="toc" >
+                <div class="md-sidebar__scrollwrap">
+                  <div class="md-sidebar__inner">
+                    
+
+<nav class="md-nav md-nav--secondary" aria-label="Tabla de contenidos">
+  
+  
+  
+    
+  
+  
+    <label class="md-nav__title" for="__toc">
+      <span class="md-nav__icon md-icon"></span>
+      Tabla de contenidos
+    </label>
+    <ul class="md-nav__list" data-md-component="toc" data-md-scrollfix>
+      
+        <li class="md-nav__item">
+  <a href="#unidades-globales-2026-09-29" class="md-nav__link">
+    <span class="md-ellipsis">
+      
+        Unidades globales (2026-09-29)
+      
+    </span>
+  </a>
+  
+</li>
+      
+        <li class="md-nav__item">
+  <a href="#plantilla-agnostica-por-defecto" class="md-nav__link">
+    <span class="md-ellipsis">
+      
+        Plantilla Agnóstica (Por Defecto)
+      
+    </span>
+  </a>
+  
+    <nav class="md-nav" aria-label="Plantilla Agnóstica (Por Defecto)">
+      <ul class="md-nav__list">
+        
+          <li class="md-nav__item">
+  <a href="#categorias" class="md-nav__link">
+    <span class="md-ellipsis">
+      
+        Categorías
+      
+    </span>
+  </a>
+  
+</li>
+        
+          <li class="md-nav__item">
+  <a href="#unidades" class="md-nav__link">
+    <span class="md-ellipsis">
+      
+        Unidades
+      
+    </span>
+  </a>
+  
+</li>
+        
+          <li class="md-nav__item">
+  <a href="#metodo-de-pago" class="md-nav__link">
+    <span class="md-ellipsis">
+      
+        Método de Pago
+      
+    </span>
+  </a>
+  
+</li>
+        
+      </ul>
+    </nav>
+  
+</li>
+      
+        <li class="md-nav__item">
+  <a href="#plantilla-restaurante" class="md-nav__link">
+    <span class="md-ellipsis">
+      
+        Plantilla: Restaurante
+      
+    </span>
+  </a>
+  
+    <nav class="md-nav" aria-label="Plantilla: Restaurante">
+      <ul class="md-nav__list">
+        
+          <li class="md-nav__item">
+  <a href="#categorias-jerarquica-3-niveles-max" class="md-nav__link">
+    <span class="md-ellipsis">
+      
+        Categorías (Jerárquica - 3 niveles máx)
+      
+    </span>
+  </a>
+  
+</li>
+        
+          <li class="md-nav__item">
+  <a href="#unidades_1" class="md-nav__link">
+    <span class="md-ellipsis">
+      
+        Unidades
+      
+    </span>
+  </a>
+  
+</li>
+        
+          <li class="md-nav__item">
+  <a href="#metodo-de-pago_1" class="md-nav__link">
+    <span class="md-ellipsis">
+      
+        Método de Pago
+      
+    </span>
+  </a>
+  
+</li>
+        
+      </ul>
+    </nav>
+  
+</li>
+      
+        <li class="md-nav__item">
+  <a href="#plantilla-bar" class="md-nav__link">
+    <span class="md-ellipsis">
+      
+        Plantilla: Bar
+      
+    </span>
+  </a>
+  
+    <nav class="md-nav" aria-label="Plantilla: Bar">
+      <ul class="md-nav__list">
+        
+          <li class="md-nav__item">
+  <a href="#categorias_1" class="md-nav__link">
+    <span class="md-ellipsis">
+      
+        Categorías
+      
+    </span>
+  </a>
+  
+</li>
+        
+          <li class="md-nav__item">
+  <a href="#unidades_2" class="md-nav__link">
+    <span class="md-ellipsis">
+      
+        Unidades
+      
+    </span>
+  </a>
+  
+</li>
+        
+          <li class="md-nav__item">
+  <a href="#metodo-de-pago_2" class="md-nav__link">
+    <span class="md-ellipsis">
+      
+        Método de Pago
+      
+    </span>
+  </a>
+  
+</li>
+        
+      </ul>
+    </nav>
+  
+</li>
+      
+        <li class="md-nav__item">
+  <a href="#plantilla-salon-de-belleza" class="md-nav__link">
+    <span class="md-ellipsis">
+      
+        Plantilla: Salón de Belleza
+      
+    </span>
+  </a>
+  
+    <nav class="md-nav" aria-label="Plantilla: Salón de Belleza">
+      <ul class="md-nav__list">
+        
+          <li class="md-nav__item">
+  <a href="#categorias_2" class="md-nav__link">
+    <span class="md-ellipsis">
+      
+        Categorías
+      
+    </span>
+  </a>
+  
+</li>
+        
+          <li class="md-nav__item">
+  <a href="#unidades_3" class="md-nav__link">
+    <span class="md-ellipsis">
+      
+        Unidades
+      
+    </span>
+  </a>
+  
+</li>
+        
+          <li class="md-nav__item">
+  <a href="#metodo-de-pago_3" class="md-nav__link">
+    <span class="md-ellipsis">
+      
+        Método de Pago
+      
+    </span>
+  </a>
+  
+</li>
+        
+      </ul>
+    </nav>
+  
+</li>
+      
+        <li class="md-nav__item">
+  <a href="#plantilla-ferreteria" class="md-nav__link">
+    <span class="md-ellipsis">
+      
+        Plantilla: Ferretería
+      
+    </span>
+  </a>
+  
+    <nav class="md-nav" aria-label="Plantilla: Ferretería">
+      <ul class="md-nav__list">
+        
+          <li class="md-nav__item">
+  <a href="#categorias_3" class="md-nav__link">
+    <span class="md-ellipsis">
+      
+        Categorías
+      
+    </span>
+  </a>
+  
+</li>
+        
+          <li class="md-nav__item">
+  <a href="#unidades_4" class="md-nav__link">
+    <span class="md-ellipsis">
+      
+        Unidades
+      
+    </span>
+  </a>
+  
+</li>
+        
+          <li class="md-nav__item">
+  <a href="#metodo-de-pago_4" class="md-nav__link">
+    <span class="md-ellipsis">
+      
+        Método de Pago
+      
+    </span>
+  </a>
+  
+</li>
+        
+      </ul>
+    </nav>
+  
+</li>
+      
+        <li class="md-nav__item">
+  <a href="#plantilla-mini-super" class="md-nav__link">
+    <span class="md-ellipsis">
+      
+        Plantilla: Mini Super
+      
+    </span>
+  </a>
+  
+    <nav class="md-nav" aria-label="Plantilla: Mini Super">
+      <ul class="md-nav__list">
+        
+          <li class="md-nav__item">
+  <a href="#categorias_4" class="md-nav__link">
+    <span class="md-ellipsis">
+      
+        Categorías
+      
+    </span>
+  </a>
+  
+</li>
+        
+          <li class="md-nav__item">
+  <a href="#unidades_5" class="md-nav__link">
+    <span class="md-ellipsis">
+      
+        Unidades
+      
+    </span>
+  </a>
+  
+</li>
+        
+          <li class="md-nav__item">
+  <a href="#metodo-de-pago_5" class="md-nav__link">
+    <span class="md-ellipsis">
+      
+        Método de Pago
+      
+    </span>
+  </a>
+  
+</li>
+        
+      </ul>
+    </nav>
+  
+</li>
+      
+        <li class="md-nav__item">
+  <a href="#plantilla-taller-mecanico" class="md-nav__link">
+    <span class="md-ellipsis">
+      
+        Plantilla: Taller Mecánico
+      
+    </span>
+  </a>
+  
+    <nav class="md-nav" aria-label="Plantilla: Taller Mecánico">
+      <ul class="md-nav__list">
+        
+          <li class="md-nav__item">
+  <a href="#categorias_5" class="md-nav__link">
+    <span class="md-ellipsis">
+      
+        Categorías
+      
+    </span>
+  </a>
+  
+</li>
+        
+          <li class="md-nav__item">
+  <a href="#unidades_6" class="md-nav__link">
+    <span class="md-ellipsis">
+      
+        Unidades
+      
+    </span>
+  </a>
+  
+</li>
+        
+          <li class="md-nav__item">
+  <a href="#metodo-de-pago_6" class="md-nav__link">
+    <span class="md-ellipsis">
+      
+        Método de Pago
+      
+    </span>
+  </a>
+  
+</li>
+        
+      </ul>
+    </nav>
+  
+</li>
+      
+        <li class="md-nav__item">
+  <a href="#plantilla-farmacia" class="md-nav__link">
+    <span class="md-ellipsis">
+      
+        Plantilla: Farmacia
+      
+    </span>
+  </a>
+  
+    <nav class="md-nav" aria-label="Plantilla: Farmacia">
+      <ul class="md-nav__list">
+        
+          <li class="md-nav__item">
+  <a href="#categorias_6" class="md-nav__link">
+    <span class="md-ellipsis">
+      
+        Categorías
+      
+    </span>
+  </a>
+  
+</li>
+        
+          <li class="md-nav__item">
+  <a href="#unidades_7" class="md-nav__link">
+    <span class="md-ellipsis">
+      
+        Unidades
+      
+    </span>
+  </a>
+  
+</li>
+        
+          <li class="md-nav__item">
+  <a href="#metodo-de-pago_7" class="md-nav__link">
+    <span class="md-ellipsis">
+      
+        Método de Pago
+      
+    </span>
+  </a>
+  
+</li>
+        
+      </ul>
+    </nav>
+  
+</li>
+      
+        <li class="md-nav__item">
+  <a href="#notas-importantes-para-implementacion" class="md-nav__link">
+    <span class="md-ellipsis">
+      
+        Notas Importantes para Implementación
+      
+    </span>
+  </a>
+  
+    <nav class="md-nav" aria-label="Notas Importantes para Implementación">
+      <ul class="md-nav__list">
+        
+          <li class="md-nav__item">
+  <a href="#sobre-categorias" class="md-nav__link">
+    <span class="md-ellipsis">
+      
+        Sobre Categorías
+      
+    </span>
+  </a>
+  
+</li>
+        
+          <li class="md-nav__item">
+  <a href="#sobre-unidades" class="md-nav__link">
+    <span class="md-ellipsis">
+      
+        Sobre Unidades
+      
+    </span>
+  </a>
+  
+</li>
+        
+          <li class="md-nav__item">
+  <a href="#sobre-metodos-de-pago" class="md-nav__link">
+    <span class="md-ellipsis">
+      
+        Sobre Métodos de Pago
+      
+    </span>
+  </a>
+  
+</li>
+        
+      </ul>
+    </nav>
+  
+</li>
+      
+        <li class="md-nav__item">
+  <a href="#plantillas-de-productos-implementado" class="md-nav__link">
+    <span class="md-ellipsis">
+      
+        Plantillas de Productos (Implementado)
+      
+    </span>
+  </a>
+  
+    <nav class="md-nav" aria-label="Plantillas de Productos (Implementado)">
+      <ul class="md-nav__list">
+        
+          <li class="md-nav__item">
+  <a href="#problema" class="md-nav__link">
+    <span class="md-ellipsis">
+      
+        Problema
+      
+    </span>
+  </a>
+  
+</li>
+        
+          <li class="md-nav__item">
+  <a href="#objetivo" class="md-nav__link">
+    <span class="md-ellipsis">
+      
+        Objetivo
+      
+    </span>
+  </a>
+  
+</li>
+        
+          <li class="md-nav__item">
+  <a href="#alcance" class="md-nav__link">
+    <span class="md-ellipsis">
+      
+        Alcance
+      
+    </span>
+  </a>
+  
+</li>
+        
+          <li class="md-nav__item">
+  <a href="#implementacion-onboarding-copia-productos" class="md-nav__link">
+    <span class="md-ellipsis">
+      
+        Implementación: Onboarding copia productos
+      
+    </span>
+  </a>
+  
+</li>
+        
+          <li class="md-nav__item">
+  <a href="#fase-3-frontend" class="md-nav__link">
+    <span class="md-ellipsis">
+      
+        Fase 3: Frontend
+      
+    </span>
+  </a>
+  
+</li>
+        
+          <li class="md-nav__item">
+  <a href="#escala-real" class="md-nav__link">
+    <span class="md-ellipsis">
+      
+        Escala real
+      
+    </span>
+  </a>
+  
+</li>
+        
+      </ul>
+    </nav>
+  
+</li>
+      
+        <li class="md-nav__item">
+  <a href="#estructura-de-datos-en-bd-post-cleanup-2026-07" class="md-nav__link">
+    <span class="md-ellipsis">
+      
+        Estructura de Datos en BD (Post-Cleanup 2026-07)
+      
+    </span>
+  </a>
+  
+    <nav class="md-nav" aria-label="Estructura de Datos en BD (Post-Cleanup 2026-07)">
+      <ul class="md-nav__list">
+        
+          <li class="md-nav__item">
+  <a href="#tablas-schema-core" class="md-nav__link">
+    <span class="md-ellipsis">
+      
+        Tablas (schema core)
+      
+    </span>
+  </a>
+  
+</li>
+        
+          <li class="md-nav__item">
+  <a href="#eliminadas-cleanup-2026-07" class="md-nav__link">
+    <span class="md-ellipsis">
+      
+        Eliminadas (Cleanup 2026-07)
+      
+    </span>
+  </a>
+  
+</li>
+        
+          <li class="md-nav__item">
+  <a href="#seed-data" class="md-nav__link">
+    <span class="md-ellipsis">
+      
+        Seed Data
+      
+    </span>
+  </a>
+  
+</li>
+        
+          <li class="md-nav__item">
+  <a href="#flyway-migration" class="md-nav__link">
+    <span class="md-ellipsis">
+      
+        Flyway migration
+      
+    </span>
+  </a>
+  
+</li>
+        
+      </ul>
+    </nav>
+  
+</li>
+      
+        <li class="md-nav__item">
+  <a href="#cleanup-2026-07-remover-conceptos-de-stock" class="md-nav__link">
+    <span class="md-ellipsis">
+      
+        Cleanup 2026-07 — Remover conceptos de stock
+      
+    </span>
+  </a>
+  
+    <nav class="md-nav" aria-label="Cleanup 2026-07 — Remover conceptos de stock">
+      <ul class="md-nav__list">
+        
+          <li class="md-nav__item">
+  <a href="#contexto" class="md-nav__link">
+    <span class="md-ellipsis">
+      
+        Contexto
+      
+    </span>
+  </a>
+  
+</li>
+        
+          <li class="md-nav__item">
+  <a href="#que-se-elimina" class="md-nav__link">
+    <span class="md-ellipsis">
+      
+        Qué se elimina
+      
+    </span>
+  </a>
+  
+</li>
+        
+          <li class="md-nav__item">
+  <a href="#que-se-mantiene" class="md-nav__link">
+    <span class="md-ellipsis">
+      
+        Qué se mantiene
+      
+    </span>
+  </a>
+  
+</li>
+        
+          <li class="md-nav__item">
+  <a href="#archivos-a-modificar" class="md-nav__link">
+    <span class="md-ellipsis">
+      
+        Archivos a modificar
+      
+    </span>
+  </a>
+  
+</li>
+        
+          <li class="md-nav__item">
+  <a href="#seeddatarunner-constantes-javas1192" class="md-nav__link">
+    <span class="md-ellipsis">
+      
+        SeedDataRunner — Constantes (java:S1192)
+      
+    </span>
+  </a>
+  
+</li>
+        
+          <li class="md-nav__item">
+  <a href="#sql-audit-sql-code-review" class="md-nav__link">
+    <span class="md-ellipsis">
+      
+        SQL Audit (SQL Code Review)
+      
+    </span>
+  </a>
+  
+</li>
+        
+          <li class="md-nav__item">
+  <a href="#schema-impacto" class="md-nav__link">
+    <span class="md-ellipsis">
+      
+        Schema impacto
+      
+    </span>
+  </a>
+  
+</li>
+        
+          <li class="md-nav__item">
+  <a href="#implementacion-tablas-seed" class="md-nav__link">
+    <span class="md-ellipsis">
+      
+        Implementación: Tablas + Seed
+      
+    </span>
+  </a>
+  
+</li>
+        
+      </ul>
+    </nav>
+  
+</li>
+      
+    </ul>
+  
+</nav>
+                  </div>
+                </div>
+              </div>
+            
+          
+          
+            <div class="md-content" data-md-component="content">
+              
+              <article class="md-content__inner md-typeset">
+                
+                  
+
+
+
+<h1 id="plantillas-precargadas-estructura-y-configuracion">Plantillas Precargadas - Estructura y Configuración<a class="headerlink" href="#plantillas-precargadas-estructura-y-configuracion" title="Permanent link">&para;</a></h1>
+<hr />
+<h2 id="unidades-globales-2026-09-29">Unidades globales (2026-09-29)<a class="headerlink" href="#unidades-globales-2026-09-29" title="Permanent link">&para;</a></h2>
+<p>Mismo ID en todas las industrias → comparables entre industrias y ambientes (prod/stg/nuevo VPS).
+IDs fijos en <code>SeedDataRunner.GLOBAL_UNITS</code> y <code>V7__normalize_units.sql</code> sección D
+(test <code>GlobalUnitsMigrationTest</code> vigila que no se desincronicen):</p>
+<ul>
+<li>Kg, Gr, Lb, Oz (nueva), Ml, Litro, Galón, Unidad</li>
+</ul>
+<p>Cada industria suma solo sus unidades propias (envases y especialidades).
+El preview y la validación mezclan industria + globales (industria primero).
+<code>base_unit</code> guarda el ID (nunca el nombre); <code>addProd</code> resuelve industria→global con fail-fast.</p>
+<hr />
+<h2 id="plantilla-agnostica-por-defecto">Plantilla Agnóstica (Por Defecto)<a class="headerlink" href="#plantilla-agnostica-por-defecto" title="Permanent link">&para;</a></h2>
+<p>Usada cuando el tenant selecciona "Otro" o no elige industria específica.</p>
+<h3 id="categorias">Categorías<a class="headerlink" href="#categorias" title="Permanent link">&para;</a></h3>
+<div class="highlight"><pre><span></span><code>General
+└── Sin subcategorías
+</code></pre></div>
+<h3 id="unidades">Unidades<a class="headerlink" href="#unidades" title="Permanent link">&para;</a></h3>
+<ul>
+<li>Caja</li>
+<li>Paquete</li>
+<li>(+ 8 globales)</li>
+</ul>
+<h3 id="metodo-de-pago">Método de Pago<a class="headerlink" href="#metodo-de-pago" title="Permanent link">&para;</a></h3>
+<ul>
+<li>Efectivo</li>
+<li>Transferencia</li>
+</ul>
+<hr />
+<h2 id="plantilla-restaurante">Plantilla: Restaurante<a class="headerlink" href="#plantilla-restaurante" title="Permanent link">&para;</a></h2>
+<h3 id="categorias-jerarquica-3-niveles-max">Categorías (Jerárquica - 3 niveles máx)<a class="headerlink" href="#categorias-jerarquica-3-niveles-max" title="Permanent link">&para;</a></h3>
+<div class="highlight"><pre><span></span><code>PERECEDEROS
+├── Proteínas
+│   ├── Aves (Pollo, Pato, Pavo)
+│   ├── Res (Carne molida, Bistec, Costillas)
+│   ├── Cerdo (Chuletas, Pernil, Costillitas)
+│   └── Mariscos (Pargo, Atún, Camarones)
+├── Vegetales y Verduras
+│   ├── Hojas (Lechuga, Repollo, Espinaca)
+│   ├── Raíces (Zanahoria, Papa, Yuca)
+│   └── Otros (Tomate, Cebolla, Ajo)
+├── Frutas
+│   ├── Tropicales (Plátano, Piña, Melón)
+│   └── Cítricas (Limón, Naranja, Toronja)
+└── Lácteos
+    ├── Quesos
+    └── Leche
+
+NO PERECEDEROS
+├── Abarrotes
+│   ├── Arroz y Pastas
+│   ├── Harinas
+│   └── Aceites
+├── Condimentos y Especias
+│   ├── Salsas
+│   ├── Condimentos secos
+│   └── Especias
+├── Enlatados y Conservas
+│   ├── Vegetales
+│   ├── Carnes
+│   └── Bebidas
+└── Otros
+    ├── Azúcar
+    └── Sal
+
+SUMINISTROS
+├── Desechables
+│   ├── Fiambreras
+│   ├── Vasos y Servilletas
+│   └── Bolsas para llevar
+└── Limpieza
+    ├── Detergentes
+    ├── Desinfectantes
+    └── Esponjas y Brillas
+</code></pre></div>
+<h3 id="unidades_1">Unidades<a class="headerlink" href="#unidades_1" title="Permanent link">&para;</a></h3>
+<ul>
+<li>Caja</li>
+<li>Bolsa</li>
+<li>Paquete</li>
+<li>Botella</li>
+<li>(+ 8 globales)</li>
+</ul>
+<h3 id="metodo-de-pago_1">Método de Pago<a class="headerlink" href="#metodo-de-pago_1" title="Permanent link">&para;</a></h3>
+<ul>
+<li>Yappy</li>
+<li>ACH</li>
+<li>Efectivo</li>
+<li>Crédito</li>
+</ul>
+<hr />
+<h2 id="plantilla-bar">Plantilla: Bar<a class="headerlink" href="#plantilla-bar" title="Permanent link">&para;</a></h2>
+<h3 id="categorias_1">Categorías<a class="headerlink" href="#categorias_1" title="Permanent link">&para;</a></h3>
+<div class="highlight"><pre><span></span><code>BEBIDAS ALCOHÓLICAS
+├── Cervezas
+│   ├── Nacionales
+│   └── Importadas
+├── Licores Fuertes
+│   ├── Ron
+│   ├── Vodka
+│   ├── Whisky
+│   └── Tequila
+└── Vinos
+
+BEBIDAS SIN ALCOHOL
+├── Refrescos
+├── Jugos
+├── Energizantes
+└── Agua
+
+BEBIDAS PREPARADAS
+├── Ingredientes para Cócteles
+│   ├── Jarabes
+│   ├── Jugos Naturales
+│   └── Otros
+
+CONSUMIBLES
+├── Hielo
+├── Vasos y Copas
+├── Servilletas
+├── Garnish (Limón, Menta, etc)
+└── Hielo Seco
+
+SUMINISTROS
+└── Limpieza
+    ├── Detergentes
+    ├── Desinfectantes
+    └── Paños
+</code></pre></div>
+<h3 id="unidades_2">Unidades<a class="headerlink" href="#unidades_2" title="Permanent link">&para;</a></h3>
+<ul>
+<li>Botella</li>
+<li>Lata</li>
+<li>Caja</li>
+<li>Paquete</li>
+<li>Bolsa</li>
+<li>(+ 8 globales)</li>
+</ul>
+<h3 id="metodo-de-pago_2">Método de Pago<a class="headerlink" href="#metodo-de-pago_2" title="Permanent link">&para;</a></h3>
+<ul>
+<li>Yappy</li>
+<li>ACH</li>
+<li>Efectivo</li>
+<li>Crédito</li>
+<li>Consignación</li>
+</ul>
+<hr />
+<h2 id="plantilla-salon-de-belleza">Plantilla: Salón de Belleza<a class="headerlink" href="#plantilla-salon-de-belleza" title="Permanent link">&para;</a></h2>
+<h3 id="categorias_2">Categorías<a class="headerlink" href="#categorias_2" title="Permanent link">&para;</a></h3>
+<div class="highlight"><pre><span></span><code>CUIDADO CAPILAR
+├── Tintes y Decolorantes
+│   ├── Permanentes
+│   ├── Semi-permanentes
+│   └── Temporales
+├── Shampoos y Acondicionadores
+│   ├── Por tipo de cabello
+│   └── Especiales
+└── Tratamientos Capilares
+    ├── Mascarillas
+    ├── Aceites
+    └── Alisadores
+
+MANICURE Y PEDICURE
+├── Esmaltes
+│   ├── Colores
+│   └── Top Coat/Base
+├── Removedores
+└── Accesorios
+    ├── Limas
+    ├── Cortaúñas
+    └── Pinceles
+
+MAQUILLAJE
+├── Base y Corrector
+├── Sombras
+├── Labiales
+└── Accesorios
+    ├── Brochas
+    └── Esponjas
+
+HERRAMIENTAS
+├── Secadoras
+├── Planchas
+├── Rizadores
+└── Otros
+
+SUMINISTROS
+├── Toallas y Capas
+├── Algodón y Gasas
+├── Guantes
+└── Desechables
+
+LIMPIEZA
+├── Desinfectantes
+├── Desengrasantes
+└── Esterilizantes
+</code></pre></div>
+<h3 id="unidades_3">Unidades<a class="headerlink" href="#unidades_3" title="Permanent link">&para;</a></h3>
+<ul>
+<li>Tubo</li>
+<li>Caja</li>
+<li>Kit</li>
+<li>Botella</li>
+<li>(+ 8 globales)</li>
+</ul>
+<h3 id="metodo-de-pago_3">Método de Pago<a class="headerlink" href="#metodo-de-pago_3" title="Permanent link">&para;</a></h3>
+<ul>
+<li>Yappy</li>
+<li>ACH</li>
+<li>Efectivo</li>
+<li>Tarjeta</li>
+</ul>
+<hr />
+<h2 id="plantilla-ferreteria">Plantilla: Ferretería<a class="headerlink" href="#plantilla-ferreteria" title="Permanent link">&para;</a></h2>
+<h3 id="categorias_3">Categorías<a class="headerlink" href="#categorias_3" title="Permanent link">&para;</a></h3>
+<div class="highlight"><pre><span></span><code>HERRAMIENTAS
+├── Herramientas Manuales
+│   ├── Martillos y Mazos
+│   ├── Destornilladores
+│   ├── Llaves
+│   ├── Sierras
+│   └── Otras
+└── Herramientas Eléctricas
+    ├── Taladros
+    ├── Sierras Eléctricas
+    └── Otros
+
+TORNILLERÍA
+├── Tornillos
+├── Tuercas
+├── Arandelas
+├── Clavos
+└── Pernos
+
+MATERIALES DE CONSTRUCCIÓN
+├── Cemento y Concreto
+├── Arena y Grava
+├── Varillas de Acero
+├── Bloques y Ladrillos
+└── Madera
+
+PINTURA Y ACABADOS
+├── Pinturas
+│   ├── Interior
+│   ├── Exterior
+│   └── Especiales
+├── Brochas y Rodillos
+├── Espátulas
+├── Thinner y Diluyentes
+└── Masilla
+
+FONTANERÍA
+├── Tuberías
+├── Codos y Adaptadores
+├── Llaves de Paso
+└── Selladores
+
+ELECTRICIDAD
+├── Cables
+├── Breakers
+├── Tomas de Corriente
+└── Interruptores
+
+OTROS SUMINISTROS
+├── Pegamentos y Adhesivos
+├── Cintas
+└── Seguridad
+    ├── Guantes
+    ├── Cascos
+    └── Lentes
+</code></pre></div>
+<h3 id="unidades_4">Unidades<a class="headerlink" href="#unidades_4" title="Permanent link">&para;</a></h3>
+<ul>
+<li>Metro</li>
+<li>Cm</li>
+<li>Caja</li>
+<li>Bolsa</li>
+<li>Paquete</li>
+<li>(+ 8 globales)</li>
+</ul>
+<h3 id="metodo-de-pago_4">Método de Pago<a class="headerlink" href="#metodo-de-pago_4" title="Permanent link">&para;</a></h3>
+<ul>
+<li>Efectivo</li>
+<li>Tarjeta</li>
+<li>Crédito</li>
+<li>Cheque</li>
+</ul>
+<hr />
+<h2 id="plantilla-mini-super">Plantilla: Mini Super<a class="headerlink" href="#plantilla-mini-super" title="Permanent link">&para;</a></h2>
+<h3 id="categorias_4">Categorías<a class="headerlink" href="#categorias_4" title="Permanent link">&para;</a></h3>
+<div class="highlight"><pre><span></span><code>ALIMENTOS FRESCOS
+├── Lácteos
+│   ├── Leche
+│   ├── Quesos
+│   └── Yogur
+├── Carnes Frías
+│   ├── Jamón
+│   ├── Salchicha
+│   └── Mortadela
+└── Frutas y Verduras
+    ├── Frutas
+    └── Verduras
+
+ABARROTES
+├── Arroz y Granos
+├── Pasta
+├── Aceites
+├── Condimentos
+└── Harinas
+
+BEBIDAS
+├── Refrescos
+├── Agua
+├── Jugos
+├── Cervezas
+└── Licores
+
+CONGELADOS
+├── Carnes
+├── Verduras Congeladas
+└── Otros
+
+SNACKS
+├── Papitas
+├── Galletas
+└── Dulces
+
+HIGIENE PERSONAL
+├── Jabones
+├── Champús
+├── Pasta de Dientes
+└── Desodorantes
+
+LIMPIEZA
+├── Detergentes
+├── Desinfectantes
+└── Otros
+
+MASCOTAS
+├── Alimento
+├── Accesorios
+└── Higiene
+
+OTROS
+└── Productos varios
+</code></pre></div>
+<h3 id="unidades_5">Unidades<a class="headerlink" href="#unidades_5" title="Permanent link">&para;</a></h3>
+<ul>
+<li>Caja</li>
+<li>Paquete</li>
+<li>Botella</li>
+<li>Lata</li>
+<li>Bolsa</li>
+<li>(+ 8 globales)</li>
+</ul>
+<h3 id="metodo-de-pago_5">Método de Pago<a class="headerlink" href="#metodo-de-pago_5" title="Permanent link">&para;</a></h3>
+<ul>
+<li>Efectivo</li>
+<li>Tarjeta</li>
+<li>Cheque</li>
+</ul>
+<hr />
+<h2 id="plantilla-taller-mecanico">Plantilla: Taller Mecánico<a class="headerlink" href="#plantilla-taller-mecanico" title="Permanent link">&para;</a></h2>
+<h3 id="categorias_5">Categorías<a class="headerlink" href="#categorias_5" title="Permanent link">&para;</a></h3>
+<div class="highlight"><pre><span></span><code>PIEZAS DE MOTOR
+├── Filtros
+│   ├── Filtro de Aire
+│   ├── Filtro de Aceite
+│   └── Filtro de Gasolina
+├── Lubricantes
+│   ├── Aceites
+│   ├── Grasas
+│   └── Refrigerantes
+└── Líquidos
+    ├── Líquido de Frenos
+    ├── Líquido de Dirección
+    └── Combustible
+
+SISTEMA DE FRENOS
+├── Pastillas de Freno
+├── Discos de Freno
+├── Cilindros
+└── Tuberías
+
+SUSPENSIÓN
+├── Amortiguadores
+├── Resortes
+├── Rotulas
+└── Silentblocks
+
+SISTEMA ELÉCTRICO
+├── Baterías
+├── Alternadores
+├── Motores de Arranque
+├── Cables
+└── Fusibles
+
+HERRAMIENTAS
+├── Llaves
+├── Destornilladores
+├── Extractores
+└── Especializada
+
+CONSUMIBLES
+├── Paños y Trapos
+├── Guantes de Trabajo
+├── Selladores
+└── Adhesivos
+
+PIEZAS VARIADAS
+├── Correas y Mangueras
+├── Cojinetes
+└── Sellos
+</code></pre></div>
+<h3 id="unidades_6">Unidades<a class="headerlink" href="#unidades_6" title="Permanent link">&para;</a></h3>
+<ul>
+<li>Caja</li>
+<li>Juego</li>
+<li>Kit</li>
+<li>(+ 8 globales)</li>
+</ul>
+<h3 id="metodo-de-pago_6">Método de Pago<a class="headerlink" href="#metodo-de-pago_6" title="Permanent link">&para;</a></h3>
+<ul>
+<li>Efectivo</li>
+<li>Tarjeta</li>
+<li>Crédito</li>
+<li>ACH</li>
+</ul>
+<hr />
+<h2 id="plantilla-farmacia">Plantilla: Farmacia<a class="headerlink" href="#plantilla-farmacia" title="Permanent link">&para;</a></h2>
+<h3 id="categorias_6">Categorías<a class="headerlink" href="#categorias_6" title="Permanent link">&para;</a></h3>
+<div class="highlight"><pre><span></span><code>MEDICAMENTOS
+├── Analgésicos
+│   ├── Ibuprofeno
+│   ├── Paracetamol
+│   └── Aspirina
+├── Antibióticos
+├── Antiinflamatorios
+├── Antigripales
+├── Antidiarreicos
+├── Laxantes
+└── Otros
+
+CUIDADO PERSONAL
+├── Higiene Bucal
+│   ├── Pasta de Dientes
+│   ├── Enjuague
+│   └── Cepillos
+├── Higiene Corporal
+│   ├── Jabones
+│   ├── Champús
+│   └── Desodorantes
+├── Cuidado de la Piel
+│   ├── Cremas
+│   ├── Lociones
+│   └── Protectores Solares
+└── Otros
+
+PRODUCTOS PARA BEBÉS
+├── Pañales
+├── Toallitas Húmedas
+├── Champú y Jabón
+└── Cremas para Bebé
+
+PRIMEROS AUXILIOS
+├── Vendajes
+├── Desinfectantes
+├── Gasas
+├── Apósitos
+└── Otros
+
+SUPLEMENTOS Y VITAMINAS
+├── Multivitaminas
+├── Probióticos
+├── Minerales
+└── Otros
+
+EQUIPOS Y DISPOSITIVOS
+├── Termómetros
+├── Glucómetros
+├── Tensiómetros
+└── Otros
+
+HIGIENE DEL HOGAR
+├── Desinfectantes
+└── Repelentes
+</code></pre></div>
+<h3 id="unidades_7">Unidades<a class="headerlink" href="#unidades_7" title="Permanent link">&para;</a></h3>
+<ul>
+<li>Caja</li>
+<li>Blíster</li>
+<li>Frasco</li>
+<li>Botella</li>
+<li>Tubo</li>
+<li>(+ 8 globales)</li>
+</ul>
+<h3 id="metodo-de-pago_7">Método de Pago<a class="headerlink" href="#metodo-de-pago_7" title="Permanent link">&para;</a></h3>
+<ul>
+<li>Efectivo</li>
+<li>Tarjeta</li>
+<li>Crédito</li>
+<li>Seguro médico</li>
+</ul>
+<hr />
+<h2 id="notas-importantes-para-implementacion">Notas Importantes para Implementación<a class="headerlink" href="#notas-importantes-para-implementacion" title="Permanent link">&para;</a></h2>
+<h3 id="sobre-categorias">Sobre Categorías<a class="headerlink" href="#sobre-categorias" title="Permanent link">&para;</a></h3>
+<ul>
+<li>Máximo 3 niveles de jerarquía</li>
+<li>Las subcategorías pueden modificarse</li>
+<li>Los tenant pueden agregar categorías personalizadas</li>
+<li>Las categorías iniciales pueden renombrarse</li>
+</ul>
+<h3 id="sobre-unidades">Sobre Unidades<a class="headerlink" href="#sobre-unidades" title="Permanent link">&para;</a></h3>
+<ul>
+<li>Vienen precargadas pero el tenant puede agregar más</li>
+<li>Al crear Producto, debe seleccionar una unidad base</li>
+<li>Las Presentaciones usan las mismas unidades</li>
+</ul>
+<h3 id="sobre-metodos-de-pago">Sobre Métodos de Pago<a class="headerlink" href="#sobre-metodos-de-pago" title="Permanent link">&para;</a></h3>
+<ul>
+<li>Varían según industria</li>
+<li>Pueden modificarse según necesidad del tenant</li>
+<li>Usados en Facturas para rastreo</li>
+</ul>
+<hr />
+<h2 id="plantillas-de-productos-implementado">Plantillas de Productos (Implementado)<a class="headerlink" href="#plantillas-de-productos-implementado" title="Permanent link">&para;</a></h2>
+<h3 id="problema">Problema<a class="headerlink" href="#problema" title="Permanent link">&para;</a></h3>
+<p>Las plantillas actuales tienen categorías, unidades y productos. Al completar onboarding, el usuario tiene una estructura vacía y debe crear productos uno por uno.</p>
+<h3 id="objetivo">Objetivo<a class="headerlink" href="#objetivo" title="Permanent link">&para;</a></h3>
+<p>Al completar onboarding → se copian productos genéricos por categoría → al facturar ya hay catálogo cargado con SKU y unidad.</p>
+<h3 id="alcance">Alcance<a class="headerlink" href="#alcance" title="Permanent link">&para;</a></h3>
+<ul>
+<li>Productos genéricos (sin marca), ~20-25 por industria (~160 total)</li>
+<li>1-2 presentaciones por producto (~280 presentaciones total)</li>
+<li>SKU auto-generado al copiar al tenant: <code>P-0001</code>, <code>P-0002</code>... (secuencial por tenant)</li>
+</ul>
+<h3 id="implementacion-onboarding-copia-productos">Implementación: Onboarding copia productos<a class="headerlink" href="#implementacion-onboarding-copia-productos" title="Permanent link">&para;</a></h3>
+<p>En <code>SetupServiceImpl.completeOnboarding()</code> (transaccional):</p>
+<ol>
+<li>Carga <code>template_products</code> + <code>template_product_presentations</code> por <code>industry_code</code> vía JdbcTemplate</li>
+<li>Para cada template_product → batch insert en <code>core.products</code> con SKU auto-generado <code>P-%04d</code> secuencial</li>
+<li>Mapa: <code>template_product_id → producto_id</code> para vincular presentaciones</li>
+<li>Para cada template_product_presentations → batch insert en <code>core.product_presentations</code></li>
+<li>SKU arranca en <code>P-0001</code> cada vez (tenant nuevo = sin productos previos)</li>
+</ol>
+<p><strong>SetupResponse</strong> — campo <code>products</code>:
+<div class="highlight"><pre><span></span><code><span class="p">{</span>
+<span class="w">  </span><span class="nt">"products"</span><span class="p">:</span><span class="w"> </span><span class="p">[</span>
+<span class="w">    </span><span class="p">{</span><span class="w"> </span><span class="nt">"name"</span><span class="p">:</span><span class="w"> </span><span class="s2">"Cerveza"</span><span class="p">,</span><span class="w"> </span><span class="nt">"baseUnit"</span><span class="p">:</span><span class="w"> </span><span class="s2">"Unidad"</span><span class="p">,</span><span class="w"> </span><span class="nt">"categoryName"</span><span class="p">:</span><span class="w"> </span><span class="s2">"Cervezas"</span><span class="w"> </span><span class="p">},</span>
+<span class="w">    </span><span class="err">...</span>
+<span class="w">  </span><span class="p">]</span>
+<span class="p">}</span>
+</code></pre></div>
+<code>ProductTemplateDTO</code> sin SKU (aún no se ha generado — solo visible tras onboarding completo).</p>
+<p><strong>loadIndustryData()</strong> — query SQL con JOIN a template_categories para obtener <code>categoryName</code>.</p>
+<h3 id="fase-3-frontend">Fase 3: Frontend<a class="headerlink" href="#fase-3-frontend" title="Permanent link">&para;</a></h3>
+<p><strong>OnboardingPage.vue</strong> — step 2: sección "Productos precargados (N)" con tabla de nombre, unidad y categoría.</p>
+<p><strong>SetupInfo type</strong> — campo <code>products: ProductTemplateDTO[]</code>.</p>
+<h3 id="escala-real">Escala real<a class="headerlink" href="#escala-real" title="Permanent link">&para;</a></h3>
+<ul>
+<li>~160 productos × 8 industrias (= ~160 inserts en seed)</li>
+<li>~280 presentaciones (= ~280 inserts)</li>
+<li>~440 filas total en SeedDataRunner (menos que los ~1000-1600 estimados)</li>
+</ul>
+<hr />
+<h2 id="estructura-de-datos-en-bd-post-cleanup-2026-07">Estructura de Datos en BD (Post-Cleanup 2026-07)<a class="headerlink" href="#estructura-de-datos-en-bd-post-cleanup-2026-07" title="Permanent link">&para;</a></h2>
+<p>Cada plantilla se almacena en tablas normalizadas con FK a <code>industries(code)</code>.</p>
+<h3 id="tablas-schema-core">Tablas (schema <code>core</code>)<a class="headerlink" href="#tablas-schema-core" title="Permanent link">&para;</a></h3>
+<div class="highlight"><pre><span></span><code>industries                          — Flyway V2
+├── code: VARCHAR(50) PK            — "restaurante", "bares", etc.
+└── name: VARCHAR(100)
+
+template_categories                 — Flyway V2
+├── id: UUID PK
+├── industry_code: VARCHAR(50) FK → industries
+├── name: VARCHAR(100)
+├── parent_id: UUID FK → template_categories (auto-ref, 3 niveles)
+└── sort_order: INTEGER
+
+template_units                      — Flyway V18
+├── id: UUID PK
+├── industry_code: VARCHAR(50) FK → industries (INDEX)
+├── name: VARCHAR(100)
+└── sort_order: INTEGER
+
+template_payment_methods            — Flyway V18
+├── id: UUID PK
+├── industry_code: VARCHAR(50) FK → industries (INDEX)
+├── name: VARCHAR(100)
+└── sort_order: INTEGER
+
+template_products                   — Flyway V18
+├── id: UUID PK
+├── industry_code: VARCHAR(50) FK → industries (INDEX)
+├── category_id: UUID
+├── name: VARCHAR(150)
+├── base_unit: VARCHAR(50)
+├── min_quantity: DECIMAL(12,2)
+├── max_quantity: DECIMAL(12,2)
+└── sort_order: INTEGER
+
+template_product_presentations      — Flyway V18
+├── id: UUID PK
+├── template_product_id: UUID NOT NULL (INDEX)
+├── name: VARCHAR(100)
+├── conversion: INTEGER DEFAULT 1
+└── sort_order: INTEGER
+</code></pre></div>
+<h3 id="eliminadas-cleanup-2026-07">Eliminadas (Cleanup 2026-07)<a class="headerlink" href="#eliminadas-cleanup-2026-07" title="Permanent link">&para;</a></h3>
+<div class="highlight"><pre><span></span><code>template_locations                  — Flyway V2 (eliminada vía V17 DROP TABLE)
+template_movement_reasons           — SeedDataRunner (nunca en Flyway, solo eliminada del DDL)
+</code></pre></div>
+<h3 id="seed-data">Seed Data<a class="headerlink" href="#seed-data" title="Permanent link">&para;</a></h3>
+<p>El seed se ejecuta vía <code>SeedDataRunner</code> (ApplicationRunner) al startup:
+1. <code>seedIndustries()</code> — inserta 8 industrias
+2. <code>seedGlobalUnits()</code> — inserta las 8 unidades globales con IDs fijos (con guard <code>NOT EXISTS</code>; V7 ya las puso en bases migradas)
+3. <code>seed{Nombre}()</code> — por industria inserta categorías, unidades propias, pagos, <strong>productos</strong> y <strong>presentaciones</strong> (todo en un mismo método). <code>base_unit</code> se guarda como ID (<code>addProd</code> resuelve industria→global con fail-fast, ya no hay nombres)
+4. Es idempotente: verifica <code>SELECT COUNT(*) FROM industries WHERE code &lt;&gt; 'global'</code> antes de insertar ('global' la pone V7, no cuenta como seed)</p>
+<h3 id="flyway-migration">Flyway migration<a class="headerlink" href="#flyway-migration" title="Permanent link">&para;</a></h3>
+<p>DDL de template tables en <code>V18__template_tables.sql</code> (movido desde <code>SeedDataRunner.createTables()</code>). Flyway crea las tablas al startup; SeedDataRunner solo inserta data.</p>
+<hr />
+<h2 id="cleanup-2026-07-remover-conceptos-de-stock">Cleanup 2026-07 — Remover conceptos de stock<a class="headerlink" href="#cleanup-2026-07-remover-conceptos-de-stock" title="Permanent link">&para;</a></h2>
+<h3 id="contexto">Contexto<a class="headerlink" href="#contexto" title="Permanent link">&para;</a></h3>
+<p>PYMES Admin es un sistema de gestión financiera, NO de inventario/stock.
+Las tablas <code>template_locations</code> y <code>template_movement_reasons</code> son conceptos
+de inventario físico que no pertenecen al dominio.</p>
+<h3 id="que-se-elimina">Qué se elimina<a class="headerlink" href="#que-se-elimina" title="Permanent link">&para;</a></h3>
+<table>
+<thead>
+<tr>
+<th>Tabla</th>
+<th>Origen</th>
+<th>Destino</th>
+<th>Razón</th>
+</tr>
+</thead>
+<tbody>
+<tr>
+<td><code>template_locations</code></td>
+<td>Flyway V2 + SeedRunner</td>
+<td>DROP TABLE V17</td>
+<td>Ubicaciones físicas = stock</td>
+</tr>
+<tr>
+<td><code>template_movement_reasons</code></td>
+<td>Solo SeedRunner (CREATE TABLE IF NOT EXISTS)</td>
+<td>Eliminar de SeedRunner</td>
+<td>Entrada/Salida/Ajuste = tracking de inventario</td>
+</tr>
+</tbody>
+</table>
+<h3 id="que-se-mantiene">Qué se mantiene<a class="headerlink" href="#que-se-mantiene" title="Permanent link">&para;</a></h3>
+<table>
+<thead>
+<tr>
+<th>Tabla</th>
+<th>Razón</th>
+</tr>
+</thead>
+<tbody>
+<tr>
+<td><code>template_units</code></td>
+<td>Unidad de medida es transversal a productos</td>
+</tr>
+<tr>
+<td><code>template_payment_methods</code></td>
+<td>Método de pago es concepto financiero</td>
+</tr>
+<tr>
+<td><code>template_products</code> (con base_unit, min/max qty)</td>
+<td>Parte del catálogo de productos</td>
+</tr>
+</tbody>
+</table>
+<h3 id="archivos-a-modificar">Archivos a modificar<a class="headerlink" href="#archivos-a-modificar" title="Permanent link">&para;</a></h3>
+<table>
+<thead>
+<tr>
+<th>Archivo</th>
+<th>Cambio</th>
+</tr>
+</thead>
+<tbody>
+<tr>
+<td><code>SeedDataRunner.java</code></td>
+<td>+constantes industry codes + SQL INSERTs, -locations, -movement_reasons, -métodos <code>loc()</code>/<code>locs()</code>/<code>reasons()</code></td>
+</tr>
+<tr>
+<td><code>V17__cleanup_template.sql</code></td>
+<td><code>DROP TABLE IF EXISTS core.template_locations</code></td>
+</tr>
+<tr>
+<td><code>SetupServiceImpl.java</code></td>
+<td>Eliminar queries y parámetros de locations</td>
+</tr>
+<tr>
+<td><code>SetupResponse.java</code></td>
+<td>Eliminar campo <code>locations</code></td>
+</tr>
+<tr>
+<td><code>SetupMapper.java</code></td>
+<td>Eliminar parámetro <code>locations</code></td>
+</tr>
+<tr>
+<td><code>types/index.ts</code> (frontend)</td>
+<td>Eliminar <code>locations</code> de <code>SetupInfo</code></td>
+</tr>
+<tr>
+<td><code>OnboardingPage.vue</code></td>
+<td>Eliminar métrica "Ubicaciones"</td>
+</tr>
+<tr>
+<td><code>ConfiguracionPage.vue</code></td>
+<td>Eliminar card "Ubicaciones"</td>
+</tr>
+<tr>
+<td><code>SetupSeedIntegrationTest.java</code></td>
+<td>Actualizar assertions</td>
+</tr>
+</tbody>
+</table>
+<h3 id="seeddatarunner-constantes-javas1192">SeedDataRunner — Constantes (java:S1192)<a class="headerlink" href="#seeddatarunner-constantes-javas1192" title="Permanent link">&para;</a></h3>
+<div class="highlight"><pre><span></span><code><span class="c1">// Industry codes (~550 ocurrencias → 8 constantes)</span>
+<span class="kd">private</span><span class="w"> </span><span class="kd">static</span><span class="w"> </span><span class="kd">final</span><span class="w"> </span><span class="n">String</span><span class="w"> </span><span class="n">RESTAURANTE</span><span class="w">    </span><span class="o">=</span><span class="w"> </span><span class="s">"restaurante"</span><span class="p">;</span>
+<span class="kd">private</span><span class="w"> </span><span class="kd">static</span><span class="w"> </span><span class="kd">final</span><span class="w"> </span><span class="n">String</span><span class="w"> </span><span class="n">BARES</span><span class="w">          </span><span class="o">=</span><span class="w"> </span><span class="s">"bares"</span><span class="p">;</span>
+<span class="kd">private</span><span class="w"> </span><span class="kd">static</span><span class="w"> </span><span class="kd">final</span><span class="w"> </span><span class="n">String</span><span class="w"> </span><span class="n">SALON_BELLEZA</span><span class="w">  </span><span class="o">=</span><span class="w"> </span><span class="s">"salon_belleza"</span><span class="p">;</span>
+<span class="kd">private</span><span class="w"> </span><span class="kd">static</span><span class="w"> </span><span class="kd">final</span><span class="w"> </span><span class="n">String</span><span class="w"> </span><span class="n">FERRETERIA</span><span class="w">     </span><span class="o">=</span><span class="w"> </span><span class="s">"ferreteria"</span><span class="p">;</span>
+<span class="kd">private</span><span class="w"> </span><span class="kd">static</span><span class="w"> </span><span class="kd">final</span><span class="w"> </span><span class="n">String</span><span class="w"> </span><span class="n">MINI_SUPER</span><span class="w">     </span><span class="o">=</span><span class="w"> </span><span class="s">"mini_super"</span><span class="p">;</span>
+<span class="kd">private</span><span class="w"> </span><span class="kd">static</span><span class="w"> </span><span class="kd">final</span><span class="w"> </span><span class="n">String</span><span class="w"> </span><span class="n">TALLER_MECANICO</span><span class="w"> </span><span class="o">=</span><span class="w"> </span><span class="s">"taller_mecanico"</span><span class="p">;</span>
+<span class="kd">private</span><span class="w"> </span><span class="kd">static</span><span class="w"> </span><span class="kd">final</span><span class="w"> </span><span class="n">String</span><span class="w"> </span><span class="n">FARMACIA</span><span class="w">       </span><span class="o">=</span><span class="w"> </span><span class="s">"farmacia"</span><span class="p">;</span>
+<span class="kd">private</span><span class="w"> </span><span class="kd">static</span><span class="w"> </span><span class="kd">final</span><span class="w"> </span><span class="n">String</span><span class="w"> </span><span class="n">DEFAULT</span><span class="w">        </span><span class="o">=</span><span class="w"> </span><span class="s">"default"</span><span class="p">;</span>
+
+<span class="c1">// INSERT SQLs repetidos 8 veces → 1 cada uno</span>
+<span class="kd">private</span><span class="w"> </span><span class="kd">static</span><span class="w"> </span><span class="kd">final</span><span class="w"> </span><span class="n">String</span><span class="w"> </span><span class="n">SQL_INSERT_CATEGORIES</span><span class="w">    </span><span class="o">=</span><span class="w"> </span><span class="s">"INSERT INTO template_categories ..."</span><span class="p">;</span>
+<span class="kd">private</span><span class="w"> </span><span class="kd">static</span><span class="w"> </span><span class="kd">final</span><span class="w"> </span><span class="n">String</span><span class="w"> </span><span class="n">SQL_INSERT_UNITS</span><span class="w">         </span><span class="o">=</span><span class="w"> </span><span class="s">"INSERT INTO template_units ..."</span><span class="p">;</span>
+<span class="kd">private</span><span class="w"> </span><span class="kd">static</span><span class="w"> </span><span class="kd">final</span><span class="w"> </span><span class="n">String</span><span class="w"> </span><span class="n">SQL_INSERT_PRODUCTS</span><span class="w">      </span><span class="o">=</span><span class="w"> </span><span class="s">"INSERT INTO template_products ..."</span><span class="p">;</span>
+<span class="kd">private</span><span class="w"> </span><span class="kd">static</span><span class="w"> </span><span class="kd">final</span><span class="w"> </span><span class="n">String</span><span class="w"> </span><span class="n">SQL_INSERT_PRESENTATIONS</span><span class="w"> </span><span class="o">=</span><span class="w"> </span><span class="s">"INSERT INTO template_product_presentations ..."</span><span class="p">;</span>
+<span class="kd">private</span><span class="w"> </span><span class="kd">static</span><span class="w"> </span><span class="kd">final</span><span class="w"> </span><span class="n">String</span><span class="w"> </span><span class="n">SQL_INSERT_PAYMENTS</span><span class="w">      </span><span class="o">=</span><span class="w"> </span><span class="s">"INSERT INTO template_payment_methods ..."</span><span class="p">;</span>
+</code></pre></div>
+<h3 id="sql-audit-sql-code-review">SQL Audit (SQL Code Review)<a class="headerlink" href="#sql-audit-sql-code-review" title="Permanent link">&para;</a></h3>
+<table>
+<thead>
+<tr>
+<th>Check</th>
+<th>Estado</th>
+</tr>
+</thead>
+<tbody>
+<tr>
+<td>Queries parametrizadas (<code>?</code>)</td>
+<td>✅ JdbcTemplate con placeholders</td>
+</tr>
+<tr>
+<td>SQL dinámico con concatenación</td>
+<td>✅ No existe</td>
+</tr>
+<tr>
+<td>SELECT *</td>
+<td>✅ Todas las queries usan columnas explícitas</td>
+</tr>
+<tr>
+<td>Batch INSERTs</td>
+<td>✅ jdbc.batchUpdate en SeedRunner + SetupServiceImpl</td>
+</tr>
+<tr>
+<td>LEFT JOIN innecesario</td>
+<td>✅ Eliminado (V18 cleanup). COALESCE siempre retornaba tp.category_id</td>
+</tr>
+<tr>
+<td>O(n×m) loop en onboarding</td>
+<td>✅ Optimizado con Collectors.groupingBy() → O(n+m)</td>
+</tr>
+</tbody>
+</table>
+<h3 id="schema-impacto">Schema impacto<a class="headerlink" href="#schema-impacto" title="Permanent link">&para;</a></h3>
+<div class="highlight"><pre><span></span><code>Flyway V2  → industries, template_categories
+Flyway V18 → template_units, template_payment_methods, template_products, template_product_presentations
+V17        → DROP TABLE template_locations
+SeedDataRunner → solo INSERT (sin DDL)
+</code></pre></div>
+<h3 id="implementacion-tablas-seed">Implementación: Tablas + Seed<a class="headerlink" href="#implementacion-tablas-seed" title="Permanent link">&para;</a></h3>
+<p>Las tablas se crean via Flyway V18, no via DDL en Java. SeedDataRunner solo inserta datos.</p>
+
+
+
+
+
+
+
+
+
+
+
+
+                
+              </article>
+            </div>
+          
+          
+<script>var target=document.getElementById(location.hash.slice(1));target&&target.name&&(target.checked=target.name.startsWith("__tabbed_"))</script>
+        </div>
+        
+          <button type="button" class="md-top md-icon" data-md-component="top" hidden>
+  
+  <svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 24 24"><path d="M13 20h-2V8l-5.5 5.5-1.42-1.42L12 4.16l7.92 7.92-1.42 1.42L13 8z"/></svg>
+  Volver al principio
+</button>
+        
+      </main>
+      
+        <footer class="md-footer">
+  
+  <div class="md-footer-meta md-typeset">
+    <div class="md-footer-meta__inner md-grid">
+      <div class="md-copyright">
+  
+  
+    Made with
+    <a href="https://squidfunk.github.io/mkdocs-material/" target="_blank" rel="noopener">
+      Material for MkDocs
+    </a>
+  
+</div>
+      
+    </div>
+  </div>
+</footer>
+      
+    </div>
+    <div class="md-dialog" data-md-component="dialog">
+      <div class="md-dialog__inner md-typeset"></div>
+    </div>
+    
+    
+    
+      
+      
+      <script id="__config" type="application/json">{"annotate": null, "base": "../../../..", "features": ["navigation.tabs", "navigation.top", "search.highlight", "content.code.copy"], "search": "../../../../assets/javascripts/workers/search.a7633da7.min.js", "tags": null, "translations": {"clipboard.copied": "Copiado al portapapeles", "clipboard.copy": "Copiar al portapapeles", "search.result.more.one": "1 m\u00e1s en esta p\u00e1gina", "search.result.more.other": "# m\u00e1s en esta p\u00e1gina", "search.result.none": "No se encontraron documentos", "search.result.one": "1 documento encontrado", "search.result.other": "# documentos encontrados", "search.result.placeholder": "Teclee para comenzar b\u00fasqueda", "search.result.term.missing": "Falta", "select.version": "Seleccionar versi\u00f3n"}, "version": null}</script>
+    
+    
+      <script src="../../../../assets/javascripts/bundle.a5f9d56c.min.js"></script>
+      
+    
+  </body>
+</html>

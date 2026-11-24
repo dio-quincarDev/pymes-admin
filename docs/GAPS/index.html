@@ -1,0 +1,3791 @@
+
+<!doctype html>
+<html lang="es" class="no-js">
+  <head>
+    
+      <meta charset="utf-8">
+      <meta name="viewport" content="width=device-width,initial-scale=1">
+      
+        <meta name="description" content="Documentación del producto, arquitectura, API y operación">
+      
+      
+        <meta name="author" content="dio-quincarDev">
+      
+      
+      
+        <link rel="prev" href="../TO_DO/">
+      
+      
+        <link rel="next" href="../api/">
+      
+      
+        
+      
+      
+      <link rel="icon" href="../../assets/images/favicon.png">
+      <meta name="generator" content="mkdocs-1.6.1, mkdocs-material-9.8.2">
+    
+    
+      
+        <title>Diferencias doc/código - Pymeq — Forensic Accounting for Small Business</title>
+      
+    
+    
+      <link rel="stylesheet" href="../../assets/stylesheets/main.57a0d79d.min.css">
+      
+        
+        <link rel="stylesheet" href="../../assets/stylesheets/palette.fb2fffe2.min.css">
+      
+      
+
+
+    
+    
+      
+    
+    
+      
+        
+        
+        <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+        <link rel="stylesheet" href="https://fonts.googleapis.com/css?family=Roboto:300,300i,400,400i,700,700i%7CRoboto+Mono:400,400i,700,700i&display=fallback">
+        <style>:root{--md-text-font:"Roboto";--md-code-font:"Roboto Mono"}</style>
+      
+    
+    
+    <script>__md_scope=new URL("../..",location),__md_hash=e=>[...e].reduce(((e,_)=>(e<<5)-e+_.charCodeAt(0)),0),__md_get=(e,_=localStorage,t=__md_scope)=>JSON.parse(_.getItem(t.pathname+"."+e)),__md_set=(e,_,t=localStorage,a=__md_scope)=>{try{t.setItem(a.pathname+"."+e,JSON.stringify(_))}catch(e){}}</script>
+    
+      
+
+    
+    
+  </head>
+  
+  
+    
+    
+      
+    
+    
+    
+    
+    <body dir="ltr" data-md-color-scheme="slate" data-md-color-primary="teal" data-md-color-accent="amber">
+  
+    
+    <input class="md-toggle" data-md-toggle="drawer" type="checkbox" id="__drawer" autocomplete="off">
+    <input class="md-toggle" data-md-toggle="search" type="checkbox" id="__search" autocomplete="off">
+    <label class="md-overlay" for="__drawer"></label>
+    <div data-md-component="skip">
+      
+        
+        <a href="#gaps-discrepancias-entre-documentacion-y-realidad" class="md-skip">
+          Saltar a contenido
+        </a>
+      
+    </div>
+    <div data-md-component="announce">
+      
+    </div>
+    
+    
+      
+
+<header class="md-header" data-md-component="header">
+  <nav class="md-header__inner md-grid" aria-label="Cabecera">
+    <a href="../.." title="Pymeq — Forensic Accounting for Small Business" class="md-header__button md-logo" aria-label="Pymeq — Forensic Accounting for Small Business" data-md-component="logo">
+      
+  
+  <svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 24 24"><path d="M12 8a3 3 0 0 0 3-3 3 3 0 0 0-3-3 3 3 0 0 0-3 3 3 3 0 0 0 3 3m0 3.54C9.64 9.35 6.5 8 3 8v11c3.5 0 6.64 1.35 9 3.54 2.36-2.19 5.5-3.54 9-3.54V8c-3.5 0-6.64 1.35-9 3.54"/></svg>
+
+    </a>
+    <label class="md-header__button md-icon" for="__drawer">
+      
+      <svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 24 24"><path d="M3 6h18v2H3zm0 5h18v2H3zm0 5h18v2H3z"/></svg>
+    </label>
+    <div class="md-header__title" data-md-component="header-title">
+      <div class="md-header__ellipsis">
+        <div class="md-header__topic">
+          <span class="md-ellipsis">
+            Pymeq — Forensic Accounting for Small Business
+          </span>
+        </div>
+        <div class="md-header__topic" data-md-component="header-topic">
+          <span class="md-ellipsis">
+            
+              Diferencias doc/código
+            
+          </span>
+        </div>
+      </div>
+    </div>
+    
+      
+        <form class="md-header__option" data-md-component="palette">
+  
+    
+    
+    
+    <input class="md-option" data-md-color-media="" data-md-color-scheme="slate" data-md-color-primary="teal" data-md-color-accent="amber"  aria-label="Cambiar a tema claro"  type="radio" name="__palette" id="__palette_0">
+    
+      <label class="md-header__button md-icon" title="Cambiar a tema claro" for="__palette_1" hidden>
+        <svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 24 24"><path d="m17.75 4.09-2.53 1.94.91 3.06-2.63-1.81-2.63 1.81.91-3.06-2.53-1.94L12.44 4l1.06-3 1.06 3zm3.5 6.91-1.64 1.25.59 1.98-1.7-1.17-1.7 1.17.59-1.98L15.75 11l2.06-.05L18.5 9l.69 1.95zm-2.28 4.95c.83-.08 1.72 1.1 1.19 1.85-.32.45-.66.87-1.08 1.27C15.17 23 8.84 23 4.94 19.07c-3.91-3.9-3.91-10.24 0-14.14.4-.4.82-.76 1.27-1.08.75-.53 1.93.36 1.85 1.19-.27 2.86.69 5.83 2.89 8.02a9.96 9.96 0 0 0 8.02 2.89m-1.64 2.02a12.08 12.08 0 0 1-7.8-3.47c-2.17-2.19-3.33-5-3.49-7.82-2.81 3.14-2.7 7.96.31 10.98 3.02 3.01 7.84 3.12 10.98.31"/></svg>
+      </label>
+    
+  
+    
+    
+    
+    <input class="md-option" data-md-color-media="" data-md-color-scheme="default" data-md-color-primary="teal" data-md-color-accent="amber"  aria-label="Cambiar a tema oscuro"  type="radio" name="__palette" id="__palette_1">
+    
+      <label class="md-header__button md-icon" title="Cambiar a tema oscuro" for="__palette_0" hidden>
+        <svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 24 24"><path d="M12 7a5 5 0 0 1 5 5 5 5 0 0 1-5 5 5 5 0 0 1-5-5 5 5 0 0 1 5-5m0 2a3 3 0 0 0-3 3 3 3 0 0 0 3 3 3 3 0 0 0 3-3 3 3 0 0 0-3-3m0-7 2.39 3.42C13.65 5.15 12.84 5 12 5s-1.65.15-2.39.42zM3.34 7l4.16-.35A7.2 7.2 0 0 0 5.94 8.5c-.44.74-.69 1.5-.83 2.29zm.02 10 1.76-3.77a7.131 7.131 0 0 0 2.38 4.14zM20.65 7l-1.77 3.79a7.02 7.02 0 0 0-2.38-4.15zm-.01 10-4.14.36c.59-.51 1.12-1.14 1.54-1.86.42-.73.69-1.5.83-2.29zM12 22l-2.41-3.44c.74.27 1.55.44 2.41.44.82 0 1.63-.17 2.37-.44z"/></svg>
+      </label>
+    
+  
+</form>
+      
+    
+    
+      <script>var palette=__md_get("__palette");if(palette&&palette.color){if("(prefers-color-scheme)"===palette.color.media){var media=matchMedia("(prefers-color-scheme: light)"),input=document.querySelector(media.matches?"[data-md-color-media='(prefers-color-scheme: light)']":"[data-md-color-media='(prefers-color-scheme: dark)']");palette.color.media=input.getAttribute("data-md-color-media"),palette.color.scheme=input.getAttribute("data-md-color-scheme"),palette.color.primary=input.getAttribute("data-md-color-primary"),palette.color.accent=input.getAttribute("data-md-color-accent")}for(var[key,value]of Object.entries(palette.color))document.body.setAttribute("data-md-color-"+key,value)}</script>
+    
+    
+    
+      
+      
+        <label class="md-header__button md-icon" for="__search">
+          
+          <svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 24 24"><path d="M9.5 3A6.5 6.5 0 0 1 16 9.5c0 1.61-.59 3.09-1.56 4.23l.27.27h.79l5 5-1.5 1.5-5-5v-.79l-.27-.27A6.52 6.52 0 0 1 9.5 16 6.5 6.5 0 0 1 3 9.5 6.5 6.5 0 0 1 9.5 3m0 2C7 5 5 7 5 9.5S7 14 9.5 14 14 12 14 9.5 12 5 9.5 5"/></svg>
+        </label>
+        <div class="md-search" data-md-component="search" role="dialog">
+  <label class="md-search__overlay" for="__search"></label>
+  <div class="md-search__inner" role="search">
+    <form class="md-search__form" name="search">
+      <input type="text" class="md-search__input" name="query" aria-label="Búsqueda" placeholder="Búsqueda" autocapitalize="off" autocorrect="off" autocomplete="off" spellcheck="false" data-md-component="search-query" required>
+      <label class="md-search__icon md-icon" for="__search">
+        
+        <svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 24 24"><path d="M9.5 3A6.5 6.5 0 0 1 16 9.5c0 1.61-.59 3.09-1.56 4.23l.27.27h.79l5 5-1.5 1.5-5-5v-.79l-.27-.27A6.52 6.52 0 0 1 9.5 16 6.5 6.5 0 0 1 3 9.5 6.5 6.5 0 0 1 9.5 3m0 2C7 5 5 7 5 9.5S7 14 9.5 14 14 12 14 9.5 12 5 9.5 5"/></svg>
+        
+        <svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 24 24"><path d="M20 11v2H8l5.5 5.5-1.42 1.42L4.16 12l7.92-7.92L13.5 5.5 8 11z"/></svg>
+      </label>
+      <nav class="md-search__options" aria-label="Buscar">
+        
+        <button type="reset" class="md-search__icon md-icon" title="Limpiar" aria-label="Limpiar" tabindex="-1">
+          
+          <svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 24 24"><path d="M19 6.41 17.59 5 12 10.59 6.41 5 5 6.41 10.59 12 5 17.59 6.41 19 12 13.41 17.59 19 19 17.59 13.41 12z"/></svg>
+        </button>
+      </nav>
+      
+    </form>
+    <div class="md-search__output">
+      <div class="md-search__scrollwrap" tabindex="0" data-md-scrollfix>
+        <div class="md-search-result" data-md-component="search-result">
+          <div class="md-search-result__meta">
+            Inicializando búsqueda
+          </div>
+          <ol class="md-search-result__list" role="presentation"></ol>
+        </div>
+      </div>
+    </div>
+  </div>
+</div>
+      
+    
+    
+      <div class="md-header__source">
+        <a href="https://github.com/dio-quincarDev/pymes-admin" title="Ir al repositorio" class="md-source" data-md-component="source">
+  <div class="md-source__icon md-icon">
+    
+    <svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 448 512"><!--! Font Awesome Free 7.1.0 by @fontawesome - https://fontawesome.com License - https://fontawesome.com/license/free (Icons: CC BY 4.0, Fonts: SIL OFL 1.1, Code: MIT License) Copyright 2025 Fonticons, Inc.--><path d="M439.6 236.1 244 40.5c-5.4-5.5-12.8-8.5-20.4-8.5s-15 3-20.4 8.4L162.5 81l51.5 51.5c27.1-9.1 52.7 16.8 43.4 43.7l49.7 49.7c34.2-11.8 61.2 31 35.5 56.7-26.5 26.5-70.2-2.9-56-37.3L240.3 199v121.9c25.3 12.5 22.3 41.8 9.1 55-6.4 6.4-15.2 10.1-24.3 10.1s-17.8-3.6-24.3-10.1c-17.6-17.6-11.1-46.9 11.2-56v-123c-20.8-8.5-24.6-30.7-18.6-45L142.6 101 8.5 235.1C3 240.6 0 247.9 0 255.5s3 15 8.5 20.4l195.6 195.7c5.4 5.4 12.7 8.4 20.4 8.4s15-3 20.4-8.4l194.7-194.7c5.4-5.4 8.4-12.8 8.4-20.4s-3-15-8.4-20.4"/></svg>
+  </div>
+  <div class="md-source__repository">
+    dio-quincarDev/pymes-admin
+  </div>
+</a>
+      </div>
+    
+  </nav>
+  
+</header>
+    
+    <div class="md-container" data-md-component="container">
+      
+      
+        
+          
+            
+<nav class="md-tabs" aria-label="Pestañas" data-md-component="tabs">
+  <div class="md-grid">
+    <ul class="md-tabs__list">
+      
+        
+  
+  
+  
+  
+    <li class="md-tabs__item">
+      <a href="../.." class="md-tabs__link">
+        
+  
+  
+    
+  
+  Inicio
+
+      </a>
+    </li>
+  
+
+      
+        
+  
+  
+  
+    
+  
+  
+    
+    
+      <li class="md-tabs__item md-tabs__item--active">
+        <a href="../.." class="md-tabs__link">
+          
+  
+  
+  Producto
+
+        </a>
+      </li>
+    
+  
+
+      
+        
+  
+  
+  
+  
+    
+    
+      <li class="md-tabs__item">
+        <a href="../api/" class="md-tabs__link">
+          
+  
+  
+  API Reference
+
+        </a>
+      </li>
+    
+  
+
+      
+        
+  
+  
+  
+  
+    
+    
+      <li class="md-tabs__item">
+        <a href="../architecture/architecture/" class="md-tabs__link">
+          
+  
+  
+  Arquitectura
+
+        </a>
+      </li>
+    
+  
+
+      
+        
+  
+  
+  
+  
+    
+    
+      <li class="md-tabs__item">
+        <a href="../../deployment/DEPLOYMENT/" class="md-tabs__link">
+          
+  
+  
+  Operación
+
+        </a>
+      </li>
+    
+  
+
+      
+        
+  
+  
+  
+  
+    
+    
+      <li class="md-tabs__item">
+        <a href="../guides/user-guide/" class="md-tabs__link">
+          
+  
+  
+  Guías
+
+        </a>
+      </li>
+    
+  
+
+      
+        
+  
+  
+  
+  
+    
+    
+      <li class="md-tabs__item">
+        <a href="../../backend/core/docs/KPIs/" class="md-tabs__link">
+          
+  
+  
+  Referencia
+
+        </a>
+      </li>
+    
+  
+
+      
+    </ul>
+  </div>
+</nav>
+          
+        
+      
+      <main class="md-main" data-md-component="main">
+        <div class="md-main__inner md-grid">
+          
+            
+              
+              <div class="md-sidebar md-sidebar--primary" data-md-component="sidebar" data-md-type="navigation" >
+                <div class="md-sidebar__scrollwrap">
+                  <div class="md-sidebar__inner">
+                    
+
+
+  
+
+
+<nav class="md-nav md-nav--primary md-nav--lifted" aria-label="Navegación" data-md-level="0">
+  <label class="md-nav__title" for="__drawer">
+    <a href="../.." title="Pymeq — Forensic Accounting for Small Business" class="md-nav__button md-logo" aria-label="Pymeq — Forensic Accounting for Small Business" data-md-component="logo">
+      
+  
+  <svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 24 24"><path d="M12 8a3 3 0 0 0 3-3 3 3 0 0 0-3-3 3 3 0 0 0-3 3 3 3 0 0 0 3 3m0 3.54C9.64 9.35 6.5 8 3 8v11c3.5 0 6.64 1.35 9 3.54 2.36-2.19 5.5-3.54 9-3.54V8c-3.5 0-6.64 1.35-9 3.54"/></svg>
+
+    </a>
+    Pymeq — Forensic Accounting for Small Business
+  </label>
+  
+    <div class="md-nav__source">
+      <a href="https://github.com/dio-quincarDev/pymes-admin" title="Ir al repositorio" class="md-source" data-md-component="source">
+  <div class="md-source__icon md-icon">
+    
+    <svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 448 512"><!--! Font Awesome Free 7.1.0 by @fontawesome - https://fontawesome.com License - https://fontawesome.com/license/free (Icons: CC BY 4.0, Fonts: SIL OFL 1.1, Code: MIT License) Copyright 2025 Fonticons, Inc.--><path d="M439.6 236.1 244 40.5c-5.4-5.5-12.8-8.5-20.4-8.5s-15 3-20.4 8.4L162.5 81l51.5 51.5c27.1-9.1 52.7 16.8 43.4 43.7l49.7 49.7c34.2-11.8 61.2 31 35.5 56.7-26.5 26.5-70.2-2.9-56-37.3L240.3 199v121.9c25.3 12.5 22.3 41.8 9.1 55-6.4 6.4-15.2 10.1-24.3 10.1s-17.8-3.6-24.3-10.1c-17.6-17.6-11.1-46.9 11.2-56v-123c-20.8-8.5-24.6-30.7-18.6-45L142.6 101 8.5 235.1C3 240.6 0 247.9 0 255.5s3 15 8.5 20.4l195.6 195.7c5.4 5.4 12.7 8.4 20.4 8.4s15-3 20.4-8.4l194.7-194.7c5.4-5.4 8.4-12.8 8.4-20.4s-3-15-8.4-20.4"/></svg>
+  </div>
+  <div class="md-source__repository">
+    dio-quincarDev/pymes-admin
+  </div>
+</a>
+    </div>
+  
+  <ul class="md-nav__list" data-md-scrollfix>
+    
+      
+      
+  
+  
+  
+  
+    <li class="md-nav__item">
+      <a href="../.." class="md-nav__link">
+        
+  
+  
+  <span class="md-ellipsis">
+    
+  
+    Inicio
+  
+
+    
+  </span>
+  
+  
+
+      </a>
+    </li>
+  
+
+    
+      
+      
+  
+  
+    
+  
+  
+  
+    
+    
+    
+    
+      
+        
+        
+      
+      
+    
+    
+    <li class="md-nav__item md-nav__item--active md-nav__item--section md-nav__item--nested">
+      
+        
+        
+        <input class="md-nav__toggle md-toggle " type="checkbox" id="__nav_2" checked>
+        
+          
+          <label class="md-nav__link" for="__nav_2" id="__nav_2_label" tabindex="">
+            
+  
+  
+  <span class="md-ellipsis">
+    
+  
+    Producto
+  
+
+    
+  </span>
+  
+  
+
+            <span class="md-nav__icon md-icon"></span>
+          </label>
+        
+        <nav class="md-nav" data-md-level="1" aria-labelledby="__nav_2_label" aria-expanded="true">
+          <label class="md-nav__title" for="__nav_2">
+            <span class="md-nav__icon md-icon"></span>
+            
+  
+    Producto
+  
+
+          </label>
+          <ul class="md-nav__list" data-md-scrollfix>
+            
+              
+                
+  
+  
+  
+  
+    <li class="md-nav__item">
+      <a href="../.." class="md-nav__link">
+        
+  
+  
+  <span class="md-ellipsis">
+    
+  
+    Inicio
+  
+
+    
+  </span>
+  
+  
+
+      </a>
+    </li>
+  
+
+              
+            
+              
+                
+  
+  
+  
+  
+    <li class="md-nav__item">
+      <a href="../product/features/" class="md-nav__link">
+        
+  
+  
+  <span class="md-ellipsis">
+    
+  
+    Características
+  
+
+    
+  </span>
+  
+  
+
+      </a>
+    </li>
+  
+
+              
+            
+              
+                
+  
+  
+  
+  
+    <li class="md-nav__item">
+      <a href="../product/roadmap/" class="md-nav__link">
+        
+  
+  
+  <span class="md-ellipsis">
+    
+  
+    Roadmap
+  
+
+    
+  </span>
+  
+  
+
+      </a>
+    </li>
+  
+
+              
+            
+              
+                
+  
+  
+  
+  
+    <li class="md-nav__item">
+      <a href="../TO_DO/" class="md-nav__link">
+        
+  
+  
+  <span class="md-ellipsis">
+    
+  
+    Pendientes
+  
+
+    
+  </span>
+  
+  
+
+      </a>
+    </li>
+  
+
+              
+            
+              
+                
+  
+  
+    
+  
+  
+  
+    <li class="md-nav__item md-nav__item--active">
+      
+      <input class="md-nav__toggle md-toggle" type="checkbox" id="__toc">
+      
+      
+        
+      
+      
+        <label class="md-nav__link md-nav__link--active" for="__toc">
+          
+  
+  
+  <span class="md-ellipsis">
+    
+  
+    Diferencias doc/código
+  
+
+    
+  </span>
+  
+  
+
+          <span class="md-nav__icon md-icon"></span>
+        </label>
+      
+      <a href="./" class="md-nav__link md-nav__link--active">
+        
+  
+  
+  <span class="md-ellipsis">
+    
+  
+    Diferencias doc/código
+  
+
+    
+  </span>
+  
+  
+
+      </a>
+      
+        
+
+<nav class="md-nav md-nav--secondary" aria-label="Tabla de contenidos">
+  
+  
+  
+    
+  
+  
+    <label class="md-nav__title" for="__toc">
+      <span class="md-nav__icon md-icon"></span>
+      Tabla de contenidos
+    </label>
+    <ul class="md-nav__list" data-md-component="toc" data-md-scrollfix>
+      
+        <li class="md-nav__item">
+  <a href="#auth-service" class="md-nav__link">
+    <span class="md-ellipsis">
+      
+        Auth Service
+      
+    </span>
+  </a>
+  
+    <nav class="md-nav" aria-label="Auth Service">
+      <ul class="md-nav__list">
+        
+          <li class="md-nav__item">
+  <a href="#code-review-findings-2026-07-21" class="md-nav__link">
+    <span class="md-ellipsis">
+      
+        Code Review Findings (2026-07-21)
+      
+    </span>
+  </a>
+  
+    <nav class="md-nav" aria-label="Code Review Findings (2026-07-21)">
+      <ul class="md-nav__list">
+        
+          <li class="md-nav__item">
+  <a href="#critical" class="md-nav__link">
+    <span class="md-ellipsis">
+      
+        🔴 Critical
+      
+    </span>
+  </a>
+  
+</li>
+        
+      </ul>
+    </nav>
+  
+</li>
+        
+          <li class="md-nav__item">
+  <a href="#code-review-findings-2026-07-29" class="md-nav__link">
+    <span class="md-ellipsis">
+      
+        Code Review Findings (2026-07-29)
+      
+    </span>
+  </a>
+  
+    <nav class="md-nav" aria-label="Code Review Findings (2026-07-29)">
+      <ul class="md-nav__list">
+        
+          <li class="md-nav__item">
+  <a href="#critical_1" class="md-nav__link">
+    <span class="md-ellipsis">
+      
+        🔴 Critical
+      
+    </span>
+  </a>
+  
+</li>
+        
+          <li class="md-nav__item">
+  <a href="#suggestions" class="md-nav__link">
+    <span class="md-ellipsis">
+      
+        🟡 Suggestions
+      
+    </span>
+  </a>
+  
+</li>
+        
+          <li class="md-nav__item">
+  <a href="#suggestions_1" class="md-nav__link">
+    <span class="md-ellipsis">
+      
+        🟡 Suggestions
+      
+    </span>
+  </a>
+  
+</li>
+        
+      </ul>
+    </nav>
+  
+</li>
+        
+      </ul>
+    </nav>
+  
+</li>
+      
+        <li class="md-nav__item">
+  <a href="#core-service" class="md-nav__link">
+    <span class="md-ellipsis">
+      
+        Core Service
+      
+    </span>
+  </a>
+  
+    <nav class="md-nav" aria-label="Core Service">
+      <ul class="md-nav__list">
+        
+          <li class="md-nav__item">
+  <a href="#code-review-findings-2026-07-21_1" class="md-nav__link">
+    <span class="md-ellipsis">
+      
+        Code Review Findings (2026-07-21)
+      
+    </span>
+  </a>
+  
+    <nav class="md-nav" aria-label="Code Review Findings (2026-07-21)">
+      <ul class="md-nav__list">
+        
+          <li class="md-nav__item">
+  <a href="#critical_2" class="md-nav__link">
+    <span class="md-ellipsis">
+      
+        🔴 Critical
+      
+    </span>
+  </a>
+  
+</li>
+        
+          <li class="md-nav__item">
+  <a href="#sugerencias" class="md-nav__link">
+    <span class="md-ellipsis">
+      
+        🟡 Sugerencias
+      
+    </span>
+  </a>
+  
+</li>
+        
+      </ul>
+    </nav>
+  
+</li>
+        
+      </ul>
+    </nav>
+  
+</li>
+      
+        <li class="md-nav__item">
+  <a href="#gateway" class="md-nav__link">
+    <span class="md-ellipsis">
+      
+        Gateway
+      
+    </span>
+  </a>
+  
+    <nav class="md-nav" aria-label="Gateway">
+      <ul class="md-nav__list">
+        
+          <li class="md-nav__item">
+  <a href="#code-review-findings-2026-07-16" class="md-nav__link">
+    <span class="md-ellipsis">
+      
+        Code Review Findings (2026-07-16)
+      
+    </span>
+  </a>
+  
+    <nav class="md-nav" aria-label="Code Review Findings (2026-07-16)">
+      <ul class="md-nav__list">
+        
+          <li class="md-nav__item">
+  <a href="#critical-todos-resueltos" class="md-nav__link">
+    <span class="md-ellipsis">
+      
+        🔴 Critical — Todos resueltos
+      
+    </span>
+  </a>
+  
+</li>
+        
+          <li class="md-nav__item">
+  <a href="#suggestions_2" class="md-nav__link">
+    <span class="md-ellipsis">
+      
+        🟡 Suggestions
+      
+    </span>
+  </a>
+  
+</li>
+        
+      </ul>
+    </nav>
+  
+</li>
+        
+      </ul>
+    </nav>
+  
+</li>
+      
+        <li class="md-nav__item">
+  <a href="#frontend" class="md-nav__link">
+    <span class="md-ellipsis">
+      
+        Frontend
+      
+    </span>
+  </a>
+  
+    <nav class="md-nav" aria-label="Frontend">
+      <ul class="md-nav__list">
+        
+          <li class="md-nav__item">
+  <a href="#workflow-ux-findings-audit-2026-08-14-cerrado-2026-08-17-fase-4a-d-ver-to_do-fase-4-daily_reports_frontend-2026-08-17" class="md-nav__link">
+    <span class="md-ellipsis">
+      
+        Workflow / UX Findings (audit 2026-08-14 → ✅ CERRADO 2026-08-17 Fase 4a-d, ver TO_DO Fase 4 + DAILY_REPORTS_FRONTEND 2026-08-17)
+      
+    </span>
+  </a>
+  
+    <nav class="md-nav" aria-label="Workflow / UX Findings (audit 2026-08-14 → ✅ CERRADO 2026-08-17 Fase 4a-d, ver TO_DO Fase 4 + DAILY_REPORTS_FRONTEND 2026-08-17)">
+      <ul class="md-nav__list">
+        
+          <li class="md-nav__item">
+  <a href="#cognitive-overload-dashboard" class="md-nav__link">
+    <span class="md-ellipsis">
+      
+        🔴 Cognitive overload — Dashboard
+      
+    </span>
+  </a>
+  
+</li>
+        
+          <li class="md-nav__item">
+  <a href="#navigation-overload" class="md-nav__link">
+    <span class="md-ellipsis">
+      
+        🟡 Navigation overload
+      
+    </span>
+  </a>
+  
+</li>
+        
+          <li class="md-nav__item">
+  <a href="#jargon-copy" class="md-nav__link">
+    <span class="md-ellipsis">
+      
+        🟡 Jargon / copy
+      
+    </span>
+  </a>
+  
+</li>
+        
+          <li class="md-nav__item">
+  <a href="#page-structure" class="md-nav__link">
+    <span class="md-ellipsis">
+      
+        🟡 Page structure
+      
+    </span>
+  </a>
+  
+</li>
+        
+      </ul>
+    </nav>
+  
+</li>
+        
+          <li class="md-nav__item">
+  <a href="#code-review-findings-2026-07-15" class="md-nav__link">
+    <span class="md-ellipsis">
+      
+        Code Review Findings (2026-07-15)
+      
+    </span>
+  </a>
+  
+    <nav class="md-nav" aria-label="Code Review Findings (2026-07-15)">
+      <ul class="md-nav__list">
+        
+          <li class="md-nav__item">
+  <a href="#critical_3" class="md-nav__link">
+    <span class="md-ellipsis">
+      
+        🔴 Critical
+      
+    </span>
+  </a>
+  
+</li>
+        
+          <li class="md-nav__item">
+  <a href="#suggestions_3" class="md-nav__link">
+    <span class="md-ellipsis">
+      
+        🟡 Suggestions
+      
+    </span>
+  </a>
+  
+</li>
+        
+      </ul>
+    </nav>
+  
+</li>
+        
+          <li class="md-nav__item">
+  <a href="#code-review-findings-2026-07-30" class="md-nav__link">
+    <span class="md-ellipsis">
+      
+        Code Review Findings (2026-07-30)
+      
+    </span>
+  </a>
+  
+    <nav class="md-nav" aria-label="Code Review Findings (2026-07-30)">
+      <ul class="md-nav__list">
+        
+          <li class="md-nav__item">
+  <a href="#critical_4" class="md-nav__link">
+    <span class="md-ellipsis">
+      
+        🔴 Critical
+      
+    </span>
+  </a>
+  
+</li>
+        
+          <li class="md-nav__item">
+  <a href="#suggestions_4" class="md-nav__link">
+    <span class="md-ellipsis">
+      
+        🟡 Suggestions
+      
+    </span>
+  </a>
+  
+</li>
+        
+      </ul>
+    </nav>
+  
+</li>
+        
+          <li class="md-nav__item">
+  <a href="#code-review-findings-2026-07-21_2" class="md-nav__link">
+    <span class="md-ellipsis">
+      
+        Code Review Findings (2026-07-21)
+      
+    </span>
+  </a>
+  
+    <nav class="md-nav" aria-label="Code Review Findings (2026-07-21)">
+      <ul class="md-nav__list">
+        
+          <li class="md-nav__item">
+  <a href="#critical_5" class="md-nav__link">
+    <span class="md-ellipsis">
+      
+        🔴 Critical
+      
+    </span>
+  </a>
+  
+</li>
+        
+          <li class="md-nav__item">
+  <a href="#suggestions_5" class="md-nav__link">
+    <span class="md-ellipsis">
+      
+        🟡 Suggestions
+      
+    </span>
+  </a>
+  
+</li>
+        
+      </ul>
+    </nav>
+  
+</li>
+        
+      </ul>
+    </nav>
+  
+</li>
+      
+        <li class="md-nav__item">
+  <a href="#postgresql" class="md-nav__link">
+    <span class="md-ellipsis">
+      
+        PostgreSQL
+      
+    </span>
+  </a>
+  
+</li>
+      
+        <li class="md-nav__item">
+  <a href="#redis" class="md-nav__link">
+    <span class="md-ellipsis">
+      
+        Redis
+      
+    </span>
+  </a>
+  
+</li>
+      
+        <li class="md-nav__item">
+  <a href="#docker" class="md-nav__link">
+    <span class="md-ellipsis">
+      
+        Docker
+      
+    </span>
+  </a>
+  
+</li>
+      
+        <li class="md-nav__item">
+  <a href="#github-actions" class="md-nav__link">
+    <span class="md-ellipsis">
+      
+        GitHub Actions
+      
+    </span>
+  </a>
+  
+</li>
+      
+    </ul>
+  
+</nav>
+      
+    </li>
+  
+
+              
+            
+          </ul>
+        </nav>
+      
+    </li>
+  
+
+    
+      
+      
+  
+  
+  
+  
+    
+    
+    
+    
+      
+      
+    
+    
+    <li class="md-nav__item md-nav__item--nested">
+      
+        
+        
+        <input class="md-nav__toggle md-toggle " type="checkbox" id="__nav_3" >
+        
+          
+          <label class="md-nav__link" for="__nav_3" id="__nav_3_label" tabindex="0">
+            
+  
+  
+  <span class="md-ellipsis">
+    
+  
+    API Reference
+  
+
+    
+  </span>
+  
+  
+
+            <span class="md-nav__icon md-icon"></span>
+          </label>
+        
+        <nav class="md-nav" data-md-level="1" aria-labelledby="__nav_3_label" aria-expanded="false">
+          <label class="md-nav__title" for="__nav_3">
+            <span class="md-nav__icon md-icon"></span>
+            
+  
+    API Reference
+  
+
+          </label>
+          <ul class="md-nav__list" data-md-scrollfix>
+            
+              
+                
+  
+  
+  
+  
+    <li class="md-nav__item">
+      <a href="../api/" class="md-nav__link">
+        
+  
+  
+  <span class="md-ellipsis">
+    
+  
+    Contrato (índice)
+  
+
+    
+  </span>
+  
+  
+
+      </a>
+    </li>
+  
+
+              
+            
+              
+                
+  
+  
+  
+  
+    <li class="md-nav__item">
+      <a href="../../api/auth/" class="md-nav__link">
+        
+  
+  
+  <span class="md-ellipsis">
+    
+  
+    Auth (generado)
+  
+
+    
+  </span>
+  
+  
+
+      </a>
+    </li>
+  
+
+              
+            
+              
+                
+  
+  
+  
+  
+    <li class="md-nav__item">
+      <a href="../../api/core/" class="md-nav__link">
+        
+  
+  
+  <span class="md-ellipsis">
+    
+  
+    Core (generado)
+  
+
+    
+  </span>
+  
+  
+
+      </a>
+    </li>
+  
+
+              
+            
+          </ul>
+        </nav>
+      
+    </li>
+  
+
+    
+      
+      
+  
+  
+  
+  
+    
+    
+    
+    
+      
+      
+    
+    
+    <li class="md-nav__item md-nav__item--nested">
+      
+        
+        
+        <input class="md-nav__toggle md-toggle " type="checkbox" id="__nav_4" >
+        
+          
+          <label class="md-nav__link" for="__nav_4" id="__nav_4_label" tabindex="0">
+            
+  
+  
+  <span class="md-ellipsis">
+    
+  
+    Arquitectura
+  
+
+    
+  </span>
+  
+  
+
+            <span class="md-nav__icon md-icon"></span>
+          </label>
+        
+        <nav class="md-nav" data-md-level="1" aria-labelledby="__nav_4_label" aria-expanded="false">
+          <label class="md-nav__title" for="__nav_4">
+            <span class="md-nav__icon md-icon"></span>
+            
+  
+    Arquitectura
+  
+
+          </label>
+          <ul class="md-nav__list" data-md-scrollfix>
+            
+              
+                
+  
+  
+  
+  
+    <li class="md-nav__item">
+      <a href="../architecture/architecture/" class="md-nav__link">
+        
+  
+  
+  <span class="md-ellipsis">
+    
+  
+    Arquitectura (mapa)
+  
+
+    
+  </span>
+  
+  
+
+      </a>
+    </li>
+  
+
+              
+            
+              
+                
+  
+  
+  
+  
+    
+    
+    
+    
+      
+      
+    
+    
+    <li class="md-nav__item md-nav__item--nested">
+      
+        
+        
+        <input class="md-nav__toggle md-toggle " type="checkbox" id="__nav_4_2" >
+        
+          
+          <label class="md-nav__link" for="__nav_4_2" id="__nav_4_2_label" tabindex="0">
+            
+  
+  
+  <span class="md-ellipsis">
+    
+  
+    Servicios
+  
+
+    
+  </span>
+  
+  
+
+            <span class="md-nav__icon md-icon"></span>
+          </label>
+        
+        <nav class="md-nav" data-md-level="2" aria-labelledby="__nav_4_2_label" aria-expanded="false">
+          <label class="md-nav__title" for="__nav_4_2">
+            <span class="md-nav__icon md-icon"></span>
+            
+  
+    Servicios
+  
+
+          </label>
+          <ul class="md-nav__list" data-md-scrollfix>
+            
+              
+                
+  
+  
+  
+  
+    <li class="md-nav__item">
+      <a href="../../backend/auth/" class="md-nav__link">
+        
+  
+  
+  <span class="md-ellipsis">
+    
+  
+    Auth
+  
+
+    
+  </span>
+  
+  
+
+      </a>
+    </li>
+  
+
+              
+            
+              
+                
+  
+  
+  
+  
+    <li class="md-nav__item">
+      <a href="../../backend/gateway-pymes/" class="md-nav__link">
+        
+  
+  
+  <span class="md-ellipsis">
+    
+  
+    Gateway
+  
+
+    
+  </span>
+  
+  
+
+      </a>
+    </li>
+  
+
+              
+            
+              
+                
+  
+  
+  
+  
+    <li class="md-nav__item">
+      <a href="../../backend/core/" class="md-nav__link">
+        
+  
+  
+  <span class="md-ellipsis">
+    
+  
+    Core
+  
+
+    
+  </span>
+  
+  
+
+      </a>
+    </li>
+  
+
+              
+            
+              
+                
+  
+  
+  
+  
+    <li class="md-nav__item">
+      <a href="../../frontend/pymes/" class="md-nav__link">
+        
+  
+  
+  <span class="md-ellipsis">
+    
+  
+    Frontend
+  
+
+    
+  </span>
+  
+  
+
+      </a>
+    </li>
+  
+
+              
+            
+          </ul>
+        </nav>
+      
+    </li>
+  
+
+              
+            
+              
+                
+  
+  
+  
+  
+    <li class="md-nav__item">
+      <a href="../persistencia-postgres/" class="md-nav__link">
+        
+  
+  
+  <span class="md-ellipsis">
+    
+  
+    Base de datos
+  
+
+    
+  </span>
+  
+  
+
+      </a>
+    </li>
+  
+
+              
+            
+              
+                
+  
+  
+  
+  
+    <li class="md-nav__item">
+      <a href="../strategies/DB_STRATEGY/" class="md-nav__link">
+        
+  
+  
+  <span class="md-ellipsis">
+    
+  
+    Estrategia multi-schema
+  
+
+    
+  </span>
+  
+  
+
+      </a>
+    </li>
+  
+
+              
+            
+              
+                
+  
+  
+  
+  
+    <li class="md-nav__item">
+      <a href="../strategies/INFRA_STRATEGY/" class="md-nav__link">
+        
+  
+  
+  <span class="md-ellipsis">
+    
+  
+    Infraestructura
+  
+
+    
+  </span>
+  
+  
+
+      </a>
+    </li>
+  
+
+              
+            
+          </ul>
+        </nav>
+      
+    </li>
+  
+
+    
+      
+      
+  
+  
+  
+  
+    
+    
+    
+    
+      
+      
+    
+    
+    <li class="md-nav__item md-nav__item--nested">
+      
+        
+        
+        <input class="md-nav__toggle md-toggle " type="checkbox" id="__nav_5" >
+        
+          
+          <label class="md-nav__link" for="__nav_5" id="__nav_5_label" tabindex="0">
+            
+  
+  
+  <span class="md-ellipsis">
+    
+  
+    Operación
+  
+
+    
+  </span>
+  
+  
+
+            <span class="md-nav__icon md-icon"></span>
+          </label>
+        
+        <nav class="md-nav" data-md-level="1" aria-labelledby="__nav_5_label" aria-expanded="false">
+          <label class="md-nav__title" for="__nav_5">
+            <span class="md-nav__icon md-icon"></span>
+            
+  
+    Operación
+  
+
+          </label>
+          <ul class="md-nav__list" data-md-scrollfix>
+            
+              
+                
+  
+  
+  
+  
+    <li class="md-nav__item">
+      <a href="../../deployment/DEPLOYMENT/" class="md-nav__link">
+        
+  
+  
+  <span class="md-ellipsis">
+    
+  
+    Deploy
+  
+
+    
+  </span>
+  
+  
+
+      </a>
+    </li>
+  
+
+              
+            
+              
+                
+  
+  
+  
+  
+    <li class="md-nav__item">
+      <a href="../../deployment/QUICK_START/" class="md-nav__link">
+        
+  
+  
+  <span class="md-ellipsis">
+    
+  
+    Quick start CI/CD
+  
+
+    
+  </span>
+  
+  
+
+      </a>
+    </li>
+  
+
+              
+            
+              
+                
+  
+  
+  
+  
+    <li class="md-nav__item">
+      <a href="../../deployment/SECRETS/" class="md-nav__link">
+        
+  
+  
+  <span class="md-ellipsis">
+    
+  
+    Secretos
+  
+
+    
+  </span>
+  
+  
+
+      </a>
+    </li>
+  
+
+              
+            
+              
+                
+  
+  
+  
+  
+    <li class="md-nav__item">
+      <a href="../DAILY_REPORTS_PROJECT/" class="md-nav__link">
+        
+  
+  
+  <span class="md-ellipsis">
+    
+  
+    Reportes diarios
+  
+
+    
+  </span>
+  
+  
+
+      </a>
+    </li>
+  
+
+              
+            
+          </ul>
+        </nav>
+      
+    </li>
+  
+
+    
+      
+      
+  
+  
+  
+  
+    
+    
+    
+    
+      
+      
+    
+    
+    <li class="md-nav__item md-nav__item--nested">
+      
+        
+        
+        <input class="md-nav__toggle md-toggle " type="checkbox" id="__nav_6" >
+        
+          
+          <label class="md-nav__link" for="__nav_6" id="__nav_6_label" tabindex="0">
+            
+  
+  
+  <span class="md-ellipsis">
+    
+  
+    Guías
+  
+
+    
+  </span>
+  
+  
+
+            <span class="md-nav__icon md-icon"></span>
+          </label>
+        
+        <nav class="md-nav" data-md-level="1" aria-labelledby="__nav_6_label" aria-expanded="false">
+          <label class="md-nav__title" for="__nav_6">
+            <span class="md-nav__icon md-icon"></span>
+            
+  
+    Guías
+  
+
+          </label>
+          <ul class="md-nav__list" data-md-scrollfix>
+            
+              
+                
+  
+  
+  
+  
+    <li class="md-nav__item">
+      <a href="../guides/user-guide/" class="md-nav__link">
+        
+  
+  
+  <span class="md-ellipsis">
+    
+  
+    Usuario
+  
+
+    
+  </span>
+  
+  
+
+      </a>
+    </li>
+  
+
+              
+            
+              
+                
+  
+  
+  
+  
+    <li class="md-nav__item">
+      <a href="../guides/admin-guide/" class="md-nav__link">
+        
+  
+  
+  <span class="md-ellipsis">
+    
+  
+    Administración
+  
+
+    
+  </span>
+  
+  
+
+      </a>
+    </li>
+  
+
+              
+            
+              
+                
+  
+  
+  
+  
+    <li class="md-nav__item">
+      <a href="../guides/operations-guide/" class="md-nav__link">
+        
+  
+  
+  <span class="md-ellipsis">
+    
+  
+    Operación
+  
+
+    
+  </span>
+  
+  
+
+      </a>
+    </li>
+  
+
+              
+            
+          </ul>
+        </nav>
+      
+    </li>
+  
+
+    
+      
+      
+  
+  
+  
+  
+    
+    
+    
+    
+      
+      
+    
+    
+    <li class="md-nav__item md-nav__item--nested">
+      
+        
+        
+        <input class="md-nav__toggle md-toggle " type="checkbox" id="__nav_7" >
+        
+          
+          <label class="md-nav__link" for="__nav_7" id="__nav_7_label" tabindex="0">
+            
+  
+  
+  <span class="md-ellipsis">
+    
+  
+    Referencia
+  
+
+    
+  </span>
+  
+  
+
+            <span class="md-nav__icon md-icon"></span>
+          </label>
+        
+        <nav class="md-nav" data-md-level="1" aria-labelledby="__nav_7_label" aria-expanded="false">
+          <label class="md-nav__title" for="__nav_7">
+            <span class="md-nav__icon md-icon"></span>
+            
+  
+    Referencia
+  
+
+          </label>
+          <ul class="md-nav__list" data-md-scrollfix>
+            
+              
+                
+  
+  
+  
+  
+    <li class="md-nav__item">
+      <a href="../../backend/core/docs/KPIs/" class="md-nav__link">
+        
+  
+  
+  <span class="md-ellipsis">
+    
+  
+    KPIs
+  
+
+    
+  </span>
+  
+  
+
+      </a>
+    </li>
+  
+
+              
+            
+              
+                
+  
+  
+  
+  
+    <li class="md-nav__item">
+      <a href="../../backend/core/docs/COSTOS_ENGINE/" class="md-nav__link">
+        
+  
+  
+  <span class="md-ellipsis">
+    
+  
+    Motor de costos
+  
+
+    
+  </span>
+  
+  
+
+      </a>
+    </li>
+  
+
+              
+            
+              
+                
+  
+  
+  
+  
+    <li class="md-nav__item">
+      <a href="../../backend/core/docs/ANALYTICS/" class="md-nav__link">
+        
+  
+  
+  <span class="md-ellipsis">
+    
+  
+    Analítica
+  
+
+    
+  </span>
+  
+  
+
+      </a>
+    </li>
+  
+
+              
+            
+              
+                
+  
+  
+  
+  
+    <li class="md-nav__item">
+      <a href="../../backend/core/docs/CORE/" class="md-nav__link">
+        
+  
+  
+  <span class="md-ellipsis">
+    
+  
+    Motor de salud financiera
+  
+
+    
+  </span>
+  
+  
+
+      </a>
+    </li>
+  
+
+              
+            
+              
+                
+  
+  
+  
+  
+    <li class="md-nav__item">
+      <a href="../../frontend/pymes/docs/PWA_OFFLINE/" class="md-nav__link">
+        
+  
+  
+  <span class="md-ellipsis">
+    
+  
+    PWA offline
+  
+
+    
+  </span>
+  
+  
+
+      </a>
+    </li>
+  
+
+              
+            
+          </ul>
+        </nav>
+      
+    </li>
+  
+
+    
+  </ul>
+</nav>
+                  </div>
+                </div>
+              </div>
+            
+            
+              
+              <div class="md-sidebar md-sidebar--secondary" data-md-component="sidebar" data-md-type="toc" >
+                <div class="md-sidebar__scrollwrap">
+                  <div class="md-sidebar__inner">
+                    
+
+<nav class="md-nav md-nav--secondary" aria-label="Tabla de contenidos">
+  
+  
+  
+    
+  
+  
+    <label class="md-nav__title" for="__toc">
+      <span class="md-nav__icon md-icon"></span>
+      Tabla de contenidos
+    </label>
+    <ul class="md-nav__list" data-md-component="toc" data-md-scrollfix>
+      
+        <li class="md-nav__item">
+  <a href="#auth-service" class="md-nav__link">
+    <span class="md-ellipsis">
+      
+        Auth Service
+      
+    </span>
+  </a>
+  
+    <nav class="md-nav" aria-label="Auth Service">
+      <ul class="md-nav__list">
+        
+          <li class="md-nav__item">
+  <a href="#code-review-findings-2026-07-21" class="md-nav__link">
+    <span class="md-ellipsis">
+      
+        Code Review Findings (2026-07-21)
+      
+    </span>
+  </a>
+  
+    <nav class="md-nav" aria-label="Code Review Findings (2026-07-21)">
+      <ul class="md-nav__list">
+        
+          <li class="md-nav__item">
+  <a href="#critical" class="md-nav__link">
+    <span class="md-ellipsis">
+      
+        🔴 Critical
+      
+    </span>
+  </a>
+  
+</li>
+        
+      </ul>
+    </nav>
+  
+</li>
+        
+          <li class="md-nav__item">
+  <a href="#code-review-findings-2026-07-29" class="md-nav__link">
+    <span class="md-ellipsis">
+      
+        Code Review Findings (2026-07-29)
+      
+    </span>
+  </a>
+  
+    <nav class="md-nav" aria-label="Code Review Findings (2026-07-29)">
+      <ul class="md-nav__list">
+        
+          <li class="md-nav__item">
+  <a href="#critical_1" class="md-nav__link">
+    <span class="md-ellipsis">
+      
+        🔴 Critical
+      
+    </span>
+  </a>
+  
+</li>
+        
+          <li class="md-nav__item">
+  <a href="#suggestions" class="md-nav__link">
+    <span class="md-ellipsis">
+      
+        🟡 Suggestions
+      
+    </span>
+  </a>
+  
+</li>
+        
+          <li class="md-nav__item">
+  <a href="#suggestions_1" class="md-nav__link">
+    <span class="md-ellipsis">
+      
+        🟡 Suggestions
+      
+    </span>
+  </a>
+  
+</li>
+        
+      </ul>
+    </nav>
+  
+</li>
+        
+      </ul>
+    </nav>
+  
+</li>
+      
+        <li class="md-nav__item">
+  <a href="#core-service" class="md-nav__link">
+    <span class="md-ellipsis">
+      
+        Core Service
+      
+    </span>
+  </a>
+  
+    <nav class="md-nav" aria-label="Core Service">
+      <ul class="md-nav__list">
+        
+          <li class="md-nav__item">
+  <a href="#code-review-findings-2026-07-21_1" class="md-nav__link">
+    <span class="md-ellipsis">
+      
+        Code Review Findings (2026-07-21)
+      
+    </span>
+  </a>
+  
+    <nav class="md-nav" aria-label="Code Review Findings (2026-07-21)">
+      <ul class="md-nav__list">
+        
+          <li class="md-nav__item">
+  <a href="#critical_2" class="md-nav__link">
+    <span class="md-ellipsis">
+      
+        🔴 Critical
+      
+    </span>
+  </a>
+  
+</li>
+        
+          <li class="md-nav__item">
+  <a href="#sugerencias" class="md-nav__link">
+    <span class="md-ellipsis">
+      
+        🟡 Sugerencias
+      
+    </span>
+  </a>
+  
+</li>
+        
+      </ul>
+    </nav>
+  
+</li>
+        
+      </ul>
+    </nav>
+  
+</li>
+      
+        <li class="md-nav__item">
+  <a href="#gateway" class="md-nav__link">
+    <span class="md-ellipsis">
+      
+        Gateway
+      
+    </span>
+  </a>
+  
+    <nav class="md-nav" aria-label="Gateway">
+      <ul class="md-nav__list">
+        
+          <li class="md-nav__item">
+  <a href="#code-review-findings-2026-07-16" class="md-nav__link">
+    <span class="md-ellipsis">
+      
+        Code Review Findings (2026-07-16)
+      
+    </span>
+  </a>
+  
+    <nav class="md-nav" aria-label="Code Review Findings (2026-07-16)">
+      <ul class="md-nav__list">
+        
+          <li class="md-nav__item">
+  <a href="#critical-todos-resueltos" class="md-nav__link">
+    <span class="md-ellipsis">
+      
+        🔴 Critical — Todos resueltos
+      
+    </span>
+  </a>
+  
+</li>
+        
+          <li class="md-nav__item">
+  <a href="#suggestions_2" class="md-nav__link">
+    <span class="md-ellipsis">
+      
+        🟡 Suggestions
+      
+    </span>
+  </a>
+  
+</li>
+        
+      </ul>
+    </nav>
+  
+</li>
+        
+      </ul>
+    </nav>
+  
+</li>
+      
+        <li class="md-nav__item">
+  <a href="#frontend" class="md-nav__link">
+    <span class="md-ellipsis">
+      
+        Frontend
+      
+    </span>
+  </a>
+  
+    <nav class="md-nav" aria-label="Frontend">
+      <ul class="md-nav__list">
+        
+          <li class="md-nav__item">
+  <a href="#workflow-ux-findings-audit-2026-08-14-cerrado-2026-08-17-fase-4a-d-ver-to_do-fase-4-daily_reports_frontend-2026-08-17" class="md-nav__link">
+    <span class="md-ellipsis">
+      
+        Workflow / UX Findings (audit 2026-08-14 → ✅ CERRADO 2026-08-17 Fase 4a-d, ver TO_DO Fase 4 + DAILY_REPORTS_FRONTEND 2026-08-17)
+      
+    </span>
+  </a>
+  
+    <nav class="md-nav" aria-label="Workflow / UX Findings (audit 2026-08-14 → ✅ CERRADO 2026-08-17 Fase 4a-d, ver TO_DO Fase 4 + DAILY_REPORTS_FRONTEND 2026-08-17)">
+      <ul class="md-nav__list">
+        
+          <li class="md-nav__item">
+  <a href="#cognitive-overload-dashboard" class="md-nav__link">
+    <span class="md-ellipsis">
+      
+        🔴 Cognitive overload — Dashboard
+      
+    </span>
+  </a>
+  
+</li>
+        
+          <li class="md-nav__item">
+  <a href="#navigation-overload" class="md-nav__link">
+    <span class="md-ellipsis">
+      
+        🟡 Navigation overload
+      
+    </span>
+  </a>
+  
+</li>
+        
+          <li class="md-nav__item">
+  <a href="#jargon-copy" class="md-nav__link">
+    <span class="md-ellipsis">
+      
+        🟡 Jargon / copy
+      
+    </span>
+  </a>
+  
+</li>
+        
+          <li class="md-nav__item">
+  <a href="#page-structure" class="md-nav__link">
+    <span class="md-ellipsis">
+      
+        🟡 Page structure
+      
+    </span>
+  </a>
+  
+</li>
+        
+      </ul>
+    </nav>
+  
+</li>
+        
+          <li class="md-nav__item">
+  <a href="#code-review-findings-2026-07-15" class="md-nav__link">
+    <span class="md-ellipsis">
+      
+        Code Review Findings (2026-07-15)
+      
+    </span>
+  </a>
+  
+    <nav class="md-nav" aria-label="Code Review Findings (2026-07-15)">
+      <ul class="md-nav__list">
+        
+          <li class="md-nav__item">
+  <a href="#critical_3" class="md-nav__link">
+    <span class="md-ellipsis">
+      
+        🔴 Critical
+      
+    </span>
+  </a>
+  
+</li>
+        
+          <li class="md-nav__item">
+  <a href="#suggestions_3" class="md-nav__link">
+    <span class="md-ellipsis">
+      
+        🟡 Suggestions
+      
+    </span>
+  </a>
+  
+</li>
+        
+      </ul>
+    </nav>
+  
+</li>
+        
+          <li class="md-nav__item">
+  <a href="#code-review-findings-2026-07-30" class="md-nav__link">
+    <span class="md-ellipsis">
+      
+        Code Review Findings (2026-07-30)
+      
+    </span>
+  </a>
+  
+    <nav class="md-nav" aria-label="Code Review Findings (2026-07-30)">
+      <ul class="md-nav__list">
+        
+          <li class="md-nav__item">
+  <a href="#critical_4" class="md-nav__link">
+    <span class="md-ellipsis">
+      
+        🔴 Critical
+      
+    </span>
+  </a>
+  
+</li>
+        
+          <li class="md-nav__item">
+  <a href="#suggestions_4" class="md-nav__link">
+    <span class="md-ellipsis">
+      
+        🟡 Suggestions
+      
+    </span>
+  </a>
+  
+</li>
+        
+      </ul>
+    </nav>
+  
+</li>
+        
+          <li class="md-nav__item">
+  <a href="#code-review-findings-2026-07-21_2" class="md-nav__link">
+    <span class="md-ellipsis">
+      
+        Code Review Findings (2026-07-21)
+      
+    </span>
+  </a>
+  
+    <nav class="md-nav" aria-label="Code Review Findings (2026-07-21)">
+      <ul class="md-nav__list">
+        
+          <li class="md-nav__item">
+  <a href="#critical_5" class="md-nav__link">
+    <span class="md-ellipsis">
+      
+        🔴 Critical
+      
+    </span>
+  </a>
+  
+</li>
+        
+          <li class="md-nav__item">
+  <a href="#suggestions_5" class="md-nav__link">
+    <span class="md-ellipsis">
+      
+        🟡 Suggestions
+      
+    </span>
+  </a>
+  
+</li>
+        
+      </ul>
+    </nav>
+  
+</li>
+        
+      </ul>
+    </nav>
+  
+</li>
+      
+        <li class="md-nav__item">
+  <a href="#postgresql" class="md-nav__link">
+    <span class="md-ellipsis">
+      
+        PostgreSQL
+      
+    </span>
+  </a>
+  
+</li>
+      
+        <li class="md-nav__item">
+  <a href="#redis" class="md-nav__link">
+    <span class="md-ellipsis">
+      
+        Redis
+      
+    </span>
+  </a>
+  
+</li>
+      
+        <li class="md-nav__item">
+  <a href="#docker" class="md-nav__link">
+    <span class="md-ellipsis">
+      
+        Docker
+      
+    </span>
+  </a>
+  
+</li>
+      
+        <li class="md-nav__item">
+  <a href="#github-actions" class="md-nav__link">
+    <span class="md-ellipsis">
+      
+        GitHub Actions
+      
+    </span>
+  </a>
+  
+</li>
+      
+    </ul>
+  
+</nav>
+                  </div>
+                </div>
+              </div>
+            
+          
+          
+            <div class="md-content" data-md-component="content">
+              
+              <article class="md-content__inner md-typeset">
+                
+                  
+
+
+
+<h1 id="gaps-discrepancias-entre-documentacion-y-realidad">GAPS — Discrepancias entre Documentación y Realidad<a class="headerlink" href="#gaps-discrepancias-entre-documentacion-y-realidad" title="Permanent link">&para;</a></h1>
+<h2 id="auth-service">Auth Service<a class="headerlink" href="#auth-service" title="Permanent link">&para;</a></h2>
+<table>
+<thead>
+<tr>
+<th>Gap</th>
+<th>Documentación dice</th>
+<th>Realidad es</th>
+<th>Impacto</th>
+<th>Estado</th>
+</tr>
+</thead>
+<tbody>
+<tr>
+<td>—</td>
+<td><em>(sin gaps tras correcciones de esta sesión)</em></td>
+<td>—</td>
+<td>—</td>
+<td>✅</td>
+</tr>
+<tr>
+<td>—</td>
+<td>V1 sin composite/partial indexes para consultas frecuentes</td>
+<td>V2 agregó índices en user_tenants, refresh_tokens, invitations, audit_log</td>
+<td>Medio</td>
+<td>✅</td>
+</tr>
+<tr>
+<td>—</td>
+<td><em>(sin gaps funcionales nuevos)</em></td>
+<td>—</td>
+<td>—</td>
+<td>—</td>
+</tr>
+<tr>
+<td>🔴</td>
+<td>Refresh token rotation tiene TOCTOU — <code>JwtServiceImpl.validateAndRevokeRefreshToken()</code></td>
+<td>read→check→write no atómico permite doble uso concurrente del mismo refresh token</td>
+<td><strong>Crítico</strong> — sesión hijackeable</td>
+<td>✅ <code>@Lock(PESSIMISTIC_WRITE)</code> en <code>RefreshTokenRepository.findByTokenHash()</code> (2026-07-30)</td>
+</tr>
+</tbody>
+</table>
+<h3 id="code-review-findings-2026-07-21">Code Review Findings (2026-07-21)<a class="headerlink" href="#code-review-findings-2026-07-21" title="Permanent link">&para;</a></h3>
+<h4 id="critical">🔴 Critical<a class="headerlink" href="#critical" title="Permanent link">&para;</a></h4>
+<table>
+<thead>
+<tr>
+<th>#</th>
+<th>Gap</th>
+<th>Fix</th>
+<th>Severidad</th>
+<th>Estado</th>
+</tr>
+</thead>
+<tbody>
+<tr>
+<td>1</td>
+<td><strong>Dos whitelists divergentes</strong> — <code>SecurityConfig.WHITE_LIST</code> (Spring Security) y <code>JwtAuthenticationFilter.publicPaths</code> (filtro JWT) definen rutas públicas por separado. Si se agrega un endpoint público y se olvida actualizar una, el resultado es 401 del filter o 403 de security.</td>
+<td>Unificar en una sola fuente. <code>JwtAuthenticationFilter.shouldNotFilter()</code> ahora lee de <code>SecurityConfig.WHITE_LIST</code> vía <code>AntPathMatcher</code>. Se eliminó <code>publicPaths</code> duplicada.</td>
+<td>🔴 Critical</td>
+<td>✅ 2026-07-21</td>
+</tr>
+</tbody>
+</table>
+<h3 id="code-review-findings-2026-07-29">Code Review Findings (2026-07-29)<a class="headerlink" href="#code-review-findings-2026-07-29" title="Permanent link">&para;</a></h3>
+<h4 id="critical_1">🔴 Critical<a class="headerlink" href="#critical_1" title="Permanent link">&para;</a></h4>
+<table>
+<thead>
+<tr>
+<th>#</th>
+<th>Gap</th>
+<th>Fix</th>
+<th>Severidad</th>
+<th>Estado</th>
+</tr>
+</thead>
+<tbody>
+<tr>
+<td>1</td>
+<td><strong>TOCTOU en refresh token rotation</strong> — <code>JwtServiceImpl.validateAndRevokeRefreshToken()</code> (L197-218) ejecuta read→check→write no atómico. Dos requests concurrentes con el mismo refresh token (ya usado en rotación legítima) pasan ambos el <code>revoked=false</code> check antes de que el primero escriba <code>revoked=true</code>. Cada uno genera un par nuevo de tokens. El atacante que robe un refresh token puede hacer refresh simultáneo con la víctima y mantener acceso indefinido sin ser detectado.</td>
+<td><code>@Version</code> optimistic locking, o <code>@Lock(PESSIMISTIC_WRITE)</code>, o SQL atómico <code>UPDATE refresh_tokens SET revoked=true WHERE token_hash=? AND revoked=false RETURNING *</code>. La solución debe garantizar que solo un hilo pueda rotar un token dado.</td>
+<td>🔴 Critical</td>
+<td>✅ <code>@Lock(PESSIMISTIC_WRITE)</code> en <code>RefreshTokenRepository.findByTokenHash()</code> → <code>SELECT FOR UPDATE</code> serializa el read-check-write. Perdedor ve <code>revoked=true</code> → REUSE DETECTED + <code>deleteByUserId</code>. Test de concurrencia en <code>AuthApiIntegrationTest</code> (2026-07-30)</td>
+</tr>
+</tbody>
+</table>
+<h4 id="suggestions">🟡 Suggestions<a class="headerlink" href="#suggestions" title="Permanent link">&para;</a></h4>
+<table>
+<thead>
+<tr>
+<th>#</th>
+<th>Gap</th>
+<th>Fix</th>
+<th>Categoría</th>
+</tr>
+</thead>
+<tbody>
+<tr>
+<td>16</td>
+<td><strong>Email casing inconsistente</strong> — <code>AuthServiceImpl.completeRegistration()</code> usa <code>request.email()</code> directo, mientras <code>InvitationServiceImpl.registerAndAccept()</code> usa <code>.toLowerCase()</code>. PostgreSQL <code>=</code> es case-sensitive en VARCHAR. Un usuario registrado con "User@Example.com" no puede loguear con "user@example.com".</td>
+<td>Normalizar email a lowercase en <code>completeRegistration()</code> o en <code>RegisterRequest</code> vía DTO (<code>@JsonDeserialize</code>).</td>
+<td>Correctitud</td>
+</tr>
+<tr>
+<td>17</td>
+<td><strong>JWT <code>jti</code> generado pero no usado</strong> — <code>JwtServiceImpl.createToken()</code> genera <code>.id(UUID.randomUUID())</code> pero el <code>jti</code> no se persiste ni expone. Sin él, <code>logout()</code> no puede identificar qué refresh token corresponde a la sesión actual y debe eliminar TODOS los refresh tokens del usuario (logout global forzado). No hay "cerrar sesión de este dispositivo".</td>
+<td>Persistir <code>jti</code> en <code>RefreshToken</code> y exponerlo al cliente. <code>logout()</code> recibe <code>jti</code> y borra solo ese token. O documentar como diseño deliberado.</td>
+<td>Seguridad</td>
+</tr>
+<tr>
+<td>18</td>
+<td><strong><code>@Transactional</code> en métodos Redis-only</strong> — <code>PasswordResetServiceImpl.generateResetToken()</code>, <code>EmailVerificationServiceImpl.generateAndSendPendingRegistrationEmail()</code> y <code>EmailVerificationServiceImpl.generateVerificationToken()</code> tienen <code>@Transactional</code> pero solo interactúan con Redis, no con la DB. Consumen conexiones del pool HikariCP (<code>max 20</code>) innecesariamente.</td>
+<td>Mover <code>@Transactional</code> solo a métodos que realmente escriben en DB, o usar <code>@Transactional(propagation = Propagation.NOT_SUPPORTED)</code>.</td>
+<td>Performance</td>
+</tr>
+<tr>
+<td>19</td>
+<td><strong><code>deleteByUserId</code> revertido por rollback en reuse detection</strong> — <code>JwtServiceImpl.validateAndRevokeRefreshToken()</code> llama <code>deleteByUserId()</code> y luego lanza <code>TokenRevokedException</code> (unchecked). La excepción hace rollback de toda la transacción, incluyendo el DELETE. El token viejo queda <code>revoked=true</code> pero la familia NO se borra.</td>
+<td>Cambiar a <code>REQUIRES_NEW</code> propagation en el <code>deleteByUserId</code>, o usar un <code>@Async</code> audit event que corra después del commit.</td>
+<td>Seguridad</td>
+</tr>
+</tbody>
+</table>
+<h4 id="suggestions_1">🟡 Suggestions<a class="headerlink" href="#suggestions_1" title="Permanent link">&para;</a></h4>
+<table>
+<thead>
+<tr>
+<th>#</th>
+<th>Gap</th>
+<th>Fix</th>
+<th>Categoría</th>
+</tr>
+</thead>
+<tbody>
+<tr>
+<td>1</td>
+<td><strong><code>app.cors.allowed-origins</code> sin default</strong> (<code>OAuth2AuthenticationSuccessHandler.java:60-61</code>) — <code>@Value("${app.cors.allowed-origins}")</code> no aparece en <code>application.yaml</code> ni tiene default. Si no está en <code>.env</code>, la app no arranca.</td>
+<td>Agregar default: <code>@Value("${app.cors.allowed-origins:http://localhost:9200}")</code></td>
+<td>Correctitud</td>
+</tr>
+<tr>
+<td>2</td>
+<td><strong><code>AUTH001</code> retorna 400 en vez de 401</strong> (<code>CodigoError.java:14</code>) — <code>INVALID_CREDENTIALS</code> usa <code>HttpStatus.BAD_REQUEST</code>. Un 401 es semánticamente correcto para credenciales inválidas.</td>
+<td>Cambiar <code>HttpStatus.BAD_REQUEST</code> → <code>HttpStatus.UNAUTHORIZED</code></td>
+<td>Correctitud</td>
+</tr>
+<tr>
+<td>3</td>
+<td><strong>DB lookup en cada request autenticado</strong> (<code>JwtAuthenticationFilter.java:84</code>) — <code>userRepository.findById(validated.userId)</code> en cada request. Si la DB tiene latencia, afecta a todos los endpoints protegidos.</td>
+<td>Cache de usuarios activos (Caffeine) con TTL corto o solo validar si el usuario existe en Redis.</td>
+<td>Performance</td>
+</tr>
+<tr>
+<td>4</td>
+<td><strong>JWT access-expiration default 1h, refresh 24h</strong> (<code>application.yaml:85-86</code>) — Refresh token con TAN larga.</td>
+<td>Reducir refresh a 12h o 6h según política de seguridad.</td>
+<td>Security</td>
+</tr>
+<tr>
+<td>5</td>
+<td><strong>Cookie OAuth2 intent sin <code>Secure</code> flag detrás del gateway</strong> (<code>OAuth2IntentCookieFilter.java:42</code>) — <code>request.isSecure()</code> es <code>false</code> si el gateway reenvía en HTTP interno.</td>
+<td>Forzar <code>cookie.setSecure(true)</code> siempre, o configurable.</td>
+<td>Security</td>
+</tr>
+<tr>
+<td>6</td>
+<td><strong><code>@Lazy</code> circular</strong> (<code>EmailVerificationServiceImpl.java:41</code>) — <code>EmailVerificationServiceImpl</code> ↔ <code>AuthServiceImpl</code></td>
+<td>Extraer lógica de registro a tercer service</td>
+<td>Mantenibilidad</td>
+</tr>
+<tr>
+<td>7</td>
+<td><strong><code>extractEmail()</code> duplicado</strong> (<code>InvitationServiceImpl.java:184</code>, <code>MemberServiceImpl.java:143</code>) — misma lógica en 3 servicios</td>
+<td>Utility class o leer directo de <code>SecurityContextHolder</code></td>
+<td>Mantenibilidad</td>
+</tr>
+<tr>
+<td>8</td>
+<td><strong><code>/exchange</code> sin rate limit</strong> (<code>AuthApiController.java:81-83</code>) — cualquiera puede brute-forcear códigos OAuth</td>
+<td>Rate limit por IP</td>
+<td>Security</td>
+</tr>
+<tr>
+<td>9</td>
+<td><strong>CORS permisivo con credenciales</strong> (<code>WebCorsConfig.java:21,24</code>) — originalmente <code>allowedOriginPatterns</code> admitía <code>*</code></td>
+<td>Separar orígenes productivos y dev</td>
+<td>Security</td>
+</tr>
+<tr>
+<td>10</td>
+<td><strong>JWT completo como key Redis</strong> (<code>TokenBlacklistService.java:31</code>) — tokens largos = keys largas</td>
+<td>Hashear el token como key</td>
+<td>Performance</td>
+</tr>
+<tr>
+<td>11</td>
+<td><strong><code>Thread.sleep(200)</code> anti-enumeration</strong> (<code>PasswordResetServiceImpl.java:96-100</code>) — primitivo</td>
+<td>Delay constante async + respuesta genérica</td>
+<td>Security</td>
+</tr>
+<tr>
+<td>12</td>
+<td><strong>Método logueado doble</strong> (<code>GlobalExceptionHandler.java:200-201</code>) — <code>request.getMethod()</code> impreso 2 veces</td>
+<td>Corregir formato</td>
+<td>Mantenibilidad</td>
+</tr>
+<tr>
+<td>13</td>
+<td><strong>Falta índice en refresh_tokens</strong> (<code>V2__index_optimizations.sql:16-18</code>) — query de reuso busca por <code>token_hash + revoked</code></td>
+<td>Índice compuesto <code>(token_hash, revoked)</code></td>
+<td>Performance</td>
+</tr>
+<tr>
+<td>14</td>
+<td><strong>companySlug sin validación de formato</strong> (<code>RegisterRequest.java:28</code>) — solo valida size</td>
+<td><code>@Pattern(regexp = "^[a-z0-9-]+$")</code></td>
+<td>Correctitud</td>
+</tr>
+<tr>
+<td>15</td>
+<td><strong><code>CODE_TTL</code> constante no usada</strong> (<code>OAuth2AuthenticationSuccessHandler.java:63,169</code>) — hardcodea <code>Duration.ofMinutes(2)</code></td>
+<td>Usar <code>CODE_TTL</code></td>
+<td>Mantenibilidad</td>
+</tr>
+</tbody>
+</table>
+<h2 id="core-service">Core Service<a class="headerlink" href="#core-service" title="Permanent link">&para;</a></h2>
+<table>
+<thead>
+<tr>
+<th>#</th>
+<th>Gap</th>
+<th>Documentación dice</th>
+<th>Realidad es</th>
+<th>Impacto</th>
+</tr>
+</thead>
+<tbody>
+<tr>
+<td>🔴</td>
+<td><strong>Sin modelo de estructura de costos</strong></td>
+<td>Sistema trata gastos como entradas planas sin recurrencia ni colaboradores</td>
+<td>No hay entidades para salarios con frecuencias distintas, gastos fijos con día de ejecución, ni configuración laboral. El motor analítico no puede razonar sobre estructura de costos real</td>
+<td><strong>Diferenciador</strong> — imposibilita daily cost vs daily sales, break-even, pricing basado en costos reales. El Financial Health Engine opera con datos incompletos</td>
+</tr>
+<tr>
+<td>🔴</td>
+<td><strong>División por cero en <code>conversion_factor</code></strong></td>
+<td>6 queries de <code>analisisTendencia</code> (L128,136), <code>analisisMargen</code> (L171,179) y <code>analisisAlertas</code> (L287,288) dividen <code>unit_price / conversion_factor</code> sin <code>NULLIF</code></td>
+<td><code>conversion_factor INTEGER NOT NULL DEFAULT 1</code> admite valor 0. Si un producto tiene <code>conversion_factor = 0</code>, esos 3 motores fallan con division-by-zero y <strong>matan <code>ejecutarCompleto</code> completo</strong>. Las otras 6 queries ya usan <code>NULLIF</code> (L316,326,368-371,436)</td>
+<td><strong>Alto</strong> — fix: envolver en <code>NULLIF(conversion_factor, 0)</code> como el resto</td>
+</tr>
+<tr>
+<td>—</td>
+<td><em>(sin gaps funcionales)</em></td>
+<td>—</td>
+<td>—</td>
+<td>—</td>
+</tr>
+<tr>
+<td>1</td>
+<td>Endpoints no documentados</td>
+<td>CORE.md/ARCHITECTURE.md listan solo CRUD clásico</td>
+<td><code>GET /search</code> (paginado) y <code>GET /{tenantId}/categories</code> existen</td>
+<td>Bajo — endpoints internos, frontend los conoce</td>
+</tr>
+<tr>
+<td>2</td>
+<td>Todos los gaps de code review cerrados en 2026-07-21</td>
+<td>—</td>
+<td>—</td>
+<td>—</td>
+</tr>
+</tbody>
+</table>
+<h3 id="code-review-findings-2026-07-21_1">Code Review Findings (2026-07-21)<a class="headerlink" href="#code-review-findings-2026-07-21_1" title="Permanent link">&para;</a></h3>
+<h4 id="critical_2">🔴 Critical<a class="headerlink" href="#critical_2" title="Permanent link">&para;</a></h4>
+<table>
+<thead>
+<tr>
+<th>#</th>
+<th>Gap</th>
+<th>Fix</th>
+<th>Severidad</th>
+</tr>
+</thead>
+<tbody>
+<tr>
+<td>1</td>
+<td><strong><code>tenantId</code> no validado contra JWT</strong> — Todos los controllers reciben <code>@RequestParam UUID tenantId</code> del frontend. <strong>No se valida que el tenantId del JWT (inyectado por el gateway como <code>X-Tenant-Id</code>) coincida con el tenantId de la request</strong>. Un usuario autenticado en tenant A podría enviar <code>?tenantId=B</code> y acceder a datos de otro tenant. Solo algunos services verifican manualmente (FacturaService, GastoService).</td>
+<td><code>TenantValidationFilter</code> — Filter que compara <code>X-Tenant-Id</code> header vs <code>?tenantId=</code> param, 403 si difieren.</td>
+<td>🔴 Critical</td>
+</tr>
+<tr>
+<td>2</td>
+<td><strong>Sin <code>@PreAuthorize</code>, <code>@Secured</code> ni <code>@EnableMethodSecurity</code></strong> — El gateway inyecta <code>X-User-Role</code> (OWNER, ADMIN, CONTABLE, VIEWER) pero el core nunca lo lee. Cualquier usuario autenticado puede ejecutar cualquier endpoint (crear, actualizar, eliminar) sin importar su rol.</td>
+<td><code>RoleHeaderFilter</code> lee <code>X-User-Role</code> → <code>SecurityContext</code> con <code>ROLE_&lt;rol&gt;</code>. <code>SecurityConfig</code> con <code>@EnableMethodSecurity</code> + <code>spring-boot-starter-security</code>. <code>@PreAuthorize("hasAnyRole('OWNER', 'ADMIN')")</code> en 18 endpoints WRITE across 10 controllers. CONTABLE/VIEWER solo leen. Tests: +<code>spring-security-test</code> + <code>@WithMockUser(roles = "OWNER")</code> en 4 integration tests.</td>
+<td>🔴 Critical</td>
+</tr>
+</tbody>
+</table>
+<h4 id="sugerencias">🟡 Sugerencias<a class="headerlink" href="#sugerencias" title="Permanent link">&para;</a></h4>
+<table>
+<thead>
+<tr>
+<th>#</th>
+<th>Gap</th>
+<th>Fix</th>
+<th>Categoría</th>
+</tr>
+</thead>
+<tbody>
+<tr>
+<td>1</td>
+<td><strong>OpenFeign declarado sin uso</strong> — <code>spring-cloud-starter-openfeign</code> en pom.xml con <code>services.auth.base-url</code> en config, pero no hay ningún <code>@FeignClient</code> en el código.</td>
+<td>Remover dependencia muerta o implementar el FeignClient si se necesita.</td>
+<td>Mantenibilidad</td>
+</tr>
+<tr>
+<td>2</td>
+<td><strong>SeedDataRunner ~1040 líneas</strong> — Ejecuta en cada startup. En PROD intenta insertar seeds aunque falla silenciosamente por conflictos.</td>
+<td>Ejecutar solo en dev o con flag <code>app.seed.enabled=false</code>.</td>
+<td>Performance</td>
+</tr>
+<tr>
+<td>3</td>
+<td><strong>UPDATE por item en loop</strong> (<code>FacturaServiceImpl.java:287-294</code>) — <code>buildItem()</code> ejecuta un <code>jdbc.update()</code> individual por cada item de la factura para actualizar <code>last_unit_price</code>, <code>total_investment</code>. Si una factura tiene 50 items, son 50 UPDATEs.</td>
+<td>Batchificar en lote único, similar a <code>reverseProductStats</code>.</td>
+<td>Performance</td>
+</tr>
+<tr>
+<td>4</td>
+<td><strong>Cache stampede sin protección</strong> — 7 caches con TTL fijo de 5 min. Si el TTL expira y 10 requests llegan simultáneamente, todas ejecutan la consulta DB.</td>
+<td>Agregar <code>sync = true</code> en <code>@Cacheable</code> o usar locking.</td>
+<td>Performance</td>
+</tr>
+<tr>
+<td>5</td>
+<td><strong>Analytics CTEs sin índices covering verificados</strong> — 9 engines hacen <code>AVG()</code>, <code>STDDEV()</code>, <code>GROUP BY</code> sobre <code>invoice_items</code> JOIN <code>invoices</code>. Verificar que los índices covering (V16) cubren estas consultas.</td>
+<td>Revisar plan de ejecución de las 9 CTEs y ajustar índices si es necesario.</td>
+<td>Performance</td>
+</tr>
+</tbody>
+</table>
+<h2 id="gateway">Gateway<a class="headerlink" href="#gateway" title="Permanent link">&para;</a></h2>
+<table>
+<thead>
+<tr>
+<th>#</th>
+<th>Gap</th>
+<th>Documentación dice</th>
+<th>Realidad es</th>
+<th>Impacto</th>
+</tr>
+</thead>
+<tbody>
+<tr>
+<td>—</td>
+<td><em>(sin gaps tras correcciones)</em></td>
+<td>—</td>
+<td>—</td>
+<td>—</td>
+</tr>
+<tr>
+<td>1</td>
+<td>CORS bug</td>
+<td>Spring Cloud Gateway <code>globalcors</code> con <code>allowed-origin-patterns</code> causaba 403 en POST; sin <code>globalcors</code> causaba 403 en OPTIONS preflight</td>
+<td>Solución dual: gateway <code>globalcors</code> con <code>allowed-origins</code> (exacto, no pattern) para OPTIONS + auth service CORS (<code>setAllowedOrigins</code>) para requests reales</td>
+<td><strong>Alto</strong> — bloquea frontend en auth</td>
+</tr>
+</tbody>
+</table>
+<h3 id="code-review-findings-2026-07-16">Code Review Findings (2026-07-16)<a class="headerlink" href="#code-review-findings-2026-07-16" title="Permanent link">&para;</a></h3>
+<h4 id="critical-todos-resueltos">🔴 Critical — Todos resueltos<a class="headerlink" href="#critical-todos-resueltos" title="Permanent link">&para;</a></h4>
+<table>
+<thead>
+<tr>
+<th>#</th>
+<th>Gap</th>
+<th>Fix</th>
+<th>Archivos afectados</th>
+<th>Estado</th>
+</tr>
+</thead>
+<tbody>
+<tr>
+<td>1</td>
+<td><strong>Gateway no verifica tipo de token</strong> — Refresh token carece de <code>role</code>/<code>tenantId</code>/<code>plan</code> pero pasaba el filtro</td>
+<td>Validar <code>claims.get("role") != null</code> después de <code>getClaims()</code>. Refresh tokens son rechazados con 401 antes de llegar a Redis/blacklist</td>
+<td><code>AuthenticationFilter.java:65-67</code></td>
+<td>✅</td>
+</tr>
+<tr>
+<td>2</td>
+<td><strong>Header <code>"null"</code> literal</strong> — <code>.header(name, null)</code> en downstream serializaba string <code>"null"</code>. <code>getSubject()</code> nullable no verificado. <code>tenantId</code> puede ser null en access tokens válidos</td>
+<td>Método helper <code>addIfNotNull()</code> que solo llama <code>.header()</code> si valor != null. Headers condicionales para userId, email, tenantId, role, plan</td>
+<td><code>AuthenticationFilter.java:73-82</code></td>
+<td>✅</td>
+</tr>
+<tr>
+<td>3</td>
+<td><strong>JWT secret sin validación</strong> — <code>Keys.hmacShaKeyFor()</code> acepta cualquier tamaño</td>
+<td><code>@PostConstruct</code> valida <code>keyBytes.length &gt;= 32</code>, lanza <code>IllegalArgumentException</code> si no</td>
+<td><code>JwtUtils.java:24-27</code></td>
+<td>✅</td>
+</tr>
+<tr>
+<td>4</td>
+<td><strong>Error response sin body</strong> — Cliente recibía 401 vacío sin JSON</td>
+<td><code>onError()</code> escribe body JSON <code>{"error":"...","status":401}</code> con <code>Content-Type: application/json</code> usando <code>response.writeWith()</code></td>
+<td><code>AuthenticationFilter.java:96-103</code></td>
+<td>✅</td>
+</tr>
+</tbody>
+</table>
+<h4 id="suggestions_2">🟡 Suggestions<a class="headerlink" href="#suggestions_2" title="Permanent link">&para;</a></h4>
+<ol>
+<li>
+<p><strong>Blacklist Redis con JWT completo</strong> (<code>AuthenticationFilter.java:64</code>) — Token ~1KB como key Redis. Fix: hashear token con SHA-256. — <strong>Estado:</strong> Diferido (ponytail) — aceptado; keys ≤1h, memoria trivial a escala PYME.</p>
+</li>
+<li>
+<p><strong>Blacklist check = RTT por request</strong> (<code>AuthenticationFilter.java:64</code>) — Sin cache local. Fix: añadir Caffeine cache con TTL 30s. — <strong>Estado:</strong> Diferido (ponytail) — aceptado; performance, no bug. Caffeine cuando el load lo demande.</p>
+</li>
+<li>
+<p><strong><code>/exchange</code> sin rate limit</strong> (<code>RouterValidator.java:15-30</code>) — Ruta pública permite brute-force sobre códigos OAuth (TTL 2 min). Fix: rate limit por IP en gateway. — <strong>Estado:</strong> Diferido (ponytail) — aceptado; el código es UUID de alta entropía, hardening no bug. Requiere Redis en gateway.</p>
+</li>
+<li>
+<p><strong>Swagger solo agrega Auth</strong> (<code>SwaggerAggregatorConfig.java:28</code>) — Core Service no aparece. Fix: agregar URL de core si tiene OpenAPI docs, o ruta en gateway.</p>
+</li>
+<li>
+<p><strong>Property name inconsistente</strong> (<code>JwtUtils.java:17</code> vs <code>.env.example:11</code>) — Realidad: Spring Boot relaxed binding mapea <code>JWT_SECRET</code> → <code>jwt.secret</code>. No hay inconsistencia real. Sin acción.</p>
+</li>
+<li>
+<p><strong>Error antes de <code>flatMap</code> no detiene flujo</strong> — Ya resuelto en código previo: <code>return onError(...)</code> en líneas 45, 50, 60. Sin acción.</p>
+</li>
+<li>
+<p><strong>Faltan tests de integración</strong> — Solo unitarios con mocks. Fix: tests con <code>WebTestClient</code> simulando requests HTTP reales.</p>
+</li>
+<li>
+<p><strong>Default JWT secret conocido</strong> (<code>.env.example:11</code>) — String público como default permite forjar JWTs. Fix: generar random con <code>openssl rand -base64 32</code> y poner el valor generado. — <strong>Estado:</strong> Aceptado — el código ya falla rápido sin <code>JWT_SECRET</code> (C7, sin default); el placeholder solo vive en <code>.env.example</code> (git-ignored). Preocupación operacional: reemplazar al generar el <code>.env</code> real.</p>
+</li>
+</ol>
+<h2 id="frontend">Frontend<a class="headerlink" href="#frontend" title="Permanent link">&para;</a></h2>
+<table>
+<thead>
+<tr>
+<th>#</th>
+<th>Gap</th>
+<th>Documentación dice</th>
+<th>Realidad es</th>
+<th>Impacto</th>
+<th>Prioridad</th>
+</tr>
+</thead>
+<tbody>
+<tr>
+<td>—</td>
+<td><em>(sin gaps funcionales)</em></td>
+<td>—</td>
+<td>—</td>
+<td>—</td>
+<td>—</td>
+</tr>
+<tr>
+<td>1</td>
+<td>ConfiguracionPage read-only</td>
+<td>UI muestra campos editables (categorías, unidades, ubicaciones)</td>
+<td>No hay endpoints PUT ni diálogos de edición</td>
+<td>Medio — usuario espera poder editar. Pendiente backend.</td>
+<td>⬜ Non-priority → eliminar como ruta (Fase 4c)</td>
+</tr>
+<tr>
+<td>2</td>
+<td>Frontend no usa búsqueda paginada</td>
+<td>Backend tiene <code>GET /search</code> paginado desde 2026-07-12</td>
+<td><code>ProductosPage.vue</code> usaba <code>getAll()</code> sin paginación; "Cargar más" reemplazaba filas en vez de apilar</td>
+<td>Alto — degradación en catálogos grandes (&gt;100 productos)</td>
+<td>✅ 2026-07-27</td>
+</tr>
+<tr>
+<td>3</td>
+<td>Descuento en Factura es monto fijo</td>
+<td>UI muestra <code>prefix="$"</code> — usuario espera porcentaje (5%, 10%)</td>
+<td>Input trata descuento como monto, no como porcentaje</td>
+<td>Medio — UX confusa, usuario no puede poner descuentos promocionales</td>
+<td>⬜ Non-priority (ponytail: backend ya soporta %, cambio UI trivial)</td>
+</tr>
+<tr>
+<td>4</td>
+<td>precioUnitario no usa conversión</td>
+<td>Presentaciones tienen <code>conversion</code> factor</td>
+<td><code>precioUnitario</code> se auto-llena con <code>lastUnitPrice</code> sin dividir por conversión</td>
+<td>Alto — precio unitario no refleja costo real por unidad base</td>
+<td>⬜ Non-priority (ponytail: requiere backend change, no es solo frontend)</td>
+</tr>
+</tbody>
+</table>
+<h3 id="workflow-ux-findings-audit-2026-08-14-cerrado-2026-08-17-fase-4a-d-ver-to_do-fase-4-daily_reports_frontend-2026-08-17">Workflow / UX Findings (audit 2026-08-14 → ✅ CERRADO 2026-08-17 Fase 4a-d, ver TO_DO Fase 4 + DAILY_REPORTS_FRONTEND 2026-08-17)<a class="headerlink" href="#workflow-ux-findings-audit-2026-08-14-cerrado-2026-08-17-fase-4a-d-ver-to_do-fase-4-daily_reports_frontend-2026-08-17" title="Permanent link">&para;</a></h3>
+<h4 id="cognitive-overload-dashboard">🔴 Cognitive overload — Dashboard<a class="headerlink" href="#cognitive-overload-dashboard" title="Permanent link">&para;</a></h4>
+<table>
+<thead>
+<tr>
+<th>#</th>
+<th>Gap</th>
+<th>Realidad es</th>
+<th>Impacto</th>
+<th>Fix propuesto</th>
+</tr>
+</thead>
+<tbody>
+<tr>
+<td>1</td>
+<td><strong>7 KPI cards</strong> — Margen Bruto, Operativo, Neto son 3 derivados del mismo dato</td>
+<td>Wall of numbers. Un PYME owner no procesa 7 métricas de un vistazo</td>
+<td>Alto</td>
+<td>Colapsar a 1 card "Ganancia del mes" (reduce 7→5)</td>
+</tr>
+<tr>
+<td>2</td>
+<td><strong>QuickActions muerto</strong> — 2 acciones duplican sidebar, emit <code>exportar</code> nadie lo escucha</td>
+<td>Código muerto en dashboard. Confunde al usuario con opciones que no funcionan</td>
+<td>Medio</td>
+<td>Eliminar completamente</td>
+</tr>
+<tr>
+<td>3</td>
+<td><strong>Sparklines de 2 puntos</strong> — <code>sparkline()</code> produce <code>[prev, cur]</code>, renderiza SVG polygon</td>
+<td>Ruido visual. Delta % ya comunica dirección + magnitud</td>
+<td>Bajo</td>
+<td>Eliminar sparklines</td>
+</tr>
+<tr>
+<td>4</td>
+<td><strong>7 secciones apiladas antes del fold</strong> — header + error + KPIs + chart + activity + pending + health + quickactions</td>
+<td>El usuario no sabe dónde mirar</td>
+<td>Alto</td>
+<td>Reducir a 4-5 secciones (merge activity+pending, eliminar quickactions)</td>
+</tr>
+<tr>
+<td>5</td>
+<td><strong>CSS duplicado 4 veces</strong> — skeleton, section-title, empty-state, list-row en cada panel dashboard</td>
+<td>~200 líneas repetidas. Mantenibilidad</td>
+<td>Bajo</td>
+<td>Extraer a clases globales en app.scss</td>
+</tr>
+</tbody>
+</table>
+<h4 id="navigation-overload">🟡 Navigation overload<a class="headerlink" href="#navigation-overload" title="Permanent link">&para;</a></h4>
+<table>
+<thead>
+<tr>
+<th>#</th>
+<th>Gap</th>
+<th>Realidad es</th>
+<th>Impacto</th>
+<th>Fix propuesto</th>
+</tr>
+</thead>
+<tbody>
+<tr>
+<td>6</td>
+<td><strong>12 items en sidebar</strong> — 3 grupos × 4-5 items</td>
+<td>Un PYME owner no necesita rutas separadas para "Patrimonio", "Contabilidad", "Análisis de Gastos"</td>
+<td>Alto</td>
+<td>Reducir a ~7 items fusionando sub-vistas</td>
+</tr>
+<tr>
+<td>7</td>
+<td><strong>Bottom nav: "More" circular</strong> — 4 tabs + "More" que abre sidebar con 12 items</td>
+<td>El "More" es un catch-all que revela que la nav está sobrecargada</td>
+<td>Medio</td>
+<td>Actualizar tabs: Dashboard, Productos, Facturas, Costos</td>
+</tr>
+</tbody>
+</table>
+<h4 id="jargon-copy">🟡 Jargon / copy<a class="headerlink" href="#jargon-copy" title="Permanent link">&para;</a></h4>
+<table>
+<thead>
+<tr>
+<th>#</th>
+<th>Gap</th>
+<th>Realidad es</th>
+<th>Impacto</th>
+<th>Fix propuesto</th>
+</tr>
+</thead>
+<tbody>
+<tr>
+<td>8</td>
+<td><strong>"GASTO_OPERATIVO" como label</strong> — tipo de factura expone código interno</td>
+<td>Usuario ve un término técnico en vez de "Gasto"</td>
+<td>Alto</td>
+<td>Renombrar a "Gasto"</td>
+</tr>
+<tr>
+<td>9</td>
+<td><strong>"REGISTRADA" status</strong> — factura pendiente de pago muestra estado de BD</td>
+<td>No es natural. "Pendiente" comunica mejor</td>
+<td>Medio</td>
+<td>Renombrar a "Pendiente"</td>
+</tr>
+<tr>
+<td>10</td>
+<td><strong>"Colaboradores"</strong> — empleados del negocio</td>
+<td>Término corporativo. "Equipo" o "Empleados" es más natural</td>
+<td>Bajo</td>
+<td>Renombrar</td>
+</tr>
+<tr>
+<td>11</td>
+<td><strong>"Margen Operativo/Neto"</strong> — jargon contable</td>
+<td>Un PYME owner conoce "ganancia", no "margen"</td>
+<td>Medio</td>
+<td>Renombrar a "Ganancia bruta/neta"</td>
+</tr>
+<tr>
+<td>12</td>
+<td><strong>"Inversion Total"</strong> — total gastado en compras de producto</td>
+<td>"Inversión" implica capital, no gasto corriente</td>
+<td>Medio</td>
+<td>Renombrar a "Total gastado"</td>
+</tr>
+<tr>
+<td>13</td>
+<td><strong>"cross-supplier"</strong> — inglés en UI en español</td>
+<td>Inconsistente con el resto del idioma</td>
+<td>Bajo</td>
+<td>Traducir</td>
+</tr>
+</tbody>
+</table>
+<h4 id="page-structure">🟡 Page structure<a class="headerlink" href="#page-structure" title="Permanent link">&para;</a></h4>
+<table>
+<thead>
+<tr>
+<th>#</th>
+<th>Gap</th>
+<th>Realidad es</th>
+<th>Impacto</th>
+<th>Fix propuesto</th>
+</tr>
+</thead>
+<tbody>
+<tr>
+<td>14</td>
+<td><strong>FacturasPage 989 líneas</strong> — 3 formularios en 1 diálogo (factura, gasto, salario)</td>
+<td>Complejidad cognitiva extrema. Un usuario no debería distinguir 3 tipos de "crear"</td>
+<td>Alto</td>
+<td>Separar flujos: "Gasto rápido" vs "Factura con items"</td>
+</tr>
+<tr>
+<td>15</td>
+<td><strong>AnalisisGastosPage: supplier analysis visible por defecto</strong> — comparison + recommendations + predictions</td>
+<td>Data science dashboard overwhelming para PYME owner que quiere "quién es más barato"</td>
+<td>Alto</td>
+<td>Sub-sección colapsable, mostrar solo inversión + alerts por defecto</td>
+</tr>
+<tr>
+<td>16</td>
+<td><strong>CostosPage: Config tab con 1 input</strong> — "días laborales" justifica un tab completo</td>
+<td>Overkill</td>
+<td>Bajo</td>
+<td>Mover a inline o sección within page</td>
+</tr>
+<tr>
+<td>17</td>
+<td><strong>ConfiguracionPage read-only</strong> — 85 líneas, 3 cards, sin edición</td>
+<td>Dead end. El usuario ve algo que no puede cambiar</td>
+<td>Bajo</td>
+<td>Eliminar ruta, mover a menú usuario</td>
+</tr>
+</tbody>
+</table>
+<h3 id="code-review-findings-2026-07-15">Code Review Findings (2026-07-15)<a class="headerlink" href="#code-review-findings-2026-07-15" title="Permanent link">&para;</a></h3>
+<h4 id="critical_3">🔴 Critical<a class="headerlink" href="#critical_3" title="Permanent link">&para;</a></h4>
+<table>
+<thead>
+<tr>
+<th>#</th>
+<th>File</th>
+<th>Line</th>
+<th>Issue</th>
+<th>Severity</th>
+</tr>
+</thead>
+<tbody>
+<tr>
+<td>1</td>
+<td><code>prestamo.service.ts</code>, <code>producto.service.ts</code>, <code>factura.service.ts</code></td>
+<td>24, 26, 21</td>
+<td><strong><code>tenantId</code> interpolado directo en URL string</strong> — <code>?tenantId=${tenantId}</code> en vez de <code>params</code> object de axios. Si <code>tenantId</code> contiene caracteres especiales, causa encoding incorrecto. Inconsistente con el resto de servicios que usan <code>params</code>.</td>
+<td>🔴 Critical</td>
+</tr>
+<tr>
+<td>2</td>
+<td>Todas las páginas CRUD</td>
+<td>~14</td>
+<td><strong><code>tenantId</code> fallback a <code>''</code> vacío</strong> — <code>authStore.user?.tenantId \|\| ''</code> pasa string vacío al backend si no hay sesión. Backend responde 400/403, pero el error no se maneja como "no autenticado". Mejor guard en router o early-return.</td>
+<td>🔴 Critical</td>
+</tr>
+<tr>
+<td>3</td>
+<td>—</td>
+<td>—</td>
+<td><strong>Cero tests</strong> para 6 páginas nuevas + 5 servicios nuevos. <code>npm run test</code> es placeholder según proyecto.</td>
+<td>🔴 Critical</td>
+</tr>
+</tbody>
+</table>
+<h4 id="suggestions_3">🟡 Suggestions<a class="headerlink" href="#suggestions_3" title="Permanent link">&para;</a></h4>
+<table>
+<thead>
+<tr>
+<th>#</th>
+<th>File</th>
+<th>Line</th>
+<th>Suggestion</th>
+<th>Category</th>
+</tr>
+</thead>
+<tbody>
+<tr>
+<td>1</td>
+<td><code>factura.service.ts</code>, <code>producto.service.ts</code>, <code>proveedor.service.ts</code></td>
+<td>22, 20, 15</td>
+<td><strong><code>tenantId</code> en params del PUT, pero en body del POST</strong> — inconsistencia en diseño de API. Estandarizar.</td>
+<td>Maintainability</td>
+</tr>
+<tr>
+<td>2</td>
+<td><code>patrimonio.service.ts</code></td>
+<td>6</td>
+<td><strong>Path param vs query param</strong> — único servicio que usa path param para tenantId. Inconsistente con gastos, prestamos, ventas.</td>
+<td>Maintainability</td>
+</tr>
+<tr>
+<td>3</td>
+<td><code>accounting.service.ts</code> vs <code>analytics.service.ts</code></td>
+<td>—</td>
+<td><strong>Posible duplicado</strong> — ambos tienen <code>consultar</code> + <code>recalcular</code>. Verificar si endpoints son distintos o uno sobra.</td>
+<td>Maintainability</td>
+</tr>
+<tr>
+<td>4</td>
+<td><code>PrestamosPage.vue</code></td>
+<td>115</td>
+<td><strong>Double-fetch en <code>savePago</code></strong> — recarga pagos + loans completos. Podría ser update optimista.</td>
+<td>Performance</td>
+</tr>
+<tr>
+<td>5</td>
+<td><code>PatrimonioPage.vue</code></td>
+<td>36</td>
+<td><strong><code>toggleEdit</code> guarda sin validación</strong> — no hay <code>formRef.validate()</code> ni rules en inputs.</td>
+<td>Correctness</td>
+</tr>
+<tr>
+<td>6</td>
+<td><code>AccountingPage.vue</code></td>
+<td>52</td>
+<td><strong>Period mask <code>####-##</code> permite <code>2025-13</code></strong> — meses inválidos pasan la máscara.</td>
+<td>Correctness</td>
+</tr>
+<tr>
+<td>7</td>
+<td><code>EmptyState.vue</code></td>
+<td>42</td>
+<td><strong>CSS animation 8s infinita sin <code>prefers-reduced-motion</code></strong> — el ring decorativo gira siempre, incluso fuera de viewport.</td>
+<td>Accessibility</td>
+</tr>
+<tr>
+<td>8</td>
+<td><code>PresentacionesDialog.vue</code></td>
+<td>118</td>
+<td><strong><code>conversion</code> input <code>type="text"</code></strong> en vez de <code>type="number"</code>. No valida ≤ 0.</td>
+<td>Correctness</td>
+</tr>
+<tr>
+<td>9</td>
+<td><code>types/index.ts</code></td>
+<td>—</td>
+<td><strong>Breaking rename de campos</strong> — <code>productoId</code>→<code>productId</code>, <code>cantidad</code>→<code>quantity</code>, <code>precioUnitario</code>→<code>unitPrice</code>, <code>descuento</code>→<code>discount</code>, <code>metodoPago</code>→<code>paymentMethod</code>, <code>descuentoGlobal</code>→<code>globalDiscount</code>. Correcto para alinear con backend, pero rompe compatibilidad con código previo.</td>
+<td>Maintainability</td>
+</tr>
+<tr>
+<td>10</td>
+<td><code>ProductosPage.vue</code></td>
+<td>—</td>
+<td><strong>Search filtra en frontend sobre <code>getAll()</code></strong> — para catálogos grandes debería usar <code>GET /search</code> paginado del backend (gap #2 existente en tabla superior).</td>
+<td>Performance</td>
+</tr>
+<tr>
+<td>11</td>
+<td><code>PrestamosPage.vue</code></td>
+<td>298-301</td>
+<td><strong><code>pagoForm</code> sin validación</strong> — amount=0 pasa sin error.</td>
+<td>Correctness</td>
+</tr>
+</tbody>
+</table>
+<h3 id="code-review-findings-2026-07-30">Code Review Findings (2026-07-30)<a class="headerlink" href="#code-review-findings-2026-07-30" title="Permanent link">&para;</a></h3>
+<h4 id="critical_4">🔴 Critical<a class="headerlink" href="#critical_4" title="Permanent link">&para;</a></h4>
+<table>
+<thead>
+<tr>
+<th>#</th>
+<th>File</th>
+<th>Line</th>
+<th>Issue</th>
+<th>Severidad</th>
+</tr>
+</thead>
+<tbody>
+<tr>
+<td>1</td>
+<td><code>types/index.ts</code> + <code>GastosPage.vue</code> + <code>gasto.service.ts</code></td>
+<td>—</td>
+<td><strong>Field name mismatch Gastos</strong> — Frontend envía <code>{ category, description, amount, expenseDate, paymentMethod }</code> pero backend <code>GastoRequest</code> espera <code>{ categoria, descripcion, monto, fecha, metodoPago }</code>. POST/PUT fallan con 400. Mismo patrón que el bug de Patrimonio.</td>
+<td>🔴 Critical</td>
+</tr>
+<tr>
+<td>2</td>
+<td><code>types/index.ts</code> + <code>accounting.service.ts</code> + AccountingPage/DashboardPage</td>
+<td>—</td>
+<td><strong>Field name mismatch MetricasFinancieras</strong> — Frontend <code>MetricasFinancieras</code> usa inglés (<code>totalIncome</code>, <code>costOfGoods</code>, <code>operatingExpenses</code>, <code>loanPayments</code>), backend <code>MetricasResponse</code> responde español (<code>totalIngresos</code>, <code>costoMercaderia</code>, <code>gastosOperativos</code>, <code>pagosPrestamos</code>). GET /accounting/consultar devuelve datos que no se mapean.</td>
+<td>🔴 Critical</td>
+</tr>
+</tbody>
+</table>
+<h4 id="suggestions_4">🟡 Suggestions<a class="headerlink" href="#suggestions_4" title="Permanent link">&para;</a></h4>
+<table>
+<thead>
+<tr>
+<th>#</th>
+<th>File</th>
+<th>Line</th>
+<th>Suggestion</th>
+<th>Categoría</th>
+</tr>
+</thead>
+<tbody>
+<tr>
+<td>1</td>
+<td><code>GastoServiceImpl.java</code> + <code>GastoController.java</code></td>
+<td>—</td>
+<td><strong>Date range query existe pero no se expone</strong> — <code>GastoRepository</code> tiene <code>findByTenantIdAndExpenseDateBetween</code> pero ningún endpoint ni el frontend la usan. No hay forma de filtrar gastos por período desde la UI.</td>
+<td>Funcional</td>
+</tr>
+<tr>
+<td>2</td>
+<td><code>GastosPage.vue</code></td>
+<td>—</td>
+<td><strong>Sin paginación</strong> — Trae todos los gastos del tenant. Sin <code>page</code>/<code>size</code>. Degradación en catálogos grandes.</td>
+<td>Performance</td>
+</tr>
+<tr>
+<td>3</td>
+<td><code>AnalisisGastosPage.vue</code></td>
+<td>—</td>
+<td><strong>Misnomer</strong> — A pesar del nombre "Análisis de Gastos", no analiza gastos operativos. Analiza inversión en productos (<code>totalInvestment</code>). El nombre confunde al usuario.</td>
+<td>UX</td>
+</tr>
+</tbody>
+</table>
+<h3 id="code-review-findings-2026-07-21_2">Code Review Findings (2026-07-21)<a class="headerlink" href="#code-review-findings-2026-07-21_2" title="Permanent link">&para;</a></h3>
+<h4 id="critical_5">🔴 Critical<a class="headerlink" href="#critical_5" title="Permanent link">&para;</a></h4>
+<table>
+<thead>
+<tr>
+<th>#</th>
+<th>File</th>
+<th>Line</th>
+<th>Issue</th>
+<th>Severidad</th>
+</tr>
+</thead>
+<tbody>
+<tr>
+<td>1</td>
+<td><code>boot/axios.ts</code></td>
+<td>—</td>
+<td><strong>Sin refresh token rotation</strong> — el interceptor captura 401 y borra sesión, nunca intenta renovar con refresh token. Token expira en 1h, usuario force login cada hora.</td>
+<td>🔴 Critical</td>
+</tr>
+<tr>
+<td>2</td>
+<td>—</td>
+<td>—</td>
+<td><strong>1 test para 106 archivos</strong> — solo existe <code>errors.spec.ts</code>. Cero tests para composables, stores, pages, services.</td>
+<td>🔴 Critical</td>
+</tr>
+</tbody>
+</table>
+<h4 id="suggestions_5">🟡 Suggestions<a class="headerlink" href="#suggestions_5" title="Permanent link">&para;</a></h4>
+<table>
+<thead>
+<tr>
+<th>#</th>
+<th>File</th>
+<th>Line</th>
+<th>Suggestion</th>
+<th>Categoría</th>
+</tr>
+</thead>
+<tbody>
+<tr>
+<td>1</td>
+<td><code>store/index.ts</code></td>
+<td>148</td>
+<td><strong>Listener <code>auth:401</code> duplica lógica</strong> — replica <code>clearSession()</code> parcialmente. <code>clearSession()</code> ya hace <code>window.location.href = '#/login'</code>, lo que recarga la store.</td>
+<td>Mantenibilidad</td>
+</tr>
+<tr>
+<td>2</td>
+<td>Todas las pages</td>
+<td>~14</td>
+<td><strong><code>tenantId</code> fallback a <code>''</code></strong> — <code>authStore.user?.tenantId \|\| ''</code> en todas las pages. Si store vacío, se envía <code>?tenantId=</code> → 400.</td>
+<td>Correctitud</td>
+</tr>
+<tr>
+<td>3</td>
+<td><code>utils/errors.ts</code></td>
+<td>—</td>
+<td><strong><code>isAuthError()</code> lee del raw axios</strong> en vez del error normalizado — el interceptor normaliza a <code>Error</code> con <code>code/status/details/isBackendError</code>, pero <code>isAuthError</code> analiza <code>error.response?.data?.codigo</code> directamente.</td>
+<td>Mantenibilidad</td>
+</tr>
+<tr>
+<td>4</td>
+<td><code>LoginPage.vue</code></td>
+<td>—</td>
+<td><strong>Redirect query ignorado</strong> — <code>Router.beforeEach</code> redirige a <code>/login?redirect=/dashboard/...</code> pero LoginPage nunca lo lee.</td>
+<td>Correctitud</td>
+</tr>
+</tbody>
+</table>
+<h2 id="postgresql">PostgreSQL<a class="headerlink" href="#postgresql" title="Permanent link">&para;</a></h2>
+<table>
+<thead>
+<tr>
+<th>#</th>
+<th>Gap</th>
+<th>Documentación dice</th>
+<th>Realidad es</th>
+<th>Impacto</th>
+</tr>
+</thead>
+<tbody>
+<tr>
+<td>1</td>
+<td>Sin SSL</td>
+<td><code>sslmode=require</code> ausente en todos los perfiles</td>
+<td>Conexión texto plano entre servicios</td>
+<td>Medio — aceptado (ponytail: red interna Docker)</td>
+</tr>
+<tr>
+<td>2</td>
+<td>Sin FK entre esquemas</td>
+<td><code>tenant_id</code> en core no tiene FK a <code>auth.tenants</code></td>
+<td>Validación solo en capa de aplicación</td>
+<td>Medio — aceptado (ponytail: validación app-layer suficiente para PYME)</td>
+</tr>
+<tr>
+<td>3</td>
+<td>Mismas credenciales DB</td>
+<td>auth y core compuran usuario BD</td>
+<td>Servicios pueden leer/escribir schema del otro</td>
+<td>Medio — aceptado (ponytail: schema isolation + red interna)</td>
+</tr>
+<tr>
+<td>4</td>
+<td>Sin límite HikariCP</td>
+<td>Pool default 10 sin ajuste</td>
+<td>Consulta lenta puede agotar pool</td>
+<td>Bajo — configurado <code>maximum-pool-size: 20</code> en auth + core</td>
+</tr>
+<tr>
+<td>5</td>
+<td>SQL injection en tests (4 archivos)</td>
+<td><code>jdbcTemplate.execute()</code> con string concat</td>
+<td>Tests de integración</td>
+<td>Medio — corregido en esta sesión</td>
+</tr>
+<tr>
+<td>6</td>
+<td>Auth: índices faltantes</td>
+<td>V1 sin composite/partial indexes</td>
+<td>6 consultas frecuentes sin cobertura óptima</td>
+<td>Bajo — corregido con V2 migration</td>
+</tr>
+</tbody>
+</table>
+<h2 id="redis">Redis<a class="headerlink" href="#redis" title="Permanent link">&para;</a></h2>
+<table>
+<thead>
+<tr>
+<th>#</th>
+<th>Gap</th>
+<th>Documentación dice</th>
+<th>Realidad es</th>
+<th>Impacto</th>
+</tr>
+</thead>
+<tbody>
+<tr>
+<td>1</td>
+<td>Sin password</td>
+<td>No configurado en compose ni app</td>
+<td>Cualquier contenedor en la red interna puede conectarse</td>
+<td>Medio — aceptado (ponytail: red interna solo con servicios propios)</td>
+</tr>
+<tr>
+<td>2</td>
+<td>Sin database isolation</td>
+<td>Todo en <code>db 0</code></td>
+<td>auth, core y gateway comparten el mismo db index</td>
+<td>Bajo — aceptado (ponytail: namespace prefix evita colisiones)</td>
+</tr>
+<tr>
+<td>3</td>
+<td>Sin <code>maxmemory</code> / <code>maxmemory-policy</code></td>
+<td>No configurado</td>
+<td>Redis default <code>noeviction</code> — escrituras fallan si se llena RAM</td>
+<td>Medio — configurado <code>--maxmemory 256mb --maxmemory-policy allkeys-lru</code></td>
+</tr>
+<tr>
+<td>4</td>
+<td><code>KEYS</code> en RecomputeDebounceService</td>
+<td><code>stringRedisTemplate.keys(*)</code> es O(N)</td>
+<td>Bloquea Redis en datasets grandes</td>
+<td>Bajo — aceptado (ponytail: &lt;10k keys, comentario en código)</td>
+</tr>
+<tr>
+<td>5</td>
+<td>Sin connection pooling Lettuce</td>
+<td>Sin pool configurado</td>
+<td>Canal único por defecto puede ser cuello de botella bajo carga</td>
+<td>Bajo — aceptado (ponytail: agregar si hay contención)</td>
+</tr>
+</tbody>
+</table>
+<h2 id="docker">Docker<a class="headerlink" href="#docker" title="Permanent link">&para;</a></h2>
+<table>
+<thead>
+<tr>
+<th>#</th>
+<th>Gap</th>
+<th>Documentación dice</th>
+<th>Realidad es</th>
+<th>Impacto</th>
+</tr>
+</thead>
+<tbody>
+<tr>
+<td>1</td>
+<td><code>JAVA_OPTS</code> sin configurar</td>
+<td>INFRA_STRATEGY.md recomienda <code>-Xmx384m</code></td>
+<td>docker-compose.yml no tenía límites JVM</td>
+<td>Alto — configurado <code>-Xmx384m -XX:+UseG1GC</code> en gateway, auth, core</td>
+</tr>
+<tr>
+<td>2</td>
+<td>Logging sin límites</td>
+<td>INFRA_STRATEGY.md recomienda <code>max-size: 10m</code></td>
+<td>docker-compose.yml no tiene bloque logging</td>
+<td>Bajo — aceptado (ponytail: logs de PYME no llenan disco rápido)</td>
+</tr>
+<tr>
+<td>3</td>
+<td>Healthchecks más frecuentes que lo recomendado</td>
+<td>INFRA_STRATEGY.md sugiere <code>interval: 30s</code></td>
+<td>Gateway 10s, Auth/Core 15s</td>
+<td>Bajo — aceptado (ponytail: 15s no causa picos medibles)</td>
+</tr>
+<tr>
+<td>4</td>
+<td>Core service sin build en docker-build-check</td>
+<td>AGENTS.md decía "Docker check" en CI</td>
+<td>No aplica: CI no construye imágenes (lo hace CD)</td>
+<td>Bajo — corregido: drift eliminado</td>
+</tr>
+</tbody>
+</table>
+<h2 id="github-actions">GitHub Actions<a class="headerlink" href="#github-actions" title="Permanent link">&para;</a></h2>
+<table>
+<thead>
+<tr>
+<th>#</th>
+<th>Gap</th>
+<th>Documentación dice</th>
+<th>Realidad es</th>
+<th>Impacto</th>
+</tr>
+</thead>
+<tbody>
+<tr>
+<td>1</td>
+<td>Core service ausente de CI</td>
+<td>CI.yml testea auth, gateway, frontend</td>
+<td>No había jobs para core</td>
+<td><strong>Crítico</strong> — corregido: jobs unit + integration tests</td>
+</tr>
+<tr>
+<td>2</td>
+<td>Core service ausente de CD staging</td>
+<td>cd-staging.yml build &amp; test auth + gateway</td>
+<td>No corría tests de core ni construía imagen</td>
+<td><strong>Crítico</strong> — corregido: build+test + docker push</td>
+</tr>
+<tr>
+<td>3</td>
+<td>Core service ausente de CD production</td>
+<td>cd-prod.yml misma estructura</td>
+<td>No corría tests de core ni construía imagen</td>
+<td><strong>Crítico</strong> — corregido: build+test + docker push</td>
+</tr>
+<tr>
+<td>4</td>
+<td>CI no ejecuta integration tests de core</td>
+<td>Solo auth tiene integration tests en CI</td>
+<td>Job <code>backend-core-integration-test</code> corre con Testcontainers</td>
+<td>Medio — corregido: drift eliminado</td>
+</tr>
+</tbody>
+</table>
+
+
+
+
+
+
+
+
+
+
+
+
+                
+              </article>
+            </div>
+          
+          
+<script>var target=document.getElementById(location.hash.slice(1));target&&target.name&&(target.checked=target.name.startsWith("__tabbed_"))</script>
+        </div>
+        
+          <button type="button" class="md-top md-icon" data-md-component="top" hidden>
+  
+  <svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 24 24"><path d="M13 20h-2V8l-5.5 5.5-1.42-1.42L12 4.16l7.92 7.92-1.42 1.42L13 8z"/></svg>
+  Volver al principio
+</button>
+        
+      </main>
+      
+        <footer class="md-footer">
+  
+  <div class="md-footer-meta md-typeset">
+    <div class="md-footer-meta__inner md-grid">
+      <div class="md-copyright">
+  
+  
+    Made with
+    <a href="https://squidfunk.github.io/mkdocs-material/" target="_blank" rel="noopener">
+      Material for MkDocs
+    </a>
+  
+</div>
+      
+    </div>
+  </div>
+</footer>
+      
+    </div>
+    <div class="md-dialog" data-md-component="dialog">
+      <div class="md-dialog__inner md-typeset"></div>
+    </div>
+    
+    
+    
+      
+      
+      <script id="__config" type="application/json">{"annotate": null, "base": "../..", "features": ["navigation.tabs", "navigation.top", "search.highlight", "content.code.copy"], "search": "../../assets/javascripts/workers/search.a7633da7.min.js", "tags": null, "translations": {"clipboard.copied": "Copiado al portapapeles", "clipboard.copy": "Copiar al portapapeles", "search.result.more.one": "1 m\u00e1s en esta p\u00e1gina", "search.result.more.other": "# m\u00e1s en esta p\u00e1gina", "search.result.none": "No se encontraron documentos", "search.result.one": "1 documento encontrado", "search.result.other": "# documentos encontrados", "search.result.placeholder": "Teclee para comenzar b\u00fasqueda", "search.result.term.missing": "Falta", "select.version": "Seleccionar versi\u00f3n"}, "version": null}</script>
+    
+    
+      <script src="../../assets/javascripts/bundle.a5f9d56c.min.js"></script>
+      
+    
+  </body>
+</html>

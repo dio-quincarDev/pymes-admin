@@ -1,0 +1,2277 @@
+
+<!doctype html>
+<html lang="es" class="no-js">
+  <head>
+    
+      <meta charset="utf-8">
+      <meta name="viewport" content="width=device-width,initial-scale=1">
+      
+        <meta name="description" content="Documentación del producto, arquitectura, API y operación">
+      
+      
+        <meta name="author" content="dio-quincarDev">
+      
+      
+      
+      
+      
+        
+      
+      
+      <link rel="icon" href="../../../../../assets/images/favicon.png">
+      <meta name="generator" content="mkdocs-1.6.1, mkdocs-material-9.8.2">
+    
+    
+      
+        <title>Estrategia y Plan de Mejora — Sistema de Alertas - Pymeq — Forensic Accounting for Small Business</title>
+      
+    
+    
+      <link rel="stylesheet" href="../../../../../assets/stylesheets/main.57a0d79d.min.css">
+      
+        
+        <link rel="stylesheet" href="../../../../../assets/stylesheets/palette.fb2fffe2.min.css">
+      
+      
+
+
+    
+    
+      
+    
+    
+      
+        
+        
+        <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+        <link rel="stylesheet" href="https://fonts.googleapis.com/css?family=Roboto:300,300i,400,400i,700,700i%7CRoboto+Mono:400,400i,700,700i&display=fallback">
+        <style>:root{--md-text-font:"Roboto";--md-code-font:"Roboto Mono"}</style>
+      
+    
+    
+    <script>__md_scope=new URL("../../../../..",location),__md_hash=e=>[...e].reduce(((e,_)=>(e<<5)-e+_.charCodeAt(0)),0),__md_get=(e,_=localStorage,t=__md_scope)=>JSON.parse(_.getItem(t.pathname+"."+e)),__md_set=(e,_,t=localStorage,a=__md_scope)=>{try{t.setItem(a.pathname+"."+e,JSON.stringify(_))}catch(e){}}</script>
+    
+      
+
+    
+    
+  </head>
+  
+  
+    
+    
+      
+    
+    
+    
+    
+    <body dir="ltr" data-md-color-scheme="slate" data-md-color-primary="teal" data-md-color-accent="amber">
+  
+    
+    <input class="md-toggle" data-md-toggle="drawer" type="checkbox" id="__drawer" autocomplete="off">
+    <input class="md-toggle" data-md-toggle="search" type="checkbox" id="__search" autocomplete="off">
+    <label class="md-overlay" for="__drawer"></label>
+    <div data-md-component="skip">
+      
+        
+        <a href="#estrategia-y-plan-de-mejora-sistema-de-alertas" class="md-skip">
+          Saltar a contenido
+        </a>
+      
+    </div>
+    <div data-md-component="announce">
+      
+    </div>
+    
+    
+      
+
+<header class="md-header" data-md-component="header">
+  <nav class="md-header__inner md-grid" aria-label="Cabecera">
+    <a href="../../../../.." title="Pymeq — Forensic Accounting for Small Business" class="md-header__button md-logo" aria-label="Pymeq — Forensic Accounting for Small Business" data-md-component="logo">
+      
+  
+  <svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 24 24"><path d="M12 8a3 3 0 0 0 3-3 3 3 0 0 0-3-3 3 3 0 0 0-3 3 3 3 0 0 0 3 3m0 3.54C9.64 9.35 6.5 8 3 8v11c3.5 0 6.64 1.35 9 3.54 2.36-2.19 5.5-3.54 9-3.54V8c-3.5 0-6.64 1.35-9 3.54"/></svg>
+
+    </a>
+    <label class="md-header__button md-icon" for="__drawer">
+      
+      <svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 24 24"><path d="M3 6h18v2H3zm0 5h18v2H3zm0 5h18v2H3z"/></svg>
+    </label>
+    <div class="md-header__title" data-md-component="header-title">
+      <div class="md-header__ellipsis">
+        <div class="md-header__topic">
+          <span class="md-ellipsis">
+            Pymeq — Forensic Accounting for Small Business
+          </span>
+        </div>
+        <div class="md-header__topic" data-md-component="header-topic">
+          <span class="md-ellipsis">
+            
+              Estrategia y Plan de Mejora — Sistema de Alertas
+            
+          </span>
+        </div>
+      </div>
+    </div>
+    
+      
+        <form class="md-header__option" data-md-component="palette">
+  
+    
+    
+    
+    <input class="md-option" data-md-color-media="" data-md-color-scheme="slate" data-md-color-primary="teal" data-md-color-accent="amber"  aria-label="Cambiar a tema claro"  type="radio" name="__palette" id="__palette_0">
+    
+      <label class="md-header__button md-icon" title="Cambiar a tema claro" for="__palette_1" hidden>
+        <svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 24 24"><path d="m17.75 4.09-2.53 1.94.91 3.06-2.63-1.81-2.63 1.81.91-3.06-2.53-1.94L12.44 4l1.06-3 1.06 3zm3.5 6.91-1.64 1.25.59 1.98-1.7-1.17-1.7 1.17.59-1.98L15.75 11l2.06-.05L18.5 9l.69 1.95zm-2.28 4.95c.83-.08 1.72 1.1 1.19 1.85-.32.45-.66.87-1.08 1.27C15.17 23 8.84 23 4.94 19.07c-3.91-3.9-3.91-10.24 0-14.14.4-.4.82-.76 1.27-1.08.75-.53 1.93.36 1.85 1.19-.27 2.86.69 5.83 2.89 8.02a9.96 9.96 0 0 0 8.02 2.89m-1.64 2.02a12.08 12.08 0 0 1-7.8-3.47c-2.17-2.19-3.33-5-3.49-7.82-2.81 3.14-2.7 7.96.31 10.98 3.02 3.01 7.84 3.12 10.98.31"/></svg>
+      </label>
+    
+  
+    
+    
+    
+    <input class="md-option" data-md-color-media="" data-md-color-scheme="default" data-md-color-primary="teal" data-md-color-accent="amber"  aria-label="Cambiar a tema oscuro"  type="radio" name="__palette" id="__palette_1">
+    
+      <label class="md-header__button md-icon" title="Cambiar a tema oscuro" for="__palette_0" hidden>
+        <svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 24 24"><path d="M12 7a5 5 0 0 1 5 5 5 5 0 0 1-5 5 5 5 0 0 1-5-5 5 5 0 0 1 5-5m0 2a3 3 0 0 0-3 3 3 3 0 0 0 3 3 3 3 0 0 0 3-3 3 3 0 0 0-3-3m0-7 2.39 3.42C13.65 5.15 12.84 5 12 5s-1.65.15-2.39.42zM3.34 7l4.16-.35A7.2 7.2 0 0 0 5.94 8.5c-.44.74-.69 1.5-.83 2.29zm.02 10 1.76-3.77a7.131 7.131 0 0 0 2.38 4.14zM20.65 7l-1.77 3.79a7.02 7.02 0 0 0-2.38-4.15zm-.01 10-4.14.36c.59-.51 1.12-1.14 1.54-1.86.42-.73.69-1.5.83-2.29zM12 22l-2.41-3.44c.74.27 1.55.44 2.41.44.82 0 1.63-.17 2.37-.44z"/></svg>
+      </label>
+    
+  
+</form>
+      
+    
+    
+      <script>var palette=__md_get("__palette");if(palette&&palette.color){if("(prefers-color-scheme)"===palette.color.media){var media=matchMedia("(prefers-color-scheme: light)"),input=document.querySelector(media.matches?"[data-md-color-media='(prefers-color-scheme: light)']":"[data-md-color-media='(prefers-color-scheme: dark)']");palette.color.media=input.getAttribute("data-md-color-media"),palette.color.scheme=input.getAttribute("data-md-color-scheme"),palette.color.primary=input.getAttribute("data-md-color-primary"),palette.color.accent=input.getAttribute("data-md-color-accent")}for(var[key,value]of Object.entries(palette.color))document.body.setAttribute("data-md-color-"+key,value)}</script>
+    
+    
+    
+      
+      
+        <label class="md-header__button md-icon" for="__search">
+          
+          <svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 24 24"><path d="M9.5 3A6.5 6.5 0 0 1 16 9.5c0 1.61-.59 3.09-1.56 4.23l.27.27h.79l5 5-1.5 1.5-5-5v-.79l-.27-.27A6.52 6.52 0 0 1 9.5 16 6.5 6.5 0 0 1 3 9.5 6.5 6.5 0 0 1 9.5 3m0 2C7 5 5 7 5 9.5S7 14 9.5 14 14 12 14 9.5 12 5 9.5 5"/></svg>
+        </label>
+        <div class="md-search" data-md-component="search" role="dialog">
+  <label class="md-search__overlay" for="__search"></label>
+  <div class="md-search__inner" role="search">
+    <form class="md-search__form" name="search">
+      <input type="text" class="md-search__input" name="query" aria-label="Búsqueda" placeholder="Búsqueda" autocapitalize="off" autocorrect="off" autocomplete="off" spellcheck="false" data-md-component="search-query" required>
+      <label class="md-search__icon md-icon" for="__search">
+        
+        <svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 24 24"><path d="M9.5 3A6.5 6.5 0 0 1 16 9.5c0 1.61-.59 3.09-1.56 4.23l.27.27h.79l5 5-1.5 1.5-5-5v-.79l-.27-.27A6.52 6.52 0 0 1 9.5 16 6.5 6.5 0 0 1 3 9.5 6.5 6.5 0 0 1 9.5 3m0 2C7 5 5 7 5 9.5S7 14 9.5 14 14 12 14 9.5 12 5 9.5 5"/></svg>
+        
+        <svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 24 24"><path d="M20 11v2H8l5.5 5.5-1.42 1.42L4.16 12l7.92-7.92L13.5 5.5 8 11z"/></svg>
+      </label>
+      <nav class="md-search__options" aria-label="Buscar">
+        
+        <button type="reset" class="md-search__icon md-icon" title="Limpiar" aria-label="Limpiar" tabindex="-1">
+          
+          <svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 24 24"><path d="M19 6.41 17.59 5 12 10.59 6.41 5 5 6.41 10.59 12 5 17.59 6.41 19 12 13.41 17.59 19 19 17.59 13.41 12z"/></svg>
+        </button>
+      </nav>
+      
+    </form>
+    <div class="md-search__output">
+      <div class="md-search__scrollwrap" tabindex="0" data-md-scrollfix>
+        <div class="md-search-result" data-md-component="search-result">
+          <div class="md-search-result__meta">
+            Inicializando búsqueda
+          </div>
+          <ol class="md-search-result__list" role="presentation"></ol>
+        </div>
+      </div>
+    </div>
+  </div>
+</div>
+      
+    
+    
+      <div class="md-header__source">
+        <a href="https://github.com/dio-quincarDev/pymes-admin" title="Ir al repositorio" class="md-source" data-md-component="source">
+  <div class="md-source__icon md-icon">
+    
+    <svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 448 512"><!--! Font Awesome Free 7.1.0 by @fontawesome - https://fontawesome.com License - https://fontawesome.com/license/free (Icons: CC BY 4.0, Fonts: SIL OFL 1.1, Code: MIT License) Copyright 2025 Fonticons, Inc.--><path d="M439.6 236.1 244 40.5c-5.4-5.5-12.8-8.5-20.4-8.5s-15 3-20.4 8.4L162.5 81l51.5 51.5c27.1-9.1 52.7 16.8 43.4 43.7l49.7 49.7c34.2-11.8 61.2 31 35.5 56.7-26.5 26.5-70.2-2.9-56-37.3L240.3 199v121.9c25.3 12.5 22.3 41.8 9.1 55-6.4 6.4-15.2 10.1-24.3 10.1s-17.8-3.6-24.3-10.1c-17.6-17.6-11.1-46.9 11.2-56v-123c-20.8-8.5-24.6-30.7-18.6-45L142.6 101 8.5 235.1C3 240.6 0 247.9 0 255.5s3 15 8.5 20.4l195.6 195.7c5.4 5.4 12.7 8.4 20.4 8.4s15-3 20.4-8.4l194.7-194.7c5.4-5.4 8.4-12.8 8.4-20.4s-3-15-8.4-20.4"/></svg>
+  </div>
+  <div class="md-source__repository">
+    dio-quincarDev/pymes-admin
+  </div>
+</a>
+      </div>
+    
+  </nav>
+  
+</header>
+    
+    <div class="md-container" data-md-component="container">
+      
+      
+        
+          
+            
+<nav class="md-tabs" aria-label="Pestañas" data-md-component="tabs">
+  <div class="md-grid">
+    <ul class="md-tabs__list">
+      
+        
+  
+  
+  
+  
+    <li class="md-tabs__item">
+      <a href="../../../../.." class="md-tabs__link">
+        
+  
+  
+    
+  
+  Inicio
+
+      </a>
+    </li>
+  
+
+      
+        
+  
+  
+  
+  
+    
+    
+      <li class="md-tabs__item">
+        <a href="../../../../.." class="md-tabs__link">
+          
+  
+  
+  Producto
+
+        </a>
+      </li>
+    
+  
+
+      
+        
+  
+  
+  
+  
+    
+    
+      <li class="md-tabs__item">
+        <a href="../../../../../docs/api/" class="md-tabs__link">
+          
+  
+  
+  API Reference
+
+        </a>
+      </li>
+    
+  
+
+      
+        
+  
+  
+  
+  
+    
+    
+      <li class="md-tabs__item">
+        <a href="../../../../../docs/architecture/architecture/" class="md-tabs__link">
+          
+  
+  
+  Arquitectura
+
+        </a>
+      </li>
+    
+  
+
+      
+        
+  
+  
+  
+  
+    
+    
+      <li class="md-tabs__item">
+        <a href="../../../../../deployment/DEPLOYMENT/" class="md-tabs__link">
+          
+  
+  
+  Operación
+
+        </a>
+      </li>
+    
+  
+
+      
+        
+  
+  
+  
+  
+    
+    
+      <li class="md-tabs__item">
+        <a href="../../../../../docs/guides/user-guide/" class="md-tabs__link">
+          
+  
+  
+  Guías
+
+        </a>
+      </li>
+    
+  
+
+      
+        
+  
+  
+  
+  
+    
+    
+      <li class="md-tabs__item">
+        <a href="../../../../../backend/core/docs/KPIs/" class="md-tabs__link">
+          
+  
+  
+  Referencia
+
+        </a>
+      </li>
+    
+  
+
+      
+    </ul>
+  </div>
+</nav>
+          
+        
+      
+      <main class="md-main" data-md-component="main">
+        <div class="md-main__inner md-grid">
+          
+            
+              
+              <div class="md-sidebar md-sidebar--primary" data-md-component="sidebar" data-md-type="navigation" >
+                <div class="md-sidebar__scrollwrap">
+                  <div class="md-sidebar__inner">
+                    
+
+
+  
+
+
+<nav class="md-nav md-nav--primary md-nav--lifted" aria-label="Navegación" data-md-level="0">
+  <label class="md-nav__title" for="__drawer">
+    <a href="../../../../.." title="Pymeq — Forensic Accounting for Small Business" class="md-nav__button md-logo" aria-label="Pymeq — Forensic Accounting for Small Business" data-md-component="logo">
+      
+  
+  <svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 24 24"><path d="M12 8a3 3 0 0 0 3-3 3 3 0 0 0-3-3 3 3 0 0 0-3 3 3 3 0 0 0 3 3m0 3.54C9.64 9.35 6.5 8 3 8v11c3.5 0 6.64 1.35 9 3.54 2.36-2.19 5.5-3.54 9-3.54V8c-3.5 0-6.64 1.35-9 3.54"/></svg>
+
+    </a>
+    Pymeq — Forensic Accounting for Small Business
+  </label>
+  
+    <div class="md-nav__source">
+      <a href="https://github.com/dio-quincarDev/pymes-admin" title="Ir al repositorio" class="md-source" data-md-component="source">
+  <div class="md-source__icon md-icon">
+    
+    <svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 448 512"><!--! Font Awesome Free 7.1.0 by @fontawesome - https://fontawesome.com License - https://fontawesome.com/license/free (Icons: CC BY 4.0, Fonts: SIL OFL 1.1, Code: MIT License) Copyright 2025 Fonticons, Inc.--><path d="M439.6 236.1 244 40.5c-5.4-5.5-12.8-8.5-20.4-8.5s-15 3-20.4 8.4L162.5 81l51.5 51.5c27.1-9.1 52.7 16.8 43.4 43.7l49.7 49.7c34.2-11.8 61.2 31 35.5 56.7-26.5 26.5-70.2-2.9-56-37.3L240.3 199v121.9c25.3 12.5 22.3 41.8 9.1 55-6.4 6.4-15.2 10.1-24.3 10.1s-17.8-3.6-24.3-10.1c-17.6-17.6-11.1-46.9 11.2-56v-123c-20.8-8.5-24.6-30.7-18.6-45L142.6 101 8.5 235.1C3 240.6 0 247.9 0 255.5s3 15 8.5 20.4l195.6 195.7c5.4 5.4 12.7 8.4 20.4 8.4s15-3 20.4-8.4l194.7-194.7c5.4-5.4 8.4-12.8 8.4-20.4s-3-15-8.4-20.4"/></svg>
+  </div>
+  <div class="md-source__repository">
+    dio-quincarDev/pymes-admin
+  </div>
+</a>
+    </div>
+  
+  <ul class="md-nav__list" data-md-scrollfix>
+    
+      
+      
+  
+  
+  
+  
+    <li class="md-nav__item">
+      <a href="../../../../.." class="md-nav__link">
+        
+  
+  
+  <span class="md-ellipsis">
+    
+  
+    Inicio
+  
+
+    
+  </span>
+  
+  
+
+      </a>
+    </li>
+  
+
+    
+      
+      
+  
+  
+  
+  
+    
+    
+    
+    
+      
+      
+    
+    
+    <li class="md-nav__item md-nav__item--nested">
+      
+        
+        
+        <input class="md-nav__toggle md-toggle " type="checkbox" id="__nav_2" >
+        
+          
+          <label class="md-nav__link" for="__nav_2" id="__nav_2_label" tabindex="0">
+            
+  
+  
+  <span class="md-ellipsis">
+    
+  
+    Producto
+  
+
+    
+  </span>
+  
+  
+
+            <span class="md-nav__icon md-icon"></span>
+          </label>
+        
+        <nav class="md-nav" data-md-level="1" aria-labelledby="__nav_2_label" aria-expanded="false">
+          <label class="md-nav__title" for="__nav_2">
+            <span class="md-nav__icon md-icon"></span>
+            
+  
+    Producto
+  
+
+          </label>
+          <ul class="md-nav__list" data-md-scrollfix>
+            
+              
+                
+  
+  
+  
+  
+    <li class="md-nav__item">
+      <a href="../../../../.." class="md-nav__link">
+        
+  
+  
+  <span class="md-ellipsis">
+    
+  
+    Inicio
+  
+
+    
+  </span>
+  
+  
+
+      </a>
+    </li>
+  
+
+              
+            
+              
+                
+  
+  
+  
+  
+    <li class="md-nav__item">
+      <a href="../../../../../docs/product/features/" class="md-nav__link">
+        
+  
+  
+  <span class="md-ellipsis">
+    
+  
+    Características
+  
+
+    
+  </span>
+  
+  
+
+      </a>
+    </li>
+  
+
+              
+            
+              
+                
+  
+  
+  
+  
+    <li class="md-nav__item">
+      <a href="../../../../../docs/product/roadmap/" class="md-nav__link">
+        
+  
+  
+  <span class="md-ellipsis">
+    
+  
+    Roadmap
+  
+
+    
+  </span>
+  
+  
+
+      </a>
+    </li>
+  
+
+              
+            
+              
+                
+  
+  
+  
+  
+    <li class="md-nav__item">
+      <a href="../../../../../docs/TO_DO/" class="md-nav__link">
+        
+  
+  
+  <span class="md-ellipsis">
+    
+  
+    Pendientes
+  
+
+    
+  </span>
+  
+  
+
+      </a>
+    </li>
+  
+
+              
+            
+              
+                
+  
+  
+  
+  
+    <li class="md-nav__item">
+      <a href="../../../../../docs/GAPS/" class="md-nav__link">
+        
+  
+  
+  <span class="md-ellipsis">
+    
+  
+    Diferencias doc/código
+  
+
+    
+  </span>
+  
+  
+
+      </a>
+    </li>
+  
+
+              
+            
+          </ul>
+        </nav>
+      
+    </li>
+  
+
+    
+      
+      
+  
+  
+  
+  
+    
+    
+    
+    
+      
+      
+    
+    
+    <li class="md-nav__item md-nav__item--nested">
+      
+        
+        
+        <input class="md-nav__toggle md-toggle " type="checkbox" id="__nav_3" >
+        
+          
+          <label class="md-nav__link" for="__nav_3" id="__nav_3_label" tabindex="0">
+            
+  
+  
+  <span class="md-ellipsis">
+    
+  
+    API Reference
+  
+
+    
+  </span>
+  
+  
+
+            <span class="md-nav__icon md-icon"></span>
+          </label>
+        
+        <nav class="md-nav" data-md-level="1" aria-labelledby="__nav_3_label" aria-expanded="false">
+          <label class="md-nav__title" for="__nav_3">
+            <span class="md-nav__icon md-icon"></span>
+            
+  
+    API Reference
+  
+
+          </label>
+          <ul class="md-nav__list" data-md-scrollfix>
+            
+              
+                
+  
+  
+  
+  
+    <li class="md-nav__item">
+      <a href="../../../../../docs/api/" class="md-nav__link">
+        
+  
+  
+  <span class="md-ellipsis">
+    
+  
+    Contrato (índice)
+  
+
+    
+  </span>
+  
+  
+
+      </a>
+    </li>
+  
+
+              
+            
+              
+                
+  
+  
+  
+  
+    <li class="md-nav__item">
+      <a href="../../../../../api/auth/" class="md-nav__link">
+        
+  
+  
+  <span class="md-ellipsis">
+    
+  
+    Auth (generado)
+  
+
+    
+  </span>
+  
+  
+
+      </a>
+    </li>
+  
+
+              
+            
+              
+                
+  
+  
+  
+  
+    <li class="md-nav__item">
+      <a href="../../../../../api/core/" class="md-nav__link">
+        
+  
+  
+  <span class="md-ellipsis">
+    
+  
+    Core (generado)
+  
+
+    
+  </span>
+  
+  
+
+      </a>
+    </li>
+  
+
+              
+            
+          </ul>
+        </nav>
+      
+    </li>
+  
+
+    
+      
+      
+  
+  
+  
+  
+    
+    
+    
+    
+      
+      
+    
+    
+    <li class="md-nav__item md-nav__item--nested">
+      
+        
+        
+        <input class="md-nav__toggle md-toggle " type="checkbox" id="__nav_4" >
+        
+          
+          <label class="md-nav__link" for="__nav_4" id="__nav_4_label" tabindex="0">
+            
+  
+  
+  <span class="md-ellipsis">
+    
+  
+    Arquitectura
+  
+
+    
+  </span>
+  
+  
+
+            <span class="md-nav__icon md-icon"></span>
+          </label>
+        
+        <nav class="md-nav" data-md-level="1" aria-labelledby="__nav_4_label" aria-expanded="false">
+          <label class="md-nav__title" for="__nav_4">
+            <span class="md-nav__icon md-icon"></span>
+            
+  
+    Arquitectura
+  
+
+          </label>
+          <ul class="md-nav__list" data-md-scrollfix>
+            
+              
+                
+  
+  
+  
+  
+    <li class="md-nav__item">
+      <a href="../../../../../docs/architecture/architecture/" class="md-nav__link">
+        
+  
+  
+  <span class="md-ellipsis">
+    
+  
+    Arquitectura (mapa)
+  
+
+    
+  </span>
+  
+  
+
+      </a>
+    </li>
+  
+
+              
+            
+              
+                
+  
+  
+  
+  
+    
+    
+    
+    
+      
+      
+    
+    
+    <li class="md-nav__item md-nav__item--nested">
+      
+        
+        
+        <input class="md-nav__toggle md-toggle " type="checkbox" id="__nav_4_2" >
+        
+          
+          <label class="md-nav__link" for="__nav_4_2" id="__nav_4_2_label" tabindex="0">
+            
+  
+  
+  <span class="md-ellipsis">
+    
+  
+    Servicios
+  
+
+    
+  </span>
+  
+  
+
+            <span class="md-nav__icon md-icon"></span>
+          </label>
+        
+        <nav class="md-nav" data-md-level="2" aria-labelledby="__nav_4_2_label" aria-expanded="false">
+          <label class="md-nav__title" for="__nav_4_2">
+            <span class="md-nav__icon md-icon"></span>
+            
+  
+    Servicios
+  
+
+          </label>
+          <ul class="md-nav__list" data-md-scrollfix>
+            
+              
+                
+  
+  
+  
+  
+    <li class="md-nav__item">
+      <a href="../../../../../backend/auth/" class="md-nav__link">
+        
+  
+  
+  <span class="md-ellipsis">
+    
+  
+    Auth
+  
+
+    
+  </span>
+  
+  
+
+      </a>
+    </li>
+  
+
+              
+            
+              
+                
+  
+  
+  
+  
+    <li class="md-nav__item">
+      <a href="../../../../../backend/gateway-pymes/" class="md-nav__link">
+        
+  
+  
+  <span class="md-ellipsis">
+    
+  
+    Gateway
+  
+
+    
+  </span>
+  
+  
+
+      </a>
+    </li>
+  
+
+              
+            
+              
+                
+  
+  
+  
+  
+    <li class="md-nav__item">
+      <a href="../../../../../backend/core/" class="md-nav__link">
+        
+  
+  
+  <span class="md-ellipsis">
+    
+  
+    Core
+  
+
+    
+  </span>
+  
+  
+
+      </a>
+    </li>
+  
+
+              
+            
+              
+                
+  
+  
+  
+  
+    <li class="md-nav__item">
+      <a href="../../../" class="md-nav__link">
+        
+  
+  
+  <span class="md-ellipsis">
+    
+  
+    Frontend
+  
+
+    
+  </span>
+  
+  
+
+      </a>
+    </li>
+  
+
+              
+            
+          </ul>
+        </nav>
+      
+    </li>
+  
+
+              
+            
+              
+                
+  
+  
+  
+  
+    <li class="md-nav__item">
+      <a href="../../../../../docs/persistencia-postgres/" class="md-nav__link">
+        
+  
+  
+  <span class="md-ellipsis">
+    
+  
+    Base de datos
+  
+
+    
+  </span>
+  
+  
+
+      </a>
+    </li>
+  
+
+              
+            
+              
+                
+  
+  
+  
+  
+    <li class="md-nav__item">
+      <a href="../../../../../docs/strategies/DB_STRATEGY/" class="md-nav__link">
+        
+  
+  
+  <span class="md-ellipsis">
+    
+  
+    Estrategia multi-schema
+  
+
+    
+  </span>
+  
+  
+
+      </a>
+    </li>
+  
+
+              
+            
+              
+                
+  
+  
+  
+  
+    <li class="md-nav__item">
+      <a href="../../../../../docs/strategies/INFRA_STRATEGY/" class="md-nav__link">
+        
+  
+  
+  <span class="md-ellipsis">
+    
+  
+    Infraestructura
+  
+
+    
+  </span>
+  
+  
+
+      </a>
+    </li>
+  
+
+              
+            
+          </ul>
+        </nav>
+      
+    </li>
+  
+
+    
+      
+      
+  
+  
+  
+  
+    
+    
+    
+    
+      
+      
+    
+    
+    <li class="md-nav__item md-nav__item--nested">
+      
+        
+        
+        <input class="md-nav__toggle md-toggle " type="checkbox" id="__nav_5" >
+        
+          
+          <label class="md-nav__link" for="__nav_5" id="__nav_5_label" tabindex="0">
+            
+  
+  
+  <span class="md-ellipsis">
+    
+  
+    Operación
+  
+
+    
+  </span>
+  
+  
+
+            <span class="md-nav__icon md-icon"></span>
+          </label>
+        
+        <nav class="md-nav" data-md-level="1" aria-labelledby="__nav_5_label" aria-expanded="false">
+          <label class="md-nav__title" for="__nav_5">
+            <span class="md-nav__icon md-icon"></span>
+            
+  
+    Operación
+  
+
+          </label>
+          <ul class="md-nav__list" data-md-scrollfix>
+            
+              
+                
+  
+  
+  
+  
+    <li class="md-nav__item">
+      <a href="../../../../../deployment/DEPLOYMENT/" class="md-nav__link">
+        
+  
+  
+  <span class="md-ellipsis">
+    
+  
+    Deploy
+  
+
+    
+  </span>
+  
+  
+
+      </a>
+    </li>
+  
+
+              
+            
+              
+                
+  
+  
+  
+  
+    <li class="md-nav__item">
+      <a href="../../../../../deployment/QUICK_START/" class="md-nav__link">
+        
+  
+  
+  <span class="md-ellipsis">
+    
+  
+    Quick start CI/CD
+  
+
+    
+  </span>
+  
+  
+
+      </a>
+    </li>
+  
+
+              
+            
+              
+                
+  
+  
+  
+  
+    <li class="md-nav__item">
+      <a href="../../../../../deployment/SECRETS/" class="md-nav__link">
+        
+  
+  
+  <span class="md-ellipsis">
+    
+  
+    Secretos
+  
+
+    
+  </span>
+  
+  
+
+      </a>
+    </li>
+  
+
+              
+            
+              
+                
+  
+  
+  
+  
+    <li class="md-nav__item">
+      <a href="../../../../../docs/DAILY_REPORTS_PROJECT/" class="md-nav__link">
+        
+  
+  
+  <span class="md-ellipsis">
+    
+  
+    Reportes diarios
+  
+
+    
+  </span>
+  
+  
+
+      </a>
+    </li>
+  
+
+              
+            
+          </ul>
+        </nav>
+      
+    </li>
+  
+
+    
+      
+      
+  
+  
+  
+  
+    
+    
+    
+    
+      
+      
+    
+    
+    <li class="md-nav__item md-nav__item--nested">
+      
+        
+        
+        <input class="md-nav__toggle md-toggle " type="checkbox" id="__nav_6" >
+        
+          
+          <label class="md-nav__link" for="__nav_6" id="__nav_6_label" tabindex="0">
+            
+  
+  
+  <span class="md-ellipsis">
+    
+  
+    Guías
+  
+
+    
+  </span>
+  
+  
+
+            <span class="md-nav__icon md-icon"></span>
+          </label>
+        
+        <nav class="md-nav" data-md-level="1" aria-labelledby="__nav_6_label" aria-expanded="false">
+          <label class="md-nav__title" for="__nav_6">
+            <span class="md-nav__icon md-icon"></span>
+            
+  
+    Guías
+  
+
+          </label>
+          <ul class="md-nav__list" data-md-scrollfix>
+            
+              
+                
+  
+  
+  
+  
+    <li class="md-nav__item">
+      <a href="../../../../../docs/guides/user-guide/" class="md-nav__link">
+        
+  
+  
+  <span class="md-ellipsis">
+    
+  
+    Usuario
+  
+
+    
+  </span>
+  
+  
+
+      </a>
+    </li>
+  
+
+              
+            
+              
+                
+  
+  
+  
+  
+    <li class="md-nav__item">
+      <a href="../../../../../docs/guides/admin-guide/" class="md-nav__link">
+        
+  
+  
+  <span class="md-ellipsis">
+    
+  
+    Administración
+  
+
+    
+  </span>
+  
+  
+
+      </a>
+    </li>
+  
+
+              
+            
+              
+                
+  
+  
+  
+  
+    <li class="md-nav__item">
+      <a href="../../../../../docs/guides/operations-guide/" class="md-nav__link">
+        
+  
+  
+  <span class="md-ellipsis">
+    
+  
+    Operación
+  
+
+    
+  </span>
+  
+  
+
+      </a>
+    </li>
+  
+
+              
+            
+          </ul>
+        </nav>
+      
+    </li>
+  
+
+    
+      
+      
+  
+  
+  
+  
+    
+    
+    
+    
+      
+      
+    
+    
+    <li class="md-nav__item md-nav__item--nested">
+      
+        
+        
+        <input class="md-nav__toggle md-toggle " type="checkbox" id="__nav_7" >
+        
+          
+          <label class="md-nav__link" for="__nav_7" id="__nav_7_label" tabindex="0">
+            
+  
+  
+  <span class="md-ellipsis">
+    
+  
+    Referencia
+  
+
+    
+  </span>
+  
+  
+
+            <span class="md-nav__icon md-icon"></span>
+          </label>
+        
+        <nav class="md-nav" data-md-level="1" aria-labelledby="__nav_7_label" aria-expanded="false">
+          <label class="md-nav__title" for="__nav_7">
+            <span class="md-nav__icon md-icon"></span>
+            
+  
+    Referencia
+  
+
+          </label>
+          <ul class="md-nav__list" data-md-scrollfix>
+            
+              
+                
+  
+  
+  
+  
+    <li class="md-nav__item">
+      <a href="../../../../../backend/core/docs/KPIs/" class="md-nav__link">
+        
+  
+  
+  <span class="md-ellipsis">
+    
+  
+    KPIs
+  
+
+    
+  </span>
+  
+  
+
+      </a>
+    </li>
+  
+
+              
+            
+              
+                
+  
+  
+  
+  
+    <li class="md-nav__item">
+      <a href="../../../../../backend/core/docs/COSTOS_ENGINE/" class="md-nav__link">
+        
+  
+  
+  <span class="md-ellipsis">
+    
+  
+    Motor de costos
+  
+
+    
+  </span>
+  
+  
+
+      </a>
+    </li>
+  
+
+              
+            
+              
+                
+  
+  
+  
+  
+    <li class="md-nav__item">
+      <a href="../../../../../backend/core/docs/ANALYTICS/" class="md-nav__link">
+        
+  
+  
+  <span class="md-ellipsis">
+    
+  
+    Analítica
+  
+
+    
+  </span>
+  
+  
+
+      </a>
+    </li>
+  
+
+              
+            
+              
+                
+  
+  
+  
+  
+    <li class="md-nav__item">
+      <a href="../../../../../backend/core/docs/CORE/" class="md-nav__link">
+        
+  
+  
+  <span class="md-ellipsis">
+    
+  
+    Motor de salud financiera
+  
+
+    
+  </span>
+  
+  
+
+      </a>
+    </li>
+  
+
+              
+            
+              
+                
+  
+  
+  
+  
+    <li class="md-nav__item">
+      <a href="../../PWA_OFFLINE/" class="md-nav__link">
+        
+  
+  
+  <span class="md-ellipsis">
+    
+  
+    PWA offline
+  
+
+    
+  </span>
+  
+  
+
+      </a>
+    </li>
+  
+
+              
+            
+          </ul>
+        </nav>
+      
+    </li>
+  
+
+    
+  </ul>
+</nav>
+                  </div>
+                </div>
+              </div>
+            
+            
+              
+              <div class="md-sidebar md-sidebar--secondary" data-md-component="sidebar" data-md-type="toc" >
+                <div class="md-sidebar__scrollwrap">
+                  <div class="md-sidebar__inner">
+                    
+
+<nav class="md-nav md-nav--secondary" aria-label="Tabla de contenidos">
+  
+  
+  
+    
+  
+  
+    <label class="md-nav__title" for="__toc">
+      <span class="md-nav__icon md-icon"></span>
+      Tabla de contenidos
+    </label>
+    <ul class="md-nav__list" data-md-component="toc" data-md-scrollfix>
+      
+        <li class="md-nav__item">
+  <a href="#1-diagnostico-del-estado-actual" class="md-nav__link">
+    <span class="md-ellipsis">
+      
+        1. Diagnóstico del Estado Actual
+      
+    </span>
+  </a>
+  
+    <nav class="md-nav" aria-label="1. Diagnóstico del Estado Actual">
+      <ul class="md-nav__list">
+        
+          <li class="md-nav__item">
+  <a href="#problemas-clave-identificados" class="md-nav__link">
+    <span class="md-ellipsis">
+      
+        Problemas Clave Identificados:
+      
+    </span>
+  </a>
+  
+</li>
+        
+      </ul>
+    </nav>
+  
+</li>
+      
+        <li class="md-nav__item">
+  <a href="#2-nueva-jerarquia-de-alertas" class="md-nav__link">
+    <span class="md-ellipsis">
+      
+        2. Nueva Jerarquía de Alertas
+      
+    </span>
+  </a>
+  
+</li>
+      
+        <li class="md-nav__item">
+  <a href="#3-especificacion-de-accionabilidad-actionable-alerts" class="md-nav__link">
+    <span class="md-ellipsis">
+      
+        3. Especificación de Accionabilidad (Actionable Alerts)
+      
+    </span>
+  </a>
+  
+</li>
+      
+        <li class="md-nav__item">
+  <a href="#4-cambios-propuestos-por-pantalla" class="md-nav__link">
+    <span class="md-ellipsis">
+      
+        4. Cambios Propuestos por Pantalla
+      
+    </span>
+  </a>
+  
+    <nav class="md-nav" aria-label="4. Cambios Propuestos por Pantalla">
+      <ul class="md-nav__list">
+        
+          <li class="md-nav__item">
+  <a href="#41-analisisgastospagevue-y-alertspanelvue" class="md-nav__link">
+    <span class="md-ellipsis">
+      
+        4.1 AnalisisGastosPage.vue y AlertsPanel.vue
+      
+    </span>
+  </a>
+  
+</li>
+        
+          <li class="md-nav__item">
+  <a href="#42-dashboardpagevue" class="md-nav__link">
+    <span class="md-ellipsis">
+      
+        4.2 DashboardPage.vue
+      
+    </span>
+  </a>
+  
+</li>
+        
+      </ul>
+    </nav>
+  
+</li>
+      
+        <li class="md-nav__item">
+  <a href="#5-plan-de-implementacion-por-fases" class="md-nav__link">
+    <span class="md-ellipsis">
+      
+        5. Plan de Implementación por Fases
+      
+    </span>
+  </a>
+  
+</li>
+      
+        <li class="md-nav__item">
+  <a href="#6-criterios-de-aceptacion-y-verificacion" class="md-nav__link">
+    <span class="md-ellipsis">
+      
+        6. Criterios de Aceptación y Verificación
+      
+    </span>
+  </a>
+  
+    <nav class="md-nav" aria-label="6. Criterios de Aceptación y Verificación">
+      <ul class="md-nav__list">
+        
+          <li class="md-nav__item">
+  <a href="#verificacion-manual" class="md-nav__link">
+    <span class="md-ellipsis">
+      
+        Verificación Manual:
+      
+    </span>
+  </a>
+  
+</li>
+        
+      </ul>
+    </nav>
+  
+</li>
+      
+        <li class="md-nav__item">
+  <a href="#7-decisiones-finales-del-build-2026-11-09" class="md-nav__link">
+    <span class="md-ellipsis">
+      
+        7. Decisiones finales del build (2026-11-09)
+      
+    </span>
+  </a>
+  
+    <nav class="md-nav" aria-label="7. Decisiones finales del build (2026-11-09)">
+      <ul class="md-nav__list">
+        
+          <li class="md-nav__item">
+  <a href="#actualizacion-2026-11-11-alertas-con-datos-reales-reproduccion-en-staging-tenant-mi-rinconcito-criollo" class="md-nav__link">
+    <span class="md-ellipsis">
+      
+        Actualización 2026-11-11 — alertas con datos reales (reproducción en staging, tenant Mi Rinconcito Criollo)
+      
+    </span>
+  </a>
+  
+</li>
+        
+          <li class="md-nav__item">
+  <a href="#actualizacion-2026-11-13-motor-de-salud-sin-falsas-alarmas-de-mes-a-medias-reproduccion-en-staging-tenant-mi-rinconcito-criollo" class="md-nav__link">
+    <span class="md-ellipsis">
+      
+        Actualización 2026-11-13 — motor de salud: sin falsas alarmas de mes a medias (reproducción en staging, tenant Mi Rinconcito Criollo)
+      
+    </span>
+  </a>
+  
+</li>
+        
+      </ul>
+    </nav>
+  
+</li>
+      
+        <li class="md-nav__item">
+  <a href="#8-estrategia-de-correccion-total-de-alertas-diseno-2026-11-13-lotes-1-2-y-3-implementados-2026-11-17" class="md-nav__link">
+    <span class="md-ellipsis">
+      
+        8. Estrategia de corrección total de alertas (diseño 2026-11-13) — Lotes 1, 2 y 3 implementados 2026-11-17
+      
+    </span>
+  </a>
+  
+    <nav class="md-nav" aria-label="8. Estrategia de corrección total de alertas (diseño 2026-11-13) — Lotes 1, 2 y 3 implementados 2026-11-17">
+      <ul class="md-nav__list">
+        
+          <li class="md-nav__item">
+  <a href="#reglas-base-aplican-a-todos-los-avisos" class="md-nav__link">
+    <span class="md-ellipsis">
+      
+        Reglas base (aplican a todos los avisos)
+      
+    </span>
+  </a>
+  
+</li>
+        
+          <li class="md-nav__item">
+  <a href="#lote-1-los-que-mienten-con-datos-reales" class="md-nav__link">
+    <span class="md-ellipsis">
+      
+        Lote 1 — los que mienten con datos reales
+      
+    </span>
+  </a>
+  
+</li>
+        
+          <li class="md-nav__item">
+  <a href="#lote-2-ruido-y-casos-raros" class="md-nav__link">
+    <span class="md-ellipsis">
+      
+        Lote 2 — ruido y casos raros
+      
+    </span>
+  </a>
+  
+</li>
+        
+          <li class="md-nav__item">
+  <a href="#lote-3-lo-que-se-ve-y-la-casa-implementado-2026-11-17" class="md-nav__link">
+    <span class="md-ellipsis">
+      
+        Lote 3 — lo que se ve y la casa (implementado 2026-11-17)
+      
+    </span>
+  </a>
+  
+</li>
+        
+          <li class="md-nav__item">
+  <a href="#no-se-toca" class="md-nav__link">
+    <span class="md-ellipsis">
+      
+        No se toca
+      
+    </span>
+  </a>
+  
+</li>
+        
+          <li class="md-nav__item">
+  <a href="#orden-y-verificacion" class="md-nav__link">
+    <span class="md-ellipsis">
+      
+        Orden y verificación
+      
+    </span>
+  </a>
+  
+</li>
+        
+      </ul>
+    </nav>
+  
+</li>
+      
+    </ul>
+  
+</nav>
+                  </div>
+                </div>
+              </div>
+            
+          
+          
+            <div class="md-content" data-md-component="content">
+              
+              <article class="md-content__inner md-typeset">
+                
+                  
+
+
+
+<h1 id="estrategia-y-plan-de-mejora-sistema-de-alertas">Estrategia y Plan de Mejora — Sistema de Alertas<a class="headerlink" href="#estrategia-y-plan-de-mejora-sistema-de-alertas" title="Permanent link">&para;</a></h1>
+<p><strong>Estado:</strong> ✅ IMPLEMENTADO — Lote 1 (2026-11-16), Lote 2 (2026-11-16), Lote 3 (2026-11-17). Ver §7 (decisiones del build) y §8 (lotes y criterios reales). <code>Source: DAILY_REPORTS_CORE_SOLUTIONS.md y DAILY_REPORTS_FRONTEND.md</code>.
+<strong>Ámbito:</strong> <code>AlertsPanel.vue</code>, <code>FinancialHealthAlerts.vue</code>, <code>AnalisisGastosPage.vue</code>, <code>DashboardPage.vue</code>, <code>ProductosPage.vue</code><br />
+<strong>Objetivo:</strong> Unificar y jerarquizar los dos sistemas de alertas existentes, eliminar la duplicidad en la interfaz y dotar a cada alerta de accionabilidad inmediata (resolución en 1 click).</p>
+<hr />
+<h2 id="1-diagnostico-del-estado-actual">1. Diagnóstico del Estado Actual<a class="headerlink" href="#1-diagnostico-del-estado-actual" title="Permanent link">&para;</a></h2>
+<p>En el MVP coexisten dos motores de detección de anomalías bajo el mismo nombre genérico (<strong>"Alertas"</strong>):</p>
+<table>
+<thead>
+<tr>
+<th>Motor</th>
+<th>Tipo</th>
+<th>Origen (<code>AnalyticsServiceImpl.java</code>)</th>
+<th>Componente UI</th>
+<th>Problema Actual</th>
+</tr>
+</thead>
+<tbody>
+<tr>
+<td><strong>Alertas Operativas</strong></td>
+<td>Insumos / Precios</td>
+<td><code>analisisAlertas</code> (CV &gt; 15%, <em>Supplier Premium</em>)</td>
+<td><code>AlertsPanel.vue</code></td>
+<td>Título "Alertas"; se muestra junto al panel de salud financiera.</td>
+</tr>
+<tr>
+<td><strong>Alertas Críticas</strong></td>
+<td>Solvencia / Negocio</td>
+<td><code>analisisSaludFinanciera</code> (Margen negativo, costo diario, deuda &gt; 30%, inventario muerto)</td>
+<td><code>FinancialHealthAlerts.vue</code> (en <code>FinancialHealthPanel</code>)</td>
+<td>Título "Alertas"; compite visualmente con el panel anterior.</td>
+</tr>
+</tbody>
+</table>
+<h3 id="problemas-clave-identificados">Problemas Clave Identificados:<a class="headerlink" href="#problemas-clave-identificados" title="Permanent link">&para;</a></h3>
+<ol>
+<li><strong>Sobrecarga Cognitiva y Ambigüedad</strong>: En <code>AnalisisGastosPage.vue</code>, ambas cajas de alertas aparecen juntas en la sección <code>.analysis-vital</code>. El usuario no distingue qué alerta pone en riesgo la empresa y cuál es un simple desvío de insumos.</li>
+<li><strong>Pasividad (Falta de Accionabilidad)</strong>: Las alertas muestran diagnósticos textuales, pero no ofrecen una acción concreta para corregirlos (ej. no enlazan al catálogo, al proveedor alternativo ni a la deuda).</li>
+<li><strong>Ausencia de Priorización en Dashboard</strong>: En la pantalla de inicio no existe un semáforo claro que indique si hay algún riesgo existencial activo en el mes.</li>
+</ol>
+<hr />
+<h2 id="2-nueva-jerarquia-de-alertas">2. Nueva Jerarquía de Alertas<a class="headerlink" href="#2-nueva-jerarquia-de-alertas" title="Permanent link">&para;</a></h2>
+<pre class="mermaid"><code>flowchart TD
+    subgraph Deteccion ["Motores de Detección (Backend)"]
+        M1["analisisSaludFinanciera()"]
+        M2["analisisAlertas()"]
+    end
+
+    subgraph Clasificacion ["Nueva Clasificación en Frontend"]
+        Nivel1["NIVEL 1: Riesgos Críticos del Negocio&lt;br/&gt;(Caja, Márgenes, Deuda, Quema de Capital)"]
+        Nivel2["NIVEL 2: Desvíos de Precios de Insumos&lt;br/&gt;(Sobreprecios de Proveedor, Variación CV)"]
+    end
+
+    subgraph UI ["Distribución en Vistas"]
+        V1["DashboardPage:&lt;br/&gt;1 Card/Badge con el riesgo más urgente"]
+        V2["AnalisisGastosPage:&lt;br/&gt;Sección 'Salud Financiera' (Nivel 1)"]
+        V3["AnalisisGastosPage:&lt;br/&gt;Sección 'Desvíos de Insumos' con botones de acción (Nivel 2)"]
+    end
+
+    M1 --&gt; Nivel1
+    M2 --&gt; Nivel2
+    Nivel1 --&gt; V1 &amp; V2
+    Nivel2 --&gt; V3</code></pre>
+<hr />
+<h2 id="3-especificacion-de-accionabilidad-actionable-alerts">3. Especificación de Accionabilidad (Actionable Alerts)<a class="headerlink" href="#3-especificacion-de-accionabilidad-actionable-alerts" title="Permanent link">&para;</a></h2>
+<p>Cada alerta debe transformar el texto informativo en una acción inmediata:</p>
+<table>
+<thead>
+<tr>
+<th>Código de Alerta</th>
+<th>Mensaje / Diagnóstico</th>
+<th>Acción Directa (Botón)</th>
+<th>Destino / Efecto</th>
+</tr>
+</thead>
+<tbody>
+<tr>
+<td><code>SUPPLIER_PREMIUM</code></td>
+<td><em>"Proveedor X te cobra +18% sobre el promedio"</em></td>
+<td><strong>Ver alternativas</strong></td>
+<td>Muestra los proveedores con mejor precio o navega a Proveedores</td>
+</tr>
+<tr>
+<td><code>PRICE_VARIATION</code></td>
+<td><em>"Variación de precio &gt;15% en compras recientes"</em></td>
+<td><strong>Ver historial de facturas</strong></td>
+<td>Abre facturas filtradas por ese producto</td>
+</tr>
+<tr>
+<td><code>DEAD_INVENTORY</code></td>
+<td><em>"Inversión estancada sin compras en 60+ días"</em></td>
+<td><strong>Ver productos</strong></td>
+<td>Redirige a <code>/dashboard/productos</code> con filtro de inventario</td>
+</tr>
+<tr>
+<td><code>OVER_LEVERAGED</code></td>
+<td><em>"La deuda consume &gt;30% del margen operativo"</em></td>
+<td><strong>Revisar préstamos</strong></td>
+<td>Redirige a <code>/dashboard/prestamos</code></td>
+</tr>
+<tr>
+<td><code>SUPPLIER_CONCENTRATION</code></td>
+<td><em>"Proveedor dominante concentra &gt;50% del gasto"</em></td>
+<td><strong>Buscar proveedores</strong></td>
+<td>Redirige a <code>/dashboard/proveedores</code></td>
+</tr>
+<tr>
+<td><code>NEGATIVE_OPERATING_MARGIN</code></td>
+<td><em>"Negocio pierde dinero por cada venta"</em></td>
+<td><strong>Auditar costos</strong></td>
+<td>Redirige a <code>/dashboard/costos</code></td>
+</tr>
+</tbody>
+</table>
+<hr />
+<h2 id="4-cambios-propuestos-por-pantalla">4. Cambios Propuestos por Pantalla<a class="headerlink" href="#4-cambios-propuestos-por-pantalla" title="Permanent link">&para;</a></h2>
+<h3 id="41-analisisgastospagevue-y-alertspanelvue">4.1 <code>AnalisisGastosPage.vue</code> y <code>AlertsPanel.vue</code><a class="headerlink" href="#41-analisisgastospagevue-y-alertspanelvue" title="Permanent link">&para;</a></h3>
+<ol>
+<li><strong>Renombrar <code>AlertsPanel</code></strong>:</li>
+<li>Cambiar título de <code>"Alertas"</code> a <strong><code>"Desvíos en Precios de Insumos"</code></strong>.</li>
+<li>Subtítulo sutil: <em>"Productos con sobreprecio o variación anormal"</em>.</li>
+<li>Badge con conteo y severidad (<em>warning</em>).</li>
+<li><strong>Acción por Fila en <code>AlertsPanel.vue</code></strong>:</li>
+<li>Añadir botón de acción rápida al lado del badge de porcentaje:
+     <div class="highlight"><pre><span></span><code><span class="p">&lt;</span><span class="nt">q-btn</span>
+  <span class="na">flat</span> <span class="na">dense</span> <span class="na">round</span>
+  <span class="na">icon</span><span class="o">=</span><span class="s">"sym_r_swap_horiz"</span>
+  <span class="na">color</span><span class="o">=</span><span class="s">"primary"</span>
+  <span class="na">size</span><span class="o">=</span><span class="s">"sm"</span>
+  <span class="err">@</span><span class="na">click</span><span class="o">=</span><span class="s">"goToProduct(alert.productId)"</span>
+<span class="p">&gt;</span>
+  <span class="p">&lt;</span><span class="nt">q-tooltip</span><span class="p">&gt;</span>Ver detalle del producto y compras<span class="p">&lt;/</span><span class="nt">q-tooltip</span><span class="p">&gt;</span>
+<span class="p">&lt;/</span><span class="nt">q-btn</span><span class="p">&gt;</span>
+</code></pre></div></li>
+<li><strong>Separación Limpia en el Layout</strong>:</li>
+<li>Colocar <code>FinancialHealthPanel</code> (con las alertas de <strong>Nivel 1 — Riesgos Críticos</strong>) como diagnóstico de salud general.</li>
+<li>Colocar <code>AlertsPanel</code> (con las alertas de <strong>Nivel 2 — Insumos</strong>) en conjunto con la tarjeta de recomendaciones de proveedores (<code>SupplierRecommendationsCard</code>).</li>
+</ol>
+<h3 id="42-dashboardpagevue">4.2 <code>DashboardPage.vue</code><a class="headerlink" href="#42-dashboardpagevue" title="Permanent link">&para;</a></h3>
+<ol>
+<li><strong>Pill de Alerta Crítica en el Widget de Salud</strong>:</li>
+<li>Si existen alertas de Nivel 1, mostrar la más crítica como un pill warning/danger con icono:<ul>
+<li>Ej.: <code>🔴 Margen Operativo Negativo</code> o <code>🟡 Sobreendeudamiento (35%)</code>.</li>
+</ul>
+</li>
+<li>Si no hay alertas de Nivel 1, mostrar badge verde: <code>🟢 Sin riesgos críticos este mes</code>.</li>
+<li>Al tocar el pill, navega directamente a <code>/dashboard/analisis-gastos</code>.</li>
+</ol>
+<hr />
+<h2 id="5-plan-de-implementacion-por-fases">5. Plan de Implementación por Fases<a class="headerlink" href="#5-plan-de-implementacion-por-fases" title="Permanent link">&para;</a></h2>
+<ul>
+<li><strong>Fase 1 (Claridad de Nombres y Estructura)</strong>:</li>
+<li>Renombrar <code>AlertsPanel.vue</code> a "Desvíos en Precios de Insumos".</li>
+<li>Renombrar <code>FinancialHealthAlerts.vue</code> a "Riesgos del Negocio".</li>
+<li>Reorganizar la grilla de <code>AnalisisGastosPage.vue</code> para que no compitan en la misma columna.</li>
+<li><strong>Fase 2 (Accionabilidad)</strong>:</li>
+<li>Implementar botones de redirección contextual (<code>router.push</code>) en cada ítem de alerta con parámetros de búsqueda/filtro.</li>
+<li><strong>Fase 3 (Dashboard Integration)</strong>:</li>
+<li>Conectar el pill de riesgo principal dentro del widget compacto de salud financiera en <code>DashboardPage.vue</code>.</li>
+</ul>
+<hr />
+<h2 id="6-criterios-de-aceptacion-y-verificacion">6. Criterios de Aceptación y Verificación<a class="headerlink" href="#6-criterios-de-aceptacion-y-verificacion" title="Permanent link">&para;</a></h2>
+<div class="highlight"><pre><span></span><code><span class="c1"># Validar linting</span>
+<span class="nb">cd</span><span class="w"> </span>frontend/pymes<span class="w"> </span><span class="o">&amp;&amp;</span><span class="w"> </span>npm<span class="w"> </span>run<span class="w"> </span>lint
+
+<span class="c1"># Validar compilación</span>
+<span class="nb">cd</span><span class="w"> </span>frontend/pymes<span class="w"> </span><span class="o">&amp;&amp;</span><span class="w"> </span>npm<span class="w"> </span>run<span class="w"> </span>build
+</code></pre></div>
+<h3 id="verificacion-manual">Verificación Manual:<a class="headerlink" href="#verificacion-manual" title="Permanent link">&para;</a></h3>
+<ol>
+<li>En <strong>Análisis de Gastos</strong>, no debe haber dos tarjetas tituladas simplemente "Alertas". Una representa "Salud Financiera (Riesgos Críticos)" y la otra "Desvíos en Precios de Insumos".</li>
+<li>Cada alerta de insumos debe incluir un botón accesible para navegar a la información relevante.</li>
+<li>En el <strong>Dashboard</strong>, debe existir una indicación visual rápida si el negocio enfrenta un riesgo crítico este mes.</li>
+</ol>
+<hr />
+<h2 id="7-decisiones-finales-del-build-2026-11-09">7. Decisiones finales del build (2026-11-09)<a class="headerlink" href="#7-decisiones-finales-del-build-2026-11-09" title="Permanent link">&para;</a></h2>
+<p>Desviaciones respecto al plan original, elegidas por simplicidad y lenguaje no-técnico:</p>
+<ol>
+<li><strong>Fase 1 — tal cual el plan.</strong> Título "Desvíos en Precios de Insumos" + subtítulo "Productos con sobreprecio o variación anormal"; <code>FinancialHealthAlerts</code> → "Riesgos del Negocio (N)". Layout: <code>FinancialHealthPanel</code> a ancho completo; <code>SupplierRecommendationsCard</code> + <code>AlertsPanel</code> comparten grid <code>.analysis-insights</code> (reemplazó a <code>.analysis-vital</code>).</li>
+<li><strong>Fase 2 — acción con destino real.</strong> Botón por fila (<code>sym_r_open_in_new</code>) → <code>{ name: 'productos', query: { buscar: productName } }</code>. <code>ProductosPage.vue</code> lee <code>route.query.buscar</code> en <code>onMounted</code> y pre-carga el buscador (el <code>watch(search)</code> carga filtrado; sin doble request). No hay ruta de detalle por producto ni facturas filtradas — destino a la lista ya filtrada es la versión más simple con señal clara.</li>
+<li><strong>Fase 2b — barras de precio, cero porcentajes (feedback de usuario: "los % son info avanzada").</strong> El badge <code>+18%</code> se eliminó de la fila. En su lugar, dos barras relativas: "Pagaste" (roja/amarilla según severidad; verde si no sobre-paga) vs "Suele costar" (verde), ancho relativo al máximo de las dos. Mensaje concreto en dinero: "Estás pagando B/. 0.90 de más" (<code>currentPrice - avgPrice</code>). Imports: <code>alertBadge</code> eliminado (muerto), <code>useNumberFormat</code> añadido. CSS reutiliza el estilo hardcodeado existente del panel (mismo lenguaje rgba/hex) con <code>--pq-success/warning/danger</code> como referencia de tinte; <code>format-currency</code> tabular-nums.</li>
+<li><strong>Fase 3 — semáforo.</strong> Pill sobre <code>FinancialHealthPanel</code> en <code>DashboardPage</code> (wrapper <code>.health-cell</code> para no romper el grid <code>dashboard-secondary</code>): rojo si <code>code</code> ∈ {NEGATIVE, OVER_LEVERAGED} (mismo criterio que <code>FinancialHealthAlerts.alertColors</code>), amarillo en cualquier otra alerta, verde "Sin riesgos críticos este mes" si no hay alertas. Click → <code>/dashboard/analisis-gastos</code>. El pillo verde no es clickeable (nada que revisar). Colores con <code>color-mix</code> sobre <code>--pq-danger/warning/success</code>.</li>
+<li><strong>Fase 3b — sin números en Riesgos del Negocio:</strong> ya se cumple (título + frase de acción, sin métricas); no requirió código nuevo.</li>
+<li><strong>Auditoría skills (chart-designer / vue-best-practices / responsive-design):</strong> filas de alerta derivadas a view-model <code>rows</code> (template declarativo, cero branch/repeat <code>toNumber</code> en template); zona táctil ≥44px en el botón vía <code>::before</code>; pill del Dashboard con <code>href</code> hash (focusable/tab-ordered, sin <code>@click</code>) + <code>min-height:44px</code>; escala de barras por fila documentada como <code>shortcut</code> (no comparar entre productos: longitudes solo intrínsecas a cada fila — upgrade a escala global si se pide comparar montos absolutos).</li>
+</ol>
+<p>No implementado del doc §3 (tabla completa de accionabilidad por código): los destinos específicos por <code>code</code> (navegar a proveedores/préstamos/costos) — la tabla sigue siendo referencia para futuras iteraciones; hoy toda alerta de insumo lleva a Productos.</p>
+<h3 id="actualizacion-2026-11-11-alertas-con-datos-reales-reproduccion-en-staging-tenant-mi-rinconcito-criollo">Actualización 2026-11-11 — alertas con datos reales (reproducción en staging, tenant Mi Rinconcito Criollo)<a class="headerlink" href="#actualizacion-2026-11-11-alertas-con-datos-reales-reproduccion-en-staging-tenant-mi-rinconcito-criollo" title="Permanent link">&para;</a></h3>
+<ol>
+<li><strong><code>DEAD_INVENTORY</code> → "Productos parados".</strong> Dispara solo con <strong>≥ $50</strong> de capital parado (<code>shortcut:</code> piso fijo; el caso real de $26 en 5 productos era ruido presentado como riesgo crítico — configurable por tenant cuando exista esa configuración). Mensaje neutro: "N productos llevan más de 60 días sin compra." (se quitó el falso "inversión alta"). El backend adjunta <code>items</code> (id/name/totalInvestment/lastPurchaseDate) con la lista que ya calculaba.</li>
+<li><strong><code>PAYBACK_RECOVERY</code> → "Cerraste el mes en pérdida"</strong> + "Gastaste más de lo que vendiste este mes." El <code>metric = -1</code> es centinela interno y no se renderiza.</li>
+<li><strong><code>FinancialHealthAlerts</code></strong>: muestra <code>description</code> (antes se descartaba) y, para <code>DEAD_INVENTORY</code>, el monto parado (<code>formatCurrency(current)</code>) y cada producto como botón ≥44px → <code>productos?buscar=&lt;nombre&gt;</code> (mismo destino que <code>AlertsPanel</code>).</li>
+<li><strong><code>FinancialHealthPanel</code></strong>: "Recomendaciones" se oculta cuando hay alertas críticas (las repetía casi textual); sigue visible en el estado sin métricas.</li>
+<li><strong><code>AlertsPanel</code> — barras "Antes/Ahora" para <code>PRICE_VARIATION</code>.</strong> El wire solo trae <code>avgPrice + cvPct</code> (nunca <code>currentPrice</code>); el normalizador copiaba <code>avgPrice</code> en ambas barras y pintaba las dos verdes con ícono rojo. Ahora se usan primera vs última compra de <code>priceTrail</code> (solo <code>singleLane</code>, <code>count ≥ 2</code>, precios distintos; sube = rojo/amarillo, baja = verde, texto "Subió/Bajó $X"). Sin historial → solo la frase, sin barras. <code>SUPPLIER_PREMIUM</code> conserva "Pagaste/Suele costar" (su wire sí trae ambos precios reales).</li>
+</ol>
+<h3 id="actualizacion-2026-11-13-motor-de-salud-sin-falsas-alarmas-de-mes-a-medias-reproduccion-en-staging-tenant-mi-rinconcito-criollo">Actualización 2026-11-13 — motor de salud: sin falsas alarmas de mes a medias (reproducción en staging, tenant Mi Rinconcito Criollo)<a class="headerlink" href="#actualizacion-2026-11-13-motor-de-salud-sin-falsas-alarmas-de-mes-a-medias-reproduccion-en-staging-tenant-mi-rinconcito-criollo" title="Permanent link">&para;</a></h3>
+<ol>
+<li><strong><code>DAILY_COST_CONTROL</code> → "Los gastos fijos superan tus ventas".</strong> El mes en curso se compara contra <strong>días transcurridos</strong> (dividir las ventas del mes entre los 30 días dispara falsas alarmas: caso real nov-2026, costo fijo $139.80/día vs "$69.60/día" calculado, cuando el ritmo real era ~$174/día ≈ 80%). Meses cerrados siguen comparando el mes completo. Umbral 1.2 se mantiene. Mensaje en dinero: "Gastas $139.80 al día en costos fijos y vendes $174.01 al día."</li>
+<li><strong><code>MARGIN_EROSION</code> solo con meses cerrados.</strong> El mes en curso tiene compras a medias y no es comparable. Crítica solo si el margen bruto actual <strong>&lt; 30%</strong> (mismo piso de margen sano que ya usa la app); si está sano pero cayó &gt;15% relativo, va como <strong>recomendación</strong>, no como riesgo crítico. Mensaje: "De cada $100 que vendes te quedan $54 después de pagar la mercancía; hace 3 meses eran $74."</li>
+<li><strong>Regla de caja explícita:</strong> todos los cálculos de salud usan <code>status = 'PAGADA'</code> (no devengado) — misma base que la dona y FacturasPage; editar/anular facturas REGISTRADAS no mueve ningún número.</li>
+</ol>
+<hr />
+<h2 id="8-estrategia-de-correccion-total-de-alertas-diseno-2026-11-13-lotes-1-2-y-3-implementados-2026-11-17">8. Estrategia de corrección total de alertas (diseño 2026-11-13) — <strong>Lotes 1, 2 y 3 implementados 2026-11-17</strong><a class="headerlink" href="#8-estrategia-de-correccion-total-de-alertas-diseno-2026-11-13-lotes-1-2-y-3-implementados-2026-11-17" title="Permanent link">&para;</a></h2>
+<p>Auditoría del motor completo: de 10 avisos, 1 bien planteado (<code>MARGIN_EROSION</code>), 1 a medias (<code>DAILY_COST_CONTROL</code>) y 8 con defectos. Los defectos se reducen a 3 patrones: <strong>mes a medias</strong> (comparar el mes en curso contra meses cerrados), <strong>porcentajes sin piso en dinero</strong> (un 22% sobre $1.10 es calderilla) y <strong>umbrales calibrados para empresa grande</strong> (una pulpería con un proveedor principal dispara "concentración" todos los meses).</p>
+<h3 id="reglas-base-aplican-a-todos-los-avisos">Reglas base (aplican a todos los avisos)<a class="headerlink" href="#reglas-base-aplican-a-todos-los-avisos" title="Permanent link">&para;</a></h3>
+<ol>
+<li><strong>Caja:</strong> solo facturas <code>PAGADA</code>. Los gastos fijos configurados en Costos <strong>no</strong> se suman a los márgenes (doble conteo si también se registran como factura); la única excepción es el costo diario, que pasa a compararse contra la ganancia real.</li>
+<li><strong>Mes cerrado:</strong> todo aviso que compara meses solo evalúa meses terminados. El mes en curso solo se usa para avisos "hasta hoy" y para el costo diario prorrateado.</li>
+<li><strong>Piso de dinero:</strong> $50 de gasto/inversión (mismo piso que ya tiene <code>DEAD_INVENTORY</code>). Un porcentaje sobre un monto menor no dispara nada.</li>
+</ol>
+<h3 id="lote-1-los-que-mienten-con-datos-reales">Lote 1 — los que mienten con datos reales<a class="headerlink" href="#lote-1-los-que-mienten-con-datos-reales" title="Permanent link">&para;</a></h3>
+<table>
+<thead>
+<tr>
+<th>Aviso</th>
+<th>Regla nueva</th>
+<th>Mensaje</th>
+<th>Severidad</th>
+</tr>
+</thead>
+<tbody>
+<tr>
+<td><code>NEGATIVE_OPERATING_MARGIN</code></td>
+<td>Ventas = 0 y gastos &gt; 0 → avisa (hoy <code>safePct</code> devuelve 0 y no avisa). Margen &lt; 0 → la pérdida en dinero; en mes en curso el texto dice "hasta hoy".</td>
+<td>"No registraste ventas este mes y tienes $500 en gastos." / "Hasta hoy, este mes gastaste $300 más de lo que vendiste."</td>
+<td>Crítica</td>
+</tr>
+<tr>
+<td><code>SUPPLIER_CONCENTRATION</code></td>
+<td>Solo con 2+ proveedores, uno &gt; 70% y compras ≥ $500. Con un solo proveedor no avisa: no hay alternativa, es un hecho, no un riesgo.</td>
+<td>"El 78% de tus compras ($1,240) van a un solo proveedor."</td>
+<td>Advertencia</td>
+</tr>
+<tr>
+<td><code>OPEX_CREEP</code></td>
+<td>Solo meses cerrados; exige que los gastos hayan subido ≥ $50 en 3 meses <strong>y</strong> suban más que las ventas (hoy dispara aunque ambos hayan caído).</td>
+<td>"Tus gastos subieron $320 en 3 meses y tus ventas $80."</td>
+<td>Advertencia</td>
+</tr>
+<tr>
+<td><code>DAILY_COST_CONTROL</code></td>
+<td>Costo fijo del mes vs <strong>ganancia del mes</strong> (ventas − mercancía), con los mismos días (hoy compara contra ventas y divide por 30 un costo que es por día laboral). En curso: prorratear el fijo por días transcurridos. Sin colchón 1.2: si el fijo supera la ganancia, se pierde plata.</td>
+<td>"Ganas $94 al día después de pagar la mercancía y tus costos fijos son $139 al día."</td>
+<td>Crítica</td>
+</tr>
+<tr>
+<td><code>PAYBACK_RECOVERY</code></td>
+<td>Solo meses cerrados; pérdida solo con margen neto <strong>negativo</strong> (no cero — hoy dispara con 0 ventas); métrica = pérdida real, no centinela <code>-1</code>.</td>
+<td>"Este mes gastaste $450 más de lo que vendiste."</td>
+<td>Crítica</td>
+</tr>
+</tbody>
+</table>
+<h3 id="lote-2-ruido-y-casos-raros">Lote 2 — ruido y casos raros<a class="headerlink" href="#lote-2-ruido-y-casos-raros" title="Permanent link">&para;</a></h3>
+<table>
+<thead>
+<tr>
+<th>Aviso</th>
+<th>Regla nueva</th>
+<th>Mensaje</th>
+<th>Severidad</th>
+</tr>
+</thead>
+<tbody>
+<tr>
+<td><code>OVER_LEVERAGED</code></td>
+<td>Deuda del mes / ventas &gt; 15% y deuda ≥ $100 (hoy <code>deuda/margenOperativo</code> explota con margen positivo chico). La señal <code>DEBT_CUSHION</code> sigue en &lt; 10% de ventas.</td>
+<td>"La deuda se lleva $18 de cada $100 que vendes ($240 al mes)."</td>
+<td>Crítica</td>
+</tr>
+<tr>
+<td><code>DEAD_INVENTORY</code></td>
+<td>Excluir productos nunca comprados (<code>lastPurchaseDate == null</code> hoy cuenta como "60+ días sin compra"). Título "Productos que dejaste de comprar"; el monto se presenta como inversión histórica. <code>shortcut:</code> sin control de stock, el monto es lo comprado en la vida del producto, no lo parado en estantería.</td>
+<td>"Dejaste de comprar 4 productos. Invertiste $260 en ellos."</td>
+<td>Advertencia</td>
+</tr>
+<tr>
+<td><code>PRICE_VARIATION</code></td>
+<td>Mismo 15% CV y 3 compras, más piso: el producto debe mover ≥ $50 en el período.</td>
+<td>La UI arma el texto con precio antes/ahora (sin cambios).</td>
+<td>La que ya calcula la UI (50%/30%)</td>
+</tr>
+<tr>
+<td><code>SUPPLIER_PREMIUM</code></td>
+<td>Comparar contra el <strong>proveedor más barato</strong>, no contra el promedio ponderado (que incluye al caro y diluye la señal). 15%, 3 compras y gasto ≥ $50 por proveedor-producto. No se borra: 24 referencias en UI y tests.</td>
+<td>"En X pagaste $12 y el más barato es $10: $2 de más por unidad."</td>
+<td>La actual</td>
+</tr>
+</tbody>
+</table>
+<h3 id="lote-3-lo-que-se-ve-y-la-casa-implementado-2026-11-17">Lote 3 — lo que se ve y la casa (implementado 2026-11-17)<a class="headerlink" href="#lote-3-lo-que-se-ve-y-la-casa-implementado-2026-11-17" title="Permanent link">&para;</a></h3>
+<ul>
+<li><strong>Color por <code>severity</code> del backend</strong> (rojo crítico / amarillo advertencia): antes 5 avisos críticos (<code>MARGIN_EROSION</code>, <code>DAILY_COST_CONTROL</code>, <code>DEAD_INVENTORY</code>, <code>OPEX_CREEP</code>, <code>PAYBACK_RECOVERY</code>) salían amarillos porque el frontend coloreaba por código. Ahora <code>FinancialHealthAlerts.vue</code> y el pill del Dashboard usan <code>severity</code>.</li>
+<li><strong>Borrar <code>isGoodDependence</code></strong> (<code>financialGuide.ts</code>): parche que convertía la concentración en amarillo con cualquier recomendación &lt; 10% de ahorro, sin mirar quién es el proveedor dominante. Con la regla nueva del backend, sobra. Se eliminó también el chain de props <code>health</code>/<code>recommendations</code> que solo alimentaba ese parche (panel y 2 páginas).</li>
+<li><strong>Normalizar <code>severity</code></strong> en <code>analyticsNormalize</code> (<code>WARNING</code> si el wire lo dice, si no <code>CRITICAL</code> — caché vieja) + 1 test.</li>
+<li><strong><code>criticalAlerts</code> ordenados CRITICAL primero</strong> en <code>AnalyticsServiceImpl</code> + 1 test: el pill lee <code>[0]</code>, sin el orden podía salir amarillo con una roja detrás.</li>
+<li><strong>Documentado</strong> en este archivo + <code>DAILY_REPORTS_FRONTEND.md</code>.</li>
+</ul>
+<h3 id="no-se-toca">No se toca<a class="headerlink" href="#no-se-toca" title="Permanent link">&para;</a></h3>
+<ul>
+<li><code>MARGIN_EROSION</code>: ya quedó bien planteada.</li>
+<li>No se suman gastos fijos/salarios configurados a los márgenes (doble conteo con facturas).</li>
+<li>Sin migraciones: todo es código y SQL existente.</li>
+</ul>
+<h3 id="orden-y-verificacion">Orden y verificación<a class="headerlink" href="#orden-y-verificacion" title="Permanent link">&para;</a></h3>
+<ol>
+<li>Lote 1 (5 avisos) + tests unitarios → <code>./mvnw test -B</code>.</li>
+<li>Lote 2 (4 avisos) + tests + 2 de integración para los pisos de $50 → <code>./mvnw verify -B -Dspring.profiles.active=integration</code>.</li>
+<li>Lote 3 → <code>npm run test</code>, <code>npm run lint</code>, <code>npm run build</code>.</li>
+<li>Staging: recalcular 2026-11 y 2026-10, revisar qué avisos quedan, probar en dispositivo tras limpiar datos del sitio.</li>
+</ol>
+<p><strong>Pendiente de validar con staging:</strong> los umbrales (70%, 15%, $50, $100) son los actuales o los más cercanos; se ajustan con avisos reales. Riesgo conocido: el cambio de costo diario puede exponer la pérdida real que hoy el motor oculta (nov-2026: ganancia tras mercancía ~$94/día vs $139.80/día de fijos).</p>
+
+
+
+
+
+
+
+
+
+
+
+
+                
+              </article>
+            </div>
+          
+          
+<script>var target=document.getElementById(location.hash.slice(1));target&&target.name&&(target.checked=target.name.startsWith("__tabbed_"))</script>
+        </div>
+        
+          <button type="button" class="md-top md-icon" data-md-component="top" hidden>
+  
+  <svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 24 24"><path d="M13 20h-2V8l-5.5 5.5-1.42-1.42L12 4.16l7.92 7.92-1.42 1.42L13 8z"/></svg>
+  Volver al principio
+</button>
+        
+      </main>
+      
+        <footer class="md-footer">
+  
+  <div class="md-footer-meta md-typeset">
+    <div class="md-footer-meta__inner md-grid">
+      <div class="md-copyright">
+  
+  
+    Made with
+    <a href="https://squidfunk.github.io/mkdocs-material/" target="_blank" rel="noopener">
+      Material for MkDocs
+    </a>
+  
+</div>
+      
+    </div>
+  </div>
+</footer>
+      
+    </div>
+    <div class="md-dialog" data-md-component="dialog">
+      <div class="md-dialog__inner md-typeset"></div>
+    </div>
+    
+    
+    
+      
+      
+      <script id="__config" type="application/json">{"annotate": null, "base": "../../../../..", "features": ["navigation.tabs", "navigation.top", "search.highlight", "content.code.copy"], "search": "../../../../../assets/javascripts/workers/search.a7633da7.min.js", "tags": null, "translations": {"clipboard.copied": "Copiado al portapapeles", "clipboard.copy": "Copiar al portapapeles", "search.result.more.one": "1 m\u00e1s en esta p\u00e1gina", "search.result.more.other": "# m\u00e1s en esta p\u00e1gina", "search.result.none": "No se encontraron documentos", "search.result.one": "1 documento encontrado", "search.result.other": "# documentos encontrados", "search.result.placeholder": "Teclee para comenzar b\u00fasqueda", "search.result.term.missing": "Falta", "select.version": "Seleccionar versi\u00f3n"}, "version": null}</script>
+    
+    
+      <script src="../../../../../assets/javascripts/bundle.a5f9d56c.min.js"></script>
+      
+    
+  </body>
+</html>

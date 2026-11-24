@@ -1,0 +1,3213 @@
+
+<!doctype html>
+<html lang="es" class="no-js">
+  <head>
+    
+      <meta charset="utf-8">
+      <meta name="viewport" content="width=device-width,initial-scale=1">
+      
+        <meta name="description" content="Documentación del producto, arquitectura, API y operación">
+      
+      
+        <meta name="author" content="dio-quincarDev">
+      
+      
+      
+        <link rel="prev" href="../KPIs/">
+      
+      
+        <link rel="next" href="../ANALYTICS/">
+      
+      
+        
+      
+      
+      <link rel="icon" href="../../../../assets/images/favicon.png">
+      <meta name="generator" content="mkdocs-1.6.1, mkdocs-material-9.8.2">
+    
+    
+      
+        <title>Motor de costos - Pymeq — Forensic Accounting for Small Business</title>
+      
+    
+    
+      <link rel="stylesheet" href="../../../../assets/stylesheets/main.57a0d79d.min.css">
+      
+        
+        <link rel="stylesheet" href="../../../../assets/stylesheets/palette.fb2fffe2.min.css">
+      
+      
+
+
+    
+    
+      
+    
+    
+      
+        
+        
+        <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+        <link rel="stylesheet" href="https://fonts.googleapis.com/css?family=Roboto:300,300i,400,400i,700,700i%7CRoboto+Mono:400,400i,700,700i&display=fallback">
+        <style>:root{--md-text-font:"Roboto";--md-code-font:"Roboto Mono"}</style>
+      
+    
+    
+    <script>__md_scope=new URL("../../../..",location),__md_hash=e=>[...e].reduce(((e,_)=>(e<<5)-e+_.charCodeAt(0)),0),__md_get=(e,_=localStorage,t=__md_scope)=>JSON.parse(_.getItem(t.pathname+"."+e)),__md_set=(e,_,t=localStorage,a=__md_scope)=>{try{t.setItem(a.pathname+"."+e,JSON.stringify(_))}catch(e){}}</script>
+    
+      
+
+    
+    
+  </head>
+  
+  
+    
+    
+      
+    
+    
+    
+    
+    <body dir="ltr" data-md-color-scheme="slate" data-md-color-primary="teal" data-md-color-accent="amber">
+  
+    
+    <input class="md-toggle" data-md-toggle="drawer" type="checkbox" id="__drawer" autocomplete="off">
+    <input class="md-toggle" data-md-toggle="search" type="checkbox" id="__search" autocomplete="off">
+    <label class="md-overlay" for="__drawer"></label>
+    <div data-md-component="skip">
+      
+        
+        <a href="#motor-de-estructura-de-costos" class="md-skip">
+          Saltar a contenido
+        </a>
+      
+    </div>
+    <div data-md-component="announce">
+      
+    </div>
+    
+    
+      
+
+<header class="md-header" data-md-component="header">
+  <nav class="md-header__inner md-grid" aria-label="Cabecera">
+    <a href="../../../.." title="Pymeq — Forensic Accounting for Small Business" class="md-header__button md-logo" aria-label="Pymeq — Forensic Accounting for Small Business" data-md-component="logo">
+      
+  
+  <svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 24 24"><path d="M12 8a3 3 0 0 0 3-3 3 3 0 0 0-3-3 3 3 0 0 0-3 3 3 3 0 0 0 3 3m0 3.54C9.64 9.35 6.5 8 3 8v11c3.5 0 6.64 1.35 9 3.54 2.36-2.19 5.5-3.54 9-3.54V8c-3.5 0-6.64 1.35-9 3.54"/></svg>
+
+    </a>
+    <label class="md-header__button md-icon" for="__drawer">
+      
+      <svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 24 24"><path d="M3 6h18v2H3zm0 5h18v2H3zm0 5h18v2H3z"/></svg>
+    </label>
+    <div class="md-header__title" data-md-component="header-title">
+      <div class="md-header__ellipsis">
+        <div class="md-header__topic">
+          <span class="md-ellipsis">
+            Pymeq — Forensic Accounting for Small Business
+          </span>
+        </div>
+        <div class="md-header__topic" data-md-component="header-topic">
+          <span class="md-ellipsis">
+            
+              Motor de costos
+            
+          </span>
+        </div>
+      </div>
+    </div>
+    
+      
+        <form class="md-header__option" data-md-component="palette">
+  
+    
+    
+    
+    <input class="md-option" data-md-color-media="" data-md-color-scheme="slate" data-md-color-primary="teal" data-md-color-accent="amber"  aria-label="Cambiar a tema claro"  type="radio" name="__palette" id="__palette_0">
+    
+      <label class="md-header__button md-icon" title="Cambiar a tema claro" for="__palette_1" hidden>
+        <svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 24 24"><path d="m17.75 4.09-2.53 1.94.91 3.06-2.63-1.81-2.63 1.81.91-3.06-2.53-1.94L12.44 4l1.06-3 1.06 3zm3.5 6.91-1.64 1.25.59 1.98-1.7-1.17-1.7 1.17.59-1.98L15.75 11l2.06-.05L18.5 9l.69 1.95zm-2.28 4.95c.83-.08 1.72 1.1 1.19 1.85-.32.45-.66.87-1.08 1.27C15.17 23 8.84 23 4.94 19.07c-3.91-3.9-3.91-10.24 0-14.14.4-.4.82-.76 1.27-1.08.75-.53 1.93.36 1.85 1.19-.27 2.86.69 5.83 2.89 8.02a9.96 9.96 0 0 0 8.02 2.89m-1.64 2.02a12.08 12.08 0 0 1-7.8-3.47c-2.17-2.19-3.33-5-3.49-7.82-2.81 3.14-2.7 7.96.31 10.98 3.02 3.01 7.84 3.12 10.98.31"/></svg>
+      </label>
+    
+  
+    
+    
+    
+    <input class="md-option" data-md-color-media="" data-md-color-scheme="default" data-md-color-primary="teal" data-md-color-accent="amber"  aria-label="Cambiar a tema oscuro"  type="radio" name="__palette" id="__palette_1">
+    
+      <label class="md-header__button md-icon" title="Cambiar a tema oscuro" for="__palette_0" hidden>
+        <svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 24 24"><path d="M12 7a5 5 0 0 1 5 5 5 5 0 0 1-5 5 5 5 0 0 1-5-5 5 5 0 0 1 5-5m0 2a3 3 0 0 0-3 3 3 3 0 0 0 3 3 3 3 0 0 0 3-3 3 3 0 0 0-3-3m0-7 2.39 3.42C13.65 5.15 12.84 5 12 5s-1.65.15-2.39.42zM3.34 7l4.16-.35A7.2 7.2 0 0 0 5.94 8.5c-.44.74-.69 1.5-.83 2.29zm.02 10 1.76-3.77a7.131 7.131 0 0 0 2.38 4.14zM20.65 7l-1.77 3.79a7.02 7.02 0 0 0-2.38-4.15zm-.01 10-4.14.36c.59-.51 1.12-1.14 1.54-1.86.42-.73.69-1.5.83-2.29zM12 22l-2.41-3.44c.74.27 1.55.44 2.41.44.82 0 1.63-.17 2.37-.44z"/></svg>
+      </label>
+    
+  
+</form>
+      
+    
+    
+      <script>var palette=__md_get("__palette");if(palette&&palette.color){if("(prefers-color-scheme)"===palette.color.media){var media=matchMedia("(prefers-color-scheme: light)"),input=document.querySelector(media.matches?"[data-md-color-media='(prefers-color-scheme: light)']":"[data-md-color-media='(prefers-color-scheme: dark)']");palette.color.media=input.getAttribute("data-md-color-media"),palette.color.scheme=input.getAttribute("data-md-color-scheme"),palette.color.primary=input.getAttribute("data-md-color-primary"),palette.color.accent=input.getAttribute("data-md-color-accent")}for(var[key,value]of Object.entries(palette.color))document.body.setAttribute("data-md-color-"+key,value)}</script>
+    
+    
+    
+      
+      
+        <label class="md-header__button md-icon" for="__search">
+          
+          <svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 24 24"><path d="M9.5 3A6.5 6.5 0 0 1 16 9.5c0 1.61-.59 3.09-1.56 4.23l.27.27h.79l5 5-1.5 1.5-5-5v-.79l-.27-.27A6.52 6.52 0 0 1 9.5 16 6.5 6.5 0 0 1 3 9.5 6.5 6.5 0 0 1 9.5 3m0 2C7 5 5 7 5 9.5S7 14 9.5 14 14 12 14 9.5 12 5 9.5 5"/></svg>
+        </label>
+        <div class="md-search" data-md-component="search" role="dialog">
+  <label class="md-search__overlay" for="__search"></label>
+  <div class="md-search__inner" role="search">
+    <form class="md-search__form" name="search">
+      <input type="text" class="md-search__input" name="query" aria-label="Búsqueda" placeholder="Búsqueda" autocapitalize="off" autocorrect="off" autocomplete="off" spellcheck="false" data-md-component="search-query" required>
+      <label class="md-search__icon md-icon" for="__search">
+        
+        <svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 24 24"><path d="M9.5 3A6.5 6.5 0 0 1 16 9.5c0 1.61-.59 3.09-1.56 4.23l.27.27h.79l5 5-1.5 1.5-5-5v-.79l-.27-.27A6.52 6.52 0 0 1 9.5 16 6.5 6.5 0 0 1 3 9.5 6.5 6.5 0 0 1 9.5 3m0 2C7 5 5 7 5 9.5S7 14 9.5 14 14 12 14 9.5 12 5 9.5 5"/></svg>
+        
+        <svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 24 24"><path d="M20 11v2H8l5.5 5.5-1.42 1.42L4.16 12l7.92-7.92L13.5 5.5 8 11z"/></svg>
+      </label>
+      <nav class="md-search__options" aria-label="Buscar">
+        
+        <button type="reset" class="md-search__icon md-icon" title="Limpiar" aria-label="Limpiar" tabindex="-1">
+          
+          <svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 24 24"><path d="M19 6.41 17.59 5 12 10.59 6.41 5 5 6.41 10.59 12 5 17.59 6.41 19 12 13.41 17.59 19 19 17.59 13.41 12z"/></svg>
+        </button>
+      </nav>
+      
+    </form>
+    <div class="md-search__output">
+      <div class="md-search__scrollwrap" tabindex="0" data-md-scrollfix>
+        <div class="md-search-result" data-md-component="search-result">
+          <div class="md-search-result__meta">
+            Inicializando búsqueda
+          </div>
+          <ol class="md-search-result__list" role="presentation"></ol>
+        </div>
+      </div>
+    </div>
+  </div>
+</div>
+      
+    
+    
+      <div class="md-header__source">
+        <a href="https://github.com/dio-quincarDev/pymes-admin" title="Ir al repositorio" class="md-source" data-md-component="source">
+  <div class="md-source__icon md-icon">
+    
+    <svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 448 512"><!--! Font Awesome Free 7.1.0 by @fontawesome - https://fontawesome.com License - https://fontawesome.com/license/free (Icons: CC BY 4.0, Fonts: SIL OFL 1.1, Code: MIT License) Copyright 2025 Fonticons, Inc.--><path d="M439.6 236.1 244 40.5c-5.4-5.5-12.8-8.5-20.4-8.5s-15 3-20.4 8.4L162.5 81l51.5 51.5c27.1-9.1 52.7 16.8 43.4 43.7l49.7 49.7c34.2-11.8 61.2 31 35.5 56.7-26.5 26.5-70.2-2.9-56-37.3L240.3 199v121.9c25.3 12.5 22.3 41.8 9.1 55-6.4 6.4-15.2 10.1-24.3 10.1s-17.8-3.6-24.3-10.1c-17.6-17.6-11.1-46.9 11.2-56v-123c-20.8-8.5-24.6-30.7-18.6-45L142.6 101 8.5 235.1C3 240.6 0 247.9 0 255.5s3 15 8.5 20.4l195.6 195.7c5.4 5.4 12.7 8.4 20.4 8.4s15-3 20.4-8.4l194.7-194.7c5.4-5.4 8.4-12.8 8.4-20.4s-3-15-8.4-20.4"/></svg>
+  </div>
+  <div class="md-source__repository">
+    dio-quincarDev/pymes-admin
+  </div>
+</a>
+      </div>
+    
+  </nav>
+  
+</header>
+    
+    <div class="md-container" data-md-component="container">
+      
+      
+        
+          
+            
+<nav class="md-tabs" aria-label="Pestañas" data-md-component="tabs">
+  <div class="md-grid">
+    <ul class="md-tabs__list">
+      
+        
+  
+  
+  
+  
+    <li class="md-tabs__item">
+      <a href="../../../.." class="md-tabs__link">
+        
+  
+  
+    
+  
+  Inicio
+
+      </a>
+    </li>
+  
+
+      
+        
+  
+  
+  
+  
+    
+    
+      <li class="md-tabs__item">
+        <a href="../../../.." class="md-tabs__link">
+          
+  
+  
+  Producto
+
+        </a>
+      </li>
+    
+  
+
+      
+        
+  
+  
+  
+  
+    
+    
+      <li class="md-tabs__item">
+        <a href="../../../../docs/api/" class="md-tabs__link">
+          
+  
+  
+  API Reference
+
+        </a>
+      </li>
+    
+  
+
+      
+        
+  
+  
+  
+  
+    
+    
+      <li class="md-tabs__item">
+        <a href="../../../../docs/architecture/architecture/" class="md-tabs__link">
+          
+  
+  
+  Arquitectura
+
+        </a>
+      </li>
+    
+  
+
+      
+        
+  
+  
+  
+  
+    
+    
+      <li class="md-tabs__item">
+        <a href="../../../../deployment/DEPLOYMENT/" class="md-tabs__link">
+          
+  
+  
+  Operación
+
+        </a>
+      </li>
+    
+  
+
+      
+        
+  
+  
+  
+  
+    
+    
+      <li class="md-tabs__item">
+        <a href="../../../../docs/guides/user-guide/" class="md-tabs__link">
+          
+  
+  
+  Guías
+
+        </a>
+      </li>
+    
+  
+
+      
+        
+  
+  
+  
+    
+  
+  
+    
+    
+      <li class="md-tabs__item md-tabs__item--active">
+        <a href="../KPIs/" class="md-tabs__link">
+          
+  
+  
+  Referencia
+
+        </a>
+      </li>
+    
+  
+
+      
+    </ul>
+  </div>
+</nav>
+          
+        
+      
+      <main class="md-main" data-md-component="main">
+        <div class="md-main__inner md-grid">
+          
+            
+              
+              <div class="md-sidebar md-sidebar--primary" data-md-component="sidebar" data-md-type="navigation" >
+                <div class="md-sidebar__scrollwrap">
+                  <div class="md-sidebar__inner">
+                    
+
+
+  
+
+
+<nav class="md-nav md-nav--primary md-nav--lifted" aria-label="Navegación" data-md-level="0">
+  <label class="md-nav__title" for="__drawer">
+    <a href="../../../.." title="Pymeq — Forensic Accounting for Small Business" class="md-nav__button md-logo" aria-label="Pymeq — Forensic Accounting for Small Business" data-md-component="logo">
+      
+  
+  <svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 24 24"><path d="M12 8a3 3 0 0 0 3-3 3 3 0 0 0-3-3 3 3 0 0 0-3 3 3 3 0 0 0 3 3m0 3.54C9.64 9.35 6.5 8 3 8v11c3.5 0 6.64 1.35 9 3.54 2.36-2.19 5.5-3.54 9-3.54V8c-3.5 0-6.64 1.35-9 3.54"/></svg>
+
+    </a>
+    Pymeq — Forensic Accounting for Small Business
+  </label>
+  
+    <div class="md-nav__source">
+      <a href="https://github.com/dio-quincarDev/pymes-admin" title="Ir al repositorio" class="md-source" data-md-component="source">
+  <div class="md-source__icon md-icon">
+    
+    <svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 448 512"><!--! Font Awesome Free 7.1.0 by @fontawesome - https://fontawesome.com License - https://fontawesome.com/license/free (Icons: CC BY 4.0, Fonts: SIL OFL 1.1, Code: MIT License) Copyright 2025 Fonticons, Inc.--><path d="M439.6 236.1 244 40.5c-5.4-5.5-12.8-8.5-20.4-8.5s-15 3-20.4 8.4L162.5 81l51.5 51.5c27.1-9.1 52.7 16.8 43.4 43.7l49.7 49.7c34.2-11.8 61.2 31 35.5 56.7-26.5 26.5-70.2-2.9-56-37.3L240.3 199v121.9c25.3 12.5 22.3 41.8 9.1 55-6.4 6.4-15.2 10.1-24.3 10.1s-17.8-3.6-24.3-10.1c-17.6-17.6-11.1-46.9 11.2-56v-123c-20.8-8.5-24.6-30.7-18.6-45L142.6 101 8.5 235.1C3 240.6 0 247.9 0 255.5s3 15 8.5 20.4l195.6 195.7c5.4 5.4 12.7 8.4 20.4 8.4s15-3 20.4-8.4l194.7-194.7c5.4-5.4 8.4-12.8 8.4-20.4s-3-15-8.4-20.4"/></svg>
+  </div>
+  <div class="md-source__repository">
+    dio-quincarDev/pymes-admin
+  </div>
+</a>
+    </div>
+  
+  <ul class="md-nav__list" data-md-scrollfix>
+    
+      
+      
+  
+  
+  
+  
+    <li class="md-nav__item">
+      <a href="../../../.." class="md-nav__link">
+        
+  
+  
+  <span class="md-ellipsis">
+    
+  
+    Inicio
+  
+
+    
+  </span>
+  
+  
+
+      </a>
+    </li>
+  
+
+    
+      
+      
+  
+  
+  
+  
+    
+    
+    
+    
+      
+      
+    
+    
+    <li class="md-nav__item md-nav__item--nested">
+      
+        
+        
+        <input class="md-nav__toggle md-toggle " type="checkbox" id="__nav_2" >
+        
+          
+          <label class="md-nav__link" for="__nav_2" id="__nav_2_label" tabindex="0">
+            
+  
+  
+  <span class="md-ellipsis">
+    
+  
+    Producto
+  
+
+    
+  </span>
+  
+  
+
+            <span class="md-nav__icon md-icon"></span>
+          </label>
+        
+        <nav class="md-nav" data-md-level="1" aria-labelledby="__nav_2_label" aria-expanded="false">
+          <label class="md-nav__title" for="__nav_2">
+            <span class="md-nav__icon md-icon"></span>
+            
+  
+    Producto
+  
+
+          </label>
+          <ul class="md-nav__list" data-md-scrollfix>
+            
+              
+                
+  
+  
+  
+  
+    <li class="md-nav__item">
+      <a href="../../../.." class="md-nav__link">
+        
+  
+  
+  <span class="md-ellipsis">
+    
+  
+    Inicio
+  
+
+    
+  </span>
+  
+  
+
+      </a>
+    </li>
+  
+
+              
+            
+              
+                
+  
+  
+  
+  
+    <li class="md-nav__item">
+      <a href="../../../../docs/product/features/" class="md-nav__link">
+        
+  
+  
+  <span class="md-ellipsis">
+    
+  
+    Características
+  
+
+    
+  </span>
+  
+  
+
+      </a>
+    </li>
+  
+
+              
+            
+              
+                
+  
+  
+  
+  
+    <li class="md-nav__item">
+      <a href="../../../../docs/product/roadmap/" class="md-nav__link">
+        
+  
+  
+  <span class="md-ellipsis">
+    
+  
+    Roadmap
+  
+
+    
+  </span>
+  
+  
+
+      </a>
+    </li>
+  
+
+              
+            
+              
+                
+  
+  
+  
+  
+    <li class="md-nav__item">
+      <a href="../../../../docs/TO_DO/" class="md-nav__link">
+        
+  
+  
+  <span class="md-ellipsis">
+    
+  
+    Pendientes
+  
+
+    
+  </span>
+  
+  
+
+      </a>
+    </li>
+  
+
+              
+            
+              
+                
+  
+  
+  
+  
+    <li class="md-nav__item">
+      <a href="../../../../docs/GAPS/" class="md-nav__link">
+        
+  
+  
+  <span class="md-ellipsis">
+    
+  
+    Diferencias doc/código
+  
+
+    
+  </span>
+  
+  
+
+      </a>
+    </li>
+  
+
+              
+            
+          </ul>
+        </nav>
+      
+    </li>
+  
+
+    
+      
+      
+  
+  
+  
+  
+    
+    
+    
+    
+      
+      
+    
+    
+    <li class="md-nav__item md-nav__item--nested">
+      
+        
+        
+        <input class="md-nav__toggle md-toggle " type="checkbox" id="__nav_3" >
+        
+          
+          <label class="md-nav__link" for="__nav_3" id="__nav_3_label" tabindex="0">
+            
+  
+  
+  <span class="md-ellipsis">
+    
+  
+    API Reference
+  
+
+    
+  </span>
+  
+  
+
+            <span class="md-nav__icon md-icon"></span>
+          </label>
+        
+        <nav class="md-nav" data-md-level="1" aria-labelledby="__nav_3_label" aria-expanded="false">
+          <label class="md-nav__title" for="__nav_3">
+            <span class="md-nav__icon md-icon"></span>
+            
+  
+    API Reference
+  
+
+          </label>
+          <ul class="md-nav__list" data-md-scrollfix>
+            
+              
+                
+  
+  
+  
+  
+    <li class="md-nav__item">
+      <a href="../../../../docs/api/" class="md-nav__link">
+        
+  
+  
+  <span class="md-ellipsis">
+    
+  
+    Contrato (índice)
+  
+
+    
+  </span>
+  
+  
+
+      </a>
+    </li>
+  
+
+              
+            
+              
+                
+  
+  
+  
+  
+    <li class="md-nav__item">
+      <a href="../../../../api/auth/" class="md-nav__link">
+        
+  
+  
+  <span class="md-ellipsis">
+    
+  
+    Auth (generado)
+  
+
+    
+  </span>
+  
+  
+
+      </a>
+    </li>
+  
+
+              
+            
+              
+                
+  
+  
+  
+  
+    <li class="md-nav__item">
+      <a href="../../../../api/core/" class="md-nav__link">
+        
+  
+  
+  <span class="md-ellipsis">
+    
+  
+    Core (generado)
+  
+
+    
+  </span>
+  
+  
+
+      </a>
+    </li>
+  
+
+              
+            
+          </ul>
+        </nav>
+      
+    </li>
+  
+
+    
+      
+      
+  
+  
+  
+  
+    
+    
+    
+    
+      
+      
+    
+    
+    <li class="md-nav__item md-nav__item--nested">
+      
+        
+        
+        <input class="md-nav__toggle md-toggle " type="checkbox" id="__nav_4" >
+        
+          
+          <label class="md-nav__link" for="__nav_4" id="__nav_4_label" tabindex="0">
+            
+  
+  
+  <span class="md-ellipsis">
+    
+  
+    Arquitectura
+  
+
+    
+  </span>
+  
+  
+
+            <span class="md-nav__icon md-icon"></span>
+          </label>
+        
+        <nav class="md-nav" data-md-level="1" aria-labelledby="__nav_4_label" aria-expanded="false">
+          <label class="md-nav__title" for="__nav_4">
+            <span class="md-nav__icon md-icon"></span>
+            
+  
+    Arquitectura
+  
+
+          </label>
+          <ul class="md-nav__list" data-md-scrollfix>
+            
+              
+                
+  
+  
+  
+  
+    <li class="md-nav__item">
+      <a href="../../../../docs/architecture/architecture/" class="md-nav__link">
+        
+  
+  
+  <span class="md-ellipsis">
+    
+  
+    Arquitectura (mapa)
+  
+
+    
+  </span>
+  
+  
+
+      </a>
+    </li>
+  
+
+              
+            
+              
+                
+  
+  
+  
+  
+    
+    
+    
+    
+      
+      
+    
+    
+    <li class="md-nav__item md-nav__item--nested">
+      
+        
+        
+        <input class="md-nav__toggle md-toggle " type="checkbox" id="__nav_4_2" >
+        
+          
+          <label class="md-nav__link" for="__nav_4_2" id="__nav_4_2_label" tabindex="0">
+            
+  
+  
+  <span class="md-ellipsis">
+    
+  
+    Servicios
+  
+
+    
+  </span>
+  
+  
+
+            <span class="md-nav__icon md-icon"></span>
+          </label>
+        
+        <nav class="md-nav" data-md-level="2" aria-labelledby="__nav_4_2_label" aria-expanded="false">
+          <label class="md-nav__title" for="__nav_4_2">
+            <span class="md-nav__icon md-icon"></span>
+            
+  
+    Servicios
+  
+
+          </label>
+          <ul class="md-nav__list" data-md-scrollfix>
+            
+              
+                
+  
+  
+  
+  
+    <li class="md-nav__item">
+      <a href="../../../auth/" class="md-nav__link">
+        
+  
+  
+  <span class="md-ellipsis">
+    
+  
+    Auth
+  
+
+    
+  </span>
+  
+  
+
+      </a>
+    </li>
+  
+
+              
+            
+              
+                
+  
+  
+  
+  
+    <li class="md-nav__item">
+      <a href="../../../gateway-pymes/" class="md-nav__link">
+        
+  
+  
+  <span class="md-ellipsis">
+    
+  
+    Gateway
+  
+
+    
+  </span>
+  
+  
+
+      </a>
+    </li>
+  
+
+              
+            
+              
+                
+  
+  
+  
+  
+    <li class="md-nav__item">
+      <a href="../../" class="md-nav__link">
+        
+  
+  
+  <span class="md-ellipsis">
+    
+  
+    Core
+  
+
+    
+  </span>
+  
+  
+
+      </a>
+    </li>
+  
+
+              
+            
+              
+                
+  
+  
+  
+  
+    <li class="md-nav__item">
+      <a href="../../../../frontend/pymes/" class="md-nav__link">
+        
+  
+  
+  <span class="md-ellipsis">
+    
+  
+    Frontend
+  
+
+    
+  </span>
+  
+  
+
+      </a>
+    </li>
+  
+
+              
+            
+          </ul>
+        </nav>
+      
+    </li>
+  
+
+              
+            
+              
+                
+  
+  
+  
+  
+    <li class="md-nav__item">
+      <a href="../../../../docs/persistencia-postgres/" class="md-nav__link">
+        
+  
+  
+  <span class="md-ellipsis">
+    
+  
+    Base de datos
+  
+
+    
+  </span>
+  
+  
+
+      </a>
+    </li>
+  
+
+              
+            
+              
+                
+  
+  
+  
+  
+    <li class="md-nav__item">
+      <a href="../../../../docs/strategies/DB_STRATEGY/" class="md-nav__link">
+        
+  
+  
+  <span class="md-ellipsis">
+    
+  
+    Estrategia multi-schema
+  
+
+    
+  </span>
+  
+  
+
+      </a>
+    </li>
+  
+
+              
+            
+              
+                
+  
+  
+  
+  
+    <li class="md-nav__item">
+      <a href="../../../../docs/strategies/INFRA_STRATEGY/" class="md-nav__link">
+        
+  
+  
+  <span class="md-ellipsis">
+    
+  
+    Infraestructura
+  
+
+    
+  </span>
+  
+  
+
+      </a>
+    </li>
+  
+
+              
+            
+          </ul>
+        </nav>
+      
+    </li>
+  
+
+    
+      
+      
+  
+  
+  
+  
+    
+    
+    
+    
+      
+      
+    
+    
+    <li class="md-nav__item md-nav__item--nested">
+      
+        
+        
+        <input class="md-nav__toggle md-toggle " type="checkbox" id="__nav_5" >
+        
+          
+          <label class="md-nav__link" for="__nav_5" id="__nav_5_label" tabindex="0">
+            
+  
+  
+  <span class="md-ellipsis">
+    
+  
+    Operación
+  
+
+    
+  </span>
+  
+  
+
+            <span class="md-nav__icon md-icon"></span>
+          </label>
+        
+        <nav class="md-nav" data-md-level="1" aria-labelledby="__nav_5_label" aria-expanded="false">
+          <label class="md-nav__title" for="__nav_5">
+            <span class="md-nav__icon md-icon"></span>
+            
+  
+    Operación
+  
+
+          </label>
+          <ul class="md-nav__list" data-md-scrollfix>
+            
+              
+                
+  
+  
+  
+  
+    <li class="md-nav__item">
+      <a href="../../../../deployment/DEPLOYMENT/" class="md-nav__link">
+        
+  
+  
+  <span class="md-ellipsis">
+    
+  
+    Deploy
+  
+
+    
+  </span>
+  
+  
+
+      </a>
+    </li>
+  
+
+              
+            
+              
+                
+  
+  
+  
+  
+    <li class="md-nav__item">
+      <a href="../../../../deployment/QUICK_START/" class="md-nav__link">
+        
+  
+  
+  <span class="md-ellipsis">
+    
+  
+    Quick start CI/CD
+  
+
+    
+  </span>
+  
+  
+
+      </a>
+    </li>
+  
+
+              
+            
+              
+                
+  
+  
+  
+  
+    <li class="md-nav__item">
+      <a href="../../../../deployment/SECRETS/" class="md-nav__link">
+        
+  
+  
+  <span class="md-ellipsis">
+    
+  
+    Secretos
+  
+
+    
+  </span>
+  
+  
+
+      </a>
+    </li>
+  
+
+              
+            
+              
+                
+  
+  
+  
+  
+    <li class="md-nav__item">
+      <a href="../../../../docs/DAILY_REPORTS_PROJECT/" class="md-nav__link">
+        
+  
+  
+  <span class="md-ellipsis">
+    
+  
+    Reportes diarios
+  
+
+    
+  </span>
+  
+  
+
+      </a>
+    </li>
+  
+
+              
+            
+          </ul>
+        </nav>
+      
+    </li>
+  
+
+    
+      
+      
+  
+  
+  
+  
+    
+    
+    
+    
+      
+      
+    
+    
+    <li class="md-nav__item md-nav__item--nested">
+      
+        
+        
+        <input class="md-nav__toggle md-toggle " type="checkbox" id="__nav_6" >
+        
+          
+          <label class="md-nav__link" for="__nav_6" id="__nav_6_label" tabindex="0">
+            
+  
+  
+  <span class="md-ellipsis">
+    
+  
+    Guías
+  
+
+    
+  </span>
+  
+  
+
+            <span class="md-nav__icon md-icon"></span>
+          </label>
+        
+        <nav class="md-nav" data-md-level="1" aria-labelledby="__nav_6_label" aria-expanded="false">
+          <label class="md-nav__title" for="__nav_6">
+            <span class="md-nav__icon md-icon"></span>
+            
+  
+    Guías
+  
+
+          </label>
+          <ul class="md-nav__list" data-md-scrollfix>
+            
+              
+                
+  
+  
+  
+  
+    <li class="md-nav__item">
+      <a href="../../../../docs/guides/user-guide/" class="md-nav__link">
+        
+  
+  
+  <span class="md-ellipsis">
+    
+  
+    Usuario
+  
+
+    
+  </span>
+  
+  
+
+      </a>
+    </li>
+  
+
+              
+            
+              
+                
+  
+  
+  
+  
+    <li class="md-nav__item">
+      <a href="../../../../docs/guides/admin-guide/" class="md-nav__link">
+        
+  
+  
+  <span class="md-ellipsis">
+    
+  
+    Administración
+  
+
+    
+  </span>
+  
+  
+
+      </a>
+    </li>
+  
+
+              
+            
+              
+                
+  
+  
+  
+  
+    <li class="md-nav__item">
+      <a href="../../../../docs/guides/operations-guide/" class="md-nav__link">
+        
+  
+  
+  <span class="md-ellipsis">
+    
+  
+    Operación
+  
+
+    
+  </span>
+  
+  
+
+      </a>
+    </li>
+  
+
+              
+            
+          </ul>
+        </nav>
+      
+    </li>
+  
+
+    
+      
+      
+  
+  
+    
+  
+  
+  
+    
+    
+    
+    
+      
+        
+        
+      
+      
+    
+    
+    <li class="md-nav__item md-nav__item--active md-nav__item--section md-nav__item--nested">
+      
+        
+        
+        <input class="md-nav__toggle md-toggle " type="checkbox" id="__nav_7" checked>
+        
+          
+          <label class="md-nav__link" for="__nav_7" id="__nav_7_label" tabindex="">
+            
+  
+  
+  <span class="md-ellipsis">
+    
+  
+    Referencia
+  
+
+    
+  </span>
+  
+  
+
+            <span class="md-nav__icon md-icon"></span>
+          </label>
+        
+        <nav class="md-nav" data-md-level="1" aria-labelledby="__nav_7_label" aria-expanded="true">
+          <label class="md-nav__title" for="__nav_7">
+            <span class="md-nav__icon md-icon"></span>
+            
+  
+    Referencia
+  
+
+          </label>
+          <ul class="md-nav__list" data-md-scrollfix>
+            
+              
+                
+  
+  
+  
+  
+    <li class="md-nav__item">
+      <a href="../KPIs/" class="md-nav__link">
+        
+  
+  
+  <span class="md-ellipsis">
+    
+  
+    KPIs
+  
+
+    
+  </span>
+  
+  
+
+      </a>
+    </li>
+  
+
+              
+            
+              
+                
+  
+  
+    
+  
+  
+  
+    <li class="md-nav__item md-nav__item--active">
+      
+      <input class="md-nav__toggle md-toggle" type="checkbox" id="__toc">
+      
+      
+        
+      
+      
+        <label class="md-nav__link md-nav__link--active" for="__toc">
+          
+  
+  
+  <span class="md-ellipsis">
+    
+  
+    Motor de costos
+  
+
+    
+  </span>
+  
+  
+
+          <span class="md-nav__icon md-icon"></span>
+        </label>
+      
+      <a href="./" class="md-nav__link md-nav__link--active">
+        
+  
+  
+  <span class="md-ellipsis">
+    
+  
+    Motor de costos
+  
+
+    
+  </span>
+  
+  
+
+      </a>
+      
+        
+
+<nav class="md-nav md-nav--secondary" aria-label="Tabla de contenidos">
+  
+  
+  
+    
+  
+  
+    <label class="md-nav__title" for="__toc">
+      <span class="md-nav__icon md-icon"></span>
+      Tabla de contenidos
+    </label>
+    <ul class="md-nav__list" data-md-component="toc" data-md-scrollfix>
+      
+        <li class="md-nav__item">
+  <a href="#vision-general" class="md-nav__link">
+    <span class="md-ellipsis">
+      
+        Visión General
+      
+    </span>
+  </a>
+  
+</li>
+      
+        <li class="md-nav__item">
+  <a href="#arquitectura" class="md-nav__link">
+    <span class="md-ellipsis">
+      
+        Arquitectura
+      
+    </span>
+  </a>
+  
+    <nav class="md-nav" aria-label="Arquitectura">
+      <ul class="md-nav__list">
+        
+          <li class="md-nav__item">
+  <a href="#reciclaje-de-codigo-existente" class="md-nav__link">
+    <span class="md-ellipsis">
+      
+        Reciclaje de código existente
+      
+    </span>
+  </a>
+  
+</li>
+        
+          <li class="md-nav__item">
+  <a href="#lo-que-no-se-hace-ponytail" class="md-nav__link">
+    <span class="md-ellipsis">
+      
+        Lo que NO se hace (ponytail)
+      
+    </span>
+  </a>
+  
+</li>
+        
+      </ul>
+    </nav>
+  
+</li>
+      
+        <li class="md-nav__item">
+  <a href="#entidades" class="md-nav__link">
+    <span class="md-ellipsis">
+      
+        Entidades
+      
+    </span>
+  </a>
+  
+    <nav class="md-nav" aria-label="Entidades">
+      <ul class="md-nav__list">
+        
+          <li class="md-nav__item">
+  <a href="#collaborador" class="md-nav__link">
+    <span class="md-ellipsis">
+      
+        Collaborador
+      
+    </span>
+  </a>
+  
+</li>
+        
+          <li class="md-nav__item">
+  <a href="#gastofijorecurrente" class="md-nav__link">
+    <span class="md-ellipsis">
+      
+        GastoFijoRecurrente
+      
+    </span>
+  </a>
+  
+</li>
+        
+          <li class="md-nav__item">
+  <a href="#configlaboral" class="md-nav__link">
+    <span class="md-ellipsis">
+      
+        ConfigLaboral
+      
+    </span>
+  </a>
+  
+</li>
+        
+      </ul>
+    </nav>
+  
+</li>
+      
+        <li class="md-nav__item">
+  <a href="#motor-de-calculo" class="md-nav__link">
+    <span class="md-ellipsis">
+      
+        Motor de Cálculo
+      
+    </span>
+  </a>
+  
+    <nav class="md-nav" aria-label="Motor de Cálculo">
+      <ul class="md-nav__list">
+        
+          <li class="md-nav__item">
+  <a href="#formula" class="md-nav__link">
+    <span class="md-ellipsis">
+      
+        Fórmula
+      
+    </span>
+  </a>
+  
+</li>
+        
+          <li class="md-nav__item">
+  <a href="#factores-de-periodicidad" class="md-nav__link">
+    <span class="md-ellipsis">
+      
+        Factores de periodicidad
+      
+    </span>
+  </a>
+  
+</li>
+        
+          <li class="md-nav__item">
+  <a href="#costodiarioresponse" class="md-nav__link">
+    <span class="md-ellipsis">
+      
+        CostoDiarioResponse
+      
+    </span>
+  </a>
+  
+</li>
+        
+      </ul>
+    </nav>
+  
+</li>
+      
+        <li class="md-nav__item">
+  <a href="#endpoints" class="md-nav__link">
+    <span class="md-ellipsis">
+      
+        Endpoints
+      
+    </span>
+  </a>
+  
+    <nav class="md-nav" aria-label="Endpoints">
+      <ul class="md-nav__list">
+        
+          <li class="md-nav__item">
+  <a href="#crud-collaboradores" class="md-nav__link">
+    <span class="md-ellipsis">
+      
+        CRUD Collaboradores
+      
+    </span>
+  </a>
+  
+</li>
+        
+          <li class="md-nav__item">
+  <a href="#crud-gastos-fijos-recurrentes" class="md-nav__link">
+    <span class="md-ellipsis">
+      
+        CRUD Gastos Fijos Recurrentes
+      
+    </span>
+  </a>
+  
+</li>
+        
+          <li class="md-nav__item">
+  <a href="#config-laboral" class="md-nav__link">
+    <span class="md-ellipsis">
+      
+        Config Laboral
+      
+    </span>
+  </a>
+  
+</li>
+        
+          <li class="md-nav__item">
+  <a href="#costo-diario" class="md-nav__link">
+    <span class="md-ellipsis">
+      
+        Costo Diario
+      
+    </span>
+  </a>
+  
+</li>
+        
+      </ul>
+    </nav>
+  
+</li>
+      
+        <li class="md-nav__item">
+  <a href="#integracion-con-motores-existentes" class="md-nav__link">
+    <span class="md-ellipsis">
+      
+        Integración con Motores Existentes
+      
+    </span>
+  </a>
+  
+    <nav class="md-nav" aria-label="Integración con Motores Existentes">
+      <ul class="md-nav__list">
+        
+          <li class="md-nav__item">
+  <a href="#metricasserviceimpl-cte-consolidado" class="md-nav__link">
+    <span class="md-ellipsis">
+      
+        MetricasServiceImpl (CTE consolidado)
+      
+    </span>
+  </a>
+  
+</li>
+        
+          <li class="md-nav__item">
+  <a href="#financial-health-engine-motor-10" class="md-nav__link">
+    <span class="md-ellipsis">
+      
+        Financial Health Engine (Motor #10)
+      
+    </span>
+  </a>
+  
+</li>
+        
+          <li class="md-nav__item">
+  <a href="#opex_creep" class="md-nav__link">
+    <span class="md-ellipsis">
+      
+        OPEX_CREEP
+      
+    </span>
+  </a>
+  
+</li>
+        
+      </ul>
+    </nav>
+  
+</li>
+      
+        <li class="md-nav__item">
+  <a href="#frontend" class="md-nav__link">
+    <span class="md-ellipsis">
+      
+        Frontend
+      
+    </span>
+  </a>
+  
+    <nav class="md-nav" aria-label="Frontend">
+      <ul class="md-nav__list">
+        
+          <li class="md-nav__item">
+  <a href="#costospagevue" class="md-nav__link">
+    <span class="md-ellipsis">
+      
+        CostosPage.vue
+      
+    </span>
+  </a>
+  
+</li>
+        
+          <li class="md-nav__item">
+  <a href="#dashboard" class="md-nav__link">
+    <span class="md-ellipsis">
+      
+        Dashboard
+      
+    </span>
+  </a>
+  
+</li>
+        
+      </ul>
+    </nav>
+  
+</li>
+      
+        <li class="md-nav__item">
+  <a href="#eventos" class="md-nav__link">
+    <span class="md-ellipsis">
+      
+        Eventos
+      
+    </span>
+  </a>
+  
+</li>
+      
+        <li class="md-nav__item">
+  <a href="#migracion-flyway-v2" class="md-nav__link">
+    <span class="md-ellipsis">
+      
+        Migración Flyway — V2
+      
+    </span>
+  </a>
+  
+    <nav class="md-nav" aria-label="Migración Flyway — V2">
+      <ul class="md-nav__list">
+        
+          <li class="md-nav__item">
+  <a href="#metricasfinanciera-costo_operativo_diario" class="md-nav__link">
+    <span class="md-ellipsis">
+      
+        MetricasFinanciera — costo_operativo_diario
+      
+    </span>
+  </a>
+  
+</li>
+        
+          <li class="md-nav__item">
+  <a href="#performance-indexes-v3" class="md-nav__link">
+    <span class="md-ellipsis">
+      
+        Performance Indexes (V3)
+      
+    </span>
+  </a>
+  
+</li>
+        
+      </ul>
+    </nav>
+  
+</li>
+      
+        <li class="md-nav__item">
+  <a href="#dependencias" class="md-nav__link">
+    <span class="md-ellipsis">
+      
+        Dependencias
+      
+    </span>
+  </a>
+  
+</li>
+      
+        <li class="md-nav__item">
+  <a href="#orden-de-implementacion" class="md-nav__link">
+    <span class="md-ellipsis">
+      
+        Orden de Implementación
+      
+    </span>
+  </a>
+  
+</li>
+      
+        <li class="md-nav__item">
+  <a href="#queries-de-referencia" class="md-nav__link">
+    <span class="md-ellipsis">
+      
+        Queries de referencia
+      
+    </span>
+  </a>
+  
+    <nav class="md-nav" aria-label="Queries de referencia">
+      <ul class="md-nav__list">
+        
+          <li class="md-nav__item">
+  <a href="#capa-1-config-presupuesto-mensual" class="md-nav__link">
+    <span class="md-ellipsis">
+      
+        Capa 1 — Config (presupuesto mensual)
+      
+    </span>
+  </a>
+  
+</li>
+        
+          <li class="md-nav__item">
+  <a href="#capa-2-registro-real-facturas-pagadas" class="md-nav__link">
+    <span class="md-ellipsis">
+      
+        Capa 2 — Registro real (facturas pagadas)
+      
+    </span>
+  </a>
+  
+</li>
+        
+          <li class="md-nav__item">
+  <a href="#costo-operativo-diario-cte-consolidado" class="md-nav__link">
+    <span class="md-ellipsis">
+      
+        Costo operativo diario (CTE consolidado)
+      
+    </span>
+  </a>
+  
+</li>
+        
+      </ul>
+    </nav>
+  
+</li>
+      
+        <li class="md-nav__item">
+  <a href="#registro" class="md-nav__link">
+    <span class="md-ellipsis">
+      
+        Registro
+      
+    </span>
+  </a>
+  
+</li>
+      
+    </ul>
+  
+</nav>
+      
+    </li>
+  
+
+              
+            
+              
+                
+  
+  
+  
+  
+    <li class="md-nav__item">
+      <a href="../ANALYTICS/" class="md-nav__link">
+        
+  
+  
+  <span class="md-ellipsis">
+    
+  
+    Analítica
+  
+
+    
+  </span>
+  
+  
+
+      </a>
+    </li>
+  
+
+              
+            
+              
+                
+  
+  
+  
+  
+    <li class="md-nav__item">
+      <a href="../CORE/" class="md-nav__link">
+        
+  
+  
+  <span class="md-ellipsis">
+    
+  
+    Motor de salud financiera
+  
+
+    
+  </span>
+  
+  
+
+      </a>
+    </li>
+  
+
+              
+            
+              
+                
+  
+  
+  
+  
+    <li class="md-nav__item">
+      <a href="../../../../frontend/pymes/docs/PWA_OFFLINE/" class="md-nav__link">
+        
+  
+  
+  <span class="md-ellipsis">
+    
+  
+    PWA offline
+  
+
+    
+  </span>
+  
+  
+
+      </a>
+    </li>
+  
+
+              
+            
+          </ul>
+        </nav>
+      
+    </li>
+  
+
+    
+  </ul>
+</nav>
+                  </div>
+                </div>
+              </div>
+            
+            
+              
+              <div class="md-sidebar md-sidebar--secondary" data-md-component="sidebar" data-md-type="toc" >
+                <div class="md-sidebar__scrollwrap">
+                  <div class="md-sidebar__inner">
+                    
+
+<nav class="md-nav md-nav--secondary" aria-label="Tabla de contenidos">
+  
+  
+  
+    
+  
+  
+    <label class="md-nav__title" for="__toc">
+      <span class="md-nav__icon md-icon"></span>
+      Tabla de contenidos
+    </label>
+    <ul class="md-nav__list" data-md-component="toc" data-md-scrollfix>
+      
+        <li class="md-nav__item">
+  <a href="#vision-general" class="md-nav__link">
+    <span class="md-ellipsis">
+      
+        Visión General
+      
+    </span>
+  </a>
+  
+</li>
+      
+        <li class="md-nav__item">
+  <a href="#arquitectura" class="md-nav__link">
+    <span class="md-ellipsis">
+      
+        Arquitectura
+      
+    </span>
+  </a>
+  
+    <nav class="md-nav" aria-label="Arquitectura">
+      <ul class="md-nav__list">
+        
+          <li class="md-nav__item">
+  <a href="#reciclaje-de-codigo-existente" class="md-nav__link">
+    <span class="md-ellipsis">
+      
+        Reciclaje de código existente
+      
+    </span>
+  </a>
+  
+</li>
+        
+          <li class="md-nav__item">
+  <a href="#lo-que-no-se-hace-ponytail" class="md-nav__link">
+    <span class="md-ellipsis">
+      
+        Lo que NO se hace (ponytail)
+      
+    </span>
+  </a>
+  
+</li>
+        
+      </ul>
+    </nav>
+  
+</li>
+      
+        <li class="md-nav__item">
+  <a href="#entidades" class="md-nav__link">
+    <span class="md-ellipsis">
+      
+        Entidades
+      
+    </span>
+  </a>
+  
+    <nav class="md-nav" aria-label="Entidades">
+      <ul class="md-nav__list">
+        
+          <li class="md-nav__item">
+  <a href="#collaborador" class="md-nav__link">
+    <span class="md-ellipsis">
+      
+        Collaborador
+      
+    </span>
+  </a>
+  
+</li>
+        
+          <li class="md-nav__item">
+  <a href="#gastofijorecurrente" class="md-nav__link">
+    <span class="md-ellipsis">
+      
+        GastoFijoRecurrente
+      
+    </span>
+  </a>
+  
+</li>
+        
+          <li class="md-nav__item">
+  <a href="#configlaboral" class="md-nav__link">
+    <span class="md-ellipsis">
+      
+        ConfigLaboral
+      
+    </span>
+  </a>
+  
+</li>
+        
+      </ul>
+    </nav>
+  
+</li>
+      
+        <li class="md-nav__item">
+  <a href="#motor-de-calculo" class="md-nav__link">
+    <span class="md-ellipsis">
+      
+        Motor de Cálculo
+      
+    </span>
+  </a>
+  
+    <nav class="md-nav" aria-label="Motor de Cálculo">
+      <ul class="md-nav__list">
+        
+          <li class="md-nav__item">
+  <a href="#formula" class="md-nav__link">
+    <span class="md-ellipsis">
+      
+        Fórmula
+      
+    </span>
+  </a>
+  
+</li>
+        
+          <li class="md-nav__item">
+  <a href="#factores-de-periodicidad" class="md-nav__link">
+    <span class="md-ellipsis">
+      
+        Factores de periodicidad
+      
+    </span>
+  </a>
+  
+</li>
+        
+          <li class="md-nav__item">
+  <a href="#costodiarioresponse" class="md-nav__link">
+    <span class="md-ellipsis">
+      
+        CostoDiarioResponse
+      
+    </span>
+  </a>
+  
+</li>
+        
+      </ul>
+    </nav>
+  
+</li>
+      
+        <li class="md-nav__item">
+  <a href="#endpoints" class="md-nav__link">
+    <span class="md-ellipsis">
+      
+        Endpoints
+      
+    </span>
+  </a>
+  
+    <nav class="md-nav" aria-label="Endpoints">
+      <ul class="md-nav__list">
+        
+          <li class="md-nav__item">
+  <a href="#crud-collaboradores" class="md-nav__link">
+    <span class="md-ellipsis">
+      
+        CRUD Collaboradores
+      
+    </span>
+  </a>
+  
+</li>
+        
+          <li class="md-nav__item">
+  <a href="#crud-gastos-fijos-recurrentes" class="md-nav__link">
+    <span class="md-ellipsis">
+      
+        CRUD Gastos Fijos Recurrentes
+      
+    </span>
+  </a>
+  
+</li>
+        
+          <li class="md-nav__item">
+  <a href="#config-laboral" class="md-nav__link">
+    <span class="md-ellipsis">
+      
+        Config Laboral
+      
+    </span>
+  </a>
+  
+</li>
+        
+          <li class="md-nav__item">
+  <a href="#costo-diario" class="md-nav__link">
+    <span class="md-ellipsis">
+      
+        Costo Diario
+      
+    </span>
+  </a>
+  
+</li>
+        
+      </ul>
+    </nav>
+  
+</li>
+      
+        <li class="md-nav__item">
+  <a href="#integracion-con-motores-existentes" class="md-nav__link">
+    <span class="md-ellipsis">
+      
+        Integración con Motores Existentes
+      
+    </span>
+  </a>
+  
+    <nav class="md-nav" aria-label="Integración con Motores Existentes">
+      <ul class="md-nav__list">
+        
+          <li class="md-nav__item">
+  <a href="#metricasserviceimpl-cte-consolidado" class="md-nav__link">
+    <span class="md-ellipsis">
+      
+        MetricasServiceImpl (CTE consolidado)
+      
+    </span>
+  </a>
+  
+</li>
+        
+          <li class="md-nav__item">
+  <a href="#financial-health-engine-motor-10" class="md-nav__link">
+    <span class="md-ellipsis">
+      
+        Financial Health Engine (Motor #10)
+      
+    </span>
+  </a>
+  
+</li>
+        
+          <li class="md-nav__item">
+  <a href="#opex_creep" class="md-nav__link">
+    <span class="md-ellipsis">
+      
+        OPEX_CREEP
+      
+    </span>
+  </a>
+  
+</li>
+        
+      </ul>
+    </nav>
+  
+</li>
+      
+        <li class="md-nav__item">
+  <a href="#frontend" class="md-nav__link">
+    <span class="md-ellipsis">
+      
+        Frontend
+      
+    </span>
+  </a>
+  
+    <nav class="md-nav" aria-label="Frontend">
+      <ul class="md-nav__list">
+        
+          <li class="md-nav__item">
+  <a href="#costospagevue" class="md-nav__link">
+    <span class="md-ellipsis">
+      
+        CostosPage.vue
+      
+    </span>
+  </a>
+  
+</li>
+        
+          <li class="md-nav__item">
+  <a href="#dashboard" class="md-nav__link">
+    <span class="md-ellipsis">
+      
+        Dashboard
+      
+    </span>
+  </a>
+  
+</li>
+        
+      </ul>
+    </nav>
+  
+</li>
+      
+        <li class="md-nav__item">
+  <a href="#eventos" class="md-nav__link">
+    <span class="md-ellipsis">
+      
+        Eventos
+      
+    </span>
+  </a>
+  
+</li>
+      
+        <li class="md-nav__item">
+  <a href="#migracion-flyway-v2" class="md-nav__link">
+    <span class="md-ellipsis">
+      
+        Migración Flyway — V2
+      
+    </span>
+  </a>
+  
+    <nav class="md-nav" aria-label="Migración Flyway — V2">
+      <ul class="md-nav__list">
+        
+          <li class="md-nav__item">
+  <a href="#metricasfinanciera-costo_operativo_diario" class="md-nav__link">
+    <span class="md-ellipsis">
+      
+        MetricasFinanciera — costo_operativo_diario
+      
+    </span>
+  </a>
+  
+</li>
+        
+          <li class="md-nav__item">
+  <a href="#performance-indexes-v3" class="md-nav__link">
+    <span class="md-ellipsis">
+      
+        Performance Indexes (V3)
+      
+    </span>
+  </a>
+  
+</li>
+        
+      </ul>
+    </nav>
+  
+</li>
+      
+        <li class="md-nav__item">
+  <a href="#dependencias" class="md-nav__link">
+    <span class="md-ellipsis">
+      
+        Dependencias
+      
+    </span>
+  </a>
+  
+</li>
+      
+        <li class="md-nav__item">
+  <a href="#orden-de-implementacion" class="md-nav__link">
+    <span class="md-ellipsis">
+      
+        Orden de Implementación
+      
+    </span>
+  </a>
+  
+</li>
+      
+        <li class="md-nav__item">
+  <a href="#queries-de-referencia" class="md-nav__link">
+    <span class="md-ellipsis">
+      
+        Queries de referencia
+      
+    </span>
+  </a>
+  
+    <nav class="md-nav" aria-label="Queries de referencia">
+      <ul class="md-nav__list">
+        
+          <li class="md-nav__item">
+  <a href="#capa-1-config-presupuesto-mensual" class="md-nav__link">
+    <span class="md-ellipsis">
+      
+        Capa 1 — Config (presupuesto mensual)
+      
+    </span>
+  </a>
+  
+</li>
+        
+          <li class="md-nav__item">
+  <a href="#capa-2-registro-real-facturas-pagadas" class="md-nav__link">
+    <span class="md-ellipsis">
+      
+        Capa 2 — Registro real (facturas pagadas)
+      
+    </span>
+  </a>
+  
+</li>
+        
+          <li class="md-nav__item">
+  <a href="#costo-operativo-diario-cte-consolidado" class="md-nav__link">
+    <span class="md-ellipsis">
+      
+        Costo operativo diario (CTE consolidado)
+      
+    </span>
+  </a>
+  
+</li>
+        
+      </ul>
+    </nav>
+  
+</li>
+      
+        <li class="md-nav__item">
+  <a href="#registro" class="md-nav__link">
+    <span class="md-ellipsis">
+      
+        Registro
+      
+    </span>
+  </a>
+  
+</li>
+      
+    </ul>
+  
+</nav>
+                  </div>
+                </div>
+              </div>
+            
+          
+          
+            <div class="md-content" data-md-component="content">
+              
+              <article class="md-content__inner md-typeset">
+                
+                  
+
+
+
+<h1 id="motor-de-estructura-de-costos">Motor de Estructura de Costos<a class="headerlink" href="#motor-de-estructura-de-costos" title="Permanent link">&para;</a></h1>
+<blockquote>
+<p><strong>Estado (2026-08-02):</strong> Implementado (backend + frontend). V2/V3 migraciones, módulo <code>costos/</code>, GET /costos/diario, CTE en MetricasServiceImpl, CostosPage.vue + KPI dashboard. Señal <code>DAILY_COST_CONTROL</code> + <code>DAILY_COST_COVERED</code> implementadas en <code>analisisSaludFinanciera</code>; <code>CAPITAL_BURN</code>/<code>CAPITAL_READINESS</code> reemplazadas por <code>PAYBACK_RECOVERY</code> (ver INVESTMENT_RECOVERY_STRATEGY).</p>
+<p><strong>Diferenciador del producto:</strong> Mientras otros sistemas ven gastos planos, este motor razona sobre estructura de costos real — colaboradores con distintas frecuencias de pago, gastos fijos recurrentes con día de ejecución, y un cálculo diario que se compara contra ventas del día para dar ganancia real.</p>
+</blockquote>
+<hr />
+<h2 id="vision-general">Visión General<a class="headerlink" href="#vision-general" title="Permanent link">&para;</a></h2>
+<p>El sistema actual trata los gastos operativos como entradas planas (<code>GastoOperativo</code> en <code>core.operating_expenses</code>). Un gasto de $500 en alquiler es indistinguible de uno de $50 en internet — ambos son solo "gastos". No hay noción de:</p>
+<ul>
+<li>Recurrencia (alquiler paga el día 1, internet el día 15)</li>
+<li>Colaboradores/salarios con distintas frecuencias (diario, semanal, quincenal, mensual)</li>
+<li>Costo operativo diario calculado</li>
+</ul>
+<p>Este módulo agrega un <strong>modelo de estructura de costos</strong> que alimenta a los motores analíticos existentes (Financial Health Engine, CTE de Accounting, análisis de margen operativo) y expone el costo diario como métrica central.</p>
+<hr />
+<h2 id="arquitectura">Arquitectura<a class="headerlink" href="#arquitectura" title="Permanent link">&para;</a></h2>
+<div class="highlight"><pre><span></span><code>costos/
+├── controller/
+│   ├── CostoApi.java                # Interface con @RequestMapping
+│   └── impl/CostoController.java    # @RestController
+├── service/
+│   ├── CostoService.java            # Interface
+│   └── impl/CostoServiceImpl.java   # Lógica + cálculos
+├── domain/
+│   ├── Collaborador.java            # Entity
+│   ├── GastoFijoRecurrente.java     # Entity
+│   └── ConfigLaboral.java           # Entity
+├── dto/
+│   ├── CollaboradorRequest.java     # Record
+│   ├── CollaboradorResponse.java    # Record
+│   ├── GastoFijoRequest.java        # Record
+│   ├── GastoFijoResponse.java       # Record
+│   ├── ConfigLaboralRequest.java    # Record
+│   ├── ConfigLaboralResponse.java   # Record
+│   └── CostoDiarioResponse.java     # Record
+├── event/
+│   └── CostoStructureChangedEvent.java
+├── listener/
+│   └── CostoStructureChangedListener.java
+└── repository/
+    ├── CollaboradorRepository.java
+    ├── GastoFijoRepository.java
+    └── ConfigLaboralRepository.java
+</code></pre></div>
+<h3 id="reciclaje-de-codigo-existente">Reciclaje de código existente<a class="headerlink" href="#reciclaje-de-codigo-existente" title="Permanent link">&para;</a></h3>
+<table>
+<thead>
+<tr>
+<th>Componente</th>
+<th>Referencia</th>
+<th>Qué se copia</th>
+</tr>
+</thead>
+<tbody>
+<tr>
+<td>Entity</td>
+<td><code>GastoOperativo.java</code></td>
+<td><code>@SQLDelete</code>, <code>@Where</code>, <code>@Builder.Default isActive</code>, <code>UUID tenantId</code>, <code>@CreationTimestamp</code>/<code>@UpdateTimestamp</code>, soft-delete</td>
+</tr>
+<tr>
+<td>Controller</td>
+<td><code>GastoApi.java</code> + <code>GastoController.java</code></td>
+<td>Interface con <code>@RequestMapping</code> + impl con <code>@RestController implements</code> + <code>@PreAuthorize</code> en writes</td>
+</tr>
+<tr>
+<td>Mapper</td>
+<td><code>ProductoMapper.java</code></td>
+<td><code>@Mapper(componentModel = SPRING)</code> — <strong>MapStruct</strong>, no manual</td>
+</tr>
+<tr>
+<td>Service</td>
+<td><code>GastoServiceImpl.java</code></td>
+<td><code>@Transactional</code>, <code>@Cacheable</code>/<code>@CacheEvict</code>, tenant guard, event publishing, <code>@RequiredArgsConstructor</code></td>
+</tr>
+<tr>
+<td>Event</td>
+<td><code>VentaCreadaEvent.java</code></td>
+<td>Record con <code>UUID tenantId</code>, <code>String periodo</code></td>
+</tr>
+<tr>
+<td>Listener</td>
+<td><code>GastoCreadaListener.java</code></td>
+<td><code>@Async @TransactionalEventListener(AFTER_COMMIT)</code> → <code>recomputeService.markMetricsDirty()</code></td>
+</tr>
+<tr>
+<td>Ruta</td>
+<td><code>CorePath.java</code></td>
+<td><code>+COSTOS_ROUTE = "/costos"</code></td>
+</tr>
+<tr>
+<td>Migration</td>
+<td><code>V12</code> pattern</td>
+<td><code>V2</code> con 3 tablas</td>
+</tr>
+<tr>
+<td>CTE</td>
+<td><code>MetricasServiceImpl.java</code></td>
+<td>Extender el CTE consolidado con fuente <code>costos</code></td>
+</tr>
+<tr>
+<td>Salud Financiera</td>
+<td><code>analisisSaludFinanciera()</code></td>
+<td>Agregar señal <code>DAILY_COST_CONTROL</code></td>
+</tr>
+</tbody>
+</table>
+<blockquote>
+<p><strong>Nota de implementación (2026-07-31):</strong> Se usó <code>toResponse</code> manual (patrón <code>GastoServiceImpl</code>) en vez de mappers MapStruct — 1:1 simple, menos procesador de anotaciones. Los 3 mappers del plan original se omitieron (ponytail).</p>
+</blockquote>
+<h3 id="lo-que-no-se-hace-ponytail">Lo que NO se hace (ponytail)<a class="headerlink" href="#lo-que-no-se-hace-ponytail" title="Permanent link">&para;</a></h3>
+<table>
+<thead>
+<tr>
+<th>No hacer</th>
+<th>Razón</th>
+</tr>
+</thead>
+<tbody>
+<tr>
+<td>Payroll (SS, aguinaldo, vacaciones, horas extra)</td>
+<td>Solo nombre + monto + periodicidad</td>
+</tr>
+<tr>
+<td>Scheduler que genere gastos automáticos</td>
+<td>El costo se calcula sin generar entradas contables</td>
+</tr>
+<tr>
+<td>Categorías dinámicas</td>
+<td>Las 8 existentes alcanzan</td>
+</tr>
+<tr>
+<td>Relación colaborador → GastoOperativo individual</td>
+<td>El motor calcula sin persistir gastos por colaborador</td>
+</tr>
+<tr>
+<td>Pricing automático en productos</td>
+<td>Se integra después, no en este MVP</td>
+</tr>
+<tr>
+<td>Módulos separados por entidad</td>
+<td>1 módulo, 1 controller, 1 service</td>
+</tr>
+</tbody>
+</table>
+<hr />
+<h2 id="entidades">Entidades<a class="headerlink" href="#entidades" title="Permanent link">&para;</a></h2>
+<h3 id="collaborador">Collaborador<a class="headerlink" href="#collaborador" title="Permanent link">&para;</a></h3>
+<div class="highlight"><pre><span></span><code><span class="k">CREATE</span><span class="w"> </span><span class="k">TABLE</span><span class="w"> </span><span class="n">core</span><span class="p">.</span><span class="n">collaboradores</span><span class="w"> </span><span class="p">(</span>
+<span class="w">    </span><span class="n">id</span><span class="w"> </span><span class="n">UUID</span><span class="w"> </span><span class="k">PRIMARY</span><span class="w"> </span><span class="k">KEY</span><span class="p">,</span>
+<span class="w">    </span><span class="n">tenant_id</span><span class="w"> </span><span class="n">UUID</span><span class="w"> </span><span class="k">NOT</span><span class="w"> </span><span class="k">NULL</span><span class="p">,</span>
+<span class="w">    </span><span class="n">nombre</span><span class="w"> </span><span class="nb">VARCHAR</span><span class="p">(</span><span class="mi">100</span><span class="p">)</span><span class="w"> </span><span class="k">NOT</span><span class="w"> </span><span class="k">NULL</span><span class="p">,</span>
+<span class="w">    </span><span class="n">tipo_pago</span><span class="w"> </span><span class="nb">VARCHAR</span><span class="p">(</span><span class="mi">20</span><span class="p">)</span><span class="w"> </span><span class="k">NOT</span><span class="w"> </span><span class="k">NULL</span><span class="p">,</span><span class="w">   </span><span class="c1">-- DIARIO, SEMANAL, QUINCENAL, MENSUAL</span>
+<span class="w">    </span><span class="n">monto</span><span class="w"> </span><span class="nb">DECIMAL</span><span class="p">(</span><span class="mi">12</span><span class="p">,</span><span class="mi">2</span><span class="p">)</span><span class="w"> </span><span class="k">NOT</span><span class="w"> </span><span class="k">NULL</span><span class="p">,</span>
+<span class="w">    </span><span class="n">activo</span><span class="w"> </span><span class="nb">BOOLEAN</span><span class="w"> </span><span class="k">DEFAULT</span><span class="w"> </span><span class="k">TRUE</span><span class="p">,</span>
+<span class="w">    </span><span class="n">created_at</span><span class="w"> </span><span class="n">TIMESTAMPTZ</span><span class="w"> </span><span class="k">DEFAULT</span><span class="w"> </span><span class="n">NOW</span><span class="p">(),</span>
+<span class="w">    </span><span class="n">updated_at</span><span class="w"> </span><span class="n">TIMESTAMPTZ</span><span class="w"> </span><span class="k">DEFAULT</span><span class="w"> </span><span class="n">NOW</span><span class="p">()</span>
+<span class="p">);</span>
+</code></pre></div>
+<ul>
+<li><code>tipo_pago</code> es enum string (no tabla separada ni JSONB)</li>
+<li><code>monto</code> es el valor del pago en la frecuencia correspondiente (si paga $50/día → monto=50, tipo_pago=DIARIO)</li>
+<li>Soft-delete: <code>activo = false</code> en vez de eliminar (preserva histórico)</li>
+</ul>
+<h3 id="gastofijorecurrente">GastoFijoRecurrente<a class="headerlink" href="#gastofijorecurrente" title="Permanent link">&para;</a></h3>
+<div class="highlight"><pre><span></span><code><span class="k">CREATE</span><span class="w"> </span><span class="k">TABLE</span><span class="w"> </span><span class="n">core</span><span class="p">.</span><span class="n">gastos_fijos_recurrentes</span><span class="w"> </span><span class="p">(</span>
+<span class="w">    </span><span class="n">id</span><span class="w"> </span><span class="n">UUID</span><span class="w"> </span><span class="k">PRIMARY</span><span class="w"> </span><span class="k">KEY</span><span class="p">,</span>
+<span class="w">    </span><span class="n">tenant_id</span><span class="w"> </span><span class="n">UUID</span><span class="w"> </span><span class="k">NOT</span><span class="w"> </span><span class="k">NULL</span><span class="p">,</span>
+<span class="w">    </span><span class="n">categoria</span><span class="w"> </span><span class="nb">VARCHAR</span><span class="p">(</span><span class="mi">50</span><span class="p">)</span><span class="w"> </span><span class="k">NOT</span><span class="w"> </span><span class="k">NULL</span><span class="p">,</span>
+<span class="w">    </span><span class="n">monto</span><span class="w"> </span><span class="nb">DECIMAL</span><span class="p">(</span><span class="mi">12</span><span class="p">,</span><span class="mi">2</span><span class="p">)</span><span class="w"> </span><span class="k">NOT</span><span class="w"> </span><span class="k">NULL</span><span class="p">,</span>
+<span class="w">    </span><span class="n">descripcion</span><span class="w"> </span><span class="nb">VARCHAR</span><span class="p">(</span><span class="mi">255</span><span class="p">),</span>
+<span class="w">    </span><span class="n">dia_ejecucion</span><span class="w"> </span><span class="nb">INT</span><span class="w"> </span><span class="k">NOT</span><span class="w"> </span><span class="k">NULL</span><span class="p">,</span><span class="w">        </span><span class="c1">-- 1-31</span>
+<span class="w">    </span><span class="n">metodo_pago</span><span class="w"> </span><span class="nb">VARCHAR</span><span class="p">(</span><span class="mi">50</span><span class="p">),</span>
+<span class="w">    </span><span class="n">activo</span><span class="w"> </span><span class="nb">BOOLEAN</span><span class="w"> </span><span class="k">DEFAULT</span><span class="w"> </span><span class="k">TRUE</span>
+<span class="p">);</span>
+</code></pre></div>
+<ul>
+<li><code>categoria</code> usa los mismos valores que <code>CategoriaGasto</code> (ALQUILER, AGUA, LUZ, INTERNET, etc.)</li>
+<li><code>dia_ejecucion</code>: día del mes en que se paga. Motor lo usa para distribuir costo diario si se requiere precisión</li>
+<li>Sin timestamps — es una regla de negocio, no un evento contable</li>
+</ul>
+<h3 id="configlaboral">ConfigLaboral<a class="headerlink" href="#configlaboral" title="Permanent link">&para;</a></h3>
+<div class="highlight"><pre><span></span><code><span class="k">CREATE</span><span class="w"> </span><span class="k">TABLE</span><span class="w"> </span><span class="n">core</span><span class="p">.</span><span class="n">config_laboral</span><span class="w"> </span><span class="p">(</span>
+<span class="w">    </span><span class="n">tenant_id</span><span class="w"> </span><span class="n">UUID</span><span class="w"> </span><span class="k">PRIMARY</span><span class="w"> </span><span class="k">KEY</span><span class="p">,</span>
+<span class="w">    </span><span class="n">dias_laborales</span><span class="w"> </span><span class="nb">INT</span><span class="w"> </span><span class="k">NOT</span><span class="w"> </span><span class="k">NULL</span><span class="w"> </span><span class="k">DEFAULT</span><span class="w"> </span><span class="mi">26</span>
+<span class="p">);</span>
+</code></pre></div>
+<ul>
+<li>1 fila por tenant (PK = tenant_id)</li>
+<li><code>dias_laborales</code>: divisor del costo mensual para obtener costo diario. Default 26 (lun-sáb)</li>
+</ul>
+<hr />
+<h2 id="motor-de-calculo">Motor de Cálculo<a class="headerlink" href="#motor-de-calculo" title="Permanent link">&para;</a></h2>
+<h3 id="formula">Fórmula<a class="headerlink" href="#formula" title="Permanent link">&para;</a></h3>
+<div class="highlight"><pre><span></span><code>costo_fijo_mensual     = SUM(monto de gastos_fijos_recurrentes WHERE activo = true)
+costo_salarios_mensual = SUM(
+    CASE tipo_pago
+        WHEN 'DIARIO'    THEN monto × dias_laborales
+        WHEN 'SEMANAL'   THEN monto × 4.33
+        WHEN 'QUINCENAL' THEN monto × 2
+        WHEN 'MENSUAL'   THEN monto
+    END
+) WHERE activo = true
+costo_operativo_mensual = costo_fijo_mensual + costo_salarios_mensual
+costo_operativo_diario  = costo_operativo_mensual / dias_laborales
+</code></pre></div>
+<h3 id="factores-de-periodicidad">Factores de periodicidad<a class="headerlink" href="#factores-de-periodicidad" title="Permanent link">&para;</a></h3>
+<table>
+<thead>
+<tr>
+<th>Tipo</th>
+<th>Factor</th>
+<th>Lógica</th>
+</tr>
+</thead>
+<tbody>
+<tr>
+<td>DIARIO</td>
+<td><code>× dias_laborales</code></td>
+<td>Paga cada día trabajado</td>
+</tr>
+<tr>
+<td>SEMANAL</td>
+<td><code>× 4.33</code></td>
+<td>52 semanas / 12 meses</td>
+</tr>
+<tr>
+<td>QUINCENAL</td>
+<td><code>× 2</code></td>
+<td>2 veces al mes</td>
+</tr>
+<tr>
+<td>MENSUAL</td>
+<td><code>× 1</code></td>
+<td>1 vez al mes</td>
+</tr>
+</tbody>
+</table>
+<h3 id="costodiarioresponse">CostoDiarioResponse<a class="headerlink" href="#costodiarioresponse" title="Permanent link">&para;</a></h3>
+<div class="highlight"><pre><span></span><code><span class="p">{</span>
+<span class="w">  </span><span class="nt">"costoFijoMensual"</span><span class="p">:</span><span class="w"> </span><span class="mf">1850.00</span><span class="p">,</span>
+<span class="w">  </span><span class="nt">"costoSalariosMensual"</span><span class="p">:</span><span class="w"> </span><span class="mf">4200.00</span><span class="p">,</span>
+<span class="w">  </span><span class="nt">"costoSemiFijoMensual"</span><span class="p">:</span><span class="w"> </span><span class="mi">0</span><span class="p">,</span>
+<span class="w">  </span><span class="nt">"costoOperativoMensual"</span><span class="p">:</span><span class="w"> </span><span class="mf">6050.00</span><span class="p">,</span>
+<span class="w">  </span><span class="nt">"diasLaborales"</span><span class="p">:</span><span class="w"> </span><span class="mi">26</span><span class="p">,</span>
+<span class="w">  </span><span class="nt">"costoOperativoDiario"</span><span class="p">:</span><span class="w"> </span><span class="mf">232.69</span><span class="p">,</span>
+<span class="w">  </span><span class="nt">"ventasHoy"</span><span class="p">:</span><span class="w"> </span><span class="mf">580.00</span><span class="p">,</span>
+<span class="w">  </span><span class="nt">"gananciaRealEstimada"</span><span class="p">:</span><span class="w"> </span><span class="mf">347.31</span>
+<span class="p">}</span>
+</code></pre></div>
+<ul>
+<li><code>ventasHoy</code> y <code>gananciaRealEstimada</code> vienen de cruce con <code>VentaDiaria</code> del día actual</li>
+<li><code>gananciaRealEstimada</code> = <code>ventasHoy - (ventasHoy × COGS_pct_promedio) - costoOperativoDiario</code> — aprox rápida, no contable</li>
+</ul>
+<hr />
+<h2 id="endpoints">Endpoints<a class="headerlink" href="#endpoints" title="Permanent link">&para;</a></h2>
+<h3 id="crud-collaboradores">CRUD Collaboradores<a class="headerlink" href="#crud-collaboradores" title="Permanent link">&para;</a></h3>
+<div class="highlight"><pre><span></span><code>POST   /api/v1/core/costos/collaboradores       # Crear
+GET    /api/v1/core/costos/collaboradores        # Listar todos (por tenant)
+GET    /api/v1/core/costos/collaboradores/{id}   # Obtener uno
+PUT    /api/v1/core/costos/collaboradores/{id}   # Actualizar
+DELETE /api/v1/core/costos/collaboradores/{id}   # Soft-delete (activo=false)
+</code></pre></div>
+<h3 id="crud-gastos-fijos-recurrentes">CRUD Gastos Fijos Recurrentes<a class="headerlink" href="#crud-gastos-fijos-recurrentes" title="Permanent link">&para;</a></h3>
+<div class="highlight"><pre><span></span><code>POST   /api/v1/core/costos/gastos-fijos          # Crear
+GET    /api/v1/core/costos/gastos-fijos           # Listar todos (por tenant)
+GET    /api/v1/core/costos/gastos-fijos/{id}      # Obtener uno
+PUT    /api/v1/core/costos/gastos-fijos/{id}      # Actualizar
+DELETE /api/v1/core/costos/gastos-fijos/{id}      # Soft-delete
+</code></pre></div>
+<h3 id="config-laboral">Config Laboral<a class="headerlink" href="#config-laboral" title="Permanent link">&para;</a></h3>
+<div class="highlight"><pre><span></span><code>GET    /api/v1/core/costos/configuracion         # Obtener (get-or-create con default 26)
+PUT    /api/v1/core/costos/configuracion         # Actualizar días laborales
+</code></pre></div>
+<h3 id="costo-diario">Costo Diario<a class="headerlink" href="#costo-diario" title="Permanent link">&para;</a></h3>
+<div class="highlight"><pre><span></span><code>GET    /api/v1/core/costos/diario                # Calcular y devolver breakdown
+</code></pre></div>
+<hr />
+<h2 id="integracion-con-motores-existentes">Integración con Motores Existentes<a class="headerlink" href="#integracion-con-motores-existentes" title="Permanent link">&para;</a></h2>
+<h3 id="metricasserviceimpl-cte-consolidado">MetricasServiceImpl (CTE consolidado)<a class="headerlink" href="#metricasserviceimpl-cte-consolidado" title="Permanent link">&para;</a></h3>
+<p>El CTE existente en <code>MetricasServiceImpl.ejecutarCompleto()</code> actualmente hace:</p>
+<div class="highlight"><pre><span></span><code><span class="k">WITH</span><span class="w"> </span><span class="n">sales</span><span class="w"> </span><span class="k">AS</span><span class="w"> </span><span class="p">(...),</span><span class="w"> </span><span class="n">invoices_cost</span><span class="w"> </span><span class="k">AS</span><span class="w"> </span><span class="p">(...),</span><span class="w"> </span><span class="n">invoices_opex</span><span class="w"> </span><span class="k">AS</span><span class="w"> </span><span class="p">(...),</span><span class="w"> </span><span class="n">opex</span><span class="w"> </span><span class="k">AS</span><span class="w"> </span><span class="p">(...),</span><span class="w"> </span><span class="n">loan_pay</span><span class="w"> </span><span class="k">AS</span><span class="w"> </span><span class="p">(...)</span>
+</code></pre></div>
+<p>Agregar:</p>
+<div class="highlight"><pre><span></span><code><span class="n">costos</span><span class="w"> </span><span class="k">AS</span><span class="w"> </span><span class="p">(</span>
+<span class="w">    </span><span class="k">SELECT</span>
+<span class="w">        </span><span class="k">COALESCE</span><span class="p">((</span><span class="k">SELECT</span><span class="w"> </span><span class="k">SUM</span><span class="p">(</span><span class="n">monto</span><span class="p">)</span><span class="w"> </span><span class="k">FROM</span><span class="w"> </span><span class="n">core</span><span class="p">.</span><span class="n">gastos_fijos_recurrentes</span><span class="w"> </span><span class="k">WHERE</span><span class="w"> </span><span class="n">tenant_id</span><span class="w"> </span><span class="o">=</span><span class="w"> </span><span class="o">?</span><span class="w"> </span><span class="k">AND</span><span class="w"> </span><span class="n">activo</span><span class="w"> </span><span class="o">=</span><span class="w"> </span><span class="k">true</span><span class="p">),</span><span class="w"> </span><span class="mi">0</span><span class="p">)</span><span class="w"> </span><span class="k">AS</span><span class="w"> </span><span class="n">costo_fijo_mensual</span><span class="p">,</span>
+<span class="w">        </span><span class="k">COALESCE</span><span class="p">((</span><span class="k">SELECT</span><span class="w"> </span><span class="k">SUM</span><span class="p">(</span>
+<span class="w">            </span><span class="k">CASE</span><span class="w"> </span><span class="n">tipo_pago</span>
+<span class="w">                </span><span class="k">WHEN</span><span class="w"> </span><span class="s1">'DIARIO'</span><span class="w"> </span><span class="k">THEN</span><span class="w"> </span><span class="n">monto</span><span class="w"> </span><span class="o">*</span><span class="w"> </span><span class="p">(</span><span class="k">SELECT</span><span class="w"> </span><span class="n">dias_laborales</span><span class="w"> </span><span class="k">FROM</span><span class="w"> </span><span class="n">core</span><span class="p">.</span><span class="n">config_laboral</span><span class="w"> </span><span class="k">WHERE</span><span class="w"> </span><span class="n">tenant_id</span><span class="w"> </span><span class="o">=</span><span class="w"> </span><span class="o">?</span><span class="p">)</span>
+<span class="w">                </span><span class="k">WHEN</span><span class="w"> </span><span class="s1">'SEMANAL'</span><span class="w"> </span><span class="k">THEN</span><span class="w"> </span><span class="n">monto</span><span class="w"> </span><span class="o">*</span><span class="w"> </span><span class="mi">4</span><span class="p">.</span><span class="mi">33</span>
+<span class="w">                </span><span class="k">WHEN</span><span class="w"> </span><span class="s1">'QUINCENAL'</span><span class="w"> </span><span class="k">THEN</span><span class="w"> </span><span class="n">monto</span><span class="w"> </span><span class="o">*</span><span class="w"> </span><span class="mi">2</span>
+<span class="w">                </span><span class="k">WHEN</span><span class="w"> </span><span class="s1">'MENSUAL'</span><span class="w"> </span><span class="k">THEN</span><span class="w"> </span><span class="n">monto</span>
+<span class="w">                </span><span class="k">ELSE</span><span class="w"> </span><span class="n">monto</span>
+<span class="w">            </span><span class="k">END</span>
+<span class="w">        </span><span class="p">)</span><span class="w"> </span><span class="k">FROM</span><span class="w"> </span><span class="n">core</span><span class="p">.</span><span class="n">collaboradores</span><span class="w"> </span><span class="k">WHERE</span><span class="w"> </span><span class="n">tenant_id</span><span class="w"> </span><span class="o">=</span><span class="w"> </span><span class="o">?</span><span class="w"> </span><span class="k">AND</span><span class="w"> </span><span class="n">activo</span><span class="w"> </span><span class="o">=</span><span class="w"> </span><span class="k">true</span><span class="p">),</span><span class="w"> </span><span class="mi">0</span><span class="p">)</span><span class="w"> </span><span class="k">AS</span><span class="w"> </span><span class="n">costo_salarios_mensual</span>
+<span class="p">)</span>
+</code></pre></div>
+<p>El <code>costo_operativo_diario</code> se calcula en Java post-CTE y se persiste en <code>MetricasFinanciera</code> como nuevo campo <code>costoOperativoDiario</code>.</p>
+<h3 id="financial-health-engine-motor-10">Financial Health Engine (Motor #10)<a class="headerlink" href="#financial-health-engine-motor-10" title="Permanent link">&para;</a></h3>
+<p>Agregar señal:</p>
+<table>
+<thead>
+<tr>
+<th>Señal</th>
+<th>Tipo</th>
+<th>Criterio</th>
+</tr>
+</thead>
+<tbody>
+<tr>
+<td><code>DAILY_COST_CONTROL</code></td>
+<td>🟢 Inversión</td>
+<td><code>ventasHoy &gt; costoOperativoDiario × 1.2</code> en 3+ de los últimos 7 días</td>
+</tr>
+</tbody>
+</table>
+<p>Indica que el negocio genera suficiente ingreso diario para cubrir sus costos operativos diarios con un margen del 20%.</p>
+<h3 id="opex_creep">OPEX_CREEP<a class="headerlink" href="#opex_creep" title="Permanent link">&para;</a></h3>
+<p>La señal <code>OPEX_CREEP</code> existente (🔴 Crítica) se vuelve más precisa: ahora cruza gastos fijos reales + salarios vs ingresos, no gastos operativos puntuales que pueden tener ruido mensual.</p>
+<hr />
+<h2 id="frontend">Frontend<a class="headerlink" href="#frontend" title="Permanent link">&para;</a></h2>
+<h3 id="costospagevue">CostosPage.vue<a class="headerlink" href="#costospagevue" title="Permanent link">&para;</a></h3>
+<p>Nueva página con 3 secciones en tabs:</p>
+<ol>
+<li><strong>Colaboradores</strong> — Tabla: nombre, tipo pago, monto. CRUD inline o dialog.</li>
+<li><strong>Gastos Fijos</strong> — Tabla: categoría, descripción, monto, día ejecución. Agrupados por categoría.</li>
+<li><strong>Configuración</strong> — Input: días laborales (default 26).</li>
+</ol>
+<p>Header sticky con resumen: <strong>"Costo operativo diario: $232.69 → Ventas hoy $580 → Ganancia real estimada $347"</strong></p>
+<h3 id="dashboard">Dashboard<a class="headerlink" href="#dashboard" title="Permanent link">&para;</a></h3>
+<p>Nuevo stat strip item: <strong>"Costo/Día $232"</strong> con color basado en ratio ventas/costo. Integrado al layout existente de KpiCards.</p>
+<hr />
+<h2 id="eventos">Eventos<a class="headerlink" href="#eventos" title="Permanent link">&para;</a></h2>
+<p>Un solo evento para toda la estructura de costos:</p>
+<div class="highlight"><pre><span></span><code><span class="kd">public</span><span class="w"> </span><span class="kd">record</span> <span class="nc">CostoStructureChangedEvent</span><span class="p">(</span><span class="n">UUID</span><span class="w"> </span><span class="n">tenantId</span><span class="p">,</span><span class="w"> </span><span class="n">String</span><span class="w"> </span><span class="n">periodo</span><span class="p">)</span><span class="w"> </span><span class="p">{}</span>
+</code></pre></div>
+<p>Publicado por <code>CostoServiceImpl</code> cuando cualquier entidad del módulo se crea, actualiza o elimina. Un solo listener:</p>
+<div class="highlight"><pre><span></span><code><span class="nd">@Component</span>
+<span class="nd">@RequiredArgsConstructor</span>
+<span class="kd">public</span><span class="w"> </span><span class="kd">class</span> <span class="nc">CostoStructureChangedListener</span><span class="w"> </span><span class="p">{</span>
+<span class="w">    </span><span class="kd">private</span><span class="w"> </span><span class="kd">final</span><span class="w"> </span><span class="n">RecomputeDebounceService</span><span class="w"> </span><span class="n">recomputeService</span><span class="p">;</span>
+
+<span class="w">    </span><span class="nd">@Async</span>
+<span class="w">    </span><span class="nd">@TransactionalEventListener</span><span class="p">(</span><span class="n">phase</span><span class="w"> </span><span class="o">=</span><span class="w"> </span><span class="n">TransactionPhase</span><span class="p">.</span><span class="na">AFTER_COMMIT</span><span class="p">)</span>
+<span class="w">    </span><span class="kd">public</span><span class="w"> </span><span class="kt">void</span><span class="w"> </span><span class="nf">onCostoStructureChanged</span><span class="p">(</span><span class="n">CostoStructureChangedEvent</span><span class="w"> </span><span class="n">event</span><span class="p">)</span><span class="w"> </span><span class="p">{</span>
+<span class="w">        </span><span class="n">recomputeService</span><span class="p">.</span><span class="na">markMetricsDirty</span><span class="p">(</span><span class="n">event</span><span class="p">.</span><span class="na">tenantId</span><span class="p">(),</span><span class="w"> </span><span class="n">event</span><span class="p">.</span><span class="na">periodo</span><span class="p">());</span>
+<span class="w">    </span><span class="p">}</span>
+<span class="p">}</span>
+</code></pre></div>
+<p>El debounce Redis existente (30s, SETNX) maneja la deduplicación.</p>
+<hr />
+<h2 id="migracion-flyway-v2">Migración Flyway — V2<a class="headerlink" href="#migracion-flyway-v2" title="Permanent link">&para;</a></h2>
+<div class="highlight"><pre><span></span><code><span class="c1">-- V2__costos_engine.sql</span>
+
+<span class="k">CREATE</span><span class="w"> </span><span class="k">TABLE</span><span class="w"> </span><span class="k">IF</span><span class="w"> </span><span class="k">NOT</span><span class="w"> </span><span class="k">EXISTS</span><span class="w"> </span><span class="n">core</span><span class="p">.</span><span class="n">collaboradores</span><span class="w"> </span><span class="p">(</span>
+<span class="w">    </span><span class="n">id</span><span class="w"> </span><span class="n">UUID</span><span class="w"> </span><span class="k">PRIMARY</span><span class="w"> </span><span class="k">KEY</span><span class="w"> </span><span class="k">DEFAULT</span><span class="w"> </span><span class="n">gen_random_uuid</span><span class="p">(),</span>
+<span class="w">    </span><span class="n">tenant_id</span><span class="w"> </span><span class="n">UUID</span><span class="w"> </span><span class="k">NOT</span><span class="w"> </span><span class="k">NULL</span><span class="p">,</span>
+<span class="w">    </span><span class="n">nombre</span><span class="w"> </span><span class="nb">VARCHAR</span><span class="p">(</span><span class="mi">100</span><span class="p">)</span><span class="w"> </span><span class="k">NOT</span><span class="w"> </span><span class="k">NULL</span><span class="p">,</span>
+<span class="w">    </span><span class="n">tipo_pago</span><span class="w"> </span><span class="nb">VARCHAR</span><span class="p">(</span><span class="mi">20</span><span class="p">)</span><span class="w"> </span><span class="k">NOT</span><span class="w"> </span><span class="k">NULL</span><span class="w"> </span><span class="k">CHECK</span><span class="w"> </span><span class="p">(</span><span class="n">tipo_pago</span><span class="w"> </span><span class="k">IN</span><span class="w"> </span><span class="p">(</span><span class="s1">'DIARIO'</span><span class="p">,</span><span class="w"> </span><span class="s1">'SEMANAL'</span><span class="p">,</span><span class="w"> </span><span class="s1">'QUINCENAL'</span><span class="p">,</span><span class="w"> </span><span class="s1">'MENSUAL'</span><span class="p">)),</span>
+<span class="w">    </span><span class="n">monto</span><span class="w"> </span><span class="nb">DECIMAL</span><span class="p">(</span><span class="mi">12</span><span class="p">,</span><span class="mi">2</span><span class="p">)</span><span class="w"> </span><span class="k">NOT</span><span class="w"> </span><span class="k">NULL</span><span class="w"> </span><span class="k">CHECK</span><span class="w"> </span><span class="p">(</span><span class="n">monto</span><span class="w"> </span><span class="o">&gt;</span><span class="w"> </span><span class="mi">0</span><span class="p">),</span>
+<span class="w">    </span><span class="n">activo</span><span class="w"> </span><span class="nb">BOOLEAN</span><span class="w"> </span><span class="k">DEFAULT</span><span class="w"> </span><span class="k">TRUE</span><span class="p">,</span>
+<span class="w">    </span><span class="n">created_at</span><span class="w"> </span><span class="n">TIMESTAMPTZ</span><span class="w"> </span><span class="k">DEFAULT</span><span class="w"> </span><span class="n">NOW</span><span class="p">(),</span>
+<span class="w">    </span><span class="n">updated_at</span><span class="w"> </span><span class="n">TIMESTAMPTZ</span><span class="w"> </span><span class="k">DEFAULT</span><span class="w"> </span><span class="n">NOW</span><span class="p">()</span>
+<span class="p">);</span>
+
+<span class="k">CREATE</span><span class="w"> </span><span class="k">TABLE</span><span class="w"> </span><span class="k">IF</span><span class="w"> </span><span class="k">NOT</span><span class="w"> </span><span class="k">EXISTS</span><span class="w"> </span><span class="n">core</span><span class="p">.</span><span class="n">gastos_fijos_recurrentes</span><span class="w"> </span><span class="p">(</span>
+<span class="w">    </span><span class="n">id</span><span class="w"> </span><span class="n">UUID</span><span class="w"> </span><span class="k">PRIMARY</span><span class="w"> </span><span class="k">KEY</span><span class="w"> </span><span class="k">DEFAULT</span><span class="w"> </span><span class="n">gen_random_uuid</span><span class="p">(),</span>
+<span class="w">    </span><span class="n">tenant_id</span><span class="w"> </span><span class="n">UUID</span><span class="w"> </span><span class="k">NOT</span><span class="w"> </span><span class="k">NULL</span><span class="p">,</span>
+<span class="w">    </span><span class="n">categoria</span><span class="w"> </span><span class="nb">VARCHAR</span><span class="p">(</span><span class="mi">50</span><span class="p">)</span><span class="w"> </span><span class="k">NOT</span><span class="w"> </span><span class="k">NULL</span><span class="p">,</span>
+<span class="w">    </span><span class="n">monto</span><span class="w"> </span><span class="nb">DECIMAL</span><span class="p">(</span><span class="mi">12</span><span class="p">,</span><span class="mi">2</span><span class="p">)</span><span class="w"> </span><span class="k">NOT</span><span class="w"> </span><span class="k">NULL</span><span class="w"> </span><span class="k">CHECK</span><span class="w"> </span><span class="p">(</span><span class="n">monto</span><span class="w"> </span><span class="o">&gt;</span><span class="w"> </span><span class="mi">0</span><span class="p">),</span>
+<span class="w">    </span><span class="n">descripcion</span><span class="w"> </span><span class="nb">VARCHAR</span><span class="p">(</span><span class="mi">255</span><span class="p">),</span>
+<span class="w">    </span><span class="n">dia_ejecucion</span><span class="w"> </span><span class="nb">INT</span><span class="w"> </span><span class="k">NOT</span><span class="w"> </span><span class="k">NULL</span><span class="w"> </span><span class="k">CHECK</span><span class="w"> </span><span class="p">(</span><span class="n">dia_ejecucion</span><span class="w"> </span><span class="k">BETWEEN</span><span class="w"> </span><span class="mi">1</span><span class="w"> </span><span class="k">AND</span><span class="w"> </span><span class="mi">31</span><span class="p">),</span>
+<span class="w">    </span><span class="n">metodo_pago</span><span class="w"> </span><span class="nb">VARCHAR</span><span class="p">(</span><span class="mi">50</span><span class="p">),</span>
+<span class="w">    </span><span class="n">activo</span><span class="w"> </span><span class="nb">BOOLEAN</span><span class="w"> </span><span class="k">DEFAULT</span><span class="w"> </span><span class="k">TRUE</span>
+<span class="p">);</span>
+
+<span class="k">CREATE</span><span class="w"> </span><span class="k">TABLE</span><span class="w"> </span><span class="k">IF</span><span class="w"> </span><span class="k">NOT</span><span class="w"> </span><span class="k">EXISTS</span><span class="w"> </span><span class="n">core</span><span class="p">.</span><span class="n">config_laboral</span><span class="w"> </span><span class="p">(</span>
+<span class="w">    </span><span class="n">tenant_id</span><span class="w"> </span><span class="n">UUID</span><span class="w"> </span><span class="k">PRIMARY</span><span class="w"> </span><span class="k">KEY</span><span class="p">,</span>
+<span class="w">    </span><span class="n">dias_laborales</span><span class="w"> </span><span class="nb">INT</span><span class="w"> </span><span class="k">NOT</span><span class="w"> </span><span class="k">NULL</span><span class="w"> </span><span class="k">DEFAULT</span><span class="w"> </span><span class="mi">26</span><span class="w"> </span><span class="k">CHECK</span><span class="w"> </span><span class="p">(</span><span class="n">dias_laborales</span><span class="w"> </span><span class="k">BETWEEN</span><span class="w"> </span><span class="mi">1</span><span class="w"> </span><span class="k">AND</span><span class="w"> </span><span class="mi">31</span><span class="p">)</span>
+<span class="p">);</span>
+
+<span class="k">CREATE</span><span class="w"> </span><span class="k">INDEX</span><span class="w"> </span><span class="k">IF</span><span class="w"> </span><span class="k">NOT</span><span class="w"> </span><span class="k">EXISTS</span><span class="w"> </span><span class="n">idx_collaboradores_tenant</span><span class="w"> </span><span class="k">ON</span><span class="w"> </span><span class="n">core</span><span class="p">.</span><span class="n">collaboradores</span><span class="p">(</span><span class="n">tenant_id</span><span class="p">);</span>
+<span class="k">CREATE</span><span class="w"> </span><span class="k">INDEX</span><span class="w"> </span><span class="k">IF</span><span class="w"> </span><span class="k">NOT</span><span class="w"> </span><span class="k">EXISTS</span><span class="w"> </span><span class="n">idx_gastos_fijos_tenant</span><span class="w"> </span><span class="k">ON</span><span class="w"> </span><span class="n">core</span><span class="p">.</span><span class="n">gastos_fijos_recurrentes</span><span class="p">(</span><span class="n">tenant_id</span><span class="p">);</span>
+</code></pre></div>
+<h3 id="metricasfinanciera-costo_operativo_diario">MetricasFinanciera — costo_operativo_diario<a class="headerlink" href="#metricasfinanciera-costo_operativo_diario" title="Permanent link">&para;</a></h3>
+<p>V1 ya incluye <code>costo_operativo_diario</code> en <code>tenant_financial_metrics</code> (consolidado de V3).</p>
+<h3 id="performance-indexes-v3">Performance Indexes (V3)<a class="headerlink" href="#performance-indexes-v3" title="Permanent link">&para;</a></h3>
+<div class="highlight"><pre><span></span><code><span class="c1">-- Costos CTE: index-only scan para SUM(monto) WHERE activo = true</span>
+<span class="k">CREATE</span><span class="w"> </span><span class="k">INDEX</span><span class="w"> </span><span class="k">IF</span><span class="w"> </span><span class="k">NOT</span><span class="w"> </span><span class="k">EXISTS</span><span class="w"> </span><span class="n">idx_gastos_fijos_tenant_active</span>
+<span class="w">    </span><span class="k">ON</span><span class="w"> </span><span class="n">core</span><span class="p">.</span><span class="n">gastos_fijos_recurrentes</span><span class="p">(</span><span class="n">tenant_id</span><span class="p">,</span><span class="w"> </span><span class="n">monto</span><span class="p">)</span>
+<span class="w">    </span><span class="k">WHERE</span><span class="w"> </span><span class="n">activo</span><span class="w"> </span><span class="o">=</span><span class="w"> </span><span class="k">true</span><span class="p">;</span>
+
+<span class="k">CREATE</span><span class="w"> </span><span class="k">INDEX</span><span class="w"> </span><span class="k">IF</span><span class="w"> </span><span class="k">NOT</span><span class="w"> </span><span class="k">EXISTS</span><span class="w"> </span><span class="n">idx_collaboradores_tenant_active</span>
+<span class="w">    </span><span class="k">ON</span><span class="w"> </span><span class="n">core</span><span class="p">.</span><span class="n">collaboradores</span><span class="p">(</span><span class="n">tenant_id</span><span class="p">,</span><span class="w"> </span><span class="n">monto</span><span class="p">,</span><span class="w"> </span><span class="n">tipo_pago</span><span class="p">)</span>
+<span class="w">    </span><span class="k">WHERE</span><span class="w"> </span><span class="n">activo</span><span class="w"> </span><span class="o">=</span><span class="w"> </span><span class="k">true</span><span class="p">;</span>
+
+<span class="c1">-- Invoice number lookup (FacturaRepository.findMaxInvoiceNumber)</span>
+<span class="k">CREATE</span><span class="w"> </span><span class="k">INDEX</span><span class="w"> </span><span class="k">IF</span><span class="w"> </span><span class="k">NOT</span><span class="w"> </span><span class="k">EXISTS</span><span class="w"> </span><span class="n">idx_invoices_tenant_number</span>
+<span class="w">    </span><span class="k">ON</span><span class="w"> </span><span class="n">core</span><span class="p">.</span><span class="n">invoices</span><span class="p">(</span><span class="n">tenant_id</span><span class="p">,</span><span class="w"> </span><span class="n">invoice_number</span><span class="p">);</span>
+
+<span class="c1">-- Analytics covering indexes (7+ CTEs en AnalyticsServiceImpl)</span>
+<span class="k">CREATE</span><span class="w"> </span><span class="k">INDEX</span><span class="w"> </span><span class="k">IF</span><span class="w"> </span><span class="k">NOT</span><span class="w"> </span><span class="k">EXISTS</span><span class="w"> </span><span class="n">idx_invoices_analytics</span>
+<span class="w">    </span><span class="k">ON</span><span class="w"> </span><span class="n">core</span><span class="p">.</span><span class="n">invoices</span><span class="p">(</span><span class="n">tenant_id</span><span class="p">,</span><span class="w"> </span><span class="n">issue_date</span><span class="p">)</span>
+<span class="w">    </span><span class="n">INCLUDE</span><span class="w"> </span><span class="p">(</span><span class="n">id</span><span class="p">,</span><span class="w"> </span><span class="n">provider_id</span><span class="p">,</span><span class="w"> </span><span class="k">type</span><span class="p">,</span><span class="w"> </span><span class="n">status</span><span class="p">);</span>
+
+<span class="k">CREATE</span><span class="w"> </span><span class="k">INDEX</span><span class="w"> </span><span class="k">IF</span><span class="w"> </span><span class="k">NOT</span><span class="w"> </span><span class="k">EXISTS</span><span class="w"> </span><span class="n">idx_invoice_items_analytics</span>
+<span class="w">    </span><span class="k">ON</span><span class="w"> </span><span class="n">core</span><span class="p">.</span><span class="n">invoice_items</span><span class="p">(</span><span class="n">invoice_id</span><span class="p">)</span>
+<span class="w">    </span><span class="n">INCLUDE</span><span class="w"> </span><span class="p">(</span><span class="n">product_id</span><span class="p">,</span><span class="w"> </span><span class="n">subtotal</span><span class="p">,</span><span class="w"> </span><span class="n">unit_price</span><span class="p">,</span><span class="w"> </span><span class="n">conversion_factor</span><span class="p">);</span>
+</code></pre></div>
+<hr />
+<h2 id="dependencias">Dependencias<a class="headerlink" href="#dependencias" title="Permanent link">&para;</a></h2>
+<p>Ninguna nueva. Todo usa:
+- Spring Boot Starter Data JPA (repositorios)
+- Spring Boot Starter Web (endpoints)
+- Lombok + MapStruct (ya en pom.xml)
+- PostgreSQL JDBC (ya en pom.xml)</p>
+<hr />
+<h2 id="orden-de-implementacion">Orden de Implementación<a class="headerlink" href="#orden-de-implementacion" title="Permanent link">&para;</a></h2>
+<table>
+<thead>
+<tr>
+<th>Paso</th>
+<th>Descripción</th>
+<th>Archivos</th>
+</tr>
+</thead>
+<tbody>
+<tr>
+<td>1</td>
+<td>V2 migration + V3 performance indexes</td>
+<td>2 SQL</td>
+</tr>
+<tr>
+<td>2</td>
+<td>3 entities + TipoPago enum</td>
+<td>4 Java</td>
+</tr>
+<tr>
+<td>3</td>
+<td>3 repositories</td>
+<td>3 Java</td>
+</tr>
+<tr>
+<td>4</td>
+<td>7 DTO records</td>
+<td>7 Java</td>
+</tr>
+<tr>
+<td>5</td>
+<td>Event + Listener</td>
+<td>2 Java</td>
+</tr>
+<tr>
+<td>6</td>
+<td>CostoService + impl</td>
+<td>2 Java</td>
+</tr>
+<tr>
+<td>7</td>
+<td>CostoApi + CostoController</td>
+<td>2 Java</td>
+</tr>
+<tr>
+<td>8</td>
+<td>CorePath constant</td>
+<td>1 edit</td>
+</tr>
+<tr>
+<td>9</td>
+<td>Extender MetricasServiceImpl CTE</td>
+<td>1 edit</td>
+</tr>
+<tr>
+<td>10</td>
+<td>Agregar DAILY_COST_CONTROL a Financial Health</td>
+<td>✅ Implementado (2026-08-02)</td>
+</tr>
+<tr>
+<td>11</td>
+<td>Tests: JPA + unit</td>
+<td>2 Java</td>
+</tr>
+<tr>
+<td>12</td>
+<td>Frontend: CostosPage.vue</td>
+<td>1 Vue</td>
+</tr>
+<tr>
+<td>13</td>
+<td>Dashboard: KPI Costo/Día</td>
+<td>2 edits</td>
+</tr>
+</tbody>
+</table>
+<hr />
+<h2 id="queries-de-referencia">Queries de referencia<a class="headerlink" href="#queries-de-referencia" title="Permanent link">&para;</a></h2>
+<h3 id="capa-1-config-presupuesto-mensual">Capa 1 — Config (presupuesto mensual)<a class="headerlink" href="#capa-1-config-presupuesto-mensual" title="Permanent link">&para;</a></h3>
+<div class="highlight"><pre><span></span><code><span class="c1">-- Costo mensual de salarios (desde collaboradores + config_laboral)</span>
+<span class="k">SELECT</span><span class="w"> </span><span class="k">SUM</span><span class="p">(</span>
+<span class="w">    </span><span class="k">CASE</span><span class="w"> </span><span class="n">tipo_pago</span>
+<span class="w">        </span><span class="k">WHEN</span><span class="w"> </span><span class="s1">'DIARIO'</span><span class="w"> </span><span class="k">THEN</span><span class="w"> </span><span class="n">monto</span><span class="w"> </span><span class="o">*</span><span class="w"> </span><span class="p">(</span><span class="k">SELECT</span><span class="w"> </span><span class="k">COALESCE</span><span class="p">(</span><span class="n">dias_laborales</span><span class="p">,</span><span class="w"> </span><span class="mi">26</span><span class="p">)</span><span class="w"> </span><span class="k">FROM</span><span class="w"> </span><span class="n">core</span><span class="p">.</span><span class="n">config_laboral</span><span class="w"> </span><span class="k">WHERE</span><span class="w"> </span><span class="n">tenant_id</span><span class="w"> </span><span class="o">=</span><span class="w"> </span><span class="o">?</span><span class="p">)</span>
+<span class="w">        </span><span class="k">WHEN</span><span class="w"> </span><span class="s1">'SEMANAL'</span><span class="w"> </span><span class="k">THEN</span><span class="w"> </span><span class="n">monto</span><span class="w"> </span><span class="o">*</span><span class="w"> </span><span class="mi">4</span><span class="p">.</span><span class="mi">33</span>
+<span class="w">        </span><span class="k">WHEN</span><span class="w"> </span><span class="s1">'QUINCENAL'</span><span class="w"> </span><span class="k">THEN</span><span class="w"> </span><span class="n">monto</span><span class="w"> </span><span class="o">*</span><span class="w"> </span><span class="mi">2</span>
+<span class="w">        </span><span class="k">WHEN</span><span class="w"> </span><span class="s1">'MENSUAL'</span><span class="w"> </span><span class="k">THEN</span><span class="w"> </span><span class="n">monto</span>
+<span class="w">        </span><span class="k">ELSE</span><span class="w"> </span><span class="n">monto</span>
+<span class="w">    </span><span class="k">END</span>
+<span class="p">)</span><span class="w"> </span><span class="k">AS</span><span class="w"> </span><span class="n">costo_salarios_mensual</span>
+<span class="k">FROM</span><span class="w"> </span><span class="n">core</span><span class="p">.</span><span class="n">collaboradores</span>
+<span class="k">WHERE</span><span class="w"> </span><span class="n">tenant_id</span><span class="w"> </span><span class="o">=</span><span class="w"> </span><span class="o">?</span><span class="w"> </span><span class="k">AND</span><span class="w"> </span><span class="n">activo</span><span class="w"> </span><span class="o">=</span><span class="w"> </span><span class="k">true</span><span class="p">;</span>
+</code></pre></div>
+<h3 id="capa-2-registro-real-facturas-pagadas">Capa 2 — Registro real (facturas pagadas)<a class="headerlink" href="#capa-2-registro-real-facturas-pagadas" title="Permanent link">&para;</a></h3>
+<div class="highlight"><pre><span></span><code><span class="c1">-- Salarios pagados: facturas GASTO_OPERATIVO con categoría SALARIOS</span>
+<span class="k">SELECT</span><span class="w"> </span><span class="n">i</span><span class="p">.</span><span class="n">id</span><span class="w"> </span><span class="k">AS</span><span class="w"> </span><span class="n">factura_id</span><span class="p">,</span>
+<span class="w">       </span><span class="n">i</span><span class="p">.</span><span class="n">total</span><span class="p">,</span>
+<span class="w">       </span><span class="n">i</span><span class="p">.</span><span class="n">issue_date</span><span class="p">,</span>
+<span class="w">       </span><span class="n">i</span><span class="p">.</span><span class="n">description</span><span class="p">,</span>
+<span class="w">       </span><span class="k">c</span><span class="p">.</span><span class="n">nombre</span><span class="w"> </span><span class="k">AS</span><span class="w"> </span><span class="n">colaborador_nombre</span><span class="p">,</span>
+<span class="w">       </span><span class="k">c</span><span class="p">.</span><span class="n">tipo_pago</span><span class="p">,</span>
+<span class="w">       </span><span class="k">c</span><span class="p">.</span><span class="n">monto</span><span class="w"> </span><span class="k">AS</span><span class="w"> </span><span class="n">tarifa</span>
+<span class="k">FROM</span><span class="w"> </span><span class="n">core</span><span class="p">.</span><span class="n">invoices</span><span class="w"> </span><span class="n">i</span>
+<span class="k">LEFT</span><span class="w"> </span><span class="k">JOIN</span><span class="w"> </span><span class="n">core</span><span class="p">.</span><span class="n">collaboradores</span><span class="w"> </span><span class="k">c</span><span class="w"> </span><span class="k">ON</span><span class="w"> </span><span class="k">c</span><span class="p">.</span><span class="n">id</span><span class="w"> </span><span class="o">=</span><span class="w"> </span><span class="n">i</span><span class="p">.</span><span class="n">colaborador_id</span>
+<span class="k">WHERE</span><span class="w"> </span><span class="n">i</span><span class="p">.</span><span class="n">tenant_id</span><span class="w"> </span><span class="o">=</span><span class="w"> </span><span class="o">?</span>
+<span class="w">  </span><span class="k">AND</span><span class="w"> </span><span class="n">i</span><span class="p">.</span><span class="n">category</span><span class="w"> </span><span class="o">=</span><span class="w"> </span><span class="s1">'SALARIOS'</span>
+<span class="w">  </span><span class="k">AND</span><span class="w"> </span><span class="n">i</span><span class="p">.</span><span class="k">type</span><span class="w"> </span><span class="o">=</span><span class="w"> </span><span class="s1">'GASTO_OPERATIVO'</span>
+<span class="w">  </span><span class="k">AND</span><span class="w"> </span><span class="n">i</span><span class="p">.</span><span class="n">status</span><span class="w"> </span><span class="o">=</span><span class="w"> </span><span class="s1">'PAGADA'</span>
+<span class="k">ORDER</span><span class="w"> </span><span class="k">BY</span><span class="w"> </span><span class="n">i</span><span class="p">.</span><span class="n">issue_date</span><span class="w"> </span><span class="k">DESC</span><span class="p">;</span>
+</code></pre></div>
+<h3 id="costo-operativo-diario-cte-consolidado">Costo operativo diario (CTE consolidado)<a class="headerlink" href="#costo-operativo-diario-cte-consolidado" title="Permanent link">&para;</a></h3>
+<div class="highlight"><pre><span></span><code><span class="n">costos</span><span class="w"> </span><span class="k">AS</span><span class="w"> </span><span class="p">(</span>
+<span class="w">    </span><span class="k">SELECT</span>
+<span class="w">        </span><span class="k">COALESCE</span><span class="p">((</span><span class="k">SELECT</span><span class="w"> </span><span class="k">SUM</span><span class="p">(</span><span class="n">monto</span><span class="p">)</span><span class="w"> </span><span class="k">FROM</span><span class="w"> </span><span class="n">core</span><span class="p">.</span><span class="n">gastos_fijos_recurrentes</span>
+<span class="w">                  </span><span class="k">WHERE</span><span class="w"> </span><span class="n">tenant_id</span><span class="w"> </span><span class="o">=</span><span class="w"> </span><span class="o">?</span><span class="w"> </span><span class="k">AND</span><span class="w"> </span><span class="n">activo</span><span class="w"> </span><span class="o">=</span><span class="w"> </span><span class="k">true</span><span class="p">),</span><span class="w"> </span><span class="mi">0</span><span class="p">)</span><span class="w"> </span><span class="k">AS</span><span class="w"> </span><span class="n">costo_fijo_mensual</span><span class="p">,</span>
+<span class="w">        </span><span class="k">COALESCE</span><span class="p">((</span><span class="k">SELECT</span><span class="w"> </span><span class="k">SUM</span><span class="p">(</span>
+<span class="w">            </span><span class="k">CASE</span><span class="w"> </span><span class="n">tipo_pago</span>
+<span class="w">                </span><span class="k">WHEN</span><span class="w"> </span><span class="s1">'DIARIO'</span><span class="w"> </span><span class="k">THEN</span><span class="w"> </span><span class="n">monto</span><span class="w"> </span><span class="o">*</span><span class="w"> </span><span class="p">(</span><span class="k">SELECT</span><span class="w"> </span><span class="k">COALESCE</span><span class="p">(</span><span class="n">dias_laborales</span><span class="p">,</span><span class="w"> </span><span class="mi">26</span><span class="p">)</span><span class="w"> </span><span class="k">FROM</span><span class="w"> </span><span class="n">core</span><span class="p">.</span><span class="n">config_laboral</span><span class="w"> </span><span class="k">WHERE</span><span class="w"> </span><span class="n">tenant_id</span><span class="w"> </span><span class="o">=</span><span class="w"> </span><span class="o">?</span><span class="p">)</span>
+<span class="w">                </span><span class="k">WHEN</span><span class="w"> </span><span class="s1">'SEMANAL'</span><span class="w"> </span><span class="k">THEN</span><span class="w"> </span><span class="n">monto</span><span class="w"> </span><span class="o">*</span><span class="w"> </span><span class="mi">4</span><span class="p">.</span><span class="mi">33</span>
+<span class="w">                </span><span class="k">WHEN</span><span class="w"> </span><span class="s1">'QUINCENAL'</span><span class="w"> </span><span class="k">THEN</span><span class="w"> </span><span class="n">monto</span><span class="w"> </span><span class="o">*</span><span class="w"> </span><span class="mi">2</span>
+<span class="w">                </span><span class="k">WHEN</span><span class="w"> </span><span class="s1">'MENSUAL'</span><span class="w"> </span><span class="k">THEN</span><span class="w"> </span><span class="n">monto</span>
+<span class="w">                </span><span class="k">ELSE</span><span class="w"> </span><span class="n">monto</span>
+<span class="w">            </span><span class="k">END</span>
+<span class="w">        </span><span class="p">)</span><span class="w"> </span><span class="k">FROM</span><span class="w"> </span><span class="n">core</span><span class="p">.</span><span class="n">collaboradores</span><span class="w"> </span><span class="k">WHERE</span><span class="w"> </span><span class="n">tenant_id</span><span class="w"> </span><span class="o">=</span><span class="w"> </span><span class="o">?</span><span class="w"> </span><span class="k">AND</span><span class="w"> </span><span class="n">activo</span><span class="w"> </span><span class="o">=</span><span class="w"> </span><span class="k">true</span><span class="p">),</span><span class="w"> </span><span class="mi">0</span><span class="p">)</span><span class="w"> </span><span class="k">AS</span><span class="w"> </span><span class="n">costo_salarios_mensual</span><span class="p">,</span>
+<span class="w">        </span><span class="k">COALESCE</span><span class="p">((</span><span class="k">SELECT</span><span class="w"> </span><span class="n">dias_laborales</span><span class="w"> </span><span class="k">FROM</span><span class="w"> </span><span class="n">core</span><span class="p">.</span><span class="n">config_laboral</span><span class="w"> </span><span class="k">WHERE</span><span class="w"> </span><span class="n">tenant_id</span><span class="w"> </span><span class="o">=</span><span class="w"> </span><span class="o">?</span><span class="p">),</span><span class="w"> </span><span class="mi">26</span><span class="p">)</span><span class="w"> </span><span class="k">AS</span><span class="w"> </span><span class="n">dias_laborales</span>
+<span class="p">)</span>
+<span class="c1">-- costo_operativo_diario = (costo_fijo_mensual + costo_salarios_mensual) / dias_laborales</span>
+</code></pre></div>
+<hr />
+<h2 id="registro">Registro<a class="headerlink" href="#registro" title="Permanent link">&para;</a></h2>
+<table>
+<thead>
+<tr>
+<th>Fecha</th>
+<th>Evento</th>
+</tr>
+</thead>
+<tbody>
+<tr>
+<td>2026-07-30</td>
+<td>Estrategia definida y documentada.</td>
+</tr>
+<tr>
+<td>2026-07-31</td>
+<td>Implementado backend (V2/V3, módulo <code>costos/</code>, CTE) + frontend (CostosPage.vue, KPI dashboard). 160 unit + 22 integration verdes. Pendiente: <code>DAILY_COST_CONTROL</code>.</td>
+</tr>
+<tr>
+<td>2026-08-02</td>
+<td>Modelo de Gastos (EXPENSES_MODEL_STRATEGY): CTE <code>opex</code> eliminado, <code>invoices_opex</code> filtra PAGADA, <code>FacturaPagadaEvent</code>, GASTO_OPERATIVO sin items, señales <code>DAILY_COST_CONTROL</code>/<code>DAILY_COST_COVERED</code>. Revisión SQL: <code>analisisGastoVariable</code> solo gastos PAGADA + incluye facturas sin items (UNION items/header), índice <code>idx_invoices_tenant_date_type</code> con <code>status</code> (V5). 162 unit + 38 integration verdes.</td>
+</tr>
+<tr>
+<td>2026-08-02</td>
+<td>Recuperación de Inversión (INVESTMENT_RECOVERY_STRATEGY): <code>CAPITAL_BURN</code>/<code>CAPITAL_READINESS</code> → <code>PAYBACK_RECOVERY</code> (plata a recuperar = capital + deuda ACTIVA ÷ ganancia mensual). <code>PrestamoRepository.findByTenantIdAndStatus</code>, <code>financialHealth</code> en <code>AnalyticsResponse</code>. Tests: 4 unit + 2 IT.</td>
+</tr>
+</tbody>
+</table>
+
+
+
+
+
+
+
+
+
+
+
+
+                
+              </article>
+            </div>
+          
+          
+<script>var target=document.getElementById(location.hash.slice(1));target&&target.name&&(target.checked=target.name.startsWith("__tabbed_"))</script>
+        </div>
+        
+          <button type="button" class="md-top md-icon" data-md-component="top" hidden>
+  
+  <svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 24 24"><path d="M13 20h-2V8l-5.5 5.5-1.42-1.42L12 4.16l7.92 7.92-1.42 1.42L13 8z"/></svg>
+  Volver al principio
+</button>
+        
+      </main>
+      
+        <footer class="md-footer">
+  
+  <div class="md-footer-meta md-typeset">
+    <div class="md-footer-meta__inner md-grid">
+      <div class="md-copyright">
+  
+  
+    Made with
+    <a href="https://squidfunk.github.io/mkdocs-material/" target="_blank" rel="noopener">
+      Material for MkDocs
+    </a>
+  
+</div>
+      
+    </div>
+  </div>
+</footer>
+      
+    </div>
+    <div class="md-dialog" data-md-component="dialog">
+      <div class="md-dialog__inner md-typeset"></div>
+    </div>
+    
+    
+    
+      
+      
+      <script id="__config" type="application/json">{"annotate": null, "base": "../../../..", "features": ["navigation.tabs", "navigation.top", "search.highlight", "content.code.copy"], "search": "../../../../assets/javascripts/workers/search.a7633da7.min.js", "tags": null, "translations": {"clipboard.copied": "Copiado al portapapeles", "clipboard.copy": "Copiar al portapapeles", "search.result.more.one": "1 m\u00e1s en esta p\u00e1gina", "search.result.more.other": "# m\u00e1s en esta p\u00e1gina", "search.result.none": "No se encontraron documentos", "search.result.one": "1 documento encontrado", "search.result.other": "# documentos encontrados", "search.result.placeholder": "Teclee para comenzar b\u00fasqueda", "search.result.term.missing": "Falta", "select.version": "Seleccionar versi\u00f3n"}, "version": null}</script>
+    
+    
+      <script src="../../../../assets/javascripts/bundle.a5f9d56c.min.js"></script>
+      
+    
+  </body>
+</html>

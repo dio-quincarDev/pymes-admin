@@ -1,0 +1,2956 @@
+
+<!doctype html>
+<html lang="es" class="no-js">
+  <head>
+    
+      <meta charset="utf-8">
+      <meta name="viewport" content="width=device-width,initial-scale=1">
+      
+        <meta name="description" content="Documentación del producto, arquitectura, API y operación">
+      
+      
+        <meta name="author" content="dio-quincarDev">
+      
+      
+      
+        <link rel="prev" href="../../docs/architecture/architecture/">
+      
+      
+        <link rel="next" href="../gateway-pymes/">
+      
+      
+        
+      
+      
+      <link rel="icon" href="../../assets/images/favicon.png">
+      <meta name="generator" content="mkdocs-1.6.1, mkdocs-material-9.8.2">
+    
+    
+      
+        <title>Auth - Pymeq — Forensic Accounting for Small Business</title>
+      
+    
+    
+      <link rel="stylesheet" href="../../assets/stylesheets/main.57a0d79d.min.css">
+      
+        
+        <link rel="stylesheet" href="../../assets/stylesheets/palette.fb2fffe2.min.css">
+      
+      
+
+
+    
+    
+      
+    
+    
+      
+        
+        
+        <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+        <link rel="stylesheet" href="https://fonts.googleapis.com/css?family=Roboto:300,300i,400,400i,700,700i%7CRoboto+Mono:400,400i,700,700i&display=fallback">
+        <style>:root{--md-text-font:"Roboto";--md-code-font:"Roboto Mono"}</style>
+      
+    
+    
+    <script>__md_scope=new URL("../..",location),__md_hash=e=>[...e].reduce(((e,_)=>(e<<5)-e+_.charCodeAt(0)),0),__md_get=(e,_=localStorage,t=__md_scope)=>JSON.parse(_.getItem(t.pathname+"."+e)),__md_set=(e,_,t=localStorage,a=__md_scope)=>{try{t.setItem(a.pathname+"."+e,JSON.stringify(_))}catch(e){}}</script>
+    
+      
+
+    
+    
+  </head>
+  
+  
+    
+    
+      
+    
+    
+    
+    
+    <body dir="ltr" data-md-color-scheme="slate" data-md-color-primary="teal" data-md-color-accent="amber">
+  
+    
+    <input class="md-toggle" data-md-toggle="drawer" type="checkbox" id="__drawer" autocomplete="off">
+    <input class="md-toggle" data-md-toggle="search" type="checkbox" id="__search" autocomplete="off">
+    <label class="md-overlay" for="__drawer"></label>
+    <div data-md-component="skip">
+      
+        
+        <a href="#pymes-admin-auth-microservice" class="md-skip">
+          Saltar a contenido
+        </a>
+      
+    </div>
+    <div data-md-component="announce">
+      
+    </div>
+    
+    
+      
+
+<header class="md-header" data-md-component="header">
+  <nav class="md-header__inner md-grid" aria-label="Cabecera">
+    <a href="../.." title="Pymeq — Forensic Accounting for Small Business" class="md-header__button md-logo" aria-label="Pymeq — Forensic Accounting for Small Business" data-md-component="logo">
+      
+  
+  <svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 24 24"><path d="M12 8a3 3 0 0 0 3-3 3 3 0 0 0-3-3 3 3 0 0 0-3 3 3 3 0 0 0 3 3m0 3.54C9.64 9.35 6.5 8 3 8v11c3.5 0 6.64 1.35 9 3.54 2.36-2.19 5.5-3.54 9-3.54V8c-3.5 0-6.64 1.35-9 3.54"/></svg>
+
+    </a>
+    <label class="md-header__button md-icon" for="__drawer">
+      
+      <svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 24 24"><path d="M3 6h18v2H3zm0 5h18v2H3zm0 5h18v2H3z"/></svg>
+    </label>
+    <div class="md-header__title" data-md-component="header-title">
+      <div class="md-header__ellipsis">
+        <div class="md-header__topic">
+          <span class="md-ellipsis">
+            Pymeq — Forensic Accounting for Small Business
+          </span>
+        </div>
+        <div class="md-header__topic" data-md-component="header-topic">
+          <span class="md-ellipsis">
+            
+              Auth
+            
+          </span>
+        </div>
+      </div>
+    </div>
+    
+      
+        <form class="md-header__option" data-md-component="palette">
+  
+    
+    
+    
+    <input class="md-option" data-md-color-media="" data-md-color-scheme="slate" data-md-color-primary="teal" data-md-color-accent="amber"  aria-label="Cambiar a tema claro"  type="radio" name="__palette" id="__palette_0">
+    
+      <label class="md-header__button md-icon" title="Cambiar a tema claro" for="__palette_1" hidden>
+        <svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 24 24"><path d="m17.75 4.09-2.53 1.94.91 3.06-2.63-1.81-2.63 1.81.91-3.06-2.53-1.94L12.44 4l1.06-3 1.06 3zm3.5 6.91-1.64 1.25.59 1.98-1.7-1.17-1.7 1.17.59-1.98L15.75 11l2.06-.05L18.5 9l.69 1.95zm-2.28 4.95c.83-.08 1.72 1.1 1.19 1.85-.32.45-.66.87-1.08 1.27C15.17 23 8.84 23 4.94 19.07c-3.91-3.9-3.91-10.24 0-14.14.4-.4.82-.76 1.27-1.08.75-.53 1.93.36 1.85 1.19-.27 2.86.69 5.83 2.89 8.02a9.96 9.96 0 0 0 8.02 2.89m-1.64 2.02a12.08 12.08 0 0 1-7.8-3.47c-2.17-2.19-3.33-5-3.49-7.82-2.81 3.14-2.7 7.96.31 10.98 3.02 3.01 7.84 3.12 10.98.31"/></svg>
+      </label>
+    
+  
+    
+    
+    
+    <input class="md-option" data-md-color-media="" data-md-color-scheme="default" data-md-color-primary="teal" data-md-color-accent="amber"  aria-label="Cambiar a tema oscuro"  type="radio" name="__palette" id="__palette_1">
+    
+      <label class="md-header__button md-icon" title="Cambiar a tema oscuro" for="__palette_0" hidden>
+        <svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 24 24"><path d="M12 7a5 5 0 0 1 5 5 5 5 0 0 1-5 5 5 5 0 0 1-5-5 5 5 0 0 1 5-5m0 2a3 3 0 0 0-3 3 3 3 0 0 0 3 3 3 3 0 0 0 3-3 3 3 0 0 0-3-3m0-7 2.39 3.42C13.65 5.15 12.84 5 12 5s-1.65.15-2.39.42zM3.34 7l4.16-.35A7.2 7.2 0 0 0 5.94 8.5c-.44.74-.69 1.5-.83 2.29zm.02 10 1.76-3.77a7.131 7.131 0 0 0 2.38 4.14zM20.65 7l-1.77 3.79a7.02 7.02 0 0 0-2.38-4.15zm-.01 10-4.14.36c.59-.51 1.12-1.14 1.54-1.86.42-.73.69-1.5.83-2.29zM12 22l-2.41-3.44c.74.27 1.55.44 2.41.44.82 0 1.63-.17 2.37-.44z"/></svg>
+      </label>
+    
+  
+</form>
+      
+    
+    
+      <script>var palette=__md_get("__palette");if(palette&&palette.color){if("(prefers-color-scheme)"===palette.color.media){var media=matchMedia("(prefers-color-scheme: light)"),input=document.querySelector(media.matches?"[data-md-color-media='(prefers-color-scheme: light)']":"[data-md-color-media='(prefers-color-scheme: dark)']");palette.color.media=input.getAttribute("data-md-color-media"),palette.color.scheme=input.getAttribute("data-md-color-scheme"),palette.color.primary=input.getAttribute("data-md-color-primary"),palette.color.accent=input.getAttribute("data-md-color-accent")}for(var[key,value]of Object.entries(palette.color))document.body.setAttribute("data-md-color-"+key,value)}</script>
+    
+    
+    
+      
+      
+        <label class="md-header__button md-icon" for="__search">
+          
+          <svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 24 24"><path d="M9.5 3A6.5 6.5 0 0 1 16 9.5c0 1.61-.59 3.09-1.56 4.23l.27.27h.79l5 5-1.5 1.5-5-5v-.79l-.27-.27A6.52 6.52 0 0 1 9.5 16 6.5 6.5 0 0 1 3 9.5 6.5 6.5 0 0 1 9.5 3m0 2C7 5 5 7 5 9.5S7 14 9.5 14 14 12 14 9.5 12 5 9.5 5"/></svg>
+        </label>
+        <div class="md-search" data-md-component="search" role="dialog">
+  <label class="md-search__overlay" for="__search"></label>
+  <div class="md-search__inner" role="search">
+    <form class="md-search__form" name="search">
+      <input type="text" class="md-search__input" name="query" aria-label="Búsqueda" placeholder="Búsqueda" autocapitalize="off" autocorrect="off" autocomplete="off" spellcheck="false" data-md-component="search-query" required>
+      <label class="md-search__icon md-icon" for="__search">
+        
+        <svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 24 24"><path d="M9.5 3A6.5 6.5 0 0 1 16 9.5c0 1.61-.59 3.09-1.56 4.23l.27.27h.79l5 5-1.5 1.5-5-5v-.79l-.27-.27A6.52 6.52 0 0 1 9.5 16 6.5 6.5 0 0 1 3 9.5 6.5 6.5 0 0 1 9.5 3m0 2C7 5 5 7 5 9.5S7 14 9.5 14 14 12 14 9.5 12 5 9.5 5"/></svg>
+        
+        <svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 24 24"><path d="M20 11v2H8l5.5 5.5-1.42 1.42L4.16 12l7.92-7.92L13.5 5.5 8 11z"/></svg>
+      </label>
+      <nav class="md-search__options" aria-label="Buscar">
+        
+        <button type="reset" class="md-search__icon md-icon" title="Limpiar" aria-label="Limpiar" tabindex="-1">
+          
+          <svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 24 24"><path d="M19 6.41 17.59 5 12 10.59 6.41 5 5 6.41 10.59 12 5 17.59 6.41 19 12 13.41 17.59 19 19 17.59 13.41 12z"/></svg>
+        </button>
+      </nav>
+      
+    </form>
+    <div class="md-search__output">
+      <div class="md-search__scrollwrap" tabindex="0" data-md-scrollfix>
+        <div class="md-search-result" data-md-component="search-result">
+          <div class="md-search-result__meta">
+            Inicializando búsqueda
+          </div>
+          <ol class="md-search-result__list" role="presentation"></ol>
+        </div>
+      </div>
+    </div>
+  </div>
+</div>
+      
+    
+    
+      <div class="md-header__source">
+        <a href="https://github.com/dio-quincarDev/pymes-admin" title="Ir al repositorio" class="md-source" data-md-component="source">
+  <div class="md-source__icon md-icon">
+    
+    <svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 448 512"><!--! Font Awesome Free 7.1.0 by @fontawesome - https://fontawesome.com License - https://fontawesome.com/license/free (Icons: CC BY 4.0, Fonts: SIL OFL 1.1, Code: MIT License) Copyright 2025 Fonticons, Inc.--><path d="M439.6 236.1 244 40.5c-5.4-5.5-12.8-8.5-20.4-8.5s-15 3-20.4 8.4L162.5 81l51.5 51.5c27.1-9.1 52.7 16.8 43.4 43.7l49.7 49.7c34.2-11.8 61.2 31 35.5 56.7-26.5 26.5-70.2-2.9-56-37.3L240.3 199v121.9c25.3 12.5 22.3 41.8 9.1 55-6.4 6.4-15.2 10.1-24.3 10.1s-17.8-3.6-24.3-10.1c-17.6-17.6-11.1-46.9 11.2-56v-123c-20.8-8.5-24.6-30.7-18.6-45L142.6 101 8.5 235.1C3 240.6 0 247.9 0 255.5s3 15 8.5 20.4l195.6 195.7c5.4 5.4 12.7 8.4 20.4 8.4s15-3 20.4-8.4l194.7-194.7c5.4-5.4 8.4-12.8 8.4-20.4s-3-15-8.4-20.4"/></svg>
+  </div>
+  <div class="md-source__repository">
+    dio-quincarDev/pymes-admin
+  </div>
+</a>
+      </div>
+    
+  </nav>
+  
+</header>
+    
+    <div class="md-container" data-md-component="container">
+      
+      
+        
+          
+            
+<nav class="md-tabs" aria-label="Pestañas" data-md-component="tabs">
+  <div class="md-grid">
+    <ul class="md-tabs__list">
+      
+        
+  
+  
+  
+  
+    <li class="md-tabs__item">
+      <a href="../.." class="md-tabs__link">
+        
+  
+  
+    
+  
+  Inicio
+
+      </a>
+    </li>
+  
+
+      
+        
+  
+  
+  
+  
+    
+    
+      <li class="md-tabs__item">
+        <a href="../.." class="md-tabs__link">
+          
+  
+  
+  Producto
+
+        </a>
+      </li>
+    
+  
+
+      
+        
+  
+  
+  
+  
+    
+    
+      <li class="md-tabs__item">
+        <a href="../../docs/api/" class="md-tabs__link">
+          
+  
+  
+  API Reference
+
+        </a>
+      </li>
+    
+  
+
+      
+        
+  
+  
+  
+    
+  
+  
+    
+    
+      <li class="md-tabs__item md-tabs__item--active">
+        <a href="../../docs/architecture/architecture/" class="md-tabs__link">
+          
+  
+  
+  Arquitectura
+
+        </a>
+      </li>
+    
+  
+
+      
+        
+  
+  
+  
+  
+    
+    
+      <li class="md-tabs__item">
+        <a href="../../deployment/DEPLOYMENT/" class="md-tabs__link">
+          
+  
+  
+  Operación
+
+        </a>
+      </li>
+    
+  
+
+      
+        
+  
+  
+  
+  
+    
+    
+      <li class="md-tabs__item">
+        <a href="../../docs/guides/user-guide/" class="md-tabs__link">
+          
+  
+  
+  Guías
+
+        </a>
+      </li>
+    
+  
+
+      
+        
+  
+  
+  
+  
+    
+    
+      <li class="md-tabs__item">
+        <a href="../core/docs/KPIs/" class="md-tabs__link">
+          
+  
+  
+  Referencia
+
+        </a>
+      </li>
+    
+  
+
+      
+    </ul>
+  </div>
+</nav>
+          
+        
+      
+      <main class="md-main" data-md-component="main">
+        <div class="md-main__inner md-grid">
+          
+            
+              
+              <div class="md-sidebar md-sidebar--primary" data-md-component="sidebar" data-md-type="navigation" >
+                <div class="md-sidebar__scrollwrap">
+                  <div class="md-sidebar__inner">
+                    
+
+
+  
+
+
+<nav class="md-nav md-nav--primary md-nav--lifted" aria-label="Navegación" data-md-level="0">
+  <label class="md-nav__title" for="__drawer">
+    <a href="../.." title="Pymeq — Forensic Accounting for Small Business" class="md-nav__button md-logo" aria-label="Pymeq — Forensic Accounting for Small Business" data-md-component="logo">
+      
+  
+  <svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 24 24"><path d="M12 8a3 3 0 0 0 3-3 3 3 0 0 0-3-3 3 3 0 0 0-3 3 3 3 0 0 0 3 3m0 3.54C9.64 9.35 6.5 8 3 8v11c3.5 0 6.64 1.35 9 3.54 2.36-2.19 5.5-3.54 9-3.54V8c-3.5 0-6.64 1.35-9 3.54"/></svg>
+
+    </a>
+    Pymeq — Forensic Accounting for Small Business
+  </label>
+  
+    <div class="md-nav__source">
+      <a href="https://github.com/dio-quincarDev/pymes-admin" title="Ir al repositorio" class="md-source" data-md-component="source">
+  <div class="md-source__icon md-icon">
+    
+    <svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 448 512"><!--! Font Awesome Free 7.1.0 by @fontawesome - https://fontawesome.com License - https://fontawesome.com/license/free (Icons: CC BY 4.0, Fonts: SIL OFL 1.1, Code: MIT License) Copyright 2025 Fonticons, Inc.--><path d="M439.6 236.1 244 40.5c-5.4-5.5-12.8-8.5-20.4-8.5s-15 3-20.4 8.4L162.5 81l51.5 51.5c27.1-9.1 52.7 16.8 43.4 43.7l49.7 49.7c34.2-11.8 61.2 31 35.5 56.7-26.5 26.5-70.2-2.9-56-37.3L240.3 199v121.9c25.3 12.5 22.3 41.8 9.1 55-6.4 6.4-15.2 10.1-24.3 10.1s-17.8-3.6-24.3-10.1c-17.6-17.6-11.1-46.9 11.2-56v-123c-20.8-8.5-24.6-30.7-18.6-45L142.6 101 8.5 235.1C3 240.6 0 247.9 0 255.5s3 15 8.5 20.4l195.6 195.7c5.4 5.4 12.7 8.4 20.4 8.4s15-3 20.4-8.4l194.7-194.7c5.4-5.4 8.4-12.8 8.4-20.4s-3-15-8.4-20.4"/></svg>
+  </div>
+  <div class="md-source__repository">
+    dio-quincarDev/pymes-admin
+  </div>
+</a>
+    </div>
+  
+  <ul class="md-nav__list" data-md-scrollfix>
+    
+      
+      
+  
+  
+  
+  
+    <li class="md-nav__item">
+      <a href="../.." class="md-nav__link">
+        
+  
+  
+  <span class="md-ellipsis">
+    
+  
+    Inicio
+  
+
+    
+  </span>
+  
+  
+
+      </a>
+    </li>
+  
+
+    
+      
+      
+  
+  
+  
+  
+    
+    
+    
+    
+      
+      
+    
+    
+    <li class="md-nav__item md-nav__item--nested">
+      
+        
+        
+        <input class="md-nav__toggle md-toggle " type="checkbox" id="__nav_2" >
+        
+          
+          <label class="md-nav__link" for="__nav_2" id="__nav_2_label" tabindex="0">
+            
+  
+  
+  <span class="md-ellipsis">
+    
+  
+    Producto
+  
+
+    
+  </span>
+  
+  
+
+            <span class="md-nav__icon md-icon"></span>
+          </label>
+        
+        <nav class="md-nav" data-md-level="1" aria-labelledby="__nav_2_label" aria-expanded="false">
+          <label class="md-nav__title" for="__nav_2">
+            <span class="md-nav__icon md-icon"></span>
+            
+  
+    Producto
+  
+
+          </label>
+          <ul class="md-nav__list" data-md-scrollfix>
+            
+              
+                
+  
+  
+  
+  
+    <li class="md-nav__item">
+      <a href="../.." class="md-nav__link">
+        
+  
+  
+  <span class="md-ellipsis">
+    
+  
+    Inicio
+  
+
+    
+  </span>
+  
+  
+
+      </a>
+    </li>
+  
+
+              
+            
+              
+                
+  
+  
+  
+  
+    <li class="md-nav__item">
+      <a href="../../docs/product/features/" class="md-nav__link">
+        
+  
+  
+  <span class="md-ellipsis">
+    
+  
+    Características
+  
+
+    
+  </span>
+  
+  
+
+      </a>
+    </li>
+  
+
+              
+            
+              
+                
+  
+  
+  
+  
+    <li class="md-nav__item">
+      <a href="../../docs/product/roadmap/" class="md-nav__link">
+        
+  
+  
+  <span class="md-ellipsis">
+    
+  
+    Roadmap
+  
+
+    
+  </span>
+  
+  
+
+      </a>
+    </li>
+  
+
+              
+            
+              
+                
+  
+  
+  
+  
+    <li class="md-nav__item">
+      <a href="../../docs/TO_DO/" class="md-nav__link">
+        
+  
+  
+  <span class="md-ellipsis">
+    
+  
+    Pendientes
+  
+
+    
+  </span>
+  
+  
+
+      </a>
+    </li>
+  
+
+              
+            
+              
+                
+  
+  
+  
+  
+    <li class="md-nav__item">
+      <a href="../../docs/GAPS/" class="md-nav__link">
+        
+  
+  
+  <span class="md-ellipsis">
+    
+  
+    Diferencias doc/código
+  
+
+    
+  </span>
+  
+  
+
+      </a>
+    </li>
+  
+
+              
+            
+          </ul>
+        </nav>
+      
+    </li>
+  
+
+    
+      
+      
+  
+  
+  
+  
+    
+    
+    
+    
+      
+      
+    
+    
+    <li class="md-nav__item md-nav__item--nested">
+      
+        
+        
+        <input class="md-nav__toggle md-toggle " type="checkbox" id="__nav_3" >
+        
+          
+          <label class="md-nav__link" for="__nav_3" id="__nav_3_label" tabindex="0">
+            
+  
+  
+  <span class="md-ellipsis">
+    
+  
+    API Reference
+  
+
+    
+  </span>
+  
+  
+
+            <span class="md-nav__icon md-icon"></span>
+          </label>
+        
+        <nav class="md-nav" data-md-level="1" aria-labelledby="__nav_3_label" aria-expanded="false">
+          <label class="md-nav__title" for="__nav_3">
+            <span class="md-nav__icon md-icon"></span>
+            
+  
+    API Reference
+  
+
+          </label>
+          <ul class="md-nav__list" data-md-scrollfix>
+            
+              
+                
+  
+  
+  
+  
+    <li class="md-nav__item">
+      <a href="../../docs/api/" class="md-nav__link">
+        
+  
+  
+  <span class="md-ellipsis">
+    
+  
+    Contrato (índice)
+  
+
+    
+  </span>
+  
+  
+
+      </a>
+    </li>
+  
+
+              
+            
+              
+                
+  
+  
+  
+  
+    <li class="md-nav__item">
+      <a href="../../api/auth/" class="md-nav__link">
+        
+  
+  
+  <span class="md-ellipsis">
+    
+  
+    Auth (generado)
+  
+
+    
+  </span>
+  
+  
+
+      </a>
+    </li>
+  
+
+              
+            
+              
+                
+  
+  
+  
+  
+    <li class="md-nav__item">
+      <a href="../../api/core/" class="md-nav__link">
+        
+  
+  
+  <span class="md-ellipsis">
+    
+  
+    Core (generado)
+  
+
+    
+  </span>
+  
+  
+
+      </a>
+    </li>
+  
+
+              
+            
+          </ul>
+        </nav>
+      
+    </li>
+  
+
+    
+      
+      
+  
+  
+    
+  
+  
+  
+    
+    
+    
+    
+      
+        
+        
+      
+      
+    
+    
+    <li class="md-nav__item md-nav__item--active md-nav__item--section md-nav__item--nested">
+      
+        
+        
+        <input class="md-nav__toggle md-toggle " type="checkbox" id="__nav_4" checked>
+        
+          
+          <label class="md-nav__link" for="__nav_4" id="__nav_4_label" tabindex="">
+            
+  
+  
+  <span class="md-ellipsis">
+    
+  
+    Arquitectura
+  
+
+    
+  </span>
+  
+  
+
+            <span class="md-nav__icon md-icon"></span>
+          </label>
+        
+        <nav class="md-nav" data-md-level="1" aria-labelledby="__nav_4_label" aria-expanded="true">
+          <label class="md-nav__title" for="__nav_4">
+            <span class="md-nav__icon md-icon"></span>
+            
+  
+    Arquitectura
+  
+
+          </label>
+          <ul class="md-nav__list" data-md-scrollfix>
+            
+              
+                
+  
+  
+  
+  
+    <li class="md-nav__item">
+      <a href="../../docs/architecture/architecture/" class="md-nav__link">
+        
+  
+  
+  <span class="md-ellipsis">
+    
+  
+    Arquitectura (mapa)
+  
+
+    
+  </span>
+  
+  
+
+      </a>
+    </li>
+  
+
+              
+            
+              
+                
+  
+  
+    
+  
+  
+  
+    
+    
+    
+    
+      
+      
+    
+    
+    <li class="md-nav__item md-nav__item--active md-nav__item--nested">
+      
+        
+        
+        <input class="md-nav__toggle md-toggle " type="checkbox" id="__nav_4_2" checked>
+        
+          
+          <label class="md-nav__link" for="__nav_4_2" id="__nav_4_2_label" tabindex="0">
+            
+  
+  
+  <span class="md-ellipsis">
+    
+  
+    Servicios
+  
+
+    
+  </span>
+  
+  
+
+            <span class="md-nav__icon md-icon"></span>
+          </label>
+        
+        <nav class="md-nav" data-md-level="2" aria-labelledby="__nav_4_2_label" aria-expanded="true">
+          <label class="md-nav__title" for="__nav_4_2">
+            <span class="md-nav__icon md-icon"></span>
+            
+  
+    Servicios
+  
+
+          </label>
+          <ul class="md-nav__list" data-md-scrollfix>
+            
+              
+                
+  
+  
+    
+  
+  
+  
+    <li class="md-nav__item md-nav__item--active">
+      
+      <input class="md-nav__toggle md-toggle" type="checkbox" id="__toc">
+      
+      
+        
+      
+      
+        <label class="md-nav__link md-nav__link--active" for="__toc">
+          
+  
+  
+  <span class="md-ellipsis">
+    
+  
+    Auth
+  
+
+    
+  </span>
+  
+  
+
+          <span class="md-nav__icon md-icon"></span>
+        </label>
+      
+      <a href="./" class="md-nav__link md-nav__link--active">
+        
+  
+  
+  <span class="md-ellipsis">
+    
+  
+    Auth
+  
+
+    
+  </span>
+  
+  
+
+      </a>
+      
+        
+
+<nav class="md-nav md-nav--secondary" aria-label="Tabla de contenidos">
+  
+  
+  
+    
+  
+  
+    <label class="md-nav__title" for="__toc">
+      <span class="md-nav__icon md-icon"></span>
+      Tabla de contenidos
+    </label>
+    <ul class="md-nav__list" data-md-component="toc" data-md-scrollfix>
+      
+        <li class="md-nav__item">
+  <a href="#que-hace" class="md-nav__link">
+    <span class="md-ellipsis">
+      
+        Que Hace
+      
+    </span>
+  </a>
+  
+    <nav class="md-nav" aria-label="Que Hace">
+      <ul class="md-nav__list">
+        
+          <li class="md-nav__item">
+  <a href="#dominios" class="md-nav__link">
+    <span class="md-ellipsis">
+      
+        Dominios
+      
+    </span>
+  </a>
+  
+</li>
+        
+          <li class="md-nav__item">
+  <a href="#stack-tecnico" class="md-nav__link">
+    <span class="md-ellipsis">
+      
+        Stack Tecnico
+      
+    </span>
+  </a>
+  
+</li>
+        
+      </ul>
+    </nav>
+  
+</li>
+      
+        <li class="md-nav__item">
+  <a href="#como-funciona" class="md-nav__link">
+    <span class="md-ellipsis">
+      
+        Como Funciona
+      
+    </span>
+  </a>
+  
+    <nav class="md-nav" aria-label="Como Funciona">
+      <ul class="md-nav__list">
+        
+          <li class="md-nav__item">
+  <a href="#registro-y-verificacion" class="md-nav__link">
+    <span class="md-ellipsis">
+      
+        Registro y Verificacion
+      
+    </span>
+  </a>
+  
+</li>
+        
+          <li class="md-nav__item">
+  <a href="#autenticacion" class="md-nav__link">
+    <span class="md-ellipsis">
+      
+        Autenticacion
+      
+    </span>
+  </a>
+  
+</li>
+        
+          <li class="md-nav__item">
+  <a href="#jwt-y-tokens" class="md-nav__link">
+    <span class="md-ellipsis">
+      
+        JWT y Tokens
+      
+    </span>
+  </a>
+  
+</li>
+        
+          <li class="md-nav__item">
+  <a href="#multi-tenancy" class="md-nav__link">
+    <span class="md-ellipsis">
+      
+        Multi-tenancy
+      
+    </span>
+  </a>
+  
+</li>
+        
+          <li class="md-nav__item">
+  <a href="#oauth2" class="md-nav__link">
+    <span class="md-ellipsis">
+      
+        OAuth2
+      
+    </span>
+  </a>
+  
+</li>
+        
+          <li class="md-nav__item">
+  <a href="#email-system" class="md-nav__link">
+    <span class="md-ellipsis">
+      
+        Email System
+      
+    </span>
+  </a>
+  
+</li>
+        
+          <li class="md-nav__item">
+  <a href="#password-reset" class="md-nav__link">
+    <span class="md-ellipsis">
+      
+        Password Reset
+      
+    </span>
+  </a>
+  
+</li>
+        
+          <li class="md-nav__item">
+  <a href="#permission-cache" class="md-nav__link">
+    <span class="md-ellipsis">
+      
+        Permission Cache
+      
+    </span>
+  </a>
+  
+</li>
+        
+      </ul>
+    </nav>
+  
+</li>
+      
+        <li class="md-nav__item">
+  <a href="#endpoints" class="md-nav__link">
+    <span class="md-ellipsis">
+      
+        Endpoints
+      
+    </span>
+  </a>
+  
+</li>
+      
+        <li class="md-nav__item">
+  <a href="#suite-de-pruebas" class="md-nav__link">
+    <span class="md-ellipsis">
+      
+        Suite de Pruebas
+      
+    </span>
+  </a>
+  
+    <nav class="md-nav" aria-label="Suite de Pruebas">
+      <ul class="md-nav__list">
+        
+          <li class="md-nav__item">
+  <a href="#ejecucion" class="md-nav__link">
+    <span class="md-ellipsis">
+      
+        Ejecucion
+      
+    </span>
+  </a>
+  
+</li>
+        
+          <li class="md-nav__item">
+  <a href="#cobertura-por-dominio" class="md-nav__link">
+    <span class="md-ellipsis">
+      
+        Cobertura por Dominio
+      
+    </span>
+  </a>
+  
+</li>
+        
+          <li class="md-nav__item">
+  <a href="#infraestructura-de-test" class="md-nav__link">
+    <span class="md-ellipsis">
+      
+        Infraestructura de Test
+      
+    </span>
+  </a>
+  
+</li>
+        
+          <li class="md-nav__item">
+  <a href="#archivos-de-test" class="md-nav__link">
+    <span class="md-ellipsis">
+      
+        Archivos de Test
+      
+    </span>
+  </a>
+  
+</li>
+        
+          <li class="md-nav__item">
+  <a href="#gaps-conocidos" class="md-nav__link">
+    <span class="md-ellipsis">
+      
+        Gaps Conocidos
+      
+    </span>
+  </a>
+  
+</li>
+        
+      </ul>
+    </nav>
+  
+</li>
+      
+        <li class="md-nav__item">
+  <a href="#configuracion" class="md-nav__link">
+    <span class="md-ellipsis">
+      
+        Configuracion
+      
+    </span>
+  </a>
+  
+    <nav class="md-nav" aria-label="Configuracion">
+      <ul class="md-nav__list">
+        
+          <li class="md-nav__item">
+  <a href="#perfiles-de-maven" class="md-nav__link">
+    <span class="md-ellipsis">
+      
+        Perfiles de Maven
+      
+    </span>
+  </a>
+  
+</li>
+        
+          <li class="md-nav__item">
+  <a href="#variables-de-entorno" class="md-nav__link">
+    <span class="md-ellipsis">
+      
+        Variables de Entorno
+      
+    </span>
+  </a>
+  
+</li>
+        
+      </ul>
+    </nav>
+  
+</li>
+      
+        <li class="md-nav__item">
+  <a href="#cicd" class="md-nav__link">
+    <span class="md-ellipsis">
+      
+        CI/CD
+      
+    </span>
+  </a>
+  
+</li>
+      
+        <li class="md-nav__item">
+  <a href="#roadmap" class="md-nav__link">
+    <span class="md-ellipsis">
+      
+        Roadmap
+      
+    </span>
+  </a>
+  
+</li>
+      
+        <li class="md-nav__item">
+  <a href="#estado" class="md-nav__link">
+    <span class="md-ellipsis">
+      
+        Estado
+      
+    </span>
+  </a>
+  
+</li>
+      
+    </ul>
+  
+</nav>
+      
+    </li>
+  
+
+              
+            
+              
+                
+  
+  
+  
+  
+    <li class="md-nav__item">
+      <a href="../gateway-pymes/" class="md-nav__link">
+        
+  
+  
+  <span class="md-ellipsis">
+    
+  
+    Gateway
+  
+
+    
+  </span>
+  
+  
+
+      </a>
+    </li>
+  
+
+              
+            
+              
+                
+  
+  
+  
+  
+    <li class="md-nav__item">
+      <a href="../core/" class="md-nav__link">
+        
+  
+  
+  <span class="md-ellipsis">
+    
+  
+    Core
+  
+
+    
+  </span>
+  
+  
+
+      </a>
+    </li>
+  
+
+              
+            
+              
+                
+  
+  
+  
+  
+    <li class="md-nav__item">
+      <a href="../../frontend/pymes/" class="md-nav__link">
+        
+  
+  
+  <span class="md-ellipsis">
+    
+  
+    Frontend
+  
+
+    
+  </span>
+  
+  
+
+      </a>
+    </li>
+  
+
+              
+            
+          </ul>
+        </nav>
+      
+    </li>
+  
+
+              
+            
+              
+                
+  
+  
+  
+  
+    <li class="md-nav__item">
+      <a href="../../docs/persistencia-postgres/" class="md-nav__link">
+        
+  
+  
+  <span class="md-ellipsis">
+    
+  
+    Base de datos
+  
+
+    
+  </span>
+  
+  
+
+      </a>
+    </li>
+  
+
+              
+            
+              
+                
+  
+  
+  
+  
+    <li class="md-nav__item">
+      <a href="../../docs/strategies/DB_STRATEGY/" class="md-nav__link">
+        
+  
+  
+  <span class="md-ellipsis">
+    
+  
+    Estrategia multi-schema
+  
+
+    
+  </span>
+  
+  
+
+      </a>
+    </li>
+  
+
+              
+            
+              
+                
+  
+  
+  
+  
+    <li class="md-nav__item">
+      <a href="../../docs/strategies/INFRA_STRATEGY/" class="md-nav__link">
+        
+  
+  
+  <span class="md-ellipsis">
+    
+  
+    Infraestructura
+  
+
+    
+  </span>
+  
+  
+
+      </a>
+    </li>
+  
+
+              
+            
+          </ul>
+        </nav>
+      
+    </li>
+  
+
+    
+      
+      
+  
+  
+  
+  
+    
+    
+    
+    
+      
+      
+    
+    
+    <li class="md-nav__item md-nav__item--nested">
+      
+        
+        
+        <input class="md-nav__toggle md-toggle " type="checkbox" id="__nav_5" >
+        
+          
+          <label class="md-nav__link" for="__nav_5" id="__nav_5_label" tabindex="0">
+            
+  
+  
+  <span class="md-ellipsis">
+    
+  
+    Operación
+  
+
+    
+  </span>
+  
+  
+
+            <span class="md-nav__icon md-icon"></span>
+          </label>
+        
+        <nav class="md-nav" data-md-level="1" aria-labelledby="__nav_5_label" aria-expanded="false">
+          <label class="md-nav__title" for="__nav_5">
+            <span class="md-nav__icon md-icon"></span>
+            
+  
+    Operación
+  
+
+          </label>
+          <ul class="md-nav__list" data-md-scrollfix>
+            
+              
+                
+  
+  
+  
+  
+    <li class="md-nav__item">
+      <a href="../../deployment/DEPLOYMENT/" class="md-nav__link">
+        
+  
+  
+  <span class="md-ellipsis">
+    
+  
+    Deploy
+  
+
+    
+  </span>
+  
+  
+
+      </a>
+    </li>
+  
+
+              
+            
+              
+                
+  
+  
+  
+  
+    <li class="md-nav__item">
+      <a href="../../deployment/QUICK_START/" class="md-nav__link">
+        
+  
+  
+  <span class="md-ellipsis">
+    
+  
+    Quick start CI/CD
+  
+
+    
+  </span>
+  
+  
+
+      </a>
+    </li>
+  
+
+              
+            
+              
+                
+  
+  
+  
+  
+    <li class="md-nav__item">
+      <a href="../../deployment/SECRETS/" class="md-nav__link">
+        
+  
+  
+  <span class="md-ellipsis">
+    
+  
+    Secretos
+  
+
+    
+  </span>
+  
+  
+
+      </a>
+    </li>
+  
+
+              
+            
+              
+                
+  
+  
+  
+  
+    <li class="md-nav__item">
+      <a href="../../docs/DAILY_REPORTS_PROJECT/" class="md-nav__link">
+        
+  
+  
+  <span class="md-ellipsis">
+    
+  
+    Reportes diarios
+  
+
+    
+  </span>
+  
+  
+
+      </a>
+    </li>
+  
+
+              
+            
+          </ul>
+        </nav>
+      
+    </li>
+  
+
+    
+      
+      
+  
+  
+  
+  
+    
+    
+    
+    
+      
+      
+    
+    
+    <li class="md-nav__item md-nav__item--nested">
+      
+        
+        
+        <input class="md-nav__toggle md-toggle " type="checkbox" id="__nav_6" >
+        
+          
+          <label class="md-nav__link" for="__nav_6" id="__nav_6_label" tabindex="0">
+            
+  
+  
+  <span class="md-ellipsis">
+    
+  
+    Guías
+  
+
+    
+  </span>
+  
+  
+
+            <span class="md-nav__icon md-icon"></span>
+          </label>
+        
+        <nav class="md-nav" data-md-level="1" aria-labelledby="__nav_6_label" aria-expanded="false">
+          <label class="md-nav__title" for="__nav_6">
+            <span class="md-nav__icon md-icon"></span>
+            
+  
+    Guías
+  
+
+          </label>
+          <ul class="md-nav__list" data-md-scrollfix>
+            
+              
+                
+  
+  
+  
+  
+    <li class="md-nav__item">
+      <a href="../../docs/guides/user-guide/" class="md-nav__link">
+        
+  
+  
+  <span class="md-ellipsis">
+    
+  
+    Usuario
+  
+
+    
+  </span>
+  
+  
+
+      </a>
+    </li>
+  
+
+              
+            
+              
+                
+  
+  
+  
+  
+    <li class="md-nav__item">
+      <a href="../../docs/guides/admin-guide/" class="md-nav__link">
+        
+  
+  
+  <span class="md-ellipsis">
+    
+  
+    Administración
+  
+
+    
+  </span>
+  
+  
+
+      </a>
+    </li>
+  
+
+              
+            
+              
+                
+  
+  
+  
+  
+    <li class="md-nav__item">
+      <a href="../../docs/guides/operations-guide/" class="md-nav__link">
+        
+  
+  
+  <span class="md-ellipsis">
+    
+  
+    Operación
+  
+
+    
+  </span>
+  
+  
+
+      </a>
+    </li>
+  
+
+              
+            
+          </ul>
+        </nav>
+      
+    </li>
+  
+
+    
+      
+      
+  
+  
+  
+  
+    
+    
+    
+    
+      
+      
+    
+    
+    <li class="md-nav__item md-nav__item--nested">
+      
+        
+        
+        <input class="md-nav__toggle md-toggle " type="checkbox" id="__nav_7" >
+        
+          
+          <label class="md-nav__link" for="__nav_7" id="__nav_7_label" tabindex="0">
+            
+  
+  
+  <span class="md-ellipsis">
+    
+  
+    Referencia
+  
+
+    
+  </span>
+  
+  
+
+            <span class="md-nav__icon md-icon"></span>
+          </label>
+        
+        <nav class="md-nav" data-md-level="1" aria-labelledby="__nav_7_label" aria-expanded="false">
+          <label class="md-nav__title" for="__nav_7">
+            <span class="md-nav__icon md-icon"></span>
+            
+  
+    Referencia
+  
+
+          </label>
+          <ul class="md-nav__list" data-md-scrollfix>
+            
+              
+                
+  
+  
+  
+  
+    <li class="md-nav__item">
+      <a href="../core/docs/KPIs/" class="md-nav__link">
+        
+  
+  
+  <span class="md-ellipsis">
+    
+  
+    KPIs
+  
+
+    
+  </span>
+  
+  
+
+      </a>
+    </li>
+  
+
+              
+            
+              
+                
+  
+  
+  
+  
+    <li class="md-nav__item">
+      <a href="../core/docs/COSTOS_ENGINE/" class="md-nav__link">
+        
+  
+  
+  <span class="md-ellipsis">
+    
+  
+    Motor de costos
+  
+
+    
+  </span>
+  
+  
+
+      </a>
+    </li>
+  
+
+              
+            
+              
+                
+  
+  
+  
+  
+    <li class="md-nav__item">
+      <a href="../core/docs/ANALYTICS/" class="md-nav__link">
+        
+  
+  
+  <span class="md-ellipsis">
+    
+  
+    Analítica
+  
+
+    
+  </span>
+  
+  
+
+      </a>
+    </li>
+  
+
+              
+            
+              
+                
+  
+  
+  
+  
+    <li class="md-nav__item">
+      <a href="../core/docs/CORE/" class="md-nav__link">
+        
+  
+  
+  <span class="md-ellipsis">
+    
+  
+    Motor de salud financiera
+  
+
+    
+  </span>
+  
+  
+
+      </a>
+    </li>
+  
+
+              
+            
+              
+                
+  
+  
+  
+  
+    <li class="md-nav__item">
+      <a href="../../frontend/pymes/docs/PWA_OFFLINE/" class="md-nav__link">
+        
+  
+  
+  <span class="md-ellipsis">
+    
+  
+    PWA offline
+  
+
+    
+  </span>
+  
+  
+
+      </a>
+    </li>
+  
+
+              
+            
+          </ul>
+        </nav>
+      
+    </li>
+  
+
+    
+  </ul>
+</nav>
+                  </div>
+                </div>
+              </div>
+            
+            
+              
+              <div class="md-sidebar md-sidebar--secondary" data-md-component="sidebar" data-md-type="toc" >
+                <div class="md-sidebar__scrollwrap">
+                  <div class="md-sidebar__inner">
+                    
+
+<nav class="md-nav md-nav--secondary" aria-label="Tabla de contenidos">
+  
+  
+  
+    
+  
+  
+    <label class="md-nav__title" for="__toc">
+      <span class="md-nav__icon md-icon"></span>
+      Tabla de contenidos
+    </label>
+    <ul class="md-nav__list" data-md-component="toc" data-md-scrollfix>
+      
+        <li class="md-nav__item">
+  <a href="#que-hace" class="md-nav__link">
+    <span class="md-ellipsis">
+      
+        Que Hace
+      
+    </span>
+  </a>
+  
+    <nav class="md-nav" aria-label="Que Hace">
+      <ul class="md-nav__list">
+        
+          <li class="md-nav__item">
+  <a href="#dominios" class="md-nav__link">
+    <span class="md-ellipsis">
+      
+        Dominios
+      
+    </span>
+  </a>
+  
+</li>
+        
+          <li class="md-nav__item">
+  <a href="#stack-tecnico" class="md-nav__link">
+    <span class="md-ellipsis">
+      
+        Stack Tecnico
+      
+    </span>
+  </a>
+  
+</li>
+        
+      </ul>
+    </nav>
+  
+</li>
+      
+        <li class="md-nav__item">
+  <a href="#como-funciona" class="md-nav__link">
+    <span class="md-ellipsis">
+      
+        Como Funciona
+      
+    </span>
+  </a>
+  
+    <nav class="md-nav" aria-label="Como Funciona">
+      <ul class="md-nav__list">
+        
+          <li class="md-nav__item">
+  <a href="#registro-y-verificacion" class="md-nav__link">
+    <span class="md-ellipsis">
+      
+        Registro y Verificacion
+      
+    </span>
+  </a>
+  
+</li>
+        
+          <li class="md-nav__item">
+  <a href="#autenticacion" class="md-nav__link">
+    <span class="md-ellipsis">
+      
+        Autenticacion
+      
+    </span>
+  </a>
+  
+</li>
+        
+          <li class="md-nav__item">
+  <a href="#jwt-y-tokens" class="md-nav__link">
+    <span class="md-ellipsis">
+      
+        JWT y Tokens
+      
+    </span>
+  </a>
+  
+</li>
+        
+          <li class="md-nav__item">
+  <a href="#multi-tenancy" class="md-nav__link">
+    <span class="md-ellipsis">
+      
+        Multi-tenancy
+      
+    </span>
+  </a>
+  
+</li>
+        
+          <li class="md-nav__item">
+  <a href="#oauth2" class="md-nav__link">
+    <span class="md-ellipsis">
+      
+        OAuth2
+      
+    </span>
+  </a>
+  
+</li>
+        
+          <li class="md-nav__item">
+  <a href="#email-system" class="md-nav__link">
+    <span class="md-ellipsis">
+      
+        Email System
+      
+    </span>
+  </a>
+  
+</li>
+        
+          <li class="md-nav__item">
+  <a href="#password-reset" class="md-nav__link">
+    <span class="md-ellipsis">
+      
+        Password Reset
+      
+    </span>
+  </a>
+  
+</li>
+        
+          <li class="md-nav__item">
+  <a href="#permission-cache" class="md-nav__link">
+    <span class="md-ellipsis">
+      
+        Permission Cache
+      
+    </span>
+  </a>
+  
+</li>
+        
+      </ul>
+    </nav>
+  
+</li>
+      
+        <li class="md-nav__item">
+  <a href="#endpoints" class="md-nav__link">
+    <span class="md-ellipsis">
+      
+        Endpoints
+      
+    </span>
+  </a>
+  
+</li>
+      
+        <li class="md-nav__item">
+  <a href="#suite-de-pruebas" class="md-nav__link">
+    <span class="md-ellipsis">
+      
+        Suite de Pruebas
+      
+    </span>
+  </a>
+  
+    <nav class="md-nav" aria-label="Suite de Pruebas">
+      <ul class="md-nav__list">
+        
+          <li class="md-nav__item">
+  <a href="#ejecucion" class="md-nav__link">
+    <span class="md-ellipsis">
+      
+        Ejecucion
+      
+    </span>
+  </a>
+  
+</li>
+        
+          <li class="md-nav__item">
+  <a href="#cobertura-por-dominio" class="md-nav__link">
+    <span class="md-ellipsis">
+      
+        Cobertura por Dominio
+      
+    </span>
+  </a>
+  
+</li>
+        
+          <li class="md-nav__item">
+  <a href="#infraestructura-de-test" class="md-nav__link">
+    <span class="md-ellipsis">
+      
+        Infraestructura de Test
+      
+    </span>
+  </a>
+  
+</li>
+        
+          <li class="md-nav__item">
+  <a href="#archivos-de-test" class="md-nav__link">
+    <span class="md-ellipsis">
+      
+        Archivos de Test
+      
+    </span>
+  </a>
+  
+</li>
+        
+          <li class="md-nav__item">
+  <a href="#gaps-conocidos" class="md-nav__link">
+    <span class="md-ellipsis">
+      
+        Gaps Conocidos
+      
+    </span>
+  </a>
+  
+</li>
+        
+      </ul>
+    </nav>
+  
+</li>
+      
+        <li class="md-nav__item">
+  <a href="#configuracion" class="md-nav__link">
+    <span class="md-ellipsis">
+      
+        Configuracion
+      
+    </span>
+  </a>
+  
+    <nav class="md-nav" aria-label="Configuracion">
+      <ul class="md-nav__list">
+        
+          <li class="md-nav__item">
+  <a href="#perfiles-de-maven" class="md-nav__link">
+    <span class="md-ellipsis">
+      
+        Perfiles de Maven
+      
+    </span>
+  </a>
+  
+</li>
+        
+          <li class="md-nav__item">
+  <a href="#variables-de-entorno" class="md-nav__link">
+    <span class="md-ellipsis">
+      
+        Variables de Entorno
+      
+    </span>
+  </a>
+  
+</li>
+        
+      </ul>
+    </nav>
+  
+</li>
+      
+        <li class="md-nav__item">
+  <a href="#cicd" class="md-nav__link">
+    <span class="md-ellipsis">
+      
+        CI/CD
+      
+    </span>
+  </a>
+  
+</li>
+      
+        <li class="md-nav__item">
+  <a href="#roadmap" class="md-nav__link">
+    <span class="md-ellipsis">
+      
+        Roadmap
+      
+    </span>
+  </a>
+  
+</li>
+      
+        <li class="md-nav__item">
+  <a href="#estado" class="md-nav__link">
+    <span class="md-ellipsis">
+      
+        Estado
+      
+    </span>
+  </a>
+  
+</li>
+      
+    </ul>
+  
+</nav>
+                  </div>
+                </div>
+              </div>
+            
+          
+          
+            <div class="md-content" data-md-component="content">
+              
+              <article class="md-content__inner md-typeset">
+                
+                  
+
+
+
+<h1 id="pymes-admin-auth-microservice">PyMes Admin - Auth Microservice<a class="headerlink" href="#pymes-admin-auth-microservice" title="Permanent link">&para;</a></h1>
+<p>Servicio de identidad y multi-tenancy para la plataforma SaaS PyMes Admin. Gestiona autenticacion, sesiones, y aislamiento de datos por empresa.</p>
+<p><a href="https://spring.io/projects/spring-boot"><img alt="Spring Boot" src="https://img.shields.io/badge/Spring%20Boot-3.4.3-6DB33F?logo=springboot" /></a>
+<a href="https://www.oracle.com/java/technologies/downloads/"><img alt="Java" src="https://img.shields.io/badge/Java-21-ED8B00?logo=openjdk&amp;logoColor=ffffff" /></a>
+<a href="https://www.postgresql.org/"><img alt="PostgreSQL" src="https://img.shields.io/badge/PostgreSQL-15-336791?logo=postgresql" /></a>
+<a href="https://redis.io/"><img alt="Redis" src="https://img.shields.io/badge/Redis-DC382D?logo=redis&amp;logoColor=ffffff" /></a>
+<a href="https://jwt.io/"><img alt="JWT" src="https://img.shields.io/badge/JJWT-0.12.6-000000?logo=json" /></a></p>
+<p>Docs: <a href="../../docs/api/openapi-auth.json">API contract generado</a> · <a href="../../docs/api/#regenerar-un-comando-por-servicio">cómo regenerarlo</a></p>
+<hr />
+<h2 id="que-hace">Que Hace<a class="headerlink" href="#que-hace" title="Permanent link">&para;</a></h2>
+<p>Centro de identidad multi-tenant. Orquesta el ciclo de vida completo del usuario: registro, autenticacion, sesiones, y workspace switching con aislamiento de datos por tenant.</p>
+<h3 id="dominios">Dominios<a class="headerlink" href="#dominios" title="Permanent link">&para;</a></h3>
+<table>
+<thead>
+<tr>
+<th>Dominio</th>
+<th>Responsabilidad</th>
+</tr>
+</thead>
+<tbody>
+<tr>
+<td><strong>Auth</strong></td>
+<td>Login, registro, logout global, rotacion de tokens (RTR), rate limiting</td>
+</tr>
+<tr>
+<td><strong>User</strong></td>
+<td>Perfiles de identidad globales</td>
+</tr>
+<tr>
+<td><strong>Tenant</strong></td>
+<td>Workspaces, switching de contexto, limites de plan FREE</td>
+</tr>
+<tr>
+<td><strong>Member</strong></td>
+<td>Roles jerarquicos (OWNER &gt; ADMIN &gt; CONTABLE &gt; VIEWER) — solo OWNER edita roles; asignar <code>OWNER</code> bloqueado (anti-escalada 2º OWNER)</td>
+</tr>
+<tr>
+<td><strong>Invitation</strong></td>
+<td>Flujo completo de invitacion para nuevos colaboradores</td>
+</tr>
+</tbody>
+</table>
+<h3 id="stack-tecnico">Stack Tecnico<a class="headerlink" href="#stack-tecnico" title="Permanent link">&para;</a></h3>
+<p>Spring Boot 3.4.3 / Java 21 / PostgreSQL 15 / Redis / JJWT 0.12.6 / MapStruct 1.6.3 / Spring Security OAuth2 / Flyway / Thymeleaf</p>
+<hr />
+<h2 id="como-funciona">Como Funciona<a class="headerlink" href="#como-funciona" title="Permanent link">&para;</a></h2>
+<pre class="mermaid"><code>flowchart LR
+    R["POST /register"] --&gt; P["temp-register en Redis&lt;br/&gt;TTL 15 min"]
+    P --&gt; E["Email con link de verificación"]
+    E --&gt; V["POST /verify-email"]
+    V --&gt; D[("User + Tenant + UserTenant&lt;br/&gt;creados en forma atómica")]
+    D --&gt; L["POST /login&lt;br/&gt;rate limit 5/15 min"]
+    L --&gt; T["Access JWT + Refresh&lt;br/&gt;hash SHA-256 en DB"]
+    T --&gt; RR["Refresh rotation&lt;br/&gt;reuso = revocar todo"]
+    RR --&gt; O["Logout&lt;br/&gt;blacklist Redis O(1)"]</code></pre>
+<p>Source: <code>backend/auth/src/main/java/auth/pymes/service/impl/AuthServiceImpl.java</code>, <code>JwtServiceImpl.java</code>, <code>TokenBlacklistService.java</code>. Ver secuencia completa en <code>docs/architecture/architecture.md</code>.</p>
+<h3 id="registro-y-verificacion">Registro y Verificacion<a class="headerlink" href="#registro-y-verificacion" title="Permanent link">&para;</a></h3>
+<div class="highlight"><pre><span></span><code>POST /register
+  -&gt; Valida datos (nombre, email, password)
+  -&gt; Guarda en Redis: temp-register:{token} (TTL 15min)
+  -&gt; Email HTML con link de verificacion
+  -&gt; No se crea usuario en DB aun (Pending Token)
+
+POST /verify-email (requiere email + token)
+  -&gt; Validacion cruzada token-email
+  -&gt; Crea atomiquement: User + Tenant FREE + Rol OWNER en DB
+  -&gt; Elimina temp-register:{token} (one-time use)
+  -&gt; isEmailVerified = true
+</code></pre></div>
+<p>El usuario no existe en DB hasta que verifica su email. Esto evita contaminar la base con cuentas fantasma.</p>
+<h3 id="autenticacion">Autenticacion<a class="headerlink" href="#autenticacion" title="Permanent link">&para;</a></h3>
+<div class="highlight"><pre><span></span><code>POST /login
+  -&gt; Rate Limit: 5 intentos / 15 min por IP:Email (Redis atomic increment)
+  -&gt; Validacion: isActive + isEmailVerified
+  -&gt; Audit log: IP (X-Forwarded-For / X-Real-IP / RemoteAddr) + User-Agent
+  -&gt; Par JWT: Access Token (stateless) + Refresh Token (stateful, SHA-256 hash en DB)
+</code></pre></div>
+<h3 id="jwt-y-tokens">JWT y Tokens<a class="headerlink" href="#jwt-y-tokens" title="Permanent link">&para;</a></h3>
+<ul>
+<li><strong>Access Token</strong>: Claims: sub(email), userId, tenantId, role, plan, jti. TTL configurable.</li>
+<li><strong>Refresh Token</strong>: Payload minimo (userId). Almacenado en DB con hash SHA-256.</li>
+<li><strong>Refresh Token Rotation (RTR)</strong>: Cada uso invalida el Refresh anterior.</li>
+<li><strong>Reuse Detection</strong>: Si se reusa un Refresh revocado -&gt; eliminacion de todos los tokens del usuario (full re-auth).</li>
+<li><strong>Blacklist</strong>: Logout inmediato via Redis. Key: <code>auth:token_blacklist:{jwt}</code>, TTL = restante del token en ms (<code>TimeUnit.MILLISECONDS</code>, no segundos) + <code>fail-open</code> si Redis caído. <code>logout()</code> separa <code>revokeToken</code> de <code>deleteByUserId</code> — no deja refresh huérfano si blacklist falla. O(1) lookup.</li>
+</ul>
+<h3 id="multi-tenancy">Multi-tenancy<a class="headerlink" href="#multi-tenancy" title="Permanent link">&para;</a></h3>
+<ul>
+<li><strong>Registro</strong>: Pending token en Redis, creacion atomica de User + Tenant + UserTenant al verificar email.</li>
+<li><strong>selectTenant</strong>: Verifica membresia -&gt; genera nuevo JWT con tenantId/role/plan -&gt; rota Refresh Token.</li>
+<li><strong>FREE plan</strong>: Limite de 1 tenant por usuario. Crear mas requiere upgrade.</li>
+<li><strong>Roles</strong>: OWNER &gt; ADMIN &gt; CONTABLE &gt; VIEWER. Jerarquia enforced en cambios de rol.</li>
+</ul>
+<h3 id="oauth2">OAuth2<a class="headerlink" href="#oauth2" title="Permanent link">&para;</a></h3>
+<ul>
+<li>Google OAuth2 implementado via Gateway. JIT provisioning (find-or-create).</li>
+<li><strong>Intent Cookie</strong>: Pre-registro de tenant en Redis antes del redirect. Flujo:</li>
+<li><code>POST /oauth2/intent</code> -&gt; guarda {name, slug} en Redis, retorna intentId</li>
+<li>Redirect <code>/oauth2/authorization/google?state={intentId}</code></li>
+<li>SuccessHandler lee state -&gt; consulta Redis -&gt; crea Tenant + UserTenant</li>
+<li>JWT ya contiene tenantId</li>
+<li><strong>Code Exchange</strong>: Por seguridad, el JWT no se expone en URL. Flujo:</li>
+<li>SuccessHandler guarda <code>{accessToken, refreshToken}</code> en Redis (clave <code>oauth:code:{uuid}</code>, TTL 2 min)</li>
+<li>Redirige al frontend solo con <code>?code=&lt;uuid&gt;</code></li>
+<li>Frontend llama <code>POST /auth/exchange</code> con <code>{code}</code> para obtener los tokens de forma segura</li>
+<li>Slug duplicado (whitelabel): ya no <code>500</code> → <code>302 ?error=TNT003</code> (<code>OAuth2AuthenticationSuccessHandler:89</code>, fix 2026-08-30).</li>
+<li>Facebook: POSTERGADO (Meta no aprobo la verificacion de la empresa. Pendiente indefinidamente hasta obtener credenciales validas).</li>
+</ul>
+<h3 id="email-system">Email System<a class="headerlink" href="#email-system" title="Permanent link">&para;</a></h3>
+<ul>
+<li>Templates Thymeleaf autocontenidos (verification, password-reset, invitation).</li>
+<li>JavaMailSender con MimeMessage HTML responsive.</li>
+<li>Paleta Fintech consistente con el frontend (Deep Forest + Copper).</li>
+</ul>
+<h3 id="password-reset">Password Reset<a class="headerlink" href="#password-reset" title="Permanent link">&para;</a></h3>
+<div class="highlight"><pre><span></span><code>POST /forgot-password -&gt; Token en Redis (password:reset:{token}, TTL 15min)
+POST /reset-password  -&gt; Valida token -&gt; BCrypt update -&gt; Elimina token
+</code></pre></div>
+<p>Timing attack mitigation: respuesta consistente aunque el email no exista.</p>
+<h3 id="permission-cache">Permission Cache<a class="headerlink" href="#permission-cache" title="Permanent link">&para;</a></h3>
+<ul>
+<li>Cache en Redis con TTL de 5 minutos.</li>
+<li>Key: <code>auth:permissions:{userId}:{tenantId}</code>.</li>
+<li>Invalidation granular (por tenant) o global (por usuario).</li>
+</ul>
+<hr />
+<h2 id="endpoints">Endpoints<a class="headerlink" href="#endpoints" title="Permanent link">&para;</a></h2>
+<p>Ruta base: <code>/api/v1</code></p>
+<table>
+<thead>
+<tr>
+<th>Metodo</th>
+<th>Ruta</th>
+<th>Auth</th>
+<th>Descripcion</th>
+</tr>
+</thead>
+<tbody>
+<tr>
+<td>POST</td>
+<td>/auth/register</td>
+<td>No</td>
+<td>Pending token (Redis), persiste en DB tras verificar email</td>
+</tr>
+<tr>
+<td>POST</td>
+<td>/auth/login</td>
+<td>No</td>
+<td>Rate-limited, audit log</td>
+</tr>
+<tr>
+<td>POST</td>
+<td>/auth/logout</td>
+<td>Si</td>
+<td>Invalida todos los refresh tokens del usuario</td>
+</tr>
+<tr>
+<td>POST</td>
+<td>/auth/refresh</td>
+<td>No</td>
+<td>RTR + reuse detection</td>
+</tr>
+<tr>
+<td>POST</td>
+<td>/auth/verify-email</td>
+<td>No</td>
+<td>Token-Email cross validation, crea usuario en DB</td>
+</tr>
+<tr>
+<td>POST</td>
+<td>/auth/resend-verification</td>
+<td>No</td>
+<td>Regenera token (TTL reset a 15min)</td>
+</tr>
+<tr>
+<td>POST</td>
+<td>/auth/forgot-password</td>
+<td>No</td>
+<td>Token Redis TTL 15min</td>
+</tr>
+<tr>
+<td>POST</td>
+<td>/auth/reset-password</td>
+<td>No</td>
+<td>BCrypt update + token cleanup</td>
+</tr>
+<tr>
+<td>POST</td>
+<td>/auth/exchange</td>
+<td>No</td>
+<td>OAuth2 code -&gt; JWT (code exchange)</td>
+</tr>
+<tr>
+<td>GET</td>
+<td>/users/me</td>
+<td>Si</td>
+<td>Perfil actual (userId, email, tenantId, role, plan)</td>
+</tr>
+<tr>
+<td>GET</td>
+<td>/tenants</td>
+<td>Si</td>
+<td>Lista tenants del usuario (paginado)</td>
+</tr>
+<tr>
+<td>POST</td>
+<td>/tenants</td>
+<td>Si</td>
+<td>Crear nuevo tenant (solo FREE)</td>
+</tr>
+<tr>
+<td>POST</td>
+<td>/tenants/select</td>
+<td>Si</td>
+<td>Switch contexto + JWT regeneration</td>
+</tr>
+<tr>
+<td>GET</td>
+<td>/tenants/{id}/members</td>
+<td>Si</td>
+<td>Lista miembros del tenant</td>
+</tr>
+<tr>
+<td>PUT</td>
+<td>/tenants/{id}/members/{userId}/role</td>
+<td>Si</td>
+<td>Cambio de rol (validacion jerarquica)</td>
+</tr>
+<tr>
+<td>DELETE</td>
+<td>/tenants/{id}/members/{userId}</td>
+<td>Si</td>
+<td>Desvincular miembro (solo OWNER)</td>
+</tr>
+<tr>
+<td>POST</td>
+<td>/auth/oauth2/intent</td>
+<td>No</td>
+<td>Crear intent pre-registro OAuth2 (guarda name+slug en Redis)</td>
+</tr>
+<tr>
+<td>GET</td>
+<td>/oauth2/intent/{intentId}</td>
+<td>No</td>
+<td>Consultar intent pre-registro OAuth2</td>
+</tr>
+<tr>
+<td>GET</td>
+<td>/invitations</td>
+<td>Si</td>
+<td>Invitaciones pendientes del usuario</td>
+</tr>
+<tr>
+<td>POST</td>
+<td>/invitations</td>
+<td>Si</td>
+<td>Crear invitacion</td>
+</tr>
+<tr>
+<td>POST</td>
+<td>/invitations/accept</td>
+<td>Si</td>
+<td>Aceptar invitacion (auth requerida desde 2026-07-29; <code>accept</code> sin auth eliminado)</td>
+</tr>
+<tr>
+<td>DELETE</td>
+<td>/invitations/{id}</td>
+<td>Si</td>
+<td>Cancelar invitacion</td>
+</tr>
+<tr>
+<td>GET</td>
+<td>/invitations/{id}/info</td>
+<td>No</td>
+<td>Preview público de invitación (whitelist)</td>
+</tr>
+<tr>
+<td>POST</td>
+<td>/invitations/{id}/register</td>
+<td>No</td>
+<td>Registro vía invitación (whitelist)</td>
+</tr>
+</tbody>
+</table>
+<hr />
+<h2 id="suite-de-pruebas">Suite de Pruebas<a class="headerlink" href="#suite-de-pruebas" title="Permanent link">&para;</a></h2>
+<h3 id="ejecucion">Ejecucion<a class="headerlink" href="#ejecucion" title="Permanent link">&para;</a></h3>
+<table>
+<thead>
+<tr>
+<th>Comando</th>
+<th>Scope</th>
+<th>Requisitos</th>
+</tr>
+</thead>
+<tbody>
+<tr>
+<td><code>./mvnw test -B</code></td>
+<td>Unitarios</td>
+<td>Ninguno</td>
+</tr>
+<tr>
+<td><code>./mvnw verify -B -Dspring.profiles.active=integration</code></td>
+<td>Integracion</td>
+<td>Docker (Testcontainers)</td>
+</tr>
+</tbody>
+</table>
+<p>Maven Surefire ejecuta solo <code>**/integration/**</code> excluido. Failsafe ejecuta solo <code>**/integration/**</code>.</p>
+<h3 id="cobertura-por-dominio">Cobertura por Dominio<a class="headerlink" href="#cobertura-por-dominio" title="Permanent link">&para;</a></h3>
+<blockquote>
+<p>Conteos verificados <code>grep -c @Test</code> 2026-09-17 — total <strong>207</strong> (<code>138 unit + 56 integration + 12 consistency + 1 context</code>).</p>
+</blockquote>
+<table>
+<thead>
+<tr>
+<th>Dominio</th>
+<th>Unit</th>
+<th>Integration</th>
+<th>Consistency</th>
+</tr>
+</thead>
+<tbody>
+<tr>
+<td>Auth (login/register/refresh/logout)</td>
+<td>13</td>
+<td>15</td>
+<td>—</td>
+</tr>
+<tr>
+<td>JWT (tokens/blacklist/validacion)</td>
+<td>30</td>
+<td>—</td>
+<td>—</td>
+</tr>
+<tr>
+<td>OAuth2 (intent/filter/handler/exchange)</td>
+<td>23</td>
+<td>12</td>
+<td>—</td>
+</tr>
+<tr>
+<td>Email (verificacion/reset)</td>
+<td>17</td>
+<td>4</td>
+<td>—</td>
+</tr>
+<tr>
+<td>Tenant (CRUD/select/shutdown)</td>
+<td>10</td>
+<td>—</td>
+<td>—</td>
+</tr>
+<tr>
+<td>Member (roles/delete)</td>
+<td>7</td>
+<td>—</td>
+<td>—</td>
+</tr>
+<tr>
+<td>Invitation (create/accept/cancel)</td>
+<td>33</td>
+<td>9</td>
+<td>—</td>
+</tr>
+<tr>
+<td>Security (constraints/RBAC)</td>
+<td>—</td>
+<td>16</td>
+<td>—</td>
+</tr>
+<tr>
+<td>User (profile)</td>
+<td>5</td>
+<td>—</td>
+<td>—</td>
+</tr>
+<tr>
+<td>Consistency (paths vs whitelist)</td>
+<td>—</td>
+<td>—</td>
+<td>12</td>
+</tr>
+<tr>
+<td>Context load</td>
+<td>—</td>
+<td>—</td>
+<td>—</td>
+</tr>
+<tr>
+<td><strong>Total</strong></td>
+<td><strong>138</strong></td>
+<td><strong>56</strong></td>
+<td><strong>12</strong></td>
+</tr>
+</tbody>
+</table>
+<h3 id="infraestructura-de-test">Infraestructura de Test<a class="headerlink" href="#infraestructura-de-test" title="Permanent link">&para;</a></h3>
+<ul>
+<li><strong>Unitarios</strong>: H2 in-memory (PostgreSQL compat mode), Mockito, sin Docker. Archivo: <code>application-test.yaml</code>.</li>
+<li><strong>Integracion</strong>: Testcontainers (PostgreSQL 15-alpine + Redis 7-alpine), MockMvc, <code>@DynamicPropertySource</code>.</li>
+<li><strong>Base class</strong>: <code>AbstractIntegrationTest</code> provee lifecycle de containers, <code>@MockitoBean</code> en EmailService (suprime envios), helper <code>flushRedis()</code>.</li>
+<li><strong>TestApiPaths</strong>: Utilidad que replica <code>ApiPathConstants</code> para tests. Evita strings hardcodeados.</li>
+</ul>
+<h3 id="archivos-de-test">Archivos de Test<a class="headerlink" href="#archivos-de-test" title="Permanent link">&para;</a></h3>
+<div class="highlight"><pre><span></span><code>src/test/java/auth/pymes/
+├── AuthApplicationTests.java               # 1 context load
+├── consistency/
+│   └── ApiPathConsistencyTest.java        # 12 tests: paths vs constants vs whitelist
+├── integration/
+│   ├── AbstractIntegrationTest.java       # Base class (Testcontainers)
+│   └── api/
+│       ├── AuthApiIntegrationTest.java    # 15 tests: endpoints auth + concurrent refresh
+│       ├── InvitationServiceIntegrationTest.java  # 9 tests
+│       ├── OAuth2IntentIntegrationTest.java       # 4 tests
+│       ├── OAuth2LoginIntegrationTest.java        # 8 tests
+│       ├── PasswordResetIntegrationTest.java      # 4 tests
+│       └── SecurityConstraintIntegrationTest.java  # 16 tests: 401/403 + RBAC
+├── testutil/
+│   └── TestApiPaths.java
+└── unit/
+    ├── AuthServiceImplTest.java           # 13 tests
+    ├── EmailVerificationServiceImplTest.java  # 12 tests
+    ├── InvitationServiceImplTest.java     # 33 tests
+    ├── JwtServiceImplTest.java            # 27 tests
+    ├── MemberServiceImplTest.java         # 3 tests
+    ├── MemberServiceImplNewLogicTest.java # 4 tests (RBAC solo OWNER, anti-escalada)
+    ├── OAuth2AuthenticationSuccessHandlerTest.java  # 5 tests (incl. TNT003)
+    ├── OAuth2IntentCookieFilterTest.java  # 9 tests
+    ├── OAuth2IntentServiceImplTest.java   # 9 tests
+    ├── PasswordResetServiceImplTest.java  # 5 tests
+    ├── TenantServiceImplTest.java         # 10 tests
+    ├── TokenBlacklistServiceTest.java     # 3 tests (TTL ms, fail-open)
+    └── UserServiceImplTest.java           # 5 tests
+</code></pre></div>
+<h3 id="gaps-conocidos">Gaps Conocidos<a class="headerlink" href="#gaps-conocidos" title="Permanent link">&para;</a></h3>
+<ul>
+<li>Sin tests directos para <code>JwtAuthenticationFilter</code>, <code>GlobalExceptionHandler</code> (TokenBlacklistService ya cubierto: 3 tests, TTL ms + fail-open).</li>
+<li>Mappers y repositories solo cubiertos via integracion, sin unit tests dedicados.</li>
+<li>Happy-path integration para tenant/member/user/invitation CRUD parcialmente cubierto (Invitation 9 IT, Auth 15 IT); faltan <code>GET /tenants</code> paginado y <code>selectTenant</code> E2E.</li>
+<li>Sin test de CORS o configuracion de templates Thymeleaf.</li>
+</ul>
+<hr />
+<h2 id="configuracion">Configuracion<a class="headerlink" href="#configuracion" title="Permanent link">&para;</a></h2>
+<h3 id="perfiles-de-maven">Perfiles de Maven<a class="headerlink" href="#perfiles-de-maven" title="Permanent link">&para;</a></h3>
+<table>
+<thead>
+<tr>
+<th>Perfil</th>
+<th>Proposito</th>
+<th>Comando</th>
+</tr>
+</thead>
+<tbody>
+<tr>
+<td>dev</td>
+<td>Desarrollo local (DEBUG, .env)</td>
+<td><code>./mvnw spring-boot:run -Pdev</code></td>
+</tr>
+<tr>
+<td>stg</td>
+<td>Staging (INFO)</td>
+<td><code>./mvnw package -Pstg</code></td>
+</tr>
+<tr>
+<td>prod</td>
+<td>Produccion (WARN)</td>
+<td><code>./mvnw package -Pprod</code></td>
+</tr>
+<tr>
+<td>integration</td>
+<td>Tests con Testcontainers</td>
+<td><code>./mvnw verify -B -Dspring.profiles.active=integration</code></td>
+</tr>
+</tbody>
+</table>
+<h3 id="variables-de-entorno">Variables de Entorno<a class="headerlink" href="#variables-de-entorno" title="Permanent link">&para;</a></h3>
+<p>Copiar <code>.env.example</code> a <code>.env</code> para desarrollo local. El servicio usa <code>spring-dotenv</code> para cargar variables.</p>
+<table>
+<thead>
+<tr>
+<th>Variable</th>
+<th>Descripcion</th>
+</tr>
+</thead>
+<tbody>
+<tr>
+<td>JWT_SECRET</td>
+<td>Secreto para firma HS256 (min 256 bits)</td>
+</tr>
+<tr>
+<td>DB_HOST / DB_PORT / DB_NAME / DB_USERNAME / DB_PASSWORD</td>
+<td>PostgreSQL</td>
+</tr>
+<tr>
+<td>REDIS_HOST / REDIS_PORT</td>
+<td>Redis (blacklist + cache)</td>
+</tr>
+<tr>
+<td>SPRING_MAIL_USERNAME / SPRING_MAIL_PASSWORD</td>
+<td>SMTP para emails</td>
+</tr>
+<tr>
+<td>APP_FRONTEND_URL</td>
+<td>Base URL para links de verificacion. Default en base YAML: <code>http://localhost:9200</code>. Dev CORS usa <code>http://localhost:9200</code>. Verificar coherencia entre perfiles.</td>
+</tr>
+<tr>
+<td>OAUTH2_REDIRECT_URI</td>
+<td>URI base para redirect de OAuth2. Default: <code>http://localhost:8080</code>. En server: <code>https://pymeq.dioquincar.dev</code></td>
+</tr>
+<tr>
+<td>GOOGLE_CLIENT_ID / GOOGLE_CLIENT_SECRET</td>
+<td>OAuth2 Google</td>
+</tr>
+<tr>
+<td>FACEBOOK_CLIENT_ID / FACEBOOK_CLIENT_SECRET</td>
+<td>OAuth2 Facebook (condicional, vacio = deshabilitado)</td>
+</tr>
+</tbody>
+</table>
+<hr />
+<h2 id="cicd">CI/CD<a class="headerlink" href="#cicd" title="Permanent link">&para;</a></h2>
+<p>GitHub Actions ejecuta <code>mvn verify</code> en cada PR a main/develop/feature/*.</p>
+<hr />
+<h2 id="roadmap">Roadmap<a class="headerlink" href="#roadmap" title="Permanent link">&para;</a></h2>
+<table>
+<thead>
+<tr>
+<th>Fase</th>
+<th>Descripcion</th>
+<th>Estado</th>
+</tr>
+</thead>
+<tbody>
+<tr>
+<td>1</td>
+<td>RTR + Reuse Detection + jti uniqueness</td>
+<td>COMPLETADO</td>
+</tr>
+<tr>
+<td>2</td>
+<td>Verificacion de email + Pending Token</td>
+<td>COMPLETADO</td>
+</tr>
+<tr>
+<td>3</td>
+<td>OAuth2 Google + Intent Cookie</td>
+<td>COMPLETADO</td>
+</tr>
+<tr>
+<td>4</td>
+<td>Logout Global + Thymeleaf Email Templates</td>
+<td>COMPLETADO</td>
+</tr>
+<tr>
+<td>5</td>
+<td>Member Management (roles, invitaciones)</td>
+<td>COMPLETADO</td>
+</tr>
+<tr>
+<td>6</td>
+<td>Password Reset + Forgot Password</td>
+<td>COMPLETADO</td>
+</tr>
+<tr>
+<td>7</td>
+<td>Facebook OAuth2</td>
+<td>PENDIENTE</td>
+</tr>
+<tr>
+<td>8</td>
+<td>MFA (TOTP), PKCE, Enterprise SSO</td>
+<td>BACKLOG</td>
+</tr>
+</tbody>
+</table>
+<hr />
+<h2 id="estado">Estado<a class="headerlink" href="#estado" title="Permanent link">&para;</a></h2>
+<p>Production-Ready</p>
+<p><a href="https://github.com/dio-quincarDev/pymes-admin/actions"><img alt="Build" src="https://github.com/dio-quincarDev/pymes-admin/actions/workflows/ci.yml/badge.svg" /></a>
+<a href="https://www.testcontainers.org/"><img alt="Testcontainers" src="https://img.shields.io/badge/Testcontainers-PostgreSQL%20%2B%20Redis-2C8EBB?logo=testcontainers" /></a>
+<a href="https://flywaydb.org/"><img alt="Flyway" src="https://img.shields.io/badge/Flyway-CC0200?logo=flyway" /></a>
+<a href="https://junit.org/junit5/"><img alt="JUnit5" src="https://img.shields.io/badge/JUnit5-25A162?logo=junit5&amp;logoColor=ffffff" /></a></p>
+
+
+
+
+
+
+
+
+
+
+
+
+                
+              </article>
+            </div>
+          
+          
+<script>var target=document.getElementById(location.hash.slice(1));target&&target.name&&(target.checked=target.name.startsWith("__tabbed_"))</script>
+        </div>
+        
+          <button type="button" class="md-top md-icon" data-md-component="top" hidden>
+  
+  <svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 24 24"><path d="M13 20h-2V8l-5.5 5.5-1.42-1.42L12 4.16l7.92 7.92-1.42 1.42L13 8z"/></svg>
+  Volver al principio
+</button>
+        
+      </main>
+      
+        <footer class="md-footer">
+  
+  <div class="md-footer-meta md-typeset">
+    <div class="md-footer-meta__inner md-grid">
+      <div class="md-copyright">
+  
+  
+    Made with
+    <a href="https://squidfunk.github.io/mkdocs-material/" target="_blank" rel="noopener">
+      Material for MkDocs
+    </a>
+  
+</div>
+      
+    </div>
+  </div>
+</footer>
+      
+    </div>
+    <div class="md-dialog" data-md-component="dialog">
+      <div class="md-dialog__inner md-typeset"></div>
+    </div>
+    
+    
+    
+      
+      
+      <script id="__config" type="application/json">{"annotate": null, "base": "../..", "features": ["navigation.tabs", "navigation.top", "search.highlight", "content.code.copy"], "search": "../../assets/javascripts/workers/search.a7633da7.min.js", "tags": null, "translations": {"clipboard.copied": "Copiado al portapapeles", "clipboard.copy": "Copiar al portapapeles", "search.result.more.one": "1 m\u00e1s en esta p\u00e1gina", "search.result.more.other": "# m\u00e1s en esta p\u00e1gina", "search.result.none": "No se encontraron documentos", "search.result.one": "1 documento encontrado", "search.result.other": "# documentos encontrados", "search.result.placeholder": "Teclee para comenzar b\u00fasqueda", "search.result.term.missing": "Falta", "select.version": "Seleccionar versi\u00f3n"}, "version": null}</script>
+    
+    
+      <script src="../../assets/javascripts/bundle.a5f9d56c.min.js"></script>
+      
+    
+  </body>
+</html>
