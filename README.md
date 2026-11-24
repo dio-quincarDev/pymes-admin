@@ -79,8 +79,8 @@ API contract (generated from code): [`docs/api/README.md`](docs/api/README.md) �
 Runs on Oracle Cloud Free Tier and scales without extra database servers.
 
 - **Shape:** `VM.Standard.A1.Flex` ARM — 2 OCPUs, 12 GB RAM, 50 GB storage. Only ports 22/80 open; 443 terminates at Cloudflare (mode Full, Bot Fight Mode off). Caddy listens on `http://` and proxies `gateway:8080` or `frontend:9200`.
-- **Memory:** Each backend runs with `JAVA_OPTS -Xmx384m -Xms256m -XX:MaxMetaspaceSize=128m -XX:+UseG1GC` so three services fit on one small VM.
-- **Networks:** `proxy-caddy-network` (Caddy ↔ frontend/gateway) and `pymes-internal-network` (DB/Redis/backends), both external. Caddy uses `path_regexp \.svg$` and `Cache-Control: no-cache` for the service worker, SVGs and HTML; purge Cloudflare cache after changing logos.
+- **Memory:** Each backend runs with `JAVA_OPTS -Xmx384m -Xms256m -XX:MaxMetaspaceSize=128m -XX:MaxDirectMemorySize=128m -XX:+ExitOnOutOfMemoryError -XX:+UseG1GC` so three services fit on one small VM.
+- **Networks:** `proxy-caddy-network` (Caddy ↔ frontend/gateway, external) and `pymes-internal-network` (DB/Redis/backends, created by Compose as `pymes-admin_pymes-internal-network`). Caddy uses `path_regexp \.svg$` and `Cache-Control: no-cache` for the service worker, SVGs and HTML; purge Cloudflare cache after changing logos.
 - **Delivery:** Every image builds for `linux/amd64,linux/arm64` via QEMU/Buildx. Health checks every 10-15s, `docker image prune -af` and `max-size 10m x3` log rotation after each deploy. `infra/monitoring` ships VictoriaMetrics + Grafana.
 - **Data:** One PostgreSQL holds both `auth` and `core` schemas (Flyway `spring.flyway.schemas: auth` / `core`) — saves ~500 MB RAM and keeps backups to one dump. See `docs/strategies/INFRA_STRATEGY.md`.
 
