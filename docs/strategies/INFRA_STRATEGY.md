@@ -60,11 +60,15 @@ logging:
 
 Spring Boot sin limites explicitos consume RAM agresivamente.
 
-> **Estado actual:** `JAVA_OPTS` configurado en `docker-compose.yml` para gateway, auth-service y core-service. Límite heap 384m, metaspace 128m, G1GC.
+> **Estado actual:** las 3 imágenes leen `JAVA_OPTS` en su `ENTRYPOINT`
+> (`exec java $JAVA_OPTS -jar app.jar`), con el default `-Xmx384m` embebido en el
+> Dockerfile. Antes el valor de `docker-compose.yml` era letra muerta: el JVM
+> leía `JAVA_TOOL_OPTIONS` (`MaxRAMPercentage=75`) y, sin `mem_limit`, ese 75%
+> se calculaba sobre la RAM del host. Se eliminó ese porcentaje.
 
 ```yaml
 # docker-compose.yml — environment de auth-service, core-service y gateway
-JAVA_OPTS: -Xmx384m -Xms256m -XX:MaxMetaspaceSize=128m -XX:+UseG1GC
+JAVA_OPTS: -Xmx384m -Xms256m -XX:MaxMetaspaceSize=128m -XX:MaxDirectMemorySize=128m -XX:+ExitOnOutOfMemoryError -XX:+UseG1GC
 ```
 
 - `-Xmx384m` — maximo heap
@@ -147,37 +151,38 @@ Resultados reales:
 
 ### Estado en pymes-admin — medido 2026-11-23
 
-`docker images` / `docker history --no-trunc` sobre las imágenes locales:
+`docker images` sobre las imágenes locales, antes y después:
 
-| Imagen | Total | `app.jar` | Capa `chown` duplicada | Base JRE |
-|--------|-------|-----------|------------------------|----------|
-| `pymes-core` | 472 MB | 129 MB | 129 MB | 214 MB (158 MB = JRE) |
-| `pymes-auth` | 379 MB | 82,5 MB | 82,5 MB | 214 MB |
-| `pymes-gateway` | 268 MB | 53,8 MB | — | 214 MB |
-| `pymes-frontend` | 16 MB | — | — | nginx-slim |
+| Imagen | Antes | Después | JRE |
+|--------|-------|---------|-----|
+| `pymes-core` | 472 MB | **212 MB** | jlink, 72 MB |
+| `pymes-auth` | 379 MB | **166 MB** | jlink, 72 MB |
+| `pymes-gateway` | 268 MB | **137 MB** | jlink, 72 MB |
+| `pymes-frontend` | 16 MB | 16 MB | sin cambios |
 
-Causa del exceso: auth y core hacen `COPY app.jar` y luego `RUN chown app.jar`.
-Docker copia el jar a una capa nueva: el mismo archivo aparece dos veces.
-Gateway no lo hace.
+Los tres backends bajan de 1119 MB a 515 MB (−604 MB, −54%). La causa del
+exceso era el `RUN chown` duplicado en auth y core, más el JRE completo de 158 MB.
 
-Plan acordado en la rama `feature/infra` (nada aplicado todavía):
+| Acción | Estado |
+|--------|--------|
+| `COPY --chown=spring:spring` y borrar `RUN chown` en auth y core | **Applied** |
+| `jlink` con 24 módulos (runtime 72 MB) | **Applied** en los 3 backends |
+| `JAVA_OPTS` con topes fijos, `ExitOnOutOfMemoryError` y `MaxDirectMemorySize=128m` | **Applied** |
+| `mem_limit: 896m` por backend en el compose | **Applied** |
+| Jar por capas (`layertools`) | **Descartado**: 0 MB de disco, solo reduce el pull |
+| Dockerfile único raíz con parámetro `SERVICE` (patrón bytebank) | **Descartado**: 5 archivos + 6 bloques de CD para el mismo resultado |
 
-| Acción | Estado | Ahorro |
-|--------|--------|--------|
-| `COPY --chown=spring:spring` y borrar `RUN chown` en auth y core | **Planned** | −129 MB core, −82,5 MB auth |
-| `jlink` con los módulos necesarios (runtime ~65 MB en vez de 158 MB) | **Planned**, solo si pasa el smoke test | ~−90 MB por backend |
-| Jar por capas (`layertools`) | **Descartado por ahora**: 0 MB de disco, solo reduce el pull | — |
-| Dockerfile único raíz con parámetro `SERVICE` (patrón bytebank) | **Descartado por ahora**: 5 archivos + 6 bloques de CD para el mismo resultado | — |
+Nota: `JAVA_OPTS` se define en el Dockerfile y se sobrescribe desde `environment:`
+en el compose. Hay que cambiar los dos sitios.
 
-Objetivo: core ~250 MB, auth ~200 MB, gateway ~175 MB. El frontend no se toca.
+Verificado: `docker build`, `docker images`, health de los 3 backends y
+`/proc/1/cmdline` con los flags activos. Control de memoria en Grafana:
+"JVM heap used" con su techo y "JVM direct buffers used".
 
-Verificación antes de cerrar: `docker build` + `docker images` y smoke test de
-los 3 backends (health, login de auth, una consulta de core). Si `jlink` falla
-por un módulo de reflexión se descarta ese cambio; el fix de `chown` se mantiene
-de todas formas.
-
-Riesgo conocido: core genera PDFs; el runtime recortado podría necesitar fuentes
-o módulos extra (`java.desktop`).
+Verificado: PDF real generado con el JRE recortado vía API — login con JWT de
+OWNER, `POST /api/v1/core/reportes/monthly?period=2026-11&dryRun=true`, log
+`Monthly report run` sin `FAILED` ni errores de fuente/AWT. `java.desktop` y
+`jdk.localedata` están incluidos en la lista de módulos.
 
 ---
 
@@ -278,10 +283,10 @@ docker image prune -af
 
 | Red | Proposito | Tipo |
 |-----|-----------|------|
-| `proxy-caddy-network` | Caddy ↔ frontend + gateway (externa) | Bridge (external: true) |
-| `pymes-internal-network` | DB, Redis, comunicacion interna backend | Bridge (external: true) |
+| `proxy-caddy-network` | Caddy ↔ frontend + gateway | Bridge (external: true) |
+| `pymes-internal-network` | DB, Redis, comunicacion interna backend | Bridge (creada por Compose como `pymes-admin_pymes-internal-network`) |
 
-> Ambas redes se crean una sola vez en el setup inicial (`docker network create`, ver `QUICK_START.md`). Estan marcadas como `external: true` en `docker-compose.yml` — sin esto: `network exists but was not created by compose`.
+> `proxy-caddy-network` se crea una vez en el setup inicial (`docker network create`). `pymes-internal-network` **no** es `external: true`: Compose la crea con el prefijo del proyecto. Crear a mano `pymes-internal-network` es inofensivo pero no la usa ningún servicio.
 
 ---
 

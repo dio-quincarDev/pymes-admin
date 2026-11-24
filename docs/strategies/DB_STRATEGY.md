@@ -47,26 +47,30 @@ pymes-postgres-auth (instancia única)
 - Facilidad: Backup centralizado de ambos servicios
 - Coherencia: Snapshots consistentes en tiempo
 
-#### Plan en la rama `feature/infra` (Planned)
+#### Backup en `feature/infra` (Implemented, probado local)
 
 Un solo `pg_dump -Fc` de `pymes_db` cubre los dos schemas: el formato custom
 ya comprime y permite restaurar por tabla.
 
-| Archivo | Función | Estado |
-|---------|---------|--------|
-| `infra/backup/pg-backup.sh` | `docker exec pymes-postgres-db pg_dump -Fc` → `pymes_db_YYYYmmdd_HHMMSS.dump` en `~/pymes-backups/`, verificación con `pg_restore --list`, retención 7 días, log | **Planned** |
-| `infra/backup/pg-restore.sh` | Restaura a `pymes_restore_check`, compara 6 tablas de `auth` + 24 de `core`, borra la temporal. `pymes_db` solo con `--prod` y confirmación | **Planned** |
-| `infra/backup/pymes-backup.service` + `.timer` | systemd, 03:00 diaria (America/Panama), sin contenedor extra | **Planned** |
-| Offsite a OCI Object Storage | 20 GB del free tier; requiere OCI CLI o rclone (dependencia nueva) | **Planned** |
+| Pieza | Función |
+|-------|---------|
+| `db-backup` en `docker-compose.yml` | `eeshugerman/postgres-backup-s3:15`; `SCHEDULE=0 8 * * *` (03:00 America/Panama), `BACKUP_KEEP_DAYS=7` |
+| Destino | OCI Object Storage S3-compatible: bucket `oci-bucket-dev`, prefijo `pymes/<env>` (`stg`/`prod` desde cada CD) |
+| Restore | `docker exec pymes-db-backup sh restore.sh` (dropea y recrea todos los objetos de `pymes_db`; no usar contra producción sin confirmar) |
+| Observabilidad | `.github/workflows/backup-check.yml`: diario 09:00 UTC, falla si no hay objeto en `pymes/stg/` o si el más reciente tiene más de 26 h. El aviso lo manda GitHub por correo. |
 
-Sin password en los scripts: `docker exec` conecta por socket Unix, donde la
-imagen `postgres:15-alpine` usa `trust`.
+Reemplaza el plan anterior de scripts + systemd + rclone: el contenedor corre
+`go-cron` y sube directo, sin volumen local. Credenciales: Customer Secret Keys
+de OCI en GitHub Secrets (`S3_ACCESS_KEY_ID`, `S3_SECRET_ACCESS_KEY`).
 
-Verificación antes de marcarlo **Implemented**: dump + restore contra el compose
-local y comparar el conteo de tablas (6 + 24). No ejecutar contra producción.
+Verificado 2026-11-23 en local: dump de 137 KB subido y descargado, `pg_restore -l`
+OK y restore a `pymes_restore_check` con las 6 tablas de `auth` + 24 de `core`
+(más `flyway_schema_history` en cada schema). No ejecutar `restore.sh` contra
+producción: no restaura a una DB temporal.
 
-Limitación: el dump vive en el mismo boot volume que los datos de Postgres. Sin
-offsite, la pérdida del disco pierde datos y backups juntos.
+El workflow programado solo corre desde `main`; hasta que llegue a esa rama se
+dispara a mano con `workflow_dispatch`. El prefijo pasa a `pymes/prod` cuando
+haya producción.
 
 ### 4. Escalabilidad Futura
 - Agregar Service 3, 4, 5... sin agregar más PostgreSQL
