@@ -10,7 +10,6 @@ concurrency:
 on:
   push:
     branches:
-      - feature/**
       - develop
       - main
     paths:
