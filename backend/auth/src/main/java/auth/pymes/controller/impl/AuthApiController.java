@@ -72,8 +72,8 @@ public class AuthApiController implements AuthApi {
     }
 
     @Override
-    public ResponseEntity<ApiResponse<Void>> resetPassword(ResetPasswordRequest request) {
-        passwordResetService.resetPassword(request.token(), request.newPassword());
+    public ResponseEntity<ApiResponse<Void>> resetPassword(ResetPasswordRequest request, HttpServletRequest httpRequest) {
+        passwordResetService.resetPassword(request.token(), request.newPassword(), httpRequest);
         return ResponseEntity.ok(ApiResponse.ok());
     }
 

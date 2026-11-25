@@ -108,10 +108,17 @@ class PasswordResetIntegrationTest extends AbstractIntegrationTest {
                         .content(objectMapper.writeValueAsString(resetRequest)))
                 .andExpect(status().isOk());
 
-        // 4. Verify Token is deleted
+        // 4. Verify the reset was recorded in the audit trail
+        Integer resets = jdbcTemplate.queryForObject(
+                "SELECT COUNT(*) FROM audit_log WHERE action = 'PASSWORD_RESET' " +
+                        "AND user_id = (SELECT id FROM users WHERE email = ?)",
+                Integer.class, testEmail);
+        assertThat(resets).isEqualTo(1);
+
+        // 5. Verify Token is deleted
         assertThat(redisTemplate.hasKey(key)).isFalse();
 
-        // 5. Verify Login with new password
+        // 6. Verify Login with new password
         LoginRequest loginRequest = new LoginRequest(testEmail, newPassword);
         mockMvc.perform(post(TestApiPaths.AUTH_LOGIN)
                         .contentType(MediaType.APPLICATION_JSON)

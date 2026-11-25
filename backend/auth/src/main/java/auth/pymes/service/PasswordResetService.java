@@ -22,6 +22,7 @@ public interface PasswordResetService {
      *
      * @param token       Token de reset recibido del usuario
      * @param newPassword Nueva contraseña a establecer
+     * @param httpRequest Request HTTP para registrar desde dónde se cambió
      */
-    void resetPassword(String token, String newPassword);
+    void resetPassword(String token, String newPassword, HttpServletRequest httpRequest);
 }

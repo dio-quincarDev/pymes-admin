@@ -68,7 +68,8 @@ public interface AuthApi {
     @Operation(summary = "Reset password", description = "Establece una nueva contraseña usando el token de recuperación recibido por email")
     @PostMapping(ApiPathConstants.AUTH_RESET_PASSWORD)
     ResponseEntity<ApiResponse<Void>> resetPassword(
-            @Valid @RequestBody ResetPasswordRequest request);
+            @Valid @RequestBody ResetPasswordRequest request,
+            HttpServletRequest httpRequest);
 
     @Operation(summary = "OAuth2 exchange", description = "Intercambia un código de un solo uso por los tokens JWT (OAuth2 callback)")
     @PostMapping(ApiPathConstants.AUTH_EXCHANGE)

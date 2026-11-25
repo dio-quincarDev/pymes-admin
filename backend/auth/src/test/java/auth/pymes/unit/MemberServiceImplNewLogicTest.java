@@ -7,6 +7,7 @@ import auth.pymes.common.models.mappers.UserMapper;
 import auth.pymes.repositories.TenantRepository;
 import auth.pymes.repositories.UserEntityRepository;
 import auth.pymes.repositories.UserTenantRepository;
+import auth.pymes.service.AuditService;
 import auth.pymes.service.impl.MemberServiceImpl;
 import auth.pymes.utils.exception.auth.AuthorizationException;
 import org.junit.jupiter.api.Test;
@@ -30,6 +31,7 @@ public class MemberServiceImplNewLogicTest {
     @Mock private TenantRepository tenantRepository;
     @Mock private UserTenantRepository userTenantRepository;
     @Mock private UserMapper userMapper;
+    @Mock private AuditService auditService;
     @InjectMocks private MemberServiceImpl memberService;
 
     @Test
