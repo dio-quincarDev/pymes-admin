@@ -8,6 +8,7 @@ import auth.pymes.common.models.mappers.UserMapper;
 import auth.pymes.repositories.TenantRepository;
 import auth.pymes.repositories.UserEntityRepository;
 import auth.pymes.repositories.UserTenantRepository;
+import auth.pymes.service.AuditService;
 import auth.pymes.service.MemberService;
 import auth.pymes.utils.exception.auth.AuthorizationException;
 import auth.pymes.utils.exception.custom.InvalidInputException;
@@ -21,6 +22,7 @@ import org.springframework.security.oauth2.core.user.OAuth2User;
 import org.springframework.stereotype.Service;
 import org.springframework.transaction.annotation.Transactional;
 
+import java.util.Map;
 import java.util.UUID;
 
 import static auth.pymes.utils.exception.CodigoError.*;
@@ -34,6 +36,7 @@ public class MemberServiceImpl implements MemberService {
     private final TenantRepository tenantRepository;
     private final UserTenantRepository userTenantRepository;
     private final UserMapper userMapper;
+    private final AuditService auditService;
 
     @Override
     public Page<MemberResponse> getTenantUsers(UUID tenantId, Pageable pageable, Object principal) {
@@ -99,6 +102,8 @@ public class MemberServiceImpl implements MemberService {
         targetRelation.setRole(newRoleEnum);
         userTenantRepository.save(targetRelation);
 
+        auditService.record("ROLE_CHANGE", tenantId, requester.getId(), "MEMBER", userId,
+                Map.of("from", targetRole.name(), "to", newRoleEnum.name()), null);
         log.info("Usuario {} cambió rol de userId={} a {} en tenant {}",
                 requester.getEmail(), userId, newRole, tenantId);
 
@@ -138,6 +143,7 @@ public class MemberServiceImpl implements MemberService {
 
         userTenantRepository.delete(targetRelation);
 
+        auditService.record("MEMBER_REMOVED", tenantId, requester.getId(), "MEMBER", userId, null, null);
         log.info("Usuario {} desvinculó userId={} del tenant {}", requester.getEmail(), userId, tenantId);
     }
 

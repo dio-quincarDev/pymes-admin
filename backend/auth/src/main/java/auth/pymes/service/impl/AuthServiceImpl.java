@@ -6,7 +6,6 @@ import auth.pymes.common.models.dto.request.RegisterRequest;
 import auth.pymes.common.models.dto.request.TokenRefreshRequest;
 import auth.pymes.common.models.dto.response.AuthResponse;
 import auth.pymes.common.models.dto.response.LogoutResponse;
-import auth.pymes.common.models.entities.AuditLog;
 import auth.pymes.common.models.entities.Tenant;
 import auth.pymes.common.models.entities.UserEntity;
 import auth.pymes.common.models.entities.UserTenant;
@@ -15,11 +14,11 @@ import auth.pymes.common.models.enums.PlanName;
 import auth.pymes.common.models.enums.RoleName;
 import auth.pymes.common.models.mappers.TenantMapper;
 import auth.pymes.common.models.mappers.UserMapper;
-import auth.pymes.repositories.AuditLogRepository;
 import auth.pymes.repositories.RefreshTokenRepository;
 import auth.pymes.repositories.TenantRepository;
 import auth.pymes.repositories.UserEntityRepository;
 import auth.pymes.repositories.UserTenantRepository;
+import auth.pymes.service.AuditService;
 import auth.pymes.service.AuthService;
 import auth.pymes.service.EmailVerificationService;
 import auth.pymes.service.JwtService;
@@ -54,7 +53,7 @@ public class AuthServiceImpl implements AuthService {
     private final UserEntityRepository userRepository;
     private final TenantRepository tenantRepository;
     private final UserTenantRepository userTenantRepository;
-    private final AuditLogRepository auditLogRepository;
+    private final AuditService auditService;
     private final RefreshTokenRepository refreshTokenRepository;
     private final JwtService jwtService;
     private final PasswordEncoder passwordEncoder;
@@ -139,7 +138,8 @@ public class AuthServiceImpl implements AuthService {
         String refreshToken = jwtService.generateRefreshToken(user);
         jwtService.saveRefreshToken(user, tenant.getId(), refreshToken);
 
-        auditLoginAction(user, tenant.getId(), "REGISTER_COMPLETE", httpRequest);
+        auditService.record("REGISTER_COMPLETE", tenant.getId(), user.getId(), "AUTH", null,
+                Map.of("provider", "LOCAL", "role", "OWNER", "plan", "FREE"), httpRequest);
 
         return new AuthResponse(accessToken, refreshToken, userMapper.toResponse(user), tenantMapper.toResponse(tenant));
     }
@@ -154,7 +154,8 @@ public class AuthServiceImpl implements AuthService {
 
         UserEntity user = userRepository.findByEmail(request.email()).orElse(null);
         if (user == null) {
-            auditSecurityEvent(null, null, "LOGIN_FAILED", "AUTH", httpRequest, "email=" + request.email());
+            auditService.recordFailure("LOGIN_FAILED", null, null, "AUTH", null,
+                    Map.of("provider", "LOCAL", "reason", "user_not_found", "email", request.email()), httpRequest);
             throw new AuthenticationException(INVALID_CREDENTIALS);
         }
 
@@ -172,7 +173,8 @@ public class AuthServiceImpl implements AuthService {
                     new UsernamePasswordAuthenticationToken(request.email(), request.password())
             );
         } catch (org.springframework.security.core.AuthenticationException e) {
-            auditSecurityEvent(user.getId(), null, "LOGIN_FAILED", "AUTH", httpRequest, "bad credentials");
+            auditService.recordFailure("LOGIN_FAILED", null, user.getId(), "AUTH", null,
+                    Map.of("provider", "LOCAL", "reason", "bad_credentials"), httpRequest);
             throw new AuthenticationException(INVALID_CREDENTIALS);
         }
 
@@ -193,7 +195,8 @@ public class AuthServiceImpl implements AuthService {
         log.info("Usuario {} hizo login exitoso", user.getEmail());
 
         UUID tenantId = activeTenant != null ? activeTenant.getId() : null;
-        auditLoginAction(user, tenantId, "LOGIN", httpRequest);
+        auditService.record("LOGIN", tenantId, user.getId(), "AUTH", null,
+                Map.of("provider", user.getProvider().name(), "role", role, "plan", plan), httpRequest);
 
         return new AuthResponse(
                 accessToken,
@@ -230,6 +233,11 @@ public class AuthServiceImpl implements AuthService {
                 } catch (Exception e) {
                     log.error("Error eliminando refresh tokens del usuario {}: {}", userId, e.getMessage());
                 }
+            }
+            if (userId != null) {
+                UUID tenantId = jwtService.extractTenantId(accessToken);
+                auditService.record("LOGOUT", tenantId, userId, "AUTH", null,
+                        Map.of("sessionsRevoked", sessionsRevoked), request);
             }
         }
 
@@ -317,58 +325,5 @@ public class AuthServiceImpl implements AuthService {
                 user != null ? userMapper.toResponse(user) : null,
                 tenant != null ? tenantMapper.toResponse(tenant) : null
         );
-    }
-
-    // ==================== AUDIT HELPER ====================
-
-    private void auditLoginAction(UserEntity user, UUID tenantId, String action, jakarta.servlet.http.HttpServletRequest httpRequest) {
-        String ipAddress = extractIpAddress(httpRequest);
-        String userAgent = httpRequest.getHeader("User-Agent");
-
-        AuditLog audit = AuditLog.builder()
-                .tenantId(tenantId)
-                .userId(user.getId())
-                .action(action)
-                .resource("AUTH")
-                .ipAddress(ipAddress)
-                .userAgent(userAgent)
-                .createdAt(ZonedDateTime.now())
-                .build();
-
-        auditLogRepository.save(audit);
-        log.info("Auditoría {}: user={} ip={}", action, user.getEmail(), ipAddress);
-    }
-
-    private void auditSecurityEvent(UUID userId, UUID tenantId, String action, String resource,
-                                    jakarta.servlet.http.HttpServletRequest httpRequest, String details) {
-        try {
-            String ipAddress = httpRequest != null ? extractIpAddress(httpRequest) : null;
-            String userAgent = httpRequest != null ? httpRequest.getHeader("User-Agent") : null;
-            AuditLog audit = AuditLog.builder()
-                    .tenantId(tenantId)
-                    .userId(userId)
-                    .action(action)
-                    .resource(resource)
-                    .details(details != null ? java.util.Map.of("detail", details) : null)
-                    .ipAddress(ipAddress)
-                    .userAgent(userAgent)
-                    .createdAt(ZonedDateTime.now())
-                    .build();
-            auditLogRepository.save(audit);
-        } catch (Exception e) {
-            log.warn("No se pudo persistir evento de seguridad {}: {}", action, e.getMessage());
-        }
-    }
-
-    private String extractIpAddress(jakarta.servlet.http.HttpServletRequest request) {
-        String xForwardedFor = request.getHeader("X-Forwarded-For");
-        if (xForwardedFor != null && !xForwardedFor.isBlank()) {
-            return xForwardedFor.split(",")[0].trim();
-        }
-        String xRealIp = request.getHeader("X-Real-IP");
-        if (xRealIp != null && !xRealIp.isBlank()) {
-            return xRealIp;
-        }
-        return request.getRemoteAddr();
     }
 }

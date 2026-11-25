@@ -9,6 +9,7 @@ import auth.pymes.common.models.enums.RoleName;
 import auth.pymes.repositories.TenantRepository;
 import auth.pymes.repositories.UserEntityRepository;
 import auth.pymes.repositories.UserTenantRepository;
+import auth.pymes.service.AuditService;
 import auth.pymes.service.JwtService;
 import auth.pymes.service.OAuth2IntentService;
 import auth.pymes.utils.exception.custom.ResourceNotFoundException;
@@ -53,6 +54,7 @@ public class OAuth2AuthenticationSuccessHandler extends SimpleUrlAuthenticationS
     private final TenantRepository tenantRepository;
     private final OAuth2IntentService oauth2IntentService;
     private final RedisTemplate<String, Object> redisTemplate;
+    private final AuditService auditService;
 
     @Value("${app.cors.allowed-origins:http://localhost:9200}")
     private String frontendUrl;
@@ -70,8 +72,13 @@ public class OAuth2AuthenticationSuccessHandler extends SimpleUrlAuthenticationS
         log.info("OAuth2 Login exitoso para: {}. intentId: {}", email, intentId);
 
         // 1. Buscar usuario en DB
-        UserEntity user = userRepository.findByEmail(email)
-                .orElseThrow(() -> new ResourceNotFoundException(USER_NOT_FOUND_BY_EMAIL, email));
+        UserEntity user = userRepository.findByEmail(email).orElse(null);
+        if (user == null) {
+            auditService.record("LOGIN_FAILED", null, null, "AUTH", null,
+                    Map.of("provider", "GOOGLE", "reason", "not_registered",
+                            "email", email == null ? "unknown" : email), request);
+            throw new ResourceNotFoundException(USER_NOT_FOUND_BY_EMAIL, email);
+        }
 
         UUID activeTenantId = null;
         String role = "USER";
@@ -114,6 +121,9 @@ public class OAuth2AuthenticationSuccessHandler extends SimpleUrlAuthenticationS
                 role = RoleName.OWNER.name();
                 plan = PlanName.FREE.name();
 
+                auditService.record("TENANT_CREATED", tenant.getId(), user.getId(), "TENANT", tenant.getId(),
+                        Map.of("slug", intent.companySlug(), "plan", plan, "provider", "GOOGLE"), request);
+
                 oauth2IntentService.deleteIntent(intentId);
                 clearIntentCookie(request, response);
             }
@@ -137,6 +147,9 @@ public class OAuth2AuthenticationSuccessHandler extends SimpleUrlAuthenticationS
                 clearIntentCookie(request, response);
             }
         }
+
+        auditService.record("LOGIN", activeTenantId, user.getId(), "AUTH", null,
+                Map.of("provider", "GOOGLE", "role", role, "plan", plan), request);
 
         // 5. Generar Tokens JWT
         String accessToken = jwtService.generateAccessToken(user, activeTenantId, role, plan);
