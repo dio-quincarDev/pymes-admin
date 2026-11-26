@@ -4,6 +4,7 @@ import auth.pymes.common.config.RateLimitService;
 import auth.pymes.common.models.entities.UserEntity;
 import auth.pymes.common.models.enums.AuthProvider;
 import auth.pymes.repositories.UserEntityRepository;
+import auth.pymes.service.AuditService;
 import auth.pymes.service.EmailService;
 import auth.pymes.service.PasswordResetService;
 import auth.pymes.service.impl.PasswordResetServiceImpl;
@@ -54,6 +55,12 @@ class PasswordResetServiceImplTest {
 
     @Mock
     private RateLimitService rateLimitService;
+
+    @Mock
+    private AuditService auditService;
+
+    @Mock
+    private HttpServletRequest httpRequest;
 
     @InjectMocks
     private PasswordResetServiceImpl passwordResetService;
@@ -141,7 +148,7 @@ class PasswordResetServiceImplTest {
             when(passwordEncoder.encode(newPassword)).thenReturn(encodedPassword);
             when(userRepository.save(any(UserEntity.class))).thenReturn(testUser);
 
-            passwordResetService.resetPassword(token, newPassword);
+            passwordResetService.resetPassword(token, newPassword, httpRequest);
 
             // Verify password was encoded and set
             verify(passwordEncoder).encode(newPassword);
@@ -152,6 +159,8 @@ class PasswordResetServiceImplTest {
 
             // Verify user was saved
             verify(userRepository).save(testUser);
+            verify(auditService).record(eq("PASSWORD_RESET"), isNull(), eq(testUser.getId()),
+                    eq("AUTH"), isNull(), anyMap(), eq(httpRequest));
         }
 
         @Test
@@ -160,7 +169,7 @@ class PasswordResetServiceImplTest {
             when(redisTemplate.opsForValue()).thenReturn(valueOperations);
             when(valueOperations.get("password:reset:invalid")).thenReturn(null);
 
-            assertThatThrownBy(() -> passwordResetService.resetPassword("invalid", "NewPass123!"))
+            assertThatThrownBy(() -> passwordResetService.resetPassword("invalid", "NewPass123!", httpRequest))
                     .isInstanceOf(PasswordResetTokenInvalidException.class);
 
             verifyNoInteractions(userRepository);
@@ -177,7 +186,7 @@ class PasswordResetServiceImplTest {
             when(valueOperations.get("password:reset:" + token)).thenReturn(deletedEmail);
             when(userRepository.findByEmail(deletedEmail)).thenReturn(Optional.empty());
 
-            assertThatThrownBy(() -> passwordResetService.resetPassword(token, "NewPass123!"))
+            assertThatThrownBy(() -> passwordResetService.resetPassword(token, "NewPass123!", httpRequest))
                     .isInstanceOf(AuthenticationException.class);
 
             verify(passwordEncoder, never()).encode(any());

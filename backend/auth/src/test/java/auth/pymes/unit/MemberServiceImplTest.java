@@ -11,6 +11,7 @@ import auth.pymes.common.models.mappers.UserMapper;
 import auth.pymes.repositories.TenantRepository;
 import auth.pymes.repositories.UserEntityRepository;
 import auth.pymes.repositories.UserTenantRepository;
+import auth.pymes.service.AuditService;
 import auth.pymes.service.impl.MemberServiceImpl;
 import org.junit.jupiter.api.Test;
 import org.junit.jupiter.api.extension.ExtendWith;
@@ -42,6 +43,8 @@ public class MemberServiceImplTest {
     private UserTenantRepository userTenantRepository;
     @Mock
     private UserMapper userMapper;
+    @Mock
+    private AuditService auditService;
 
     @InjectMocks
     private MemberServiceImpl memberService;
@@ -98,6 +101,8 @@ public class MemberServiceImplTest {
 
         assertThat(response).isNotNull();
         assertThat(targetRelation.getRole()).isEqualTo(RoleName.ADMIN);
+        verify(auditService).record(eq("ROLE_CHANGE"), eq(tenantId), eq(owner.getId()), eq("MEMBER"),
+                eq(targetUserId), argThat(d -> "VIEWER".equals(d.get("from")) && "ADMIN".equals(d.get("to"))), isNull());
     }
 
     @Test
@@ -120,5 +125,7 @@ public class MemberServiceImplTest {
         memberService.deleteUserFromTenant(tenantId, targetUserId, principal);
 
         verify(userTenantRepository).delete(targetRelation);
+        verify(auditService).record(eq("MEMBER_REMOVED"), eq(tenantId), eq(owner.getId()), eq("MEMBER"),
+                eq(targetUserId), isNull(), isNull());
     }
 }

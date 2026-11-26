@@ -210,6 +210,79 @@ class AuthApiIntegrationTest extends AbstractIntegrationTest {
                     .andExpect(status().isUnauthorized())
                     .andExpect(jsonPath("$.codigo").value(CodigoError.INVALID_CREDENTIALS.getCodigo()));
         }
+
+        @Test
+        @DisplayName("Registro y login local → quedan anotados REGISTER_COMPLETE y LOGIN")
+        void registerAndLoginRecordAudit() throws Exception {
+            mockMvc.perform(post(TestApiPaths.AUTH_REGISTER)
+                            .contentType(MediaType.APPLICATION_JSON)
+                            .content(objectMapper.writeValueAsString(validRegisterRequest)))
+                    .andExpect(status().isOk());
+
+            String verificationToken = redisTemplate.keys("temp-register:*").stream()
+                    .filter(k -> k.matches("temp-register:[0-9a-f]{64}"))
+                    .findFirst()
+                    .map(k -> k.replace("temp-register:", ""))
+                    .orElseThrow(() -> new IllegalStateException("No registration token in Redis"));
+
+            mockMvc.perform(post(TestApiPaths.AUTH_VERIFY_EMAIL)
+                            .contentType(MediaType.APPLICATION_JSON)
+                            .content(objectMapper.writeValueAsString(new VerifyEmailRequest(verificationToken, uniqueEmail))))
+                    .andExpect(status().isOk());
+
+            mockMvc.perform(post(TestApiPaths.AUTH_LOGIN)
+                            .contentType(MediaType.APPLICATION_JSON)
+                            .content(objectMapper.writeValueAsString(new LoginRequest(uniqueEmail, "SecurePass123!"))))
+                    .andExpect(status().isOk());
+
+            Integer registerEvents = jdbcTemplate.queryForObject(
+                    "SELECT COUNT(*) FROM audit_log WHERE action = 'REGISTER_COMPLETE' " +
+                            "AND details->>'provider' = 'LOCAL' " +
+                            "AND user_id = (SELECT id FROM users WHERE email = ?)",
+                    Integer.class, uniqueEmail);
+            assertThat(registerEvents).isEqualTo(1);
+
+            Integer loginEvents = jdbcTemplate.queryForObject(
+                    "SELECT COUNT(*) FROM audit_log WHERE action = 'LOGIN' " +
+                            "AND details->>'provider' = 'LOCAL' " +
+                            "AND user_id = (SELECT id FROM users WHERE email = ?)",
+                    Integer.class, uniqueEmail);
+            assertThat(loginEvents).isEqualTo(1);
+        }
+
+        @Test
+        @DisplayName("Contraseña incorrecta → 401 y queda anotado el intento fallido")
+        void loginInvalidPasswordRecordsAudit() throws Exception {
+            mockMvc.perform(post(TestApiPaths.AUTH_REGISTER)
+                            .contentType(MediaType.APPLICATION_JSON)
+                            .content(objectMapper.writeValueAsString(validRegisterRequest)))
+                    .andExpect(status().isOk());
+
+            String verificationToken = redisTemplate.keys("temp-register:*").stream()
+                    .filter(k -> k.matches("temp-register:[0-9a-f]{64}"))
+                    .findFirst()
+                    .map(k -> k.replace("temp-register:", ""))
+                    .orElseThrow(() -> new IllegalStateException("No registration token in Redis"));
+
+            mockMvc.perform(post(TestApiPaths.AUTH_VERIFY_EMAIL)
+                            .contentType(MediaType.APPLICATION_JSON)
+                            .content(objectMapper.writeValueAsString(new VerifyEmailRequest(verificationToken, uniqueEmail))))
+                    .andExpect(status().isOk());
+
+            LoginRequest loginRequest = new LoginRequest(uniqueEmail, "WrongPass123!");
+            mockMvc.perform(post(TestApiPaths.AUTH_LOGIN)
+                            .contentType(MediaType.APPLICATION_JSON)
+                            .content(objectMapper.writeValueAsString(loginRequest)))
+                    .andExpect(status().isUnauthorized())
+                    .andExpect(jsonPath("$.codigo").value(CodigoError.INVALID_CREDENTIALS.getCodigo()));
+
+            Integer failedAttempts = jdbcTemplate.queryForObject(
+                    "SELECT COUNT(*) FROM audit_log WHERE action = 'LOGIN_FAILED' " +
+                            "AND details->>'reason' = 'bad_credentials' " +
+                            "AND user_id = (SELECT id FROM users WHERE email = ?)",
+                    Integer.class, uniqueEmail);
+            assertThat(failedAttempts).isEqualTo(1);
+        }
     }
 
     // ==================== LOGOUT ====================

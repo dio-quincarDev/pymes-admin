@@ -15,6 +15,7 @@ El directorio de documentación se organiza de la siguiente manera:
   - **[CONSISTENCY_STRATEGY.md](file:///home/dio/desarrollo/side-projects/pymes-admin/backend/auth/docs/strategies/CONSISTENCY_STRATEGY.md)**: Arquitectura de consistencia de rutas de API.
   - **[LOCAL_AUTH_STRATEGY.md](file:///home/dio/desarrollo/side-projects/pymes-admin/backend/auth/docs/strategies/LOCAL_AUTH_STRATEGY.md)**: Flujos de registro, login y jerarquías.
   - **[MULTI_SCHEMA_STRATEGY.md](file:///home/dio/desarrollo/side-projects/pymes-admin/backend/auth/docs/strategies/MULTI_SCHEMA_STRATEGY.md)**: Configuración del aislamiento de datos por esquema.
+  - **[AUDIT_STRATEGY.md](file:///home/dio/desarrollo/side-projects/pymes-admin/backend/auth/docs/strategies/AUDIT_STRATEGY.md)**: Cuaderno de auditoría: qué se anota al entrar, salir y cambiar roles.
   - **[STRATEGY_OAUTH2_TENANT.md](file:///home/dio/desarrollo/side-projects/pymes-admin/backend/auth/docs/strategies/STRATEGY_OAUTH2_TENANT.md)**: Vinculación de inquilinos en logins federados mediante `state`.
   - **[THYMELEAF_EMAIL_SYSTEM.md](file:///home/dio/desarrollo/side-projects/pymes-admin/backend/auth/docs/strategies/THYMELEAF_EMAIL_SYSTEM.md)**: Plantillas y diseño responsive de emails.
   - **[VERIFICATION_SECURITY_FIX.md](file:///home/dio/desarrollo/side-projects/pymes-admin/backend/auth/docs/strategies/VERIFICATION_SECURITY_FIX.md)**: Detalles sobre el fix contra la vulnerabilidad de mismatch de token-email.

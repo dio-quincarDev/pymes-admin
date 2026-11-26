@@ -10,8 +10,10 @@ import auth.pymes.common.models.enums.RoleName;
 import auth.pymes.repositories.TenantRepository;
 import auth.pymes.repositories.UserEntityRepository;
 import auth.pymes.repositories.UserTenantRepository;
+import auth.pymes.service.AuditService;
 import auth.pymes.service.JwtService;
 import auth.pymes.service.OAuth2IntentService;
+import auth.pymes.utils.exception.custom.ResourceNotFoundException;
 import jakarta.servlet.http.Cookie;
 import jakarta.servlet.http.HttpServletRequest;
 import jakarta.servlet.http.HttpServletResponse;
@@ -36,6 +38,7 @@ import java.util.Optional;
 import java.util.UUID;
 
 import static org.assertj.core.api.Assertions.assertThat;
+import static org.assertj.core.api.Assertions.assertThatThrownBy;
 import static org.mockito.ArgumentMatchers.*;
 import static org.mockito.Mockito.*;
 import static org.mockito.Mockito.lenient;
@@ -57,6 +60,9 @@ class OAuth2AuthenticationSuccessHandlerTest {
 
     @Mock
     private OAuth2IntentService oauth2IntentService;
+
+    @Mock
+    private AuditService auditService;
 
     @Mock
     private RedisTemplate<String, Object> redisTemplate;
@@ -117,8 +123,23 @@ class OAuth2AuthenticationSuccessHandlerTest {
         
         verify(oauth2IntentService).getIntent("intent-123");
         verify(oauth2IntentService).deleteIntent("intent-123");
-        verify(tenantRepository).save(argThat(t -> 
+        verify(tenantRepository).save(argThat(t ->
                 t.getName().equals("Test Corp") && t.getSlug().equals("test-corp")));
+        verify(auditService).record(eq("TENANT_CREATED"), eq(savedTenant.getId()), eq(mockUser.getId()),
+                eq("TENANT"), eq(savedTenant.getId()), argThat(d -> "GOOGLE".equals(d.get("provider"))), eq(request));
+        verify(auditService).record(eq("LOGIN"), eq(savedTenant.getId()), eq(mockUser.getId()),
+                eq("AUTH"), isNull(), argThat(d -> "GOOGLE".equals(d.get("provider"))), eq(request));
+    }
+
+    @Test
+    void sinCuenta_RegistraLoginFailedYLanzaExcepcion() {
+        when(authentication.getPrincipal()).thenReturn(createOAuth2User("unknown@gmail.com"));
+        when(userRepository.findByEmail("unknown@gmail.com")).thenReturn(Optional.empty());
+
+        assertThatThrownBy(() -> handler.onAuthenticationSuccess(request, response, authentication))
+                .isInstanceOf(ResourceNotFoundException.class);
+        verify(auditService).record(eq("LOGIN_FAILED"), isNull(), isNull(), eq("AUTH"), isNull(),
+                argThat(d -> "GOOGLE".equals(d.get("provider")) && "not_registered".equals(d.get("reason"))), eq(request));
     }
 
     @Test

@@ -5,6 +5,7 @@ import auth.pymes.common.models.entities.UserEntity;
 import auth.pymes.repositories.RefreshTokenRepository;
 import auth.pymes.repositories.UserEntityRepository;
 import auth.pymes.service.PasswordResetService;
+import auth.pymes.service.AuditService;
 import auth.pymes.service.EmailService;
 import auth.pymes.utils.exception.CodigoError;
 import auth.pymes.utils.exception.auth.AuthenticationException;
@@ -39,6 +40,7 @@ public class PasswordResetServiceImpl implements PasswordResetService {
     private final PasswordEncoder passwordEncoder;
     private final EmailService emailService;
     private final RateLimitService rateLimitService;
+    private final AuditService auditService;
 
     @Value("${app.frontend.url}")
     private String frontendUrl;
@@ -86,7 +88,7 @@ public class PasswordResetServiceImpl implements PasswordResetService {
 
     @Override
     @Transactional
-    public void resetPassword(String token, String newPassword) {
+    public void resetPassword(String token, String newPassword, HttpServletRequest httpRequest) {
         // Validar tamaño del token para evitar claves Redis gigantes / DoS
         if (token == null || token.isBlank() || token.length() > 128) {
             throw new PasswordResetTokenInvalidException();
@@ -113,6 +115,8 @@ public class PasswordResetServiceImpl implements PasswordResetService {
         }
 
         redisTemplate.delete(key);
+        auditService.record("PASSWORD_RESET", null, user.getId(), "AUTH", null,
+                Map.of("provider", "LOCAL"), httpRequest);
         log.info("Contraseña actualizada exitosamente para usuario: {}", email);
     }
 

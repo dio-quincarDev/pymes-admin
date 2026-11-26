@@ -16,11 +16,11 @@ import auth.pymes.common.models.enums.PlanName;
 import auth.pymes.common.models.enums.RoleName;
 import auth.pymes.common.models.mappers.TenantMapper;
 import auth.pymes.common.models.mappers.UserMapper;
-import auth.pymes.repositories.AuditLogRepository;
 import auth.pymes.repositories.RefreshTokenRepository;
 import auth.pymes.repositories.TenantRepository;
 import auth.pymes.repositories.UserEntityRepository;
 import auth.pymes.repositories.UserTenantRepository;
+import auth.pymes.service.AuditService;
 import auth.pymes.service.EmailVerificationService;
 import auth.pymes.service.JwtService;
 import auth.pymes.service.impl.AuthServiceImpl;
@@ -61,7 +61,7 @@ public class AuthServiceImplTest {
     private UserTenantRepository userTenantRepository;
 
     @Mock
-    private AuditLogRepository auditLogRepository;
+    private AuditService auditService;
 
     @Mock
     private RefreshTokenRepository refreshTokenRepository;
@@ -158,6 +158,7 @@ public class AuthServiceImplTest {
         UserEntity user = UserEntity.builder()
                 .id(UUID.randomUUID())
                 .email(request.email())
+                .provider(AuthProvider.LOCAL)
                 .isActive(true)
                 .emailVerifiedAt(ZonedDateTime.now())
                 .build();
@@ -190,6 +191,8 @@ public class AuthServiceImplTest {
         assertThat(response.accessToken()).isEqualTo(accessToken);
         assertThat(response.user().email()).isEqualTo(request.email());
         verify(jwtService).saveRefreshToken(user, tenant.getId(), refreshToken);
+        verify(auditService).record(eq("LOGIN"), eq(tenant.getId()), eq(user.getId()), eq("AUTH"), isNull(),
+                argThat(d -> "LOCAL".equals(d.get("provider")) && "OWNER".equals(d.get("role"))), eq(httpRequest));
     }
 
     @Test
@@ -209,6 +212,8 @@ public class AuthServiceImplTest {
         verify(jwtService).revokeToken(accessToken);
         verify(jwtService).extractUserId(accessToken);
         verify(refreshTokenRepository).deleteByUserId(userId);
+        verify(auditService).record(eq("LOGOUT"), isNull(), eq(userId), eq("AUTH"), isNull(),
+                argThat(d -> Boolean.TRUE.equals(d.get("sessionsRevoked"))), eq(httpRequest));
     }
 
     @Test
@@ -292,6 +297,8 @@ public class AuthServiceImplTest {
 
         assertThatThrownBy(() -> authService.login(request, httpRequest))
                 .isInstanceOf(AuthenticationException.class);
+        verify(auditService).recordFailure(eq("LOGIN_FAILED"), isNull(), isNull(), eq("AUTH"), isNull(),
+                argThat(d -> "bad_credentials".equals(d.get("reason"))), eq(httpRequest));
     }
 
     @Test
@@ -346,8 +353,8 @@ public class AuthServiceImplTest {
         when(rateLimitService.isAllowed("login:192.168.1.100:user1@example.com")).thenReturn(true);
         when(rateLimitService.isAllowed("login:192.168.1.100:user2@example.com")).thenReturn(true);
 
-        UserEntity user1 = UserEntity.builder().id(UUID.randomUUID()).email("user1@example.com").isActive(true).emailVerifiedAt(ZonedDateTime.now()).build();
-        UserEntity user2 = UserEntity.builder().id(UUID.randomUUID()).email("user2@example.com").isActive(true).emailVerifiedAt(ZonedDateTime.now()).build();
+        UserEntity user1 = UserEntity.builder().id(UUID.randomUUID()).email("user1@example.com").provider(AuthProvider.LOCAL).isActive(true).emailVerifiedAt(ZonedDateTime.now()).build();
+        UserEntity user2 = UserEntity.builder().id(UUID.randomUUID()).email("user2@example.com").provider(AuthProvider.LOCAL).isActive(true).emailVerifiedAt(ZonedDateTime.now()).build();
         when(userRepository.findByEmail("user1@example.com")).thenReturn(Optional.of(user1));
         when(userRepository.findByEmail("user2@example.com")).thenReturn(Optional.of(user2));
 
