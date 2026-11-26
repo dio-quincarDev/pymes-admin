@@ -50,7 +50,7 @@ io.total   -- WHERE ... AND type = 'GASTO_OPERATIVO' AND status = 'PAGADA'
 ### Backend (3 cambios)
 
 1. **`MetricasServiceImpl.computeMetrics`** — eliminar CTE `opex` + su cross join; agregar `AND status = 'PAGADA'` a `invoices_opex`.
-2. **Pago de factura dispara recálculo de métricas** — `FacturaPagadaEvent` + `FacturaPagadaListener` → `markMetricsDirty` (hoy `FacturaCreadaListener` solo marca analytics en create; el pago no emite evento y las métricas quedarían obsoletas).
+2. **Pago de factura dispara recálculo de métricas** — `FacturaPagadaEvent` + `FacturaPagadaListener` → `markMetricsDirty` + `markAnalyticsDirty`. Desde 2026-11-26 venta, gasto y cambios de estructura de costo también marcan ambos keys; antes solo las facturas refrescaban analytics y `DAILY_COST_CONTROL` podía quedar desactualizada. `Source: VentaCreadaListener.java`, `GastoCreadaListener.java`, `CostoStructureChangedListener.java`.
 3. **`FacturaServiceImpl`** — permitir facturas `GASTO_OPERATIVO` sin items con campo `total` en el request (la validación de productos L136-143 no aplica). El CTE `invoices_opex` ya usa `i.total`.
 
 ### Frontend (3 cambios)

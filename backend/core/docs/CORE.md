@@ -112,6 +112,9 @@ No es un motor SQL independiente. Es un motor compuesto que **lee resultados pre
 | `OVER_LEVERAGED` | `loanPayments / operatingMargin > 0.30` | Accounting — deuda insostenible |
 | `OPEX_CREEP` | gastos operativos creciendo más rápido que ingresos, 3+ meses | Accounting histórico — ineficiencia creciente |
 | `DEAD_INVENTORY` | productos con inversión alta + 0 compras >60d | Productos + ABC — capital estancado |
+| `DAILY_COST_CONTROL` | fijos presupuestados del mes (prorrateados a los días transcurridos) > ganancia tras mercancía | `costoOperativoDiario` vs `totalIncome − costOfGoods` |
+
+> **Texto de `DAILY_COST_CONTROL` (2026-11-26):** el mensaje dice "Los fijos **presupuestados** hasta hoy/del mes son $X", porque `costoOperativoDiario` sale de la config de gastos fijos + sueldos, no de los gastos ya pagados. `Source: AnalyticsServiceImpl.java` (tests `saludFinanciera_mesEnCurso_fijosCorridosDisparanAlertaEnTotales`, `saludFinanciera_mesCerrado_costoDiarioDisparaConTotalesDelMes`).
 
 ##### 🟢 Inversión (es seguro invertir)
 
@@ -309,6 +312,8 @@ Auth Service crea Tenant
    └── MetricasService.recalcular() -> 1 CTE consolidado
 ```
 
+Venta, gasto y cambios de estructura de costo también marcan **ambos** keys (antes solo marcaban métricas): la alerta se refresca en ≤30s sin esperar una factura. `Source: VentaCreadaListener.java`, `GastoCreadaListener.java`, `CostoStructureChangedListener.java`, `VentaServiceImpl.java`, `GastoServiceImpl.java`.
+
 ### Registrar Gasto / Venta
 
 ```
@@ -317,18 +322,22 @@ POST /gastos o /ventas
   └── Publica: GastoCreadoEvent / VentaCreadaEvent
 
 [Async] GastoCreadaListener / VentaCreadaListener
-  └── RecomputeDebounceService.markMetricsDirty()
+  └── RecomputeDebounceService.markMetricsDirty() + markAnalyticsDirty()
   └── Redis SETNX -> 1ms, scheduler recalc cada 30s
 ```
+
+Editar/borrar venta o gasto no pasa por listener: los services marcan ambos keys directamente.
 
 ### Debounce (Redis)
 
 | Key pattern | Tipo | Service llamado |
 |-------------|------|-----------------|
-| `recompute:metrics:{tenantId}:{period}` | gasto/venta | `MetricasService.recalcular()` |
-| `recompute:analytics:{tenantId}:{period}` | factura | `AnalyticsService.ejecutarCompleto()` |
+| `recompute:metrics:{tenantId}:{period}` | factura, gasto, venta, estructura de costo | `MetricasService.recalcular()` |
+| `recompute:analytics:{tenantId}:{period}` | factura, gasto, venta, estructura de costo | `AnalyticsService.ejecutarCompleto()` |
 
 TTL: 1 hora. Retry: key se conserva si falla (reintenta en proximo ciclo).
+
+`Source: RecomputeDebounceService.java`, `FacturaCreadaListener.java`, `FacturaPagadaListener.java`, `VentaCreadaListener.java`, `GastoCreadaListener.java`, `CostoStructureChangedListener.java`, `VentaServiceImpl.java`, `GastoServiceImpl.java`.
 
 ---
 

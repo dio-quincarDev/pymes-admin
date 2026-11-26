@@ -1,6 +1,6 @@
 # Analytics Module
 
-> **Estado (2026-09-18):** 9 motores CTE + Financial Health + `DAILY_COST_CONTROL/COVERED` + `PAYBACK_RECOVERY` (costoDiario vs venta). Tests 11 unit + `V5/V6` (2026-09-15) `263 total core`. 10 columnas JSONB vigentes.
+> **Estado (2026-11-26):** 9 motores CTE + Financial Health + `DAILY_COST_CONTROL/COVERED` (fijos presupuestados del mes prorrateados vs ganancia tras mercancía) + `PAYBACK_RECOVERY` (patrimonio invertido vs margen neto). Tests: `285 unit core` verdes. 10 columnas JSONB vigentes.
 
 ---
 

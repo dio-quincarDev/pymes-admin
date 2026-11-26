@@ -59,7 +59,7 @@ costos/
 | Mapper | `ProductoMapper.java` | `@Mapper(componentModel = SPRING)` — **MapStruct**, no manual |
 | Service | `GastoServiceImpl.java` | `@Transactional`, `@Cacheable`/`@CacheEvict`, tenant guard, event publishing, `@RequiredArgsConstructor` |
 | Event | `VentaCreadaEvent.java` | Record con `UUID tenantId`, `String periodo` |
-| Listener | `GastoCreadaListener.java` | `@Async @TransactionalEventListener(AFTER_COMMIT)` → `recomputeService.markMetricsDirty()` |
+| Listener | `GastoCreadaListener.java` | `@Async @TransactionalEventListener(AFTER_COMMIT)` → `recomputeService.markMetricsDirty()` + `markAnalyticsDirty()` |
 | Ruta | `CorePath.java` | `+COSTOS_ROUTE = "/costos"` |
 | Migration | `V12` pattern | `V2` con 3 tablas |
 | CTE | `MetricasServiceImpl.java` | Extender el CTE consolidado con fuente `costos` |
@@ -256,7 +256,7 @@ Agregar señal:
 |-------|------|----------|
 | `DAILY_COST_CONTROL` | 🟢 Inversión | `ventasHoy > costoOperativoDiario × 1.2` en 3+ de los últimos 7 días |
 
-Indica que el negocio genera suficiente ingreso diario para cubrir sus costos operativos diarios con un margen del 20%.
+> **Actualizado 2026-11-26:** la señal es 🔴 crítica, no de inversión, y compara totales del mes: fijos presupuestados prorrateados a los días transcurridos vs ganancia tras mercancía (`totalIncome − costOfGoods`). La fila de arriba refleja el diseño inicial de 2026-08-02. `Source: AnalyticsServiceImpl.java`.
 
 ### OPEX_CREEP
 
@@ -302,11 +302,12 @@ public class CostoStructureChangedListener {
     @TransactionalEventListener(phase = TransactionPhase.AFTER_COMMIT)
     public void onCostoStructureChanged(CostoStructureChangedEvent event) {
         recomputeService.markMetricsDirty(event.tenantId(), event.periodo());
+        recomputeService.markAnalyticsDirty(event.tenantId(), event.periodo());
     }
 }
 ```
 
-El debounce Redis existente (30s, SETNX) maneja la deduplicación.
+El debounce Redis existente (30s, SETNX) maneja la deduplicación. `Source: CostoStructureChangedListener.java`.
 
 ---
 
