@@ -22,7 +22,8 @@ public class GastoCreadaListener {
     @TransactionalEventListener(phase = TransactionPhase.AFTER_COMMIT)
     public void onGastoCreado(GastoCreadoEvent event) {
         var periodo = YearMonth.from(event.fecha()).toString();
-        log.debug("Marking metrics dirty for tenant {} period {}", event.tenantId(), periodo);
+        log.debug("Marking metrics and analytics dirty for tenant {} period {}", event.tenantId(), periodo);
         recomputeService.markMetricsDirty(event.tenantId(), periodo);
+        recomputeService.markAnalyticsDirty(event.tenantId(), periodo);
     }
 }

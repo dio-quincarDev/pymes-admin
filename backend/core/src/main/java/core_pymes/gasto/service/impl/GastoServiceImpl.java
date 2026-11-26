@@ -8,6 +8,7 @@ import core_pymes.gasto.event.GastoCreadoEvent;
 import core_pymes.gasto.repository.GastoRepository;
 import core_pymes.gasto.service.GastoService;
 import core_pymes.common.exception.custom.ResourceNotFoundException;
+import core_pymes.common.service.RecomputeDebounceService;
 import lombok.RequiredArgsConstructor;
 import lombok.extern.slf4j.Slf4j;
 import org.springframework.cache.annotation.CacheEvict;
@@ -16,6 +17,7 @@ import org.springframework.context.ApplicationEventPublisher;
 import org.springframework.stereotype.Service;
 import org.springframework.transaction.annotation.Transactional;
 
+import java.time.YearMonth;
 import java.util.List;
 import java.util.UUID;
 
@@ -26,6 +28,7 @@ public class GastoServiceImpl implements GastoService {
 
     private final GastoRepository repository;
     private final ApplicationEventPublisher eventPublisher;
+    private final RecomputeDebounceService recomputeService;
 
     @Override
     @Transactional(readOnly = true)
@@ -66,12 +69,18 @@ public class GastoServiceImpl implements GastoService {
     @CacheEvict(cacheNames = "gastos", allEntries = true)
     public GastoResponse update(UUID id, UUID tenantId, GastoRequest request) {
         var gasto = getGasto(id, tenantId);
+        var periodoAnterior = YearMonth.from(gasto.getExpenseDate()).toString();
         gasto.setCategory(CategoriaGasto.valueOf(request.categoria()));
         gasto.setDescription(request.descripcion());
         gasto.setAmount(request.monto());
         gasto.setExpenseDate(request.fecha());
         gasto.setPaymentMethod(request.metodoPago());
         gasto = repository.save(gasto);
+        var periodoNuevo = YearMonth.from(gasto.getExpenseDate()).toString();
+        recomputeService.markMetricsDirty(tenantId, periodoAnterior);
+        recomputeService.markMetricsDirty(tenantId, periodoNuevo);
+        recomputeService.markAnalyticsDirty(tenantId, periodoAnterior);
+        recomputeService.markAnalyticsDirty(tenantId, periodoNuevo);
         return toResponse(gasto);
     }
 
@@ -80,7 +89,10 @@ public class GastoServiceImpl implements GastoService {
     @CacheEvict(cacheNames = "gastos", allEntries = true)
     public void delete(UUID id, UUID tenantId) {
         var gasto = getGasto(id, tenantId);
+        var periodo = YearMonth.from(gasto.getExpenseDate()).toString();
         repository.delete(gasto);
+        recomputeService.markMetricsDirty(tenantId, periodo);
+        recomputeService.markAnalyticsDirty(tenantId, periodo);
     }
 
     private GastoOperativo getGasto(UUID id, UUID tenantId) {

@@ -791,8 +791,11 @@ public class AnalyticsServiceImpl implements AnalyticsService {
                                 + gananciaBruta.setScale(2, RoundingMode.HALF_UP).toPlainString()
                                 + " después de pagar la mercancía"
                         : "Después de pagar la mercancía no te queda ganancia";
+                var fijosTexto = mesEnCurso
+                        ? "Los fijos presupuestados hasta hoy son $"
+                        : "Los fijos presupuestados del mes son $";
                 criticals.add(alert("DAILY_COST_CONTROL", "Los costos fijos se comen tu ganancia",
-                        ritmo + ". Los fijos que han corrido son $"
+                        ritmo + ". " + fijosTexto
                                 + fijosCorridos.setScale(2, RoundingMode.HALF_UP).toPlainString()
                                 + ". Te faltan $" + faltante + ".",
                         fijosCorridos, gananciaBruta, "Reduce costos fijos o sube el margen de tus ventas."));

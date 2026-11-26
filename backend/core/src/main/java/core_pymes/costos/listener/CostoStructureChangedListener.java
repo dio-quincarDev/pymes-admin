@@ -19,7 +19,8 @@ public class CostoStructureChangedListener {
     @Async
     @TransactionalEventListener(phase = TransactionPhase.AFTER_COMMIT)
     public void onCostoStructureChanged(CostoStructureChangedEvent event) {
-        log.debug("Marking metrics dirty for tenant {} period {}", event.tenantId(), event.periodo());
+        log.debug("Marking metrics and analytics dirty for tenant {} period {}", event.tenantId(), event.periodo());
         recomputeService.markMetricsDirty(event.tenantId(), event.periodo());
+        recomputeService.markAnalyticsDirty(event.tenantId(), event.periodo());
     }
 }
