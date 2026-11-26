@@ -83,6 +83,8 @@ public class VentaServiceImpl implements VentaService {
         // editar/borrar no pasa por ningun listener: sin esto el cache de metricas queda con el monto viejo
         recomputeService.markMetricsDirty(tenantId, periodoAnterior);
         recomputeService.markMetricsDirty(tenantId, YearMonth.from(venta.getSaleDate()).toString());
+        recomputeService.markAnalyticsDirty(tenantId, periodoAnterior);
+        recomputeService.markAnalyticsDirty(tenantId, YearMonth.from(venta.getSaleDate()).toString());
         return toResponse(venta);
     }
 
@@ -94,6 +96,7 @@ public class VentaServiceImpl implements VentaService {
         var periodo = YearMonth.from(venta.getSaleDate()).toString();
         repository.delete(venta);
         recomputeService.markMetricsDirty(tenantId, periodo);
+        recomputeService.markAnalyticsDirty(tenantId, periodo);
     }
 
     private BigDecimal resolveGrossAmount(VentaRequest request) {

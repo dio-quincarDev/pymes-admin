@@ -329,7 +329,7 @@ class AnalyticsServiceImplTest {
 
             var daily = ((List<Map<String, Object>>) result.get("criticalAlerts")).stream()
                     .filter(m -> "DAILY_COST_CONTROL".equals(m.get("type"))).findFirst().orElseThrow();
-            assertThat(daily.get("message")).isEqualTo("Hasta hoy ganaste $1500.00 después de pagar la mercancía. Los fijos que han corrido son $3634.80. Te faltan $2134.80.");
+            assertThat(daily.get("message")).isEqualTo("Hasta hoy ganaste $1500.00 después de pagar la mercancía. Los fijos presupuestados hasta hoy son $3634.80. Te faltan $2134.80.");
         }
     }
 
@@ -349,7 +349,7 @@ class AnalyticsServiceImplTest {
         var daily = ((List<Map<String, Object>>) result.get("criticalAlerts")).stream()
                 .filter(m -> "DAILY_COST_CONTROL".equals(m.get("type"))).findFirst().orElseThrow();
         assertThat(daily.get("title")).isEqualTo("Los costos fijos se comen tu ganancia");
-        assertThat(daily.get("message")).isEqualTo("Este mes ganaste $2088.10 después de pagar la mercancía. Los fijos que han corrido son $3634.80. Te faltan $1546.70.");
+        assertThat(daily.get("message")).isEqualTo("Este mes ganaste $2088.10 después de pagar la mercancía. Los fijos presupuestados del mes son $3634.80. Te faltan $1546.70.");
     }
 
     @Test
@@ -666,7 +666,7 @@ class AnalyticsServiceImplTest {
         var daily = ((List<Map<String, Object>>) result.get("criticalAlerts")).stream()
                 .filter(m -> "DAILY_COST_CONTROL".equals(m.get("type"))).findFirst().orElseThrow();
         assertThat(daily.get("message"))
-                .isEqualTo("Después de pagar la mercancía no te queda ganancia. Los fijos que han corrido son $1300.00. Te faltan $1500.00.");
+                .isEqualTo("Después de pagar la mercancía no te queda ganancia. Los fijos presupuestados del mes son $1300.00. Te faltan $1500.00.");
     }
 
     @Test
