@@ -35,9 +35,7 @@ const MAX_SLICES = 5;
 const total = computed(() => props.items.reduce((s, i) => s + i.currentAmount, 0));
 
 // paleta compartida por arcos y leyenda (mismo orden, datos mismos índices)
-const palette = computed(() => [
-  colors.value.abcA, colors.value.abcB, colors.value.positive, colors.value.negative, colors.value.info, colors.value.text,
-]);
+const palette = computed(() => colors.value.categorical);
 
 const chartData = computed(() => {
   const sorted = [...props.items].sort((a, b) => b.currentAmount - a.currentAmount);

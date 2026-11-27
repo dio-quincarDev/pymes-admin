@@ -17,9 +17,7 @@ const { colors } = useChartTheme();
 const total = computed(() => props.items.reduce((s, i) => s + (i.spend ?? 0), 0));
 
 // paleta compartida por arcos y leyenda (mismo orden, datos mismos índices)
-const palette = computed(() => [
-  colors.value.abcA, colors.value.abcB, colors.value.abcC, colors.value.info, colors.value.positive, colors.value.bar,
-]);
+const palette = computed(() => colors.value.categorical);
 
 const chartData = computed(() => {
   const sorted = [...props.items].sort((a, b) => b.spend - a.spend);

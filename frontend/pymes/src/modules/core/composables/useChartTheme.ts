@@ -1,5 +1,10 @@
 import { computed } from 'vue'
 
+// 6 tokens con valores distintos: los donuts de 5 tajadas + "Otros" no deben repetir color
+export const CATEGORICAL_COLOR_KEYS = [
+  'chart-abc-a', 'chart-abc-b', 'chart-positive', 'chart-negative', 'chart-abc-c', 'chart-text',
+] as const;
+
 export function useChartTheme() {
   const getVar = (name: string) =>
     getComputedStyle(document.documentElement).getPropertyValue(`--pq-${name}`).trim()
@@ -19,6 +24,7 @@ export function useChartTheme() {
     abcB: getVar('chart-abc-b'),
     abcC: getVar('chart-abc-c'),
     info: getVar('info'),
+    categorical: CATEGORICAL_COLOR_KEYS.map(getVar),
   }))
 
   const defaults = computed(() => ({
